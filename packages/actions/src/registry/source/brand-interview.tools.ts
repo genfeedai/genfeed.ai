@@ -1,7 +1,8 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 /**
- * Brand context interview tools.
+ * Brand context interview tools, plus the read-only brand context snapshot
+ * (`get_brand_context`).
  *
  * Credit billing note: start_brand_interview charges 10 credits once inside the
  * engine (BrandInterviewService.start). These tool definitions carry creditCost:0
@@ -79,6 +80,34 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
         },
       },
       required: ['brandId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Show everything the agent knows about a brand: the exact context injected into chat — identity, guidelines, voice, strategy and topics, persona, prompt seeds and conversation starters, performance insights, proven patterns, retrieved knowledge, recent posts, saved memories, active skills, the chat model with its credits per round, the context budget, and the rendered system prompt. Read-only, no credits charged. Use when the user asks what you know about their brand or why you wrote something a certain way.',
+    name: 'get_brand_context',
+    parameters: {
+      properties: {
+        brandId: {
+          description:
+            'ID of the brand to inspect. Defaults to the brand of the current conversation.',
+          type: 'string',
+        },
+        includeSystemPrompt: {
+          description:
+            'Include the full rendered system prompt text. Defaults to true; set false for a shorter layer summary.',
+          type: 'boolean',
+        },
+        query: {
+          description:
+            'Optional preview message. Knowledge, related posts, and memories are ranked against it, showing what a turn about this topic would retrieve.',
+          type: 'string',
+        },
+      },
+      required: [],
       type: 'object',
     },
     requiredRole: 'user',

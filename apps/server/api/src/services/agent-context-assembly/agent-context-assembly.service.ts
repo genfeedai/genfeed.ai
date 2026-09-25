@@ -9,12 +9,15 @@ import { scopedWhere } from '@api/index';
 import type {
   AssembleContextParams,
   AssembledBrandContext,
+  AssembledContextLayerName,
   ContextLayers,
+  RenderedBrandSystemPrompt,
   SystemPromptOptions,
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import {
   type BrandKitSourceBrand,
@@ -24,13 +27,16 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
-  fitBrandContextToBudget,
+  BRAND_KNOWLEDGE_HEADER,
+  fitBrandContextToBudgetWithReport,
+  RETRIEVED_BRAND_MEMORY_HEADER,
 } from './brand-context-budget.util';
 import { rankByQueryOverlap } from './text-overlap.util';
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
   brandIdentity: true,
+  brandKnowledge: true,
   brandMemory: true,
   performancePatterns: false,
   ragContext: true,
@@ -45,6 +51,10 @@ const CACHE_TTL_POSTS = 120; // 2 min
 const RECENT_POSTS_DAYS = 14;
 const RECENT_POSTS_LIMIT = 10;
 const MAX_POST_SUMMARY_LENGTH = 200;
+const MAX_MEMORY_INSIGHTS = 5;
+const BRAND_KNOWLEDGE_LIMIT = 4;
+const MAX_BRAND_KNOWLEDGE_PASSAGE_LENGTH = 500;
+const MAX_RAG_PASSAGE_LENGTH = 500;
 const DEFAULT_PRIMARY_COLOR = '#000000';
 const DEFAULT_SECONDARY_COLOR = '#FFFFFF';
 const DEFAULT_BACKGROUND_COLOR = 'transparent';
@@ -145,10 +155,23 @@ export class AgentContextAssemblyService {
       );
     }
 
-    // Layer 5: RAG Context (not cached — query-dependent)
+    // Layer 5: RAG Context (not cached — query-dependent). Brand-scoped so
+    // another brand's saved memory never reaches this prompt.
     if (layers.ragContext && params.query) {
       fetchPromises.push(
-        this.loadRagLayer(organizationId, params.query, context),
+        this.loadRagLayer(organizationId, brandId, params.query, context),
+      );
+    }
+
+    // Layer 5b: authoritative BRAND_TRUTH Knowledge (query-dependent)
+    if (layers.brandKnowledge && params.query) {
+      fetchPromises.push(
+        this.loadBrandKnowledgeLayer(
+          organizationId,
+          brandId,
+          params.query,
+          context,
+        ),
       );
     }
 
@@ -203,7 +226,7 @@ export class AgentContextAssemblyService {
     effectiveBrandAgentConfig: EffectiveBrandAgentConfig,
     includeBrandGuidance: boolean,
   ): AssembledBrandContext {
-    const layersUsed = ['brandIdentity'];
+    const layersUsed: AssembledContextLayerName[] = ['brandIdentity'];
     if (effectiveBrandAgentConfig.platformOverrideApplied) {
       layersUsed.push('platformOverride');
     }
@@ -312,6 +335,7 @@ export class AgentContextAssemblyService {
         frequency: resolvedStrategy.frequency,
         goals: resolvedStrategy.goals,
         platforms: resolvedStrategy.platforms,
+        topics: resolvedStrategy.topics,
       };
     }
 
@@ -330,6 +354,19 @@ export class AgentContextAssemblyService {
     context: AssembledBrandContext,
     options: SystemPromptOptions = {},
   ): string {
+    return this.renderSystemPrompt(basePrompt, context, options).prompt;
+  }
+
+  /**
+   * Renders the brand system prompt and reports how the brand context was
+   * fitted to its budget: every section with its priority, original and
+   * rendered length, and whether it was kept, trimmed or dropped.
+   */
+  renderSystemPrompt(
+    basePrompt: string,
+    context: AssembledBrandContext,
+    options: SystemPromptOptions = {},
+  ): RenderedBrandSystemPrompt {
     const maxLength =
       options.maxBrandContextLength ?? BRAND_CONTEXT_CHARACTER_BUDGET;
     const sections: string[] = [];
@@ -377,7 +414,7 @@ export class AgentContextAssemblyService {
       context.memoryInsights?.length
     ) {
       const insightLines = context.memoryInsights
-        .slice(0, 5)
+        .slice(0, MAX_MEMORY_INSIGHTS)
         .map((i) => `- [${i.category}] ${i.insight}`);
       sections.push(`\n## Performance Insights\n${insightLines.join('\n')}`);
     }
@@ -393,11 +430,29 @@ export class AgentContextAssemblyService {
       );
     }
 
-    // RAG context
+    // Authoritative brand Knowledge (BRAND_TRUTH sources only)
+    if (
+      options.includeBrandKnowledge !== false &&
+      context.brandKnowledgeEntries?.length
+    ) {
+      sections.push(
+        `\n${BRAND_KNOWLEDGE_HEADER}\nVerified brand facts from the brand's Knowledge. Treat them as authoritative and prefer them over assumptions.${context.brandKnowledgeEntries
+          .map(
+            (entry) =>
+              `\n- [${this.toPromptLine(entry.citation.title)}]: ${entry.content}`,
+          )
+          .join('')}`,
+      );
+    }
+
+    // Saved brand memory (retrieved passages; not authoritative)
     if (options.includeRagContext !== false && context.ragEntries?.length) {
       sections.push(
-        `\n## Relevant Knowledge${context.ragEntries
-          .map((entry) => `\n- [${entry.source}]: ${entry.content}`)
+        `\n${RETRIEVED_BRAND_MEMORY_HEADER}${context.ragEntries
+          .map(
+            (entry) =>
+              `\n- [${this.toPromptLine(entry.source)}]: ${this.toPromptLine(entry.content, MAX_RAG_PASSAGE_LENGTH)}`,
+          )
           .join('')}`,
       );
     }
@@ -424,8 +479,24 @@ export class AgentContextAssemblyService {
       );
     }
 
-    const brandContextPrompt = fitBrandContextToBudget(sections, maxLength);
-    return [basePrompt, brandContextPrompt].filter(Boolean).join('\n\n');
+    const brandContext = fitBrandContextToBudgetWithReport(sections, maxLength);
+    return {
+      basePrompt,
+      brandContext,
+      prompt: [basePrompt, brandContext.text].filter(Boolean).join('\n\n'),
+    };
+  }
+
+  /**
+   * Collapse a retrieved passage to one line so it cannot open a new prompt
+   * section (a `## ...` or `HEADER:` line) and shift budget priorities.
+   */
+  private toPromptLine(value: string, maxLength?: number): string {
+    const line = value.replace(/\s+/g, ' ').trim();
+    if (maxLength === undefined || line.length <= maxLength) {
+      return line;
+    }
+    return `${line.slice(0, maxLength - 1).trimEnd()}…`;
   }
 
   private buildVisualIdentityPrompt(
@@ -543,6 +614,9 @@ export class AgentContextAssemblyService {
     }
     if (strategy.platforms?.length) {
       parts.push(`- Platforms: ${strategy.platforms.join(', ')}`);
+    }
+    if (strategy.topics?.length) {
+      parts.push(`- Topics: ${strategy.topics.join(', ')}`);
     }
     if (strategy.frequency) {
       parts.push(`- Frequency: ${strategy.frequency}`);
@@ -681,22 +755,26 @@ export class AgentContextAssemblyService {
     );
 
     if (insights?.length) {
-      context.memoryInsights = insights.map((i) => ({
-        category: i.category,
-        confidence: i.confidence,
-        insight: i.insight,
-      }));
+      context.memoryInsights = insights
+        .slice(0, MAX_MEMORY_INSIGHTS)
+        .map((i) => ({
+          category: i.category,
+          confidence: i.confidence,
+          insight: i.insight,
+        }));
       context.layersUsed.push('brandMemory');
     }
   }
 
   private async loadRagLayer(
     organizationId: string,
+    brandId: string,
     query: string,
     context: AssembledBrandContext,
   ): Promise<void> {
     const result = await this.contextsService.enhancePrompt(
       {
+        brandId,
         contentType: 'caption',
         prompt: query,
         useBrandVoice: true,
@@ -706,8 +784,52 @@ export class AgentContextAssemblyService {
     );
 
     if (result.context?.length) {
-      context.ragEntries = result.context;
+      context.ragEntries = result.context.map((entry) => ({
+        content: entry.content,
+        contextBaseId: entry.contextBaseId,
+        ...(entry.contextBaseType
+          ? { contextBaseType: entry.contextBaseType }
+          : {}),
+        relevance: entry.relevance,
+        source: entry.source,
+      }));
       context.layersUsed.push('ragContext');
+    }
+  }
+
+  private async loadBrandKnowledgeLayer(
+    organizationId: string,
+    brandId: string,
+    query: string,
+    context: AssembledBrandContext,
+  ): Promise<void> {
+    const hits = await this.contextsService.retrieveBrandKnowledge({
+      brandId,
+      limit: BRAND_KNOWLEDGE_LIMIT,
+      organizationId,
+      query,
+    });
+
+    // Inspiration and research must never silently become authoritative
+    // brand context, whatever the retrieval layer returns.
+    const entries = hits.flatMap((hit) =>
+      hit.citation?.purpose === KnowledgeSourcePurpose.BRAND_TRUTH
+        ? [
+            {
+              citation: hit.citation,
+              content: this.toPromptLine(
+                hit.content,
+                MAX_BRAND_KNOWLEDGE_PASSAGE_LENGTH,
+              ),
+              relevance: hit.relevance,
+            },
+          ]
+        : [],
+    );
+
+    if (entries.length > 0) {
+      context.brandKnowledgeEntries = entries;
+      context.layersUsed.push('brandKnowledge');
     }
   }
 

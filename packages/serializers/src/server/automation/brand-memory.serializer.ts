@@ -1,7 +1,15 @@
 import { buildSerializer } from '@serializers/builders';
-import { brandMemorySerializerConfig } from '@serializers/configs';
+import {
+  brandMemoryInsightSerializerConfig,
+  brandMemorySerializerConfig,
+} from '@serializers/configs';
 
 export const { BrandMemorySerializer } = buildSerializer(
   'server',
   brandMemorySerializerConfig,
+);
+
+export const { BrandMemoryInsightSerializer } = buildSerializer(
+  'server',
+  brandMemoryInsightSerializerConfig,
 );

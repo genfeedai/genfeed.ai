@@ -71,6 +71,21 @@ const IMAGE_CAPABLE_ONBOARDING_PROVIDERS: readonly string[] = [
   ByokProvider.REPLICATE,
 ];
 
+/**
+ * Brand identity awaiting confirmation. `voice` and `niche` travel with the
+ * confirmation card payload so the confirmed create can store them as
+ * structured agent config instead of folding them into free text.
+ */
+type BrandIdentityProposal = {
+  description: string;
+  label: string;
+  niche?: string;
+  slug: string;
+  voice?: string;
+};
+
+const MAX_BRAND_VOICE_OR_NICHE_LENGTH = 500;
+
 interface AgentBrandsServiceLike {
   create: (
     createDto: Record<string, unknown>,
@@ -146,14 +161,22 @@ export class AgentOnboardingToolHandler {
       fallbackName,
     );
     const slug = this.normalizeBrandSlug(params.slug ?? params.handle, label);
+    const niche = this.readOptionalBrandTrait(params.niche, 'niche');
+    const voice = this.readOptionalBrandTrait(params.voice, 'voice');
     const description =
       ctx.confirmationOrigin === 'thread-ui-action'
         ? this.readOptionalBrandDescription(
             params.description,
             `Brand profile for ${label}`,
           )
-        : this.buildProposedDescription(params, label);
-    const proposal = { description, label, slug };
+        : this.buildProposedDescription(params.description, label, niche);
+    const proposal: BrandIdentityProposal = {
+      description,
+      label,
+      ...(niche ? { niche } : {}),
+      slug,
+      ...(voice ? { voice } : {}),
+    };
 
     if (ctx.confirmationOrigin !== 'thread-ui-action') {
       return this.buildBrandIdentityProposal('create', proposal, ctx);
@@ -231,6 +254,10 @@ export class AgentOnboardingToolHandler {
           requestedSlug: slug,
           source: 'agent-thread-ui-action',
         },
+        // Structured fields the agent brand context renders as Brand Voice
+        // and Content Strategy; `Brand.text` stays reserved for guidelines.
+        ...(niche ? { strategy: { topics: [niche] } } : {}),
+        ...(voice ? { voice: { tone: voice } } : {}),
       },
       backgroundColor: '#000000',
       description,
@@ -241,7 +268,6 @@ export class AgentOnboardingToolHandler {
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
       slug,
-      text: (params.niche as string) || undefined,
       userId: ctx.userId,
     });
     const createdSlug =
@@ -267,7 +293,7 @@ export class AgentOnboardingToolHandler {
 
   private isMatchingCreateRecovery(
     brand: Record<string, unknown> | null,
-    proposal: { description: string; label: string; slug: string },
+    proposal: BrandIdentityProposal,
     sourceActionId: string,
     ctx: ToolExecutionContext,
   ): brand is Record<string, unknown> {
@@ -288,7 +314,7 @@ export class AgentOnboardingToolHandler {
 
   private buildRecoveredCreateResult(
     brand: Record<string, unknown>,
-    proposal: { description: string; label: string; slug: string },
+    proposal: BrandIdentityProposal,
   ): AgentToolResult {
     return {
       creditsUsed: 0,
@@ -376,7 +402,7 @@ export class AgentOnboardingToolHandler {
 
   private buildBrandIdentityProposal(
     operation: 'create' | 'rename',
-    proposal: { description: string; label: string; slug: string },
+    proposal: BrandIdentityProposal,
     ctx: ToolExecutionContext,
     currentIdentity?: { label: string; slug: string },
   ): AgentToolResult {
@@ -435,20 +461,35 @@ export class AgentOnboardingToolHandler {
   }
 
   private buildProposedDescription(
-    params: Record<string, unknown>,
+    value: unknown,
     label: string,
+    niche: string | undefined,
   ): string {
-    const base = this.readOptionalBrandDescription(
-      params.description,
-      params.niche,
-    );
-    const description = base || `Brand profile for ${label}`;
-    const voice =
-      typeof params.voice === 'string' && params.voice.trim()
-        ? params.voice.trim()
-        : 'conversational';
+    const description = this.readOptionalBrandDescription(value, undefined);
+    if (description) {
+      return description;
+    }
 
-    return `${this.trimSentenceEnd(description)}. Voice: ${this.trimSentenceEnd(voice)}.`;
+    return niche
+      ? `Brand profile for ${label}, focused on ${this.trimSentenceEnd(niche)}.`
+      : `Brand profile for ${label}`;
+  }
+
+  /** Optional short brand trait (voice, niche) supplied by the agent. */
+  private readOptionalBrandTrait(
+    value: unknown,
+    field: 'niche' | 'voice',
+  ): string | undefined {
+    const trait = this.readString(value);
+    if (!trait) {
+      return undefined;
+    }
+    if (trait.length > MAX_BRAND_VOICE_OR_NICHE_LENGTH) {
+      throw new BadRequestException(
+        `Brand ${field} must not exceed ${MAX_BRAND_VOICE_OR_NICHE_LENGTH} characters.`,
+      );
+    }
+    return trait;
   }
 
   /**

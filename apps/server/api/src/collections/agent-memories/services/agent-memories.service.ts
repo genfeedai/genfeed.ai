@@ -8,6 +8,7 @@ import {
   type AgentMemoryKind,
   type AgentMemoryScope,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -94,6 +95,103 @@ export class AgentMemoriesService extends BaseService<
       orderBy: { createdAt: 'desc' },
       take: limit,
     }) as Promise<AgentMemoryDocument[]>;
+  }
+
+  /**
+   * The requesting user's own PERSONAL memories. These are private to their
+   * author, so the filter is always the caller's `userId`.
+   */
+  async listPersonalForUser(
+    userId: string,
+    organizationId: string,
+    options: { limit?: number } = {},
+  ): Promise<AgentMemoryDocument[]> {
+    const { limit = 100 } = options;
+    return this.delegate.findMany({
+      where: {
+        isDeleted: false,
+        organizationId,
+        scope: KnowledgeMemoryScope.PERSONAL,
+        userId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<AgentMemoryDocument[]>;
+  }
+
+  /**
+   * Read-only list of BRAND-scope memories for a brand in the caller's
+   * organization. Any member may read them; governance (archive / promote)
+   * stays on the owner/admin organization endpoints.
+   */
+  async listForBrand(
+    brandId: string,
+    organizationId: string,
+    options: { limit?: number } = {},
+  ): Promise<AgentMemoryDocument[]> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const { limit = 100 } = options;
+    return this.delegate.findMany({
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        scope: KnowledgeMemoryScope.BRAND,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<AgentMemoryDocument[]>;
+  }
+
+  /**
+   * Archive one of the caller's own PERSONAL memories (soft delete plus the
+   * context entries derived from it). Brand and org memories keep their
+   * owner/admin archive path.
+   */
+  async archivePersonalMemory(
+    memoryId: string,
+    userId: string,
+    organizationId: string,
+  ): Promise<AgentMemoryDocument> {
+    return this.prisma.$transaction(async (tx) => {
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            scope: KnowledgeMemoryScope.PERSONAL,
+            userId,
+          },
+        },
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
+
+      await tx.agentMemory.updateMany({
+        data: { isDeleted: true },
+        where: {
+          id: memoryId,
+          isDeleted: false,
+          organizationId,
+          userId,
+        },
+      });
+
+      await this.archiveDerivedContextEntries(memory, organizationId, tx);
+      return {
+        ...memory,
+        isDeleted: true,
+      };
+    });
   }
 
   async listForOrganization(

@@ -193,7 +193,11 @@ export class ContextsController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    return this.contextsService.enhancePrompt(dto, organization);
+    const brandId = dto.brandId || user.brandId || undefined;
+    return this.contextsService.enhancePrompt(
+      { ...dto, brandId },
+      organization,
+    );
   }
 
   /**

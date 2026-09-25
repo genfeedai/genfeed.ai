@@ -419,14 +419,6 @@
     {
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "860cf6a1649a2646ce82",
-      "method": "findMany",
-      "model": "ContextBase",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "2d1c61291704ebfa1c63",
       "method": "update",
       "model": "ContextBase",

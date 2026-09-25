@@ -6,6 +6,7 @@ import type {
   AgentToolResult,
   IBrandAgentPrompting,
   IBrandConversationStarter,
+  IBrandVoiceCorpusSummary,
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,6 +24,7 @@ interface AgentBrandsServiceLike {
       examplesToEmulate?: string[];
       industry?: string;
       offering?: string;
+      samples?: string[];
       targetAudience?: string;
       url?: string;
     },
@@ -195,10 +197,29 @@ export class AgentBrandContentToolHandler {
     });
   }
 
+  /**
+   * Pasted own posts, kept verbatim. A single string is split on blank lines
+   * so a block of pasted posts still becomes one sample per post.
+   */
+  private normalizeSamples(value: unknown): string[] {
+    const items = Array.isArray(value)
+      ? value
+      : typeof value === 'string'
+        ? value.split(/\n\s*\n/)
+        : [];
+    return items
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
   private formatBrandVoiceProfile(
     profile: Partial<BrandVoiceProfileDraft>,
+    corpus?: IBrandVoiceCorpusSummary,
   ): string {
     const sections = [
+      corpus && `Voice evidence: ${corpus.label}`,
+      corpus?.guidance && `Heads up: ${corpus.guidance}`,
       `Tone: ${profile.tone || 'Not set'}`,
       `Style: ${profile.style || 'Not set'}`,
       `Audience: ${profile.audience?.join(', ') || 'Not set'}`,
@@ -210,10 +231,14 @@ export class AgentBrandContentToolHandler {
       `Taglines: ${profile.taglines?.join(', ') || 'Not set'}`,
       `Hashtags: ${profile.hashtags?.join(', ') || 'Not set'}`,
       `Conversation starters: ${profile.prompting?.conversationStarters.map((starter) => starter.label).join(', ') || 'Not set'}`,
+      `Writing rules:\n${profile.writingRules?.map((rule) => `- ${rule}`).join('\n') || 'Not set'}`,
+      `Real posts that capture the voice (verbatim):\n${profile.exemplarTexts?.map((text) => `> ${text.replace(/\n/g, '\n> ')}`).join('\n\n') || 'None found'}`,
       `Sample output:\n${profile.sampleOutput || 'Not set'}`,
     ];
 
-    return sections.join('\n\n');
+    return sections
+      .filter((section): section is string => Boolean(section))
+      .join('\n\n');
   }
 
   private normalizeBrandPrompting(
@@ -329,6 +354,7 @@ export class AgentBrandContentToolHandler {
           typeof params.offering === 'string'
             ? params.offering.trim()
             : undefined,
+        samples: this.normalizeSamples(params.samples),
         targetAudience:
           typeof params.targetAudience === 'string'
             ? params.targetAudience.trim()
@@ -338,6 +364,11 @@ export class AgentBrandContentToolHandler {
       ctx.organizationId,
     );
     const sourceActionId = `brand-voice-profile-${randomUUID()}`;
+    // The corpus summary describes the draft; it is not part of the saved voice.
+    const { corpus, ...voiceProfile } = profile;
+    const description = corpus.isSufficient
+      ? `Built from ${corpus.label}. Review this draft. Ask for changes in chat, or approve to save it to the brand.`
+      : `${corpus.guidance ?? ''} Review this draft. Ask for changes in chat, or approve to save it to the brand.`.trim();
 
     return {
       creditsUsed: 0,
@@ -347,7 +378,8 @@ export class AgentBrandContentToolHandler {
           typeof brand.label === 'string' && brand.label.trim()
             ? brand.label.trim()
             : 'Selected brand',
-        voiceProfile: profile,
+        corpus,
+        voiceProfile,
       },
       nextActions: [
         {
@@ -359,20 +391,65 @@ export class AgentBrandContentToolHandler {
               payload: {
                 brandId: String(brand.id),
                 sourceActionId,
-                voiceProfile: profile,
+                voiceProfile,
               },
             },
           ],
-          data: { voiceProfile: profile },
-          description:
-            'Review this draft. Ask for changes in chat, or approve to save it to the brand.',
+          data: { corpus, voiceProfile },
+          description,
           id: sourceActionId,
-          textContent: this.formatBrandVoiceProfile(profile),
+          textContent: this.formatBrandVoiceProfile(voiceProfile, corpus),
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',
         },
       ],
       success: true,
+    };
+  }
+
+  /**
+   * Only what the approved draft actually provides is written. Empty strings
+   * and empty lists are omitted rather than sent, because `updateAgentConfig`
+   * overwrites every defined key: sending them would wipe values the user set
+   * in the voice settings that the draft never touched.
+   */
+  private buildApprovedProfilePatch(
+    profile: BrandVoiceProfileDraft,
+  ): Record<string, unknown> {
+    const voiceEntries: Array<[string, string | string[] | undefined]> = [
+      ['approvedHooks', profile.approvedHooks],
+      ['audience', profile.audience],
+      ['bannedPhrases', profile.bannedPhrases],
+      ['canonicalSource', profile.canonicalSource],
+      ['doNotSoundLike', profile.doNotSoundLike],
+      ['exemplarTexts', profile.exemplarTexts],
+      ['hashtags', profile.hashtags],
+      ['messagingPillars', profile.messagingPillars],
+      ['sampleOutput', profile.sampleOutput],
+      ['style', profile.style],
+      ['taglines', profile.taglines],
+      ['tone', profile.tone],
+      ['values', profile.values],
+      ['writingRules', profile.writingRules],
+    ];
+    const hasContent = (value: string | string[] | undefined) =>
+      Array.isArray(value) ? value.length > 0 : Boolean(value);
+    const voice = Object.fromEntries(
+      voiceEntries.filter(([, value]) => hasContent(value)),
+    );
+    const strategy = Object.fromEntries(
+      (
+        [
+          ['goals', profile.strategy?.goals],
+          ['topics', profile.strategy?.topics],
+        ] as Array<[string, string[] | undefined]>
+      ).filter(([, value]) => hasContent(value)),
+    );
+
+    return {
+      ...(profile.prompting ? { prompting: profile.prompting } : {}),
+      ...(Object.keys(strategy).length > 0 ? { strategy } : {}),
+      ...(Object.keys(voice).length > 0 ? { voice } : {}),
     };
   }
 
@@ -450,44 +527,10 @@ export class AgentBrandContentToolHandler {
       writingRules: this.normalizeStringList(rawProfile.writingRules),
     };
 
-    const existingAgentConfig =
-      brand.agentConfig &&
-      typeof brand.agentConfig === 'object' &&
-      !Array.isArray(brand.agentConfig)
-        ? (brand.agentConfig as Record<string, unknown>)
-        : {};
-    const existingStrategy =
-      existingAgentConfig.strategy &&
-      typeof existingAgentConfig.strategy === 'object' &&
-      !Array.isArray(existingAgentConfig.strategy)
-        ? (existingAgentConfig.strategy as Record<string, unknown>)
-        : {};
-
     await this.brandsService.updateAgentConfig(
       String(brand.id),
       ctx.organizationId,
-      {
-        ...(profile.prompting ? { prompting: profile.prompting } : {}),
-        ...(profile.strategy
-          ? { strategy: { ...existingStrategy, ...profile.strategy } }
-          : {}),
-        voice: {
-          approvedHooks: profile.approvedHooks,
-          audience: profile.audience,
-          bannedPhrases: profile.bannedPhrases,
-          canonicalSource: profile.canonicalSource,
-          doNotSoundLike: profile.doNotSoundLike,
-          exemplarTexts: profile.exemplarTexts,
-          hashtags: profile.hashtags,
-          messagingPillars: profile.messagingPillars,
-          sampleOutput: profile.sampleOutput,
-          style: profile.style,
-          taglines: profile.taglines,
-          tone: profile.tone,
-          values: profile.values,
-          writingRules: profile.writingRules,
-        },
-      },
+      this.buildApprovedProfilePatch(profile),
     );
 
     return {

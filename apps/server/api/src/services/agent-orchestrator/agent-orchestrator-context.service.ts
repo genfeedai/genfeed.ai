@@ -27,6 +27,7 @@ import type {
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type { ResolvedAgentTurnContext } from '@api/services/agent-orchestrator/interfaces/agent-turn-context.interface';
 import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
@@ -94,6 +95,24 @@ export class AgentOrchestratorContextService {
     systemPrompt: string | undefined;
     memories: AgentMemoryDocument[];
   }> {
+    const {
+      brandContext: _brandContext,
+      replyStyle: _replyStyle,
+      ...resolved
+    } = await this.resolveTurnContext(request, context);
+    return resolved;
+  }
+
+  /**
+   * The single assembly path for a chat turn's context: scope, feedback
+   * memories, brand context layers, skills, model, and system prompt. The
+   * chat turn (`resolveSystemPromptAndModel`) and the read-only brand context
+   * snapshot both call this, so what a user inspects is what the agent sees.
+   */
+  async resolveTurnContext(
+    request: AgentChatRequest,
+    context: AgentChatContext,
+  ): Promise<ResolvedAgentTurnContext> {
     const shouldUseOnboardingPrompt = request.source === 'onboarding';
     const strategy = context.strategyId
       ? await this.agentStrategiesService.findOneById(
@@ -177,12 +196,13 @@ export class AgentOrchestratorContextService {
           query: request.content,
         })
       : null;
-    // Chat always runs the pinned catalogue default — there is no user-facing
-    // model picker and no per-org/per-brand override. Only an explicit
-    // strategy pin, a thinking-model override, or an agent-type default may
-    // steer the model; a retired key still maps forward to its catalogue
-    // successor so the model we call is always one the biller has a real
-    // price for.
+    // Model precedence, first match wins:
+    //   1. strategy.model — the agent strategy's explicit pin
+    //   2. organization agentPolicy.thinkingModelOverride (org-level override)
+    //   3. the agent type's defaultModel
+    //   4. the registry platform default (empty key → getDefaultModelKey)
+    // A retired key still maps forward to its registry successor so the model
+    // we call is always one the biller has a real price for.
     const resolveModel = async (): Promise<string> =>
       this.agentChatModelRegistry.resolveModelKey(
         strategyModel ||
@@ -199,31 +219,31 @@ export class AgentOrchestratorContextService {
     const generationModePrompt = buildGenerationModePrompt(
       request.generationMode,
     );
+    const finish = async (
+      systemPrompt: string | undefined,
+    ): Promise<ResolvedAgentTurnContext> => ({
+      brandContext,
+      memories,
+      model: await resolveModel(),
+      policy,
+      preparedScope,
+      replyStyle,
+      resolvedSkills,
+      systemPrompt,
+    });
 
     if (shouldUseOnboardingPrompt) {
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: this.composeOnboardingSystemPrompt({
+      return finish(
+        this.composeOnboardingSystemPrompt({
           brandContext,
           brandId: policy.brandId,
           replyStyle,
         }),
-      };
+      );
     }
 
     if (request.agentType === AgentType.BRAND_INTERVIEW) {
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT),
-      };
+      return finish(composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT));
     }
 
     const pageContextPrompt = buildPageContextPrompt(
@@ -240,14 +260,7 @@ export class AgentOrchestratorContextService {
       ]
         .filter(Boolean)
         .join('\n\n');
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: composeAgentGuardrails(prompt),
-      };
+      return finish(composeAgentGuardrails(prompt));
     }
 
     if (request.systemPromptOverride) {
@@ -259,14 +272,7 @@ export class AgentOrchestratorContextService {
       ]
         .filter(Boolean)
         .join('\n\n');
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: composeAgentGuardrails(prompt),
-      };
+      return finish(composeAgentGuardrails(prompt));
     }
     const typeSuffix = [
       agentTypeConfig?.systemPromptSuffix,
@@ -287,38 +293,27 @@ export class AgentOrchestratorContextService {
         brandContext,
         { replyStyle },
       );
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: composeAgentGuardrails(systemPrompt),
-      };
+      return finish(composeAgentGuardrails(systemPrompt));
     }
 
     if (replyStyle || typeSuffix) {
-      return {
-        memories,
-        model: await resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: composeAgentGuardrails(
-          applyAgentReplyStyle(basePrompt, replyStyle),
-        ),
-      };
+      return finish(
+        composeAgentGuardrails(applyAgentReplyStyle(basePrompt, replyStyle)),
+      );
     }
 
-    return {
-      memories,
-      model: await resolveModel(),
-      policy,
-      preparedScope,
-      resolvedSkills,
-      systemPrompt: typeSuffix ? composeAgentGuardrails(basePrompt) : undefined,
-    };
+    return finish(typeSuffix ? composeAgentGuardrails(basePrompt) : undefined);
   }
+  /**
+   * The system message text a turn sends: the resolved prompt, or the
+   * guardrailed orchestrator default, with the date placeholder filled.
+   */
+  renderSystemPrompt(systemPrompt?: string, now: Date = new Date()): string {
+    return (
+      systemPrompt || composeAgentGuardrails(AGENT_ORCHESTRATOR_SYSTEM_PROMPT)
+    ).replace('{{date}}', now.toISOString().split('T')[0]);
+  }
+
   buildMessageHistory(
     messages: AgentMessageDocument[],
     systemPromptOverride?: string,
@@ -326,10 +321,7 @@ export class AgentOrchestratorContextService {
     attachments?: AgentChatAttachment[],
     compressedThreadContext?: string,
   ): OpenRouterMessage[] {
-    const systemPrompt = (
-      systemPromptOverride ||
-      composeAgentGuardrails(AGENT_ORCHESTRATOR_SYSTEM_PROMPT)
-    ).replace('{{date}}', new Date().toISOString().split('T')[0]);
+    const systemPrompt = this.renderSystemPrompt(systemPromptOverride);
 
     const history: OpenRouterMessage[] = [
       { content: systemPrompt, role: 'system' },
@@ -556,7 +548,8 @@ export class AgentOrchestratorContextService {
     };
   }
 
-  private buildMemoryPromptSections(memories: AgentMemoryDocument[]): string {
+  /** Saved-memory block a turn injects as its own system message. */
+  buildMemoryPromptSections(memories: AgentMemoryDocument[]): string {
     const sections = new Map<string, string[]>();
     const order = [
       'User Preferences',

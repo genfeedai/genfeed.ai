@@ -73,13 +73,27 @@ describe('BrandMemoryController', () => {
       originalUrl: '/brand-memory/insights',
     } as never;
 
-    await controller.getInsights(mockReq, 'brand-1', mockUser, '5');
+    const result = await controller.getInsights(
+      mockReq,
+      'brand-1',
+      mockUser,
+      '5',
+    );
 
     expect(mockBrandMemoryService.getInsights).toHaveBeenCalledWith(
       organizationId,
       'brand-1',
       5,
     );
+    expect(result).toMatchObject({
+      data: [
+        {
+          attributes: { category: 'timing', insight: 'Evenings win' },
+          id: 'brand-1:insight:0',
+          type: 'brand-memory-insight',
+        },
+      ],
+    });
   });
 
   it('should trigger distillation', async () => {

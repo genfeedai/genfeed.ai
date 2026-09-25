@@ -269,9 +269,9 @@ export class BrandsAgentConfigController {
   ) {
     const organizationId = this.requireOrganizationId(user);
 
-    if (!generateBrandVoiceDto.url && !generateBrandVoiceDto.brandId) {
-      generateBrandVoiceDto.brandId = id;
-    }
+    // The path brand is authoritative: it scopes the own-posts voice corpus
+    // even when a website URL drives the brand context.
+    generateBrandVoiceDto.brandId = id;
 
     const voice = await this.brandsService.generateBrandVoice(
       generateBrandVoiceDto,

@@ -2,7 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { BrandMemorySerializer } from '@genfeedai/serializers';
+import {
+  BrandMemoryInsightSerializer,
+  BrandMemorySerializer,
+} from '@genfeedai/serializers';
 import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -40,12 +43,21 @@ export class BrandMemoryController {
   ) {
     const organizationId = user.organizationId;
 
-    const docs = await this.brandMemoryService.getInsights(
+    const parsedLimit = limit ? Number(limit) : 20;
+    const insights = await this.brandMemoryService.getInsights(
       organizationId,
       brandId,
-      limit ? Number(limit) : 20,
+      Number.isFinite(parsedLimit)
+        ? Math.min(Math.max(parsedLimit, 1), 100)
+        : 20,
     );
-    return serializeCollection(req, BrandMemorySerializer, { docs });
+    // Insights live inside BrandMemory rows and carry no id of their own; the
+    // response id is their position in this newest-first list.
+    const docs = insights.map((insight, index) => ({
+      ...insight,
+      id: `${brandId}:insight:${index}`,
+    }));
+    return serializeCollection(req, BrandMemoryInsightSerializer, { docs });
   }
 
   @Post('distill')

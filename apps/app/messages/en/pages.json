@@ -2796,6 +2796,10 @@
     "generateErrorTitle": "Generating your brand voice",
     "generateSuccess": "Brand voice generated and saved",
     "saveErrorTitle": "Saving your brand voice",
+    "corpus": {
+      "learnedFrom": "Learned from {label}.",
+      "thinTitle": "Brand voice saved, but it will not sound like you yet"
+    },
     "failures": {
       "brandNotFound": "We could not find this brand. Refresh the page and try again.",
       "emptyOutput": "The model returned nothing to work with. Try again, or add a website, description, or audience to the brand first.",

@@ -29,6 +29,7 @@ export const TOOL_LABELS: Record<string, string> = {
   generate_video: 'Generate Video',
   generate_voice: 'Generate Voice',
   get_analytics: 'Analytics',
+  get_brand_context: 'Brand Context',
   get_outreach_sequence_analytics: 'Outreach sequence analytics',
   get_connection_status: 'Connection Status',
   get_credits_balance: 'Credit Balance',

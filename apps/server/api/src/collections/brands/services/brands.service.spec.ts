@@ -11,6 +11,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
+import type { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
+import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
@@ -142,6 +144,9 @@ describe('BrandsService', () => {
         brandScraperService as unknown as BrandScraperService,
         llmDispatcher as unknown as LlmDispatcherService,
         loggerService,
+        {
+          buildCorpus: vi.fn().mockResolvedValue(buildVoiceCorpus([])),
+        } as unknown as BrandVoiceCorpusService,
       ),
       new BrandKitAssetsService(
         prisma,
@@ -466,6 +471,9 @@ describe('BrandsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT('org-1'),
+      ]);
     });
 
     it('omits undefined DTO fields so Prisma never receives undefined write keys', async () => {
@@ -539,6 +547,10 @@ describe('BrandsService', () => {
           organizationId: 'org-1',
         },
       });
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        CACHE_TAGS.BRANDS,
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT('org-1'),
+      ]);
     });
 
     it('fails closed when the scoped atomic update matches no active brand', async () => {

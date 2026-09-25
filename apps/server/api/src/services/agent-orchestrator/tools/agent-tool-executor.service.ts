@@ -17,6 +17,7 @@ import type {
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
+import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -237,6 +238,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
+
+  @Inject(AgentBrandContextToolHandler)
+  private readonly brandContextHandler!: AgentBrandContextToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -874,6 +878,9 @@ export class AgentToolExecutorService implements OnModuleInit {
       case 'skip_brand_interview_question':
       case 'get_brand_completeness':
         return this.brandInterviewHandler.execute(toolName, params, ctx);
+
+      case 'get_brand_context':
+        return this.brandContextHandler.execute(toolName, params, ctx);
 
       default:
         return {

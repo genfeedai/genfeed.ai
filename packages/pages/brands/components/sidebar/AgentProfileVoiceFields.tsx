@@ -200,8 +200,9 @@ export default function AgentProfileVoiceFields({
             ariaLabel="Writing Rules"
             displayClassName="text-sm"
             isDisabled={isDisabled}
+            isMultiline
             onSave={(value) => onFieldSave('voiceWritingRules', value)}
-            placeholder="Lead with a claim, use proof, cut fluff"
+            placeholder={'One rule per line\nLead with a claim, then the proof'}
             value={voiceWritingRules}
           />
         </div>
@@ -219,7 +220,9 @@ export default function AgentProfileVoiceFields({
             isDisabled={isDisabled}
             isMultiline
             onSave={(value) => onFieldSave('voiceExemplarTexts', value)}
-            placeholder="We ship systems, not vibes"
+            placeholder={
+              'One real post per block, separated by a line with ---\nWe ship systems, not vibes'
+            }
             value={voiceExemplarTexts}
           />
         </div>

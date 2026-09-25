@@ -9,12 +9,17 @@ import {
 } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { BrandVoiceGenerationException } from '@api/collections/brands/exceptions/brand-voice-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
   BrandVoiceValidationError,
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
+import {
+  buildVoiceEvidencePrompt,
+  pickPromptSamples,
+} from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -25,6 +30,8 @@ import {
   BrandVoiceFailureCode,
   type FastlaneFormat,
   type FastlaneIdea,
+  type IBrandVoiceCorpus,
+  type IBrandVoiceSample,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -41,11 +48,14 @@ export class BrandGenerationService {
     private readonly brandScraperService: BrandScraperService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly logger: LoggerService,
+    private readonly brandVoiceCorpusService: BrandVoiceCorpusService,
   ) {}
 
   /**
-   * Generate brand voice configuration from a URL or existing brand data using
-   * BrandScraperService for web scraping and LlmDispatcherService for AI analysis.
+   * Generate a brand profile. What the brand does comes from the website scrape
+   * or stored brand fields; how it writes comes from its own posts (imported
+   * own-account history, published Genfeed posts, and pasted samples), which
+   * are measured deterministically and quoted verbatim into the prompt.
    */
   async generateBrandVoice(
     dto: GenerateBrandVoiceDto,
@@ -65,15 +75,24 @@ export class BrandGenerationService {
       findBrand,
     );
 
+    const corpus = await this.brandVoiceCorpusService.buildCorpus({
+      brandId: dto.brandId,
+      organizationId,
+      pastedSamples: dto.samples,
+    });
+    const promptSamples = pickPromptSamples(corpus.samples);
+    const voiceEvidence = buildVoiceEvidencePrompt(corpus, promptSamples);
+
     const prompt = buildBrandProfileAnalysisPrompt(
       `${contextText}${this.buildSupplementalContext(dto)}`,
+      voiceEvidence ?? undefined,
     );
 
     const completion = await this.llmDispatcherService.chatCompletion(
       {
         // The profile contract (12 fields + 6 prompt seeds) truncates at 1200,
-        // leaving unparseable JSON.
-        max_tokens: 2400,
+        // leaving unparseable JSON; exemplar picks and rules need headroom.
+        max_tokens: voiceEvidence ? 3000 : 2400,
         messages: [{ content: prompt, role: 'user' }],
         model: LLM_DEFAULTS.planning,
         temperature: 0.7,
@@ -85,6 +104,8 @@ export class BrandGenerationService {
       completion.choices?.[0]?.message?.content?.trim() ?? '',
       dto.brandId,
       organizationId,
+      corpus,
+      promptSamples,
     );
   }
 
@@ -253,9 +274,11 @@ export class BrandGenerationService {
     rawContent: string,
     brandId: string | undefined,
     organizationId: string,
+    corpus: IBrandVoiceCorpus,
+    promptSamples: readonly IBrandVoiceSample[],
   ): GeneratedBrandVoice {
     try {
-      return parseGeneratedBrandProfile(rawContent);
+      return parseGeneratedBrandProfile(rawContent, corpus, promptSamples);
     } catch (error: unknown) {
       if (!(error instanceof BrandVoiceValidationError)) {
         throw error;

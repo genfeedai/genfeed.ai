@@ -98,7 +98,7 @@ describe('ContextsController', () => {
       const createDto: CreateContextDto = {
         description: 'A test context base',
         label: 'Test Context',
-        type: 'general',
+        type: 'custom',
       };
 
       mockContextsService.create.mockResolvedValue(mockContext);
@@ -267,10 +267,28 @@ describe('ContextsController', () => {
       const result = await controller.enhancePrompt(dto, mockUser);
 
       expect(service.enhancePrompt).toHaveBeenCalledWith(
-        dto,
+        { ...dto, brandId: undefined },
         mockUser.organizationId,
       );
       expect(result).toEqual(retrievedContext);
+    });
+
+    it('scopes retrieval to the active request brand by default', async () => {
+      const dto: EnhancePromptDto = {
+        contentType: 'caption',
+        prompt: 'Original prompt',
+      };
+      mockContextsService.enhancePrompt.mockResolvedValue({ context: [] });
+
+      await controller.enhancePrompt(dto, {
+        ...mockUser,
+        brandId: 'brand-active',
+      } as User);
+
+      expect(service.enhancePrompt).toHaveBeenCalledWith(
+        { ...dto, brandId: 'brand-active' },
+        mockUser.organizationId,
+      );
     });
   });
 

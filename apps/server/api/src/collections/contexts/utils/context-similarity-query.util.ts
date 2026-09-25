@@ -1,4 +1,7 @@
-import type { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import {
+  KnowledgeMemoryScope,
+  type KnowledgeSourcePurpose,
+} from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 
@@ -7,6 +10,13 @@ export interface ContextSimilarityQueryOptions {
   knowledgeSourceIds?: string[];
   /** Restrict Knowledge hits to these purposes; legacy chunks stay eligible. */
   knowledgePurposes?: KnowledgeSourcePurpose[];
+  /**
+   * Restrict Knowledge-linked hits to sources owned by this brand or shared
+   * organization-wide. Legacy (unlinked) chunks stay eligible.
+   */
+  knowledgeBrandId?: string;
+  /** Only return chunks linked to a Knowledge source version. */
+  isKnowledgeOnly?: boolean;
 }
 
 export function similarityToCosineDistance(minSimilarity: number): number {
@@ -52,6 +62,16 @@ export function buildContextSimilarityQuery(
   const purposeFilter = options.knowledgePurposes?.length
     ? Prisma.sql`AND (e."knowledgeSourceId" IS NULL OR s."purpose"::text IN (${Prisma.join(options.knowledgePurposes)}))`
     : Prisma.empty;
+  const brandScopeFilter = options.knowledgeBrandId
+    ? Prisma.sql`AND (
+        e."knowledgeSourceId" IS NULL
+        OR s."scope" = ${KnowledgeMemoryScope.ORG}
+        OR (s."scope" = ${KnowledgeMemoryScope.BRAND} AND s."brandId" = ${options.knowledgeBrandId})
+      )`
+    : Prisma.empty;
+  const knowledgeOnlyFilter = options.isKnowledgeOnly
+    ? Prisma.sql`AND e."knowledgeSourceId" IS NOT NULL`
+    : Prisma.empty;
 
   return Prisma.sql`
     SELECT
@@ -96,6 +116,8 @@ export function buildContextSimilarityQuery(
       )
       ${sourceFilter}
       ${purposeFilter}
+      ${brandScopeFilter}
+      ${knowledgeOnlyFilter}
       AND (e."embedding" <=> ${embedding}::vector) <= ${maxDistance}
     ORDER BY e."embedding" <=> ${embedding}::vector ASC
     LIMIT ${limit}

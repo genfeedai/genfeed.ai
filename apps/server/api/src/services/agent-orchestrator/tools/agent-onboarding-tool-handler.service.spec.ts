@@ -59,6 +59,7 @@ function createHandler(options?: {
   };
   const brandsService = {
     create: vi.fn(),
+    findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
   };
   const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
@@ -699,5 +700,73 @@ describe('Agent onboarding first draft', () => {
         .success,
     ).toBe(false);
     expect(generationGateway.generateImage).not.toHaveBeenCalled();
+  });
+});
+
+describe('Agent onboarding create_brand identity', () => {
+  const SOURCE_ACTION_ID =
+    'brand-identity-66666666-6666-4666-8666-666666666666';
+
+  it('proposes voice and niche as structured fields, not description text', async () => {
+    const { handler, brandsService } = createHandler();
+
+    const result = await handler.createBrand(
+      { label: 'Acme Bikes', niche: 'urban cycling', voice: 'playful' },
+      CONTEXT,
+    );
+
+    expect(brandsService.create).not.toHaveBeenCalled();
+    const proposal = (result.data as { proposal: Record<string, unknown> })
+      .proposal;
+    expect(proposal).toEqual({
+      description: 'Brand profile for Acme Bikes, focused on urban cycling.',
+      label: 'Acme Bikes',
+      niche: 'urban cycling',
+      slug: 'acme-bikes',
+      voice: 'playful',
+    });
+    expect(result.nextActions?.[0]?.ctas?.[0]?.payload).toMatchObject({
+      niche: 'urban cycling',
+      voice: 'playful',
+    });
+  });
+
+  it('stores a confirmed voice and niche in agentConfig instead of Brand.text', async () => {
+    const { handler, brandsService } = createHandler();
+    brandsService.create.mockResolvedValue({
+      id: 'brand-new',
+      slug: 'acme-bikes',
+    });
+
+    const result = await handler.createBrand(
+      {
+        description: 'Handmade commuter bicycles',
+        label: 'Acme Bikes',
+        niche: 'urban cycling',
+        slug: 'acme-bikes',
+        sourceActionId: SOURCE_ACTION_ID,
+        voice: 'playful',
+      },
+      { ...CONTEXT, confirmationOrigin: 'thread-ui-action' },
+    );
+
+    expect(result.success).toBe(true);
+    const createInput = brandsService.create.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(createInput).toMatchObject({
+      agentConfig: {
+        brandIdentityConfirmation: {
+          createSourceActionId: SOURCE_ACTION_ID,
+          requestedSlug: 'acme-bikes',
+          source: 'agent-thread-ui-action',
+        },
+        strategy: { topics: ['urban cycling'] },
+        voice: { tone: 'playful' },
+      },
+      description: 'Handmade commuter bicycles',
+    });
+    expect(createInput).not.toHaveProperty('text');
   });
 });

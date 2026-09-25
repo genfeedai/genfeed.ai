@@ -8,3 +8,11 @@ export const brandMemoryAttributes = createEntityAttributes([
   'insights',
   'metrics',
 ]);
+
+export const brandMemoryInsightAttributes = [
+  'category',
+  'confidence',
+  'createdAt',
+  'insight',
+  'source',
+];

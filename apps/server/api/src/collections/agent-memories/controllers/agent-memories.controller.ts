@@ -10,7 +10,12 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/contracts';
+import { AgentMemorySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -47,6 +52,75 @@ export class AgentMemoriesController {
       return entries;
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listMemories');
+    }
+  }
+
+  @Get('personal')
+  @ApiOperation({
+    summary: "List the requesting user's own personal memory entries",
+  })
+  async listPersonal(@Req() req: Request, @CurrentUser() user: User) {
+    try {
+      const docs = await this.memoriesService.listPersonalForUser(
+        user.userId ?? user.id,
+        user.organizationId,
+      );
+      return serializeCollection(req, AgentMemorySerializer, { docs });
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'listPersonalMemories',
+      );
+    }
+  }
+
+  @Get('brands/:brandId')
+  @ApiOperation({
+    summary: 'List brand-scope memory entries for a brand (read-only)',
+  })
+  async listBrand(
+    @Req() req: Request,
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const docs = await this.memoriesService.listForBrand(
+        brandId,
+        user.organizationId,
+      );
+      return serializeCollection(req, AgentMemorySerializer, { docs });
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'listBrandMemories',
+      );
+    }
+  }
+
+  @Post('personal/:id/archive')
+  @ApiOperation({
+    summary: "Archive one of the requesting user's own personal memories",
+  })
+  async archivePersonal(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const memory = await this.memoriesService.archivePersonalMemory(
+        id,
+        user.userId ?? user.id,
+        user.organizationId,
+      );
+      return serializeSingle(req, AgentMemorySerializer, memory);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'archivePersonalMemory',
+      );
     }
   }
 

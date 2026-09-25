@@ -40,8 +40,11 @@ describe('AgentMemoriesController', () => {
           provide: AgentMemoriesService,
           useValue: {
             archiveMemory: vi.fn(),
+            archivePersonalMemory: vi.fn(),
+            listForBrand: vi.fn(),
             listForOrganization: vi.fn(),
             listForUser: vi.fn(),
+            listPersonalForUser: vi.fn(),
             promoteMemory: vi.fn(),
             rejectMemoryPromotion: vi.fn(),
             removeMemory: vi.fn(),
@@ -72,6 +75,61 @@ describe('AgentMemoriesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  // ── personal / brand visibility ───────────────────────────────────────────
+
+  describe('personal and brand memories', () => {
+    const serializingRequest = { originalUrl: '/v1/agent/memories' } as Request;
+
+    it('lists personal memories for the requesting user only', async () => {
+      memoriesService.listPersonalForUser.mockResolvedValue([
+        { id: 'memory-1', scope: 'personal', userId: USER_ID },
+      ] as never);
+
+      const result = await controller.listPersonal(
+        serializingRequest,
+        mockUser,
+      );
+
+      expect(memoriesService.listPersonalForUser).toHaveBeenCalledWith(
+        USER_ID,
+        ORG_ID,
+      );
+      expect(result).toMatchObject({
+        data: [{ id: 'memory-1', type: 'agent-memory' }],
+      });
+    });
+
+    it('lists brand memories inside the caller organization', async () => {
+      memoriesService.listForBrand.mockResolvedValue([] as never);
+
+      await controller.listBrand(serializingRequest, 'brand-9', mockUser);
+
+      expect(memoriesService.listForBrand).toHaveBeenCalledWith(
+        'brand-9',
+        ORG_ID,
+      );
+    });
+
+    it('archives a personal memory as its author', async () => {
+      memoriesService.archivePersonalMemory.mockResolvedValue({
+        id: 'memory-1',
+        isDeleted: true,
+      } as never);
+
+      await controller.archivePersonal(
+        serializingRequest,
+        'memory-1',
+        mockUser,
+      );
+
+      expect(memoriesService.archivePersonalMemory).toHaveBeenCalledWith(
+        'memory-1',
+        USER_ID,
+        ORG_ID,
+      );
+    });
   });
 
   // ── list ──────────────────────────────────────────────────────────────────

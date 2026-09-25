@@ -46,4 +46,21 @@ export type ContextEntrySimilarityResult = {
   similarity: number;
 };
 
+/** One passage returned by prompt enhancement, with its owning context base. */
+export type ContextPromptEntry = {
+  content: string;
+  contextBaseId: string;
+  /** `data.type` of the owning context base (e.g. brand_voice, content_library). */
+  contextBaseType?: string;
+  relevance: number;
+  source: string;
+};
+
+export type ContextPromptEnhancement = {
+  context: ContextPromptEntry[];
+  enhancedPrompt: string;
+  estimatedQualityBoost: number;
+  originalPrompt: string;
+};
+
 export type ContextEntryDocument = ContextEntry;

@@ -104,7 +104,10 @@ describe('BrandInterviewService', () => {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
-  let cacheService: { invalidate: ReturnType<typeof vi.fn> };
+  let cacheService: {
+    invalidate: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+  };
   let logger: LoggerService;
   let brandsService: { updateAgentConfig: ReturnType<typeof vi.fn> };
   let organizationDelegate: { findFirst: ReturnType<typeof vi.fn> };
@@ -131,6 +134,7 @@ describe('BrandInterviewService', () => {
     };
     cacheService = {
       invalidate: vi.fn().mockResolvedValue(undefined),
+      invalidateByTags: vi.fn().mockResolvedValue(undefined),
     };
     logger = makeLogger();
     brandsService = {
@@ -318,6 +322,37 @@ describe('BrandInterviewService', () => {
           }),
         }),
       );
+    });
+
+    it('busts the assembled agent brand context after a direct column write', async () => {
+      const session = makeSession({ currentFieldKey: 'text' });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValueOnce({
+        ...makeEmptyBrand(),
+        text: 'Always cite proof.',
+      });
+      brandDelegate.updateMany.mockResolvedValue({ count: 1 });
+      interviewDelegate.update.mockResolvedValue({
+        ...session,
+        answeredFields: { text: 'Always cite proof.' },
+        currentFieldKey: 'tone',
+      });
+
+      await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'Always cite proof.',
+      );
+
+      expect(cacheService.invalidate).toHaveBeenCalledWith(
+        'brands:single:brand-1',
+        'brands:list:org-1',
+      );
+      expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
+        'brands',
+        'brand-ctx:org-1',
+      ]);
     });
 
     it('deep-merges agentConfig — preserves sibling voice fields', async () => {

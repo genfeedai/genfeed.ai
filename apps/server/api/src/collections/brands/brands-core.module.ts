@@ -7,6 +7,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
@@ -51,6 +52,7 @@ import { Module } from '@nestjs/common';
     BrandOsRevisionsService,
     BrandRelocationService,
     BrandDataMapper,
+    BrandVoiceCorpusService,
   ],
 })
 export class BrandsCoreModule {}
