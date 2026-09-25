@@ -15,6 +15,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentScopeContextService, type PreparedAgentScope } from '@api/index';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
@@ -27,7 +28,10 @@ import type {
   AgentChatRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import type { ResolvedAgentTurnContext } from '@api/services/agent-orchestrator/interfaces/agent-turn-context.interface';
+import type {
+  AgentTurnSystemPromptInput,
+  ResolvedAgentTurnContext,
+} from '@api/services/agent-orchestrator/interfaces/agent-turn-context.interface';
 import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
@@ -113,7 +117,6 @@ export class AgentOrchestratorContextService {
     request: AgentChatRequest,
     context: AgentChatContext,
   ): Promise<ResolvedAgentTurnContext> {
-    const shouldUseOnboardingPrompt = request.source === 'onboarding';
     const strategy = context.strategyId
       ? await this.agentStrategiesService.findOneById(
           context.strategyId,
@@ -173,29 +176,27 @@ export class AgentOrchestratorContextService {
       );
 
     const replyStyle = orgSettings?.agentReplyStyle;
-    const shouldLoadBrandContext =
-      Boolean(policy.brandId) ||
-      (!thread?.systemPrompt && !request.systemPromptOverride);
-    // Main conversational agent: brandMemory + performancePatterns stay on
-    // (#3019). Retrieval layers (#2460) turn on when the turn has a query so
-    // pgvector knowledge and semantically close recent posts can ground the
-    // reply. Empty knowledge stores remain a no-op inside assembleContext.
-    const brandContext = shouldLoadBrandContext
-      ? await this.contextAssemblyService.assembleContext({
-          brandId: policy.brandId,
-          layers: {
-            brandGuidance: true,
-            brandIdentity: true,
-            brandMemory: true,
-            performancePatterns: true,
-            ragContext: true,
-            recentPosts: true,
-          },
-          organizationId: context.organizationId,
-          platform: policy.platform,
-          query: request.content,
-        })
-      : null;
+    const brandContext = await this.loadTurnBrandContext(
+      request,
+      context,
+      policy,
+      thread?.systemPrompt,
+    );
+    const { resolvedSkills, skillPromptSuffix } = await this.resolveTurnSkills(
+      request,
+      context,
+      policy,
+      strategy?.skillSlugs,
+    );
+    const systemPrompt = this.composeTurnSystemPrompt({
+      agentTypeConfig,
+      brandContext,
+      brandId: policy.brandId,
+      replyStyle,
+      request,
+      skillPromptSuffix,
+      threadSystemPrompt: thread?.systemPrompt,
+    });
     // Model precedence, first match wins:
     //   1. strategy.model — the agent strategy's explicit pin
     //   2. organization agentPolicy.thinkingModelOverride (org-level override)
@@ -203,77 +204,101 @@ export class AgentOrchestratorContextService {
     //   4. the registry platform default (empty key → getDefaultModelKey)
     // A retired key still maps forward to its registry successor so the model
     // we call is always one the biller has a real price for.
-    const resolveModel = async (): Promise<string> =>
-      this.agentChatModelRegistry.resolveModelKey(
-        strategyModel ||
-          policy.thinkingModelOverride ||
-          agentTypeConfig?.defaultModel,
-      );
+    const model = await this.agentChatModelRegistry.resolveModelKey(
+      strategyModel ||
+        policy.thinkingModelOverride ||
+        agentTypeConfig?.defaultModel,
+    );
 
-    const { resolvedSkills, skillPromptSuffix } = await this.resolveTurnSkills(
-      request,
-      context,
-      policy,
-      strategy?.skillSlugs,
-    );
-    const generationModePrompt = buildGenerationModePrompt(
-      request.generationMode,
-    );
-    const finish = async (
-      systemPrompt: string | undefined,
-    ): Promise<ResolvedAgentTurnContext> => ({
+    return {
       brandContext,
       memories,
-      model: await resolveModel(),
+      model,
       policy,
       preparedScope,
       replyStyle,
       resolvedSkills,
       systemPrompt,
-    });
+    };
+  }
 
-    if (shouldUseOnboardingPrompt) {
-      return finish(
-        this.composeOnboardingSystemPrompt({
-          brandContext,
-          brandId: policy.brandId,
-          replyStyle,
-        }),
-      );
+  /**
+   * Main conversational agent: brandMemory + performancePatterns stay on
+   * (#3019). Retrieval layers (#2460) turn on when the turn has a query so
+   * pgvector knowledge and semantically close recent posts can ground the
+   * reply. Empty knowledge stores remain a no-op inside assembleContext.
+   */
+  private async loadTurnBrandContext(
+    request: AgentChatRequest,
+    context: AgentChatContext,
+    policy: ResolvedAgentExecutionPolicy,
+    threadSystemPrompt: string | undefined,
+  ): Promise<AssembledBrandContext | null> {
+    const shouldLoadBrandContext =
+      Boolean(policy.brandId) ||
+      (!threadSystemPrompt && !request.systemPromptOverride);
+    if (!shouldLoadBrandContext) {
+      return null;
+    }
+    return this.contextAssemblyService.assembleContext({
+      brandId: policy.brandId,
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandMemory: true,
+        performancePatterns: true,
+        ragContext: true,
+        recentPosts: true,
+      },
+      organizationId: context.organizationId,
+      platform: policy.platform,
+      query: request.content,
+    });
+  }
+
+  /**
+   * Selects the turn's system prompt: onboarding, brand interview, the
+   * thread's or request's custom prompt, then the orchestrator base prompt
+   * layered with brand context and reply style.
+   */
+  private composeTurnSystemPrompt(
+    input: AgentTurnSystemPromptInput,
+  ): string | undefined {
+    const { agentTypeConfig, brandContext, replyStyle, request } = input;
+    if (request.source === 'onboarding') {
+      return this.composeOnboardingSystemPrompt({
+        brandContext,
+        brandId: input.brandId,
+        replyStyle,
+      });
     }
 
     if (request.agentType === AgentType.BRAND_INTERVIEW) {
-      return finish(composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT));
+      return composeAgentGuardrails(BRAND_INTERVIEW_SYSTEM_PROMPT);
     }
 
+    const generationModePrompt = buildGenerationModePrompt(
+      request.generationMode,
+    );
     const pageContextPrompt = buildPageContextPrompt(
       request.pageContext,
       request.artifactReferences,
     );
+    const customPrompt =
+      input.threadSystemPrompt || request.systemPromptOverride;
 
-    if (thread?.systemPrompt) {
+    if (customPrompt) {
       const prompt = [
-        thread.systemPrompt,
-        skillPromptSuffix,
+        customPrompt,
+        input.skillPromptSuffix,
         generationModePrompt,
         pageContextPrompt,
       ]
         .filter(Boolean)
         .join('\n\n');
-      return finish(composeAgentGuardrails(prompt));
+      return composeAgentGuardrails(prompt);
     }
 
-    if (request.systemPromptOverride) {
-      const prompt = [
-        request.systemPromptOverride,
-        skillPromptSuffix,
-        generationModePrompt,
-        pageContextPrompt,
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-      return finish(composeAgentGuardrails(prompt));
-    }
     const typeSuffix = [
       agentTypeConfig?.systemPromptSuffix,
       generationModePrompt,
@@ -283,27 +308,29 @@ export class AgentOrchestratorContextService {
     const basePrompt = buildAgentSystemPrompt({
       content: request.content,
       pageContextPrompt,
-      skillPromptSuffix,
+      skillPromptSuffix: input.skillPromptSuffix,
       typeSuffix: typeSuffix || undefined,
     });
 
     if (brandContext) {
-      const systemPrompt = this.contextAssemblyService.buildSystemPrompt(
-        basePrompt,
-        brandContext,
-        { replyStyle },
+      return composeAgentGuardrails(
+        this.contextAssemblyService.buildSystemPrompt(
+          basePrompt,
+          brandContext,
+          { replyStyle },
+        ),
       );
-      return finish(composeAgentGuardrails(systemPrompt));
     }
 
     if (replyStyle || typeSuffix) {
-      return finish(
-        composeAgentGuardrails(applyAgentReplyStyle(basePrompt, replyStyle)),
+      return composeAgentGuardrails(
+        applyAgentReplyStyle(basePrompt, replyStyle),
       );
     }
 
-    return finish(typeSuffix ? composeAgentGuardrails(basePrompt) : undefined);
+    return typeSuffix ? composeAgentGuardrails(basePrompt) : undefined;
   }
+
   /**
    * The system message text a turn sends: the resolved prompt, or the
    * guardrailed orchestrator default, with the date placeholder filled.

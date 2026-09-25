@@ -15,6 +15,16 @@ import type {
   ContextPromptEntry,
 } from '@api/collections/contexts/schemas/context-entry.schema';
 import {
+  type BrandScopedRetrievalParams,
+  buildBrandContentMemoryBaseWhere,
+  buildBrandKnowledgeBaseWhere,
+  buildPromptContextBaseWhere,
+  type ContextBaseScopeRow,
+  isContextBaseInBrandScope,
+  toBrandContentMemoryHits,
+  toBrandKnowledgeHits,
+} from '@api/collections/contexts/utils/context-brand-scope.util';
+import {
   buildEmbeddingFailureQuery,
   buildEmptyContentFailQuery,
   buildPendingEmbeddingClaimQuery,
@@ -27,7 +37,6 @@ import {
 import {
   isKnowledgeSourceKind,
   isKnowledgeSourcePurpose,
-  KNOWLEDGE_BASE_PURPOSE,
 } from '@api/collections/contexts/utils/knowledge-source.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -37,7 +46,6 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
-  KnowledgeMemoryScope,
   KnowledgeSourcePurpose,
   ModelCategory,
   PostVisibility,
@@ -489,54 +497,10 @@ export class ContextsService {
   async retrieveBrandContentMemory(
     params: BrandContentMemoryRetrievalParams,
   ): Promise<BrandContentMemoryHit[]> {
-    const query = params.query.trim();
-    const brandId = params.brandId?.trim();
-    // An empty brand id would collapse `{ sourceBrandId: undefined }` into an
-    // unscoped OR branch and read every brand's memory.
-    if (!query || !brandId) {
-      return [];
-    }
-
-    // Brand memory plus organization-wide Knowledge. Personal Knowledge is
-    // never folded into brand generation.
-    const rows = await this.prisma.contextBase.findMany({
-      select: { data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(params.organizationId, {
-        OR: [
-          { sourceBrandId: brandId },
-          { data: { equals: brandId, path: ['brandId'] } },
-          {
-            AND: [
-              { sourceBrandId: null },
-              { data: { equals: KNOWLEDGE_BASE_PURPOSE, path: ['purpose'] } },
-              {
-                data: {
-                  equals: KnowledgeMemoryScope.ORG,
-                  path: ['knowledgeScope'],
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    });
-    const bases = rows.filter((row) =>
-      this.isContextBaseInBrandScope(row, brandId),
-    );
-
-    if (bases.length === 0) {
-      return [];
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    const entries = await this.findSimilarEntries(
-      params.organizationId,
-      bases.map((base) => base.id),
-      queryEmbedding,
-      params.limit ?? 5,
-      params.minRelevance ?? 0.65,
+    const { bases, entries } = await this.findBrandScopedEntries(
+      params,
+      buildBrandContentMemoryBaseWhere,
       {
-        knowledgeBrandId: brandId,
         ...(params.knowledgeSourceIds?.length
           ? { knowledgeSourceIds: params.knowledgeSourceIds }
           : {}),
@@ -545,37 +509,7 @@ export class ContextsService {
           : {}),
       },
     );
-
-    const labelByBase = new Map(
-      bases.map((base) => {
-        const data =
-          base.data &&
-          typeof base.data === 'object' &&
-          !Array.isArray(base.data)
-            ? (base.data as Record<string, unknown>)
-            : {};
-        const purpose =
-          typeof data.purpose === 'string' ? data.purpose : undefined;
-        const label =
-          typeof data.label === 'string' ? data.label : (purpose ?? 'context');
-        return [base.id, label] as const;
-      }),
-    );
-
-    return entries.map((entry) => {
-      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-      const kind =
-        entry.kind ||
-        (typeof metadata.kind === 'string' ? metadata.kind : undefined);
-      return {
-        ...(entry.citation ? { citation: entry.citation } : {}),
-        content: entry.content,
-        kind,
-        metadata,
-        relevance: entry.similarity,
-        source: entry.citation?.title ?? labelByBase.get(entry.contextBaseId),
-      };
-    });
+    return toBrandContentMemoryHits(entries, bases);
   }
 
   /**
@@ -585,85 +519,17 @@ export class ContextsService {
    * reach this lane — they stay behind the explicit `search_knowledge` tool.
    */
   async retrieveBrandKnowledge(
-    params: Pick<
-      BrandContentMemoryRetrievalParams,
-      'brandId' | 'limit' | 'minRelevance' | 'organizationId' | 'query'
-    >,
+    params: BrandScopedRetrievalParams,
   ): Promise<BrandContentMemoryHit[]> {
-    const query = params.query.trim();
-    const brandId = params.brandId?.trim();
-    if (!query || !brandId) {
-      return [];
-    }
-
-    const rows = await this.prisma.contextBase.findMany({
-      select: { data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(params.organizationId, {
-        AND: [{ data: { equals: KNOWLEDGE_BASE_PURPOSE, path: ['purpose'] } }],
-        OR: [
-          {
-            AND: [
-              { sourceBrandId: brandId },
-              {
-                data: {
-                  equals: KnowledgeMemoryScope.BRAND,
-                  path: ['knowledgeScope'],
-                },
-              },
-            ],
-          },
-          {
-            AND: [
-              { sourceBrandId: null },
-              {
-                data: {
-                  equals: KnowledgeMemoryScope.ORG,
-                  path: ['knowledgeScope'],
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    });
-    const bases = rows.filter((row) =>
-      this.isContextBaseInBrandScope(row, brandId),
-    );
-
-    if (bases.length === 0) {
-      return [];
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    const entries = await this.findSimilarEntries(
-      params.organizationId,
-      bases.map((base) => base.id),
-      queryEmbedding,
-      params.limit ?? 5,
-      params.minRelevance ?? 0.65,
+    const { entries } = await this.findBrandScopedEntries(
+      params,
+      buildBrandKnowledgeBaseWhere,
       {
         isKnowledgeOnly: true,
-        knowledgeBrandId: brandId,
         knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
       },
     );
-
-    return entries.flatMap((entry) => {
-      const citation = entry.citation;
-      if (citation?.purpose !== KnowledgeSourcePurpose.BRAND_TRUTH) {
-        return [];
-      }
-      return [
-        {
-          citation,
-          content: entry.content,
-          ...(entry.kind ? { kind: entry.kind } : {}),
-          metadata: entry.metadata ?? {},
-          relevance: entry.similarity,
-          source: citation.title,
-        },
-      ];
-    });
+    return toBrandKnowledgeHits(entries);
   }
 
   async autoCreateFromAccount(
@@ -797,48 +663,56 @@ export class ContextsService {
   }
 
   /**
-   * A context base belongs to a brand when its column or legacy JSON owner
-   * names that brand; a base without any owner is organization-wide. Personal
-   * Knowledge bases are never shared with a brand prompt.
+   * Similarity search over the brand's in-scope context bases. An empty brand
+   * id would collapse `{ sourceBrandId: undefined }` into an unscoped OR
+   * branch and read every brand's memory, so it returns nothing instead.
    */
-  private isContextBaseInBrandScope(
-    row: { data: unknown; sourceBrandId: string | null },
-    brandId: string | undefined,
-  ): boolean {
-    const data = this.getDataRecord(row.data);
-    if (data.knowledgeScope === KnowledgeMemoryScope.PERSONAL) {
-      return false;
+  private async findBrandScopedEntries(
+    params: BrandScopedRetrievalParams,
+    buildBaseWhere: (brandId: string) => Prisma.ContextBaseWhereInput,
+    options: ContextSimilarityQueryOptions,
+  ): Promise<{
+    bases: ContextBaseScopeRow[];
+    entries: ContextEntrySimilarityResult[];
+  }> {
+    const query = params.query.trim();
+    const brandId = params.brandId?.trim();
+    if (!query || !brandId) {
+      return { bases: [], entries: [] };
     }
 
-    const owners = [row.sourceBrandId, data.brandId, data.sourceBrand].filter(
-      (owner): owner is string => typeof owner === 'string' && owner.length > 0,
+    const rows = await this.prisma.contextBase.findMany({
+      select: { data: true, id: true, sourceBrandId: true },
+      where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),
+    });
+    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+    if (bases.length === 0) {
+      return { bases, entries: [] };
+    }
+
+    const queryEmbedding = await this.generateEmbedding(query);
+    const entries = await this.findSimilarEntries(
+      params.organizationId,
+      bases.map((base) => base.id),
+      queryEmbedding,
+      params.limit ?? 5,
+      params.minRelevance ?? 0.65,
+      { ...options, knowledgeBrandId: brandId },
     );
-    if (owners.length === 0) {
-      return true;
-    }
-
-    return Boolean(brandId) && owners.every((owner) => owner === brandId);
+    return { bases, entries };
   }
 
-  /**
-   * Active bases for prompt enhancement: the active brand's own bases plus
-   * organization-wide ones. Without a brand only organization-wide bases are
-   * eligible, so one brand's saved memory never reaches another brand.
-   */
+  /** Active prompt-enhancement bases in the request brand's scope. */
   private async getRelevantContextBases(
     organizationId: string,
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
     const brandId = dto.brandId?.trim() || undefined;
     const rows = await this.prisma.contextBase.findMany({
-      where: scopedWhere(organizationId, {
-        ...(dto.contextBaseIds?.length
-          ? { id: { in: dto.contextBaseIds } }
-          : {}),
-        OR: brandId
-          ? [{ sourceBrandId: brandId }, { sourceBrandId: null }]
-          : [{ sourceBrandId: null }],
-      }),
+      where: scopedWhere(
+        organizationId,
+        buildPromptContextBaseWhere(brandId, dto.contextBaseIds),
+      ),
     });
 
     const types: string[] = [];
@@ -849,7 +723,7 @@ export class ContextsService {
     const filtered = rows.filter((row) => {
       const d = this.getDataRecord(row.data);
       if (!d.isActive) return false;
-      if (!this.isContextBaseInBrandScope(row, brandId)) return false;
+      if (!isContextBaseInBrandScope(row, brandId)) return false;
       if (types.length > 0 && !types.includes(d.type as string)) return false;
       return true;
     });

@@ -1,6 +1,8 @@
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import type { PreparedAgentScope } from '@api/index';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import type { AgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
+import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 
@@ -19,4 +21,16 @@ export interface ResolvedAgentTurnContext {
   replyStyle?: string;
   resolvedSkills: ResolvedRuntimeSkill[];
   systemPrompt: string | undefined;
+}
+
+/** Inputs that select and compose one turn's system prompt. */
+export interface AgentTurnSystemPromptInput {
+  agentTypeConfig: AgentTypeConfig | null;
+  brandContext: AssembledBrandContext | null;
+  brandId?: string;
+  replyStyle?: string;
+  request: AgentChatRequest;
+  skillPromptSuffix: string;
+  /** The persisted thread's own system prompt, when it has one. */
+  threadSystemPrompt?: string;
 }
