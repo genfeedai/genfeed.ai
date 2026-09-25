@@ -677,6 +677,45 @@
         "using": "Using {provider}."
       },
       "title": "Local generation"
+    },
+    "server": {
+      "actions": {
+        "current": "Current server",
+        "switch": "Switch and restart",
+        "test": "Test connection"
+      },
+      "current": "Connected to {server}.",
+      "defaultNote": "(default for this install)",
+      "description": "Choose which Genfeed server this app uses. Each server keeps its own sign-in, so switching never signs you out of the other one.",
+      "errors": {
+        "loadFailed": "Could not read the server settings.",
+        "switchFailed": "Could not switch servers.",
+        "validateFailed": "Could not reach that server."
+      },
+      "fields": {
+        "api": "Server API URL",
+        "apiHelp": "Usually ends in /v1, for example https://api.example.com/v1 or http://localhost:3010/v1.",
+        "app": "App URL",
+        "derived": "Derived from the API URL",
+        "mcp": "MCP URL",
+        "ws": "Notifications URL"
+      },
+      "options": {
+        "cloud": {
+          "description": "api.genfeed.ai",
+          "label": "Genfeed Cloud"
+        },
+        "self-hosted": {
+          "description": "Your own Genfeed server",
+          "label": "Self-hosted"
+        }
+      },
+      "signedIn": "Signed in",
+      "status": {
+        "reachable": "Reachable: {server}. Agent tools will use {mcp}.",
+        "switching": "Waiting for confirmation…"
+      },
+      "title": "Genfeed server"
     }
   },
   "empty": {
