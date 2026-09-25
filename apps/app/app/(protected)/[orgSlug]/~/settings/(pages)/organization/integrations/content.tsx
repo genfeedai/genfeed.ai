@@ -13,6 +13,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { useCallback, useEffect, useReducer } from 'react';
 
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
+import DesktopServerSettings from '@/components/desktop/DesktopServerSettings';
 import ByokProviderCard from '../api-keys/byok-provider-card';
 
 const initialState: IntegrationsState = {
@@ -217,6 +218,7 @@ export default function SettingsIntegrationsPage() {
     <div className="space-y-4 pb-10">
       <h1 className="sr-only">Integrations</h1>
 
+      {desktop ? <DesktopServerSettings /> : null}
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
 
       {!desktop && (!isReady || isLoading) ? (
