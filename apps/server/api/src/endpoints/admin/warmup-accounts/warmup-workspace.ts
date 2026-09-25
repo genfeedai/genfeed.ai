@@ -1,3 +1,4 @@
+import { recordCreditTransactionActivity } from '@api/collections/credits/services/credit-activity.util';
 import type {
   IWarmupAccountDiagnostics,
   IWarmupReadiness,
@@ -233,6 +234,7 @@ export async function creditWarmupWallet(
       },
     },
   });
+  await recordCreditTransactionActivity(tx, transaction);
   await tx.organizationSetting.update({
     where: { organizationId, isDeleted: false },
     data: { hasEverHadCredits: true },

@@ -2,13 +2,15 @@ import type { ActivityMessageFormatter } from '@genfeedai/contracts';
 import {
   ActivityKey,
   ActivityKeys,
-  ActivitySource,
   formatActivityMessage as formatEnglishActivityMessage,
   getActivityLifecycleStatus,
   getActivityMessageDescriptor,
+  getCreditActivityMessageDescriptor,
+  getCreditActivitySourceLabel,
   IngredientCategory,
   Platform,
   parseActivityKey,
+  parseCreditActivityValue,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -60,42 +62,10 @@ export function isCreditActivity(key: string): boolean {
   return (CREDIT_ACTIVITY_KEYS as readonly string[]).includes(key);
 }
 
-const ACTIVITY_SOURCE_LABELS: Record<string, string> = {
-  [ActivitySource.BOT_GENERATION]: 'Agent conversation',
-  [ActivitySource.IMAGE_GENERATION]: 'Image generation',
-  [ActivitySource.VIDEO_GENERATION]: 'Video generation',
-  [ActivitySource.MUSIC_GENERATION]: 'Music generation',
-  [ActivitySource.ARTICLE_GENERATION]: 'Article generation',
-  [ActivitySource.VOICE_GENERATION]: 'Voice generation',
-  [ActivitySource.POST_GENERATION]: 'Post generation',
-  [ActivitySource.PROMPT_ENHANCEMENT]: 'Prompt enhancement',
-  [ActivitySource.PROMPT_REMIX]: 'Prompt remix',
-  [ActivitySource.TWEET_REPLY]: 'Tweet reply',
-  [ActivitySource.MODELS_TRAINING]: 'Model training',
-  [ActivitySource.IMAGE_EVALUATION]: 'Image evaluation',
-  [ActivitySource.VIDEO_EVALUATION]: 'Video evaluation',
-  [ActivitySource.ARTICLE_EVALUATION]: 'Article evaluation',
-  [ActivitySource.CONTENT_EVALUATION]: 'Content evaluation',
-  [ActivitySource.VIDEO_REFRAME]: 'Video reframe',
-  [ActivitySource.VIDEO_UPSCALE]: 'Video upscale',
-  [ActivitySource.IMAGE_REFRAME]: 'Image reframe',
-  [ActivitySource.IMAGE_UPSCALE]: 'Image upscale',
-  [ActivitySource.PROMPT_CREATION]: 'Prompt creation',
-  [ActivitySource.ARTICLE_ENHANCEMENT]: 'Article enhancement',
-  [ActivitySource.ARTICLE_REMIX]: 'Article remix',
-  [ActivitySource.POST_ENHANCEMENT]: 'Post enhancement',
-  [ActivitySource.AVATAR_GENERATION]: 'Avatar generation',
-  [ActivitySource.ASSET_GENERATION]: 'Asset generation',
-  [ActivitySource.POST]: 'Content publish',
-};
-
 export function getActivitySourceLabel(
   source: string | undefined,
 ): string | undefined {
-  if (!source) {
-    return undefined;
-  }
-  return ACTIVITY_SOURCE_LABELS[source];
+  return getCreditActivitySourceLabel(source);
 }
 
 export function parseActivityValue(
@@ -243,23 +213,10 @@ export function getActivityMediaPreviewUrl(
   return undefined;
 }
 
-function parseCreditAmount(value: string | undefined): number | null {
-  if (!value?.trim()) {
-    return null;
-  }
-  const parsed = parseActivityValue(value);
-  const raw =
-    typeof parsed?.value === 'string' || typeof parsed?.value === 'number'
-      ? String(parsed.value)
-      : value;
-  const amount = Number(raw);
-  return Number.isFinite(amount) ? amount : null;
-}
-
 export function getActivityCreditAmount(
   activity: Pick<IActivity, 'value'>,
 ): number | null {
-  return parseCreditAmount(activity.value);
+  return parseCreditActivityValue(activity.value).amount;
 }
 
 /**
@@ -285,22 +242,9 @@ export function getActivityDescription(
   }
 
   if (isCreditActivity(key)) {
-    const amount = parseCreditAmount(activity.value);
-    const amountLabel = amount !== null ? amount.toLocaleString('en-US') : null;
-    const sourceLabel = activity.source
-      ? getActivitySourceLabel(activity.source)
-      : undefined;
-    const descriptor = getActivityMessageDescriptor(key);
-    const contextualDescriptor = {
-      ...descriptor,
-      params: {
-        ...descriptor.params,
-        amount: amountLabel ?? 'none',
-        source: sourceLabel ?? 'none',
-      },
-    };
-
-    return formatActivityMessage(contextualDescriptor);
+    return formatActivityMessage(
+      getCreditActivityMessageDescriptor(key, activity.value, activity.source),
+    );
   }
 
   if (key) {

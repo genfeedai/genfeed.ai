@@ -1,3 +1,10 @@
+import { brandRemixGenerationQuoteSchema } from './brand-remix-generation.contract';
+import {
+  brandRemixAnalysisSourceSchema,
+  brandRemixSceneIdentitySchema,
+  brandRemixSceneObservationSchema,
+  brandRemixScenePipelineSchema,
+} from './brand-remix-scene.contract';
 /**
  * Durable brand-remix run contract.
  *
@@ -351,6 +358,9 @@ export const BRAND_REMIX_STORYBOARD_SCENE_LIMIT = 12;
 /** Editable scene plan. It stores creative intent, not generated media. */
 export const brandRemixStoryboardSceneSchema = z
   .object({
+    id: opaqueIdSchema.optional(),
+    identity: brandRemixSceneIdentitySchema.optional(),
+    sourceObservation: brandRemixSceneObservationSchema.optional(),
     durationSeconds: z.number().positive().max(60).optional(),
     narration: shortTextSchema.optional(),
     ordinal: z.number().int().min(1).max(BRAND_REMIX_STORYBOARD_SCENE_LIMIT),
@@ -551,6 +561,9 @@ export const brandRemixBrandContextSchema = z
 export const brandRemixRunConfigSchema = z
   .object({
     concept: brandRemixConceptSchema.optional(),
+    generationQuote: brandRemixGenerationQuoteSchema.optional(),
+    scenePipeline: brandRemixScenePipelineSchema.optional(),
+    analysisSource: brandRemixAnalysisSourceSchema.optional(),
     contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     draft: brandRemixDraftSchema,
     execution: brandRemixExecutionSchema.optional(),
@@ -574,6 +587,9 @@ export const brandRemixRunViewSchema = z
     brand: brandRemixBrandContextSchema,
     brandId: opaqueIdSchema,
     concept: brandRemixConceptSchema.optional(),
+    generationQuote: brandRemixGenerationQuoteSchema.optional(),
+    scenePipeline: brandRemixScenePipelineSchema.optional(),
+    analysisSource: brandRemixAnalysisSourceSchema.optional(),
     contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     createdAt: z.string().datetime(),
     draft: brandRemixDraftSchema,

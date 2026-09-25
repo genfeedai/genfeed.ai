@@ -2,22 +2,14 @@ import type { IngredientCategory, LibraryShelf } from '..';
 
 import { APP_ROUTES } from './routes.constant';
 
-/**
- * Query keys of the Library browser's control plane.
- *
- * The Library has three orthogonal axes. Only one of them is a path: the shelf
- * (`/library/shelf/:shelf`) and the places (`/library/assets|recent|starred|trash`).
- * Type and folder are query filters that compose on top of whichever route is
- * open — an asset has one type, sits on one shelf, and lives in at most one
- * folder, so none of the three can own the URL alone.
- *
- * @see .agents/memory/feedback_library_information_architecture.md
- */
+/** Query keys for the composable Library filters and layout. */
 export const LIBRARY_QUERY_KEYS = {
   /** Repeated key — the type axis (`?categories=IMAGE&categories=VIDEO`). */
   CATEGORIES: 'categories',
   /** Folder axis. Absent means "any folder"; the Unsorted shelf means "none". */
   FOLDER: 'folder',
+  PLACE: 'place',
+  SHELF: 'shelf',
   SEARCH: 'search',
   SORT: 'sort',
   /** Contact sheet vs. list rows vs. free-placement canvas. */
@@ -36,13 +28,13 @@ export interface LibraryBrowserRouteOptions {
 }
 
 /**
- * Shelf deep link — `/library/shelf/needs-review`.
+ * Shelf deep link — `/library/assets?shelf=needs-review`.
  *
  * A shelf is a saved query, not a location, so the segment is the lowercase
  * `LibraryShelf` product key rather than a persisted status label.
  */
 export function createLibraryShelfRoute(shelf: LibraryShelf): string {
-  return `${APP_ROUTES.LIBRARY.SHELF}/${shelf}`;
+  return `${APP_ROUTES.LIBRARY.ASSETS}?shelf=${shelf}`;
 }
 
 /**
@@ -54,26 +46,26 @@ export function createLibraryBrowserRoute(
   route: string = APP_ROUTES.LIBRARY.ASSETS,
   { categories, folderId, search, view }: LibraryBrowserRouteOptions = {},
 ): string {
-  const params: string[] = [];
+  const [pathname, existingSearch = ''] = route.split('?');
+  const params = new URLSearchParams(existingSearch);
+  if (categories) params.delete(LIBRARY_QUERY_KEYS.CATEGORIES);
 
   for (const category of categories ?? []) {
-    params.push(
-      `${LIBRARY_QUERY_KEYS.CATEGORIES}=${encodeURIComponent(category)}`,
-    );
+    params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
   }
 
   if (folderId) {
-    params.push(`${LIBRARY_QUERY_KEYS.FOLDER}=${encodeURIComponent(folderId)}`);
+    params.set(LIBRARY_QUERY_KEYS.FOLDER, folderId);
   }
 
   if (search) {
-    params.push(`${LIBRARY_QUERY_KEYS.SEARCH}=${encodeURIComponent(search)}`);
+    params.set(LIBRARY_QUERY_KEYS.SEARCH, search);
   }
 
   if (view) {
-    params.push(`${LIBRARY_QUERY_KEYS.VIEW}=${encodeURIComponent(view)}`);
+    params.set(LIBRARY_QUERY_KEYS.VIEW, view);
   }
 
-  const queryString = params.join('&');
-  return queryString ? `${route}?${queryString}` : route;
+  const queryString = params.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
 }

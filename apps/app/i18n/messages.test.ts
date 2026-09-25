@@ -102,7 +102,7 @@ describe('loadMessages', () => {
       'Open publishing',
     );
     expect(resolveMessageId(english, 'home.publishing.empty')).toBe(
-      'Nothing is ready to publish.',
+      'No posts yet. Create a post to start publishing.',
     );
     expect(resolveMessageId(english, 'home.credentials.empty')).toBe(
       'No accounts are connected yet.',

@@ -117,7 +117,10 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
       ...(scene.durationSeconds !== undefined
         ? { durationSeconds: scene.durationSeconds }
         : {}),
-      key: `saved-${scene.ordinal}`,
+      id: scene.id,
+      identity: scene.identity,
+      sourceObservation: scene.sourceObservation,
+      key: scene.id ?? `saved-${scene.ordinal}`,
       narration: scene.narration ?? '',
       visualIntent: scene.visualIntent,
     })),
@@ -140,6 +143,9 @@ function conceptStoryboard(
     const narration = scene.narration.trim();
     return [
       {
+        id: scene.id,
+        identity: scene.identity,
+        sourceObservation: scene.sourceObservation,
         ordinal: index + 1,
         visualIntent,
         ...(narration ? { narration } : {}),

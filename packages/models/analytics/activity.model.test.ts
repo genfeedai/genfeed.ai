@@ -140,13 +140,28 @@ describe('Activity', () => {
           key: ActivityKey.CREDITS_ADD,
           value: '1000',
         }).label,
-      ).toBe('1,000 credits added');
+      ).toBe('Credits added');
       expect(
         createActivity({
           key: ActivityKey.CREDITS_REMOVE,
           value: '8',
         }).label,
-      ).toBe('8 credits used');
+      ).toBe('Credit usage — details unavailable');
+    });
+
+    it('uses the stored charge reason for structured credit activities', () => {
+      expect(
+        createActivity({
+          key: ActivityKey.CREDITS_REMOVE,
+          value: JSON.stringify({
+            description: 'AI brand profile generation',
+            value: 1,
+          }),
+        }).label,
+      ).toBe('AI brand profile generation');
+      expect(
+        createActivity({ key: ActivityKey.CREDITS_REMOVE, value: '1' }).label,
+      ).toBe('Credit usage — details unavailable');
     });
 
     it('never returns the raw wire key for unknown activity keys', () => {

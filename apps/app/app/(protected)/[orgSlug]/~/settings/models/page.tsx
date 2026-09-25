@@ -1,13 +1,24 @@
-import { redirect } from 'next/navigation';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import type { FilterPageProps } from '@props/pages/page.props';
+import { Suspense } from 'react';
+import ModelsTypePageClientContent from './[type]/page-content';
 
-// Bare /settings/models has no content of its own — send it to the first
-// models tab. Also lets the "Models" sidebar entry point at /settings/models
-// so it stays active across every model type route.
-export default async function ModelsSettingsIndex({
-  params,
-}: {
-  params: Promise<{ orgSlug: string }>;
-}) {
-  const { orgSlug } = await params;
-  redirect(`/${orgSlug}/~/settings/models/all`);
+export const generateMetadata = createPageMetadata('Models');
+
+export default async function FilteredListPage({
+  searchParams,
+}: FilterPageProps) {
+  const { type: value } = await searchParams;
+  const selected =
+    value === 'images' ||
+    value === 'videos' ||
+    value === 'text' ||
+    value === 'trainings'
+      ? value
+      : 'all';
+  return (
+    <Suspense fallback={null}>
+      <ModelsTypePageClientContent type={selected} />
+    </Suspense>
+  );
 }

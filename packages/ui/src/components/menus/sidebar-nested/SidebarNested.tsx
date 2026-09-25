@@ -34,7 +34,8 @@ export default function SidebarNested({
   onBack,
   onItemClick,
 }: SidebarNestedProps) {
-  const { isActive, prefixHref, routeScope } = useMenuRouteResolution();
+  const { isActive, pathname, prefixHref, routeScope } =
+    useMenuRouteResolution();
   const isActiveItem = useCallback(
     (item: MenuItemConfig) => {
       if (!item.href) {
@@ -45,9 +46,13 @@ export default function SidebarNested({
         return false;
       }
 
-      return isActive(item.href);
+      return [item.href, ...(item.matchPaths ?? [])].some(
+        (path) =>
+          (!item.isExactMatch || pathname === path.split('?')[0]) &&
+          isActive(path, item.matchSearchParams),
+      );
     },
-    [isActive, routeScope],
+    [isActive, pathname, routeScope],
   );
   return (
     <div className="flex flex-col size-full bg-background">

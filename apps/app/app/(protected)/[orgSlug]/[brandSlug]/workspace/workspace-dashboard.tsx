@@ -11,6 +11,7 @@ import type {
   SurfaceSummaryItem,
 } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   DashboardProps,
@@ -65,7 +66,7 @@ function WorkflowExecutionCard({
         ? 'Queued'
         : formatStatusLabel(execution.status);
 
-  const label = execution.workflow?.label ?? execution.workflowId;
+  const label = getWorkflowExecutionLabel(execution);
 
   return (
     <Card

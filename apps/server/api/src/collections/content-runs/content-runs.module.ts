@@ -1,3 +1,18 @@
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
+import { RouterModule } from '@api/services/router/router.module';
+import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { WhisperModule } from '@api/services/whisper/whisper.module';
+import { BrandRemixSceneBillingService } from '@api/collections/content-runs/services/brand-remix-scene-billing.service';
+import { BrandRemixSceneAssemblyService } from '@api/collections/content-runs/services/brand-remix-scene-assembly.service';
+import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
+import { BrandRemixSceneAnalysisService } from '@api/collections/content-runs/services/brand-remix-scene-analysis.service';
+import { BrandRemixSceneWorkflowService } from '@api/collections/content-runs/services/brand-remix-scene-workflow.service';
+import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
+import { BrandRemixSceneQuoteService } from '@api/collections/content-runs/services/brand-remix-scene-quote.service';
+import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
+import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
 import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/ad-creative-mappings.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
@@ -43,11 +58,17 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [ContentRunsController],
   exports: [
+    BrandRemixSceneService,
     BrandRemixRunsService,
     ContentRunsService,
     ContentRunRecommendationsService,
   ],
   imports: [
+    FileQueueModule,
+    MediaUrlsModule,
+    RouterModule,
+    OpenRouterModule,
+    WhisperModule,
     AdsResearchModule,
     AdCreativeMappingsModule,
     BatchGenerationModule,
@@ -68,6 +89,16 @@ import { Module } from '@nestjs/common';
     XAdsModule,
   ],
   providers: [
+    AgentGenerationEstimateService,
+    BrandRemixSceneService,
+    BrandRemixSceneStoreService,
+    BrandRemixSceneQuoteService,
+    BrandRemixSceneSourceService,
+    BrandRemixSceneWorkflowService,
+    BrandRemixSceneAnalysisService,
+    BrandRemixSceneGenerationService,
+    BrandRemixSceneAssemblyService,
+    BrandRemixSceneBillingService,
     BrandRemixPersonaResolutionService,
     BrandRemixSourceResolverService,
     BrandRemixSourceMediaService,

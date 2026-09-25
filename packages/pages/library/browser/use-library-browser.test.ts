@@ -41,6 +41,29 @@ function lastPushedSearch(): string {
 }
 
 describe('useLibraryBrowser', () => {
+  it('restores place and shelf from the URL and preserves them when changing type', () => {
+    state.search =
+      'place=starred&shelf=approved&folder=f1&asset=a1&view=list&page=3';
+    const { result, rerender } = renderHook(() => useLibraryBrowser({}));
+    expect(result.current.contextValue.query).toMatchObject({
+      isFavorite: 'true',
+      shelf: 'approved',
+      folder: 'f1',
+    });
+    act(() =>
+      result.current.handleCategoriesChange([IngredientCategory.IMAGE]),
+    );
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.get('place')).toBe('starred');
+    expect(next.get('shelf')).toBe('approved');
+    expect(next.get('asset')).toBe('a1');
+    expect(next.has('page')).toBe(false);
+    state.search = 'place=trash';
+    rerender();
+    expect(result.current.contextValue.query.isDeleted).toBe('true');
+    expect(result.current.contextValue.query.shelf).toBeUndefined();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     state.pathname = '/library/assets';

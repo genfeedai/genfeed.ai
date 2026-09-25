@@ -124,7 +124,10 @@ describe('WorkspaceInspectorFilesPane', () => {
     expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage Library' }),
-    ).toHaveAttribute('href', '/acme/moonrise/library/images');
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
+    );
     expect(screen.getByRole('tab', { name: 'Images' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -151,7 +154,10 @@ describe('WorkspaceInspectorFilesPane', () => {
 
     expect(
       screen.getByRole('link', { name: 'Manage Library' }),
-    ).toHaveAttribute('href', '/acme/moonrise/library/videos');
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
+    );
     expect(screen.getByRole('tab', { name: 'Videos' })).toHaveAttribute(
       'aria-selected',
       'true',

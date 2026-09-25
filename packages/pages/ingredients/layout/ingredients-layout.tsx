@@ -8,9 +8,11 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import Container from '@ui/layout/container/Container';
 import { Image } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
@@ -22,6 +24,14 @@ export default function IngredientsLayout({
   defaultType,
   hideTypeTabs,
 }: IngredientsLayoutProps) {
+  const search = useSearchParams()?.toString() ?? '';
+  const typeHref = (type: string) =>
+    createFilterHref(
+      APP_ROUTES.ADMIN.CONTENT.INGREDIENTS,
+      search,
+      'assetType',
+      type,
+    );
   const {
     config,
     contextValue,
@@ -66,22 +76,36 @@ export default function IngredientsLayout({
             ? {}
             : {
                 headerTabs: {
+                  activeTab: typeHref(
+                    [
+                      'videos',
+                      'images',
+                      'gifs',
+                      'musics',
+                      'avatars',
+                      'voices',
+                      'ingredients',
+                    ].find(
+                      (value) =>
+                        value === new URLSearchParams(search).get('assetType'),
+                    ) ?? 'videos',
+                  ),
                   fullWidth: false,
                   tabs: [
                     {
-                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos`,
+                      href: typeHref('videos'),
                       label: 'Videos',
                     },
                     {
-                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images`,
+                      href: typeHref('images'),
                       label: 'Images',
                     },
                     {
-                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/gifs`,
+                      href: typeHref('gifs'),
                       label: 'GIFs',
                     },
                     {
-                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/musics`,
+                      href: typeHref('musics'),
                       label: 'Music',
                     },
                   ],

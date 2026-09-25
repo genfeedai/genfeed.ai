@@ -1,3 +1,6 @@
+import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -37,6 +40,7 @@ describe('WorkflowExecutionsController', () => {
     findOneWithAccounting: vi.fn(),
     findOne: vi.fn(),
     getExecutionStats: vi.fn(),
+    getCustomerSummary: vi.fn(),
   };
   const mockWorkflowExecutorService = {
     executeManualWorkflow: vi.fn(),
@@ -111,11 +115,7 @@ describe('WorkflowExecutionsController', () => {
           workflow: { select: { description: true, id: true, label: true } },
         },
         orderBy: { createdAt: -1 },
-        where: {
-          isDeleted: false,
-          organizationId: expect.any(String),
-          status: 'completed',
-        },
+        where: buildCustomerExecutionWhere(organizationId, query),
       });
       expect(options).toEqual(
         expect.objectContaining({ limit: expect.any(Number), offset: 0 }),
@@ -149,39 +149,9 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            isDeleted: false,
-            organizationId,
-            AND: [
-              {
-                OR: [
-                  {
-                    workflow: {
-                      brandId: 'brand-from-another-org',
-                      isDeleted: false,
-                      organizationId,
-                    },
-                  },
-                  {
-                    AND: [
-                      {
-                        result: {
-                          path: ['metadata', 'source'],
-                          equals: 'proactive',
-                        },
-                      },
-                      {
-                        result: {
-                          path: ['metadata', 'brandId'],
-                          equals: 'brand-from-another-org',
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
+          where: buildCustomerExecutionWhere(organizationId, {
+            brandId: 'brand-from-another-org',
+          }),
         }),
         expect.any(Object),
       );
@@ -197,28 +167,49 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            isDeleted: false,
-            organizationId,
-            OR: [
-              {
-                result: {
-                  path: ['metadata', 'strategyId'],
-                  equals: strategyId,
-                },
-              },
-              {
-                result: {
-                  path: ['metadata', 'agentStrategyId'],
-                  equals: strategyId,
-                },
-              },
-            ],
-          },
+          where: buildCustomerExecutionWhere(organizationId, { strategyId }),
         }),
         expect.any(Object),
       );
     });
+  });
+
+  it('returns aggregate stats without applying pagination', async () => {
+    mockService.getCustomerSummary.mockResolvedValue({ total: 500 });
+    const query = {
+      ...new WorkflowExecutionQueryDto(),
+      view: 'statistics' as const,
+      brandId: 'brand-1',
+      limit: 5,
+      dayStart: '2026-09-24T00:00:00Z',
+      dayEnd: '2026-09-25T00:00:00Z',
+    };
+    expect(await controller.findAll(mockRequest, mockUser, query)).toEqual({
+      data: { total: 500 },
+    });
+    expect(mockService.getCustomerSummary).toHaveBeenCalledWith(
+      organizationId,
+      query,
+      new Date(query.dayStart),
+      new Date(query.dayEnd),
+    );
+    expect(mockService.findAll).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {},
+    { dayStart: 'invalid', dayEnd: 'invalid' },
+    { dayStart: '2026-09-25T00:00:00Z', dayEnd: '2026-09-24T00:00:00Z' },
+    { dayStart: '2026-09-24T00:00:00Z', dayEnd: '2026-09-26T00:00:00Z' },
+  ])('rejects invalid daily summary boundaries %j', async (window) => {
+    await expect(
+      controller.findAll(mockRequest, mockUser, {
+        ...new WorkflowExecutionQueryDto(),
+        view: 'statistics',
+        ...window,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockService.getCustomerSummary).not.toHaveBeenCalled();
   });
 
   describe('getExecutionStats', () => {
@@ -248,8 +239,8 @@ describe('WorkflowExecutionsController', () => {
       const result = await controller.findOne(mockRequest, mockUser, 'exec-1');
 
       expect(mockService.findOneWithAccounting).toHaveBeenCalledWith({
+        ...buildCustomerExecutionWhere(organizationId),
         id: 'exec-1',
-        organizationId: organizationId,
       });
       expect(result).toEqual({ ...mockExecution, accounting: null });
     });
@@ -364,8 +355,8 @@ describe('WorkflowExecutionsController', () => {
       });
 
       expect(mockService.findOne).toHaveBeenCalledWith({
+        ...buildCustomerExecutionWhere(organizationId),
         id: 'exec-1',
-        organizationId: organizationId,
       });
       expect(mockService.cancelExecution).toHaveBeenCalledWith('exec-1');
       expect(result).toEqual(mockCancelled);

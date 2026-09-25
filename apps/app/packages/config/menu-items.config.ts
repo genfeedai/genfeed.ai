@@ -20,7 +20,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: AppMenuGroup.Root,
-    href: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+    href: APP_ROUTES.WORKSPACE.INBOX,
     label: 'Inbox',
     matchPaths: [
       APP_ROUTES.WORKSPACE.INBOX,

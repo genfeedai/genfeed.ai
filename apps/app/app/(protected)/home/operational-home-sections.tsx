@@ -20,14 +20,21 @@ import type {
   ICredential,
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
+import {
+  badgeVariantForTone,
+  releaseStatusBadge,
+} from '@pages/posts/shared/release-status.helpers';
 import type {
   NeedsYouItem,
   OperationalHomeSectionsProps,
+  PublishingSurfaceProps,
   ReviewInboxItem,
 } from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
@@ -48,7 +55,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
@@ -58,21 +64,10 @@ import {
   summarizeUpcomingSchedule,
   type UpcomingScheduleDay,
 } from './operational-home.helpers';
-
-const EXECUTION_STATUS_VARIANTS: Record<
-  WorkflowExecutionStatus,
-  'destructive' | 'info' | 'secondary' | 'success' | 'warning'
-> = {
-  [WorkflowExecutionStatus.CANCELLED]: 'secondary',
-  [WorkflowExecutionStatus.COMPLETED]: 'success',
-  [WorkflowExecutionStatus.FAILED]: 'destructive',
-  [WorkflowExecutionStatus.PENDING]: 'warning',
-  [WorkflowExecutionStatus.RUNNING]: 'info',
-};
+import { useHomePublications } from './use-home-publications';
 
 const CREDENTIAL_ROW_LIMIT = 5;
 const ACTIVITY_ROW_LIMIT = 5;
-const RECENT_EXECUTION_LIMIT = 5;
 const NEEDS_YOU_LIMIT = 5;
 const WORKFLOW_UNAVAILABLE_LABEL = 'Workflow unavailable';
 const UPCOMING_SCHEDULE_DAYS = 7;
@@ -364,9 +359,10 @@ function NeedsYouSurface({
                       value={getExecutionTimestamp(execution)}
                     />
                   }
-                  title={
-                    execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL
-                  }
+                  title={getWorkflowExecutionLabel(
+                    execution,
+                    WORKFLOW_UNAVAILABLE_LABEL,
+                  )}
                   trailing={
                     <Button
                       asChild
@@ -567,25 +563,16 @@ function UpcomingScheduleBlock({
 }
 
 function PublishingSurface({
-  activeExecutions,
   brandId,
   brandSlug,
-  executions,
+  publications,
   isError,
   isLoading,
   onRetry,
   orgSlug,
-}: {
-  activeExecutions: IWorkflowExecution[];
-  brandId?: string;
-  brandSlug?: string;
-  executions: IWorkflowExecution[];
-  isError: boolean;
-  isLoading: boolean;
-  onRetry: () => Promise<void>;
-  orgSlug: string;
-}) {
+}: PublishingSurfaceProps) {
   const translate = useTranslations('common');
+  const translatePosts = useTranslations('pages.posts.list');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -593,19 +580,6 @@ function PublishingSurface({
   const postsHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
     : brandSetupHref;
-  const recentExecutions = [...activeExecutions, ...executions]
-    .filter(
-      (execution, index, allExecutions) =>
-        allExecutions.findIndex(
-          (candidate) => candidate.id === execution.id,
-        ) === index,
-    )
-    .toSorted(
-      (left, right) =>
-        new Date(getExecutionTimestamp(right)).getTime() -
-        new Date(getExecutionTimestamp(left)).getTime(),
-    )
-    .slice(0, RECENT_EXECUTION_LIMIT);
 
   return (
     <WorkspaceSurface
@@ -623,40 +597,48 @@ function PublishingSurface({
         />
       ) : !brandSlug ? (
         <EmptyLine description="Add a brand before opening brand-scoped publishing." />
-      ) : recentExecutions.length === 0 ? (
-        <EmptyLine description={translate('home.publishing.empty')} />
       ) : (
         <>
-          <div>
-            {recentExecutions.map((execution) => (
-              <ListRow
-                density="compact"
-                key={execution.id}
-                meta={
-                  <ClientFormattedDate
-                    fallback="Time unavailable"
-                    format="relative"
-                    value={getExecutionTimestamp(execution)}
-                  />
-                }
-                title={execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL}
-                trailing={
-                  <Badge
-                    variant={
-                      EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
+          {publications.length === 0 ? (
+            <EmptyLine description={translate('home.publishing.empty')} />
+          ) : (
+            <div>
+              {publications.map((publication) => {
+                const badge = releaseStatusBadge(publication);
+                return (
+                  <ListRow
+                    density="compact"
+                    key={publication.id}
+                    href={createBrandAppRoute(
+                      orgSlug,
+                      brandSlug,
+                      getPublishingPostHref(publication.id),
+                    )}
+                    meta={
+                      <ClientFormattedDate
+                        fallback="Time unavailable"
+                        format="relative"
+                        value={publication.updatedAt ?? publication.createdAt}
+                      />
                     }
-                  >
-                    {execution.status.toLowerCase()}
-                  </Badge>
-                }
-              />
-            ))}
-          </div>
-          <UpcomingScheduleBlock
-            brandId={brandId}
-            brandSlug={brandSlug}
-            orgSlug={orgSlug}
-          />
+                    title={publication.title || translatePosts('untitled')}
+                    trailing={
+                      <Badge variant={badgeVariantForTone(badge.tone)}>
+                        {badge.label}
+                      </Badge>
+                    }
+                  />
+                );
+              })}
+            </div>
+          )}
+          {publications.length > 0 && (
+            <UpcomingScheduleBlock
+              brandId={brandId}
+              brandSlug={brandSlug}
+              orgSlug={orgSlug}
+            />
+          )}
         </>
       )}
     </WorkspaceSurface>
@@ -679,12 +661,13 @@ function CredentialHealthSurface({
   orgSlug: string;
 }) {
   const translate = useTranslations('common');
+  const translateSocial = useTranslations('pages.brandSocialMedia');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const settingsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.INTEGRATIONS)
     : brandSetupHref;
 
   return (
@@ -703,7 +686,19 @@ function CredentialHealthSurface({
           onRetry={onRetry}
         />
       ) : credentials.length === 0 ? (
-        <EmptyLine description={translate('home.credentials.empty')} />
+        <div className="flex flex-col items-start gap-3 px-4 py-3 sm:px-5">
+          <p className="text-sm text-muted-foreground">
+            {translate('home.credentials.empty')}
+          </p>
+          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
+            <Link href={settingsHref}>
+              {brandSlug
+                ? translateSocial('connectAccount')
+                : translate('home.credentials.addBrand')}
+              <ArrowRight aria-hidden="true" className="size-3.5" />
+            </Link>
+          </Button>
+        </div>
       ) : (
         <div>
           {credentials.slice(0, CREDENTIAL_ROW_LIMIT).map((credential) => {
@@ -790,6 +785,7 @@ export default function OperationalHomeSections({
 }: OperationalHomeSectionsProps) {
   const {
     brandId,
+    organizationId,
     credentials,
     credentialsError,
     credentialsLoading,
@@ -799,24 +795,18 @@ export default function OperationalHomeSections({
     useOverviewBootstrap();
   const {
     executions,
-    isLoading: areExecutionsLoading,
-    isError: hasExecutionsError,
+    isLoading: isWorkflowExecutionsLoading,
     refresh: refreshExecutions,
     stats: executionStats,
-  } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
+  } = useWorkflowExecutions(
+    { brandId, limit: 20, sort: '-createdAt' },
+    { organizationId, enabled: Boolean(brandId) },
+  );
+  const areExecutionsLoading = Boolean(brandId) && isWorkflowExecutionsLoading;
+  const publishing = useHomePublications(organizationId, brandId);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
-  );
-  const activeExecutions = executions.filter(
-    (execution) =>
-      execution.status === WorkflowExecutionStatus.PENDING ||
-      execution.status === WorkflowExecutionStatus.RUNNING,
-  );
-  const completedExecutions = executions.filter(
-    (execution) =>
-      execution.status !== WorkflowExecutionStatus.PENDING &&
-      execution.status !== WorkflowExecutionStatus.RUNNING,
   );
   const failedExecutions = executions.filter(
     (execution) => execution.status === WorkflowExecutionStatus.FAILED,
@@ -873,13 +863,13 @@ export default function OperationalHomeSections({
           isLoading={areExecutionsLoading}
           label="Active"
           size="sm"
-          value={String(activeExecutions.length)}
+          value={String(executionStats.active)}
         />
         <MetricCard
           isLoading={areExecutionsLoading}
           label="Failed today"
           size="sm"
-          value={String(executionStats.failed)}
+          value={String(executionStats.failedToday)}
         />
         <MetricCard
           isLoading={credentialsLoading}
@@ -903,13 +893,12 @@ export default function OperationalHomeSections({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <PublishingSurface
-          activeExecutions={activeExecutions}
           brandId={brandId}
           brandSlug={brandSlug}
-          executions={completedExecutions}
-          isError={hasExecutionsError}
-          isLoading={areExecutionsLoading}
-          onRetry={refreshExecutions}
+          publications={publishing.publications}
+          isError={publishing.isError}
+          isLoading={publishing.isLoading}
+          onRetry={publishing.refresh}
           orgSlug={orgSlug}
         />
         <CredentialHealthSurface

@@ -1,4 +1,5 @@
 import type { CreditTransactionsDocument } from '@api/collections/credits/schemas/credit-transactions.schema';
+import { recordCreditTransactionActivity } from '@api/collections/credits/services/credit-activity.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
@@ -164,9 +165,17 @@ export class CreditTransactionsService extends BaseService<
     // through it so it commits/rolls back atomically with the balance update.
     const created = await (async () => {
       try {
-        return tx
-          ? await tx.creditTransaction.create({ data })
-          : await this.prisma.creditTransaction.create({ data });
+        const persist = async (
+          client: Pick<
+            Prisma.TransactionClient,
+            'creditTransaction' | 'activity' | 'brand'
+          >,
+        ) => {
+          const transaction = await client.creditTransaction.create({ data });
+          await recordCreditTransactionActivity(client, transaction);
+          return transaction;
+        };
+        return tx ? await persist(tx) : await this.prisma.$transaction(persist);
       } catch (error) {
         if (
           !tx &&

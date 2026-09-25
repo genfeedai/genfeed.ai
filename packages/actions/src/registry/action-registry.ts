@@ -933,6 +933,11 @@ const SYSTEM_MAINTENANCE_ACTION_DEFINITIONS = SYSTEM_MAINTENANCE_ACTIONS.map(
 
 const BRAND_REMIX_ACTIONS = [
   [
+    'brand-remix.scene-step',
+    'Advance Brand Remix Scenes',
+    'Reconciles one durable scene pipeline step.',
+  ],
+  [
     'brand-remix.generate.adopt-orphans',
     'Adopt Brand Remix Orphans',
     'Adopts orphaned remix placeholders onto claimed variants.',

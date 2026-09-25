@@ -3,29 +3,10 @@ import {
   ActivityKey,
   formatActivityMessage,
   getActivityMessageDescriptor,
+  getCreditActivityMessageDescriptor,
 } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
-
-function formatCreditLabel(
-  key: string,
-  value: string | undefined,
-): string | null {
-  if (key !== ActivityKey.CREDITS_ADD && key !== ActivityKey.CREDITS_REMOVE) {
-    return null;
-  }
-
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) {
-    return null;
-  }
-
-  const amountLabel = amount.toLocaleString();
-  if (key === ActivityKey.CREDITS_ADD) {
-    return `${amountLabel} credits added`;
-  }
-  return `${amountLabel} credits used`;
-}
 
 export class Activity extends BaseActivity {
   constructor(partial: Partial<IActivity>) {
@@ -46,9 +27,17 @@ export class Activity extends BaseActivity {
       return 'Activity recorded';
     }
 
-    const creditLabel = formatCreditLabel(key, this.value);
-    if (creditLabel) {
-      return creditLabel;
+    if (
+      [
+        ActivityKey.CREDITS_ADD,
+        ActivityKey.CREDITS_REMOVE,
+        ActivityKey.CREDITS_RESET,
+        ActivityKey.CREDITS_REMOVE_ALL,
+      ].includes(key as ActivityKey)
+    ) {
+      return formatActivityMessage(
+        getCreditActivityMessageDescriptor(key, this.value, this.source),
+      );
     }
 
     return formatActivityMessage(getActivityMessageDescriptor(key));

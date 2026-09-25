@@ -29,7 +29,7 @@ function fixture(overrides: Partial<IActivity> = {}): IActivity {
 describe('generation activity destinations', () => {
   it('opens the actual asset in its owning brand', () => {
     expect(getGenerationActivityHref(fixture(), scope)).toBe(
-      '/acme/coffee/library/images?asset=asset-1',
+      '/acme/coffee/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=asset-1',
     );
     expect(
       getGenerationActivityHref(

@@ -41,8 +41,8 @@ describe('library-asset-routes.constant', () => {
 
     it('never leaks a SCREAMING_SNAKE category into a route', () => {
       for (const route of Object.values(LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY)) {
-        expect(route).toBe(route.toLowerCase());
-        expect(route).not.toContain('_');
+        expect(route.split('?')[0]).toBe(route.split('?')[0].toLowerCase());
+        expect(route.split('?')[0]).not.toContain('_');
       }
     });
 
@@ -101,7 +101,7 @@ describe('library-asset-routes.constant', () => {
   describe('createLibraryAssetRoute', () => {
     it('appends the asset deep-link query when an id is given', () => {
       expect(createLibraryAssetRoute(IngredientCategory.IMAGE, 'ing_123')).toBe(
-        `${APP_ROUTES.LIBRARY.IMAGES}?${LIBRARY_ASSET_QUERY_KEY}=ing_123`,
+        `${APP_ROUTES.LIBRARY.IMAGES}&${LIBRARY_ASSET_QUERY_KEY}=ing_123`,
       );
     });
 
@@ -116,7 +116,7 @@ describe('library-asset-routes.constant', () => {
 
     it('encodes ids that are not URL-safe', () => {
       expect(createLibraryAssetRoute(IngredientCategory.IMAGE, 'a b/c')).toBe(
-        `${APP_ROUTES.LIBRARY.IMAGES}?${LIBRARY_ASSET_QUERY_KEY}=a%20b%2Fc`,
+        `${APP_ROUTES.LIBRARY.IMAGES}&${LIBRARY_ASSET_QUERY_KEY}=a+b%2Fc`,
       );
     });
 

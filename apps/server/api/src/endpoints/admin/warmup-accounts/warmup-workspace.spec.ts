@@ -106,6 +106,7 @@ function fixture() {
         return { ...balance };
       }),
     },
+    activity: { create: vi.fn().mockResolvedValue({}) },
     creditTransaction: {
       findFirst: vi
         .fn()
@@ -201,6 +202,22 @@ describe('warm-up workspace handoff', () => {
       'warmup:grant',
       'Customer evaluation',
     );
+    expect(tx.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        organizationId: 'org-1',
+        entityModel: 'CreditTransaction',
+        entityId: 'grant-1',
+        action: 'credits-add',
+        data: expect.objectContaining({
+          value: JSON.stringify({
+            category: 'add',
+            description: 'Customer evaluation',
+            transactionId: 'grant-1',
+            value: 500,
+          }),
+        }),
+      }),
+    });
     expect(balance.balance).toBe(500);
     expect(tx.creditTransaction.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -233,6 +250,7 @@ describe('warm-up workspace handoff', () => {
     ).toEqual({ id: 'already-granted' });
     expect(tx.creditBalance.update).not.toHaveBeenCalled();
     expect(tx.creditTransaction.create).not.toHaveBeenCalled();
+    expect(tx.activity.create).not.toHaveBeenCalled();
   });
 
   it('blocks an unprepared workspace rather than treating provisioning as readiness', async () => {
@@ -340,6 +358,7 @@ describe('warm-up workspace handoff', () => {
     ).rejects.toThrow('does not match');
     expect(tx.member.updateMany).not.toHaveBeenCalled();
     expect(tx.creditTransaction.create).not.toHaveBeenCalled();
+    expect(tx.activity.create).not.toHaveBeenCalled();
   });
 
   it('leaves ordinary invitations unchanged', async () => {

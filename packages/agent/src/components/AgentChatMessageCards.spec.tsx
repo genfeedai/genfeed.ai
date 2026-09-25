@@ -289,7 +289,7 @@ describe('ContentPreviewCard', () => {
       screen.getByRole('link', { name: 'View in Library' }),
     ).toHaveAttribute(
       'href',
-      `/test-org/test-brand/library/images?asset=${IMAGE_ID}`,
+      `/test-org/test-brand/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=${IMAGE_ID}`,
     );
   });
 

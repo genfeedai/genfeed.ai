@@ -3,7 +3,18 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-const { listMock } = vi.hoisted(() => ({ listMock: vi.fn() }));
+const { listMock, statsMock } = vi.hoisted(() => ({
+  listMock: vi.fn(),
+  statsMock: vi.fn().mockResolvedValue({
+    active: 0,
+    completed: 45,
+    completedToday: 2,
+    failed: 4,
+    failedToday: 1,
+    total: 52,
+    totalCredits: 80,
+  }),
+}));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
     getToken: vi.fn(),
@@ -16,7 +27,9 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: async () => 'token',
 }));
 vi.mock('@genfeedai/services/automation/workflow-executions.service', () => ({
-  WorkflowExecutionsService: { getInstance: () => ({ list: listMock }) },
+  WorkflowExecutionsService: {
+    getInstance: () => ({ list: listMock, getStats: statsMock }),
+  },
 }));
 
 describe('useWorkflowExecutions loading state', () => {
@@ -76,5 +89,31 @@ describe('useWorkflowExecutions organization scope', () => {
       wrapper: createQueryWrapper(),
     });
     expect(listMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('useWorkflowExecutions summary', () => {
+  it('uses all matching executions for counters and omits pagination from summary filters', async () => {
+    listMock.mockResolvedValue([]);
+    const { result } = renderHook(
+      () =>
+        useWorkflowExecutions({
+          brandId: 'brand-1',
+          strategyId: 'agent-1',
+          limit: 5,
+          offset: 20,
+          sort: '-createdAt',
+        }),
+      { wrapper: createQueryWrapper() },
+    );
+    await waitFor(() => expect(result.current.stats.total).toBe(52));
+    expect(result.current.executions).toEqual([]);
+    expect(result.current.stats.completedToday).toBe(2);
+    expect(statsMock).toHaveBeenLastCalledWith({
+      brandId: 'brand-1',
+      strategyId: 'agent-1',
+      dayStart: expect.any(String),
+      dayEnd: expect.any(String),
+    });
   });
 });

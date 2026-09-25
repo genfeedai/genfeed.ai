@@ -2,6 +2,7 @@
 
 import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -69,7 +70,7 @@ function mapNodeResult(node: ExecutionNodeResult): NodeResult {
 }
 
 function mapExecution(result: ExecutionResult): ExecutionDetail {
-  const workflowLabel = result.workflow?.label ?? result.workflowId;
+  const workflowLabel = getWorkflowExecutionLabel(result);
 
   return {
     accounting: result.accounting,

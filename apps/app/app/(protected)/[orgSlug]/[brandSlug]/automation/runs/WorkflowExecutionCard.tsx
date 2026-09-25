@@ -4,6 +4,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkflowExecutionCardProps } from '@props/automation/workflow-execution-card.props';
 import Badge from '@ui/display/badge/Badge';
@@ -14,7 +15,6 @@ import { useTranslations } from 'next-intl';
 import {
   formatExecutionDuration,
   formatExecutionRelativeTime,
-  getExecutionLabel,
   getExecutionStatusLabel,
 } from './workflow-execution.helpers';
 
@@ -46,7 +46,10 @@ export default function WorkflowExecutionCard({
             {getExecutionStatusLabel(execution.status, translate)}
           </Badge>
           <span className="truncate text-sm font-medium">
-            {getExecutionLabel(execution, translate('unavailableWorkflow'))}
+            {getWorkflowExecutionLabel(
+              execution,
+              translate('unavailableWorkflow'),
+            )}
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">

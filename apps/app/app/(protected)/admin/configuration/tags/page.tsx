@@ -1,6 +1,22 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { redirect } from 'next/navigation';
+import { PageScope } from '@genfeedai/contracts';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import type { FilterPageProps } from '@props/pages/page.props';
+import { Suspense } from 'react';
+import TagsPage from './[filter]/tags-page';
 
-export default function Tags() {
-  redirect(APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL);
+export const generateMetadata = createPageMetadata('Tags');
+
+export default async function FilteredListPage({
+  searchParams,
+}: FilterPageProps) {
+  const { filter: value } = await searchParams;
+  const selected =
+    value === 'default' || value === 'organization' || value === 'account'
+      ? value
+      : 'all';
+  return (
+    <Suspense fallback={null}>
+      <TagsPage filter={selected} scope={PageScope.SUPERADMIN} />
+    </Suspense>
+  );
 }

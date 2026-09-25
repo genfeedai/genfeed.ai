@@ -22,6 +22,70 @@ export class FFmpegMergeService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  async mergeNormalizedVideos(
+    inputPaths: string[],
+    outputPath: string,
+    width: number,
+    height: number,
+  ): Promise<void> {
+    if (
+      inputPaths.length < 2 ||
+      inputPaths.length > 6 ||
+      !Number.isInteger(width) ||
+      !Number.isInteger(height) ||
+      width < 16 ||
+      height < 16 ||
+      width > 4096 ||
+      height > 4096 ||
+      width % 2 ||
+      height % 2
+    )
+      throw new Error('Invalid normalized scene composition');
+    const paths = await Promise.all(
+      inputPaths.map(async (input) => {
+        const safe = SecurityUtil.validateFilePath(input);
+        SecurityUtil.validateFileExtension(safe);
+        await SecurityUtil.validateFileExists(safe);
+        await SecurityUtil.validateFileSize(safe);
+        const probe = await this.core.probe(safe);
+        if (
+          !probe.streams.some((stream) => stream.codec_type === 'video') ||
+          !probe.streams.some((stream) => stream.codec_type === 'audio')
+        )
+          throw new Error(
+            'Every scene requires generated video and speech audio',
+          );
+        return safe;
+      }),
+    );
+    const output = SecurityUtil.validateFilePath(outputPath);
+    await this.core.ensureOutputDir(output);
+    const filters = paths.flatMap((_, index) => [
+      `[${index}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p,setpts=PTS-STARTPTS[v${index}]`,
+      `[${index}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS[a${index}]`,
+    ]);
+    filters.push(
+      `${paths.map((_, index) => `[v${index}][a${index}]`).join('')}concat=n=${paths.length}:v=1:a=1[v][a]`,
+    );
+    await this.core.executeFFmpeg([
+      '-y',
+      ...paths.flatMap((input) => ['-i', input]),
+      '-filter_complex',
+      filters.join(';'),
+      '-map',
+      '[v]',
+      '-map',
+      '[a]',
+      '-c:v',
+      'libx264',
+      '-c:a',
+      'aac',
+      '-movflags',
+      '+faststart',
+      output,
+    ]);
+  }
+
   /**
    * Concatenate multiple videos
    */
