@@ -220,16 +220,23 @@ export default function ModalPost({
   // Manually populate form when post changes (transform objects to IDs)
   useEffect(() => {
     if (post) {
-      form.setValue('label', post.label || '');
-      form.setValue('description', post.description || '');
-      form.setValue('format', post.format || PostFormat.STANDARD);
-      form.setValue(
-        'platform',
+      const resolvedPlatform =
         post.platform ??
-          post.credential?.platform ??
-          defaultPlatform ??
-          Platform.TWITTER,
+        post.credential?.platform ??
+        defaultPlatform ??
+        Platform.TWITTER;
+      form.setValue('label', post.label || '');
+      // X never carries formatting, so a legacy post whose description still
+      // has stored HTML (pre-#4629) is unwrapped here, once, on load — not on
+      // every keystroke, which would fight the textarea for trailing spaces.
+      form.setValue(
+        'description',
+        resolvedPlatform === Platform.TWITTER
+          ? stripHtmlToPlainText(post.description)
+          : post.description || '',
       );
+      form.setValue('format', post.format || PostFormat.STANDARD);
+      form.setValue('platform', resolvedPlatform);
       form.setValue(
         'scheduledDate',
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',

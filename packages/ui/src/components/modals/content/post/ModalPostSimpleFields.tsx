@@ -16,7 +16,6 @@ import {
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
-import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
 import PostDraftGenerator from '@ui/modals/content/post/PostDraftGenerator';
@@ -156,7 +155,7 @@ export default function ModalPostSimpleFields({
           <Textarea
             name="description"
             aria-label="Post content"
-            value={stripHtmlToPlainText(form.watch('description') || '')}
+            value={form.watch('description') || ''}
             onChange={(event) => {
               form.setValue('description', event.target.value, {
                 shouldDirty: true,

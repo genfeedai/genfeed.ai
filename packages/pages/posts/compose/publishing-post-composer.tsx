@@ -225,7 +225,7 @@ export default function PublishingPostComposer() {
                 <Textarea
                   name="description"
                   placeholder={translate('placeholder')}
-                  value={description}
+                  value={form.watch('description') || ''}
                   onChange={(event) =>
                     form.setValue('description', event.target.value, {
                       shouldDirty: true,

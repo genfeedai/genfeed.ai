@@ -12,7 +12,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
-import { type MutableRefObject, useEffect } from 'react';
+import { type MutableRefObject, useEffect, useRef } from 'react';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -58,30 +58,33 @@ export default function PostDetailCardBody({
   hasAnalytics,
   showAnalytics,
 }: PostDetailCardBodyProps) {
-  const tweetBody = stripHtmlToPlainText(descriptionValue);
-  const tweetLength = calculateTweetLength(tweetBody);
+  const tweetLength = calculateTweetLength(
+    stripHtmlToPlainText(descriptionValue),
+  );
   const tweetLimit = 280;
   const isTweetOverLimit = tweetLength > tweetLimit;
 
+  // Unwrap a legacy post's stored HTML into plain text once, the moment its
+  // id shows up here — never on every render, which would re-run against the
+  // reader's own in-progress typing and trim away the trailing space they
+  // just pressed. Deliberately keyed on post identity only, so
+  // `descriptionValue`/`onDescriptionChange` are read but not depended on.
+  const sanitizedPostIdRef = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above.
   useEffect(() => {
-    if (!isTwitter || !isEditable) {
+    if (!isTwitter || !isEditable || !post?.id) {
       return;
     }
-    if (tweetBody !== descriptionValue) {
-      onDescriptionChange(tweetBody);
-      if (post?.id) {
-        currentDescriptionsRef.current.set(post.id, tweetBody);
-      }
+    if (sanitizedPostIdRef.current === post.id) {
+      return;
     }
-  }, [
-    currentDescriptionsRef,
-    descriptionValue,
-    isEditable,
-    isTwitter,
-    onDescriptionChange,
-    post?.id,
-    tweetBody,
-  ]);
+    sanitizedPostIdRef.current = post.id;
+    const plainText = stripHtmlToPlainText(descriptionValue);
+    if (plainText !== descriptionValue) {
+      onDescriptionChange(plainText);
+      currentDescriptionsRef.current.set(post.id, plainText);
+    }
+  }, [post?.id, isTwitter, isEditable]);
 
   return (
     <Card className="overflow-hidden space-y-3">
@@ -146,7 +149,7 @@ export default function PostDetailCardBody({
               >
                 <Textarea
                   name="tweetBody"
-                  value={tweetBody}
+                  value={descriptionValue}
                   placeholder={placeholder}
                   onChange={(event) => {
                     const value = event.target.value;
