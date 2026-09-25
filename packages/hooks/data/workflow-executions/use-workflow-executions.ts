@@ -38,6 +38,28 @@ const EMPTY_STATS: WorkflowExecutionStats = {
 };
 const EMPTY_EXECUTIONS: IWorkflowExecution[] = [];
 
+function readStat(value: object, field: string): number {
+  if (!Object.hasOwn(value, field)) return 0;
+  const amount = Reflect.get(value, field);
+  return typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
+}
+
+/** Collection responses are not summaries. Keep history mounted with zeros. */
+function coerceExecutionStats(value: unknown): WorkflowExecutionStats {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return EMPTY_STATS;
+  }
+  return {
+    active: readStat(value, 'active'),
+    completed: readStat(value, 'completed'),
+    completedToday: readStat(value, 'completedToday'),
+    failed: readStat(value, 'failed'),
+    failedToday: readStat(value, 'failedToday'),
+    total: readStat(value, 'total'),
+    totalCredits: readStat(value, 'totalCredits'),
+  };
+}
+
 export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
   options: UseWorkflowExecutionsOptions = {},
@@ -101,6 +123,6 @@ export function useWorkflowExecutions(
     refresh: async () => {
       await refetch();
     },
-    stats: data?.stats ?? EMPTY_STATS,
+    stats: data ? coerceExecutionStats(data.stats) : EMPTY_STATS,
   };
 }
