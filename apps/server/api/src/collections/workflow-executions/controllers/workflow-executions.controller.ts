@@ -5,6 +5,7 @@ import {
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
@@ -78,54 +79,12 @@ export class WorkflowExecutionsController {
     organizationId: string,
     query: WorkflowExecutionQueryDto,
   ): PrismaFindAllInput {
-    const match: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId: organizationId,
-    };
-
-    if (query.workflowId) {
-      match.workflowId = query.workflowId;
-    }
-
-    if (query.brandId) {
-      match.workflow = {
-        brandId: query.brandId,
-        isDeleted: false,
-        organizationId,
-      };
-    }
-
-    if (query.status) {
-      match.status = query.status;
-    }
-
-    if (query.trigger) {
-      match.trigger = query.trigger;
-    }
-
-    if (query.strategyId) {
-      match.OR = [
-        {
-          result: {
-            path: ['metadata', 'strategyId'],
-            equals: query.strategyId,
-          },
-        },
-        {
-          result: {
-            path: ['metadata', 'agentStrategyId'],
-            equals: query.strategyId,
-          },
-        },
-      ];
-    }
-
     return {
       include: {
         workflow: { select: { description: true, id: true, label: true } },
       },
       orderBy: handleQuerySort(query.sort),
-      where: match,
+      where: buildCustomerExecutionWhere(organizationId, query),
     };
   }
 
@@ -161,6 +120,28 @@ export class WorkflowExecutionsController {
     @Query('limit') limit?: string | number,
     @Query('offset') offset?: string | number,
   ) {
+    if (query.view === 'statistics') {
+      const dayStart = new Date(query.dayStart ?? '');
+      const dayEnd = new Date(query.dayEnd ?? '');
+      const duration = dayEnd.getTime() - dayStart.getTime();
+      if (
+        !Number.isFinite(duration) ||
+        duration <= 0 ||
+        duration > 26 * 60 * 60 * 1000
+      ) {
+        throw new BadRequestException(
+          'A valid dayStart and dayEnd window of at most 26 hours is required',
+        );
+      }
+      return {
+        data: await this.workflowExecutionsService.getCustomerSummary(
+          user.organizationId,
+          query,
+          dayStart,
+          dayEnd,
+        ),
+      };
+    }
     const parsedLimit =
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
@@ -285,8 +266,10 @@ export class WorkflowExecutionsController {
   ) {
     const execution =
       await this.workflowExecutionsService.findOneWithAccounting({
-        id: id,
-        organizationId: user.organizationId,
+        ...(getIsSuperAdmin(user, req)
+          ? { organizationId: user.organizationId, isDeleted: false }
+          : buildCustomerExecutionWhere(user.organizationId)),
+        id,
       });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
@@ -338,8 +321,8 @@ export class WorkflowExecutionsController {
   ) {
     // Verify ownership first
     const execution = await this.workflowExecutionsService.findOne({
-      id: id,
-      organizationId: user.organizationId,
+      ...buildCustomerExecutionWhere(user.organizationId),
+      id,
     });
 
     if (!execution) {

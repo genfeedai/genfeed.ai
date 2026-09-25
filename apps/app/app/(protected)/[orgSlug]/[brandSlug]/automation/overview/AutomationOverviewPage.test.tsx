@@ -13,6 +13,8 @@ const executionState = vi.hoisted(() => ({
     completed: 0,
     failed: 0,
     total: 0,
+    completedToday: 0,
+    failedToday: 0,
     totalCredits: 0,
   },
 }));
@@ -135,6 +137,8 @@ describe('AutomationOverviewPage', () => {
       completed: 0,
       failed: 0,
       total: 0,
+      completedToday: 0,
+      failedToday: 0,
       totalCredits: 0,
     };
   });
@@ -186,6 +190,8 @@ describe('AutomationOverviewPage', () => {
       completed: 4,
       failed: 1,
       total: 7,
+      completedToday: 0,
+      failedToday: 0,
       totalCredits: 18,
     };
     render(<AutomationOverviewPage />);

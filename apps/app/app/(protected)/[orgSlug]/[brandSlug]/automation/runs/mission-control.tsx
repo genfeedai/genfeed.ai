@@ -1,6 +1,7 @@
 'use client';
 
 import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
@@ -57,7 +58,7 @@ export default function MissionControl() {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return executions;
     return executions.filter((execution) => {
-      const label = execution.workflow?.label ?? execution.workflowId;
+      const label = getWorkflowExecutionLabel(execution);
       return (
         label.toLowerCase().includes(query) ||
         execution.id.toLowerCase().includes(query) ||

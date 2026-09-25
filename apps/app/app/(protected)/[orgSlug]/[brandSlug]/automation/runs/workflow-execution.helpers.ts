@@ -43,18 +43,6 @@ export function formatExecutionRelativeTime(
     : translate('daysAgo', { days: Math.floor(hours / 24) });
 }
 
-export function getExecutionLabel(
-  execution: IWorkflowExecution,
-  fallback: string,
-): string {
-  const metadataLabel = execution.metadata?.label;
-  return (
-    execution.workflow?.label ??
-    (typeof metadataLabel === 'string' ? metadataLabel : undefined) ??
-    fallback
-  );
-}
-
 /**
  * Reconciled credits first, then the pre-run estimate, then the legacy
  * engine counter. Estimates are flagged so the table can mark them.

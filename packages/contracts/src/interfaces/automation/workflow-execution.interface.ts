@@ -48,3 +48,10 @@ export interface IWorkflowExecution {
   };
   workflowId: string;
 }
+
+export interface WorkflowExecutionLabelSource {
+  workflow?: { label?: string | null } | string | null;
+  workflowId?: string;
+  metadata?: Record<string, unknown> | null;
+  result?: Record<string, unknown> | null;
+}

@@ -87,7 +87,7 @@ describe('ExecutionDetailPage', () => {
     });
   });
 
-  it('keeps system run details visible without links to hidden definitions', async () => {
+  it('uses a human fallback for privileged system run details without definition links', async () => {
     mocks.getExecution.mockResolvedValue({
       id: 'system-run',
       workflowId: 'hidden',
@@ -98,7 +98,7 @@ describe('ExecutionDetailPage', () => {
     });
     render(<ExecutionDetailPage executionId="system-run" />);
     expect(
-      await screen.findByText('hidden execution system-run'),
+      await screen.findByText('Untitled workflow execution system-run'),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'View Workflow' }),
