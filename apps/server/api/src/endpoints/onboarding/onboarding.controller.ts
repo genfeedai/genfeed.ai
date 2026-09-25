@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
+import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -176,5 +177,32 @@ export class OnboardingController {
   })
   generatePreview(@Body() dto: GeneratePreviewDto, @CurrentUser() user: User) {
     return this.onboardingService.generateOnboardingPreview(dto, user);
+  }
+
+  /**
+   * Queue the starter post + ad draft for the new brand's domain loading
+   * step. Generation runs in the background (workers app) — this returns as
+   * soon as the job is queued, never after generation completes.
+   */
+  @Post('starter-assets')
+  @HttpCode(202)
+  @ApiOperation({
+    description:
+      'Queues the starter post + ad draft for a brand. Generation runs in the background.',
+    summary: 'Queue onboarding starter assets',
+  })
+  @ApiResponse({
+    description: 'Starter asset generation queued',
+    schema: {
+      properties: { queued: { type: 'boolean' } },
+      type: 'object',
+    },
+    status: 202,
+  })
+  generateStarterAssets(
+    @Body() dto: StarterAssetsDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.onboardingService.enqueueStarterAssets(dto, user);
   }
 }

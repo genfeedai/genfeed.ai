@@ -15,6 +15,7 @@ import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
+  ONBOARDING_STARTER_ASSETS_QUEUE,
   REPLICATE_POLL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -113,6 +114,15 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: REPLICATE_POLL_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 3000, type: 'exponential' },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+        name: ONBOARDING_STARTER_ASSETS_QUEUE,
       },
     ),
   ],
