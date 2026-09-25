@@ -25,7 +25,10 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import type { AgentPublishPolicyResult } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import {
+  type AgentPublishPolicyResult,
+  evaluateAgentPublishPolicy,
+} from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type {
   AgentToolResult,
   IReleaseGroup,
@@ -553,5 +556,23 @@ export async function finishConfirmedPublish(input: {
       },
     ],
     success: true,
+  };
+}
+
+export function fallbackConfirmedPublishPolicy(ctx: ToolExecutionContext): {
+  autonomyMode: AgentAutonomyMode;
+  result: AgentPublishPolicyResult;
+} {
+  const confirmed = ctx.confirmationOrigin === 'thread-ui-action';
+  const autonomyMode = confirmed
+    ? AgentAutonomyMode.AUTO_PUBLISH
+    : AgentAutonomyMode.SUPERVISED;
+  return {
+    autonomyMode,
+    result: evaluateAgentPublishPolicy({
+      autonomyMode,
+      brandAllowsAutoPublish: confirmed,
+      channelAllowsAutoPublish: confirmed,
+    }),
   };
 }

@@ -17,6 +17,7 @@ import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/t
 import {
   createAgentTextDraft,
   createProactiveAgentTextPost,
+  fallbackConfirmedPublishPolicy,
   finishConfirmedPublish,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
@@ -54,10 +55,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { evaluateAgentAutoPublishPolicies } from '@genfeedai/contracts/api-types/contracts/agent-auto-publish.contract';
-import {
-  type AgentPublishPolicyResult,
-  evaluateAgentPublishPolicy,
-} from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import { type AgentPublishPolicyResult } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
@@ -324,8 +322,7 @@ export class AgentPublishToolHandler {
     const mediaKind = resolvePublishMediaKind(ingredient.category);
     const shouldPublishNow =
       !scheduledAt &&
-      (publishPolicy.result.decision === AgentPublishDecision.PERMITTED ||
-        ctx.confirmationOrigin === 'thread-ui-action');
+      publishPolicy.result.decision === AgentPublishDecision.PERMITTED;
     const release = await this.postGroupsService.create(
       ctx.organizationId,
       ctx.userId,
@@ -433,14 +430,7 @@ export class AgentPublishToolHandler {
         ) ?? policies[0];
       if (resolved) return resolved;
     }
-    return {
-      autonomyMode: AgentAutonomyMode.SUPERVISED,
-      result: evaluateAgentPublishPolicy({
-        autonomyMode: AgentAutonomyMode.SUPERVISED,
-        brandAllowsAutoPublish: false,
-        channelAllowsAutoPublish: false,
-      }),
-    };
+    return fallbackConfirmedPublishPolicy(params.ctx);
   }
 
   private async writePublishAudit(params: {
