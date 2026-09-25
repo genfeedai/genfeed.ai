@@ -6,10 +6,10 @@ import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import type { ResolvedAgentTurnContext } from '@api/services/agent-orchestrator/interfaces/agent-turn-context.interface';
 import {
-  buildBudget,
   buildLayerStatus,
   buildSnapshotLayers,
   readBrandAgentConfig,
+  toSnapshotBudget,
   toSnapshotMemories,
   toSnapshotSkills,
 } from '@api/services/agent-orchestrator/utils/agent-brand-context-snapshot.util';
@@ -112,29 +112,14 @@ export class AgentBrandContextSnapshotService {
   private buildBudget(
     turn: ResolvedAgentTurnContext,
   ): IAgentBrandContextBudget {
-    if (!turn.brandContext) {
-      return buildBudget({
-        capChars: BRAND_CONTEXT_CHARACTER_BUDGET,
-        trimmedPrompt: '',
-        untrimmedPrompt: '',
-      });
-    }
-    // An empty base prompt renders just the brand-context block, so the two
-    // renders differ only by the budget the chat turn applies.
-    const options = { replyStyle: turn.replyStyle };
-    return buildBudget({
-      capChars: BRAND_CONTEXT_CHARACTER_BUDGET,
-      trimmedPrompt: this.contextAssemblyService.buildSystemPrompt(
-        '',
-        turn.brandContext,
-        options,
-      ),
-      untrimmedPrompt: this.contextAssemblyService.buildSystemPrompt(
-        '',
-        turn.brandContext,
-        { ...options, maxBrandContextLength: Number.POSITIVE_INFINITY },
-      ),
-    });
+    // An empty base prompt renders just the brand-context block with the same
+    // options and budget the chat turn applies.
+    const report = turn.brandContext
+      ? this.contextAssemblyService.renderSystemPrompt('', turn.brandContext, {
+          replyStyle: turn.replyStyle,
+        }).brandContext
+      : null;
+    return toSnapshotBudget(report, BRAND_CONTEXT_CHARACTER_BUDGET);
   }
 
   private async resolveModel(

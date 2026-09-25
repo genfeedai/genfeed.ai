@@ -123,9 +123,10 @@ export function useAgentRuntimeSelection(params: {
     apiService
       .updateThread(
         activeThreadId,
+        // Empty strings clear a previous runtime server-side.
         {
-          requestedModel: draftRuntime.requestedModel || undefined,
-          runtimeKey: draftRuntime.key || undefined,
+          requestedModel: draftRuntime.requestedModel,
+          runtimeKey: draftRuntime.key,
         },
         controller.signal,
       )
@@ -162,9 +163,10 @@ export function useAgentRuntimeSelection(params: {
       void apiService
         .updateThread(
           activeThreadId,
+          // Empty strings clear a previous runtime server-side.
           {
-            requestedModel: runtime.requestedModel || undefined,
-            runtimeKey: runtime.key || undefined,
+            requestedModel: runtime.requestedModel,
+            runtimeKey: runtime.key,
           },
           controller.signal,
         )

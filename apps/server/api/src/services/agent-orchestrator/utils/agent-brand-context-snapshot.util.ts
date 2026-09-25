@@ -1,5 +1,8 @@
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import type {
+  AssembledBrandContext,
+  BrandContextBudgetResult,
+} from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type {
   AgentBrandContextEditTarget,
@@ -15,8 +18,6 @@ import type {
   IBrandPromptSeed,
 } from '@genfeedai/contracts/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
-
-const SECTION_HEADER = /^##\s+.+$/;
 
 /** Headers `AgentContextAssemblyService.buildSystemPrompt` renders per layer. */
 const LAYER_HEADERS: Partial<Record<AgentBrandContextLayerKey, string[]>> = {
@@ -338,52 +339,39 @@ export function buildLayerStatus(input: {
   });
 }
 
-function measureSections(prompt: string): Map<string, number> {
-  const sizes = new Map<string, number>();
-  let header: string | null = null;
-  let size = 0;
-  const flush = (): void => {
-    if (header) {
-      sizes.set(header, (sizes.get(header) ?? 0) + size);
-    }
-  };
-  for (const line of prompt.split('\n')) {
-    const trimmed = line.trim();
-    if (SECTION_HEADER.test(trimmed)) {
-      flush();
-      header = trimmed;
-      size = 0;
-    }
-    size += line.length + 1;
-  }
-  flush();
-  return sizes;
-}
-
 /**
- * Compares the brand-context block rendered with and without the character
- * budget, and reports every section the budget shortened or dropped.
+ * Maps the assembler's budget report for the brand-context block onto the
+ * snapshot contract: what reached the prompt, the cap, and every section the
+ * budget shortened or dropped.
  */
-export function buildBudget(input: {
-  capChars: number;
-  trimmedPrompt: string;
-  untrimmedPrompt: string;
-}): IAgentBrandContextBudget {
-  const original = measureSections(input.untrimmedPrompt);
-  const kept = measureSections(input.trimmedPrompt);
-  const trimmedSections: IAgentBrandContextTrimmedSection[] = [];
-  for (const [header, originalChars] of original) {
-    const keptChars = kept.get(header) ?? 0;
-    if (keptChars < originalChars) {
-      trimmedSections.push({ header, keptChars, originalChars });
-    }
+export function toSnapshotBudget(
+  report: BrandContextBudgetResult | null,
+  defaultCapChars: number,
+): IAgentBrandContextBudget {
+  if (!report) {
+    return {
+      capChars: defaultCapChars,
+      isTrimmed: false,
+      trimmedSections: [],
+      untrimmedChars: 0,
+      usedChars: 0,
+    };
   }
   return {
-    capChars: input.capChars,
-    isTrimmed: input.trimmedPrompt.length < input.untrimmedPrompt.length,
-    trimmedSections,
-    untrimmedChars: input.untrimmedPrompt.length,
-    usedChars: input.trimmedPrompt.length,
+    capChars: report.maxLength ?? defaultCapChars,
+    isTrimmed: report.isTrimmed,
+    trimmedSections: report.sections
+      .filter((section) => section.status !== 'kept')
+      .map(
+        (section): IAgentBrandContextTrimmedSection => ({
+          header: section.header,
+          isDropped: section.status === 'dropped',
+          keptChars: section.renderedLength,
+          originalChars: section.originalLength,
+        }),
+      ),
+    untrimmedChars: report.untrimmedLength,
+    usedChars: report.text.length,
   };
 }
 

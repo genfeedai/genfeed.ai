@@ -49,6 +49,7 @@ const SNAPSHOT: IAgentBrandContextSnapshot = {
     trimmedSections: [
       {
         header: '## Recent Posts (avoid repetition)',
+        isDropped: false,
         keptChars: 40,
         originalChars: 900,
       },

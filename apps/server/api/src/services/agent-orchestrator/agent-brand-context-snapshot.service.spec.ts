@@ -1,5 +1,6 @@
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { fitBrandContextToBudgetWithReport } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -60,30 +61,42 @@ const BRAND_CONTEXT: AssembledBrandContext = {
   voice: { style: 'plain', tone: 'confident' },
 };
 
-/** Renders the brand-context block the way the real assembler shapes it. */
+// Exactly the four higher-priority sections (identity, guidelines, voice,
+// custom instructions) fit; the lowest-priority performance section drops.
+const TEST_BUDGET = 156;
+
+/**
+ * Renders the brand-context block the way the real assembler shapes it and
+ * fits it with the real budget reporter, so the chat path (`buildSystemPrompt`)
+ * and the snapshot's report (`renderSystemPrompt`) come from one renderer.
+ */
 function renderBrandContext(
   basePrompt: string,
   context: AssembledBrandContext,
   options: { maxBrandContextLength?: number } = {},
-): string {
-  const block = [
-    `## Brand: ${context.brandName}\n${context.brandDescription ?? ''}`,
+) {
+  const sections = [
+    `\n\n## Brand: ${context.brandName}\n${context.brandDescription ?? ''}`,
     context.promptGuidelines
-      ? `## Brand Guidelines\n${context.promptGuidelines}`
+      ? `\n## Brand Guidelines\n${context.promptGuidelines}`
       : '',
-    context.voice ? `## Brand Voice\n- Tone: ${context.voice.tone}` : '',
-    context.persona ? `## Custom Instructions\n${context.persona}` : '',
+    context.voice ? `\n## Brand Voice\n- Tone: ${context.voice.tone}` : '',
+    context.persona ? `\n## Custom Instructions\n${context.persona}` : '',
     context.memoryInsights?.length
-      ? `## Performance Insights\n${context.memoryInsights
+      ? `\n## Performance Insights\n${context.memoryInsights
           .map((insight) => `- [${insight.category}] ${insight.insight}`)
           .join('\n')}`
       : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-  const max = options.maxBrandContextLength ?? 60;
-  const fitted = Number.isFinite(max) ? block.slice(0, max) : block;
-  return [basePrompt, fitted].filter(Boolean).join('\n\n');
+  ];
+  const brandContext = fitBrandContextToBudgetWithReport(
+    sections,
+    options.maxBrandContextLength ?? TEST_BUDGET,
+  );
+  return {
+    basePrompt,
+    brandContext,
+    prompt: [basePrompt, brandContext.text].filter(Boolean).join('\n\n'),
+  };
 }
 
 function createHarness(options?: {
@@ -94,8 +107,19 @@ function createHarness(options?: {
     .fn()
     .mockResolvedValue(options?.memories ?? []);
   const assembleContext = vi.fn().mockResolvedValue(BRAND_CONTEXT);
-  const buildSystemPrompt = vi.fn(renderBrandContext);
-  const contextAssembly = { assembleContext, buildSystemPrompt };
+  const renderSystemPrompt = vi.fn(renderBrandContext);
+  const buildSystemPrompt = vi.fn(
+    (
+      basePrompt: string,
+      context: AssembledBrandContext,
+      options?: { maxBrandContextLength?: number },
+    ) => renderBrandContext(basePrompt, context, options).prompt,
+  );
+  const contextAssembly = {
+    assembleContext,
+    buildSystemPrompt,
+    renderSystemPrompt,
+  };
   const registry = {
     getDefaultModelKey: vi.fn().mockResolvedValue('default-model'),
     getRoundCredits: vi.fn().mockResolvedValue(3),
@@ -300,12 +324,20 @@ describe('AgentBrandContextSnapshotService', () => {
       isInjected: false,
     });
 
-    expect(snapshot.budget.capChars).toBe(6000);
+    expect(snapshot.budget.capChars).toBe(TEST_BUDGET);
     expect(snapshot.budget.isTrimmed).toBe(true);
-    expect(snapshot.budget.usedChars).toBe(60);
-    expect(snapshot.budget.untrimmedChars).toBeGreaterThan(60);
+    expect(snapshot.budget.usedChars).toBeLessThanOrEqual(TEST_BUDGET);
+    expect(snapshot.budget.untrimmedChars).toBeGreaterThan(TEST_BUDGET);
+    // Performance history is trimmed before brand voice and guidelines.
+    expect(snapshot.budget.trimmedSections).toContainEqual(
+      expect.objectContaining({
+        header: '## Performance Insights',
+        isDropped: true,
+        keptChars: 0,
+      }),
+    );
     expect(
       snapshot.budget.trimmedSections.map((section) => section.header),
-    ).toContain('## Performance Insights');
+    ).not.toContain('## Brand Voice');
   });
 });

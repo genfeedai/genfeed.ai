@@ -149,6 +149,8 @@ export interface IAgentBrandContextSkill {
 
 export interface IAgentBrandContextTrimmedSection {
   header: string;
+  /** True when the budget removed the section entirely. */
+  isDropped: boolean;
   keptChars: number;
   originalChars: number;
 }

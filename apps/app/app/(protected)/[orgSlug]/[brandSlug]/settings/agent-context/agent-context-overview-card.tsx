@@ -88,11 +88,16 @@ export default function AgentContextOverviewCard({
                   className="text-xs text-muted-foreground"
                   key={section.header}
                 >
-                  {translate('budget.trimmedSection', {
-                    header: section.header.replace(/^##\s+/, ''),
-                    kept: section.keptChars,
-                    original: section.originalChars,
-                  })}
+                  {section.isDropped
+                    ? translate('budget.droppedSection', {
+                        header: section.header.replace(/^##\s+/, ''),
+                        original: section.originalChars,
+                      })
+                    : translate('budget.trimmedSection', {
+                        header: section.header.replace(/^##\s+/, ''),
+                        kept: section.keptChars,
+                        original: section.originalChars,
+                      })}
                 </p>
               ))}
             </div>

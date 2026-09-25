@@ -6,6 +6,7 @@ import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
 import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import type {
@@ -214,7 +215,15 @@ export function useAgentChatContainer({
     onOnboardingCompleted,
   });
 
-  const sendMessage = isStreaming ? sendStreaming : sendNonStreaming;
+  // Threads on `local/claude-cli` / `local/codex-cli` run in Genfeed Desktop
+  // on the user's own CLI subscription instead of the hosted API stream.
+  const desktopCliChat = useDesktopCliAgentChat();
+  const cancelDesktopCliTurn = desktopCliChat.cancelActiveTurn;
+  const sendMessage = desktopCliChat.isEnabled
+    ? desktopCliChat.sendMessage
+    : isStreaming
+      ? sendStreaming
+      : sendNonStreaming;
   // One source of truth with the Stop button: while a run is active, a send
   // queues as a follow-up instead of starting a second run on the thread.
   const isRunActive = isAgentRunActive(activeRunStatus);
@@ -403,6 +412,10 @@ export function useAgentChatContainer({
   );
 
   const handleStopRun = useCallback(async (): Promise<boolean> => {
+    if (cancelDesktopCliTurn()) {
+      return true;
+    }
+
     if (
       !isBusy &&
       activeRunStatus !== 'running' &&
@@ -437,6 +450,7 @@ export function useAgentChatContainer({
     activeRunId,
     activeRunStatus,
     apiService,
+    cancelDesktopCliTurn,
     clearStaleActiveRun,
     isBusy,
     setActiveRunStatus,

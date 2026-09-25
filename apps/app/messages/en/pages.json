@@ -2795,6 +2795,7 @@
   "brandAgentContext": {
     "budget": {
       "description": "Brand context is capped so it never crowds out the conversation. Lower-priority sections are trimmed first.",
+      "droppedSection": "{header}: dropped ({original} characters)",
       "fits": "Everything fits within the budget.",
       "title": "Context budget",
       "trimmedSection": "{header}: kept {kept} of {original} characters",
