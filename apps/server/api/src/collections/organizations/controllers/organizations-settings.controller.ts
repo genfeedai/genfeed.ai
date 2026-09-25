@@ -16,6 +16,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -43,6 +44,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -57,6 +59,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
+
+/**
+ * Plan-controlled settings. Stripe webhooks and billing services write them
+ * directly; over HTTP only platform superadmins (Admin app, self-hosted local
+ * identity) may change them, so an org owner cannot self-upgrade.
+ */
+const BILLING_CONTROLLED_SETTINGS = [
+  'subscriptionTier',
+  'seatsLimit',
+  'brandsLimit',
+] as const;
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -95,11 +108,30 @@ export class OrganizationsSettingsController {
     }
   }
 
+  /**
+   * Superadmins act on the organization named in the URL. Everyone else may
+   * only address their active organization; a mismatch is rejected rather
+   * than silently rewritten. Without an active organization, RolesGuard has
+   * already verified membership in the URL organization.
+   */
   private resolveOrganizationId(
     request: RequestWithContext,
     organizationId: string,
   ): string {
-    return request.context?.organizationId || organizationId;
+    if (getIsSuperAdmin(request.user, request)) {
+      return organizationId;
+    }
+
+    const activeOrganizationId =
+      request.context?.organizationId || request.user?.organizationId;
+
+    if (activeOrganizationId && activeOrganizationId !== organizationId) {
+      throw new ForbiddenException(
+        'Organization does not match the active organization',
+      );
+    }
+
+    return organizationId;
   }
 
   @Get(':organizationId/settings')
@@ -135,6 +167,16 @@ export class OrganizationsSettingsController {
     ) {
       throw new BadRequestException(
         'Onboarding journey state is managed by the server',
+      );
+    }
+    if (
+      !getIsSuperAdmin(req.user, req) &&
+      BILLING_CONTROLLED_SETTINGS.some((field) =>
+        Object.hasOwn(settingsDto, field),
+      )
+    ) {
+      throw new BadRequestException(
+        'Plan limits and subscription tier are managed by billing',
       );
     }
     const resolvedOrganizationId = this.resolveOrganizationId(
@@ -249,9 +291,12 @@ export class OrganizationsSettingsController {
   @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getByokAllProviders(
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
   ): Promise<IByokProviderStatus[]> {
-    return this.byokService.getStatus(organizationId);
+    return this.byokService.getStatus(
+      this.resolveOrganizationId(req, organizationId),
+    );
   }
 
   @Get(':organizationId/settings/byok/:provider')
@@ -259,10 +304,13 @@ export class OrganizationsSettingsController {
   @ApiParam({ enum: ByokProvider, name: 'provider', type: String })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getByokProviderStatus(
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Param('provider', new ParseEnumPipe(ByokProvider)) provider: ByokProvider,
   ): Promise<IByokProviderStatus> {
-    const statuses = await this.byokService.getStatus(organizationId);
+    const statuses = await this.byokService.getStatus(
+      this.resolveOrganizationId(req, organizationId),
+    );
     const status = statuses.find((s) => s.provider === provider);
 
     if (!status) {
@@ -300,6 +348,7 @@ export class OrganizationsSettingsController {
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async saveByokProviderKey(
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Param('provider', new ParseEnumPipe(ByokProvider)) provider: ByokProvider,
     @Body() body: { apiKey: string; apiSecret?: string },
@@ -310,7 +359,7 @@ export class OrganizationsSettingsController {
     }
 
     await this.byokService.saveKey(
-      organizationId,
+      this.resolveOrganizationId(req, organizationId),
       provider,
       trimmedApiKey,
       body.apiSecret?.trim(),
@@ -325,10 +374,14 @@ export class OrganizationsSettingsController {
   @HttpCode(HttpStatus.OK)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async removeByokProviderKey(
+    @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Param('provider', new ParseEnumPipe(ByokProvider)) provider: ByokProvider,
   ): Promise<{ isSuccess: boolean }> {
-    await this.byokService.removeKey(organizationId, provider);
+    await this.byokService.removeKey(
+      this.resolveOrganizationId(req, organizationId),
+      provider,
+    );
     return { isSuccess: true };
   }
 }
