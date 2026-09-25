@@ -96,7 +96,9 @@ export function sumUnitEconomicsAggregates(
  * averaging per-row percentages would weight a $1 org like a $10k one.
  * Rows sort by provider cost, the number an operator scans first.
  */
-export function buildUnitEconomicsRows(inputs: readonly UnitEconomicsRowInput[]): {
+export function buildUnitEconomicsRows(
+  inputs: readonly UnitEconomicsRowInput[],
+): {
   rows: IUnitEconomicsRow[];
   totals: IUnitEconomicsMetrics;
 } {

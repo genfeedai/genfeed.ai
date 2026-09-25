@@ -4,6 +4,7 @@ import {
   type UnitEconomicsAggregate,
 } from '@api/endpoints/admin/unit-economics/unit-economics-report.util';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
@@ -15,7 +16,7 @@ import type {
   IUnitEconomicsTopModel,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type NumericSqlValue = bigint | number | string | null;
 
@@ -171,7 +172,7 @@ export class UnitEconomicsService {
       where: { id: organizationId },
     });
     if (!organization) {
-      throw new NotFoundException('Organization not found');
+      throw new NotFoundException('Organization', organizationId);
     }
     return organization.label;
   }

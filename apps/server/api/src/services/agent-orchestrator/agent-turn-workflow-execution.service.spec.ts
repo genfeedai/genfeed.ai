@@ -2,7 +2,7 @@ import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestra
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-function setup(source = 'proactive') {
+function setup(source = 'proactive', lockedModel?: string) {
   const prisma = {
     agentThread: {
       findFirst: vi.fn().mockResolvedValue({
@@ -39,6 +39,11 @@ function setup(source = 'proactive') {
     tryHandleRecurringTaskDraftTurnStream: vi.fn().mockResolvedValue(false),
   };
   const stream = { runStreamLoop: vi.fn().mockResolvedValue(undefined) };
+  const modelAccess = {
+    enforceModel: vi.fn(
+      async (_organizationId: string, model: string) => lockedModel ?? model,
+    ),
+  };
   const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
     prisma,
     { findOne: vi.fn().mockResolvedValue({}) },
@@ -74,8 +79,18 @@ function setup(source = 'proactive') {
     },
     { upsertBinding: vi.fn() },
     {},
+    modelAccess,
   ]) as AgentTurnWorkflowExecutionService;
-  return { service, prisma, plan, batch, recurring, stream, context };
+  return {
+    service,
+    prisma,
+    plan,
+    batch,
+    recurring,
+    stream,
+    context,
+    modelAccess,
+  };
 }
 const workflowContext = {
   organizationId: 'org',
@@ -175,5 +190,39 @@ describe('trusted proactive turn limits and memory routing', () => {
     expect(
       recurring.tryHandleRecurringTaskDraftTurnStream,
     ).toHaveBeenCalledOnce();
+  });
+  it('runs a free-tier org on the locked model and drops its thinking override', async () => {
+    const { service, stream, context, modelAccess } = setup(
+      'proactive',
+      'deepseek/deepseek-v4-flash-0731',
+    );
+    context.resolveSystemPromptAndModel.mockResolvedValue({
+      preparedScope: {
+        existingScope: {
+          brandId: 'brand',
+          contextVersion: 1,
+          organizationId: 'org',
+        },
+      },
+      model: 'anthropic/claude-opus-5',
+      policy: {
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        thinkingModelOverride: 'anthropic/claude-opus-5',
+      },
+      systemPrompt: 'brand voice and feedback memory',
+      memories: ['feedback'],
+    });
+    const prepared = await service.prepare(request, workflowContext);
+    await service.execute(prepared.state);
+
+    expect(modelAccess.enforceModel).toHaveBeenCalledWith(
+      'org',
+      'anthropic/claude-opus-5',
+    );
+    const call = stream.runStreamLoop.mock.calls[0];
+    expect(call?.[3]).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(call?.[5]).toEqual(
+      expect.objectContaining({ thinkingModelOverride: null }),
+    );
   });
 });

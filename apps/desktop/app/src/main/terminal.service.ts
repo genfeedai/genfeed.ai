@@ -37,10 +37,18 @@ const TERMINAL_PATHS = [
 
 const nodeRequire = createRequire(import.meta.url);
 
+/**
+ * Local PTY sessions (shell, Genfeed CLI, Claude Code, Codex) for the agent
+ * panel terminal. Available in cloud and local mode: it only needs the local
+ * machine, never the PGlite runtime. A workspace, when one is open, is the
+ * default working directory.
+ */
 export class DesktopTerminalService {
   private readonly sessions = new Map<string, DesktopTerminalProcess>();
 
-  constructor(private readonly workspaceService: DesktopWorkspaceService) {}
+  constructor(
+    private readonly getWorkspaceService: () => DesktopWorkspaceService | null,
+  ) {}
 
   async createSession(
     options: IDesktopTerminalCreateOptions | undefined,
@@ -48,7 +56,10 @@ export class DesktopTerminalService {
     onExit: TerminalExitCallback,
   ): Promise<IDesktopTerminalSession> {
     const kind = options?.kind ?? 'shell';
-    const cwd = await this.resolveWorkingDirectory(options?.workspaceId);
+    const cwd = await this.resolveWorkingDirectory(
+      options?.workspaceId,
+      options?.cwd,
+    );
     const { args, command } = this.resolveCommand(kind);
     const sessionId = randomUUID();
 
@@ -163,13 +174,34 @@ export class DesktopTerminalService {
 
   private async resolveWorkingDirectory(
     workspaceId: string | null | undefined,
+    requestedCwd: string | undefined,
   ): Promise<string> {
-    if (!workspaceId) {
-      return os.homedir();
+    const workspaceService = this.getWorkspaceService();
+
+    if (workspaceId && workspaceService) {
+      const workspace = await workspaceService.getWorkspace(workspaceId);
+      return workspace.path;
     }
 
-    const workspace = await this.workspaceService.getWorkspace(workspaceId);
-    return workspace.path;
+    const cwd = requestedCwd?.trim();
+    if (cwd) {
+      const expanded =
+        cwd === '~' || cwd.startsWith('~/')
+          ? path.join(os.homedir(), cwd.slice(1))
+          : cwd;
+
+      if (path.isAbsolute(expanded)) {
+        try {
+          if (fs.statSync(expanded).isDirectory()) {
+            return expanded;
+          }
+        } catch {
+          // Fall back to the home directory below.
+        }
+      }
+    }
+
+    return os.homedir();
   }
 
   private resolveCommand(kind: DesktopTerminalKind): {

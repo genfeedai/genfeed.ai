@@ -131,6 +131,11 @@ function setup() {
     lane,
     { upsertBinding: vi.fn() },
     {},
+    {
+      enforceModel: vi.fn(
+        async (_organizationId: string, model: string) => model,
+      ),
+    },
   ];
   const service = Reflect.construct(
     AgentTurnWorkflowExecutionService,

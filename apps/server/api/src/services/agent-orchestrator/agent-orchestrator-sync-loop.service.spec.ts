@@ -27,7 +27,8 @@ function setup() {
   const registry = {
     getMaximumRoundCredits: vi.fn().mockResolvedValue(5),
     getRoundCredits: vi.fn().mockResolvedValue(5),
-    getSettledRoundCredits: vi.fn().mockResolvedValue(5),
+    calculateRoundProviderCostUsd: vi.fn().mockResolvedValue(0.05),
+    toRoundCredits: vi.fn().mockReturnValue(5),
     getDefaultModelKey: vi.fn().mockResolvedValue('model'),
     getAutoAllowedModelKeys: vi.fn().mockResolvedValue([]),
   };

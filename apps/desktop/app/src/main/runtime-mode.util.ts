@@ -146,7 +146,6 @@ export interface UnwoundLocalRuntimeState {
   pgliteService: null;
   prismaService: null;
   syncService: null;
-  terminalService: null;
   workspaceService: null;
 }
 
@@ -169,7 +168,6 @@ export function createUnwoundLocalRuntimeState(): UnwoundLocalRuntimeState {
     pgliteService: null,
     prismaService: null,
     syncService: null,
-    terminalService: null,
     workspaceService: null,
   };
 }

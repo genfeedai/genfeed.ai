@@ -21,19 +21,28 @@ const COMMAND_PATH_PREFIXES = [
   '/bin',
 ];
 
+/**
+ * GUI-launched apps on macOS inherit a minimal PATH, so user-installed CLIs
+ * (Homebrew, npm globals) are prepended the same way for detection and runs.
+ */
+export function buildDesktopToolPath(
+  existingPath: string | undefined = process.env.PATH,
+): string {
+  return [
+    ...COMMAND_PATH_PREFIXES,
+    ...(existingPath ?? '').split(':').filter(Boolean),
+  ].join(':');
+}
+
 export function isDesktopLocalToolCommandAvailable(
   command: string,
   spawnCommand: typeof spawnSync = spawnSync,
 ): boolean {
-  const pathParts = [
-    ...COMMAND_PATH_PREFIXES,
-    ...(process.env.PATH ?? '').split(':').filter(Boolean),
-  ];
   const result = spawnCommand(command, ['--version'], {
     encoding: 'utf8',
     env: {
       ...process.env,
-      PATH: pathParts.join(':'),
+      PATH: buildDesktopToolPath(),
     },
     shell: false,
     stdio: 'ignore',

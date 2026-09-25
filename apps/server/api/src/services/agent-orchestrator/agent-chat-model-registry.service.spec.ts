@@ -5,6 +5,8 @@ import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
+  calculateAgentExactCredits,
+  calculateAgentProviderCostUsd,
   REASONING_FEATURE,
 } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -192,47 +194,132 @@ describe('AgentChatModelRegistryService round pricing', () => {
     );
   });
 
-  it('settles a bare native Anthropic response model at the Sonnet 5 / Opus 5 price', async () => {
+  const usage = { completionTokens: 2_000, promptTokens: 10_000 };
+  const catalogCostUsd = (key: string) => {
+    const pricing = AGENT_CHAT_MODELS.find((model) => model.key === key)
+      ?.pricing;
+    if (!pricing) {
+      throw new Error(`${key} is not catalogued`);
+    }
+    return calculateAgentProviderCostUsd(pricing, usage);
+  };
+
+  it('prices a bare native Anthropic response model at the Sonnet 5 / Opus 5 token price', async () => {
     const service = await createService();
 
     await expect(
-      service.getSettledRoundCredits({
+      service.calculateRoundProviderCostUsd({
+        ...usage,
         requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
         responseModel: 'claude-sonnet-5',
       }),
-    ).resolves.toBe(catalogCredits(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5));
+    ).resolves.toBeCloseTo(
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
+      12,
+    );
     await expect(
-      service.getSettledRoundCredits({
+      service.calculateRoundProviderCostUsd({
+        ...usage,
         requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
         responseModel: 'claude-opus-5',
       }),
-    ).resolves.toBe(catalogCredits(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5));
+    ).resolves.toBeCloseTo(
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      12,
+    );
   });
 
-  it('settles at the answering model price when the router picked a different catalogued model', async () => {
+  it('prices at the answering model when the router picked a different catalogued model', async () => {
     const service = await createService();
 
     await expect(
-      service.getSettledRoundCredits({
+      service.calculateRoundProviderCostUsd({
+        ...usage,
         requestedModel: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
         responseModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
       }),
-    ).resolves.toBe(catalogCredits(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5));
+    ).resolves.toBeCloseTo(
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      12,
+    );
   });
 
   it('falls back to the requested model price when the response model is unmapped', async () => {
     const service = await createService();
 
     await expect(
-      service.getSettledRoundCredits({
+      service.calculateRoundProviderCostUsd({
+        ...usage,
         requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
         responseModel: 'anthropic/claude-opus-5-20260901',
       }),
-    ).resolves.toBe(catalogCredits(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5));
+    ).resolves.toBeCloseTo(
+      catalogCostUsd(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
+      12,
+    );
+  });
+
+  it('prefers the registry row token price over the contract catalogue', async () => {
+    const service = await createService(
+      catalogRows().map((entry) =>
+        entry.key === AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5
+          ? {
+              ...entry,
+              inputCostPerMillionTokens: 4,
+              outputCostPerMillionTokens: 20,
+            }
+          : entry,
+      ),
+    );
+
     await expect(
-      service.getSettledRoundCredits({
+      service.calculateRoundProviderCostUsd({
+        ...usage,
         requestedModel: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
       }),
-    ).resolves.toBe(catalogCredits(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5));
+    ).resolves.toBeCloseTo(0.04 + 0.04, 12);
+  });
+
+  it('prices an unknown model at the highest curated prompt and completion rates', async () => {
+    const service = await createService();
+    const highest = {
+      completionPerMillion: Math.max(
+        ...AGENT_CHAT_MODELS.map((model) => model.pricing.completionPerMillion),
+      ),
+      promptPerMillion: Math.max(
+        ...AGENT_CHAT_MODELS.map((model) => model.pricing.promptPerMillion),
+      ),
+    };
+
+    await expect(
+      service.calculateRoundProviderCostUsd({
+        ...usage,
+        requestedModel: 'vendor/brand-new',
+        responseModel: 'vendor/brand-new',
+      }),
+    ).resolves.toBeCloseTo(calculateAgentProviderCostUsd(highest, usage), 12);
+  });
+
+  it('converts provider USD to exact fractional credits at the live margin', async () => {
+    const service = await createService();
+
+    expect(service.toRoundCredits(0.001)).toBe(
+      calculateAgentExactCredits(0.001),
+    );
+    expect(service.toRoundCredits(0)).toBe(0);
+  });
+
+  it('estimates fractional credits per average message for pickers', async () => {
+    const service = await createService();
+    const estimates = await service.getMessageCostEstimatesMap();
+
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH]).toBeGreaterThan(
+      0,
+    );
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH]).toBeLessThan(1);
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5]).toBeGreaterThan(
+      estimates[AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH],
+    );
+    expect(estimates[AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE]).toBe(0);
   });
 });

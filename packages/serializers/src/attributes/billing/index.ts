@@ -10,4 +10,5 @@ export * from '@serializers/attributes/billing/referral-program.attributes';
 export * from '@serializers/attributes/billing/referral-reward.attributes';
 export * from '@serializers/attributes/billing/subscription.attributes';
 export * from '@serializers/attributes/billing/subscription-attribution.attributes';
+export * from '@serializers/attributes/billing/unit-economics-report.attributes';
 export { topbarBalancesAttributes } from '@serializers/attributes/billing/topbar-balances.attributes';

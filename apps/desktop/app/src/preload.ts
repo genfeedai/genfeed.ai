@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { isTrustedDesktopAppOrigin } from './main/app-shell-origin.util';
 
 const APP_ORIGIN_ARGUMENT = '--genfeed-app-origin=';
+const WS_ENDPOINT_ARGUMENT = '--genfeed-ws-endpoint=';
 
 const getDesktopAppOrigin = (): string | null => {
   const argument = process.argv.find((value) =>
@@ -27,7 +28,43 @@ const getDesktopAppOrigin = (): string | null => {
   }
 };
 
+/** Notifications endpoint of the server Desktop was launched against. */
+const getDesktopWsEndpoint = (): string | null => {
+  const argument = process.argv.find((value) =>
+    value.startsWith(WS_ENDPOINT_ARGUMENT),
+  );
+
+  if (!argument) {
+    return null;
+  }
+
+  try {
+    const url = new URL(argument.slice(WS_ENDPOINT_ARGUMENT.length));
+    return url.protocol === 'https:' || url.protocol === 'http:'
+      ? url.toString().replace(/\/$/, '')
+      : null;
+  } catch {
+    return null;
+  }
+};
+
 const desktopBridge: IGenfeedDesktopBridge = {
+  agentRuntime: {
+    cancelTurn: async (turnId) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.agentRuntimeCancelTurn, turnId),
+    onEvent: (callback) => {
+      const listener = (_event: unknown, payload: unknown) => {
+        callback(payload as Parameters<typeof callback>[0]);
+      };
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.agentRuntimeEvent, listener);
+
+      return () => {
+        ipcRenderer.off(DESKTOP_IPC_CHANNELS.agentRuntimeEvent, listener);
+      };
+    },
+    startTurn: async (request) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.agentRuntimeStartTurn, request),
+  },
   app: {
     detectLocalTools: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectLocalTools),
@@ -206,6 +243,13 @@ const desktopBridge: IGenfeedDesktopBridge = {
     };
   },
   platform: process.platform,
+  server: {
+    getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverGetState),
+    select: async (selection) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverSelect, selection),
+    validateSelfHosted: async (config) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverValidate, config),
+  },
   sync: {
     ackOps: async (cloudUserId, ops) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, cloudUserId, ops),
@@ -335,10 +379,12 @@ const desktopBridge: IGenfeedDesktopBridge = {
 };
 
 const appOrigin = getDesktopAppOrigin();
+const wsEndpoint = getDesktopWsEndpoint();
 
 if (appOrigin) {
   contextBridge.exposeInMainWorld('__GENFEED_DESKTOP_ENV__', {
     apiEndpoint: `${appOrigin}/v1`,
+    ...(wsEndpoint ? { wsEndpoint } : {}),
   });
 }
 

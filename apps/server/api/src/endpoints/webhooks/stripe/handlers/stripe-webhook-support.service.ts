@@ -294,8 +294,8 @@ export class StripeWebhookSupportService {
   /** Add purchased credits with the standard 1-year expiration. */
   /**
    * Record a customer payment in the revenue ledger that platform-admin unit
-   * economics reads. Idempotent per Stripe object (webhook replays upsert the
-   * same row). Best-effort: the payment's credits are already granted, so a
+   * economics reads. Idempotent per Stripe object (webhook replays hit the
+   * unique `stripeObjectId` and are skipped). Best-effort: the payment's credits are already granted, so a
    * ledger failure is logged, never thrown.
    */
   async recordRevenueEvent(input: BillingRevenueEventInput): Promise<void> {
@@ -310,18 +310,21 @@ export class StripeWebhookSupportService {
     }
 
     try {
-      await this.prisma.billingRevenueEvent.upsert({
-        create: {
-          amountMinor,
-          currency: input.currency.trim().toLowerCase() || 'usd',
-          occurredAt: input.occurredAt,
-          organizationId: input.organizationId,
-          source: input.source,
-          stripeObjectId: input.stripeObjectId,
-          userId: input.userId ?? null,
-        },
-        update: {},
-        where: { stripeObjectId: input.stripeObjectId },
+      // The unique Stripe object id is the replay guard: a duplicate webhook
+      // delivery is skipped by the constraint instead of read-then-written.
+      await this.prisma.billingRevenueEvent.createMany({
+        data: [
+          {
+            amountMinor,
+            currency: input.currency.trim().toLowerCase() || 'usd',
+            occurredAt: input.occurredAt,
+            organizationId: input.organizationId,
+            source: input.source,
+            stripeObjectId: input.stripeObjectId,
+            userId: input.userId ?? null,
+          },
+        ],
+        skipDuplicates: true,
       });
     } catch (error: unknown) {
       this.loggerService.error(
