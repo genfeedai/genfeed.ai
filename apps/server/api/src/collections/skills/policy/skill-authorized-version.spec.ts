@@ -144,21 +144,27 @@ describe('chooseAuthorizedVersionId', () => {
       sharedVersionId: null,
     };
 
-    expect(chooseReadableVersionId({ pointer: systemCatalog })).toBe(
-      'sv-catalog',
-    );
     expect(
       chooseReadableVersionId({
+        allowsCatalogRead: true,
+        pointer: systemCatalog,
+      }),
+    ).toBe('sv-catalog');
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: true,
         pointer: { ...systemCatalog, ownerKind: 'organization' },
       }),
     ).toBeNull();
     expect(
       chooseReadableVersionId({
+        allowsCatalogRead: true,
         pointer: { ...systemCatalog, ownerKind: 'user' },
       }),
     ).toBeNull();
     expect(
       chooseReadableVersionId({
+        allowsCatalogRead: true,
         pointer: systemCatalog,
         readGrantVersionId: 'sv-read-grant',
       }),

@@ -469,7 +469,7 @@ describe('SkillLibraryService authorized versions', () => {
 
     expect(visible?.canRead).toBe(true);
     expect(visible?.canUse).toBe(true);
-    expect(visible?.canExport).toBe(false);
+    expect(visible?.canExport).toBe(true);
     expect(visible?.systemPromptTemplate).toBe('version one');
 
     state.grants = [
