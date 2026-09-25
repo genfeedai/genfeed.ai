@@ -12,8 +12,13 @@ export const X_REPLY_WATCH_INTERVAL_MS =
   X_REPLY_WATCH_INTERVAL_MINUTES * 60_000;
 export const X_REPLY_WATCH_WINDOW_MS = X_REPLY_WATCH_WINDOW_HOURS * 3_600_000;
 
-/** One page per call; X caps the mentions page at 100. */
+/** Mentions per page; X caps the mentions page at 100. */
 export const X_REPLY_WATCH_MAX_RESULTS = 100;
+/**
+ * Pages followed per account per tick (500 mentions). When more remain, the
+ * cursor is left in place so no unread mention falls below it.
+ */
+export const X_REPLY_WATCH_MAX_PAGES = 5;
 /** Accounts polled at once inside one sweep. */
 export const X_REPLY_WATCH_CONCURRENCY = 5;
 

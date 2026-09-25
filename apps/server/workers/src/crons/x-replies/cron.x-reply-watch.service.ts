@@ -20,6 +20,7 @@ import {
   X_REPLY_WATCH_CURSOR_TTL_SECONDS,
   X_REPLY_WATCH_LOCK_KEY,
   X_REPLY_WATCH_LOCK_TTL_SECONDS,
+  X_REPLY_WATCH_MAX_PAGES,
   X_REPLY_WATCH_MAX_RESULTS,
   X_REPLY_WATCH_RATE_LIMIT_FALLBACK_MS,
   X_REPLY_WATCH_RATE_LIMIT_MAX_MS,
@@ -273,20 +274,41 @@ export class CronXReplyWatchService {
       oldestSnowflake(posts.map((post) => post.externalId)),
     ]);
 
-    let mentions: TwitterInboxTweet[];
+    const mentions: TwitterInboxTweet[] = [];
+    let paginationToken: string | undefined;
     try {
-      mentions = await this.twitterService.listMentions(
-        credential.organizationId,
-        credential.brandId,
-        {
-          limit: X_REPLY_WATCH_MAX_RESULTS,
-          ...(sinceId ? { sinceId } : {}),
-        },
-        credential.id,
-      );
+      for (let page = 0; page < X_REPLY_WATCH_MAX_PAGES; page++) {
+        const result = await this.twitterService.listMentionsPage(
+          credential.organizationId,
+          credential.brandId,
+          {
+            limit: X_REPLY_WATCH_MAX_RESULTS,
+            ...(paginationToken ? { paginationToken } : {}),
+            ...(sinceId ? { sinceId } : {}),
+          },
+          credential.id,
+        );
+        mentions.push(...result.tweets);
+        paginationToken = result.nextToken;
+        if (!paginationToken) {
+          break;
+        }
+      }
     } catch (error: unknown) {
       await this.handleProviderError(credential, error);
       return { ...EMPTY_OUTCOME, failed: 1 };
+    }
+    // X pages newest first. Stopping at the page cap leaves older mentions
+    // unread between the cursor and the last page, so the cursor must not move.
+    const hasUnreadPages = Boolean(paginationToken);
+    if (hasUnreadPages) {
+      this.logger.warn(
+        'X reply watch hit the mention page cap; keeping cursor',
+        {
+          credentialId: credential.id,
+          pages: X_REPLY_WATCH_MAX_PAGES,
+        },
+      );
     }
 
     const replies = matchRepliesToPosts(mentions, posts);
@@ -316,7 +338,7 @@ export class CronXReplyWatchService {
       sinceId,
       ...mentions.map((mention) => mention.tweetId),
     ]);
-    if (nextCursor && nextCursor !== storedCursor) {
+    if (!hasUnreadPages && nextCursor && nextCursor !== storedCursor) {
       await this.cacheService.set(
         xReplyWatchCursorKey(credential.id),
         nextCursor,

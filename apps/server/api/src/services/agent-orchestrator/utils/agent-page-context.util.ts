@@ -117,7 +117,7 @@ function buildCurrentTimeContext(
     return null;
   }
 
-  return `## Current Time\n- User timezone: ${timezone}\n- Current local time: ${localTime}\nResolve relative dates and times ("today", "tonight", "at 9am") in this timezone, and pass schedule times to tools as ISO 8601 timestamps with this UTC offset.`;
+  return `## Current Time\n- User timezone: ${timezone}\n- Current local time: ${localTime}\nResolve relative dates and times ("today", "tonight", "at 9am") in this timezone, and pass schedule times to tools as ISO 8601 timestamps carrying the UTC offset in effect at each timestamp in this timezone (it can differ from the current offset across a daylight-saving change).`;
 }
 
 export function buildPageContextPrompt(

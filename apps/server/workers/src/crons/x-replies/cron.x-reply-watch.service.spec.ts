@@ -5,6 +5,7 @@ import {
 } from '@workers/crons/x-replies/cron.x-reply-watch.service';
 import {
   X_REPLY_WATCH_LOCK_KEY,
+  X_REPLY_WATCH_MAX_PAGES,
   X_REPLY_WATCH_WINDOW_MS,
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
@@ -75,7 +76,7 @@ function setup() {
   };
   const twitterService = {
     handleAuthorizationError: vi.fn().mockResolvedValue(false),
-    listMentions: vi.fn().mockResolvedValue([]),
+    listMentionsPage: vi.fn().mockResolvedValue({ tweets: [] }),
   };
   const socialInboxService = {
     ingestXPostReplies: vi.fn().mockResolvedValue({
@@ -104,6 +105,7 @@ function setup() {
   return {
     cache,
     cacheService,
+    logger,
     notifications,
     prisma,
     service,
@@ -158,7 +160,7 @@ describe('CronXReplyWatchService', () => {
 
     const totals = await context.service.watchRecentPostReplies(NOW);
 
-    expect(context.twitterService.listMentions).not.toHaveBeenCalled();
+    expect(context.twitterService.listMentionsPage).not.toHaveBeenCalled();
     expect(totals.credentials).toBe(0);
   });
 
@@ -166,7 +168,7 @@ describe('CronXReplyWatchService', () => {
     await context.service.watchRecentPostReplies(NOW);
 
     expect(context.prisma.post.findMany).not.toHaveBeenCalled();
-    expect(context.twitterService.listMentions).not.toHaveBeenCalled();
+    expect(context.twitterService.listMentionsPage).not.toHaveBeenCalled();
   });
 
   it('makes exactly one mentions call per account with recent posts', async () => {
@@ -184,16 +186,16 @@ describe('CronXReplyWatchService', () => {
 
     await context.service.watchRecentPostReplies(NOW);
 
-    expect(context.twitterService.listMentions).toHaveBeenCalledTimes(2);
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(2);
     // Floor is the oldest in-window post: a reply is always newer than it.
-    expect(context.twitterService.listMentions).toHaveBeenCalledWith(
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledWith(
       'org-a',
       'brand-a',
       { limit: 100, sinceId: '1800000000000000050' },
       'a',
     );
     // A stored cursor newer than the floor wins.
-    expect(context.twitterService.listMentions).toHaveBeenCalledWith(
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledWith(
       'org-b',
       'brand-b',
       { limit: 100, sinceId: '1800000000000000300' },
@@ -209,7 +211,7 @@ describe('CronXReplyWatchService', () => {
 
     await context.service.watchRecentPostReplies(NOW);
 
-    expect(context.twitterService.listMentions).not.toHaveBeenCalled();
+    expect(context.twitterService.listMentionsPage).not.toHaveBeenCalled();
   });
 
   it('ingests only replies on recent posts, notifies once, and advances the cursor', async () => {
@@ -231,12 +233,9 @@ describe('CronXReplyWatchService', () => {
       conversationId: '1700000000000000000',
       inReplyToId: '1700000000000000000',
     });
-    context.twitterService.listMentions.mockResolvedValue([
-      elsewhere,
-      plainMention,
-      inThread,
-      direct,
-    ]);
+    context.twitterService.listMentionsPage.mockResolvedValue({
+      tweets: [elsewhere, plainMention, inThread, direct],
+    });
     context.socialInboxService.ingestXPostReplies.mockResolvedValue({
       conversationsCreated: 2,
       createdMessageIds: [direct.tweetId, inThread.tweetId],
@@ -279,17 +278,75 @@ describe('CronXReplyWatchService', () => {
     );
   });
 
+  it('follows mention pages before advancing the cursor', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    const newest = tweet('1800000000000000300', {
+      conversationId: '1800000000000000100',
+      inReplyToId: '1800000000000000100',
+    });
+    const older = tweet('1800000000000000200', {
+      conversationId: '1800000000000000100',
+      inReplyToId: '1800000000000000100',
+    });
+    context.twitterService.listMentionsPage
+      .mockResolvedValueOnce({ nextToken: 'page-2', tweets: [newest] })
+      .mockResolvedValueOnce({ tweets: [older] });
+
+    const totals = await context.service.watchRecentPostReplies(NOW);
+
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(2);
+    expect(context.twitterService.listMentionsPage).toHaveBeenLastCalledWith(
+      'org-a',
+      'brand-a',
+      {
+        limit: 100,
+        paginationToken: 'page-2',
+        sinceId: '1800000000000000100',
+      },
+      'a',
+    );
+    expect(totals.mentionsRead).toBe(2);
+    expect(context.cache.get(xReplyWatchCursorKey('a'))).toBe(newest.tweetId);
+  });
+
+  it('keeps the cursor when the page cap leaves older mentions unread', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    context.cache.set(xReplyWatchCursorKey('a'), '1800000000000000150');
+    context.twitterService.listMentionsPage.mockResolvedValue({
+      nextToken: 'more',
+      tweets: [tweet('1800000000000000900')],
+    });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(
+      X_REPLY_WATCH_MAX_PAGES,
+    );
+    expect(context.cache.get(xReplyWatchCursorKey('a'))).toBe(
+      '1800000000000000150',
+    );
+    expect(context.logger.warn).toHaveBeenCalledOnce();
+  });
+
   it('does not notify when every matched reply was already stored', async () => {
     context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
     context.prisma.post.findMany.mockResolvedValue([
       post('p1', 'a', '1800000000000000100'),
     ]);
-    context.twitterService.listMentions.mockResolvedValue([
-      tweet('1800000000000000120', {
-        conversationId: '1800000000000000100',
-        inReplyToId: '1800000000000000100',
-      }),
-    ]);
+    context.twitterService.listMentionsPage.mockResolvedValue({
+      tweets: [
+        tweet('1800000000000000120', {
+          conversationId: '1800000000000000100',
+          inReplyToId: '1800000000000000100',
+        }),
+      ],
+    });
 
     await context.service.watchRecentPostReplies(NOW);
 
@@ -304,7 +361,7 @@ describe('CronXReplyWatchService', () => {
     context.prisma.post.findMany.mockResolvedValue([
       post('p1', 'a', '1800000000000000100'),
     ]);
-    context.twitterService.listMentions.mockRejectedValue(
+    context.twitterService.listMentionsPage.mockRejectedValue(
       Object.assign(new Error('Too Many Requests'), { code: 429 }),
     );
 
@@ -313,7 +370,7 @@ describe('CronXReplyWatchService', () => {
 
     expect(first.failed).toBe(1);
     expect(second.skipped).toBe(1);
-    expect(context.twitterService.listMentions).toHaveBeenCalledOnce();
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledOnce();
     expect(context.cache.has(xReplyWatchBackoffKey('a'))).toBe(true);
     expect(context.cache.has(xReplyWatchCursorKey('a'))).toBe(false);
     expect(
@@ -326,7 +383,7 @@ describe('CronXReplyWatchService', () => {
     context.prisma.post.findMany.mockResolvedValue([
       post('p1', 'a', '1800000000000000100'),
     ]);
-    context.twitterService.listMentions.mockRejectedValue(
+    context.twitterService.listMentionsPage.mockRejectedValue(
       Object.assign(new Error('client-not-enrolled'), { code: 403 }),
     );
 
@@ -345,7 +402,7 @@ describe('CronXReplyWatchService', () => {
       post('p1', 'a', '1800000000000000100'),
     ]);
     const error = Object.assign(new Error('Unauthorized'), { code: 401 });
-    context.twitterService.listMentions.mockRejectedValue(error);
+    context.twitterService.listMentionsPage.mockRejectedValue(error);
 
     await context.service.watchRecentPostReplies(NOW);
 
