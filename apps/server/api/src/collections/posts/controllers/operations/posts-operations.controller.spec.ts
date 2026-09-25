@@ -41,6 +41,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -191,6 +192,11 @@ describe('PostsOperationsController', () => {
     resolve: vi.fn().mockResolvedValue(mockPublishingContext),
   };
 
+  const mockAgentContextAssemblyService = {
+    assembleContext: vi.fn(),
+    buildSystemPrompt: vi.fn(),
+  };
+
   const mockConfigService = {
     get: vi.fn((key: string) => {
       const config: Record<string, unknown> = {
@@ -284,6 +290,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockAccountPublishingContextService.resolve.mockResolvedValue(
       mockPublishingContext,
     );
+    mockAgentContextAssemblyService.assembleContext.mockResolvedValue(null);
     mockCredentialsService.findOne.mockResolvedValue(mockCredential);
     mockIngredientsService.findByIds.mockResolvedValue([]);
     mockIngredientsService.findOne.mockResolvedValue(mockIngredient);
@@ -329,6 +336,10 @@ Tweet 3: Tech innovation is changing the world.`,
           useValue: mockAccountPublishingContextService,
         },
         { provide: ActivitiesService, useValue: mockActivitiesService },
+        {
+          provide: AgentContextAssemblyService,
+          useValue: mockAgentContextAssemblyService,
+        },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: CredentialsService, useValue: mockCredentialsService },
         { provide: IngredientsService, useValue: mockIngredientsService },
