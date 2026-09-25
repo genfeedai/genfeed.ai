@@ -586,14 +586,8 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.catalogHandler.listGenfeedTools(params);
 
       case 'list_agent_conversations':
-        return this.transferHandler
-          ? this.transferHandler.listConversations(params, ctx)
-          : this.unavailableTransferTool();
-
       case 'transfer_agent_conversation':
-        return this.transferHandler
-          ? this.transferHandler.transfer(params, ctx)
-          : this.unavailableTransferTool();
+        return this.dispatchConversationTransfer(toolName, params, ctx);
 
       case 'get_credits_balance':
         return this.workspaceHandler.getCreditsBalance(ctx);
@@ -889,6 +883,19 @@ export class AgentToolExecutorService implements OnModuleInit {
           success: false,
         };
     }
+  }
+
+  private dispatchConversationTransfer(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.transferHandler) {
+      return Promise.resolve(this.unavailableTransferTool());
+    }
+    return toolName === 'list_agent_conversations'
+      ? this.transferHandler.listConversations(params, ctx)
+      : this.transferHandler.transfer(params, ctx);
   }
 
   private unavailableTransferTool(): AgentToolResult {

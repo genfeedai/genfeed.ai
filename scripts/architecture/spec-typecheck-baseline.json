@@ -401,14 +401,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/contexts/controllers/contexts.controller.spec.ts",
-      "fingerprint": "1a1c7c342727df08f444",
-      "message": "Type '\"general\"' is not assignable to type '\"custom\" | \"audience\" | \"brand_voice\" | \"content_library\"'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/credits/entities/credit-balance.entity.spec.ts",
@@ -2302,14 +2294,6 @@
       "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "97c0ec0e7d957ef483bb",
       "message": "This expression is not callable.   Type 'never' has no call signatures.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-context-assembly/agent-context-assembly.service.spec.ts",
-      "fingerprint": "7c88239347fc9e30d987",
-      "message": "Expected 9 arguments, but got 8.",
       "workspace": "api"
     },
     {

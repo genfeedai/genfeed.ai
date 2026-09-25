@@ -19,6 +19,12 @@ export interface AgentContextLayerCardProps {
   status?: IAgentBrandContextLayerStatus;
 }
 
+export interface AgentContextFieldRow {
+  key: string;
+  label: string;
+  value: ReactNode;
+}
+
 export interface AgentContextLayerBodyProps {
   layerKey: AgentBrandContextLayerKey;
   layers: IAgentBrandContextLayers;
@@ -36,6 +42,14 @@ export interface AgentContextOverviewCardProps {
 export interface AgentContextPromptCardProps {
   memoryPrompt: string;
   systemPrompt: string;
+}
+
+export interface AgentContextMemoryRowProps {
+  action?: ReactNode;
+  kind?: string | null;
+  meta?: string;
+  scopeLabel: string;
+  text: string;
 }
 
 export interface AgentContextMemoriesSectionProps {

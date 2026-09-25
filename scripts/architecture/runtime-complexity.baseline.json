@@ -168,19 +168,13 @@
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
   },
   {
-    "actual": 236,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-context.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorContextService.resolveSystemPromptAndModel"
-  },
-  {
-    "actual": 158,
+    "actual": 157,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 592,
+    "actual": 591,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
@@ -210,12 +204,6 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1178,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"
-  },
-  {
     "actual": 203,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
     "metric": "method-lines",
@@ -240,7 +228,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 311,
+    "actual": 308,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"
@@ -258,7 +246,7 @@
     "symbol": "ByokBillingService.createByokInvoice"
   },
   {
-    "actual": 1280,
+    "actual": 1279,
     "file": "apps/server/api/src/services/content-optimization/content-optimization.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"

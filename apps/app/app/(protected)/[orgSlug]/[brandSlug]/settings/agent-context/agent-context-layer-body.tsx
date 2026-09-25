@@ -1,6 +1,9 @@
 'use client';
 
-import type { AgentContextLayerBodyProps } from '@props/settings/agent-context.props';
+import type {
+  AgentContextFieldRow,
+  AgentContextLayerBodyProps,
+} from '@props/settings/agent-context.props';
 import { Badge } from '@ui/primitives/badge';
 import {
   DefinitionDetail,
@@ -10,17 +13,11 @@ import {
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
-interface FieldRow {
-  key: string;
-  label: string;
-  value: ReactNode;
-}
-
 function joinValues(values: string[] | undefined): string | undefined {
   return values && values.length > 0 ? values.join(', ') : undefined;
 }
 
-function Fields({ rows }: { rows: FieldRow[] }) {
+function Fields({ rows }: { rows: AgentContextFieldRow[] }) {
   const visible = rows.filter(
     (row) => row.value !== undefined && row.value !== null && row.value !== '',
   );

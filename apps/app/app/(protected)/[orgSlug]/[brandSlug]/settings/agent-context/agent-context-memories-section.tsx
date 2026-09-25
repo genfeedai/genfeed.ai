@@ -2,25 +2,25 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IAgentMemoryEntry } from '@genfeedai/contracts/interfaces';
-import type { AgentContextMemoriesSectionProps } from '@props/settings/agent-context.props';
+import type {
+  AgentContextMemoriesSectionProps,
+  AgentContextMemoryRowProps,
+} from '@props/settings/agent-context.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { Archive } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 import AgentContextLayerCard from './agent-context-layer-card';
 
-interface MemoryRowProps {
-  action?: ReactNode;
-  kind?: string | null;
-  meta?: string;
-  scopeLabel: string;
-  text: string;
-}
-
-function MemoryRow({ action, kind, meta, scopeLabel, text }: MemoryRowProps) {
+function MemoryRow({
+  action,
+  kind,
+  meta,
+  scopeLabel,
+  text,
+}: AgentContextMemoryRowProps) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-border py-2 last:border-b-0">
       <div className="flex min-w-0 flex-col gap-1">
