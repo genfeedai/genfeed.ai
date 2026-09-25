@@ -23,6 +23,18 @@ export interface ResolvedAgentTurnContext {
   systemPrompt: string | undefined;
 }
 
+/**
+ * What the chat turn runs on: the turn context without the snapshot-only
+ * brand layers, with the free-tier lock applied to `model` and `policy`.
+ */
+export interface ResolvedAgentChatTurn
+  extends Omit<
+    ResolvedAgentTurnContext,
+    'brandContext' | 'model' | 'replyStyle'
+  > {
+  model: string;
+}
+
 /** Inputs that select and compose one turn's system prompt. */
 export interface AgentTurnSystemPromptInput {
   agentTypeConfig: AgentTypeConfig | null;

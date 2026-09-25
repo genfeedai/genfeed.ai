@@ -36,6 +36,10 @@ const CONTEXT: AgentChatContext = {
   userId: 'user-1',
 };
 const THREAD_ID = testId('thread');
+/** Subscribed org: the free-tier lock leaves every model untouched. */
+const modelAccess = {
+  enforceModel: vi.fn(async (_organizationId: string, model: string) => model),
+};
 
 function createService(options?: {
   brandContext?: { defaultModel?: string } | null;
@@ -72,6 +76,7 @@ function createService(options?: {
       findOne: vi.fn().mockResolvedValue(options?.orgSettings ?? null),
     } as never,
     { findOneById: vi.fn() } as never,
+    modelAccess as never,
   );
 }
 
@@ -106,6 +111,7 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
       { assembleContext } as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       { findOneById: vi.fn() } as never,
+      modelAccess as never,
     );
 
     await service.resolveSystemPromptAndModel(
@@ -538,14 +544,22 @@ describe('AgentOrchestratorContextService generation mode', () => {
 describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', () => {
   function createServiceForModelResolution(options?: {
     agentPolicy?: { thinkingModelOverride?: string | null };
+    lockedModel?: string;
     strategy?: { model?: string } | null;
   }): {
+    modelAccess: { enforceModel: ReturnType<typeof vi.fn> };
     registry: {
       getLocalDefaultModelKey: ReturnType<typeof vi.fn>;
       resolveModelKey: ReturnType<typeof vi.fn>;
     };
     service: AgentOrchestratorContextService;
   } {
+    const lockingModelAccess = {
+      enforceModel: vi.fn(
+        async (_organizationId: string, model: string) =>
+          options?.lockedModel ?? model,
+      ),
+    };
     const registry = {
       getLocalDefaultModelKey: vi.fn().mockResolvedValue('local-default-model'),
       resolveModelKey: vi.fn().mockResolvedValue('resolved-model'),
@@ -575,9 +589,43 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       {
         findOneById: vi.fn().mockResolvedValue(options?.strategy ?? null),
       } as never,
+      lockingModelAccess as never,
     );
-    return { registry, service };
+    return { modelAccess: lockingModelAccess, registry, service };
   }
+
+  it('runs a free-tier org on the locked model and drops its thinking override', async () => {
+    const { modelAccess: access, service } = createServiceForModelResolution({
+      agentPolicy: { thinkingModelOverride: 'thinking-model' },
+      lockedModel: 'deepseek/deepseek-v4-flash-0731',
+    });
+
+    const result = await service.resolveSystemPromptAndModel(
+      { content: 'Plan next week of posts' },
+      CONTEXT,
+    );
+
+    expect(access.enforceModel).toHaveBeenCalledWith(
+      CONTEXT.organizationId,
+      'resolved-model',
+    );
+    expect(result.model).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(result.policy.thinkingModelOverride).toBeNull();
+  });
+
+  it('keeps the thinking override when the lock leaves the model untouched', async () => {
+    const { service } = createServiceForModelResolution({
+      agentPolicy: { thinkingModelOverride: 'thinking-model' },
+    });
+
+    const result = await service.resolveSystemPromptAndModel(
+      { content: 'Plan next week of posts' },
+      CONTEXT,
+    );
+
+    expect(result.model).toBe('resolved-model');
+    expect(result.policy.thinkingModelOverride).toBe('thinking-model');
+  });
 
   it('never reads request.model — the pinned catalogue default resolves it instead', async () => {
     const { registry, service } = createServiceForModelResolution();

@@ -2,7 +2,7 @@ import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestra
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-function setup(source = 'proactive', lockedModel?: string) {
+function setup(source = 'proactive') {
   const prisma = {
     agentThread: {
       findFirst: vi.fn().mockResolvedValue({
@@ -39,11 +39,6 @@ function setup(source = 'proactive', lockedModel?: string) {
     tryHandleRecurringTaskDraftTurnStream: vi.fn().mockResolvedValue(false),
   };
   const stream = { runStreamLoop: vi.fn().mockResolvedValue(undefined) };
-  const modelAccess = {
-    enforceModel: vi.fn(
-      async (_organizationId: string, model: string) => lockedModel ?? model,
-    ),
-  };
   const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
     prisma,
     { findOne: vi.fn().mockResolvedValue({}) },
@@ -79,7 +74,6 @@ function setup(source = 'proactive', lockedModel?: string) {
     },
     { upsertBinding: vi.fn() },
     {},
-    modelAccess,
   ]) as AgentTurnWorkflowExecutionService;
   return {
     service,
@@ -89,7 +83,6 @@ function setup(source = 'proactive', lockedModel?: string) {
     recurring,
     stream,
     context,
-    modelAccess,
   };
 }
 const workflowContext = {
@@ -191,11 +184,8 @@ describe('trusted proactive turn limits and memory routing', () => {
       recurring.tryHandleRecurringTaskDraftTurnStream,
     ).toHaveBeenCalledOnce();
   });
-  it('runs a free-tier org on the locked model and drops its thinking override', async () => {
-    const { service, stream, context, modelAccess } = setup(
-      'proactive',
-      'deepseek/deepseek-v4-flash-0731',
-    );
+  it('runs the turn on the chokepoint-resolved model and policy', async () => {
+    const { service, stream, context } = setup('proactive');
     context.resolveSystemPromptAndModel.mockResolvedValue({
       preparedScope: {
         existingScope: {
@@ -204,10 +194,10 @@ describe('trusted proactive turn limits and memory routing', () => {
           organizationId: 'org',
         },
       },
-      model: 'anthropic/claude-opus-5',
+      model: 'deepseek/deepseek-v4-flash-0731',
       policy: {
         autonomyMode: AgentAutonomyMode.SUPERVISED,
-        thinkingModelOverride: 'anthropic/claude-opus-5',
+        thinkingModelOverride: null,
       },
       systemPrompt: 'brand voice and feedback memory',
       memories: ['feedback'],
@@ -215,10 +205,6 @@ describe('trusted proactive turn limits and memory routing', () => {
     const prepared = await service.prepare(request, workflowContext);
     await service.execute(prepared.state);
 
-    expect(modelAccess.enforceModel).toHaveBeenCalledWith(
-      'org',
-      'anthropic/claude-opus-5',
-    );
     const call = stream.runStreamLoop.mock.calls[0];
     expect(call?.[3]).toBe('deepseek/deepseek-v4-flash-0731');
     expect(call?.[5]).toEqual(

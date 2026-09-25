@@ -128,6 +128,11 @@ function createHarness(options?: {
       .mockResolvedValue([{ key: 'default-model', label: 'Default Model' }]),
     resolveModelKey: vi.fn().mockResolvedValue('default-model'),
   };
+  const modelAccess = {
+    enforceModel: vi.fn(
+      async (_organizationId: string, model: string) => model,
+    ),
+  };
   const contextService = new AgentOrchestratorContextService(
     registry as never,
     {} as never,
@@ -148,6 +153,7 @@ function createHarness(options?: {
       findOne: vi.fn().mockResolvedValue({ agentReplyStyle: undefined }),
     } as never,
     { findOneById: vi.fn() } as never,
+    modelAccess as never,
   );
   const brandsService = {
     findOne: vi.fn().mockResolvedValue(

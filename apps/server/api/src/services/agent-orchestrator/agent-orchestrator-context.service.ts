@@ -12,11 +12,12 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AgentScopeContextService, type PreparedAgentScope } from '@api/index';
+import { AgentScopeContextService } from '@api/index';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
@@ -30,6 +31,7 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type {
   AgentTurnSystemPromptInput,
+  ResolvedAgentChatTurn,
   ResolvedAgentTurnContext,
 } from '@api/services/agent-orchestrator/interfaces/agent-turn-context.interface';
 import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
@@ -78,6 +80,7 @@ export class AgentOrchestratorContextService {
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly agentStrategiesService: AgentStrategiesService,
+    private readonly agentModelAccess: AgentModelAccessService,
     @Optional()
     private readonly agentMessageBusService?: AgentMessageBusService,
     @Optional()
@@ -88,23 +91,36 @@ export class AgentOrchestratorContextService {
     private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
 
+  /**
+   * The chat turn's resolution chokepoint: the shared turn context plus the
+   * free-tier lock. An unsubscribed hosted org runs every turn (and every
+   * sub-agent spawned through it) on the platform default model, and a locked
+   * turn drops its thinking-model override.
+   */
   async resolveSystemPromptAndModel(
     request: AgentChatRequest,
     context: AgentChatContext,
-  ): Promise<{
-    model: string | undefined;
-    policy: ResolvedAgentExecutionPolicy;
-    preparedScope: PreparedAgentScope;
-    resolvedSkills: ResolvedRuntimeSkill[];
-    systemPrompt: string | undefined;
-    memories: AgentMemoryDocument[];
-  }> {
+  ): Promise<ResolvedAgentChatTurn> {
     const {
       brandContext: _brandContext,
       replyStyle: _replyStyle,
       ...resolved
     } = await this.resolveTurnContext(request, context);
-    return resolved;
+    const preferredModel =
+      resolved.model ??
+      (await this.agentChatModelRegistry.getDefaultModelKey());
+    const model = await this.agentModelAccess.enforceModel(
+      context.organizationId,
+      preferredModel,
+    );
+    if (model === preferredModel) {
+      return { ...resolved, model };
+    }
+    return {
+      ...resolved,
+      model,
+      policy: { ...resolved.policy, thinkingModelOverride: null },
+    };
   }
 
   /**

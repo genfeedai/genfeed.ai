@@ -9,7 +9,6 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
-import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
@@ -346,7 +345,6 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     private readonly executionLaneService: AgentExecutionLaneService,
     private readonly runtimeSessionService: AgentRuntimeSessionService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
-    private readonly agentModelAccess: AgentModelAccessService,
   ) {}
 
   onModuleInit(): void {
@@ -656,16 +654,8 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       );
     }
     const scope = resolved.preparedScope.existingScope;
-    // Free-tier lock: an unsubscribed hosted org runs every turn (and every
-    // sub-agent spawned through this path) on the platform default model.
-    const preferredModel =
-      resolved.model ??
-      (await this.agentChatModelRegistry.getDefaultModelKey());
-    const model = await this.agentModelAccess.enforceModel(
-      state.organizationId,
-      preferredModel,
-    );
-    const isModelLocked = model !== preferredModel;
+    // Already free-tier locked by the context service's resolution chokepoint.
+    const model = resolved.model;
     request = { ...request, model };
     const turnCost =
       request.agentType === AgentType.BRAND_INTERVIEW
@@ -687,7 +677,6 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         resolved.policy.generationPriority);
     const policy: ResolvedAgentExecutionPolicy = {
       ...resolved.policy,
-      ...(isModelLocked ? { thinkingModelOverride: null } : {}),
       ...(baseContext.autonomyMode
         ? { autonomyMode: baseContext.autonomyMode }
         : {}),
