@@ -17,7 +17,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
   return {
-    add: vi.fn().mockResolvedValue({ id: 'job-123' }),
+    add: vi.fn().mockResolvedValue({
+      getState: vi.fn().mockResolvedValue('waiting'),
+      id: 'job-123',
+    }),
+    getJob: vi.fn().mockResolvedValue(undefined),
     getJobs: vi.fn().mockResolvedValue([]),
     removeJobScheduler: vi.fn().mockResolvedValue(true),
     upsertJobScheduler: vi.fn().mockResolvedValue({ id: 'scheduled-job-1' }),
@@ -233,6 +237,85 @@ describe('WorkflowExecutionQueueService', () => {
           systemRun: { input, priorExecution },
         }),
         expect.objectContaining({ jobId: 'system-workflow-parent' }),
+      );
+    });
+
+    it('removes a stale terminal job under the same id before re-adding (#5162)', async () => {
+      // A retried acceptance call resolves to the same execution row through
+      // WorkflowExecutionsService.createExecution's idempotency-key upsert,
+      // so it reuses the same jobId. If the prior BullMQ job under that id is
+      // still sitting in Redis in a terminal state, `add()` would otherwise
+      // silently hand back the stale job instead of enqueueing new work.
+      const staleJob = {
+        getState: vi.fn().mockResolvedValue('completed'),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      mockQueue.getJob.mockResolvedValueOnce(staleJob);
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-1');
+
+      expect(staleJob.remove).toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({ jobId: 'system-workflow-exec-1' }),
+      );
+    });
+
+    it('skips re-adding and reports back when a job under the same id is still in flight', async () => {
+      const inFlightJob = {
+        getState: vi.fn().mockResolvedValue('active'),
+        remove: vi.fn(),
+      };
+      mockQueue.getJob.mockResolvedValueOnce(inFlightJob);
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      const jobId = await service.queueSystemWorkflow(
+        input,
+        'system-workflow-exec-2',
+      );
+
+      expect(jobId).toBe('system-workflow-exec-2');
+      expect(inFlightJob.remove).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('system workflow already queued'),
+        expect.objectContaining({ state: 'active' }),
+      );
+    });
+
+    it('fails loudly instead of silently when the enqueued job lands unclaimable (#5162)', async () => {
+      mockQueue.add.mockResolvedValueOnce({
+        getState: vi.fn().mockResolvedValue('completed'),
+        id: 'job-123',
+      });
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await expect(
+        service.queueSystemWorkflow(input, 'system-workflow-exec-3'),
+      ).rejects.toThrow(/unclaimable state "completed"/);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('will never claim it'),
+        expect.objectContaining({ resultingState: 'completed' }),
       );
     });
   });

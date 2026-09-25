@@ -161,6 +161,62 @@ describe('automation workflow definitions', () => {
     );
   });
 
+  it("supplies every action contract's required root input property via a wired edge (#5162)", () => {
+    // Regression: `buildAgentProactiveWorkflowDefinition`'s `finalize` node
+    // used the shared `sweepFinalInput` contract (requires batch + discovery
+    // + state) but was missing the `discovery` edge every other
+    // `sweepDefinition` workflow wires in — the action contract validator
+    // rejected every production run with
+    // `$.discovery: must have required property 'discovery'`. Static graph
+    // shape never caught this because `validateDefinition` only checks that
+    // the result node exists; assert edge coverage for every automation
+    // workflow so a future hand-rolled definition can't regress the same way.
+    const definitions = [
+      ...AUTOMATION_PARENT_WORKFLOWS,
+      ...AUTOMATION_CHILD_WORKFLOWS,
+    ];
+    const gaps: string[] = [];
+    for (const definition of definitions) {
+      for (const node of definition.definition.nodes) {
+        const actionId = String(node.data.config.actionId);
+        // Fan-out/run-child are engine-native nodes, not genfeed action
+        // contracts — their inputs are structural (items/batch/childId), not
+        // schema-validated the same way.
+        if (
+          actionId === 'workflow.for-each' ||
+          actionId === 'workflow.run-child'
+        ) {
+          continue;
+        }
+        const contract = getActionDefinition(actionId);
+        const required = (
+          contract?.inputSchema as { required?: readonly string[] } | undefined
+        )?.required;
+        if (!required?.length) {
+          continue;
+        }
+        const wiredHandles = new Set(
+          definition.definition.edges
+            .filter((edge) => edge.target === node.id)
+            .map((edge) => edge.targetHandle),
+        );
+        for (const property of required) {
+          // 'request' is auto-populated by every node's `inputVariableKeys`
+          // and never carries an explicit edge.
+          if (property === 'request') {
+            continue;
+          }
+          if (!wiredHandles.has(property)) {
+            gaps.push(
+              `${definition.canonicalId}:${node.id} missing edge for required "${property}"`,
+            );
+          }
+        }
+      }
+    }
+    expect(gaps).toEqual([]);
+  });
+
   it('contains none of the retired macro action IDs', () => {
     const serialized = JSON.stringify([
       ...AUTOMATION_PARENT_WORKFLOWS,
