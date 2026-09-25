@@ -55,6 +55,28 @@ export interface InboundSocialMessageInput {
   userId?: string;
 }
 
+/** The owned post an X reply answers. */
+export interface XReplyTargetPost {
+  brandId: string;
+  description: string;
+  externalId: string | null;
+  id: string;
+  label: string | null;
+  url: string | null;
+}
+
+export interface XPostRepliesIngestInput {
+  credentialId: string;
+  replies: ReadonlyArray<{ post: XReplyTargetPost; reply: TwitterInboxTweet }>;
+}
+
+export interface XPostRepliesIngestResult {
+  conversationsCreated: number;
+  /** External ids of messages this call created (not ones it re-saw). */
+  createdMessageIds: string[];
+  messagesCreated: number;
+}
+
 export interface SocialActionInput {
   text: string;
   idempotencyKey?: string;
@@ -119,3 +141,4 @@ export class SocialInboxProviderError extends Error {
 }
 
 import type { SocialMessageDocument } from '@api/collections/social-inbox/schemas/social-inbox.schema';
+import type { TwitterInboxTweet } from '@api/services/integrations/twitter/services/twitter-inbox.service';

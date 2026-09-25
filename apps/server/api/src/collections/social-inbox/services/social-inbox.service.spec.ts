@@ -2085,6 +2085,107 @@ describe('SocialInboxService', () => {
     });
   });
 
+  describe('ingestXPostReplies', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const launchPost = {
+      brandId: 'brand-1',
+      description: 'Launch tweet',
+      externalId: '1970000000000000100',
+      id: 'post-x-1',
+      label: 'Launch',
+      url: null,
+    };
+    const threadReply = {
+      authorId: '2244994945',
+      authorName: 'Taylor',
+      authorUsername: 'taylor',
+      // A reply deeper in the thread carries the thread root, not the post.
+      conversationId: '1970000000000000001',
+      createdAt: new Date('2026-08-01T10:10:00.000Z'),
+      inReplyToId: '1970000000000000100',
+      text: 'Shipping this week?',
+      tweetId: '1980000000000000101',
+    };
+
+    function seedCredential(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@genfeedai',
+          externalId: 'brand-user-id',
+          externalName: 'Genfeed',
+          id: 'credential-x',
+          label: 'X',
+          userId: 'user-1',
+          username: 'genfeedai',
+        },
+      ]);
+    }
+
+    it('stores pre-fetched replies under their post without calling X', async () => {
+      const context = createContext();
+      seedCredential(context);
+
+      const result = await context.service.ingestXPostReplies(scope, {
+        credentialId: 'credential-x',
+        replies: [{ post: launchPost, reply: threadReply }],
+      });
+
+      expect(result).toEqual({
+        conversationsCreated: 1,
+        createdMessageIds: ['1980000000000000101'],
+        messagesCreated: 1,
+      });
+      expect(context.conversations).toEqual([
+        expect.objectContaining({
+          externalConversationId: '1970000000000000100',
+          postId: 'post-x-1',
+          sourceContentId: '1970000000000000100',
+        }),
+      ]);
+      expect(context.twitterService.listMentions).not.toHaveBeenCalled();
+      expect(context.twitterService.listPostReplies).not.toHaveBeenCalled();
+    });
+
+    it('reports nothing new when the same replies are ingested again', async () => {
+      const context = createContext();
+      seedCredential(context);
+      const input = {
+        credentialId: 'credential-x',
+        replies: [{ post: launchPost, reply: threadReply }],
+      };
+
+      await context.service.ingestXPostReplies(scope, input);
+      const second = await context.service.ingestXPostReplies(scope, input);
+
+      expect(second).toEqual({
+        conversationsCreated: 0,
+        createdMessageIds: [],
+        messagesCreated: 0,
+      });
+      expect(context.messages).toHaveLength(1);
+    });
+
+    it('drops replies whose post belongs to another brand', async () => {
+      const context = createContext();
+      seedCredential(context);
+
+      const result = await context.service.ingestXPostReplies(scope, {
+        credentialId: 'credential-x',
+        replies: [
+          { post: { ...launchPost, brandId: 'brand-2' }, reply: threadReply },
+        ],
+      });
+
+      expect(result.messagesCreated).toBe(0);
+      expect(context.messages).toHaveLength(0);
+    });
+  });
+
   describe('ingestXDms', () => {
     function seedSweep(context: TestContext): void {
       context.prisma.credential.findMany.mockResolvedValue([
