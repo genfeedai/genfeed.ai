@@ -374,8 +374,11 @@ describe('ReleaseDetailDrawer', () => {
     );
   });
 
-  it('shows the analytics empty state rather than an empty table', () => {
+  it('shows the analytics empty state rather than an empty table', async () => {
+    const user = userEvent.setup();
     renderDrawer();
+
+    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
 
     expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
   });
