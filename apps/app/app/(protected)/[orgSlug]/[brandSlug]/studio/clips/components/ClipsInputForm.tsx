@@ -37,7 +37,7 @@ export default function ClipsInputForm({
       : Boolean(sourceFile);
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="w-full">
       <Card bodyClassName="space-y-5 p-6">
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">
@@ -49,12 +49,12 @@ export default function ClipsInputForm({
               withWrapper={false}
               aria-pressed={sourceKind === 'youtube'}
               onClick={() => onSetSourceKind('youtube')}
-              className={`rounded-lg border px-4 py-3 text-sm ${
+              className={`flex w-full items-center justify-center gap-2.5 rounded-lg border px-4 py-3 text-sm ${
                 sourceKind === 'youtube'
                   ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border bg-secondary text-muted-foreground'
               }`}
-              icon={<CirclePlay className="size-4" />}
+              icon={<CirclePlay className="size-4 shrink-0" />}
               label={t('youtubeUrl')}
             />
             <Button
@@ -62,12 +62,12 @@ export default function ClipsInputForm({
               withWrapper={false}
               aria-pressed={sourceKind === 'upload'}
               onClick={() => onSetSourceKind('upload')}
-              className={`rounded-lg border px-4 py-3 text-sm ${
+              className={`flex w-full items-center justify-center gap-2.5 rounded-lg border px-4 py-3 text-sm ${
                 sourceKind === 'upload'
                   ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border bg-secondary text-muted-foreground'
               }`}
-              icon={<Upload className="size-4" />}
+              icon={<Upload className="size-4 shrink-0" />}
               label={t('uploadAudioOrVideo')}
             />
           </div>

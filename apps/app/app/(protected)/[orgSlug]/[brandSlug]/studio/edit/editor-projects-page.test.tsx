@@ -180,8 +180,11 @@ describe('EditorProjectsPage', () => {
       'href',
       '/acme/~/studio/edit/new',
     );
-    expect(screen.getByText('Timeline Editor')).toBeVisible();
-    expect(screen.getByText('Effects & Transitions')).toBeVisible();
+    expect(
+      screen.getAllByRole('link', { name: /new project/i }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText('Timeline Editor')).not.toBeInTheDocument();
+    expect(screen.queryByText('Features')).not.toBeInTheDocument();
 
     unmount();
     mocks.findAll.mockRejectedValueOnce(new Error('offline'));

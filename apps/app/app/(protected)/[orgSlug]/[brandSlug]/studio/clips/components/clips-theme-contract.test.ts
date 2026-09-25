@@ -23,4 +23,29 @@ describe('Clips theme contract', () => {
       );
     },
   );
+
+  it('owns page chrome through a single Container topbar', () => {
+    const source = readFileSync(
+      join(process.cwd(), CLIPS_CHROME_SOURCES[0]),
+      'utf8',
+    );
+
+    expect(source).toContain("from '@ui/layout/container/Container'");
+    expect(source).not.toContain('SectionTopbar');
+    expect(source).not.toContain('max-w-6xl');
+    expect(source).not.toContain('max-w-4xl');
+  });
+
+  it('aligns source choice icons with their labels at canvas width', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain('flex w-full items-center justify-center gap-2.5');
+    expect(source).not.toContain('max-w-3xl');
+  });
 });

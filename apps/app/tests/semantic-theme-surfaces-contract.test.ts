@@ -149,7 +149,7 @@ describe('semantic theme surface contracts', () => {
 
   it('uses the theme border token for batch job dividers', () => {
     const source = readSource(
-      'src/features/workflows/pages/batch/BatchComposer.tsx',
+      'src/features/workflows/pages/batch/BatchHistoryList.tsx',
     );
 
     expect(source).not.toContain('divide-white');

@@ -9,7 +9,6 @@ import type {
 } from '@props/studio/clips.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Plus, Search, Sparkles } from 'lucide-react';
@@ -84,82 +83,72 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
   const showCreateForm =
     !projectId && (isCreating || (!isListLoading && !hasProjects));
   const listHref = href(APP_ROUTES.STUDIO.CLIPS);
+  const topbarActions = projectId ? (
+    <Button
+      asChild
+      size={ButtonSize.SM}
+      variant={ButtonVariant.SECONDARY}
+      label={t('allProjects')}
+    >
+      <Link href={listHref}>{t('allProjects')}</Link>
+    </Button>
+  ) : hasProjects ? (
+    <Button
+      size={ButtonSize.SM}
+      variant={showCreateForm ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
+      icon={showCreateForm ? undefined : <Plus className="size-3.5" />}
+      label={showCreateForm ? 'All projects' : 'New project'}
+      onClick={() => setIsCreating((current) => !current)}
+    />
+  ) : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <SectionTopbar
-        title="Clips"
-        actions={
-          projectId ? (
-            <Button
-              asChild
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              label={t('allProjects')}
-            >
-              <Link href={listHref}>{t('allProjects')}</Link>
-            </Button>
-          ) : hasProjects ? (
-            <Button
-              size={ButtonSize.SM}
-              variant={
-                showCreateForm ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-              }
-              icon={showCreateForm ? undefined : <Plus className="size-3.5" />}
-              label={showCreateForm ? 'All projects' : 'New project'}
-              onClick={() => setIsCreating((current) => !current)}
-            />
-          ) : null
-        }
-      />
+    <Container label="Clips" titleVisibility="sr-only" right={topbarActions}>
+      <div className="flex w-full flex-col gap-4">
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
 
-      <Container>
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-
-          {projectId ? (
-            <ClipsProjectDetail {...clipsPage} />
-          ) : showCreateForm ? (
-            <ClipsInputForm
-              generationMode={generationMode}
-              youtubeUrl={youtubeUrl}
-              onSetYoutubeUrl={setYoutubeUrl}
-              maxClips={maxClips}
-              onSetMaxClips={setMaxClips}
-              minViralityScore={minViralityScore}
-              onSetMinViralityScore={setMinViralityScore}
-              onSetSourceFile={setSourceFile}
-              onSetSourceKind={setSourceKind}
-              error={error}
-              isSubmitting={isSubmitting}
-              onAnalyze={handleAnalyze}
-              onCancel={hasProjects ? () => setIsCreating(false) : undefined}
-              onModeChange={setGenerationMode}
-              onStartQuick={handleStartFromYoutube}
-              quickStartHint={
-                generationMode === 'raw-cut'
-                  ? 'Uses the source footage and burns captions. No avatar defaults required.'
-                  : identityDefaults.isComplete
-                    ? 'Uses configured avatar and voice defaults.'
-                    : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
-              }
-              sourceFile={sourceFile}
-              sourceKind={sourceKind}
-              uploadProgress={uploadProgress}
-            />
-          ) : (
-            <>
-              {listError ? (
-                <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-                  {listError}
-                </div>
-              ) : null}
-              <ClipsProjectList isLoading={isListLoading} projects={projects} />
-            </>
-          )}
-        </div>
-      </Container>
-    </div>
+        {projectId ? (
+          <ClipsProjectDetail {...clipsPage} />
+        ) : showCreateForm ? (
+          <ClipsInputForm
+            generationMode={generationMode}
+            youtubeUrl={youtubeUrl}
+            onSetYoutubeUrl={setYoutubeUrl}
+            maxClips={maxClips}
+            onSetMaxClips={setMaxClips}
+            minViralityScore={minViralityScore}
+            onSetMinViralityScore={setMinViralityScore}
+            onSetSourceFile={setSourceFile}
+            onSetSourceKind={setSourceKind}
+            error={error}
+            isSubmitting={isSubmitting}
+            onAnalyze={handleAnalyze}
+            onCancel={hasProjects ? () => setIsCreating(false) : undefined}
+            onModeChange={setGenerationMode}
+            onStartQuick={handleStartFromYoutube}
+            quickStartHint={
+              generationMode === 'raw-cut'
+                ? 'Uses the source footage and burns captions. No avatar defaults required.'
+                : identityDefaults.isComplete
+                  ? 'Uses configured avatar and voice defaults.'
+                  : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
+            }
+            sourceFile={sourceFile}
+            sourceKind={sourceKind}
+            uploadProgress={uploadProgress}
+          />
+        ) : (
+          <>
+            {listError ? (
+              <div className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+                {listError}
+              </div>
+            ) : null}
+            <ClipsProjectList isLoading={isListLoading} projects={projects} />
+          </>
+        )}
+      </div>
+    </Container>
   );
 }
 
@@ -225,7 +214,7 @@ function ClipsProjectDetail({
     );
 
     return (
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="w-full">
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <Search className="size-6 text-primary" />

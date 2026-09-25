@@ -337,6 +337,8 @@ export const APP_ROUTES = {
    */
   STUDIO: {
     BATCH: '/studio/batch',
+    BATCH_HISTORY: '/studio/batch/history',
+    BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',

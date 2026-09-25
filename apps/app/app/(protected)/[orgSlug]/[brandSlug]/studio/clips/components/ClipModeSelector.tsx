@@ -49,18 +49,24 @@ export default function ClipModeSelector({
               withWrapper={false}
               aria-pressed={isSelected}
               onClick={() => onModeChange(option.value)}
-              className={`min-h-24 rounded-lg border p-4 text-left transition-colors ${
+              className={`flex min-h-24 rounded-lg border p-4 text-left transition-colors ${
                 isSelected
                   ? 'border-primary bg-primary/10'
                   : 'border-border bg-secondary hover:border-primary/60'
               }`}
             >
               <span className="flex items-start gap-3">
-                <Icon
-                  aria-hidden="true"
-                  className={`mt-0.5 size-5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-                />
-                <span>
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+                    isSelected ? 'bg-primary/15' : 'bg-muted'
+                  }`}
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className={`size-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
+                </span>
+                <span className="min-w-0 text-left">
                   <span className="block text-sm font-medium text-foreground">
                     {option.label}
                   </span>

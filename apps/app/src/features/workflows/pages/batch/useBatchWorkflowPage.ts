@@ -4,14 +4,16 @@ import {
   IngredientStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import type {
@@ -131,10 +133,10 @@ function upsertRecentExecution(
 
 export function useBatchWorkflowPage() {
   const { push, replace } = useRouter();
-  const pathname = usePathname();
+  const { href } = useOrgUrl();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const requestedExecutionId = searchParams.get('execution') ?? null;
+  const requestedExecutionId =
+    searchParams.get('execution') ?? searchParams.get('job');
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -193,19 +195,12 @@ export function useBatchWorkflowPage() {
     !isStartingBatch;
 
   const replaceExecutionQuery = useCallback(
-    (executionId: string | null) => {
-      const nextSearchParams = new URLSearchParams(searchParamsString);
-
-      if (executionId) {
-        nextSearchParams.set('execution', executionId);
-      } else {
-        nextSearchParams.delete('execution');
-      }
-
-      const query = nextSearchParams.toString();
-      replace(query ? `${pathname}?${query}` : pathname);
+    (executionId: string) => {
+      replace(
+        `${href(APP_ROUTES.STUDIO.BATCH_HISTORY)}?execution=${encodeURIComponent(executionId)}`,
+      );
     },
-    [pathname, replace, searchParamsString],
+    [href, replace],
   );
 
   const loadBatchExecution = useCallback(
@@ -564,8 +559,8 @@ export function useBatchWorkflowPage() {
     setActiveBatchStatus(null);
     setSelectedOutputIds(new Set());
     setError(null);
-    replaceExecutionQuery(null);
-  }, [replaceExecutionQuery]);
+    replace(href(APP_ROUTES.STUDIO.BATCH_NEW));
+  }, [href, replace]);
 
   const toggleOutputSelection = useCallback((itemId: string) => {
     setSelectedOutputIds((previousIds) => {
@@ -688,6 +683,7 @@ export function useBatchWorkflowPage() {
     openPostBatchModal,
     push,
     recentExecutions,
+    requestedExecutionId,
     removeFile,
     selectedOutputIds,
     selectedOutputs,
