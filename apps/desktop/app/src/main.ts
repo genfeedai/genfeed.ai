@@ -76,14 +76,14 @@ import {
   unwindFailedLocalRuntimeAfterClose,
 } from './main/runtime-mode.util';
 import {
+  DesktopServerService,
+  type DesktopValueCipher,
+} from './main/server.service';
+import {
   type DesktopAuthCallbackResult,
   DesktopSessionService,
   type IDesktopSession,
 } from './main/session.service';
-import {
-  DesktopServerService,
-  type DesktopValueCipher,
-} from './main/server.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopStoreService } from './main/store.service';
 import { DesktopSyncService } from './main/sync.service';

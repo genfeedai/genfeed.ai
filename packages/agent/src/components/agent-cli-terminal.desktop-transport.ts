@@ -120,9 +120,7 @@ export function createDesktopTerminalTransport(params: {
       void bridge.terminal.kill(sessionId).catch(() => undefined);
     },
     resize: ({ cols, rows, sessionId }) => {
-      void bridge.terminal
-        .resize(sessionId, cols, rows)
-        .catch(() => undefined);
+      void bridge.terminal.resize(sessionId, cols, rows).catch(() => undefined);
     },
     write: ({ data, sessionId }) => {
       void bridge.terminal.write(sessionId, data).catch(() => undefined);

@@ -6,9 +6,9 @@ import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
-import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
 import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
+import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,

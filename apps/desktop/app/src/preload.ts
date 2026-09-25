@@ -244,7 +244,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   server: {
-    getState: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverGetState),
+    getState: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverGetState),
     select: async (selection) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.serverSelect, selection),
     validateSelfHosted: async (config) =>

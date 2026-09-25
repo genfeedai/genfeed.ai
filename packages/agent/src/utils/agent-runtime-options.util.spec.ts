@@ -80,9 +80,9 @@ describe('buildAgentRuntimeCatalog', () => {
       }),
     });
 
-    expect(
-      catalog.options.some((option) => option.category === 'local'),
-    ).toBe(false);
+    expect(catalog.options.some((option) => option.category === 'local')).toBe(
+      false,
+    );
   });
 
   it('offers desktop-detected CLIs after Auto with a subscription hint', () => {

@@ -178,7 +178,7 @@ describe('desktop local runtime unwind', () => {
       pgliteService: null,
       prismaService: null,
       syncService: null,
-        workspaceService: null,
+      workspaceService: null,
     });
   });
 

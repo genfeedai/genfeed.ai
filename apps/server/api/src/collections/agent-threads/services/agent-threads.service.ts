@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';

@@ -10,14 +10,14 @@ import type {
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { app, type BrowserWindow } from 'electron';
 import {
-  createDesktopShellProxyServer,
-  findFreeLoopbackPort,
-} from './app-shell-proxy';
-import {
   resolveBundledAppUrl,
   resolveExternalDevAppUrl,
   resolveRemoteAppUrl,
 } from './app-shell-origin.util';
+import {
+  createDesktopShellProxyServer,
+  findFreeLoopbackPort,
+} from './app-shell-proxy';
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -290,7 +290,10 @@ export class DesktopAppShellService {
       return this.appOrigin;
     }
 
-    if (app.isPackaged && this.environment.authEndpoint.startsWith('https://')) {
+    if (
+      app.isPackaged &&
+      this.environment.authEndpoint.startsWith('https://')
+    ) {
       const remoteAppUrl = resolveRemoteAppUrl(this.environment.authEndpoint);
 
       try {

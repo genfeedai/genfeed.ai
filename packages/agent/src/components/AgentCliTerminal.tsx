@@ -70,7 +70,9 @@ export function useAgentCliTerminal(
 ): AgentCliTerminalController {
   const hostedCloud = !isAgentCliTerminalAvailable();
   // Genfeed Desktop runs PTYs in Electron main; it needs no API session.
-  const [isDesktopTerminal] = useState(() => getGenfeedDesktopBridge() !== null);
+  const [isDesktopTerminal] = useState(
+    () => getGenfeedDesktopBridge() !== null,
+  );
   const isTerminalReady = authReady || isDesktopTerminal;
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);

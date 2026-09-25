@@ -6,8 +6,8 @@ import {
 import { AgentChatEmptyState } from '@genfeedai/agent/components/AgentChatEmptyState';
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
-import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktopRuntimeBar';
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
+import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktopRuntimeBar';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
@@ -248,7 +248,11 @@ export function AgentChatContainer({
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
             composerBanner={
-              onboardingMode ? <OnboardingConversationCard /> : desktopRuntimeBar
+              onboardingMode ? (
+                <OnboardingConversationCard />
+              ) : (
+                desktopRuntimeBar
+              )
             }
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
