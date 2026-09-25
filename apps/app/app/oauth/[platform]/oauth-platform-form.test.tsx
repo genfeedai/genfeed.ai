@@ -167,9 +167,7 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/demo/acme/settings/integrations',
-    );
+    expect(mocks.push).toHaveBeenCalledWith('/demo/acme/settings/integrations');
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 
