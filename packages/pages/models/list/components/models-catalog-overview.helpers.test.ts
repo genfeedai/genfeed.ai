@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
@@ -49,5 +49,30 @@ describe('model catalog overview helpers', () => {
     );
 
     expect(new Set(treatments).size).toBe(Object.values(ModelCategory).length);
+  });
+
+  it('hides retired models from catalog counts except on All', () => {
+    const models = [
+      buildModel({
+        category: ModelCategory.IMAGE,
+        lifecycle: ModelLifecycle.AVAILABLE,
+      }),
+      buildModel({
+        category: ModelCategory.IMAGE,
+        id: 'retired',
+        lifecycle: ModelLifecycle.RETIRED,
+      }),
+    ];
+
+    expect(
+      buildModelCatalogOverviewCards(models, 'active').find(
+        (card) => card.label === 'Image',
+      )?.count,
+    ).toBe(1);
+    expect(
+      buildModelCatalogOverviewCards(models, 'all').find(
+        (card) => card.label === 'Image',
+      )?.count,
+    ).toBe(2);
   });
 });

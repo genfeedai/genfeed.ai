@@ -14,13 +14,26 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import {
+  getModelCategoryBadgeClass,
+  getModelProviderBadgeClass,
+  getModelProviderLabel,
+} from '@genfeedai/helpers/ui/model-badge.helper';
+import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { SelectField } from '@ui/primitives/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import ModelProviderContractDetails from './ModelProviderContractDetails';
@@ -56,6 +69,10 @@ export default function ModalModelFormContent({
   isProviderContractsError,
   isProviderContractsLoading,
 }: ModalModelFormContentProps) {
+  const selectedProvider = form.watch('provider');
+  const selectedCategory = form.watch('category');
+  const translate = useTranslations('ui.modelForm');
+
   return (
     <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(form.formState.errors) && (
@@ -67,72 +84,104 @@ export default function ModalModelFormContent({
           </div>
         </Alert>
       )}
-      <FormControl label="Label">
+      <FormControl label={translate('label.label')}>
         <Input
           type="text"
           name="label"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model label"
+          placeholder={translate('label.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <FormControl label="Description">
+      <FormControl label={translate('description.label')}>
         <Input
           type="text"
           name="description"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model description"
+          placeholder={translate('description.placeholder')}
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <FormControl label="Key">
+      <FormControl label={translate('key.label')}>
         <Input
           type="text"
           name="key"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model key"
+          placeholder={translate('key.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
       </FormControl>
       <div className="grid grid-cols-2 gap-2">
-        <SelectField
-          name="provider"
-          control={form.control}
-          onChange={updateModalModel}
-          isDisabled={isSubmitting}
-        >
-          {modelProviders.map((provider) => (
-            <option key={provider} value={provider}>
-              {provider}
-            </option>
-          ))}
-        </SelectField>
+        <FormControl label={translate('provider.label')}>
+          <Select
+            disabled={isSubmitting}
+            name="provider"
+            value={selectedProvider}
+            onValueChange={(value) =>
+              updateModalModel({
+                currentTarget: { name: 'provider', value },
+                target: { name: 'provider', value },
+              } as ChangeEvent<HTMLSelectElement>)
+            }
+          >
+            <SelectTrigger aria-label={translate('provider.label')}>
+              <SelectValue placeholder={translate('provider.placeholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              {modelProviders.map((provider) => (
+                <SelectItem key={provider} value={provider}>
+                  <Badge
+                    className={`border text-xs uppercase ${getModelProviderBadgeClass(provider)}`}
+                  >
+                    {getModelProviderLabel(provider)}
+                  </Badge>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormControl>
 
-        <SelectField
-          name="category"
-          control={form.control}
-          onChange={updateModalModel}
-          isDisabled={isSubmitting}
-        >
-          {modelCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </SelectField>
+        <FormControl label={translate('category.label')}>
+          <Select
+            disabled={isSubmitting}
+            name="category"
+            value={selectedCategory}
+            onValueChange={(value) =>
+              updateModalModel({
+                currentTarget: { name: 'category', value },
+                target: { name: 'category', value },
+              } as ChangeEvent<HTMLSelectElement>)
+            }
+          >
+            <SelectTrigger aria-label={translate('category.label')}>
+              <SelectValue placeholder={translate('category.placeholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              {modelCategories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  <Badge
+                    className={`border text-xs uppercase ${getModelCategoryBadgeClass(category)}`}
+                  >
+                    {category}
+                  </Badge>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormControl>
       </div>
-      <FormControl label="Cost">
+      <FormControl label={translate('cost.label')}>
         <Input
           type="number"
           name="cost"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model cost"
+          placeholder={translate('cost.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
@@ -146,7 +195,7 @@ export default function ModalModelFormContent({
       )}
       <ModalActions>
         <Button
-          label="Cancel"
+          label={translate('cancel')}
           variant={ButtonVariant.SECONDARY}
           onClick={cancelModalModel}
           isLoading={isSubmitting}

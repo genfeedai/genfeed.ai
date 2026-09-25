@@ -214,6 +214,7 @@ const filterRouteRedirects: AppRedirect[] = [
 ];
 
 const adminFilterRouteRedirects = [
+  ['/admin/automation/models/active', '/admin/automation/models?type=active'],
   ['/admin/automation/models/all', '/admin/automation/models?type=all'],
   ['/admin/automation/models/image', '/admin/automation/models?type=image'],
   ['/admin/automation/models/video', '/admin/automation/models?type=video'],

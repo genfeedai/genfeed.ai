@@ -2,6 +2,7 @@ import {
   CostTier,
   ModelCategory,
   ModelLifecycle,
+  ModelProvider,
   QualityTier,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
@@ -9,6 +10,35 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildModelsTableColumns } from './ModelsTableColumns';
+
+const TABLE_COPY: Record<string, string> = {
+  'table.approvedStatus': 'Approved',
+  'table.categoryHeader': 'Category',
+  'table.chooseSuccessor': 'Choose successor',
+  'table.costHeader': 'Cost',
+  'table.defaultHeader': 'Default',
+  'table.keyHeader': 'Key',
+  'table.labelHeader': 'Label',
+  'table.legacyStatus': 'Legacy',
+  'table.lifecycleHeader': 'Lifecycle',
+  'table.pendingStatus': 'Pending',
+  'table.providerHeader': 'Provider',
+  'table.qualityHeader': 'Quality',
+  'table.registryHeader': 'Registry',
+  'table.rejectedStatus': 'Rejected',
+  'table.seededStatus': 'Seeded',
+};
+
+function translate(
+  key: string,
+  values?: Record<string, string | number>,
+): string {
+  if (key === 'table.successorWithLabel') {
+    return `Successor: ${values?.label ?? ''}`;
+  }
+
+  return TABLE_COPY[key] ?? key;
+}
 
 function buildModel(overrides: Partial<IModel> = {}): IModel {
   return {
@@ -43,6 +73,7 @@ function renderColumn(
     onOpenDetails,
     togglingModelId: null,
     models: [model],
+    translate,
   });
   const column = columns.find((entry) => entry.header === header);
   if (!column?.render) {
@@ -63,6 +94,7 @@ describe('buildModelsTableColumns', () => {
       onOpenDetails: vi.fn(),
       togglingModelId: null,
       models: [],
+      translate,
     });
 
     expect(columns.map((column) => column.header)).toContain('Quality');
@@ -83,6 +115,64 @@ describe('buildModelsTableColumns', () => {
     expect(
       screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a retired row to a single lifecycle control', () => {
+    const successor = buildModel({
+      id: 'model-2',
+      key: 'flux-pro',
+      label: 'Flux Pro',
+    });
+    const model = buildModel({
+      lifecycle: ModelLifecycle.RETIRED,
+      succeededBy: 'flux-pro',
+    });
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: true,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
+      togglingModelId: null,
+      models: [model, successor],
+      translate,
+    });
+    const column = columns.find((entry) => entry.header === 'Lifecycle');
+    if (!column?.render) {
+      throw new Error('Missing Lifecycle column');
+    }
+    render(column.render(model));
+
+    expect(
+      screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Successor: Flux Pro')).toBeInTheDocument();
+  });
+
+  it('renders the model key on one compact line', () => {
+    renderColumn('Key', buildModel({ key: 'openrouter/auto-beta' }), true);
+
+    const key = screen.getByText('openrouter/auto-beta');
+    expect(key).toHaveClass('truncate', 'whitespace-nowrap', 'text-2xs');
+    expect(key).toHaveAttribute('title', 'openrouter/auto-beta');
+  });
+
+  it('renders the provider as a branded pill', () => {
+    renderColumn(
+      'Provider',
+      buildModel({ provider: ModelProvider.REPLICATE }),
+      true,
+    );
+
+    expect(screen.getByText('Replicate')).toBeInTheDocument();
   });
 
   it('renders the picker quality meter and dollar cost mark', () => {
@@ -152,6 +242,7 @@ describe('buildModelsTableColumns', () => {
       onOpenDetails: vi.fn(),
       togglingModelId: null,
       models: [model],
+      translate,
     });
 
     const labelColumn = columns.find((column) => column.header === 'Label');

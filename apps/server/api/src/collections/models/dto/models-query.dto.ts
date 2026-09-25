@@ -89,4 +89,26 @@ export class ModelsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsIn(MODEL_REGISTRY_STATUSES)
   registryStatus?: ModelRegistryStatus;
+
+  @ApiProperty({
+    description:
+      'When false, hide retired models from the catalog listing. Omitted keeps current unfiltered behavior.',
+    required: false,
+  })
+  @IsOptional()
+  @ValidateIf((o) => o.includeRetired !== undefined)
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    if (value === 'true' || value === true) {
+      return true;
+    }
+    if (value === 'false' || value === false || value === '0' || value === 0) {
+      return false;
+    }
+    return Boolean(value);
+  })
+  @IsBoolean()
+  includeRetired?: boolean;
 }

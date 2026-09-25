@@ -40,6 +40,33 @@
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
   },
+  "modelForm": {
+    "cancel": "Cancel",
+    "category": {
+      "label": "Category",
+      "placeholder": "Select category"
+    },
+    "cost": {
+      "label": "Cost",
+      "placeholder": "Enter model cost"
+    },
+    "description": {
+      "label": "Description",
+      "placeholder": "Enter model description"
+    },
+    "key": {
+      "label": "Key",
+      "placeholder": "Enter model key"
+    },
+    "label": {
+      "label": "Label",
+      "placeholder": "Enter model label"
+    },
+    "provider": {
+      "label": "Provider",
+      "placeholder": "Select provider"
+    }
+  },
   "watermarkDownload": {
     "options": "Download options",
     "original": "Download original",

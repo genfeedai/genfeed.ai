@@ -22,6 +22,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildModelsTableColumns } from './components/ModelsTableColumns';
 import { buildModelCatalogOverviewCards } from './components/models-catalog-overview.helpers';
@@ -38,6 +39,7 @@ export function useModelsList({
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const { organizationId } = useBrand();
+  const translate = useTranslations('pages.models');
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -143,15 +145,19 @@ export function useModelsList({
   // Determine category filter (admin uses category prop, others use type/filters)
   const categoryFilter = useMemo(() => {
     if (isAdminScope && category) {
-      return category === 'all' ? null : category;
+      return category === 'all' || category === 'active' ? null : category;
     }
     return categoryFromType;
   }, [isAdminScope, category, categoryFromType]);
+
+  const includeRetired = isAdminScope && category === 'all';
 
   // Fetch all system models with pagination
   const modelsQueryKey = [
     'studio-models',
     categoryFilter,
+    category ?? type ?? 'active',
+    includeRetired,
     currentPage,
     isAdminScope,
     adminOrg,
@@ -190,6 +196,7 @@ export function useModelsList({
       }
 
       if (isAdminScope) {
+        query.includeRetired = includeRetired;
         if (adminOrg) {
           query.organizationId = adminOrg;
         }
@@ -250,7 +257,10 @@ export function useModelsList({
 
   const catalogOverviewCards = useMemo(
     () =>
-      buildModelCatalogOverviewCards(catalogModels, category ?? type ?? 'all'),
+      buildModelCatalogOverviewCards(
+        catalogModels,
+        category ?? type ?? 'active',
+      ),
     [catalogModels, category, type],
   );
 
@@ -590,6 +600,7 @@ export function useModelsList({
         onOpenDetails: handleViewDetails,
         togglingModelId,
         models,
+        translate,
       }),
     [
       isAdminScope,
@@ -601,6 +612,7 @@ export function useModelsList({
       handleViewDetails,
       togglingModelId,
       models,
+      translate,
     ],
   );
 

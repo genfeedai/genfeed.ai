@@ -1,5 +1,10 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import {
+  getModelCategoryBadgeClass,
+  getModelProviderBadgeClass,
+  getModelProviderLabel,
+} from '@genfeedai/helpers/ui/model-badge.helper';
 import Badge from '@ui/display/badge/Badge';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
@@ -49,7 +54,16 @@ export default function ModalModelViewContent({
       <div className="space-y-6">
         {/* Badges row */}
         <div className="flex flex-wrap gap-2">
-          <Badge variant={ButtonVariant.SECONDARY} size={ComponentSize.SM}>
+          <Badge
+            className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}
+            size={ComponentSize.SM}
+          >
+            {getModelProviderLabel(model.provider)}
+          </Badge>
+          <Badge
+            className={`border text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
+            size={ComponentSize.SM}
+          >
             {model.category}
           </Badge>
 

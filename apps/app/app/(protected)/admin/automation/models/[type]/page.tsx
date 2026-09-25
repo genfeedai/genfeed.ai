@@ -1,4 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { resolveAdminModelType } from '@props/admin/models.props';
 import { Suspense } from 'react';
 import AdminModelsPageContent from './admin-models-page-content';
 
@@ -23,5 +24,5 @@ async function ModelsTypePageContent({
 }) {
   const { type } = await params;
 
-  return <AdminModelsPageContent type={type} />;
+  return <AdminModelsPageContent type={resolveAdminModelType(type)} />;
 }

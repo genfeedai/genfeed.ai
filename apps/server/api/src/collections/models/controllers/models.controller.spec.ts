@@ -292,6 +292,33 @@ describe('ModelsController', () => {
       });
     });
 
+    it('excludes retired models when includeRetired is false', () => {
+      const query: ModelsQueryDto = {
+        ...new ModelsQueryDto(),
+        includeRetired: false,
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result).toMatchObject({
+        where: {
+          isDeleted: false,
+          lifecycle: { not: ModelLifecycle.RETIRED },
+        },
+      });
+    });
+
+    it('keeps retired models when includeRetired is true', () => {
+      const query: ModelsQueryDto = {
+        ...new ModelsQueryDto(),
+        includeRetired: true,
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result.where).not.toHaveProperty('lifecycle');
+    });
+
     it('should search model identity fields without replacing other filters', () => {
       const query: ModelsQueryDto = {
         ...new ModelsQueryDto(),
