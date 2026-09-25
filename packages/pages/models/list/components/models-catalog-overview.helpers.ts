@@ -1,7 +1,10 @@
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
+import { getModelCategoryBadgeClass } from '@genfeedai/helpers/ui/model-badge.helper';
 import { Braces, FileText, Film, Image, Mic2, Music } from 'lucide-react';
+
+export { getModelCategoryBadgeClass };
 
 export type ModelCatalogOverviewCard = {
   cardClassName?: string;
@@ -77,31 +80,6 @@ const MODEL_CATEGORY_GROUPS: ModelCategoryGroup[] = [
   },
 ];
 
-const MODEL_CATEGORY_BADGE_CLASSES: Record<ModelCategory, string> = {
-  [ModelCategory.EMBEDDING]: 'bg-muted text-muted-foreground border-border',
-  [ModelCategory.IMAGE]: 'bg-info/15 text-info border-info/30',
-  [ModelCategory.IMAGE_EDIT]:
-    '[background-color:color-mix(in_srgb,var(--accent-pink)_15%,transparent)] text-[var(--accent-pink)] [border-color:color-mix(in_srgb,var(--accent-pink)_30%,transparent)]',
-  [ModelCategory.IMAGE_UPSCALE]:
-    '[background-color:color-mix(in_srgb,var(--accent-rose)_15%,transparent)] text-[var(--accent-rose)] [border-color:color-mix(in_srgb,var(--accent-rose)_30%,transparent)]',
-  [ModelCategory.MUSIC]: 'bg-warning/15 text-warning border-warning/30',
-  [ModelCategory.TEXT]: 'bg-success/15 text-success border-success/30',
-  [ModelCategory.VIDEO]:
-    '[background-color:color-mix(in_srgb,var(--accent-violet)_15%,transparent)] text-[var(--accent-violet)] [border-color:color-mix(in_srgb,var(--accent-violet)_30%,transparent)]',
-  [ModelCategory.VIDEO_EDIT]:
-    '[background-color:color-mix(in_srgb,var(--accent-purple)_15%,transparent)] text-[var(--accent-purple)] [border-color:color-mix(in_srgb,var(--accent-purple)_30%,transparent)]',
-  [ModelCategory.VIDEO_UPSCALE]: 'bg-primary/15 text-primary border-primary/30',
-  [ModelCategory.VOICE]:
-    '[background-color:color-mix(in_srgb,var(--accent-orange)_15%,transparent)] text-[var(--accent-orange)] [border-color:color-mix(in_srgb,var(--accent-orange)_30%,transparent)]',
-};
-
-export function getModelCategoryBadgeClass(category: ModelCategory): string {
-  return (
-    MODEL_CATEGORY_BADGE_CLASSES[category] ??
-    'bg-muted text-muted-foreground border-border'
-  );
-}
-
 function normalizeRouteCategory(category?: string): string {
   if (category === 'images') {
     return 'image';
@@ -109,7 +87,7 @@ function normalizeRouteCategory(category?: string): string {
   if (category === 'videos') {
     return 'video';
   }
-  return category ?? 'all';
+  return category ?? 'active';
 }
 
 export function buildModelCatalogOverviewCards(
@@ -117,14 +95,20 @@ export function buildModelCatalogOverviewCards(
   selectedCategory?: string,
 ): ModelCatalogOverviewCard[] {
   const activeCategory = normalizeRouteCategory(selectedCategory);
+  const catalogModels =
+    activeCategory === 'all'
+      ? models
+      : models.filter((model) => model.lifecycle !== ModelLifecycle.RETIRED);
 
   return MODEL_CATEGORY_GROUPS.map((group) => {
-    const groupModels = models.filter((model) =>
+    const groupModels = catalogModels.filter((model) =>
       group.categories.includes(model.category),
     );
     const defaultModel = groupModels.find((model) => model.isDefault);
     const isActive =
-      activeCategory === 'all' || activeCategory === group.routeCategory;
+      activeCategory === 'all' ||
+      activeCategory === 'active' ||
+      activeCategory === group.routeCategory;
 
     return {
       cardClassName: isActive ? undefined : 'opacity-50',

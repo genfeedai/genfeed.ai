@@ -14,13 +14,25 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import {
+  getModelCategoryBadgeClass,
+  getModelProviderBadgeClass,
+  getModelProviderLabel,
+} from '@genfeedai/helpers/ui/model-badge.helper';
+import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { SelectField } from '@ui/primitives/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import ModelProviderContractDetails from './ModelProviderContractDetails';
@@ -56,6 +68,9 @@ export default function ModalModelFormContent({
   isProviderContractsError,
   isProviderContractsLoading,
 }: ModalModelFormContentProps) {
+  const selectedProvider = form.watch('provider');
+  const selectedCategory = form.watch('category');
+
   return (
     <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(form.formState.errors) && (
@@ -100,31 +115,63 @@ export default function ModalModelFormContent({
         />
       </FormControl>
       <div className="grid grid-cols-2 gap-2">
-        <SelectField
-          name="provider"
-          control={form.control}
-          onChange={updateModalModel}
-          isDisabled={isSubmitting}
-        >
-          {modelProviders.map((provider) => (
-            <option key={provider} value={provider}>
-              {provider}
-            </option>
-          ))}
-        </SelectField>
+        <FormControl label="Provider">
+          <Select
+            disabled={isSubmitting}
+            name="provider"
+            value={selectedProvider}
+            onValueChange={(value) =>
+              updateModalModel({
+                currentTarget: { name: 'provider', value },
+                target: { name: 'provider', value },
+              } as ChangeEvent<HTMLSelectElement>)
+            }
+          >
+            <SelectTrigger aria-label="Provider">
+              <SelectValue placeholder="Select provider" />
+            </SelectTrigger>
+            <SelectContent>
+              {modelProviders.map((provider) => (
+                <SelectItem key={provider} value={provider}>
+                  <Badge
+                    className={`border text-xs uppercase ${getModelProviderBadgeClass(provider)}`}
+                  >
+                    {getModelProviderLabel(provider)}
+                  </Badge>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormControl>
 
-        <SelectField
-          name="category"
-          control={form.control}
-          onChange={updateModalModel}
-          isDisabled={isSubmitting}
-        >
-          {modelCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </SelectField>
+        <FormControl label="Category">
+          <Select
+            disabled={isSubmitting}
+            name="category"
+            value={selectedCategory}
+            onValueChange={(value) =>
+              updateModalModel({
+                currentTarget: { name: 'category', value },
+                target: { name: 'category', value },
+              } as ChangeEvent<HTMLSelectElement>)
+            }
+          >
+            <SelectTrigger aria-label="Category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {modelCategories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  <Badge
+                    className={`border text-xs uppercase ${getModelCategoryBadgeClass(category)}`}
+                  >
+                    {category}
+                  </Badge>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormControl>
       </div>
       <FormControl label="Cost">
         <Input

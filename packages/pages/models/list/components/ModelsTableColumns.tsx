@@ -10,6 +10,11 @@ import {
   getQualityTierForModel,
   getQualityTierLabel,
 } from '@genfeedai/helpers/quality-routing.helper';
+import {
+  getModelCategoryBadgeClass,
+  getModelProviderBadgeClass,
+  getModelProviderLabel,
+} from '@genfeedai/helpers/ui/model-badge.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
@@ -24,7 +29,6 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { useState } from 'react';
-import { getModelCategoryBadgeClass } from './models-catalog-overview.helpers';
 
 export type BuildModelsTableColumnsParams = {
   isAdminScope: boolean;
@@ -57,8 +61,9 @@ function ModelLifecycleControl({
     useState<ModelLifecycle | null>(null);
   const lifecycle =
     pendingLifecycle ?? model.lifecycle ?? ModelLifecycle.AVAILABLE;
-  const needsSuccessor =
-    lifecycle === ModelLifecycle.LEGACY || lifecycle === ModelLifecycle.RETIRED;
+  const isChoosingSuccessor =
+    pendingLifecycle === ModelLifecycle.LEGACY ||
+    pendingLifecycle === ModelLifecycle.RETIRED;
   const successors = models.filter(
     (candidate) =>
       candidate.id !== model.id &&
@@ -66,9 +71,12 @@ function ModelLifecycleControl({
       candidate.isActive &&
       candidate.lifecycle !== ModelLifecycle.RETIRED,
   );
+  const successorLabel = models.find(
+    (candidate) => candidate.key === model.succeededBy,
+  )?.label;
 
   return (
-    <div className="flex min-w-44 flex-col gap-1">
+    <div className="flex min-w-32 flex-col gap-1">
       <Select
         disabled={isDisabled}
         value={lifecycle}
@@ -78,6 +86,11 @@ function ModelLifecycleControl({
             next === ModelLifecycle.LEGACY ||
             next === ModelLifecycle.RETIRED
           ) {
+            if (model.succeededBy) {
+              setPendingLifecycle(null);
+              onChange(next, model.succeededBy);
+              return;
+            }
             setPendingLifecycle(next);
             return;
           }
@@ -87,7 +100,7 @@ function ModelLifecycleControl({
       >
         <SelectTrigger
           aria-label={`Lifecycle for ${model.label}`}
-          className="h-8"
+          className="h-8 w-full min-w-32"
         >
           <SelectValue />
         </SelectTrigger>
@@ -99,10 +112,10 @@ function ModelLifecycleControl({
           ))}
         </SelectContent>
       </Select>
-      {needsSuccessor ? (
+      {isChoosingSuccessor ? (
         <Select
           disabled={isDisabled}
-          value={pendingLifecycle ? undefined : model.succeededBy}
+          value={model.succeededBy}
           onValueChange={(successorKey) => {
             onChange(lifecycle, successorKey);
             setPendingLifecycle(null);
@@ -122,6 +135,14 @@ function ModelLifecycleControl({
             ))}
           </SelectContent>
         </Select>
+      ) : successorLabel ? (
+        <span className="truncate text-2xs text-muted-foreground">
+          Successor: {successorLabel}
+        </span>
+      ) : model.succeededBy ? (
+        <span className="truncate font-mono text-2xs text-muted-foreground">
+          Successor: {model.succeededBy}
+        </span>
       ) : null}
     </div>
   );
@@ -223,10 +244,18 @@ export function buildModelsTableColumns({
     ...(isAdminScope
       ? [
           {
-            className: 'font-mono text-sm',
+            className: 'max-w-[11rem]',
             header: 'Key',
             key: 'key',
             sortable: true,
+            render: (model: IModel) => (
+              <span
+                className="block max-w-[11rem] truncate whitespace-nowrap font-mono text-2xs text-muted-foreground"
+                title={model.key}
+              >
+                {model.key}
+              </span>
+            ),
           },
           {
             header: 'Provider',
@@ -234,9 +263,9 @@ export function buildModelsTableColumns({
             sortable: true,
             render: (model: IModel) => (
               <Badge
-                className={`text-xs uppercase ${model.providerBadgeClass}`}
+                className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}
               >
-                {model.provider}
+                {getModelProviderLabel(model.provider)}
               </Badge>
             ),
           },
@@ -265,7 +294,7 @@ export function buildModelsTableColumns({
       sortable: true,
       render: (model: IModel) => (
         <Badge
-          className={`text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
+          className={`border text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
         >
           {model.category}
         </Badge>

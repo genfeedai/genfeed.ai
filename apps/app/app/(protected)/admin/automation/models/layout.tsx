@@ -9,6 +9,10 @@ import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import {
+  ADMIN_MODEL_TYPE_TABS,
+  isAdminModelType,
+} from '@props/admin/models.props';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Container from '@ui/layout/container/Container';
@@ -32,6 +36,9 @@ function ModelsLayoutContent({ children }: LayoutProps) {
     () => new URLSearchParams(searchParamsString).get('brand') || '',
     [searchParamsString],
   );
+  const typeParam = searchParams?.get('type');
+  const activeType =
+    typeParam && isAdminModelType(typeParam) ? typeParam : 'active';
 
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
@@ -78,67 +85,18 @@ function ModelsLayoutContent({ children }: LayoutProps) {
           APP_ROUTES.ADMIN.AUTOMATION.MODELS,
           searchParamsString,
           'type',
-          ['all', 'image', 'video', 'music', 'text', 'other'].find(
-            (value) => value === searchParams?.get('type'),
-          ) ?? 'all',
+          activeType,
         ),
         fullWidth: false,
-        tabs: [
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'all',
-            ),
-            label: 'All',
-          },
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'image',
-            ),
-            label: 'Image',
-          },
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'video',
-            ),
-            label: 'Video',
-          },
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'music',
-            ),
-            label: 'Music',
-          },
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'text',
-            ),
-            label: 'Text',
-          },
-          {
-            href: createFilterHref(
-              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-              searchParamsString,
-              'type',
-              'other',
-            ),
-            label: 'Other',
-          },
-        ],
+        tabs: ADMIN_MODEL_TYPE_TABS.map((tab) => ({
+          href: createFilterHref(
+            APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+            searchParamsString,
+            'type',
+            tab.value,
+          ),
+          label: tab.label,
+        })),
       }}
       right={
         <>

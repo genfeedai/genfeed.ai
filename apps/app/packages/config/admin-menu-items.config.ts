@@ -106,7 +106,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
   {
     group: 'AI & Automation',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.AUTOMATION.MODELS_ALL,
+    href: APP_ROUTES.ADMIN.AUTOMATION.MODELS,
     label: 'Models',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.MODELS],
     outline: Cpu,

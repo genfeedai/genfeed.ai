@@ -118,6 +118,43 @@ describe('ModelsList', () => {
       expect(mockFindAll).toHaveBeenCalled();
     });
     expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({ isActive: true });
+    expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('includeRetired');
+  });
+
+  it('hides retired models on the default admin listing', async () => {
+    renderModelsList(PageScope.SUPERADMIN);
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalled();
+    });
+    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+      includeRetired: false,
+    });
+  });
+
+  it('includes retired models on the admin All listing', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+    }
+
+    render(<ModelsList category="all" scope={PageScope.SUPERADMIN} />, {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalled();
+    });
+    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+      includeRetired: true,
+    });
   });
 
   it('requests the selected column sort for the full paginated result', async () => {

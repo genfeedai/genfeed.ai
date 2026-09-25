@@ -105,6 +105,10 @@ export class ModelsController extends BaseCRUDController<
       matchConditions.isActive = query.isActive;
     }
 
+    if (query.includeRetired === false) {
+      matchConditions.lifecycle = { not: ModelLifecycle.RETIRED };
+    }
+
     if (query.registryStatus) {
       matchConditions = {
         ...matchConditions,

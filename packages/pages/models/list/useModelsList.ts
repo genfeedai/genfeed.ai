@@ -143,15 +143,19 @@ export function useModelsList({
   // Determine category filter (admin uses category prop, others use type/filters)
   const categoryFilter = useMemo(() => {
     if (isAdminScope && category) {
-      return category === 'all' ? null : category;
+      return category === 'all' || category === 'active' ? null : category;
     }
     return categoryFromType;
   }, [isAdminScope, category, categoryFromType]);
+
+  const includeRetired = isAdminScope && category === 'all';
 
   // Fetch all system models with pagination
   const modelsQueryKey = [
     'studio-models',
     categoryFilter,
+    category ?? type ?? 'active',
+    includeRetired,
     currentPage,
     isAdminScope,
     adminOrg,
@@ -190,6 +194,7 @@ export function useModelsList({
       }
 
       if (isAdminScope) {
+        query.includeRetired = includeRetired;
         if (adminOrg) {
           query.organizationId = adminOrg;
         }
@@ -250,7 +255,10 @@ export function useModelsList({
 
   const catalogOverviewCards = useMemo(
     () =>
-      buildModelCatalogOverviewCards(catalogModels, category ?? type ?? 'all'),
+      buildModelCatalogOverviewCards(
+        catalogModels,
+        category ?? type ?? 'active',
+      ),
     [catalogModels, category, type],
   );
 
