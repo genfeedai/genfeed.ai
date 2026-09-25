@@ -46,9 +46,10 @@ export interface AgentChatModel {
 export const AGENT_CREDIT_USD = 0.01;
 
 /**
- * Base retail multiplier over provider cost. The operator margin knob
- * (`PlatformSetting.marginMultiplier`, Admin → Platform settings) scales on top
- * of it, exactly like generation pricing layers the knob over its base markup.
+ * Default sell/cost ratio for agent chat (70% markup on provider cost).
+ * Matches `DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER` in `@genfeedai/pricing` and
+ * the `PlatformSetting.marginMultiplierAgentChat` operator default — a
+ * separate knob from generation's `marginMultiplierGeneration` (#5172).
  */
 export const AGENT_CREDIT_MARGIN_MULTIPLIER = 1.7;
 
@@ -74,7 +75,9 @@ export interface AgentTokenUsage {
 }
 
 function normalizeAgentMarginMultiplier(multiplier: number): number {
-  return Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+  return Number.isFinite(multiplier) && multiplier > 0
+    ? multiplier
+    : AGENT_CREDIT_MARGIN_MULTIPLIER;
 }
 
 function toSafeTokenCount(value: number): number {
@@ -114,21 +117,19 @@ export function calculateAgentRoundCredits(
 
 /**
  * Exact fractional retail credits for a provider USD charge:
- * cost × base margin × operator margin knob. No floor and no rounding beyond
- * float noise — the ledger stores full precision.
+ * cost × operator margin knob. No floor and no rounding beyond float noise —
+ * the ledger stores full precision. Defaults to 1.7 (70% markup).
  */
 export function calculateAgentExactCredits(
   providerCostUsd: number,
-  marginMultiplier = 1,
+  marginMultiplier = AGENT_CREDIT_MARGIN_MULTIPLIER,
 ): number {
   if (!Number.isFinite(providerCostUsd) || providerCostUsd <= 0) {
     return 0;
   }
   return Number(
     (
-      (providerCostUsd *
-        AGENT_CREDIT_MARGIN_MULTIPLIER *
-        normalizeAgentMarginMultiplier(marginMultiplier)) /
+      (providerCostUsd * normalizeAgentMarginMultiplier(marginMultiplier)) /
       AGENT_CREDIT_USD
     ).toFixed(6),
   );
@@ -137,7 +138,7 @@ export function calculateAgentExactCredits(
 /** Estimated credits for an average agent message ("≈ cost per message"). */
 export function estimateAgentMessageCredits(
   pricing: AgentChatModelPricing,
-  marginMultiplier = 1,
+  marginMultiplier = AGENT_CREDIT_MARGIN_MULTIPLIER,
 ): number {
   return calculateAgentExactCredits(
     calculateAgentProviderCostUsd(pricing, {
