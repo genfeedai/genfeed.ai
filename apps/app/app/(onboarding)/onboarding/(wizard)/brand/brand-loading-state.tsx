@@ -50,7 +50,7 @@ export default function BrandLoadingState({
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
-        size={ButtonSize.SMALL}
+        size={ButtonSize.SM}
         label={translate('actions.skip')}
         isDisabled={submitting}
         onClick={onSkip}
