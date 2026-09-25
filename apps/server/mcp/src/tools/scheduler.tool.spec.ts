@@ -1,3 +1,4 @@
+import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import type { ClientService } from '@mcp/services/client.service';
 import {
   handleSchedulerTool,
@@ -253,6 +254,71 @@ describe('handleSchedulerTool', () => {
     expect(result.content[0].text).toContain('credential-1');
     expect(result.content[0].text).toContain('publish_capable');
   });
+
+  it.each([
+    { providerKey: 'facebook', status: 'hidden' },
+    { providerKey: 'threads', status: 'planned' },
+    { providerKey: 'twitter', status: 'supported' },
+  ] as const)(
+    'passes through $status readiness and diagnostics without writes',
+    async ({ providerKey, status }) => {
+      const client = buildClient();
+      const supported = status === 'supported';
+      const requiredAction = supported
+        ? null
+        : 'Choose a supported scheduling channel. Reconnecting this account does not enable scheduling.';
+      const readiness: IPublishingProviderReadiness = {
+        appReviewStatus: 'unknown',
+        callbackUrlStatus: 'pass',
+        canSchedule: supported,
+        credentialId: 'credential-1',
+        diagnostics: supported
+          ? []
+          : [
+              {
+                checkedAt: '2026-09-24T12:00:00.000Z',
+                classification: 'unknown',
+                code: 'scheduler_channel_unavailable',
+                correctiveAction: requiredAction ?? undefined,
+                details: {
+                  capabilityStatus: status,
+                  credentialCanSchedule: true,
+                },
+                isRetryable: false,
+                message:
+                  status === 'hidden'
+                    ? 'Facebook scheduling is unavailable until live publishing is verified.'
+                    : 'Threads scheduling is planned and is not available yet.',
+                scope: 'provider',
+                severity: 'error',
+              },
+            ],
+        isRetryable: false,
+        permissionScopeStatus: 'pass',
+        providerKey,
+        quotaStatus: 'unknown',
+        requiredAction,
+        state: supported ? 'publish_capable' : 'blocked',
+        tokenFreshness: 'pass',
+      };
+      client.listBrandPublishingReadiness.mockResolvedValue([readiness]);
+
+      const result = await call(client, 'list_brand_publishing_readiness', {
+        brandId: 'brand-1',
+      });
+
+      expect(result.content[0].text).toBe(
+        `Found 1 publishing channels with readiness:\n\n${JSON.stringify([readiness], null, 2)}`,
+      );
+      expect(client.listBrandPublishingReadiness).toHaveBeenCalledTimes(1);
+      expect(client.listBrandPublishingReadiness).toHaveBeenCalledWith(
+        'brand-1',
+      );
+      expect(client.createScheduledRelease).not.toHaveBeenCalled();
+      expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+      expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+    },
+  );
 
   it('rejects brand publishing readiness discovery without a brand ID', async () => {
     const client = buildClient();
