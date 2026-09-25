@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import common from '../../../../../../../../messages/en/common.json';
 import ui from '../../../../../../../../messages/en/ui.json';
 import SettingsAgentsPage from './settings-agents-page';
 
@@ -235,7 +236,7 @@ describe('SettingsAgentsPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     return render(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider client={queryClient}>
           <SettingsAgentsPage />
         </QueryClientProvider>
@@ -382,7 +383,7 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     mocks.organizationId = '';
     rerender(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider
           client={
             new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -400,7 +401,7 @@ describe('SettingsAgentsPage', () => {
     mocks.organizationId = 'org-1';
     mocks.patchSettings.mockRejectedValueOnce(new Error('save failed'));
     rerender(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider
           client={
             new QueryClient({ defaultOptions: { queries: { retry: false } } })

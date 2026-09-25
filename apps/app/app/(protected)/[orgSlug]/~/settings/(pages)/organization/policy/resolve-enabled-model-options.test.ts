@@ -44,7 +44,7 @@ describe('resolveEnabledModelOptions', () => {
   it('drops unmatched allowlist ids instead of showing CUIDs', () => {
     expect(
       resolveEnabledModelOptions(
-        ['cmsn4dijv00400cmnf77l1gzt'],
+        [testId('unmatched')],
         [],
         AGENT_THINKING_MODEL_CATEGORIES,
       ),
