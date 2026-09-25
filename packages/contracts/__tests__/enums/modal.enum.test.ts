@@ -46,7 +46,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.MUSIC).toBe('modal-music');
       expect(ModalEnum.ONBOARDING).toBe('modal-onboarding');
       expect(ModalEnum.POST).toBe('modal-post');
-      expect(ModalEnum.POST_CREATE).toBe('modal-post-create');
       expect(ModalEnum.POST_LONG_FORM).toBe('modal-post-long-form');
       expect(ModalEnum.POST_BATCH).toBe('modal-post-batch');
       expect(ModalEnum.POST_METADATA).toBe('modal-post-metadata');

@@ -198,6 +198,23 @@ export function sanitizeHtml(html: string): string {
 }
 
 /**
+ * Drop markup and collapse whitespace so titles, captions, and tweet bodies
+ * can be shown as the operator-facing text rather than stored HTML.
+ */
+export function stripHtmlToPlainText(value?: string | null): string {
+  if (!value) {
+    return '';
+  }
+
+  return sanitize(value, {
+    allowedAttributes: {},
+    allowedTags: [],
+  })
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Safe wrapper for dangerouslySetInnerHTML.
  */
 export function createMarkup(html: string): { __html: string } {

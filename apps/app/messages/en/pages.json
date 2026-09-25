@@ -935,6 +935,20 @@
       "loadError": "We couldn't load the release board",
       "refresh": "Refresh"
     },
+    "composer": {
+      "account": "Publishing account",
+      "artifactLabel": "Post",
+      "created": "Post created",
+      "description": "Write or generate the post, then preview it before you save.",
+      "failed": "The post could not be created.",
+      "noAccount": "No account yet",
+      "placeholder": "Write the post",
+      "platform": "Platform",
+      "post": "Post",
+      "save": "Create post",
+      "scheduledDate": "Publish time",
+      "title": "New post"
+    },
     "desk": {
       "loadErrorBody": "The content desk could not reach posts, articles, or newsletters. Try again, or return to Posts and open the item from the list.",
       "loadErrorTitle": "Could not load content",
@@ -1308,6 +1322,14 @@
         "title": "Analytics"
       },
       "badgePost": "Post",
+      "openEditor": "Open editor",
+      "pausedHold": "This post is paused, so the publisher will not send it at the scheduled time.",
+      "resume": "Resume post",
+      "tabs": {
+        "analytics": "Analytics",
+        "preview": "Preview"
+      },
+      "warmupHold": "Publishing is held for this account: {reason}",
       "engagement": {
         "approval": "Approval",
         "auto": "Auto",

@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import {
@@ -44,8 +45,14 @@ export interface PostDetailHeaderProps {
 }
 
 function getPostLabel(post: IPost): string {
-  if (post.label) {
-    return post.label;
+  const label = stripHtmlToPlainText(post.label);
+  if (label) {
+    return label;
+  }
+
+  const description = stripHtmlToPlainText(post.description);
+  if (description) {
+    return description;
   }
 
   return post.platform ? getPostsPlatformLabel(post.platform) : 'Post';

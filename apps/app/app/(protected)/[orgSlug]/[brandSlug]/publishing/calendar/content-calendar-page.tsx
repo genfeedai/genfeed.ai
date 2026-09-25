@@ -31,6 +31,7 @@ import {
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
   parsePublishingContentType,
+  publishingContentTitle,
 } from '@pages/posts/library/publishing-content-library.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
@@ -371,7 +372,7 @@ export default function ContentCalendarPage({
         release,
         scheduledDate: releaseScheduledInstant(release),
         status: release.status,
-        title: release.title,
+        title: publishingContentTitle(release.title),
       }));
 
     const slotItems: SlotContentCalendarItem[] = slots
@@ -1175,6 +1176,15 @@ export default function ContentCalendarPage({
     [runMutation, selectedReleaseId],
   );
 
+  const handleResumeRelease = useCallback(() => {
+    if (!selectedReleaseId) {
+      return;
+    }
+    void runMutation('release:resume', (service) =>
+      service.resume(selectedReleaseId),
+    );
+  }, [runMutation, selectedReleaseId]);
+
   // Content-sized and unwrapped: the calendar topbar scrolls horizontally
   // when narrow, so a full-width wrapping row here only stacked the controls.
   const filterControls = (
@@ -1257,6 +1267,7 @@ export default function ContentCalendarPage({
         onClose={() => setSelectedReleaseId(null)}
         onRescheduleRelease={handleRescheduleRelease}
         onRescheduleTarget={handleRescheduleTarget}
+        onResumeRelease={handleResumeRelease}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
         reconnectHref={href(APP_ROUTES.SETTINGS.SOCIAL)}

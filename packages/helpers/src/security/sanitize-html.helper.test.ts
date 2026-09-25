@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createMarkup, sanitizeHtml } from './sanitize-html.helper';
+import {
+  createMarkup,
+  sanitizeHtml,
+  stripHtmlToPlainText,
+} from './sanitize-html.helper';
 
 describe('sanitize-html', () => {
   describe('sanitizeHtml', () => {
@@ -230,6 +234,24 @@ describe('sanitize-html', () => {
     it('should handle empty string', () => {
       const result = createMarkup('');
       expect(result).toEqual({ __html: '' });
+    });
+  });
+
+  describe('stripHtmlToPlainText', () => {
+    it('unwraps a stored caption paragraph into the visible tweet text', () => {
+      expect(
+        stripHtmlToPlainText(
+          '<p>AI content is taking over! Manual content creation is a thing of the past.</p>',
+        ),
+      ).toBe(
+        'AI content is taking over! Manual content creation is a thing of the past.',
+      );
+    });
+
+    it('collapses leftover markup and whitespace', () => {
+      expect(stripHtmlToPlainText('<p>Hello <strong>world</strong></p>')).toBe(
+        'Hello world',
+      );
     });
   });
 });

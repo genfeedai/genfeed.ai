@@ -1,13 +1,18 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { TargetExecutionState, ViewType } from '@genfeedai/contracts';
+import {
+  PageScope,
+  TargetExecutionState,
+  ViewType,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -18,6 +23,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
+import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import {
   createPublishingContentLibraryItems,
@@ -46,7 +52,6 @@ import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { CalendarDays, Files, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildApprovalQueueHref } from './approval-queue-links.helpers';
@@ -257,6 +262,7 @@ export default function PublishingContentLibrary({
       key:
         | 'page'
         | 'platform'
+        | 'post'
         | 'search'
         | 'status'
         | 'type'
@@ -269,6 +275,12 @@ export default function PublishingContentLibrary({
       for (const item of Array.isArray(value) ? value : [value]) {
         if (item && item !== 'all' && !(key === 'page' && item === '1'))
           params.append(key, item);
+      }
+      if (key === 'release') {
+        params.delete('post');
+      }
+      if (key === 'post') {
+        params.delete('release');
       }
       if (key === 'status') {
         params.delete('executionState');
@@ -286,21 +298,29 @@ export default function PublishingContentLibrary({
     [pathname, router, searchParamsString],
   );
 
-  const getRowLink = useCallback(
+  const getDetailHref = useCallback(
+    (item: PublishingContentLibraryItem) => {
+      if (item.type === 'post') {
+        return href(getPublishingPostHref(item.id));
+      }
+      return href(createArtifactEditorRoute(item.type, item.id));
+    },
+    [href],
+  );
+
+  const openRowOverlay = useCallback(
     (item: PublishingContentLibraryItem) => {
       if (item.release) {
-        const params = new URLSearchParams(searchParamsString);
-        params.set('release', item.id);
-        return { href: `${pathname}?${params}`, label: `Open ${item.title}` };
+        replaceQueryParam('release', item.id);
+        return;
       }
-      const editorRoute = createArtifactEditorRoute(item.type, item.id);
-
-      return {
-        href: href(editorRoute),
-        label: `Open ${item.title}`,
-      };
+      if (item.type === 'post') {
+        replaceQueryParam('post', item.id);
+        return;
+      }
+      router.push(getDetailHref(item));
     },
-    [href, pathname, searchParamsString],
+    [getDetailHref, replaceQueryParam, router],
   );
 
   const selectedRelease =
@@ -337,6 +357,7 @@ export default function PublishingContentLibrary({
             channels={item.channels ?? [item.channel]}
             title={item.title}
             summary={item.summary}
+            titleHref={getDetailHref(item)}
           />
         ),
       },
@@ -374,7 +395,7 @@ export default function PublishingContentLibrary({
           item.release ? <ReleaseRailActions release={item.release} /> : null,
       },
     ],
-    [],
+    [getDetailHref],
   );
 
   useEffect(() => {
@@ -504,16 +525,40 @@ export default function PublishingContentLibrary({
   if (isCalendar) return <>{calendar}</>;
 
   const renderPostCard = (item: PublishingContentLibraryItem) => (
-    <Link
+    <div
       key={`${item.type}:${item.id}`}
-      href={getRowLink(item).href}
-      aria-label={`Open ${item.title}`}
+      className="cursor-pointer"
+      onClick={(event) => {
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('a,button')
+        ) {
+          return;
+        }
+        openRowOverlay(item);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+          return;
+        }
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('a,button')
+        ) {
+          return;
+        }
+        event.preventDefault();
+        openRowOverlay(item);
+      }}
+      role="button"
+      tabIndex={0}
     >
       <Card>
         <PublishingContentIdentity
           channels={item.channels ?? [item.channel]}
           title={item.title}
           summary={item.summary}
+          titleHref={getDetailHref(item)}
         />
         <div className="flex items-center justify-between gap-2">
           <Badge>{formatPublishingContentType(item.type)}</Badge>
@@ -522,7 +567,7 @@ export default function PublishingContentLibrary({
           </Badge>
         </div>
       </Card>
-    </Link>
+    </div>
   );
 
   return (
@@ -570,7 +615,7 @@ export default function PublishingContentLibrary({
           getRowKey={(item) => `${item.type}:${item.id}`}
           isLoading={isLoading}
           items={pageItems}
-          getRowLink={getRowLink}
+          onRowClick={openRowOverlay}
         />
       )}
       <div className="mt-4">
@@ -603,6 +648,12 @@ export default function PublishingContentLibrary({
               }),
             );
         }}
+        onResumeRelease={() => {
+          if (selectedRelease)
+            void mutateRelease('release:resume', (service) =>
+              service.resume(selectedRelease.id),
+            );
+        }}
         onRetryTarget={(targetId) => {
           if (selectedRelease)
             void mutateRelease(`target:retry:${targetId}`, (service) =>
@@ -611,6 +662,11 @@ export default function PublishingContentLibrary({
               }),
             );
         }}
+      />
+      <PostDetailOverlay
+        postId={parsedSearchParams.get('post')}
+        scope={PageScope.PUBLISHING}
+        onClose={() => replaceQueryParam('post', '')}
       />
     </div>
   );

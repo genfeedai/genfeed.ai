@@ -51,6 +51,10 @@ vi.mock('@pages/posts/release/release-detail-drawer', () => ({
   default: () => null,
 }));
 
+vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
+  default: () => null,
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',

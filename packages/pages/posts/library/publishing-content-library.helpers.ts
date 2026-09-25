@@ -43,6 +43,10 @@ function stripHtml(value?: string): string {
     .trim();
 }
 
+export function publishingContentTitle(value?: string): string {
+  return stripHtml(value) || 'Untitled post';
+}
+
 function normalizedStatus(status?: string): string {
   const value = status?.trim().toLowerCase() || 'draft';
   return value === 'public' ? 'published' : value;
@@ -125,7 +129,10 @@ export function createPublishingContentLibraryItems({
       scheduledAt: release.scheduledAt,
       status: normalizedStatus(release.status),
       summary: stripHtml(release.baseContent),
-      title: release.title?.trim() || 'Untitled post',
+      title:
+        stripHtml(release.title) ||
+        stripHtml(release.baseContent) ||
+        'Untitled post',
       type: 'post',
     }),
   );

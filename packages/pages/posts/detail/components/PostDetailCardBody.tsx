@@ -3,13 +3,16 @@
 import { PostStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
-import type { MutableRefObject } from 'react';
+import { type MutableRefObject, useEffect } from 'react';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -55,6 +58,31 @@ export default function PostDetailCardBody({
   hasAnalytics,
   showAnalytics,
 }: PostDetailCardBodyProps) {
+  const tweetBody = stripHtmlToPlainText(descriptionValue);
+  const tweetLength = calculateTweetLength(tweetBody);
+  const tweetLimit = 280;
+  const isTweetOverLimit = tweetLength > tweetLimit;
+
+  useEffect(() => {
+    if (!isTwitter || !isEditable) {
+      return;
+    }
+    if (tweetBody !== descriptionValue) {
+      onDescriptionChange(tweetBody);
+      if (post?.id) {
+        currentDescriptionsRef.current.set(post.id, tweetBody);
+      }
+    }
+  }, [
+    currentDescriptionsRef,
+    descriptionValue,
+    isEditable,
+    isTwitter,
+    onDescriptionChange,
+    post?.id,
+    tweetBody,
+  ]);
+
   return (
     <Card className="overflow-hidden space-y-3">
       <div className="flex items-start gap-3">
@@ -103,8 +131,35 @@ export default function PostDetailCardBody({
               <h3 className="font-semibold text-lg">{post.label}</h3>
             )}
 
-            {/* Editor for publisher scope */}
-            {isEditable && (
+            {isEditable && isTwitter ? (
+              <FormControl
+                label={
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <span>Post</span>
+                    <span
+                      className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                    >
+                      {tweetLength} / {tweetLimit}
+                    </span>
+                  </div>
+                }
+              >
+                <Textarea
+                  name="tweetBody"
+                  value={tweetBody}
+                  placeholder={placeholder}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onDescriptionChange(value);
+                    if (post?.id) {
+                      currentDescriptionsRef.current.set(post.id, value);
+                    }
+                  }}
+                />
+              </FormControl>
+            ) : null}
+
+            {isEditable && !isTwitter ? (
               <LazyRichTextEditor
                 placeholder={placeholder}
                 toolbarMode="hidden"
@@ -117,7 +172,7 @@ export default function PostDetailCardBody({
                   }
                 }}
               />
-            )}
+            ) : null}
 
             {/* Read-only content display for non-publisher scopes */}
             {!isEditable && post.description && (

@@ -18,6 +18,8 @@ import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
@@ -140,7 +142,7 @@ export default function ModalPost({
         const url = `PATCH /posts/${entity.id}`;
         const result = await postsService.patch(entity.id, {
           credentialId: formData.credentialId || undefined,
-          description: formData.description.trim(),
+          description: stripHtmlToPlainText(formData.description),
           format: formData.format,
           label: formData.label?.trim() || '',
           ...(formData.scheduledDate
@@ -158,7 +160,7 @@ export default function ModalPost({
         const result = await postsService.post({
           brandId: brandId || undefined,
           credentialId: formData.credentialId || undefined,
-          description: formData.description.trim(),
+          description: stripHtmlToPlainText(formData.description),
           format: formData.format,
           ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',
@@ -276,7 +278,11 @@ export default function ModalPost({
     form.watch('format'),
   );
 
-  const currentLength = Array.from(form.watch('description') || '').length;
+  const descriptionText = stripHtmlToPlainText(form.watch('description') || '');
+  const currentLength =
+    selectedPlatform === Platform.TWITTER
+      ? calculateTweetLength(descriptionText)
+      : Array.from(descriptionText).length;
   const isOverLimit = currentLength > charLimit;
 
   // YouTube requires a title
