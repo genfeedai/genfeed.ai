@@ -11,6 +11,13 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+/** A statistics payload missing a counter must not unmount the runs page. */
+function formatStat(value: number | undefined): string {
+  const amount =
+    typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  return amount.toLocaleString('en-US');
+}
+
 /** Same KPI cards as the other overviews; five stats on one row at desktop. */
 export default function RunStatsStrip({
   isLoading,
@@ -25,27 +32,27 @@ export default function RunStatsStrip({
         {
           icon: ListChecks,
           label: translate('statsTotal'),
-          value: stats.total.toLocaleString('en-US'),
+          value: formatStat(stats.total),
         },
         {
           icon: Activity,
           label: translate('statsActive'),
-          value: stats.active.toLocaleString('en-US'),
+          value: formatStat(stats.active),
         },
         {
           icon: CheckCircle2,
           label: translate('statsCompleted'),
-          value: stats.completed.toLocaleString('en-US'),
+          value: formatStat(stats.completed),
         },
         {
           icon: CircleAlert,
           label: translate('statsFailed'),
-          value: stats.failed.toLocaleString('en-US'),
+          value: formatStat(stats.failed),
         },
         {
           icon: Coins,
           label: translate('statsCredits'),
-          value: stats.totalCredits.toLocaleString('en-US'),
+          value: formatStat(stats.totalCredits),
         },
       ]}
     />
