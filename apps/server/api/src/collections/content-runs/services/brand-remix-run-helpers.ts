@@ -7,6 +7,7 @@ import { Platform } from '@genfeedai/contracts';
 import {
   BrandRemixAdPlatform,
   BrandRemixOrganicPlatform,
+  type BrandRemixRunConfig,
   type BrandRemixSourcePlatform,
   type BrandRemixSourceSnapshot,
   isBrandRemixAdPlatform,
@@ -16,6 +17,24 @@ import {
 import { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
+
+export function assertCurrentRemixQuoteAccepted(
+  config: BrandRemixRunConfig,
+  request: unknown,
+): void {
+  const approvedRemixQuoteId = (request as { approvedRemixQuoteId?: string })
+    .approvedRemixQuoteId;
+  if (
+    config.generationQuote &&
+    (!config.generationQuote.acceptedAt ||
+      config.generationQuote.revision !== config.revision ||
+      approvedRemixQuoteId !== config.generationQuote.id)
+  ) {
+    throw new ConflictException(
+      'Accept the current remix quote through generation/execute before starting.',
+    );
+  }
+}
 
 export function parseBrandRemixPayload<T>(
   schema: ZodType<T>,

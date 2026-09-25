@@ -4,7 +4,10 @@ import {
   BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
   buildBrandRemixGenerateWorkflowDefinitions,
 } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
-import { remixErrorMessage } from '@api/collections/content-runs/services/brand-remix-run-helpers';
+import {
+  assertCurrentRemixQuoteAccepted,
+  remixErrorMessage,
+} from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
@@ -24,7 +27,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -61,7 +63,6 @@ type BrandRemixGenerateRuntime = {
   seenCopy: Set<string>;
   user: User;
 };
-
 type BrandRemixVariantItem = {
   avatarByokBypass: boolean;
   brandId: string;
@@ -71,13 +72,11 @@ type BrandRemixVariantItem = {
   runId: string;
   variant: BrandRemixExecution['variants'][number];
 };
-
 type BrandRemixVariantCredit = {
   amount: number;
   isByokBypass: boolean;
   variantId: string;
 };
-
 type BrandRemixGenerateState = {
   avatarByokBypass: boolean;
   baseInput?: BrandRemixGenerateState;
@@ -605,17 +604,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         title: 'Stale remix revision',
       });
     }
-    if (
-      config.generationQuote &&
-      (!config.generationQuote.acceptedAt ||
-        config.generationQuote.revision !== config.revision ||
-        (request as unknown as DeferredCreditsRequest).approvedRemixQuoteId !==
-          config.generationQuote.id)
-    ) {
-      throw new ConflictException(
-        'Accept the current remix quote through generation/execute before starting.',
-      );
-    }
+    assertCurrentRemixQuoteAccepted(config, request);
     const brandId = this.persistence.requireBrandId(run);
     const brandContext = await this.planning.resolveBrandContext(
       organizationId,
