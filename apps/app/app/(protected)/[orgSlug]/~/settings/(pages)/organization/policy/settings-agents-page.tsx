@@ -29,6 +29,8 @@ import {
   resolveStoredAgentModelKey,
 } from './resolve-enabled-model-options';
 
+const EMPTY_CATALOG_MODELS: IModel[] = [];
+
 const QUALITY_TIER_OPTIONS: Array<{
   description: string;
   label: string;
@@ -147,7 +149,7 @@ export default function SettingsAgentsPage() {
 
   const { modelAccess, modelCosts } = useAgentModelAccess();
 
-  const { data: catalogModels = [] } = useQuery({
+  const { data: catalogModels = EMPTY_CATALOG_MODELS } = useQuery({
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<IModel[]> => {
       const service = await getModelsService();
