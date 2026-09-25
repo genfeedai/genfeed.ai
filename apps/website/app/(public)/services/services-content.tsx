@@ -178,6 +178,10 @@ export default function ServicesContent() {
                 label: 'LinkedIn Content',
               },
               {
+                href: '/x-growth',
+                label: 'X Growth',
+              },
+              {
                 href: '/podcast-to-content',
                 label: 'Podcast to Content',
               },

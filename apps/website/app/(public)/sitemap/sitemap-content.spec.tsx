@@ -33,6 +33,7 @@ const DIRECTORY_EXEMPT = new Set<string>([
   '/retainer',
   '/sitemap',
   '/terms',
+  '/x-growth',
 ]);
 
 function directoryHrefs(): Set<string> {
