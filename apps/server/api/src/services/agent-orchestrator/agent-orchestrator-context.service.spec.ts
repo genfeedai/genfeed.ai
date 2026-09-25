@@ -4,7 +4,6 @@ import { AgentOrchestratorContextService } from '@api/services/agent-orchestrato
 import { AGENT_JAILBREAK_HARDENING } from '@api/services/agent-orchestrator/constants/agent-jailbreak-hardening.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AGENT_SCOPE_GUARDRAIL } from '@api/services/agent-orchestrator/constants/agent-scope-guardrail.constant';
-import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
@@ -639,7 +638,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     expect(result.model).toBe('resolved-model');
   });
 
-  it('passes the agent-type default when no strategy or thinking override applies', async () => {
+  it('uses the Admin catalog default when no strategy or thinking override applies', async () => {
     const { registry, service } = createServiceForModelResolution();
 
     await service.resolveSystemPromptAndModel(
@@ -647,9 +646,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveModelKey).toHaveBeenCalledWith(
-      getAgentTypeConfig(AgentType.X_CONTENT)?.defaultModel,
-    );
+    expect(registry.resolveModelKey).toHaveBeenCalledWith(undefined);
   });
 
   it('prefers the org thinking-model override over the agent-type default', async () => {

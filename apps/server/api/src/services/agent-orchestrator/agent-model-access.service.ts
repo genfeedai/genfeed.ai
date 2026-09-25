@@ -27,7 +27,7 @@ const UNLOCKED: IAgentModelAccess = {
  * A hosted organization without an active paid subscription runs every agent
  * turn — chat, spawned sub-agents, plan mode, UI actions, recurring drafts —
  * on {@link LLM_DEFAULTS.agentChat}, whatever a strategy, org override,
- * agent-type default, or request asked for. Deployments without organization
+ * catalog default, or request asked for. Deployments without organization
  * billing (community self-host, desktop) never lock. A turn whose model the
  * organization's own BYOK key pays for is never locked either.
  */

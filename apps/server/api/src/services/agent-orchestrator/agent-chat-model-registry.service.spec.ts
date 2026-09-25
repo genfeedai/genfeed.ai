@@ -131,6 +131,39 @@ describe('AgentChatModelRegistryService', () => {
       candidates.find((candidate) => candidate.key === 'plain')?.isReasoning,
     ).toBe(false);
   });
+
+  it('uses the Admin isDefault text row even when it is not Recommended', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+          row({
+            cost: 1,
+            isDefault: true,
+            key: 'deepseek/deepseek-v4-flash-0731',
+            lifecycle: ModelLifecycle.AVAILABLE,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'deepseek/deepseek-v4-flash-0731',
+    );
+    await expect(service.resolveModelKey(undefined)).resolves.toBe(
+      'deepseek/deepseek-v4-flash-0731',
+    );
+  });
 });
 
 describe('AgentChatModelRegistryService round pricing', () => {

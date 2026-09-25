@@ -216,14 +216,13 @@ export class AgentOrchestratorContextService {
     // Model precedence, first match wins:
     //   1. strategy.model — the agent strategy's explicit pin
     //   2. organization agentPolicy.thinkingModelOverride (org-level override)
-    //   3. the agent type's defaultModel
-    //   4. the registry platform default (empty key → getDefaultModelKey)
+    //   3. Admin → Automation → Models text default (empty key → getDefaultModelKey)
+    // Agent-type defaultModel is a seed fallback inside the registry, not a
+    // pin that can hide the operator-owned catalog default.
     // A retired key still maps forward to its registry successor so the model
     // we call is always one the biller has a real price for.
     const model = await this.agentChatModelRegistry.resolveModelKey(
-      strategyModel ||
-        policy.thinkingModelOverride ||
-        agentTypeConfig?.defaultModel,
+      strategyModel || policy.thinkingModelOverride,
     );
 
     return {

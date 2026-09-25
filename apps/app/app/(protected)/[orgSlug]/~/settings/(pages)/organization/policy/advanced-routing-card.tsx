@@ -16,15 +16,17 @@ const AUTO_MODEL_SELECT_VALUE = '__auto__';
 export default function AdvancedRoutingCard({
   agentModelAccess,
   allowAdvancedOverrides,
+  generationModelOptions,
   generationModelOverride,
-  modelOptions,
   isSaving,
   modelCostEstimates,
   onAllowAdvancedOverridesChange,
   onGenerationModelOverrideChange,
   onReviewModelOverrideChange,
   onThinkingModelOverrideChange,
+  reviewModelOptions,
   reviewModelOverride,
+  thinkingModelOptions,
   thinkingModelOverride,
 }: AdvancedRoutingCardProps) {
   const lockedModelLabel = agentModelAccess?.isLocked
@@ -48,6 +50,9 @@ export default function AdvancedRoutingCard({
           <div className="grid gap-3 md:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Thinking Model</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Chat and planner LLM. Auto uses the Admin text default.
+              </p>
               {lockedModelLabel ? (
                 <AgentModelLockNotice
                   className="mt-2"
@@ -69,7 +74,7 @@ export default function AdvancedRoutingCard({
                     <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
                       Auto
                     </SelectItem>
-                    {modelOptions.map((model) => {
+                    {thinkingModelOptions.map((model) => {
                       const estimate = modelCostEstimates[model.value];
                       return (
                         <SelectItem key={model.value} value={model.value}>
@@ -89,6 +94,10 @@ export default function AdvancedRoutingCard({
 
             <div>
               <p className="text-sm font-medium">Generation Model</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Image and video fallback when the generate card does not pick
+                one.
+              </p>
               <Select
                 value={generationModelOverride || AUTO_MODEL_SELECT_VALUE}
                 onValueChange={(value) =>
@@ -102,7 +111,7 @@ export default function AdvancedRoutingCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {modelOptions.map((model) => (
+                  {generationModelOptions.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>
@@ -113,6 +122,9 @@ export default function AdvancedRoutingCard({
 
             <div>
               <p className="text-sm font-medium">Review Model</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Text review pass for generated copy.
+              </p>
               <Select
                 value={reviewModelOverride || AUTO_MODEL_SELECT_VALUE}
                 onValueChange={(value) =>
@@ -126,7 +138,7 @@ export default function AdvancedRoutingCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {modelOptions.map((model) => (
+                  {reviewModelOptions.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>
