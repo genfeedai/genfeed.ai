@@ -5,15 +5,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 const { listMock, statsMock } = vi.hoisted(() => ({
   listMock: vi.fn(),
-  statsMock: vi.fn().mockResolvedValue({
-    active: 0,
-    completed: 45,
-    completedToday: 2,
-    failed: 4,
-    failedToday: 1,
-    total: 52,
-    totalCredits: 80,
-  }),
+  statsMock: vi.fn(
+    async (): Promise<unknown> => ({
+      active: 0,
+      completed: 45,
+      completedToday: 2,
+      failed: 4,
+      failedToday: 1,
+      total: 52,
+      totalCredits: 80,
+    }),
+  ),
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
@@ -114,6 +116,29 @@ describe('useWorkflowExecutions summary', () => {
       strategyId: 'agent-1',
       dayStart: expect.any(String),
       dayEnd: expect.any(String),
+    });
+  });
+
+  it('keeps executions when the statistics payload is not a summary', async () => {
+    listMock.mockResolvedValue([
+      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
+    ]);
+    statsMock.mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useWorkflowExecutions(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.executions[0]?.id).toBe('exec-1'),
+    );
+    expect(result.current.isError).toBe(false);
+    expect(result.current.stats).toEqual({
+      active: 0,
+      completed: 0,
+      completedToday: 0,
+      failed: 0,
+      failedToday: 0,
+      total: 0,
+      totalCredits: 0,
     });
   });
 });

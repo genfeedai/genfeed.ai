@@ -71,7 +71,7 @@ test.describe('Modal cleanup', () => {
       .getByRole('link', { name: 'Inbox' })
       .evaluate((link) => (link as HTMLAnchorElement).click());
 
-    await expect(authenticatedPage).toHaveURL(/\/workspace\/inbox\/unread/);
+    await expect(authenticatedPage).toHaveURL(/\/workspace\/inbox$/);
     await expect
       .poll(() => readModalGlobalState(authenticatedPage))
       .toEqual({

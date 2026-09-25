@@ -2130,6 +2130,36 @@ export async function mockWorkflowCrud(
 }
 
 /**
+ * `GET /workflow-executions?view=statistics` is a summary object, not a
+ * JSON:API collection. Returning the collection makes `data` an array and
+ * the runs page throws while formatting counters, which unmounts the history.
+ */
+function buildWorkflowExecutionStats(
+  executions: Array<{ status: string }>,
+): Record<string, number> {
+  const normalized = executions.map((execution) =>
+    execution.status.toUpperCase(),
+  );
+  const completed = normalized.filter(
+    (status) => status === 'COMPLETED',
+  ).length;
+  const failed = normalized.filter((status) => status === 'FAILED').length;
+  const active = normalized.filter(
+    (status) => status === 'PENDING' || status === 'RUNNING',
+  ).length;
+
+  return {
+    active,
+    completed,
+    completedToday: 0,
+    failed,
+    failedToday: 0,
+    total: executions.length,
+    totalCredits: 0,
+  };
+}
+
+/**
  * Mock for workflow execution endpoints
  */
 export async function mockWorkflowExecutions(
@@ -2150,6 +2180,15 @@ export async function mockWorkflowExecutions(
 
   await routeApiPattern(page, '/workflow-executions**', async (route) => {
     const method = route.request().method();
+    const url = new URL(route.request().url());
+    if (method === 'GET' && url.searchParams.get('view') === 'statistics') {
+      await route.fulfill({
+        body: JSON.stringify({ data: buildWorkflowExecutionStats(executions) }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
     if (method === 'GET') {
       const resources = executions.map((execution) =>
         buildExecutionJsonApiResource(
@@ -2195,9 +2234,14 @@ export async function mockWorkflowExecutions(
   });
 
   await routeApiPattern(page, '/workflow-executions/*', async (route) => {
-    const url = route.request().url();
-    const idMatch = url.match(/\/workflow-executions\/([^/?]+)/);
-    const id = idMatch ? idMatch[1] : 'exec-001';
+    const url = new URL(route.request().url());
+    // `*` matches the query string, so the collection and statistics URLs
+    // land here too. Those belong to the handler registered above.
+    const id = url.pathname.match(/\/workflow-executions\/([^/]+)/)?.[1];
+    if (!id) {
+      await route.fallback();
+      return;
+    }
     const found = executions.find((execution) => execution.id === id);
     const execution = found || {
       completedAt: new Date().toISOString(),
