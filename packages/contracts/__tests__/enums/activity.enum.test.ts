@@ -49,10 +49,12 @@ describe('activity.enum', () => {
         'EXPERT_FIRST_SYSTEM',
         'BRAND_RELOCATION',
         'REFERRAL',
+        'AGENT_CHAT',
       ]);
     });
 
     it('should have correct values', () => {
+      expect(ActivitySource.AGENT_CHAT).toBe('agent-chat');
       expect(ActivitySource.SCRIPT).toBe('system');
       expect(ActivitySource.SUPERADMIN).toBe('admin');
       expect(ActivitySource.SUBSCRIPTION).toBe('credits-subscription');
