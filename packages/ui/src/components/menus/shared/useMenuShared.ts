@@ -38,26 +38,31 @@ export function useMenuShared({
     routeScope,
   } = useMenuRouteResolution();
 
-  const isConfiguredItemActive = useCallback(
-    (item: MenuItemConfig) => {
-      if (!item.href) {
-        return false;
-      }
-
+  const getItemMatchScore = useCallback(
+    (item: MenuItemConfig): number => {
       if (
-        item.hrefScope &&
-        item.hrefScope !== 'global' &&
-        item.hrefScope !== routeScope
-      ) {
-        return false;
-      }
-
-      const itemPathname = item.href.split('?')[0] ?? item.href;
-      if (item.isExactMatch && pathname !== itemPathname) {
-        return false;
-      }
-
-      return isActive(item.href, item.matchSearchParams);
+        !item.href ||
+        (item.hrefScope &&
+          item.hrefScope !== 'global' &&
+          item.hrefScope !== routeScope)
+      )
+        return -1;
+      const matchingPaths = [item.href, ...(item.matchPaths ?? [])].filter(
+        (path) => {
+          const itemPathname = path.split('?')[0] ?? path;
+          return (
+            (!item.isExactMatch || pathname === itemPathname) &&
+            isActive(path, item.matchSearchParams)
+          );
+        },
+      );
+      if (matchingPaths.length === 0) return -1;
+      const specificity = Math.max(
+        ...matchingPaths.map((path) => path.split('?')[0].length),
+      );
+      return (
+        specificity * 1000 + Object.keys(item.matchSearchParams ?? {}).length
+      );
     },
     [isActive, pathname, routeScope],
   );
@@ -79,47 +84,16 @@ export function useMenuShared({
 
   const isActiveItem = useCallback(
     (item: MenuItemConfig) => {
-      if (!isConfiguredItemActive(item) || !item.href) {
-        return false;
-      }
-
-      if (item.matchSearchParams) {
-        return true;
-      }
-
-      const itemPathname = item.href.split('?')[0] ?? item.href;
-      const hasMoreSpecificRouteMatch = config.items.some((candidate) => {
-        if (candidate === item || !candidate.href) {
-          return false;
-        }
-
-        const candidatePathname =
-          candidate.href.split('?')[0] ?? candidate.href;
-        return (
-          candidatePathname.startsWith(`${itemPathname}/`) &&
-          isConfiguredItemActive(candidate)
-        );
-      });
-      const hasMoreSpecificQueryMatch = config.items.some((candidate) => {
-        if (
-          candidate === item ||
-          !candidate.href ||
-          !candidate.matchSearchParams
-        ) {
-          return false;
-        }
-
-        const candidatePathname =
-          candidate.href.split('?')[0] ?? candidate.href;
-        return (
-          candidatePathname === itemPathname &&
-          isConfiguredItemActive(candidate)
-        );
-      });
-
-      return !hasMoreSpecificRouteMatch && !hasMoreSpecificQueryMatch;
+      const score = getItemMatchScore(item);
+      return (
+        score >= 0 &&
+        !config.items.some(
+          (candidate) =>
+            candidate !== item && getItemMatchScore(candidate) > score,
+        )
+      );
     },
-    [config.items, isConfiguredItemActive],
+    [config.items, getItemMatchScore],
   );
 
   // Group items by their group field, preserving order

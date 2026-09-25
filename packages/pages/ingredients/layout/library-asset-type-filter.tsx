@@ -55,9 +55,15 @@ export default function LibraryAssetTypeFilter() {
       nextSearchParams.delete(key);
     }
 
+    const [nextPath, presetSearch = ''] =
+      LIBRARY_ROUTE_BY_TYPE[
+        nextType as keyof typeof LIBRARY_ROUTE_BY_TYPE
+      ].split('?');
+    nextSearchParams.delete('categories');
+    new URLSearchParams(presetSearch).forEach((value, key) => {
+      nextSearchParams.append(key, value);
+    });
     const nextQuery = nextSearchParams.toString();
-    const nextPath =
-      LIBRARY_ROUTE_BY_TYPE[nextType as keyof typeof LIBRARY_ROUTE_BY_TYPE];
 
     replace(`${href(nextPath)}${nextQuery ? `?${nextQuery}` : ''}`, {
       scroll: false,

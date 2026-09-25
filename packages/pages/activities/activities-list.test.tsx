@@ -244,7 +244,10 @@ describe('ActivitiesList', () => {
     expect(screen.getByText('Provider timed out')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open failed to generate/i }),
-    ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
+    ).toHaveAttribute(
+      'href',
+      '/acme/news/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
+    );
   });
 
   it('shows the empty state when there is no activity', () => {

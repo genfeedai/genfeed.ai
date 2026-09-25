@@ -25,20 +25,22 @@ import { useLibraryBrowser } from './use-library-browser';
 /**
  * One browser behind every Library destination.
  *
- * Places and shelves are routes, so they arrive as props; type and folder are
- * filters, so they arrive in the query string. The list itself is the existing
+ * Places, shelves, type and folder are query filters; legacy props provide
+ * defaults only when the URL does not specify them. The list itself is the existing
  * ingredients engine pointed at the unified `GET /ingredients` endpoint — the
  * redesign changes what gets asked for, not how results are rendered.
  */
 export default function LibraryBrowser({
-  place,
-  shelf,
+  place: defaultPlace,
+  shelf: defaultShelf,
   seededCategories,
   preset,
   scope = PageScope.BRAND,
   children,
 }: LibraryBrowserProps) {
   const {
+    place,
+    shelf,
     categories,
     contextValue,
     handleCategoriesChange,
@@ -52,7 +54,12 @@ export default function LibraryBrowser({
     search,
     sort,
     viewMode,
-  } = useLibraryBrowser({ place, scope, seededCategories, shelf });
+  } = useLibraryBrowser({
+    place: defaultPlace,
+    scope,
+    seededCategories,
+    shelf: defaultShelf,
+  });
 
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
 

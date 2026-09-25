@@ -74,3 +74,7 @@ export interface ElementConfig {
     sort?: Array<{ value: string; label: string }>;
   };
 }
+
+export interface FilterPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}

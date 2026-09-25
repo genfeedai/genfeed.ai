@@ -5,6 +5,7 @@ import {
   LibraryPlace,
   PageScope,
   parseIngredientCategory,
+  parseLibraryShelf,
 } from '@genfeedai/contracts';
 import {
   LIBRARY_QUERY_KEYS,
@@ -51,15 +52,15 @@ function parseViewMode(value: string | null): LibraryViewMode {
 /**
  * Drive the Library browser's three axes.
  *
- * `place` and `shelf` are the route — they are not editable here. `categories`,
+ * `place` and `shelf` are URL filters alongside `categories`,
  * `folder`, `search`, `sort` and `view` are the control plane and live in the
  * query string. Every URL write goes through `pushAxes`, which re-serializes
  * *all* of them together: writing one axis with a fresh `URLSearchParams` is how
  * the old layout silently dropped the other two.
  */
 export function useLibraryBrowser({
-  place,
-  shelf,
+  place: defaultPlace,
+  shelf: defaultShelf,
   seededCategories,
   scope = PageScope.BRAND,
 }: Pick<
@@ -69,6 +70,12 @@ export function useLibraryBrowser({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const place =
+    Object.values(LibraryPlace).find(
+      (value) => value === searchParams?.get('place'),
+    ) ?? defaultPlace;
+  const shelf =
+    parseLibraryShelf(searchParams?.get('shelf') ?? '') ?? defaultShelf;
   const { brandId, organizationId } = useCollectionScope();
   const { openUpload } = useUploadModal();
 
@@ -147,7 +154,16 @@ export function useLibraryBrowser({
       const nextSort = next.sort ?? sort;
       const nextViewMode = next.viewMode ?? viewMode;
 
-      const params = new URLSearchParams();
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      for (const key of [
+        'categories',
+        'folder',
+        'search',
+        'sort',
+        'view',
+        'page',
+      ])
+        params.delete(key);
 
       for (const category of nextCategories) {
         params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
@@ -322,6 +338,8 @@ export function useLibraryBrowser({
   );
 
   return {
+    place,
+    shelf,
     categories,
     contextValue,
     folderId,

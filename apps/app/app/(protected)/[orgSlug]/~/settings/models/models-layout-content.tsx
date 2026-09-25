@@ -5,6 +5,7 @@ import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { hasTrainingAccess } from '@genfeedai/pricing';
+import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -18,9 +19,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Cpu, Plus } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 const MODEL_TYPE_OPTIONS = [
   { value: 'all', label: 'All' },
@@ -32,28 +33,13 @@ const MODEL_TYPE_OPTIONS = [
 
 type ModelTypeValue = (typeof MODEL_TYPE_OPTIONS)[number]['value'];
 
-function resolveModelType(pathname: string | null): ModelTypeValue {
-  if (pathname?.includes('/trainings')) {
-    return 'trainings';
-  }
-  if (pathname?.includes('/text')) {
-    return 'text';
-  }
-  if (pathname?.includes('/videos')) {
-    return 'videos';
-  }
-  if (pathname?.includes('/images')) {
-    return 'images';
-  }
-  return 'all';
-}
-
 export default function ModelsLayoutContent({
   children,
 }: {
   children: ReactNode;
 }) {
-  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? '';
   const router = useRouter();
   const { orgHref } = useOrgUrl();
   const { settings } = useBrand();
@@ -65,7 +51,10 @@ export default function ModelsLayoutContent({
   const { refreshModels, isRefreshing: isRefreshingModels } =
     useModelsContext();
 
-  const activeType = useMemo(() => resolveModelType(pathname), [pathname]);
+  const activeType: ModelTypeValue =
+    MODEL_TYPE_OPTIONS.find(
+      (option) => option.value === searchParams?.get('type'),
+    )?.value ?? 'all';
 
   const isTrainingsTab = activeType === 'trainings';
   const isRefreshing = isTrainingsTab
@@ -88,9 +77,12 @@ export default function ModelsLayoutContent({
       if (value === activeType) {
         return;
       }
-      router.push(orgHref(`/settings/models/${value}`));
+      router.push(
+        createFilterHref(orgHref('/settings/models'), search, 'type', value),
+        { scroll: false },
+      );
     },
-    [activeType, orgHref, router],
+    [activeType, orgHref, router, search],
   );
 
   return (

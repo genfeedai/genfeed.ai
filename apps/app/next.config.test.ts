@@ -9,6 +9,7 @@ import {
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
+import { unstable_getResponseFromNextConfig } from 'next/experimental/testing/server';
 import { describe, expect, it } from 'vitest';
 import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
@@ -17,7 +18,89 @@ import appPackage from './package.json' with { type: 'json' };
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
+/** The test redirect helper may join repeated keys; production emits both. */
+function categoryValues(target: URL): string[] {
+  return target.searchParams
+    .getAll('categories')
+    .flatMap((value) => value.split(','))
+    .filter((value) => value.length > 0);
+}
+
 describe('app next.config', () => {
+  it.each([
+    [
+      '/acme/brand/workspace/inbox/all?taskId=t1',
+      '/acme/brand/workspace/inbox',
+      'view',
+      'all',
+    ],
+    [
+      '/acme/~/library/shelf/approved?folder=f1&view=list',
+      '/acme/~/library/assets',
+      'shelf',
+      'approved',
+    ],
+    [
+      '/admin/automation/models/image?organization=o1',
+      '/admin/automation/models',
+      'type',
+      'image',
+    ],
+    [
+      '/admin/content/ingredients/images?search=hero',
+      '/admin/content/ingredients',
+      'assetType',
+      'images',
+    ],
+    [
+      '/admin/configuration/tags/account?search=hero',
+      '/admin/configuration/tags',
+      'filter',
+      'account',
+    ],
+  ])(
+    'preserves context when redirecting %s',
+    async (source, pathname, key, value) => {
+      const response = await unstable_getResponseFromNextConfig({
+        url: `https://example.com${source}`,
+        nextConfig: { redirects: config.redirects },
+      });
+      expect(response.status).toBe(308);
+      const target = new URL(response.headers.get('location') ?? '');
+      expect(target.pathname).toBe(pathname);
+      expect(target.searchParams.get(key)).toBe(value);
+      new URL(`https://example.com${source}`).searchParams.forEach(
+        (entry, name) => {
+          expect(target.searchParams.get(name)).toBe(entry);
+        },
+      );
+    },
+  );
+
+  it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    const target = new URL(response.headers.get('location') ?? '');
+    expect(target.pathname).toBe('/acme/brand/library/assets');
+    expect(categoryValues(target)).toEqual(['IMAGE', 'GIF']);
+    expect(target.searchParams.get('folder')).toBe('f1');
+  });
+
+  it('applies the type preset only when the old route omits categories', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/acme/brand/library/videos?folder=f1',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    const target = new URL(response.headers.get('location') ?? '');
+    expect(target.pathname).toBe('/acme/brand/library/assets');
+    expect(categoryValues(target)).toEqual(['VIDEO', 'VIDEO_EDIT']);
+    expect(target.searchParams.get('folder')).toBe('f1');
+  });
+
   it('keeps the API proxy open for bounded campaign generation', () => {
     expect(config.experimental?.proxyTimeout).toBe(300_000);
   });
@@ -171,45 +254,27 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
-    const redirects = await config.redirects?.();
-    const inboxRedirect = redirects?.find(
-      (redirect) => redirect.source === APP_ROUTES.WORKSPACE.INBOX,
-    );
-
-    expect(inboxRedirect).toEqual({
-      destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      permanent: false,
-      source: APP_ROUTES.WORKSPACE.INBOX,
-    });
-  });
-
-  it('redirects org/brand-scoped /:orgSlug/:brandSlug/workspace/inbox to its unread view', async () => {
-    const redirects = await config.redirects?.();
-    const scopedInboxRedirect = redirects?.find(
-      (redirect) =>
-        redirect.source ===
-        createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          APP_ROUTES.WORKSPACE.INBOX,
+  it.each(['', '/:orgSlug/:brandSlug', '/:orgSlug/~'])(
+    'redirects old filter paths under %s without redirecting the canonical inbox',
+    async (prefix) => {
+      const redirects = await config.redirects?.();
+      expect(redirects).toContainEqual({
+        source: `${prefix}/workspace/inbox/all`,
+        destination: `${prefix}/workspace/inbox?view=all`,
+        permanent: true,
+      });
+      expect(
+        redirects?.some(
+          (entry) => entry.source === `${prefix}/workspace/inbox`,
         ),
-    );
-
-    expect(scopedInboxRedirect).toEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX,
-      ),
-    });
-  });
+      ).toBe(false);
+      expect(redirects).toContainEqual({
+        source: `${prefix}/library/shelf/approved`,
+        destination: `${prefix}/library/assets?shelf=approved`,
+        permanent: true,
+      });
+    },
+  );
 
   it.each([
     APP_ROUTES.WORKSPACE.ROOT,

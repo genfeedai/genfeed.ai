@@ -250,7 +250,8 @@ describe('NotificationInboxService', () => {
     ]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
-      sourceHref: '/acme/brand/library/images?asset=img-1',
+      sourceHref:
+        '/acme/brand/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=img-1',
       sourceLabel: null,
     });
     expect(JSON.stringify(page)).not.toMatch(/Internal agent workflow/);

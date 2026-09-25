@@ -106,7 +106,9 @@ describe('getActivityDescription', () => {
         key: ActivityKey.IMAGE_FAILED,
         value: JSON.stringify({ error: 'Provider timed out' }),
       } as IActivity),
-    ).toBe('/library/images?asset=ing-9');
+    ).toBe(
+      '/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
+    );
     expect(
       getActivityDestinationPath({
         key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
