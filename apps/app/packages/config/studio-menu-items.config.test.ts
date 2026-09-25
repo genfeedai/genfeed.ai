@@ -59,11 +59,23 @@ describe('STUDIO_MENU_ITEMS', () => {
     // #2309: the Remotion editor stopped being a core app; Studio's nav is now
     // its only menu entry. Label matches the URL segment.
     const edit = STUDIO_MENU_ITEMS.find((item) => item.href === '/studio/edit');
+    const batch = STUDIO_MENU_ITEMS.find(
+      (item) => item.href === '/studio/batch',
+    );
 
     expect(edit).toMatchObject({
       href: '/studio/edit',
       label: 'Edit',
       matchPaths: ['/studio/edit', '/studio/edit/new'],
+    });
+    expect(batch).toMatchObject({
+      href: '/studio/batch',
+      label: 'Batch',
+      matchPaths: [
+        '/studio/batch',
+        '/studio/batch/new',
+        '/studio/batch/history',
+      ],
     });
   });
 });

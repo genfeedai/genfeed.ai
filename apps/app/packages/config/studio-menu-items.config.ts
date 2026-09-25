@@ -45,7 +45,11 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.STUDIO.BATCH,
     label: 'Batch',
-    matchPaths: [APP_ROUTES.STUDIO.BATCH],
+    matchPaths: [
+      APP_ROUTES.STUDIO.BATCH,
+      APP_ROUTES.STUDIO.BATCH_NEW,
+      APP_ROUTES.STUDIO.BATCH_HISTORY,
+    ],
     outline: Layers,
     solid: Layers,
   },

@@ -120,31 +120,44 @@ test.describe('Batch Workflow Runner', () => {
     await routeBatchWorkflow(authenticatedPage);
   });
 
-  test('remains hidden from the studio navigation while still supporting direct access', async ({
+  test('keeps Batch in studio navigation and opens the composer', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.STUDIO.BATCH);
 
-    await expect(authenticatedPage).toHaveURL(/\/studio\/batch$/);
+    await expect(authenticatedPage).toHaveURL(/\/studio\/batch(?:\/new)?$/);
     await expect(
-      authenticatedPage.getByRole('link', { name: /batch/i }),
-    ).toHaveCount(0);
+      authenticatedPage.getByRole('link', { name: 'Batch', exact: true }),
+    ).toBeVisible();
   });
 
-  test('loads on the direct hidden route, shows recent jobs, and keeps Run Batch disabled before setup', async ({
+  test('loads the composer with New and History tabs and keeps Run Batch disabled before setup', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.STUDIO.BATCH);
 
-    await expect(authenticatedPage).toHaveURL(/\/studio\/batch$/);
+    await expect(authenticatedPage).toHaveURL(/\/studio\/batch(?:\/new)?$/);
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Batch Workflow Runner' }),
     ).toBeVisible();
     await expect(
+      authenticatedPage.getByRole('link', { name: 'New', exact: true }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'History', exact: true }),
+    ).toBeVisible();
+    await expect(
       authenticatedPage.getByRole('button', { name: /Run Batch \(0\)/i }),
     ).toBeDisabled();
+  });
+
+  test('shows recent executions on the history tab', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(APP_ROUTES.STUDIO.BATCH_HISTORY);
+
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Recent jobs' }),
+      authenticatedPage.getByRole('heading', { name: 'Recent executions' }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: /Batch Video Workflow/i }),
@@ -154,7 +167,9 @@ test.describe('Batch Workflow Runner', () => {
   test('shows terminal batch results and MVP actions when opened from a job URL', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${APP_ROUTES.STUDIO.BATCH}?job=job-1`);
+    await authenticatedPage.goto(
+      `${APP_ROUTES.STUDIO.BATCH_HISTORY}?execution=job-1`,
+    );
 
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Batch Results' }),

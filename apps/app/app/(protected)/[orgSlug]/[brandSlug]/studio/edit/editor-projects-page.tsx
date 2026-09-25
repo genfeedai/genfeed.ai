@@ -13,36 +13,11 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Film, Music, Plus, Scissors, Sparkles, Trash2 } from 'lucide-react';
+import { Film, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-
-const features = [
-  {
-    description:
-      'Professional timeline-based video editing with multi-track support',
-    icon: Film,
-    title: 'Timeline Editor',
-  },
-  {
-    description: 'Cut, trim, and splice clips with frame-accurate precision',
-    icon: Scissors,
-    title: 'Precise Trimming',
-  },
-  {
-    description:
-      'Synchronize audio tracks, add music, and adjust volume levels',
-    icon: Music,
-    title: 'Audio Sync',
-  },
-  {
-    description: 'Apply effects, transitions, and color grading to your videos',
-    icon: Sparkles,
-    title: 'Effects & Transitions',
-  },
-] as const;
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -123,7 +98,15 @@ export default function EditorProjectsPage() {
     <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
       <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
         <Plus className="size-4" />
-        {hasProjects ? 'New Project' : 'Start New Project'}
+        New Project
+      </Link>
+    </Button>
+  );
+  const emptyProjectButton = (
+    <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
+      <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
+        <Plus className="size-4" />
+        Start New Project
       </Link>
     </Button>
   );
@@ -135,12 +118,13 @@ export default function EditorProjectsPage() {
           ? `Your Projects (${projects.length})`
           : isLoading
             ? 'Your Projects'
-            : 'Video Editor'
+            : 'Editor'
       }
-      right={!isLoading && !error && hasProjects ? newProjectButton : undefined}
+      right={error ? undefined : newProjectButton}
+      titleVisibility="sr-only"
     >
       {isLoading ? (
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[
             'editor-project-skeleton-1',
             'editor-project-skeleton-2',
@@ -166,7 +150,7 @@ export default function EditorProjectsPage() {
           resetErrorBoundary={loadProjects}
         />
       ) : hasProjects ? (
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <div key={project.id} className="relative">
               <Card
@@ -221,23 +205,9 @@ export default function EditorProjectsPage() {
           icon={Film}
           label="Create Your First Project"
           description="Start a new video editing project to arrange clips on a timeline, add audio tracks, and apply effects. Your generated videos from the Studio can be imported directly."
-          actions={newProjectButton}
+          actions={emptyProjectButton}
         />
       )}
-
-      <h3 className="mb-2 text-xs font-semibold text-foreground">Features</h3>
-      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-        {features.map((feature) => (
-          <Card
-            key={feature.title}
-            variant={CardVariant.DEFAULT}
-            icon={feature.icon}
-            label={feature.title}
-            description={feature.description}
-            bodyClassName="p-3"
-          />
-        ))}
-      </div>
     </Container>
   );
 }
