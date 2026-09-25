@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -49,6 +50,15 @@ export default function ConnectSocialFlow() {
         ...(connectionId ? { credentialId: connectionId } : {}),
       });
       const returnTo = orgHref(`${APP_ROUTES.CONNECT}/social`);
+      // Mirror usePlatformOAuthConnect: providers drop query params on
+      // redirect, so /oauth/[platform] reads return_to from sessionStorage.
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(OAUTH_RETURN_TO_STORAGE_KEY, returnTo);
+        }
+      } catch {
+        // Private mode — best-effort only.
+      }
       const separator = credential.url.includes('?') ? '&' : '?';
       window.open(
         `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,

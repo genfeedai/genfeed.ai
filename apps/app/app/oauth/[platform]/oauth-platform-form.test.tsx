@@ -85,6 +85,9 @@ vi.mock('next/navigation', () => ({
 describe('OAuthPlatformForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The stored return path is per-test state: providers drop query params,
+    // so a leak here would mask a regression in the sessionStorage channel.
+    window.sessionStorage.clear();
     mocks.authIdentity = {
       isLoaded: true,
       isSignedIn: true,
@@ -139,6 +142,55 @@ describe('OAuthPlatformForm', () => {
     expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
 
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+  });
+
+  it('returns to the stored page when the provider drops query params', async () => {
+    // Brand integrations store the origin page in sessionStorage because the
+    // provider redirect drops query params (no return_to survives Twitter).
+    // Literal key mirrors OAUTH_RETURN_TO_STORAGE_KEY without importing the
+    // hook module into this test.
+    mocks.searchParams = new URLSearchParams({
+      code: 'code-1',
+      state: 'state-1',
+    });
+    window.sessionStorage.setItem(
+      'oauth_return_to',
+      '/demo/acme/settings/integrations',
+    );
+
+    render(<OAuthPlatformForm platform="twitter" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        state: 'state-1',
+      });
+    });
+
+    expect(mocks.push).toHaveBeenCalledWith('/demo/acme/settings/integrations');
+    expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
+  });
+
+  it('rejects a stored off-origin path and redirects to the default path', async () => {
+    mocks.searchParams = new URLSearchParams({
+      code: 'code-1',
+      state: 'state-1',
+    });
+    window.sessionStorage.setItem('oauth_return_to', '//evil.com');
+
+    render(<OAuthPlatformForm platform="twitter" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        state: 'state-1',
+      });
+    });
+
+    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.push).not.toHaveBeenCalledWith(
+      expect.stringContaining('evil.com'),
+    );
   });
 
   it('rejects an off-origin return_to and redirects to the default path', async () => {

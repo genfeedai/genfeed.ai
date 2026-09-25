@@ -75,6 +75,10 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   }, []);
 
   const completeSuccess = useCallback(() => {
+    // Resolve before clearing: providers drop query params on redirect, so
+    // the stored path is the only return channel, and the delayed push below
+    // reads it after this frame. Clearing first always fell back to default.
+    const returnTo = resolveReturnTo();
     setResult({ status: 'success' });
     clearStoredReturnTo();
     // Every connect entry point (integrations page, agent setup panel, chat
@@ -84,7 +88,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     clearClientProtectedBootstrapCache();
 
     setTimeout(() => {
-      push(resolveReturnTo());
+      push(returnTo);
     }, REDIRECT_DELAY_MS);
   }, [clearStoredReturnTo, push, resolveReturnTo]);
 
