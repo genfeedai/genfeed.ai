@@ -217,6 +217,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/vs',
     '/vs/:slug',
     '/workflows',
+    '/x-growth',
   ] as const),
   ...classifyPublicRoutes('website', 'public-content', [
     '/articles',
