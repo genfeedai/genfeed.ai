@@ -13,6 +13,7 @@ import {
   ButtonVariant,
   formatPlatformLabel,
 } from '@genfeedai/contracts';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
@@ -115,7 +116,7 @@ export function BatchGenerationResultCard({
     totalPosts > 0 ? `${totalPosts} requested` : null,
     completedCount != null ? `${completedCount} ready` : null,
     failedCount != null && failedCount > 0 ? `${failedCount} failed` : null,
-    creditsUsed > 0 ? `${creditsUsed} credits` : null,
+    creditsUsed > 0 ? formatCreditCost(creditsUsed, { unit: 'credits' }) : null,
     platformLabels.length > 0 ? platformLabels.join(' · ') : null,
   ]
     .filter(Boolean)

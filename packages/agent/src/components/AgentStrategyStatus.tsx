@@ -1,6 +1,10 @@
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  formatCreditBalanceExact,
+  formatCreditCost,
+} from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
@@ -192,7 +196,8 @@ export function AgentStrategyStatus({
         <div className="flex items-center justify-between">
           <p className="text-2xs text-muted-foreground">Daily credits</p>
           <p className="text-2xs text-muted-foreground">
-            {strategy.creditsUsedToday} / {strategy.dailyCreditBudget}
+            {formatCreditCost(strategy.creditsUsedToday)} /{' '}
+            {formatCreditBalanceExact(strategy.dailyCreditBudget)}
           </p>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted">
@@ -210,7 +215,8 @@ export function AgentStrategyStatus({
         <div className="flex items-center justify-between">
           <p className="text-2xs text-muted-foreground">Weekly credits</p>
           <p className="text-2xs text-muted-foreground">
-            {strategy.creditsUsedThisWeek} / {strategy.weeklyCreditBudget}
+            {formatCreditCost(strategy.creditsUsedThisWeek)} /{' '}
+            {formatCreditBalanceExact(strategy.weeklyCreditBudget)}
           </p>
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted">
