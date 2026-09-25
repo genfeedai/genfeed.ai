@@ -20,6 +20,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -49,6 +50,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     CreditsModule,
     MembersModule,
+    OpenRouterModule,
     ReplicateModule,
     RouterModule,
     WorkflowsCoreModule,

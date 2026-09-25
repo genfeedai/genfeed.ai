@@ -10,11 +10,7 @@ import {
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface MediaPromptEnhancementInput {
   actorUserId?: string;
@@ -100,14 +96,16 @@ export class MediaPromptEnhancementService {
     } catch (error: unknown) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof PromptEnhancementResponseError) stage = 'response';
-      this.logger.warn('Media prompt enhancement failed', {
-        contentType: input.contentType === 'video' ? 'video' : 'image',
-        model: PROMPT_ENHANCEMENT_MODEL,
-        stage,
-      });
-      throw new ServiceUnavailableException(
-        'Prompt enhancement is unavailable. Retry or disable enhancement before generating.',
+      this.logger.warn(
+        'Media prompt enhancement failed; generating with original prompt',
+        {
+          contentType: input.contentType === 'video' ? 'video' : 'image',
+          model: PROMPT_ENHANCEMENT_MODEL,
+          stage,
+          error: error instanceof Error ? error.message : String(error),
+        },
       );
+      return { ...receipt, status: 'failed' };
     }
   }
 }

@@ -10,7 +10,6 @@ import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -517,60 +516,6 @@ export class ReplicateService {
       schema: schema as ZodType<TResult>,
       schemaName,
     });
-  }
-
-  private isNumberVector(value: unknown): value is number[] {
-    return (
-      Array.isArray(value) &&
-      value.every(
-        (component) =>
-          typeof component === 'number' && Number.isFinite(component),
-      )
-    );
-  }
-
-  /** Generate a fixed-width text embedding through a routed Replicate model. */
-  public async generateEmbedding(
-    modelIdentifier: string,
-    text: string,
-    apiKeyOverride?: string,
-  ): Promise<number[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    try {
-      this.loggerService.log(`${url} started`, { textLength: text.length });
-
-      const client = this.getClientForRequest(apiKeyOverride);
-      const prediction = await client.predictions.create({
-        input: { texts: JSON.stringify([text]) },
-        ...resolvePredictionTarget(modelIdentifier),
-      });
-
-      // Wait for the prediction to complete
-      const result = await client.wait(prediction);
-
-      const output = result.output;
-      const embedding = this.isNumberVector(output)
-        ? output
-        : Array.isArray(output) && this.isNumberVector(output[0])
-          ? output[0]
-          : undefined;
-
-      if (!embedding || embedding.length !== CONTEXT_EMBEDDING_DIMENSION) {
-        throw new Error(
-          `Embedding model ${modelIdentifier} returned ${embedding?.length ?? 0} dimensions; expected ${CONTEXT_EMBEDDING_DIMENSION}`,
-        );
-      }
-
-      this.loggerService.log(`${url} completed`, {
-        dimensions: embedding?.length,
-        id: result.id,
-      });
-
-      return embedding;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
   }
 
   public getAspectRatio(width?: number, height?: number): string {
