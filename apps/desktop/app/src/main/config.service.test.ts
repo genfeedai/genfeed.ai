@@ -53,6 +53,9 @@ describe('DesktopConfigService', () => {
     expect(environment.authEndpoint).toBe('https://app.genfeed.ai/oauth/cli');
     expect(environment.cdnUrl).toBe('https://cdn.genfeed.ai');
     expect(environment.wsEndpoint).toBe('https://notifications.genfeed.ai');
+    expect(environment.mcpEndpoint).toBe('https://mcp.genfeed.ai/mcp');
+    expect(environment.serverId).toBe('cloud');
+    expect(environment.serverKind).toBe('cloud');
   });
 
   it('allows self-hosted and local development endpoints to override cloud', () => {
@@ -67,5 +70,32 @@ describe('DesktopConfigService', () => {
     expect(environment.authEndpoint).toBe('http://localhost:3000/oauth/cli');
     expect(environment.cdnUrl).toBe('http://localhost:3010/cdn');
     expect(environment.wsEndpoint).toBe('http://localhost:3020');
+    expect(environment.mcpEndpoint).toBe('http://localhost:3014/mcp');
+    expect(environment.serverKind).toBe('self-hosted');
+  });
+
+  it('builds the environment for an in-app selected server', () => {
+    clearDesktopEndpointEnv();
+    const service = new DesktopConfigService();
+
+    const environment = service.getEnvironment({
+      apiEndpoint: 'https://api.acme.dev/v1',
+      appEndpoint: 'https://app.acme.dev',
+      authEndpoint: 'https://app.acme.dev/oauth/cli',
+      id: 'self-hosted-0123456789abcdef',
+      kind: 'self-hosted',
+      label: 'api.acme.dev',
+      mcpEndpoint: 'https://mcp.acme.dev/mcp',
+      wsEndpoint: 'https://notifications.acme.dev',
+    });
+
+    expect(environment).toMatchObject({
+      apiEndpoint: 'https://api.acme.dev/v1',
+      authEndpoint: 'https://app.acme.dev/oauth/cli',
+      mcpEndpoint: 'https://mcp.acme.dev/mcp',
+      serverId: 'self-hosted-0123456789abcdef',
+      wsEndpoint: 'https://notifications.acme.dev',
+    });
+    expect(service.getDefaultServerProfile().id).toBe('cloud');
   });
 });
