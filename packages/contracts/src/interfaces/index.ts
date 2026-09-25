@@ -6,6 +6,7 @@ export * from './ai/agent-artifact-reference.interface';
 export * from './ai/agent-auto-routing.interface';
 export * from './ai/agent-brand-context.interface';
 export * from './ai/agent-campaign.interface';
+export * from './ai/agent-external-turn.interface';
 export * from './ai/agent-failure.interface';
 export * from './ai/agent-generation-quote.interface';
 export * from './ai/agent-publish.interface';

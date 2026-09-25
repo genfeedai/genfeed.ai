@@ -1,3 +1,5 @@
+import type { AgentExternalRuntimeKey } from '../constants/agent-external-runtime.constant';
+
 /* ─── Desktop IPC Channel Names ─── */
 
 export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
@@ -48,6 +50,9 @@ export function parseDesktopAssetUrl(rawUrl: string): string | null {
 }
 
 export const DESKTOP_IPC_CHANNELS = {
+  agentRuntimeCancelTurn: 'desktop:agentRuntime:cancelTurn',
+  agentRuntimeEvent: 'desktop:agentRuntime:event',
+  agentRuntimeStartTurn: 'desktop:agentRuntime:startTurn',
   appBootstrap: 'desktop:app:bootstrap',
   appDetectLocalTools: 'desktop:app:detectLocalTools',
   appEnableOfflineMode: 'desktop:app:enableOfflineMode',
@@ -97,6 +102,9 @@ export const DESKTOP_IPC_CHANNELS = {
   notify: 'desktop:notify',
   openFileDialog: 'desktop:openFileDialog',
   quickGenerate: 'desktop:quickGenerate',
+  serverGetState: 'desktop:server:getState',
+  serverSelect: 'desktop:server:select',
+  serverValidate: 'desktop:server:validate',
   syncApplyBrandManifest: 'desktop:sync:applyBrandManifest',
   syncAckOps: 'desktop:sync:ackOps',
   syncGetConsent: 'desktop:sync:getConsent',
@@ -135,11 +143,64 @@ export interface IDesktopEnvironment {
   appPort: number;
   authEndpoint: string;
   cdnUrl: string;
+  /** Genfeed MCP (Streamable HTTP) endpoint for the selected server. */
+  mcpEndpoint: string;
+  /** Stable id of the selected server; scopes the stored desktop session. */
+  serverId: string;
+  serverKind: DesktopServerKind;
   sessionDbPath?: string;
   sentryDsn?: string;
   sentryEnvironment?: string;
   sentryRelease?: string;
   wsEndpoint: string;
+}
+
+/* ─── Server selection ─── */
+
+export type DesktopServerKind = 'cloud' | 'self-hosted';
+
+/** User-entered self-hosted server. Optional endpoints derive from the API. */
+export interface IDesktopSelfHostedServerConfig {
+  apiEndpoint: string;
+  appEndpoint?: string;
+  mcpEndpoint?: string;
+  wsEndpoint?: string;
+}
+
+/** Fully resolved endpoints for one Genfeed server. */
+export interface IDesktopServerProfile {
+  apiEndpoint: string;
+  /** HTTPS app origin loaded as the remote shell, or null to use the bundled shell. */
+  appEndpoint: string | null;
+  authEndpoint: string;
+  id: string;
+  kind: DesktopServerKind;
+  label: string;
+  mcpEndpoint: string;
+  wsEndpoint: string;
+}
+
+export interface IDesktopServerState {
+  active: IDesktopServerProfile;
+  cloud: IDesktopServerProfile;
+  /** Profile used when no server was picked in-app (env override or Cloud). */
+  defaultProfile: IDesktopServerProfile;
+  /** True when the in-app selection is unset and the default applies. */
+  isUsingDefault: boolean;
+  selfHosted: IDesktopSelfHostedServerConfig | null;
+  /** Server ids that currently hold a stored desktop session. */
+  signedInServerIds: string[];
+}
+
+export interface IDesktopServerSelection {
+  kind: DesktopServerKind;
+  selfHosted?: IDesktopSelfHostedServerConfig;
+}
+
+export interface IDesktopServerValidationResult {
+  error?: string;
+  isValid: boolean;
+  profile?: IDesktopServerProfile;
 }
 
 export type DesktopContentPlatform =
@@ -771,6 +832,8 @@ export type DesktopTerminalKind = 'claude' | 'codex' | 'genfeed' | 'shell';
 
 export interface IDesktopTerminalCreateOptions {
   cols?: number;
+  /** Absolute directory to start in; ignored when it does not exist. */
+  cwd?: string;
   kind?: DesktopTerminalKind;
   rows?: number;
   workspaceId?: string | null;
@@ -794,6 +857,109 @@ export interface IDesktopTerminalExitEvent {
   exitCode?: number;
   sessionId: string;
   signal?: number;
+}
+
+/* ─── CLI agent runtime (user's own Claude Code / Codex subscription) ─── */
+
+export interface IDesktopCliAgentTurnRequest {
+  brandId?: string | null;
+  prompt: string;
+  runtimeKey: AgentExternalRuntimeKey;
+  /** Existing Genfeed thread; omitted to create one for this runtime. */
+  threadId?: string | null;
+  /** Renderer-generated id used to correlate streamed events. */
+  turnId: string;
+}
+
+export interface IDesktopCliAgentTurnHandle {
+  threadId: string;
+  turnId: string;
+}
+
+export type DesktopCliAgentToolCallStatus = 'completed' | 'failed' | 'running';
+
+export interface IDesktopCliAgentToolCall {
+  argsSummary: string;
+  error?: string;
+  id: string;
+  /** Tool name without the MCP server prefix. */
+  name: string;
+  resultSummary?: string;
+  status: DesktopCliAgentToolCallStatus;
+}
+
+export interface IDesktopCliAgentUsage {
+  cachedInputTokens?: number;
+  costUsd?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+export type DesktopCliAgentErrorCode =
+  | 'binary-not-found'
+  | 'cancelled'
+  | 'invalid-request'
+  | 'not-authenticated'
+  | 'not-signed-in'
+  | 'process-failed'
+  | 'timeout';
+
+export interface IDesktopCliAgentSessionEvent {
+  model?: string;
+  sessionId: string;
+  type: 'session';
+}
+
+export interface IDesktopCliAgentTextDeltaEvent {
+  text: string;
+  type: 'text-delta';
+}
+
+export interface IDesktopCliAgentMessageEvent {
+  text: string;
+  type: 'message';
+}
+
+export interface IDesktopCliAgentToolCallEvent {
+  toolCall: IDesktopCliAgentToolCall;
+  type: 'tool-call-finished' | 'tool-call-started';
+}
+
+export interface IDesktopCliAgentUsageEvent {
+  type: 'usage';
+  usage: IDesktopCliAgentUsage;
+}
+
+export interface IDesktopCliAgentCompletedEvent {
+  /** False when the turn ran but could not be saved to the Genfeed thread. */
+  isPersisted: boolean;
+  persistError?: string;
+  sessionId: string | null;
+  text: string;
+  toolCalls: IDesktopCliAgentToolCall[];
+  type: 'completed';
+  usage?: IDesktopCliAgentUsage;
+}
+
+export interface IDesktopCliAgentErrorEvent {
+  code: DesktopCliAgentErrorCode;
+  message: string;
+  type: 'error';
+}
+
+export type DesktopCliAgentEvent =
+  | IDesktopCliAgentCompletedEvent
+  | IDesktopCliAgentErrorEvent
+  | IDesktopCliAgentMessageEvent
+  | IDesktopCliAgentSessionEvent
+  | IDesktopCliAgentTextDeltaEvent
+  | IDesktopCliAgentToolCallEvent
+  | IDesktopCliAgentUsageEvent;
+
+export interface IDesktopCliAgentTurnEvent {
+  event: DesktopCliAgentEvent;
+  threadId: string;
+  turnId: string;
 }
 
 /* ─── Agents ─── */
@@ -870,6 +1036,15 @@ export interface IDesktopLocalToolReadiness {
 }
 
 export interface IGenfeedDesktopBridge {
+  agentRuntime: {
+    cancelTurn: (turnId: string) => Promise<void>;
+    onEvent: (
+      callback: (event: IDesktopCliAgentTurnEvent) => void,
+    ) => () => void;
+    startTurn: (
+      request: IDesktopCliAgentTurnRequest,
+    ) => Promise<IDesktopCliAgentTurnHandle>;
+  };
   app: {
     detectLocalTools: () => Promise<IDesktopLocalToolReadiness>;
     enableOfflineMode: () => Promise<IDesktopBootstrap>;
@@ -981,6 +1156,14 @@ export interface IGenfeedDesktopBridge {
     notify: (title: string, body: string) => Promise<void>;
   };
   platform: string;
+  server: {
+    getState: () => Promise<IDesktopServerState>;
+    /** Persists the selection and restarts Genfeed Desktop on that server. */
+    select: (selection: IDesktopServerSelection) => Promise<void>;
+    validateSelfHosted: (
+      config: IDesktopSelfHostedServerConfig,
+    ) => Promise<IDesktopServerValidationResult>;
+  };
   sync: {
     ackOps: (cloudUserId: string, ops: IDesktopSyncOpAck[]) => Promise<void>;
     applyBrandManifest: (

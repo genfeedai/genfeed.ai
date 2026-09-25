@@ -1082,6 +1082,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
     },
   },
+  BillingRevenueEvent: {
+    allFields: [
+      'amountMinor',
+      'createdAt',
+      'currency',
+      'id',
+      'isDeleted',
+      'occurredAt',
+      'organization',
+      'organizationId',
+      'source',
+      'stripeObjectId',
+      'updatedAt',
+      'userId',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
+  },
   Bookmark: {
     allFields: [
       'author',
@@ -3506,6 +3527,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'runId',
       'threadId',
       'updatedAt',
+      'userId',
       'vendorCostMicros',
       'workflowExecutionId',
       'workflowNodeId',
@@ -4137,6 +4159,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'batchItems',
       'batches',
       'billingAccountLinks',
+      'billingRevenueEvents',
       'bookmarks',
       'botActivities',
       'bots',

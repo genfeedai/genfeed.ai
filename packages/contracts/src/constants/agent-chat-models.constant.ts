@@ -45,44 +45,106 @@ export interface AgentChatModel {
 /** 1 credit = $0.01 of retail spend. */
 export const AGENT_CREDIT_USD = 0.01;
 
-/** Retail multiplier over provider list price. */
+/**
+ * Base retail multiplier over provider cost. The operator margin knob
+ * (`PlatformSetting.marginMultiplier`, Admin → Platform settings) scales on top
+ * of it, exactly like generation pricing layers the knob over its base markup.
+ */
 export const AGENT_CREDIT_MARGIN_MULTIPLIER = 1.7;
 
 /**
  * Token envelope of a single LLM round (one request/response pair inside a
- * turn). A turn may run up to AGENT_MAX_TOOL_ROUNDS of these, which is exactly
- * why billing is per round and not per turn.
+ * turn). It sizes the credit *hold* taken before a round; the round then
+ * settles at its exact provider cost.
  */
 export const AGENT_ROUND_PROMPT_TOKENS = 10_000;
 export const AGENT_ROUND_COMPLETION_TOKENS = 2_000;
 
 /**
+ * Token footprint of an average agent message (a turn is ~1.5 rounds with a
+ * growing history). Drives the "≈ cost per message" hint in model pickers;
+ * never used for billing.
+ */
+export const AGENT_AVERAGE_MESSAGE_PROMPT_TOKENS = 16_000;
+export const AGENT_AVERAGE_MESSAGE_COMPLETION_TOKENS = 1_500;
+
+export interface AgentTokenUsage {
+  completionTokens: number;
+  promptTokens: number;
+}
+
+function normalizeAgentMarginMultiplier(multiplier: number): number {
+  return Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+}
+
+function toSafeTokenCount(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/** Provider USD for `usage` at the given $/1M token list price. */
+export function calculateAgentProviderCostUsd(
+  pricing: AgentChatModelPricing,
+  usage: AgentTokenUsage,
+): number {
+  const promptUsd =
+    (toSafeTokenCount(usage.promptTokens) / 1_000_000) *
+    Math.max(0, pricing.promptPerMillion);
+  const completionUsd =
+    (toSafeTokenCount(usage.completionTokens) / 1_000_000) *
+    Math.max(0, pricing.completionPerMillion);
+  return promptUsd + completionUsd;
+}
+
+/**
  * Credits burned by one round on a model with the given list price.
- * Always at least 1 credit so no round is silently free.
+ * Always at least 1 credit: this is the pre-round *hold*, and the catalogue
+ * cost tier, never the settled amount.
  */
 export function calculateAgentRoundCredits(
   pricing: AgentChatModelPricing,
 ): number {
-  const promptUsd =
-    (AGENT_ROUND_PROMPT_TOKENS / 1_000_000) * pricing.promptPerMillion;
-  const completionUsd =
-    (AGENT_ROUND_COMPLETION_TOKENS / 1_000_000) * pricing.completionPerMillion;
   const retailUsd =
-    (promptUsd + completionUsd) * AGENT_CREDIT_MARGIN_MULTIPLIER;
+    calculateAgentProviderCostUsd(pricing, {
+      completionTokens: AGENT_ROUND_COMPLETION_TOKENS,
+      promptTokens: AGENT_ROUND_PROMPT_TOKENS,
+    }) * AGENT_CREDIT_MARGIN_MULTIPLIER;
 
   return Math.max(1, Math.ceil(retailUsd / AGENT_CREDIT_USD));
 }
 
-/** Exact retail credits for a provider-reported USD charge. */
-export function calculateAgentExactCredits(providerCostUsd: number): number {
+/**
+ * Exact fractional retail credits for a provider USD charge:
+ * cost × base margin × operator margin knob. No floor and no rounding beyond
+ * float noise — the ledger stores full precision.
+ */
+export function calculateAgentExactCredits(
+  providerCostUsd: number,
+  marginMultiplier = 1,
+): number {
   if (!Number.isFinite(providerCostUsd) || providerCostUsd <= 0) {
     return 0;
   }
   return Number(
     (
-      (providerCostUsd * AGENT_CREDIT_MARGIN_MULTIPLIER) /
+      (providerCostUsd *
+        AGENT_CREDIT_MARGIN_MULTIPLIER *
+        normalizeAgentMarginMultiplier(marginMultiplier)) /
       AGENT_CREDIT_USD
     ).toFixed(6),
+  );
+}
+
+/** Estimated credits for an average agent message ("≈ cost per message"). */
+export function estimateAgentMessageCredits(
+  pricing: AgentChatModelPricing,
+  marginMultiplier = 1,
+): number {
+  return calculateAgentExactCredits(
+    calculateAgentProviderCostUsd(pricing, {
+      completionTokens: AGENT_AVERAGE_MESSAGE_COMPLETION_TOKENS,
+      promptTokens: AGENT_AVERAGE_MESSAGE_PROMPT_TOKENS,
+    }),
+    marginMultiplier,
   );
 }
 
