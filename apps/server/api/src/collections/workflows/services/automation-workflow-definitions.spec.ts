@@ -171,10 +171,15 @@ describe('automation workflow definitions', () => {
     // shape never caught this because `validateDefinition` only checks that
     // the result node exists; assert edge coverage for every automation
     // workflow so a future hand-rolled definition can't regress the same way.
-    const definitions = [
-      ...AUTOMATION_PARENT_WORKFLOWS,
-      ...AUTOMATION_CHILD_WORKFLOWS,
-    ];
+    //
+    // Scoped to AUTOMATION_PARENT_WORKFLOWS only: child workflows
+    // (AUTOMATION_CHILD_WORKFLOWS) are invoked per item by a parent's
+    // `workflow.for-each` fan-out, which supplies their root inputs
+    // (item/organizationId/baseInput/...) directly as the child execution's
+    // inputValues rather than through intra-graph edges — there is no
+    // "begin" node feeding them the way a parent workflow feeds its own
+    // multi-node graph, so the same edge-coverage check does not apply.
+    const definitions = AUTOMATION_PARENT_WORKFLOWS;
     const gaps: string[] = [];
     for (const definition of definitions) {
       for (const node of definition.definition.nodes) {
