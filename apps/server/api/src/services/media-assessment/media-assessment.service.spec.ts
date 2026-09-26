@@ -312,8 +312,18 @@ describe('MediaAssessmentService', () => {
         {
           assetHash: HASH,
           decisions: [
-            { confidence: 0.95, name: 'isBrandSafe', source: 'transcript', value: false },
-            { confidence: 0.6, name: 'isOnBrand', source: 'transcript', value: false },
+            {
+              confidence: 0.95,
+              name: 'isBrandSafe',
+              source: 'transcript',
+              value: false,
+            },
+            {
+              confidence: 0.6,
+              name: 'isOnBrand',
+              source: 'transcript',
+              value: false,
+            },
           ],
           ingredientId: 'asset-1',
           mode: 'live',
@@ -322,7 +332,12 @@ describe('MediaAssessmentService', () => {
         {
           assetHash: HASH,
           decisions: [
-            { confidence: 0.9, name: 'isCaptionConsistent', source: 'description', value: false },
+            {
+              confidence: 0.9,
+              name: 'isCaptionConsistent',
+              source: 'description',
+              value: false,
+            },
           ],
           ingredientId: 'asset-1',
           mode: 'live',
@@ -331,7 +346,10 @@ describe('MediaAssessmentService', () => {
       ],
     });
 
-    const assessment = await service.assessPublishMedia({ ...REQUEST, caption });
+    const assessment = await service.assessPublishMedia({
+      ...REQUEST,
+      caption,
+    });
 
     expect(assessment.isBlocking).toBe(true);
     expect(assessment.reasons).toEqual([
@@ -360,13 +378,21 @@ describe('MediaAssessmentService', () => {
 
   it('ignores text decisions outside live mode', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'shadow', MODERATION_MODE: 'off' },
+      config: {
+        MEDIA_TEXT_GATE_DECISION_MODE: 'shadow',
+        MODERATION_MODE: 'off',
+      },
       perceptions: [perceptionRow('asset-1')],
       textDecisions: [
         {
           assetHash: HASH,
           decisions: [
-            { confidence: 0.99, name: 'isBrandSafe', source: 'transcript', value: false },
+            {
+              confidence: 0.99,
+              name: 'isBrandSafe',
+              source: 'transcript',
+              value: false,
+            },
           ],
           ingredientId: 'asset-1',
           mode: 'shadow',

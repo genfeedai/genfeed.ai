@@ -44,7 +44,9 @@ export class MediaModerationProcessor extends WorkerHost {
     const visionOutcome = await run(() =>
       this.mediaVisionEvaluationService.evaluate(job.data),
     );
-    const textOutcome = await this.mediaTextDecisionService.evaluate(job.data);
+    const textOutcome = await run(() =>
+      this.mediaTextDecisionService.evaluate(job.data),
+    );
     this.logger.log('MediaModerationProcessor finished', {
       ingredientId: job.data.ingredientId,
       outcome,

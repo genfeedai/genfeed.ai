@@ -44,6 +44,9 @@ describe('MediaModerationProcessor', () => {
     const processor = new MediaModerationProcessor(
       { moderate } as unknown as MediaModerationService,
       { evaluate } as unknown as MediaVisionEvaluationService,
+      {
+        evaluate: vi.fn().mockResolvedValue('decided'),
+      } as unknown as MediaTextDecisionService,
       { log: vi.fn() } as unknown as LoggerService,
     );
 
