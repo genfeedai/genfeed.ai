@@ -25,6 +25,12 @@ export interface CreditsConfig {
   amount?: number;
   modelKey?: string;
   description: string;
+  /**
+   * The request body's `model` names the content's target model (for example
+   * the generation model a prompt is written for), not what this route bills.
+   * Pricing then comes from `amount` / `modelKey` alone.
+   */
+  isBodyModelIgnored?: boolean;
   /** Boolean request-body attribute that makes this route non-billable. */
   skipWhenBodyAttribute?: string;
   source?: ActivitySource;
