@@ -1,5 +1,5 @@
 import { ModalEnum } from '@genfeedai/contracts';
-import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ModalPostContent from '@ui/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@ui/modals/content/post/ModalPostFooter';
@@ -13,7 +13,7 @@ import ModalPostBatchIngredientPreview from './ModalPostBatchIngredientPreview';
 import ModalPostBatchResultsView from './ModalPostBatchResultsView';
 import { useModalPostBatch } from './useModalPostBatch';
 
-export default function ModalPostBatch(props: ModalPostProps) {
+export default function ModalPostBatch(props: ModalPostBatchProps) {
   const { ingredient, credentials } = props;
   const { push } = useRouter();
 
