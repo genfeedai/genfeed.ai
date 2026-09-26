@@ -1,7 +1,21 @@
 import type { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ApifyAdsService } from './apify-ads.service';
+
+/**
+ * Every reason runAdsActor's passthrough allowlist is meant to let through
+ * unmasked, instead of logging and re-throwing paid_creative_source_unavailable.
+ */
+const PASSTHROUGH_COLLECTION_ERROR_CODES = [
+  'research_paid_access_required',
+  'research_subscription_unverified',
+  'research_collection_recovery_pending',
+  'research_collection_cost_unverified',
+  'research_collection_start_unconfirmed',
+  'research_collection_start_unreconciled',
+] as const;
 
 describe('public archive transports', () => {
   function setup(rows: unknown[] = []) {
@@ -115,4 +129,26 @@ describe('public archive transports', () => {
       }),
     ).rejects.toThrow('paid_creative_source_unavailable');
   });
+  it.each(PASSTHROUGH_COLLECTION_ERROR_CODES)(
+    'passes through %s instead of masking it as a source outage',
+    async (code) => {
+      const run = vi
+        .fn()
+        .mockRejectedValue(new ServiceUnavailableException(code));
+      const logger = { error: vi.fn() };
+      const service = new ApifyAdsService(
+        logger as unknown as LoggerService,
+        { run } as unknown as ResearchCollectionRunner,
+      );
+
+      await expect(
+        service.fetchMetaAdLibraryCreatives({
+          query: 'coffee',
+          limit: 5,
+          organizationId: 'org',
+        }),
+      ).rejects.toThrow(code);
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
 });

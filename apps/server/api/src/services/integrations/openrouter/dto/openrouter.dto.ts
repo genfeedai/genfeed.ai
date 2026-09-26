@@ -81,11 +81,23 @@ export interface OpenRouterResponseFormat {
   json_schema: OpenRouterJsonSchemaSpec;
 }
 
+/**
+ * OpenRouter's unified reasoning control. Documented vendor fields only:
+ * https://openrouter.ai/docs/use-cases/reasoning-tokens
+ */
+export interface OpenRouterReasoningPreferences {
+  effort?: 'high' | 'low' | 'medium' | 'minimal' | 'none';
+  enabled?: boolean;
+  exclude?: boolean;
+  max_tokens?: number;
+}
+
 export interface OpenRouterChatCompletionParams {
   model: string;
   messages: OpenRouterMessage[];
   temperature?: number;
   max_tokens?: number;
+  reasoning?: OpenRouterReasoningPreferences;
   plugins?: OpenRouterPlugin[];
   session_id?: string;
   provider?: OpenRouterProviderPreferences;

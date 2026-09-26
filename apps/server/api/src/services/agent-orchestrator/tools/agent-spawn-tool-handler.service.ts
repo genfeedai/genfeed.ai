@@ -48,6 +48,7 @@ export class AgentSpawnToolHandler {
       parentContext: {
         generationPriority: ctx.generationPriority,
         organizationId: ctx.organizationId,
+        scope: ctx.validatedScope,
         userId: ctx.userId,
       },
       task,
@@ -108,6 +109,7 @@ export class AgentSpawnToolHandler {
           executionId: ctx.runId,
           generationPriority: ctx.generationPriority,
           organizationId: ctx.organizationId,
+          scope: ctx.validatedScope,
           strategyId: targetAgentId,
           userId: ctx.userId,
         },

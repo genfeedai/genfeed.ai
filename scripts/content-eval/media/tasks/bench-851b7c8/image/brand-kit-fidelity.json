@@ -1,0 +1,17 @@
+{
+  "id": "brand-kit-fidelity",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Brand kit fidelity",
+  "rationale": "Real content work is constrained work. A model that ignores a supplied palette and typeface is unusable for a brand however pretty its output. Uses a public synthetic brand kit so anyone can re-run this without our customers' assets.",
+  "prompt": "A launch announcement image for the brand in the supplied kit. Follow the kit palette exactly, use the kit wordmark once at the size the kit specifies, and leave the lower third clear for caption text. Subject: a single ceramic mug on a concrete surface, hard side light.",
+  "referenceRoles": ["brand-kit"],
+  "outputSpec": { "aspectRatio": "1:1", "count": 1 },
+  "rubric": [
+    "Are the kit's hex values actually the ones on screen?",
+    "Is the wordmark reproduced without distortion or invention?",
+    "Is the lower third genuinely clear?",
+    "Does it look like a brand asset rather than a stock photo"
+  ]
+}

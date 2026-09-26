@@ -149,6 +149,7 @@ export const generalAiSchema = {
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
+  CONTENT_EVAL_GENFEED_API_KEY: Joi.string().optional().allow(''),
   ...modelDiscoveryDecisionSchema,
   ...mediaValidationSchema,
   // Live activation is closed pending reviewed provider and real-traffic evidence (#4944).

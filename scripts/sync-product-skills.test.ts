@@ -245,4 +245,71 @@ describe('pinned catalog import', () => {
     const f = fixture();
     expect(() => validateCatalogLock(join(f.app, 'skills'))).toThrow();
   });
+  it('rejects hand-authored free skills that are neither pinned nor app procedures', () => {
+    const f = fixture();
+    f.write();
+    const unowned = join(f.app, 'skills', 'unowned-content-skill');
+    mkdirSync(unowned);
+    writeFileSync(
+      join(unowned, 'SKILL.md'),
+      '---\nname: unowned-content-skill\ndescription: Fixture\n---\n# Copy',
+    );
+    const before = inventory(join(f.app, 'skills'));
+    expect(f.write).toThrow('Unowned catalog skill: unowned-content-skill');
+    expect(() => syncProductSkills(f.app, {})).toThrow(
+      'Unowned catalog skill: unowned-content-skill',
+    );
+    expect(inventory(join(f.app, 'skills'))).toEqual(before);
+  });
+  it('rejects an application procedure that is also published upstream before mutation', () => {
+    const f = fixture();
+    f.write();
+    mkdirSync(join(f.source, 'workflow-creator'));
+    writeFileSync(
+      join(f.source, 'workflow-creator', 'SKILL.md'),
+      '---\nname: workflow-creator\ndescription: Copy\n---\n# Copy',
+    );
+    const sha = f.commit();
+    const before = inventory(join(f.app, 'skills'));
+    expect(() =>
+      syncProductSkills(f.app, {
+        sourceDir: f.source,
+        commit: sha,
+        write: true,
+      }),
+    ).toThrow('Application procedures also published');
+    expect(inventory(join(f.app, 'skills'))).toEqual(before);
+  });
+  it('rejects a lock whose recorded source inventory lists an application procedure', () => {
+    const f = fixture();
+    f.write();
+    const path = join(f.app, 'skills', 'catalog.lock.json');
+    const lock = JSON.parse(readFileSync(path, 'utf8'));
+    lock.sourceSkillSlugs = [...lock.sourceSkillSlugs, 'model-selector'].sort();
+    writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+    expect(() => syncProductSkills(f.app, {})).toThrow(
+      'Application procedures also published',
+    );
+  });
+  it('rejects a recorded source inventory that differs from the pinned source', () => {
+    const f = fixture();
+    mkdirSync(join(f.source, 'public-only-skill'));
+    writeFileSync(
+      join(f.source, 'public-only-skill', 'SKILL.md'),
+      '---\nname: public-only-skill\ndescription: Public\n---\n# Public',
+    );
+    const sha = f.commit();
+    syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
+    const path = join(f.app, 'skills', 'catalog.lock.json');
+    const lock = JSON.parse(readFileSync(path, 'utf8'));
+    expect(lock.sourceSkillSlugs).toContain('public-only-skill');
+    lock.sourceSkillSlugs = lock.sourceSkillSlugs.filter(
+      (slug: string) => slug !== 'public-only-skill',
+    );
+    writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+    syncProductSkills(f.app, {});
+    expect(() =>
+      syncProductSkills(f.app, { sourceDir: f.source, checkSource: true }),
+    ).toThrow('Source skill inventory mismatch');
+  });
 });

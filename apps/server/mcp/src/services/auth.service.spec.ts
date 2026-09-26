@@ -328,5 +328,31 @@ describe('AuthService (MCP)', () => {
       const token = service.extractBearerToken('');
       expect(token).toBeNull();
     });
+
+    it('should return null for a header with surplus fields', () => {
+      // Regression coverage for #5206: a naive `startsWith`/`substring(7)`
+      // parse keeps everything after "Bearer ", including surplus fields,
+      // as one opaque token instead of rejecting the malformed shape.
+      const token = service.extractBearerToken('Bearer my-token-123 extra');
+      expect(token).toBeNull();
+    });
+
+    it('should return null for a single-field header', () => {
+      const token = service.extractBearerToken('Bearer');
+      expect(token).toBeNull();
+    });
+
+    it.each([
+      ['bearer', 'bearer my-token-123'],
+      ['BEARER', 'BEARER my-token-123'],
+      ['BeArEr', 'BeArEr my-token-123'],
+    ])(
+      // RFC 7235: scheme names are case-insensitive.
+      'should extract the token from a %s scheme',
+      (_label, authHeader) => {
+        const token = service.extractBearerToken(authHeader);
+        expect(token).toBe('my-token-123');
+      },
+    );
   });
 });

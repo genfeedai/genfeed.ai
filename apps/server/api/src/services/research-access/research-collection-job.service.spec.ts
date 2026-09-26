@@ -178,6 +178,85 @@ describe('ResearchCollectionJobService', () => {
     await expect(service.markAmbiguous(row)).resolves.toBeNull();
   });
 
+  it('fails a start that never recorded a run once its lease has expired', async () => {
+    updateMany.mockResolvedValueOnce({ count: 1 });
+    const now = new Date('2026-09-24T12:16:00.000Z');
+
+    await expect(
+      service.finishExpiredUnrecorded(
+        { ...row, status: RESEARCH_COLLECTION_JOB_STATUS.STARTING },
+        now,
+      ),
+    ).resolves.toBe(true);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reconciledAt: now,
+          status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
+          terminalReason: 'start_not_recorded',
+        }),
+        where: expect.objectContaining({
+          id: 'job-1',
+          leaseToken: 'lease-1',
+          organizationId: 'org-1',
+          status: {
+            in: [
+              RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS,
+              RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+              RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+            ],
+          },
+          upstreamRunId: null,
+        }),
+      }),
+    );
+  });
+
+  it('marks a start unreconciled when only unrelated runs were seen at the bound', async () => {
+    updateMany.mockResolvedValueOnce({ count: 1 });
+    const now = new Date('2026-09-24T12:16:00.000Z');
+
+    await expect(
+      service.finishUnreconciledStart(
+        { ...row, status: RESEARCH_COLLECTION_JOB_STATUS.STARTING },
+        now,
+      ),
+    ).resolves.toBe(true);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reconciledAt: now,
+          status: RESEARCH_COLLECTION_JOB_STATUS.UNRECONCILED,
+          terminalReason: 'start_unreconciled',
+        }),
+        where: expect.objectContaining({
+          id: 'job-1',
+          leaseToken: 'lease-1',
+          organizationId: 'org-1',
+          status: {
+            in: [
+              RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS,
+              RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+              RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+            ],
+          },
+          upstreamRunId: null,
+        }),
+      }),
+    );
+  });
+
+  it('does not mark unreconciled while the lease is still active', async () => {
+    updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.finishUnreconciledStart(
+        row,
+        new Date('2026-09-24T12:00:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+  });
+
   it('does not mark starting after the lease or status has moved', async () => {
     updateMany.mockResolvedValueOnce({ count: 0 });
 

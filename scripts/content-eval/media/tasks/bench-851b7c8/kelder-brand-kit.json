@@ -1,0 +1,27 @@
+{
+  "name": "Kelder",
+  "note": "A synthetic brand invented for this bench. Not a real company. Used so brand-fidelity tasks are reproducible by anyone without access to a customer's assets.",
+  "palette": {
+    "ink": "#101418",
+    "paper": "#F4F1EA",
+    "accent": "#C2410C",
+    "muted": "#8A8578"
+  },
+  "wordmark": {
+    "text": "KELDER",
+    "case": "uppercase",
+    "tracking": "0.18em",
+    "placement": "top-left",
+    "widthRatio": 0.22
+  },
+  "typeface": {
+    "family": "Grotesque sans, medium weight",
+    "fallback": "Inter, Helvetica Neue, Arial"
+  },
+  "rules": [
+    "Wordmark appears exactly once.",
+    "Accent is used for one element only, never for large fills.",
+    "No gradients, no drop shadows, no outer glow.",
+    "Lower third stays clear of subject and mark."
+  ]
+}
