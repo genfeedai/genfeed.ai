@@ -31,6 +31,10 @@ const DM_POST_REPLY_REASON =
   'Direct message threads have no post or comment to reply on';
 const TIKTOK_READ_ONLY_REASON = 'TikTok conversations are read-only in Genfeed';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
+// X OAuth requests tweet/users/media scopes only (no `dm.write`), and the
+// outbound DM path has no X provider, so an X DM can never be sent.
+export const TWITTER_DM_REASON =
+  'Sending X direct messages is not supported yet';
 
 export { LINKEDIN_DM_NOT_IMPLEMENTED_REASON, LINKEDIN_DM_UNAVAILABLE_REASON };
 
@@ -163,23 +167,19 @@ export function getAvailability(params: {
     if (isDirectMessage) {
       return {
         canPostReply: false,
-        canSendDm: Boolean(params.participantExternalId),
+        canSendDm: false,
         postReplyReason: DM_POST_REPLY_REASON,
-        sendDmReason: params.participantExternalId
-          ? undefined
-          : 'X DM requires the participant recipient id',
+        sendDmReason: TWITTER_DM_REASON,
       };
     }
 
     return {
       canPostReply: Boolean(params.externalParentId),
-      canSendDm: Boolean(params.participantExternalId),
+      canSendDm: false,
       postReplyReason: params.externalParentId
         ? undefined
         : 'X reply requires a tweet id',
-      sendDmReason: params.participantExternalId
-        ? undefined
-        : 'X DM requires the participant recipient id',
+      sendDmReason: TWITTER_DM_REASON,
     };
   }
 
@@ -212,26 +212,59 @@ export function readAvailability(
   const stored = asRecord(conversation.availability);
   const derived = getAvailability(conversation);
 
+  const platform = normalizePlatform(conversation.platform);
+
   // Read-only platform policy is authoritative. A stale/imported availability
   // JSON blob must never re-enable an outbound TikTok action.
-  if (normalizePlatform(conversation.platform) === Platform.TIKTOK) {
+  if (platform === Platform.TIKTOK) {
     return derived;
   }
+
+  // X DMs are unsupported by policy; rows ingested before that policy stored
+  // `canSendDm: true` and must not re-enable the send path.
+  const isDmPolicyAuthoritative = platform === Platform.TWITTER;
 
   return {
     canPostReply:
       typeof stored.canPostReply === 'boolean'
         ? stored.canPostReply
         : derived.canPostReply,
-    canSendDm:
-      typeof stored.canSendDm === 'boolean'
+    canSendDm: isDmPolicyAuthoritative
+      ? derived.canSendDm
+      : typeof stored.canSendDm === 'boolean'
         ? stored.canSendDm
         : derived.canSendDm,
     postReplyReason:
       typeof stored.postReplyReason === 'string'
         ? stored.postReplyReason
         : undefined,
-    sendDmReason:
-      typeof stored.sendDmReason === 'string' ? stored.sendDmReason : undefined,
+    sendDmReason: isDmPolicyAuthoritative
+      ? derived.sendDmReason
+      : typeof stored.sendDmReason === 'string'
+        ? stored.sendDmReason
+        : undefined,
+  };
+}
+
+/**
+ * Replace a conversation's stored availability blob with the effective policy
+ * so clients never offer an action the send path will refuse.
+ */
+export function withEffectiveAvailability(
+  conversation: SocialConversationDocument,
+): SocialConversationDocument {
+  const availability = readAvailability(conversation);
+  return {
+    ...conversation,
+    availability: {
+      canPostReply: availability.canPostReply,
+      canSendDm: availability.canSendDm,
+      ...(availability.postReplyReason === undefined
+        ? {}
+        : { postReplyReason: availability.postReplyReason }),
+      ...(availability.sendDmReason === undefined
+        ? {}
+        : { sendDmReason: availability.sendDmReason }),
+    },
   };
 }

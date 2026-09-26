@@ -48,6 +48,7 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileRawCutClips: handler(),
   };
   const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
+  const xReplyWatch = { watchRecentPostReplies: handler() };
   const youtubeMessages = { syncYoutubeMessages: handler() };
   const youtubeStatus = { checkScheduledYoutubeVideos: handler() };
   const workflowSchedules = {
@@ -173,6 +174,10 @@ describe('PlatformSchedulesProcessor', () => {
         workflowSchedules.reconcileContinuations,
       ],
       [
+        PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH,
+        xReplyWatch.watchRecentPostReplies,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES,
         youtubeMessages.syncYoutubeMessages,
       ],
@@ -219,6 +224,7 @@ describe('PlatformSchedulesProcessor', () => {
       threadComments as never,
       oauthClientCleanup as never,
       workflowSchedules as never,
+      xReplyWatch as never,
     );
   });
 

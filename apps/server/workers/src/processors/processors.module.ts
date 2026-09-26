@@ -31,6 +31,7 @@ import { SocialSourcesModule } from '@api/collections/social-sources/social-sour
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { OnboardingModule } from '@api/endpoints/onboarding/onboarding.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
 import { ReplicatePollModule } from '@api/queues/replicate-poll/replicate-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
@@ -64,6 +65,7 @@ import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
+import { OnboardingStarterAssetsProcessor } from '@workers/processors/api/queues/onboarding-starter-assets/onboarding-starter-assets.processor';
 import { ReplicatePollProcessor } from '@workers/processors/api/queues/replicate-poll/replicate-poll.processor';
 // --- services/ processors ---
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
@@ -118,6 +120,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => NotificationsModule),
+    forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillWorkflowModule),
@@ -135,6 +138,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     HeygenPollProcessor,
     ReplicatePollProcessor,
     NotificationDeliveryProcessor,
+    OnboardingStarterAssetsProcessor,
 
     // --- services/ processors ---
     WebhookClientProcessor,

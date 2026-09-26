@@ -13,7 +13,6 @@ import { vi } from 'vitest';
 export const createMockReplicateService = () => ({
   cancelPrediction: vi.fn().mockResolvedValue(undefined),
   enhanceVideo: vi.fn().mockResolvedValue('mock-enhance-prediction-id'),
-  generateEmbedding: vi.fn().mockResolvedValue(Array(1024).fill(0.1)),
   generateImageToVideo: vi.fn().mockResolvedValue('mock-i2v-prediction-id'),
   generateTextCompletion: vi.fn().mockResolvedValue('mock-text-completion-id'),
   generateTextCompletionSync: vi

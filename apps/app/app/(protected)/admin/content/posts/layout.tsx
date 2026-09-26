@@ -121,10 +121,13 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
   );
 
   const handleRefresh = useCallback(() => {
-    if (typeof refreshFn === 'function') {
-      refreshFn();
-    } else {
+    if (typeof refreshFn !== 'function') {
       refresh();
+      return;
+    }
+    const result = refreshFn();
+    if (typeof result === 'function') {
+      void result();
     }
   }, [refreshFn, refresh]);
 

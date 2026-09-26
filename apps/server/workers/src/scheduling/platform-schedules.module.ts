@@ -30,6 +30,7 @@ import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTranscriptPurgeModule } from '@workers/crons/transcript-purge/cron.transcript-purge.module';
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';
 import { CronWorkflowArtifactsModule } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.module';
+import { CronXRepliesModule } from '@workers/crons/x-replies/cron.x-replies.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
@@ -78,6 +79,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronTranscriptPurgeModule,
     CronTrendsModule,
     CronWorkflowArtifactsModule,
+    CronXRepliesModule,
     CronYoutubeModule,
     NotificationDeliveryRecoveryModule,
     QueueMetricsModule,

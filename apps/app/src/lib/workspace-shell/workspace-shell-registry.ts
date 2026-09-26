@@ -175,6 +175,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automation/library/:type': ':type',
   '/:orgSlug/:brandSlug/publishing/posts': 'Posts',
+  '/:orgSlug/:brandSlug/publishing/posts/new': 'New post',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/publishing/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'New Campaign',
@@ -195,6 +196,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/ads': 'Ads',
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
   '/:orgSlug/~/publishing/posts': 'Posts',
+  '/:orgSlug/~/publishing/posts/new': 'New post',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
   '/:orgSlug/~/publishing/content': 'Content',
   '/:orgSlug/~/publishing/review': 'Approval queue',
@@ -266,7 +268,10 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   // Content desk lives under Posts, not Overview.
+  '/:orgSlug/:brandSlug/publishing/posts/new': 'Posts',
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
+  '/:orgSlug/~/publishing/posts/new': 'Posts',
+  '/:orgSlug/~/publishing/posts/:id': 'Posts',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': 'Campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id': 'Campaigns',
@@ -287,12 +292,16 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publishing/posts/new': '/publishing/overview',
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/overview',
+  '/:orgSlug/~/publishing/posts/new': '/publishing/overview',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/overview',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publishing/posts/new': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
+  '/:orgSlug/~/publishing/posts/new': '/publishing/posts',
   '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': '/publishing/campaigns',
@@ -692,6 +701,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/publishing',
       '/:orgSlug/~/publishing/overview',
       '/:orgSlug/~/publishing/posts',
+      '/:orgSlug/~/publishing/posts/new',
       '/:orgSlug/~/publishing/posts/:id',
       '/:orgSlug/~/publishing/content',
       '/:orgSlug/~/publishing/review',
@@ -921,6 +931,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing',
       '/:orgSlug/:brandSlug/publishing/overview',
       '/:orgSlug/:brandSlug/publishing/posts',
+      '/:orgSlug/:brandSlug/publishing/posts/new',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
       '/:orgSlug/:brandSlug/publishing/calendar',
       '/:orgSlug/:brandSlug/publishing/content',

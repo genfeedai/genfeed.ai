@@ -81,6 +81,23 @@ describe('ReleaseRailRow', () => {
     expect(screen.getByText('First line of copy')).toBeInTheDocument();
   });
 
+  it('renders stored HTML titles and copy as plain text', () => {
+    render(
+      <ReleaseRailRow
+        browserTimezone="UTC"
+        isActive={false}
+        onActivate={vi.fn()}
+        release={buildRelease({
+          baseContent: '<p>AI content is taking over!</p><p>More</p>',
+          title: '<p>Launch <em>post</em></p>',
+        })}
+      />,
+    );
+    expect(screen.getByText('Launch post')).toBeInTheDocument();
+    expect(screen.getByText('AI content is taking over!')).toBeInTheDocument();
+    expect(screen.queryByText(/<p>/)).not.toBeInTheDocument();
+  });
+
   it('caps visible target chips and shows the overflow count', () => {
     const targets = Array.from({ length: 8 }, (_unused, index) =>
       buildTarget({ id: `target-${index}` }),

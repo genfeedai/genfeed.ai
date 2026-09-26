@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
+import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
@@ -32,6 +33,7 @@ describe('OnboardingController', () => {
           useValue: {
             checkPrefixAvailable: vi.fn(),
             claimProactiveWorkspace: vi.fn(),
+            enqueueStarterAssets: vi.fn(),
             generateOnboardingPreview: vi.fn(),
             getInstallReadiness: vi.fn(),
             getOnboardingStatus: vi.fn(),
@@ -236,6 +238,27 @@ describe('OnboardingController', () => {
       await expect(controller.generatePreview(dto, mockUser)).rejects.toThrow(
         'Insufficient credits',
       );
+    });
+  });
+
+  describe('generateStarterAssets', () => {
+    it('queues starter asset generation and returns immediately', async () => {
+      const dto: StarterAssetsDto = {
+        brandId: 'brand_123',
+        websiteUrl: 'https://acme.com',
+      } as StarterAssetsDto;
+
+      onboardingService.enqueueStarterAssets.mockResolvedValue({
+        queued: true,
+      });
+
+      const result = await controller.generateStarterAssets(dto, mockUser);
+
+      expect(onboardingService.enqueueStarterAssets).toHaveBeenCalledWith(
+        dto,
+        mockUser,
+      );
+      expect(result).toEqual({ queued: true });
     });
   });
 });

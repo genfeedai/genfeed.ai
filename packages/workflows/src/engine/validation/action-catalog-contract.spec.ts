@@ -146,3 +146,71 @@ describe('generate_content_batch input contract', () => {
     ).toThrow(errorPath);
   });
 });
+
+describe('knowledge.source.extract output contract', () => {
+  const action = getActionDefinition('knowledge.source.extract');
+  const contract = compileActionContract('knowledge.source.extract', {
+    inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+    outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
+  });
+  const provenance = {
+    nodeId: 'extract-source',
+    runId: 'run-knowledge-extract',
+    workflowId: 'knowledge.source.ingest',
+    workflowVersionId: 'v1',
+  };
+  const baseState = {
+    organizationId: 'org-1',
+    sourceId: 'source-1',
+    status: 'ready' as const,
+    versionId: 'version-1',
+  };
+
+  // Regression for a real web URL fetch: the HTTP response carried an ETag
+  // and a Last-Modified header, and the output contract rejected both as
+  // additional properties, failing every web-source capture in production.
+  it('accepts a web fetch result carrying etag and lastModified', () => {
+    expect(() =>
+      contract.validateOutput(
+        {
+          ...baseState,
+          extracted: {
+            etag: 'W/"abc123"',
+            lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
+            mimeType: 'text/html',
+            text: 'Extracted page body.',
+          },
+        },
+        provenance,
+      ),
+    ).not.toThrow();
+  });
+
+  it('accepts extraction without cache validators (pasted text)', () => {
+    expect(() =>
+      contract.validateOutput(
+        {
+          ...baseState,
+          extracted: { mimeType: 'text/plain', text: 'Pasted text.' },
+        },
+        provenance,
+      ),
+    ).not.toThrow();
+  });
+
+  it('still rejects an unknown field on extracted', () => {
+    expect(() =>
+      contract.validateOutput(
+        {
+          ...baseState,
+          extracted: {
+            mimeType: 'text/plain',
+            text: 'Pasted text.',
+            unexpected: 'value',
+          },
+        },
+        provenance,
+      ),
+    ).toThrow('Action contract output validation failed');
+  });
+});

@@ -146,6 +146,7 @@ describe('useAgentChat', () => {
         pageContext: {
           route: '/default/~/agent',
           selectedText: 'selected copy',
+          timezone: expect.any(String),
         },
       }),
     );

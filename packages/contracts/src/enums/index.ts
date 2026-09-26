@@ -97,6 +97,7 @@ export * from './platform.enum';
 export * from './platform.util';
 export * from './platform-prisma.mapper';
 export * from './platform-role.enum';
+export * from './platform-setting.enum';
 export * from './post.enum';
 export * from './posting-cadence.enum';
 export * from './priority.enum';

@@ -425,17 +425,44 @@ describe('VideoGenerationService', () => {
     );
   });
 
-  it('does not persist or dispatch media after video enhancement fails', async () => {
+  it('generates with the original prompt when video enhancement fails instead of returning 503 (#5161)', async () => {
     const { service, enhancementService, klingAIService, sharedService } =
       createService();
-    enhancementService.enhance.mockRejectedValue(
-      new Error('Enhancement unavailable'),
+    const prompt = 'a sunset over the ocean';
+    // Mirrors MediaPromptEnhancementService's fallback receipt: a hard
+    // failure (embedding/model outage) resolves with status 'failed' and the
+    // original prompt instead of throwing ServiceUnavailableException.
+    enhancementService.enhance.mockResolvedValue({
+      originalPrompt: prompt,
+      enhancedPrompt: prompt,
+      brandId: RESOLVED_BRAND,
+      status: 'failed',
+      source: 'brand',
+      appliedPacks: [],
+    });
+    await service.generateVideo(
+      buildUser(),
+      baseDto({ text: prompt }),
+      buildRequest(),
     );
-    await expect(
-      service.generateVideo(buildUser(), baseDto(), buildRequest()),
-    ).rejects.toThrow('Enhancement unavailable');
-    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
-    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
+    const providerPrompt =
+      klingAIService.queueGenerateTextToVideo.mock.calls[0][0];
+    expect(providerPrompt).toBe(prompt);
+    await vi.waitFor(() =>
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled(),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationHarness: expect.objectContaining({
+          originalPrompt: prompt,
+          enhancedPrompt: prompt,
+          status: 'failed',
+        }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+      }),
+    );
   });
 
   it('returns the accepted source-action asset without dispatching the provider again', async () => {

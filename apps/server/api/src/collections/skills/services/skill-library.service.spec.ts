@@ -44,6 +44,18 @@ const versions: VersionRow[] = [
     instructionText: 'live draft',
     skillId: 'skill-3',
   },
+  {
+    contentHash: 'hash-system',
+    id: 'sv-system',
+    instructionText: 'built in body',
+    skillId: 'skill-system',
+  },
+  {
+    contentHash: 'hash-system-use',
+    id: 'sv-system-use',
+    instructionText: 'system use only',
+    skillId: 'skill-system',
+  },
 ];
 
 const state = {
@@ -457,7 +469,7 @@ describe('SkillLibraryService authorized versions', () => {
 
     expect(visible?.canRead).toBe(true);
     expect(visible?.canUse).toBe(true);
-    expect(visible?.canExport).toBe(false);
+    expect(visible?.canExport).toBe(true);
     expect(visible?.systemPromptTemplate).toBe('version one');
 
     state.grants = [
@@ -479,6 +491,63 @@ describe('SkillLibraryService authorized versions', () => {
     expect(decision.included[0]?.systemPromptTemplate).toBe(
       'brand private body',
     );
+  });
+
+  it('shows and exports the system catalog version without a use-only body', async () => {
+    const systemSkill = skillDocument({
+      audience: 'private',
+      currentVersionId: 'sv-system',
+      defaultInstructions: 'draft leak',
+      id: 'skill-system',
+      isBuiltIn: true,
+      organizationId: null,
+      ownerKind: 'system',
+      ownerUserId: null,
+      publishedVersionId: null,
+      sharedVersionId: null,
+      systemPromptTemplate: 'draft leak',
+    });
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-system',
+        skillVersionId: 'sv-system-use',
+      },
+    ];
+
+    const [visible] = await service.present(actor, [systemSkill]);
+    const decision = await service.authorizeResolved(actor, [systemSkill]);
+
+    expect(visible?.canRead).toBe(true);
+    expect(visible?.canUse).toBe(true);
+    expect(visible?.systemPromptTemplate).toBe('built in body');
+    expect(decision.included[0]?.systemPromptTemplate).toBe('system use only');
+
+    prisma.skill.findFirst.mockResolvedValueOnce({
+      audience: 'private',
+      config: { slug: 'built-in', systemPromptTemplate: 'draft leak' },
+      currentVersionId: 'sv-system',
+      id: 'skill-system',
+      isDeleted: false,
+      isQuarantined: false,
+      label: 'Built in',
+      organizationId: null,
+      ownerKind: 'system',
+      ownerUserId: null,
+      publishedVersionId: null,
+      revision: 1,
+      sharedVersionId: null,
+    });
+    await expect(service.export(actor, 'skill-system')).resolves.toEqual({
+      contentHash: 'hash-system',
+      instructions: 'built in body',
+      versionId: 'sv-system',
+    });
   });
 
   it('shows the shared body when a matching use-only grant targets another version', async () => {

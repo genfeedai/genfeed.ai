@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
 import {
   DEFAULT_LOCALE,
+  PUBLISHING_QUOTA_MAX,
   SUPPORTED_LOCALES,
 } from '@genfeedai/contracts/constants';
 import {
@@ -26,10 +27,12 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   IsUrl,
+  Max,
   Min,
   ValidateIf,
   ValidateNested,
@@ -340,6 +343,66 @@ export class CreateOrganizationSettingDto {
   @Min(0)
   @ApiProperty({ default: 5, required: false })
   readonly brandsLimit?: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(PUBLISHING_QUOTA_MAX)
+  @IsOptional()
+  @ApiProperty({
+    default: 5,
+    description:
+      'Daily cap on published YouTube posts per connected account. 0 = no cap.',
+    maximum: PUBLISHING_QUOTA_MAX,
+    minimum: 0,
+    required: false,
+    type: Number,
+  })
+  readonly quotaYoutube?: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(PUBLISHING_QUOTA_MAX)
+  @IsOptional()
+  @ApiProperty({
+    default: 1,
+    description:
+      'Daily cap on published TikTok posts per connected account. 0 = no cap.',
+    maximum: PUBLISHING_QUOTA_MAX,
+    minimum: 0,
+    required: false,
+    type: Number,
+  })
+  readonly quotaTiktok?: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(PUBLISHING_QUOTA_MAX)
+  @IsOptional()
+  @ApiProperty({
+    default: 5,
+    description:
+      'Daily cap on published X (Twitter) posts per connected account. 0 = no cap.',
+    maximum: PUBLISHING_QUOTA_MAX,
+    minimum: 0,
+    required: false,
+    type: Number,
+  })
+  readonly quotaTwitter?: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(PUBLISHING_QUOTA_MAX)
+  @IsOptional()
+  @ApiProperty({
+    default: 5,
+    description:
+      'Daily cap on published Instagram posts per connected account. 0 = no cap.',
+    maximum: PUBLISHING_QUOTA_MAX,
+    minimum: 0,
+    required: false,
+    type: Number,
+  })
+  readonly quotaInstagram?: number;
 
   @IsString()
   @IsOptional()

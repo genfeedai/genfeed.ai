@@ -152,6 +152,26 @@ export interface IGeneratePreviewResponse {
   prompt: string;
 }
 
+/** Tweet and ad drafted during the domain loading step. */
+export interface IOnboardingStarterAssetsResponse {
+  adImageUrl: string | null;
+  postId: string | null;
+  tweet: string | null;
+}
+
+/**
+ * Background-job status for starter-asset generation, persisted on
+ * `brand.agentConfig.onboardingStarterAssets` (mirrors the `signupPrefill`
+ * marker) so the domain loading step never has to block on the queue.
+ */
+export interface IOnboardingStarterAssetsMarker {
+  status: 'running' | 'completed' | 'failed';
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+  result?: IOnboardingStarterAssetsResponse;
+}
+
 export interface IProactivePreparationStatus {
   proactiveStatus: string;
   prepPercent: number;

@@ -7,6 +7,8 @@ export interface INotificationInboxItem {
   sourceHref: string | null;
   sourceLabel: string | null;
   failure: { title: string; summary: string; recovery: string | null } | null;
+  /** Present on `social.reply` items: new replies on one connected account. */
+  socialReply?: { replyCount: number; accountHandle: string | null } | null;
 }
 export interface INotificationInboxPage {
   items: INotificationInboxItem[];

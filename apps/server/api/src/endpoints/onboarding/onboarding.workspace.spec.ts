@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
@@ -6,6 +7,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
+import type { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +17,9 @@ describe('OnboardingService workspace recovery', () => {
     log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
+  const brandsService = {
+    findOne: vi.fn(),
+  };
   const membersService = {
     findActiveForUserAccess: vi.fn(),
   };
@@ -31,6 +36,9 @@ describe('OnboardingService workspace recovery', () => {
   const onboardingPreviewService = {};
   const onboardingReadinessService = {
     getOnboardingStatus: vi.fn(),
+  };
+  const onboardingStarterAssetsQueueService = {
+    enqueue: vi.fn(),
   };
 
   const user = {
@@ -55,12 +63,14 @@ describe('OnboardingService workspace recovery', () => {
 
     service = new OnboardingService(
       loggerService,
+      brandsService as unknown as BrandsService,
       membersService as unknown as MembersService,
       organizationsService as unknown as OrganizationsService,
       usersService as unknown as UsersService,
       userSetupService as unknown as UserSetupService,
       onboardingPreviewService as unknown as OnboardingPreviewService,
       onboardingReadinessService as unknown as OnboardingReadinessService,
+      onboardingStarterAssetsQueueService as unknown as OnboardingStarterAssetsQueueService,
     );
   });
 

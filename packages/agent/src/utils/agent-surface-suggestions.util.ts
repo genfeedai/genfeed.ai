@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   BrandPromptIntent,
   IBrandAgentConfig,
@@ -46,10 +47,9 @@ export function resolveAgentPromptSurface(
 ): AgentPromptSurface | null {
   if (pathname.startsWith('/analytics')) return 'analytics';
   if (pathname.startsWith('/automation')) return 'automation';
-  if (pathname.startsWith('/calendar')) return 'calendar';
+  if (pathname.startsWith(APP_ROUTES.PUBLISHING.CALENDAR)) return 'calendar';
   if (pathname.startsWith('/library')) return 'library';
   if (pathname.startsWith('/discovery')) return 'discovery';
-  if (pathname.startsWith('/publishing/review')) return 'review';
   if (pathname.startsWith('/publishing')) return 'review';
   if (
     pathname.startsWith('/studio') ||

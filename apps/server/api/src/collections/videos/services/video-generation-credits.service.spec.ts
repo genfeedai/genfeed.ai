@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
+import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,7 +108,7 @@ describe('VideoGenerationCreditsService', () => {
       deferred: false,
       modelKey: 'kling/model',
       pricingMetadata: {
-        marginMultiplier: 1,
+        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
         pricingType: 'per-second',
         providerCostUsd: 0.24,
       },

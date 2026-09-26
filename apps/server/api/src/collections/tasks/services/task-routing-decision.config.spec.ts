@@ -10,7 +10,7 @@ const configServiceWith = (values: ConfigValues): ConfigService =>
   ({ get: (key: string) => values[key] }) as unknown as ConfigService;
 
 describe('resolveTaskRoutingDecisionRollout', () => {
-  it('reads the configured mode and threshold', () => {
+  it('reads the configured threshold and caps the mode at shadow', () => {
     expect(
       resolveTaskRoutingDecisionRollout(
         configServiceWith({
@@ -18,24 +18,32 @@ describe('resolveTaskRoutingDecisionRollout', () => {
           TASK_ROUTING_MIN_CONFIDENCE: 0.7,
         }),
       ),
-    ).toEqual({ minConfidence: 0.7, mode: 'live' });
+    ).toEqual({ minConfidence: 0.7, mode: 'shadow' });
   });
 
-  it('defaults to the off mode and the conservative threshold', () => {
+  it('honours an explicit off', () => {
+    expect(
+      resolveTaskRoutingDecisionRollout(
+        configServiceWith({ TASK_ROUTING_DECISION_MODE: 'off' }),
+      ).mode,
+    ).toBe('off');
+  });
+
+  it('defaults to shadow and the conservative threshold', () => {
     expect(resolveTaskRoutingDecisionRollout(configServiceWith({}))).toEqual({
       minConfidence: TASK_ROUTING_DEFAULT_MIN_CONFIDENCE,
-      mode: 'off',
+      mode: 'shadow',
     });
   });
 
   it.each(['', 'shadow-mode', 'LIVE', 42])(
-    'falls back to off for the unvalidated mode %p',
+    'falls back to shadow for the unvalidated mode %p — never live',
     (mode) => {
       expect(
         resolveTaskRoutingDecisionRollout(
           configServiceWith({ TASK_ROUTING_DECISION_MODE: mode }),
         ).mode,
-      ).toBe('off');
+      ).toBe('shadow');
     },
   );
 

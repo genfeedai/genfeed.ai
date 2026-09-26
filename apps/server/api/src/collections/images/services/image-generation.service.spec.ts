@@ -462,17 +462,44 @@ describe('ImageGenerationService', () => {
     );
   });
 
-  it('does not create or dispatch media after enhancement failure', async () => {
+  it('generates with the original prompt when enhancement fails instead of returning 503 (#5161)', async () => {
     const { service, enhancementService, replicateService, sharedService } =
       createService();
-    enhancementService.enhance.mockRejectedValue(
-      new Error('Enhancement unavailable'),
+    const prompt = 'a sunset over the ocean';
+    // Mirrors MediaPromptEnhancementService's fallback receipt: a hard
+    // failure (embedding/model outage) resolves with status 'failed' and the
+    // original prompt instead of throwing ServiceUnavailableException.
+    enhancementService.enhance.mockResolvedValue({
+      originalPrompt: prompt,
+      enhancedPrompt: prompt,
+      brandId: RESOLVED_BRAND,
+      status: 'failed',
+      source: 'brand',
+      appliedPacks: [],
+    });
+    await service.generateImage(
+      buildUser(),
+      baseDto({ text: prompt }),
+      buildRequest(),
     );
-    await expect(
-      service.generateImage(buildUser(), baseDto(), buildRequest()),
-    ).rejects.toThrow('Enhancement unavailable');
-    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
-    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).toHaveBeenCalled();
+    const providerPrompt =
+      replicateService.generateTextToImage.mock.calls[0][1].prompt;
+    expect(providerPrompt).toBe(prompt);
+    await vi.waitFor(() =>
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled(),
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationHarness: expect.objectContaining({
+          originalPrompt: prompt,
+          enhancedPrompt: prompt,
+          status: 'failed',
+        }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+      }),
+    );
   });
 
   it('rejects selected context in raw mode instead of silently changing the prompt', async () => {

@@ -55,6 +55,28 @@ export interface InboundSocialMessageInput {
   userId?: string;
 }
 
+/** The owned post an X reply answers. */
+export interface XReplyTargetPost {
+  brandId: string;
+  description: string;
+  externalId: string | null;
+  id: string;
+  label: string | null;
+  url: string | null;
+}
+
+export interface XPostRepliesIngestInput {
+  credentialId: string;
+  replies: ReadonlyArray<{ post: XReplyTargetPost; reply: TwitterInboxTweet }>;
+}
+
+export interface XPostRepliesIngestResult {
+  conversationsCreated: number;
+  /** External ids of messages this call created (not ones it re-saw). */
+  createdMessageIds: string[];
+  messagesCreated: number;
+}
+
 export interface SocialActionInput {
   text: string;
   idempotencyKey?: string;
@@ -83,7 +105,12 @@ export type SocialInboxPage<T> = {
 
 export type OutboundAction = 'post_reply' | 'send_dm';
 export type OutboundMessageType = 'dm' | 'reply';
-export type OutboundPublishResult = { messageId: string; url?: string };
+export type OutboundPublishResult = {
+  /** Provider id of the message the reply was posted under, when resolved at send time. */
+  inReplyToId?: string;
+  messageId: string;
+  url?: string;
+};
 export type OutboundReservation = {
   isClaimed: boolean;
   message: SocialMessageDocument;
@@ -114,3 +141,4 @@ export class SocialInboxProviderError extends Error {
 }
 
 import type { SocialMessageDocument } from '@api/collections/social-inbox/schemas/social-inbox.schema';
+import type { TwitterInboxTweet } from '@api/services/integrations/twitter/services/twitter-inbox.service';
