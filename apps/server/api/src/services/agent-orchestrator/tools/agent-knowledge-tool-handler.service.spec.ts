@@ -72,7 +72,7 @@ function buildHandler() {
     }),
     unscheduleRefresh: vi.fn().mockResolvedValue(undefined),
   };
-  const contexts = {
+  const knowledgeContentRetrievalService = {
     retrieveBrandContentMemory: vi.fn().mockResolvedValue([
       {
         citation: {
@@ -93,9 +93,9 @@ function buildHandler() {
     { log: vi.fn() } as never,
     records as never,
     capture as never,
-    contexts as never,
+    knowledgeContentRetrievalService as never,
   );
-  return { capture, contexts, handler, records };
+  return { capture, knowledgeContentRetrievalService, handler, records };
 }
 
 describe('AgentKnowledgeToolHandler', () => {
@@ -104,7 +104,7 @@ describe('AgentKnowledgeToolHandler', () => {
   });
 
   it('searches brand Knowledge with explicit filters and returns only cited passages', async () => {
-    const { contexts, handler } = buildHandler();
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
 
     const result = await handler.searchKnowledge(
       {
@@ -116,7 +116,9 @@ describe('AgentKnowledgeToolHandler', () => {
       ctx,
     );
 
-    expect(contexts.retrieveBrandContentMemory).toHaveBeenCalledWith({
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).toHaveBeenCalledWith({
       brandId: 'brand-1',
       knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
       knowledgeSourceIds: ['source-1'],
@@ -136,17 +138,17 @@ describe('AgentKnowledgeToolHandler', () => {
   });
 
   it('keeps the relevance floor when no sources are named', async () => {
-    const { contexts, handler } = buildHandler();
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
 
     await handler.searchKnowledge({ query: 'pricing' }, ctx);
 
-    expect(contexts.retrieveBrandContentMemory).toHaveBeenCalledWith(
-      expect.objectContaining({ minRelevance: 0.6 }),
-    );
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).toHaveBeenCalledWith(expect.objectContaining({ minRelevance: 0.6 }));
   });
 
   it('refuses to search without a brand or a query', async () => {
-    const { contexts, handler } = buildHandler();
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
     expect(
       (
         await handler.searchKnowledge(
@@ -158,11 +160,13 @@ describe('AgentKnowledgeToolHandler', () => {
     expect((await handler.searchKnowledge({}, ctx)).error).toBe(
       'query is required',
     );
-    expect(contexts.retrieveBrandContentMemory).not.toHaveBeenCalled();
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).not.toHaveBeenCalled();
   });
 
   it('searches the brand passed by the caller when the session has none', async () => {
-    const { contexts, handler } = buildHandler();
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
 
     const result = await handler.searchKnowledge(
       { brandId: 'brand-explicit', query: 'pricing' },
@@ -170,7 +174,9 @@ describe('AgentKnowledgeToolHandler', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(contexts.retrieveBrandContentMemory).toHaveBeenCalledWith(
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-explicit',
         organizationId: 'org-1',

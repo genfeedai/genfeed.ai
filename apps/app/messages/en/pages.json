@@ -1638,6 +1638,19 @@
         "description": "We are setting up your workspace and drafting a first post and ad in the background. This only takes a moment.",
         "title": "Setting up your workspace"
       },
+      "notices": {
+        "scrapeIssue": {
+          "codes": {
+            "BRAND_SCRAPE_EMPTY_CONTENT": "We didn't find enough content on your site, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_INVALID_URL": "That website address didn't look valid, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_SITE_BLOCKED": "Your site blocked our request to read it, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_SITE_UNREACHABLE": "We couldn't reach your site, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_TIMEOUT": "Your site took too long to respond, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_UNKNOWN": "We hit an unexpected issue while analyzing your site, but your brand setup continued \u2014 you can add details anytime.",
+            "BRAND_SCRAPE_UPSTREAM_PROVIDER_ERROR": "Your site was temporarily unavailable, but your brand setup continued \u2014 you can add details anytime."
+          }
+        }
+      },
       "websitePrompt": {
         "description": "We couldn't find a company site from your email. Add your website and we'll set everything up for you — or skip and start from a blank workspace.",
         "title": "What's your website?"

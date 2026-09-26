@@ -301,6 +301,7 @@ export class ContentGeneratorService implements OnModuleInit {
       ({ context, input }) =>
         this.loadGenerationContext(
           context.organizationId,
+          context.userId,
           this.readGenerationDto(input.dto),
         ),
     );
@@ -410,6 +411,7 @@ export class ContentGeneratorService implements OnModuleInit {
 
   private async loadGenerationContext(
     organizationId: string,
+    userId: string,
     dto: GenerateContentDto,
   ): Promise<ContentGenerationContext> {
     const brandContext = await this.contextAssemblyService.assembleContext({
@@ -425,6 +427,7 @@ export class ContentGeneratorService implements OnModuleInit {
       organizationId: organizationId.toString(),
       platform: dto.platform,
       query: dto.topic,
+      userId,
     });
 
     const baseSystemPrompt = brandContext

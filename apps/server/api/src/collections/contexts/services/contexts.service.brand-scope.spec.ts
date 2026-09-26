@@ -15,36 +15,13 @@ import type { LoggerService } from '@libs/logger/logger.service';
 const BRAND_A = 'brand-a';
 const BRAND_B = 'brand-b';
 
-function knowledgeRow(
-  overrides: Partial<{
-    content: string;
-    contextBaseId: string;
-    knowledgeSourceId: string;
-    knowledgeSourcePurpose: string;
-    knowledgeSourceTitle: string;
-    similarity: number;
-  }> = {},
-) {
-  return {
-    content: 'Plans start at $29',
-    contextBaseId: 'ctx-knowledge-a',
-    kind: 'knowledge-source-chunk',
-    knowledgeSourceId: 'source-truth',
-    knowledgeSourceKind: 'URL',
-    knowledgeSourcePurpose: 'BRAND_TRUTH',
-    knowledgeSourceTitle: 'Pricing page',
-    knowledgeSourceUrl: 'https://brand.example/pricing',
-    knowledgeSourceVersion: 1,
-    knowledgeSourceVersionId: `${overrides.knowledgeSourceId ?? 'source-truth'}-v1`,
-    metadata: {},
-    similarity: 0.9,
-    ...overrides,
-  };
-}
-
 /**
- * Brand isolation of retrieval: in a multi-brand organization one brand's
- * saved memory and Knowledge must never reach another brand's prompt.
+ * Brand isolation of the legacy `enhancePrompt` retrieval path (still used by
+ * the public `/contexts/enhance-prompt` endpoint). The brand/org/personal
+ * Knowledge retrieval methods this file used to also cover
+ * (`retrieveBrandContentMemory`, `retrieveOrgAndPersonalContentMemory`,
+ * `retrieveBrandKnowledge`) moved to `KnowledgeContentRetrievalService` and
+ * its own spec (#5144 follow-up, runtime-complexity file-size guard).
  */
 describe('ContextsService brand-scoped retrieval', () => {
   function buildService() {
@@ -211,163 +188,6 @@ describe('ContextsService brand-scoped retrieval', () => {
       expect(similarity.values).not.toContain('ctx-a');
       expect(similarity.values).not.toContain('ctx-b');
       expect(similarity.values).not.toContain('ctx-b-legacy');
-    });
-  });
-
-  describe('retrieveBrandContentMemory', () => {
-    it('returns nothing without a brand instead of an unscoped read', async () => {
-      const { contextBase, service } = buildService();
-
-      const hits = await service.retrieveBrandContentMemory({
-        brandId: '  ',
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      expect(hits).toEqual([]);
-      expect(contextBase.findMany).not.toHaveBeenCalled();
-    });
-
-    it('returns nothing for an explicit selection that resolved to no sources', async () => {
-      const { contextBase, service } = buildService();
-
-      const hits = await service.retrieveBrandContentMemory({
-        brandId: BRAND_A,
-        knowledgeSourceIds: [],
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      expect(hits).toEqual([]);
-      expect(contextBase.findMany).not.toHaveBeenCalled();
-    });
-
-    it('drops bases owned by another brand and restricts Knowledge to the brand', async () => {
-      const { contextBase, queryRaw, service } = buildService();
-      contextBase.findMany.mockResolvedValue([
-        { data: { label: 'A' }, id: 'ctx-a', sourceBrandId: BRAND_A },
-        {
-          data: { brandId: BRAND_B, label: 'B' },
-          id: 'ctx-b-legacy',
-          sourceBrandId: BRAND_A,
-        },
-      ]);
-
-      await service.retrieveBrandContentMemory({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      const similarity = lastSimilarityQuery(queryRaw);
-      expect(similarity.values).toContain('ctx-a');
-      expect(similarity.values).not.toContain('ctx-b-legacy');
-      expect(similarity.sql).toContain('AND s."brandId" = ?');
-      expect(similarity.values).toContain(BRAND_A);
-    });
-  });
-
-  describe('retrieveBrandKnowledge', () => {
-    it('selects only the brand and organization Knowledge bases', async () => {
-      const { contextBase, service } = buildService();
-
-      await service.retrieveBrandKnowledge({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      const where = contextBase.findMany.mock.calls[0]?.[0]?.where;
-      expect(where).toMatchObject({
-        AND: [{ data: { equals: 'knowledge-base', path: ['purpose'] } }],
-        isDeleted: false,
-        OR: [
-          {
-            AND: [
-              { sourceBrandId: BRAND_A },
-              { data: { equals: 'brand', path: ['knowledgeScope'] } },
-            ],
-          },
-          {
-            AND: [
-              { sourceBrandId: null },
-              { data: { equals: 'org', path: ['knowledgeScope'] } },
-            ],
-          },
-        ],
-        organizationId: 'org-1',
-      });
-    });
-
-    it('returns BRAND_TRUTH passages and never inspiration or research', async () => {
-      const { contextBase, queryRaw, service } = buildService();
-      contextBase.findMany.mockResolvedValue([
-        {
-          data: { knowledgeScope: 'brand', purpose: 'knowledge-base' },
-          id: 'ctx-knowledge-a',
-          sourceBrandId: BRAND_A,
-        },
-      ]);
-      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
-        knowledgeRow(),
-        knowledgeRow({
-          content: 'Competitor hook we liked',
-          knowledgeSourceId: 'source-inspiration',
-          knowledgeSourcePurpose: 'INSPIRATION',
-          knowledgeSourceTitle: 'Saved competitor post',
-        }),
-        knowledgeRow({
-          content: 'Market size is 2B',
-          knowledgeSourceId: 'source-research',
-          knowledgeSourcePurpose: 'RESEARCH',
-          knowledgeSourceTitle: 'Market report',
-        }),
-      ]);
-
-      const hits = await service.retrieveBrandKnowledge({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      const similarity = lastSimilarityQuery(queryRaw);
-      expect(similarity.sql).toContain('AND e."knowledgeSourceId" IS NOT NULL');
-      expect(similarity.sql).toContain('s."purpose"::text IN (?)');
-      expect(similarity.values).toEqual(
-        expect.arrayContaining(['BRAND_TRUTH', BRAND_A]),
-      );
-      expect(similarity.values).not.toContain('INSPIRATION');
-      expect(similarity.values).not.toContain('RESEARCH');
-      expect(hits).toHaveLength(1);
-      expect(hits[0]).toMatchObject({
-        citation: {
-          purpose: 'BRAND_TRUTH',
-          sourceId: 'source-truth',
-          title: 'Pricing page',
-        },
-        content: 'Plans start at $29',
-        source: 'Pricing page',
-      });
-    });
-
-    it('drops Knowledge bases that belong to another brand', async () => {
-      const { contextBase, queryRaw, service } = buildService();
-      contextBase.findMany.mockResolvedValue([
-        {
-          data: { knowledgeScope: 'brand', purpose: 'knowledge-base' },
-          id: 'ctx-knowledge-b',
-          sourceBrandId: BRAND_B,
-        },
-      ]);
-
-      const hits = await service.retrieveBrandKnowledge({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      expect(hits).toEqual([]);
-      expect(queryRaw).not.toHaveBeenCalled();
     });
   });
 });

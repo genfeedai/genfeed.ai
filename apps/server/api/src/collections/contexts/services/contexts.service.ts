@@ -15,14 +15,8 @@ import type {
   ContextPromptEntry,
 } from '@api/collections/contexts/schemas/context-entry.schema';
 import {
-  type BrandScopedRetrievalParams,
-  buildBrandContentMemoryBaseWhere,
-  buildBrandKnowledgeBaseWhere,
   buildPromptContextBaseWhere,
-  type ContextBaseScopeRow,
   isContextBaseInBrandScope,
-  toBrandContentMemoryHits,
-  toBrandKnowledgeHits,
 } from '@api/collections/contexts/utils/context-brand-scope.util';
 import {
   buildEmbeddingFailureQuery,
@@ -46,7 +40,6 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
-  KnowledgeSourcePurpose,
   ModelCategory,
   PostVisibility,
   parsePlatform,
@@ -57,11 +50,7 @@ import {
   postVisibilityReadFilter,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
-import type {
-  BrandContentMemoryHit,
-  BrandContentMemoryRetrievalParams,
-  KnowledgeRetrievalCitation,
-} from '@genfeedai/contracts/interfaces';
+import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -490,54 +479,6 @@ export class ContextsService {
     }
   }
 
-  /**
-   * Brand-scoped content memory retrieval over Postgres pgvector.
-   * This is the day-one vector store for generation context (not a separate
-   * vector product). Prefer harness-performance-winners + brand libraries.
-   */
-  async retrieveBrandContentMemory(
-    params: BrandContentMemoryRetrievalParams,
-  ): Promise<BrandContentMemoryHit[]> {
-    // An explicit selection that resolved to no sources (an empty space)
-    // matches nothing; it must never fall through to the brand's whole memory.
-    if (params.knowledgeSourceIds?.length === 0) {
-      return [];
-    }
-    const { bases, entries } = await this.findBrandScopedEntries(
-      params,
-      buildBrandContentMemoryBaseWhere,
-      {
-        ...(params.knowledgeSourceIds?.length
-          ? { knowledgeSourceIds: params.knowledgeSourceIds }
-          : {}),
-        ...(params.knowledgePurposes?.length
-          ? { knowledgePurposes: params.knowledgePurposes }
-          : {}),
-      },
-    );
-    return toBrandContentMemoryHits(entries, bases);
-  }
-
-  /**
-   * Authoritative brand Knowledge for prompt injection: only chunks of
-   * BRAND_TRUTH sources owned by this brand or shared organization-wide, whose
-   * current version is ready and retrievable. Inspiration and research never
-   * reach this lane — they stay behind the explicit `search_knowledge` tool.
-   */
-  async retrieveBrandKnowledge(
-    params: BrandScopedRetrievalParams,
-  ): Promise<BrandContentMemoryHit[]> {
-    const { entries } = await this.findBrandScopedEntries(
-      params,
-      buildBrandKnowledgeBaseWhere,
-      {
-        isKnowledgeOnly: true,
-        knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
-      },
-    );
-    return toBrandKnowledgeHits(entries);
-  }
-
   async autoCreateFromAccount(
     dto: AutoCreateContextDto,
     organizationId: string,
@@ -658,7 +599,13 @@ export class ContextsService {
     };
   }
 
-  private async generateEmbedding(
+  /**
+   * Not private: `KnowledgeContentRetrievalService` (brand/org/personal-scope
+   * retrieval, split out to keep this file under the runtime-complexity
+   * file-size guard) drives its own similarity searches through this and
+   * {@link findSimilarEntries} rather than duplicating the embedding call.
+   */
+  async generateEmbedding(
     text: string,
     modelIdentifier?: string,
   ): Promise<number[]> {
@@ -676,46 +623,6 @@ export class ContextsService {
       );
     }
     return embedding;
-  }
-
-  /**
-   * Similarity search over the brand's in-scope context bases. An empty brand
-   * id would collapse `{ sourceBrandId: undefined }` into an unscoped OR
-   * branch and read every brand's memory, so it returns nothing instead.
-   */
-  private async findBrandScopedEntries(
-    params: BrandScopedRetrievalParams,
-    buildBaseWhere: (brandId: string) => Prisma.ContextBaseWhereInput,
-    options: ContextSimilarityQueryOptions,
-  ): Promise<{
-    bases: ContextBaseScopeRow[];
-    entries: ContextEntrySimilarityResult[];
-  }> {
-    const query = params.query.trim();
-    const brandId = params.brandId?.trim();
-    if (!query || !brandId) {
-      return { bases: [], entries: [] };
-    }
-
-    const rows = await this.prisma.contextBase.findMany({
-      select: { data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),
-    });
-    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
-    if (bases.length === 0) {
-      return { bases, entries: [] };
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    const entries = await this.findSimilarEntries(
-      params.organizationId,
-      bases.map((base) => base.id),
-      queryEmbedding,
-      params.limit ?? 5,
-      params.minRelevance ?? 0.65,
-      { ...options, knowledgeBrandId: brandId },
-    );
-    return { bases, entries };
   }
 
   /** Active prompt-enhancement bases in the request brand's scope. */
@@ -779,7 +686,8 @@ export class ContextsService {
     });
   }
 
-  private async findSimilarEntries(
+  /** Not private: see the doc note on {@link generateEmbedding}. */
+  async findSimilarEntries(
     organizationId: string,
     contextBaseIds: string[],
     queryEmbedding: number[],
