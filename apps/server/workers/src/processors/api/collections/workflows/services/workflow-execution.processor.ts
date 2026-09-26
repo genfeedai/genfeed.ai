@@ -40,7 +40,12 @@ import { Job } from 'bullmq';
 export class WorkflowExecutionProcessor extends WorkerHost {
   // protected so PlatformSystemWorkflowProcessor can shadow it with its own
   // value — every inherited method here logs through `this.logContext`.
-  protected readonly logContext = 'WorkflowExecutionProcessor';
+  // Explicit `string` annotation: without it TS narrows the field to the
+  // literal type "WorkflowExecutionProcessor", and a subclass shadowing it
+  // with a different literal (PlatformSystemWorkflowProcessor) fails to
+  // type-check as an invalid override (#5252 review — caught by `tsc`, not
+  // the swc/webpack build, which is why type-check must run separately).
+  protected readonly logContext: string = 'WorkflowExecutionProcessor';
 
   constructor(
     private readonly logger: LoggerService,

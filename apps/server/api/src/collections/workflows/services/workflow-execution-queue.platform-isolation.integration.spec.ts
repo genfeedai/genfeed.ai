@@ -1,7 +1,7 @@
 import net from 'node:net';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { Queue, Worker } from 'bullmq';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Real-Redis regression coverage for the #5252 independent review of #5162:
@@ -84,6 +84,23 @@ describe.skipIf(!redisAvailable)(
 
       return { interactiveQueue, platformQueue, service };
     }
+
+    // Fresh Redis state per test: every test in this file shares the same
+    // two queue *names*, so a job left over from an earlier test would
+    // otherwise be picked up by a later test's worker too.
+    beforeEach(async () => {
+      const interactiveQueue = new Queue(interactiveQueueName, {
+        connection: { url: redisUrl },
+      });
+      const platformQueue = new Queue(platformQueueName, {
+        connection: { url: redisUrl },
+      });
+      await Promise.all([
+        interactiveQueue.obliterate({ force: true }),
+        platformQueue.obliterate({ force: true }),
+      ]);
+      await Promise.all([interactiveQueue.close(), platformQueue.close()]);
+    });
 
     afterAll(async () => {
       await Promise.all(workers.map((worker) => worker.close()));
@@ -179,6 +196,13 @@ describe.skipIf(!redisAvailable)(
       const interactiveWorker = new Worker(
         interactiveQueueName,
         async (job) => {
+          // A real system-run job takes real work (executor calls, DB
+          // writes) between add() and completion; a few ms here keeps this
+          // stub realistic enough that queueSystemWorkflow's own post-add
+          // claimability check (job.getState() right after add()) still
+          // observes the job before it finishes, instead of racing a stub
+          // that resolves synchronously.
+          await new Promise((resolve) => setTimeout(resolve, 50));
           interactiveJobCompleted.push(job.id ?? '');
         },
         { connection: { url: redisUrl }, concurrency: 1 },
