@@ -18,6 +18,7 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 interface MockPrisma {
   warmupAccount: { findFirst: MockFn };
+  brand: { findFirst: MockFn };
   $transaction: MockFn;
   invitation: {
     create: MockFn;
@@ -142,6 +143,9 @@ function makeMember(overrides: Partial<MemberRow> = {}): MemberRow {
 function buildPrisma(): MockPrisma {
   const prisma: MockPrisma = {
     warmupAccount: { findFirst: vi.fn().mockResolvedValue(null) },
+    brand: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'brand_default_123' }),
+    },
     $transaction: vi.fn(),
     invitation: {
       create: vi.fn(),
@@ -649,8 +653,14 @@ describe('InvitationService', () => {
       expect(prisma.setting.create).toHaveBeenCalledWith({
         data: { userId },
       });
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+        where: { isDeleted: false, organizationId: orgId },
+      });
       expect(prisma.member.create).toHaveBeenCalledWith({
         data: {
+          currentBrandId: 'brand_default_123',
           isActive: true,
           organizationId: orgId,
           roleId,
@@ -659,6 +669,23 @@ describe('InvitationService', () => {
         },
       });
       expect(result.memberId).toBe(memberId);
+    });
+
+    it('refuses to create a member when the org has no brand', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findUnique.mockResolvedValue(makeInvitation());
+      prisma.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(makeUser({ isInvited: false }));
+      prisma.setting.create.mockResolvedValue({ id: 'setting_123' });
+      prisma.member.findFirst.mockResolvedValue(null);
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(service.acceptInvitation('token-123')).rejects.toThrow(
+        `Cannot accept invitation: organization ${orgId} has no brand`,
+      );
+
+      expect(prisma.member.create).not.toHaveBeenCalled();
     });
 
     it('rejects expired invitations', async () => {

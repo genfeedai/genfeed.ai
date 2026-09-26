@@ -266,7 +266,6 @@ describe('Brands E2E Tests', () => {
       expect(attributes).toHaveProperty('primaryColor');
       expect(attributes).toHaveProperty('secondaryColor');
       expect(attributes).toHaveProperty('backgroundColor');
-      expect(attributes).toHaveProperty('isSelected');
       expect(attributes).toHaveProperty('isActive');
       expect(attributes).toHaveProperty('isDeleted');
     });

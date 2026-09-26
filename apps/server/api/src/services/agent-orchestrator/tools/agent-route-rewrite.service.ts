@@ -1,3 +1,4 @@
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
@@ -8,6 +9,12 @@ interface AgentBrandsServiceLike {
   findOne: (
     query: Record<string, unknown>,
   ) => Promise<Record<string, unknown> | null>;
+}
+
+interface AgentMembersServiceLike {
+  findOne: (
+    query: Record<string, unknown>,
+  ) => Promise<{ currentBrandId?: unknown } | null>;
 }
 
 interface ToolRouteSlugs {
@@ -47,6 +54,8 @@ export class AgentRouteRewriteService {
     private readonly loggerService: LoggerService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     @Optional()
     private readonly organizationsService?: OrganizationsService,
   ) {}
@@ -103,15 +112,10 @@ export class AgentRouteRewriteService {
   private async resolveToolRouteBrand(
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
-    if (ctx.brandId) {
-      return this.brandsService.findOne({
-        id: ctx.brandId,
-        organizationId: ctx.organizationId,
-      });
-    }
-
-    return this.brandsService.findOne({
-      isSelected: true,
+    return resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      membersService: this.membersService,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });

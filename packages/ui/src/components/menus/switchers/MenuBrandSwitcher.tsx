@@ -55,7 +55,7 @@ export default function MenuBrandSwitcher({
       try {
         setIsUpdatingBrand(true);
         const service = await getUsersService();
-        await service.patchMeBrand(id, { isSelected: true });
+        await service.patchMeBrand(id);
         logger.info(`${url} success`);
         onBrandChange?.(id);
       } catch (error) {
@@ -67,30 +67,19 @@ export default function MenuBrandSwitcher({
     [getUsersService, onBrandChange],
   );
 
-  const handleClearSelection = useCallback(async () => {
+  const handleClearSelection = useCallback(() => {
     if (!clearSelectionAction || isUpdating) {
       return;
     }
 
-    const url = 'PATCH /users/me';
-    try {
-      setIsUpdatingBrand(true);
-      const service = await getUsersService();
-      await service.clearMeBrandSelection();
-      logger.info(`${url} success`);
-      clearSelectionAction.onSelect();
-    } catch (error) {
-      logger.error(`${url} failed`, error);
-    } finally {
-      setIsUpdatingBrand(false);
-    }
-  }, [clearSelectionAction, getUsersService, isUpdating]);
+    clearSelectionAction.onSelect();
+  }, [clearSelectionAction, isUpdating]);
 
   const handleClearButtonClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      void handleClearSelection();
+      handleClearSelection();
     },
     [handleClearSelection],
   );

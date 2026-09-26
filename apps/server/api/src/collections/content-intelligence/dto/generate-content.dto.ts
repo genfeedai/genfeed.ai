@@ -72,11 +72,15 @@ export class GenerateContentDto {
   })
   playbookId?: string;
 
+  // Required in effect (#5219): generation always runs in an explicit brand
+  // context. Left `@IsOptional()` here only so `GenerateController` can apply
+  // an API key's validated `defaultBrandId` before rejecting — every other
+  // caller (app, agent, workflow nodes) must always send it explicitly.
   @IsOptional()
   @IsEntityId()
   @ApiProperty({
-    description: 'Brand ID to apply brand voice',
-    required: false,
+    description: 'Brand ID to generate for.',
+    required: true,
   })
   brandId?: string;
 

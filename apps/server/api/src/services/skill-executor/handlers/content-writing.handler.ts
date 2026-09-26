@@ -34,6 +34,7 @@ export class ContentWritingHandler implements SkillHandler {
     }
 
     const generationDto: GenerateContentDto = {
+      brandId: context.brandId,
       platform: this.mapPlatform(platform),
       topic,
       variationsCount:

@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiKeyCategory } from '@genfeedai/contracts';
 import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
@@ -95,4 +96,13 @@ export class CreateApiKeyDto {
   @IsOptional()
   @IsObject()
   readonly metadata?: Record<string, unknown>;
+
+  @ApiProperty({
+    description:
+      "Default brand for MCP generation tools when a call omits an explicit brandId. Must belong to this key's organization (#5219).",
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  readonly defaultBrandId?: string;
 }

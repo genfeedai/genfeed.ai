@@ -1,3 +1,4 @@
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -15,6 +16,12 @@ interface AgentBrandsServiceLike {
     params: Record<string, unknown>,
     context?: string,
   ) => Promise<Record<string, unknown> | null>;
+}
+
+interface AgentMembersServiceLike {
+  findOne: (
+    params: Record<string, unknown>,
+  ) => Promise<{ currentBrandId?: unknown } | null>;
 }
 
 // DTO *Percent keys differ from estimator ContentFormat keys; this explicit
@@ -99,6 +106,8 @@ export class AgentMediaBatchGenerationService {
     private readonly loggerService: LoggerService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
@@ -177,13 +186,14 @@ export class AgentMediaBatchGenerationService {
     }
 
     if (!brandId) {
-      const selectedBrand = await this.brandsService.findOne({
-        isDeleted: false,
-        isSelected: true,
+      const currentBrand = await resolveGenerationBrand({
+        brandsService: this.brandsService,
+        contextBrandId: ctx.brandId,
+        membersService: this.membersService,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
       });
-      if (selectedBrand?.id) brandId = String(selectedBrand.id);
+      if (currentBrand?.id) brandId = String(currentBrand.id);
     }
 
     return brandId

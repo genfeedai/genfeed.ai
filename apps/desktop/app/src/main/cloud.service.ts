@@ -241,11 +241,15 @@ export class DesktopCloudService implements IDesktopDataService {
     };
   }
 
-  async generateHooks(topic: string): Promise<IDesktopDataResult<string[]>> {
+  async generateHooks(
+    topic: string,
+    brandId?: string,
+  ): Promise<IDesktopDataResult<string[]>> {
     const response = await this.fetchJson<{ hooks: string[] }>(
       '/posts/hook-generations',
       {
         body: JSON.stringify({
+          brandId,
           platform: 'twitter',
           topic,
         }),
@@ -266,6 +270,7 @@ export class DesktopCloudService implements IDesktopDataService {
       '/posts/hook-generations',
       {
         body: JSON.stringify({
+          brandId: params.brandId,
           count: 1,
           platform: params.platform,
           topic:

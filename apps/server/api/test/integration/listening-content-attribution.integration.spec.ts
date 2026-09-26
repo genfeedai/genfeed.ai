@@ -624,7 +624,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     await dbHelper.seedCollection('members', [
       createTestMember({
         id: generateIdString(),
-        lastUsedBrandId: fixture.brandId,
+        currentBrandId: fixture.brandId,
         organizationId: fixture.organizationId,
         roleId: 'member',
         roleKey: 'member',

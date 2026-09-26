@@ -438,4 +438,132 @@ describe('ApiKeysService', () => {
       await expect(service.findActiveById('key-1')).resolves.toEqual(live);
     });
   });
+
+  describe('resolveValidDefaultBrandId / assertValidDefaultBrandId (#5219)', () => {
+    function createBrandHarness(): {
+      prisma: { brand: { findFirst: MockFn } };
+      service: ApiKeysService;
+    } {
+      const service = Object.create(ApiKeysService.prototype) as ApiKeysService;
+      const prisma = { brand: { findFirst: vi.fn() } };
+      Object.defineProperty(service, 'prisma', {
+        configurable: true,
+        value: prisma,
+      });
+      return { prisma, service };
+    }
+
+    it('returns undefined without querying when defaultBrandId is absent', async () => {
+      const { prisma, service } = createBrandHarness();
+
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', undefined),
+      ).resolves.toBeUndefined();
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', null),
+      ).resolves.toBeUndefined();
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('accepts a brand that belongs to the organization and is not deleted', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', 'brand-1'),
+      ).resolves.toBe('brand-1');
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
+    it('rejects a brand belonging to a different organization', async () => {
+      const { prisma, service } = createBrandHarness();
+      // Scoped query itself finds nothing for the wrong org — no separate
+      // cross-org check needed, the where clause is the guard.
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', 'brand-owned-by-org-2'),
+      ).resolves.toBeUndefined();
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          id: 'brand-owned-by-org-2',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('rejects a soft-deleted brand', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', 'brand-deleted'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('assertValidDefaultBrandId is a no-op when defaultBrandId is absent', async () => {
+      const { prisma, service } = createBrandHarness();
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', undefined),
+      ).resolves.toBeUndefined();
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('assertValidDefaultBrandId passes for a valid brand', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', 'brand-1'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('assertValidDefaultBrandId throws BadRequestException for an org mismatch or deleted brand', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', 'brand-owned-by-org-2'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('resolveAnyBrandId (#5219 general request-scoping fallback)', () => {
+    it("returns the organization's oldest non-deleted brand", async () => {
+      const service = Object.create(ApiKeysService.prototype) as ApiKeysService;
+      const prisma = {
+        brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-oldest' }) },
+      };
+      Object.defineProperty(service, 'prisma', {
+        configurable: true,
+        value: prisma,
+      });
+
+      await expect(service.resolveAnyBrandId('org-1')).resolves.toBe(
+        'brand-oldest',
+      );
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+        where: { isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
+    it('returns undefined when the organization has no non-deleted brand', async () => {
+      const service = Object.create(ApiKeysService.prototype) as ApiKeysService;
+      const prisma = { brand: { findFirst: vi.fn().mockResolvedValue(null) } };
+      Object.defineProperty(service, 'prisma', {
+        configurable: true,
+        value: prisma,
+      });
+
+      await expect(service.resolveAnyBrandId('org-1')).resolves.toBeUndefined();
+    });
+  });
 });

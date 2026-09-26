@@ -466,6 +466,10 @@ export class PostsGenerationController {
     try {
       return await this.postGenerationService.generateHookVariations(dto, user);
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       const errorMessage = generationFailureMessage(error, 'Unknown error');
       this.logger.error(`Hook generation failed: ${errorMessage}`);
       throw createPostsGenerationHttpException(

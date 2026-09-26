@@ -660,10 +660,12 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
     expect(systemMessage?.content).toContain('SYSTEM DIRECTIVES');
   });
 
-  it('does not call resolveBrief when brandId is absent', async () => {
+  it('rejects generation when brandId is absent (#5219: brand is required)', async () => {
     const dto = { ...BASE_DTO, brandId: undefined };
 
-    await service.generateContent(ORG_ID, dto as never);
+    await expect(service.generateContent(ORG_ID, dto as never)).rejects.toThrow(
+      'Missing required content generation input: brandId',
+    );
 
     expect(harnessGenerationService.resolveBrief).not.toHaveBeenCalled();
   });

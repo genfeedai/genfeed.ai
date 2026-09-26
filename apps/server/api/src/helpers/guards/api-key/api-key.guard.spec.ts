@@ -9,7 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { createMockExecutionContext } from '@test/mocks/controller.mocks';
 import { mockRequest as buildMockRequest } from '@test/mocks/service.mocks';
 
@@ -23,11 +23,14 @@ describe('ApiKeyAuthGuard', () => {
   const mockApiKeyId = testId('apikey');
   const mockApiKeyOrgId = testId('org');
   const mockApiKeyUserId = testId('user');
+  const mockFallbackBrandId = testId('brand');
 
   const mockApiKey: ApiKeyDocument = {
     allowedIps: ['192.168.1.1'],
     category: ApiKeyCategory.GENFEEDAI,
     createdAt: new Date(),
+    // #5219: optional MCP default-brand pointer, unset by default here.
+    defaultBrandId: null,
     description: null,
     expiresAt: null,
     id: mockApiKeyId,
@@ -64,6 +67,10 @@ describe('ApiKeyAuthGuard', () => {
       isIpAllowed: vi.fn(),
       isMcpOAuthSession: vi.fn().mockReturnValue(false),
       resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
+      // #5219: request-scoped brandId resolution — no key default brand by
+      // default, falling back to some brand in the org (never the org id).
+      resolveAnyBrandId: vi.fn().mockResolvedValue(mockFallbackBrandId),
+      resolveValidDefaultBrandId: vi.fn().mockResolvedValue(undefined),
       updateLastUsed: vi.fn(),
     };
 
@@ -287,7 +294,10 @@ describe('ApiKeyAuthGuard', () => {
       expect(mutatedRequest.user).toEqual({
         actionOrigin: ActionOrigin.API,
         apiKeyId: mockApiKey.id.toString(),
-        brandId: mockApiKey.organizationId.toString(),
+        // #5219: brandId is a resolved brand, never the organization id (the
+        // prior bug here) — this key has no valid default brand, so it falls
+        // back to some brand in the org.
+        brandId: mockFallbackBrandId,
         id: mockApiKey.userId.toString(),
         isApiKey: true,
         isSuperAdmin: false,
@@ -295,10 +305,45 @@ describe('ApiKeyAuthGuard', () => {
         scopes: mockApiKey.scopes,
         userId: mockApiKey.userId.toString(),
       });
+      expect(apiKeysService.resolveValidDefaultBrandId).toHaveBeenCalledWith(
+        mockApiKey.organizationId,
+        mockApiKey.defaultBrandId,
+      );
       expect(apiKeysService.updateLastUsed).toHaveBeenCalledWith(
         mockApiKey.id.toString(),
         '192.168.1.1',
       );
+    });
+
+    it("resolves brandId from the key's validated default brand, not the organization id (#5219)", async () => {
+      mockContext = createMockExecutionContext({ request });
+      const mockValidatedDefaultBrandId = testId('brand', 2);
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue({
+        ...mockApiKey,
+        defaultBrandId: mockValidatedDefaultBrandId,
+      });
+      vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
+      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
+      vi.spyOn(apiKeysService, 'resolveValidDefaultBrandId').mockResolvedValue(
+        mockValidatedDefaultBrandId,
+      );
+
+      await guard.canActivate(mockContext);
+
+      const mutatedRequest = mockContext.switchToHttp().getRequest();
+      expect(mutatedRequest.user.brandId).toBe(mockValidatedDefaultBrandId);
+      expect(mutatedRequest.user.brandId).not.toBe(
+        mockApiKey.organizationId.toString(),
+      );
+      // The validated default brand resolved — no need for the "any brand in
+      // the org" fallback.
+      expect(apiKeysService.resolveAnyBrandId).not.toHaveBeenCalled();
     });
 
     it('should return true for valid API key without required scopes', async () => {

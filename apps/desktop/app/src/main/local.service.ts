@@ -241,7 +241,13 @@ export class DesktopLocalService implements IDesktopDataService {
     };
   }
 
-  async generateHooks(topic: string): Promise<IDesktopDataResult<string[]>> {
+  async generateHooks(
+    topic: string,
+    // Local (on-device) generation never calls the cloud API, so it has no
+    // brand-context requirement to satisfy (#5219) — kept only to match
+    // IDesktopDataService's shared signature.
+    _brandId?: string,
+  ): Promise<IDesktopDataResult<string[]>> {
     const content = await this.requireGeneration().generateContent({
       platform: 'twitter',
       prompt: topic,

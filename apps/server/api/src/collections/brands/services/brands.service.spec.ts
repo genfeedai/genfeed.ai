@@ -26,18 +26,18 @@ import {
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { CacheService } from '@api/services/cache/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type { CacheService } from '@api/services/cache/cache.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ReferenceImageCategory } from '@genfeedai/contracts';
 import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 describe('BrandsService', () => {
@@ -61,6 +61,7 @@ describe('BrandsService', () => {
     invalidateForOrganization: ReturnType<typeof vi.fn>;
   };
   let organizationDelegate: { findFirst: ReturnType<typeof vi.fn> };
+  let memberDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
@@ -125,11 +126,15 @@ describe('BrandsService', () => {
     organizationDelegate = {
       findFirst: vi.fn().mockResolvedValue({ accountType: 'BUSINESS' }),
     };
+    memberDelegate = {
+      updateMany: vi.fn(),
+    };
     const prisma = {
       // Brand kit asset relations resolve through a single ranked raw query.
       $queryRaw: queryRaw,
       asset: assetDelegate,
       brand: delegate,
+      member: memberDelegate,
       organization: organizationDelegate,
     } as unknown as PrismaService;
 
@@ -595,26 +600,18 @@ describe('BrandsService', () => {
     });
   });
 
-  it('selects a brand using its canonical id', async () => {
+  it('selects a brand using its canonical id, writing only the acting member currentBrandId', async () => {
     const currentBrandId = testId('brand');
     const organizationId = testId('org');
     const userId = 'user_current';
 
-    delegate.findFirst
-      .mockResolvedValueOnce({
-        id: currentBrandId,
-        isDeleted: false,
-        organizationId,
-        userId,
-      })
-      .mockResolvedValueOnce({
-        id: currentBrandId,
-        isDeleted: false,
-        isSelected: true,
-        organizationId,
-        userId,
-      });
-    delegate.updateMany.mockResolvedValue({ count: 1 });
+    delegate.findFirst.mockResolvedValue({
+      id: currentBrandId,
+      isDeleted: false,
+      organizationId,
+      userId,
+    });
+    memberDelegate.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.selectBrandForUser(
       currentBrandId,
@@ -622,21 +619,18 @@ describe('BrandsService', () => {
       organizationId,
     );
 
-    expect(delegate.findFirst).toHaveBeenNthCalledWith(1, {
+    expect(delegate.findFirst).toHaveBeenCalledWith({
       where: {
         id: currentBrandId,
         isDeleted: false,
         organizationId,
       },
     });
-    expect(delegate.updateMany).toHaveBeenNthCalledWith(2, {
-      data: { isSelected: true },
-      where: { id: currentBrandId, isDeleted: false, organizationId },
+    expect(memberDelegate.updateMany).toHaveBeenCalledWith({
+      data: { currentBrandId },
+      where: { isDeleted: false, organizationId, userId },
     });
-    expect(result).toMatchObject({
-      id: currentBrandId,
-      isSelected: true,
-    });
+    expect(result).toMatchObject({ id: currentBrandId });
   });
 
   it('throws when the target brand cannot be resolved', async () => {
@@ -649,7 +643,122 @@ describe('BrandsService', () => {
         'org_current',
       ),
     ).rejects.toThrow(NotFoundException);
-    expect(delegate.updateMany).not.toHaveBeenCalled();
+    expect(memberDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('throws when the acting user has no matching member row in the organization', async () => {
+    const currentBrandId = testId('brand');
+    const organizationId = testId('org');
+    const userId = 'user_orphan';
+
+    delegate.findFirst.mockResolvedValue({
+      id: currentBrandId,
+      isDeleted: false,
+      organizationId,
+    });
+    memberDelegate.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.selectBrandForUser(currentBrandId, userId, organizationId),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('only reassigns the acting member: two members in the same org selecting different brands do not clobber each other', async () => {
+    const organizationId = testId('org');
+    const brandA = testId('brand', 1);
+    const brandB = testId('brand', 2);
+    const memberOneUserId = 'user_one';
+    const memberTwoUserId = 'user_two';
+
+    delegate.findFirst.mockImplementation(
+      async ({ where }: { where: { id: string } }) => ({
+        id: where.id,
+        isDeleted: false,
+        organizationId,
+      }),
+    );
+    memberDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.selectBrandForUser(brandA, memberOneUserId, organizationId);
+    await service.selectBrandForUser(brandB, memberTwoUserId, organizationId);
+
+    expect(memberDelegate.updateMany).toHaveBeenNthCalledWith(1, {
+      data: { currentBrandId: brandA },
+      where: {
+        isDeleted: false,
+        organizationId,
+        userId: memberOneUserId,
+      },
+    });
+    expect(memberDelegate.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { currentBrandId: brandB },
+      where: {
+        isDeleted: false,
+        organizationId,
+        userId: memberTwoUserId,
+      },
+    });
+    // Each call is scoped to its own userId — neither write can touch the
+    // other member's row, so selecting brandB never clobbers memberOne.
+    expect(memberDelegate.updateMany).toHaveBeenCalledTimes(2);
+  });
+
+  describe('remove', () => {
+    it("reassigns affected members to the org's oldest remaining brand before soft-deleting", async () => {
+      const brandId = testId('brand', 1);
+      const fallbackBrandId = testId('brand', 2);
+      const organizationId = testId('org');
+
+      delegate.findFirst
+        .mockResolvedValueOnce({
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        })
+        .mockResolvedValueOnce({
+          id: fallbackBrandId,
+        });
+      memberDelegate.updateMany.mockResolvedValue({ count: 2 });
+      delegate.update.mockResolvedValue({ id: brandId, organizationId });
+
+      const result = await service.remove(brandId);
+
+      expect(delegate.findFirst).toHaveBeenNthCalledWith(2, {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+        where: { id: { not: brandId }, isDeleted: false, organizationId },
+      });
+      expect(memberDelegate.updateMany).toHaveBeenCalledWith({
+        data: { currentBrandId: fallbackBrandId },
+        where: { currentBrandId: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.update).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: brandId },
+      });
+      expect(result).toMatchObject({ id: brandId });
+    });
+
+    it("refuses to delete an organization's last brand", async () => {
+      const brandId = testId('brand');
+      const organizationId = testId('org');
+
+      delegate.findFirst
+        .mockResolvedValueOnce({
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        })
+        .mockResolvedValueOnce(null);
+
+      const rejection = service.remove(brandId);
+      await expect(rejection).rejects.toBeInstanceOf(ConflictException);
+      await expect(rejection).rejects.toThrow(
+        "Cannot delete an organization's last brand. Create another brand first.",
+      );
+      expect(memberDelegate.updateMany).not.toHaveBeenCalled();
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('crawlWebsiteBrandKitDraft', () => {

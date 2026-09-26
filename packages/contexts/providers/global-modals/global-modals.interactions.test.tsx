@@ -585,9 +585,7 @@ describe('GlobalModals interactions', () => {
       >('BrandOverlay', 'onConfirm')(false, 'brand_new');
     });
 
-    expect(patchMeBrandMock).toHaveBeenCalledWith('brand_new', {
-      isSelected: true,
-    });
+    expect(patchMeBrandMock).toHaveBeenCalledWith('brand_new');
     expect(reloadMock).toHaveBeenCalledTimes(1);
     expect(refreshBrandsMock).toHaveBeenCalledTimes(1);
   });

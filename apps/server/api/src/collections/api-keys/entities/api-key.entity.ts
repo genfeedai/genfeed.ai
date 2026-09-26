@@ -5,6 +5,7 @@ export class ApiKeyEntity extends BaseEntity implements ApiKey {
   id!: string;
   userId!: string;
   organizationId!: string;
+  defaultBrandId!: string | null;
   key!: string;
   label!: string;
   category!: ApiKey['category'];

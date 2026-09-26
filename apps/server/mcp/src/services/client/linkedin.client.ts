@@ -16,6 +16,12 @@ const DISCONNECTED_CREDENTIAL_REASON =
 export class LinkedInClient {
   constructor(private readonly base: BaseApiClient) {}
 
+  /**
+   * `brandId` is optional here only because the server resolves it (#5219):
+   * this key's validated default brand when omitted, else the request is
+   * rejected with a 400. There is no "any brand" guess — configure a default
+   * brand for this API key, or pass brandId explicitly on each call.
+   */
   generateLinkedInContent(params: {
     brandId?: string;
     topic: string;

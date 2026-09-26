@@ -1,49 +1,28 @@
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { AgentBrandsServiceLike } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
+import type {
+  AgentBrandsServiceLike,
+  AgentMembersServiceLike,
+} from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
 
+// #5219: explicit param, then thread/route context, then the acting member's
+// currentBrandId. No "first brand in the org" guess — generation always has
+// an explicit brand.
 export async function resolveWorkflowBrand(
   brandsService: AgentBrandsServiceLike,
+  membersService: AgentMembersServiceLike,
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
 ): Promise<Record<string, unknown> | null> {
-  if (typeof params.brandId === 'string') {
-    const explicitBrand = await brandsService.findOne({
-      id: params.brandId,
-      organizationId: ctx.organizationId,
-    });
-
-    if (explicitBrand) {
-      return explicitBrand as unknown as Record<string, unknown>;
-    }
-  }
-
-  // Prefer run/thread brand (URL → thread.brandId) before brands.isSelected.
-  if (ctx.brandId) {
-    const contextBrand = await brandsService.findOne({
-      id: ctx.brandId,
-      organizationId: ctx.organizationId,
-    });
-
-    if (contextBrand) {
-      return contextBrand as unknown as Record<string, unknown>;
-    }
-  }
-
-  const currentBrand = await brandsService.findOne({
-    isSelected: true,
+  return resolveGenerationBrand({
+    brandsService,
+    contextBrandId: ctx.brandId,
+    explicitBrandId:
+      typeof params.brandId === 'string' ? params.brandId : undefined,
+    membersService,
     organizationId: ctx.organizationId,
     userId: ctx.userId,
   });
-
-  if (currentBrand) {
-    return currentBrand as unknown as Record<string, unknown>;
-  }
-
-  const firstOrgBrand = await brandsService.findOne({
-    organizationId: ctx.organizationId,
-  });
-
-  return firstOrgBrand as unknown as Record<string, unknown> | null;
 }
 
 export function tokenizeWorkflowBootstrapText(

@@ -31,7 +31,7 @@ describe('OrganizationsOperationsService', () => {
     create: vi.fn(),
     findActiveForUserAccess: vi.fn(),
     findOne: vi.fn(),
-    setLastUsedBrand: vi.fn(),
+    setCurrentBrand: vi.fn(),
   };
   const organizationSettingsService = {
     ensureForOrganization: vi.fn(),
@@ -92,7 +92,7 @@ describe('OrganizationsOperationsService', () => {
     });
     rolesService.findOne.mockResolvedValue({ id: 'role_admin' });
     membersService.create.mockResolvedValue({ id: 'member_new' });
-    membersService.setLastUsedBrand.mockResolvedValue(undefined);
+    membersService.setCurrentBrand.mockResolvedValue(undefined);
     usersService.findOne.mockResolvedValue({ id: 'user_1' });
     usersService.patch.mockResolvedValue({ id: 'user_1' });
     userAccessCacheService.invalidateAll.mockResolvedValue(undefined);
@@ -265,6 +265,7 @@ describe('OrganizationsOperationsService', () => {
       );
       expect(membersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          currentBrandId: 'brand_new',
           organizationId: 'org_new',
           roleId: 'role_user',
           userId: 'user_1',
@@ -273,15 +274,6 @@ describe('OrganizationsOperationsService', () => {
       expect(usersService.patch).toHaveBeenCalledWith('user_1', {
         lastUsedOrganizationId: 'org_new',
       });
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: 'org_new',
-          userId: 'user_1',
-        },
-        'brand_new',
-      );
       expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
         'user_1',
       );
@@ -305,7 +297,7 @@ describe('OrganizationsOperationsService', () => {
     it('falls back from the last-used brand and persists both pointers before invalidating access', async () => {
       membersService.findOne.mockResolvedValue({
         id: 'member_1',
-        lastUsedBrandId: 'brand_stale',
+        currentBrandId: 'brand_stale',
       });
       brandsService.findOne
         .mockResolvedValueOnce(null)
@@ -331,7 +323,7 @@ describe('OrganizationsOperationsService', () => {
       expect(usersService.patch).toHaveBeenCalledWith('user_1', {
         lastUsedOrganizationId: 'org_other',
       });
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+      expect(membersService.setCurrentBrand).toHaveBeenCalledWith(
         {
           isActive: true,
           isDeleted: false,
@@ -347,7 +339,7 @@ describe('OrganizationsOperationsService', () => {
         userAccessCacheService.invalidateAll.mock.invocationCallOrder[0],
       );
       expect(
-        membersService.setLastUsedBrand.mock.invocationCallOrder[0],
+        membersService.setCurrentBrand.mock.invocationCallOrder[0],
       ).toBeLessThan(
         userAccessCacheService.invalidateAll.mock.invocationCallOrder[0],
       );

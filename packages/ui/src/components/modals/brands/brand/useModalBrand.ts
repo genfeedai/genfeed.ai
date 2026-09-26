@@ -605,7 +605,6 @@ export function useModalBrand(
           label: label || brandFormValues.label,
           slug: slug || brandFormValues.slug,
           isDeleted: false,
-          isSelected: false,
         };
 
         if (overlayBrandId) {
@@ -777,7 +776,6 @@ export function useModalBrand(
         const formData = {
           ...form.getValues(),
           isDeleted: false,
-          isSelected: false,
         };
 
         const { brand: updatedBrand, summary } = await service.relocateBrand(

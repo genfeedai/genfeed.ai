@@ -297,14 +297,6 @@
       "reason": "missing-is-deleted"
     },
     {
-      "delegate": "member",
-      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-      "fingerprint": "36d0322de7e12c2f0387",
-      "method": "updateMany",
-      "model": "Member",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "abbffe9cd32f5800f292",
@@ -1686,22 +1678,6 @@
       "fingerprint": "562e54e453a692e649bf",
       "method": "findFirst",
       "model": "Brand",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "d97358209162153c7034",
-      "method": "update",
-      "model": "Member",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "508ce7256277cec07fbb",
-      "method": "update",
-      "model": "Member",
       "reason": "missing-organization-id"
     },
     {

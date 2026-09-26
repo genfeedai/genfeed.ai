@@ -1,18 +1,18 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { MembersService } from '@api/collections/members/services/members.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
-import { UsersService } from '@api/collections/users/services/users.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -76,7 +76,7 @@ describe('UsersController', () => {
     subscriptionsService = { findOne: vi.fn() };
     membersService = {
       findOne: vi.fn(),
-      setLastUsedBrand: vi.fn().mockResolvedValue({}),
+      setCurrentBrand: vi.fn().mockResolvedValue({}),
     };
     filesClientService = {
       getPresignedUploadUrl: vi.fn().mockResolvedValue({
@@ -122,7 +122,6 @@ describe('UsersController', () => {
       usersService as unknown as UsersService,
       subscriptionsService as unknown as ISubscriptionsService,
       filesClientService as unknown as FilesClientService,
-      membersService as unknown as MembersService,
       userAccessCacheService,
     );
     relationshipsController = new UsersRelationshipsController(
@@ -606,14 +605,10 @@ describe('UsersController', () => {
         canonicalId,
       );
 
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: orgId,
-          userId,
-        },
+      expect(brandsService.selectBrandForUser).toHaveBeenCalledWith(
         canonicalId,
+        userId,
+        orgId,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         userId,
@@ -626,40 +621,21 @@ describe('UsersController', () => {
   });
 
   describe('updateMe brand selection', () => {
-    it('should clear brand selection and clear last-used brand on member', async () => {
-      usersService.findOne.mockResolvedValue({
-        id: userId,
-        firstName: 'Current',
-      });
+    it('rejects clearing the brand selection: currentBrandId is a required per-member invariant', async () => {
+      await expect(
+        controller.updateMe(mockRequest, mockUser, {
+          selectedBrandId: null,
+        } as never),
+      ).rejects.toThrow(
+        'selectedBrandId cannot be cleared: choose another brand instead.',
+      );
 
-      const result = await controller.updateMe(mockRequest, mockUser, {
-        selectedBrandId: null,
-      } as never);
-
-      expect(brandsService.clearBrandSelectionForUser).toHaveBeenCalledWith(
-        userId,
-        orgId,
-      );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: orgId,
-          userId,
-        },
-        null,
-      );
-      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
-        userId,
-      );
+      expect(brandsService.clearBrandSelectionForUser).not.toHaveBeenCalled();
+      expect(brandsService.selectBrandForUser).not.toHaveBeenCalled();
       expect(
-        accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith(userId);
+        requestContextCacheService.invalidateForUser,
+      ).not.toHaveBeenCalled();
       expect(usersService.patch).not.toHaveBeenCalled();
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: userId,
-      });
-      expect(result).toBeDefined();
     });
 
     it('should select a brand and persist last-used brand from PATCH /users/me', async () => {
@@ -682,15 +658,12 @@ describe('UsersController', () => {
         userId,
         orgId,
       );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: orgId,
-          userId,
-        },
-        canonicalId,
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
       );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
       expect(usersService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();
     });
