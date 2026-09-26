@@ -52,10 +52,10 @@
     "creditUsageLabel": "Credit usage",
     "credits": {
       "add": "{creditCategory, select, refund {{source, select, none {Credits refunded} other {Credit refund: {source}}}} rollover {{source, select, none {Credits rolled over} other {Credits rolled over: {source}}}} other {{source, select, none {Credits added} other {{source}}}}}",
-      "remove": "{creditCategory, select, expire {{source, select, none {Credits expired} other {Credits expired: {source}}}} byok-usage {{source, select, none {AI usage} other {{source}}} (your API key)} other {{source, select, none {Credit usage — details unavailable} other {{source}}}}}",
+      "remove": "{creditCategory, select, expire {{source, select, none {Credits expired} other {Credits expired: {source}}}} byok_usage {{source, select, none {AI usage} other {{source}}} (your API key)} other {{source, select, none {Credit usage — details unavailable} other {{source}}}}}",
       "remove_all": "Removed all credits",
       "reset": "{source, select, none {Credit balance reset} other {Credit balance reset: {source}}}",
-      "change": "{creditCategory, select, byok-usage {No credits charged} reset {Balance set to {count, plural, one {{amount} credit} other {{amount} credits}}} add {+{count, plural, one {{amount} credit} other {{amount} credits}}} refund {+{count, plural, one {{amount} credit} other {{amount} credits}}} rollover {+{count, plural, one {{amount} credit} other {{amount} credits}}} other {−{count, plural, one {{amount} credit} other {{amount} credits}}}}"
+      "change": "{creditCategory, select, byok_usage {No credits charged} reset {Balance set to {count, plural, one {{amount} credit} other {{amount} credits}}} add {+{count, plural, one {{amount} credit} other {{amount} credits}}} refund {+{count, plural, one {{amount} credit} other {{amount} credits}}} rollover {+{count, plural, one {{amount} credit} other {{amount} credits}}} other {−{count, plural, one {{amount} credit} other {{amount} credits}}}}"
     },
     "fallback": "{fallbackSubject}",
     "lifecycle": {
