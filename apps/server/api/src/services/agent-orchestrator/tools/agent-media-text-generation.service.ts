@@ -61,14 +61,18 @@ function splitThreadSegments(content: string): string[] {
 }
 
 /**
- * Tool parameters may name sources or purposes explicitly; otherwise the
- * turn-level selection from the composer applies. Ids never widen scope:
- * retrieval still filters by the caller's organization and brand.
+ * The user's composer selection is authoritative for the turn: the model may
+ * not swap it for sources or purposes of its own choosing. Without one, tool
+ * parameters may name sources or purposes. Ids never widen scope: retrieval
+ * still filters by the caller's organization and brand.
  */
 export function resolveToolKnowledgeSelection(
   params: Record<string, unknown>,
   ctx: Pick<ToolExecutionContext, 'knowledgeSelection'>,
 ): KnowledgeSelection | undefined {
+  if (hasKnowledgeSelection(ctx.knowledgeSelection)) {
+    return ctx.knowledgeSelection;
+  }
   const sourceIds = readStringList(params.knowledgeSourceIds);
   const purposes = readStringList(params.knowledgePurposes)?.filter(
     (purpose): purpose is KnowledgeSourcePurpose =>
@@ -83,6 +87,16 @@ export function resolveToolKnowledgeSelection(
     };
   }
   return ctx.knowledgeSelection;
+}
+
+function hasKnowledgeSelection(
+  selection: KnowledgeSelection | undefined,
+): selection is KnowledgeSelection {
+  return Boolean(
+    selection?.sourceIds?.length ||
+      selection?.spaceIds?.length ||
+      selection?.purposes?.length,
+  );
 }
 
 function readStringList(value: unknown): string[] | undefined {
