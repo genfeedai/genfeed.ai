@@ -1,6 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   BrandRemixAdPlatform,
+  type BrandRemixConcept,
+  type BrandRemixDraftEdits,
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
@@ -10,6 +12,14 @@ import { expect, test } from '../../fixtures/auth.fixture';
 
 const BRAND_BASE = '/test-org/brand-1';
 const FIXED_TIME = '2026-08-20T10:00:00.000Z';
+
+// The source pattern every fixture run shares. seedBrandRemixConcept
+// (apps/server/api/.../brand-remix-concept.ts) prefills angle/hook/storyboard
+// from exactly these fields on create, so the seeded concept below must track
+// them.
+const SEEDED_HOOK = 'Outcome-led relevance hook.';
+const SEEDED_STRUCTURE =
+  'Lead with a clear outcome, support it with proof, then close with a brand-specific action.';
 
 type RemixPlatform = 'meta' | 'tiktok';
 
@@ -48,6 +58,8 @@ function buildRun({
               kind: 'public_ad' as const,
             };
 
+  const objective = `Create an original ${platform} execution for Northstar.`;
+
   return {
     brand: {
       contextMode: 'brand' as const,
@@ -55,16 +67,32 @@ function buildRun({
       name: 'Northstar',
     },
     brandId: 'brand-1',
+    // The create path always seeds a concept from the source pattern
+    // (seedBrandRemixConcept), so the fixture must too — otherwise Generate
+    // stays disabled until a test fills the concept in by hand, which is
+    // only true for the one scenario that exercises that edit path.
+    concept: {
+      angle: SEEDED_STRUCTURE,
+      hook: SEEDED_HOOK,
+      savedAt: FIXED_TIME,
+      script: objective,
+      storyboard: [
+        {
+          narration: SEEDED_HOOK,
+          ordinal: 1,
+          visualIntent: SEEDED_STRUCTURE,
+        },
+      ],
+    },
     contract: 'brand-remix-run' as const,
     createdAt: FIXED_TIME,
     draft: {
       fidelityMode: 'guided' as const,
       identity: {},
       intent: {
-        hook: 'Outcome-led relevance hook.',
-        objective: `Create an original ${platform} execution for Northstar.`,
-        structure:
-          'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
+        hook: SEEDED_HOOK,
+        objective,
+        structure: SEEDED_STRUCTURE,
       },
       output: {
         aspectRatio: platform === 'tiktok' ? '9:16' : '1:1',
@@ -94,9 +122,8 @@ function buildRun({
       evidence: ['Strong proof-led structure'],
       metrics: { engagementRate: 8.4 },
       pattern: {
-        hook: 'Outcome-led relevance hook.',
-        structure:
-          'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
+        hook: SEEDED_HOOK,
+        structure: SEEDED_STRUCTURE,
       },
       platform:
         platform === 'meta'
@@ -178,6 +205,43 @@ async function openTikTokTrendFeed(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
 }
 
+/**
+ * The remix brief inspector prepares a run but never generates until the
+ * concept is complete (#5113: "save an editable concept before generation").
+ * The create path always seeds a complete concept from the source pattern
+ * (seedBrandRemixConcept), so Generate is enabled the moment the inspector
+ * opens — assert the seed actually prefilled the form, then choose Generate.
+ */
+async function generateFromSeededConcept(page: Page): Promise<void> {
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByLabel('Angle')).toHaveValue(SEEDED_STRUCTURE);
+  await expect(dialog.getByLabel('Hook')).toHaveValue(SEEDED_HOOK);
+  const generateButton = dialog.getByRole('button', { name: 'Generate' });
+  await expect(generateButton).toBeEnabled();
+  await generateButton.click();
+}
+
+/**
+ * One scenario reshapes the seeded concept instead of accepting it as-is, to
+ * cover the "edit before generating" path. A scene already exists from the
+ * seed, so "Add scene" appends a second one — target the new scene's
+ * "Visual intent" field by position (`.last()`) rather than by label alone,
+ * which would be a strict-mode violation once two scenes are on screen.
+ */
+async function editRemixConceptAndGenerate(page: Page): Promise<void> {
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Generate' })).toBeVisible();
+  await dialog
+    .getByLabel('Angle')
+    .fill('Lead with the proof, then hand off to Northstar.');
+  await dialog.getByRole('button', { name: 'Add scene' }).click();
+  await dialog
+    .getByLabel('Visual intent')
+    .last()
+    .fill('Open on the outcome, then show the proof point.');
+  await dialog.getByRole('button', { name: 'Generate' }).click();
+}
+
 async function routeRemixRun(
   page: Page,
   options: RemixFixtureOptions,
@@ -193,8 +257,34 @@ async function routeRemixRun(
 
   await page.route(`**/content-runs/${options.id}/remix`, async (route) => {
     if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON() as {
+        edits?: BrandRemixDraftEdits;
+      };
+      const conceptEdits = body.edits?.concept;
+      // Mirror mergeBrandRemixConcept's `pick` exactly: an edit of `null`
+      // clears the field, `undefined` (the field was left out) keeps the
+      // current value, and a string replaces it.
+      const pick = (
+        next: string | null | undefined,
+        previous: string | undefined,
+      ): string | undefined => {
+        if (next === null) return undefined;
+        if (typeof next === 'string') return next;
+        return previous;
+      };
+      const mergedConcept: BrandRemixConcept | undefined = conceptEdits
+        ? {
+            angle: pick(conceptEdits.angle, run.concept?.angle),
+            hook: pick(conceptEdits.hook, run.concept?.hook),
+            savedAt: '2026-08-20T10:01:00.000Z',
+            script: pick(conceptEdits.script, run.concept?.script),
+            storyboard:
+              conceptEdits.storyboard ?? run.concept?.storyboard ?? [],
+          }
+        : run.concept;
       run = {
         ...run,
+        concept: mergedConcept,
         revision: run.revision + 1,
         updatedAt: '2026-08-20T10:01:00.000Z',
       };
@@ -311,6 +401,7 @@ test.describe('Discovery prefilled remix handoff', () => {
 
     await openTikTokTrendFeed(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
+    await editRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-tiktok-1$/,
@@ -431,6 +522,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await generateFromSeededConcept(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-meta-1$/,
@@ -614,6 +706,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await generateFromSeededConcept(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-saved-ad-1$/,
@@ -853,6 +946,16 @@ test.describe('Discovery prefilled remix handoff', () => {
         });
       },
     );
+    // publicCount: 0 above makes AdsResearchPageClient auto-show
+    // AdsResearchWatchlistPanel, which reads this endpoint. Left unmocked, it
+    // falls through to the generic catch-all in api-interceptor.ts (a
+    // JSON:API collection object, not the array the real controller always
+    // returns), and readiness.filter(...) throws. Mock it like the real
+    // controller would.
+    await authenticatedPage.route(
+      /\/ads\/research\/watchlist-readiness(?:\?.*)?$/,
+      (route) => fulfillJson(route, []),
+    );
     await mockReviewQueue(authenticatedPage, {
       batchId: 'review-batch-1',
       itemAttributes: {
@@ -931,6 +1034,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await generateFromSeededConcept(authenticatedPage);
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();

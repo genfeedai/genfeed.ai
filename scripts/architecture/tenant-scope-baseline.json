@@ -483,14 +483,6 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "c08ddddba8d0f07791f8",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "c0810f7299b9a1efdb91",
       "method": "update",
       "model": "CreditBalance",
@@ -1066,8 +1058,8 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "9af0abbeb72bcb93c766",
+      "file": "apps/server/api/src/collections/posts/services/post-patch-write.util.ts",
+      "fingerprint": "4b95740a24f15605c19c",
       "method": "findFirst",
       "model": "Post",
       "reason": "missing-organization-id"
