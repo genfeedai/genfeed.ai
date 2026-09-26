@@ -59,9 +59,6 @@ export const mediaValidationSchema = {
   MODERATION_MODE: Joi.string()
     .valid('off', 'shadow', 'live')
     .default('shadow'),
-  // Per-category overrides, `category=confidence` pairs, e.g.
-  // `sexual=0.5,violence=0.7`. Unset categories keep the contract defaults
-  // (DEFAULT_MODERATION_THRESHOLDS); lower is stricter.
   // Text decisions on perception output (#4882): brand safety and on-brand
   // over transcript and scene description, caption consistency per post.
   // In `live`, a `false` answer at or above MEDIA_TEXT_GATE_MIN_CONFIDENCE on
@@ -71,6 +68,9 @@ export const mediaValidationSchema = {
     .valid('off', 'shadow', 'live')
     .default('off'),
   MEDIA_TEXT_GATE_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
+  // Per-category overrides, `category=confidence` pairs, e.g.
+  // `sexual=0.5,violence=0.7`. Unset categories keep the contract defaults
+  // (DEFAULT_MODERATION_THRESHOLDS); lower is stricter.
   MODERATION_THRESHOLDS: Joi.string()
     .pattern(
       /^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/,
