@@ -292,21 +292,26 @@ test('reportMasterCiFailure keeps Project membership when native metadata verifi
       mutationOrder.push('project');
       return { addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } } };
     }
-    mutationOrder.push('metadata');
-    return {
-      updateIssue: {
-        issue: {
-          id: vars.issueId,
-          issueType: { id: ISSUE_TYPE_BUG },
-          issueFieldValues: {
-            nodes: [
-              { field: { name: 'Priority' }, value: PRIORITY_P0 },
-              { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
-            ],
+    if (query.includes('updateIssue(')) {
+      mutationOrder.push('metadata');
+      return {
+        updateIssue: {
+          issue: {
+            id: vars.issueId,
+            issueType: { id: ISSUE_TYPE_BUG },
+            issueFieldValues: {
+              nodes: [
+                { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
+              ],
+            },
           },
         },
-      },
-    };
+      };
+    }
+    // The current-Priority read, ahead of the metadata write.
+    mutationOrder.push('priority-read');
+    return { node: { issueFieldValues: { nodes: [] } } };
   };
 
   await assert.rejects(
@@ -322,7 +327,7 @@ test('reportMasterCiFailure keeps Project membership when native metadata verifi
   );
 
   assert.equal(created.length, 1);
-  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+  assert.deepEqual(mutationOrder, ['project', 'priority-read', 'metadata']);
 });
 
 test('reportMasterCiFailure still writes native metadata when Project membership fails', async () => {
@@ -333,25 +338,30 @@ test('reportMasterCiFailure still writes native metadata when Project membership
       mutationOrder.push('project');
       throw new Error('Project is unavailable');
     }
-    mutationOrder.push('metadata');
-    return {
-      updateIssue: {
-        issue: {
-          id: vars.issueId,
-          issueType: { id: ISSUE_TYPE_BUG },
-          issueFieldValues: {
-            nodes: [
-              { field: { name: 'Priority' }, value: PRIORITY_P0 },
-              { field: { name: 'Area' }, value: AREA_INFRA },
-              {
-                field: { name: 'Blast radius' },
-                value: BLAST_RADIUS_INFRA,
-              },
-            ],
+    if (query.includes('updateIssue(')) {
+      mutationOrder.push('metadata');
+      return {
+        updateIssue: {
+          issue: {
+            id: vars.issueId,
+            issueType: { id: ISSUE_TYPE_BUG },
+            issueFieldValues: {
+              nodes: [
+                { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                { field: { name: 'Area' }, value: AREA_INFRA },
+                {
+                  field: { name: 'Blast radius' },
+                  value: BLAST_RADIUS_INFRA,
+                },
+              ],
+            },
           },
         },
-      },
-    };
+      };
+    }
+    // The current-Priority read, ahead of the metadata write.
+    mutationOrder.push('priority-read');
+    return { node: { issueFieldValues: { nodes: [] } } };
   };
 
   await assert.rejects(
@@ -367,7 +377,7 @@ test('reportMasterCiFailure still writes native metadata when Project membership
   );
 
   assert.equal(created.length, 1);
-  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+  assert.deepEqual(mutationOrder, ['project', 'priority-read', 'metadata']);
 });
 
 test('resolveMasterCiFailure closes all open trackers', async () => {
