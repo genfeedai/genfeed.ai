@@ -81,10 +81,13 @@ function readTransportCode(error: unknown): string | undefined {
  * throws in `brand-scraper.service.ts`). Anchored to the end of the string
  * so a 3-digit port in the URL portion of the message (e.g.
  * `https://example.com:800/path: 404 Not Found`) can never match instead of
- * the real trailing status (#5080 review).
+ * the real trailing status. The optional reason-phrase group allows plain
+ * trailing whitespace with no phrase at all (`fetch(...)`'s `statusText` can
+ * be empty, e.g. `...: 403 `) — a bare `\s+\S.*` group would refuse to match
+ * that and miss the status entirely (#5080 review).
  */
 function readEmbeddedStatus(message: string): number | undefined {
-  const match = /:\s*(\d{3})(?:\s+\S.*)?$/.exec(message);
+  const match = /:\s*(\d{3})(?:\s+.*)?\s*$/.exec(message);
   const status = match ? Number(match[1]) : undefined;
   return status !== undefined && Number.isFinite(status) ? status : undefined;
 }

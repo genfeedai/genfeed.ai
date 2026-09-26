@@ -159,6 +159,20 @@ describe('classifyBrandScrapeError', () => {
     });
   });
 
+  it('reads the trailing status when the real fetch() statusText is empty, leaving a trailing space (#5080 review)', () => {
+    // A real `fetch()` Response can have an empty `statusText`. The scraper's
+    // own template (`${status} ${statusText}`) then leaves a trailing space
+    // with nothing after it — this must not be mistaken for "no status".
+    expect(
+      classifyBrandScrapeError(
+        new Error('Failed to fetch https://example.com: 403 '),
+      ),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_BLOCKED,
+      message: 'That website blocked our request to read it.',
+    });
+  });
+
   it('classifies a bot-detection message without a status code as blocked', () => {
     expect(
       classifyBrandScrapeError(new Error('Please complete the captcha')),

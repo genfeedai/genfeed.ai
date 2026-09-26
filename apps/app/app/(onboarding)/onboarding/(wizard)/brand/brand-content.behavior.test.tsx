@@ -13,6 +13,7 @@ const {
   findMeBrandsMock,
   findMeOrganizationsMock,
   handleStepCompleteMock,
+  notifyWarningMock,
   patchMeMock,
   patchSettingsMock,
   pushMock,
@@ -28,6 +29,7 @@ const {
   findMeBrandsMock: vi.fn(),
   findMeOrganizationsMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
+  notifyWarningMock: vi.fn(),
   patchMeMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
@@ -75,6 +77,14 @@ vi.mock('@hooks/ui/use-gsap-entrance', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: vi.fn(() => ({
+      warning: notifyWarningMock,
+    })),
   },
 }));
 
@@ -191,6 +201,7 @@ describe('BrandContent behavior', () => {
     findMeBrandsMock.mockReset();
     findMeOrganizationsMock.mockReset();
     handleStepCompleteMock.mockReset();
+    notifyWarningMock.mockReset();
     patchMeMock.mockReset();
     patchSettingsMock.mockReset();
     pushMock.mockReset();
@@ -601,11 +612,15 @@ describe('BrandContent behavior', () => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
     });
     expect(scrapeMock).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByText(
-        "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
-      ),
-    ).toBeVisible();
+    // The notice is a toast, not the step's inline error Alert: this step
+    // navigates away immediately (handleStepComplete), so an inline notice
+    // would never be seen. AppToaster is mounted in the root layout, not
+    // per-route, so a toast fired here survives that navigation (#5080
+    // review).
+    expect(notifyWarningMock).toHaveBeenCalledWith(
+      "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('keeps advancing on every retry when the same site keeps producing the same warning (#5080)', async () => {
@@ -660,11 +675,9 @@ describe('BrandContent behavior', () => {
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
     });
-    expect(
-      screen.getByText(
-        'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
-      ),
-    ).toBeVisible();
+    expect(notifyWarningMock).toHaveBeenCalledWith(
+      'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
+    );
   });
 
   it('advances past a client-side scrape timeout (no JSON:API body) instead of blocking Continue', async () => {
@@ -689,11 +702,9 @@ describe('BrandContent behavior', () => {
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
     });
-    expect(
-      screen.getByText(
-        'Your site took too long to respond, but your brand setup continued — you can add details anytime.',
-      ),
-    ).toBeVisible();
+    expect(notifyWarningMock).toHaveBeenCalledWith(
+      'Your site took too long to respond, but your brand setup continued — you can add details anytime.',
+    );
   });
 
   it('falls back to the generic scrape notice for an unrecognized or missing error code, and still advances', async () => {
@@ -710,11 +721,9 @@ describe('BrandContent behavior', () => {
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
     });
-    expect(
-      screen.getByText(
-        'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
-      ),
-    ).toBeVisible();
+    expect(notifyWarningMock).toHaveBeenCalledWith(
+      'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
+    );
   });
 
   it('blocks only on an invalid URL, keeping the user on this step to fix it', async () => {

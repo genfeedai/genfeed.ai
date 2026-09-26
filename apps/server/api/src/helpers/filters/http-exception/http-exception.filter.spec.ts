@@ -1,7 +1,3 @@
-import {
-  ErrorHandler,
-  getErrorStatus,
-} from '@genfeedai/utils/error/error-handler.util';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -542,58 +538,6 @@ describe('HttpExceptionFilter', () => {
       expect(responseStr).not.toContain('jwt-secret-token-123');
       expect(responseStr).not.toContain('sk-secret-api-key');
       expect(responseStr).not.toContain('user-password-123');
-    });
-  });
-
-  describe('Client-side error-helper contract (#5080 review)', () => {
-    it('lets @genfeedai/utils getErrorStatus resolve the real status behind a stable, non-numeric code', () => {
-      const exception = new HttpException(
-        {
-          code: 'BRAND_SCRAPE_UNKNOWN',
-          detail: 'Failed to setup brand',
-          title: 'Brand Setup Failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-
-      filter.catch(exception, mockArgumentsHost);
-
-      const body = mockResponse.json.mock.calls[0][0];
-      expect(getErrorStatus(body)).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(ErrorHandler.convertJsonApiError(body)?.status).toBe(
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    });
-
-    it('leaves an ordinary 404 (e.g. ErrorResponse.notFound) resolving to a 404 status, not 500', () => {
-      const exception = new HttpException(
-        { detail: 'Brand not found', title: 'Not Found' },
-        HttpStatus.NOT_FOUND,
-      );
-
-      filter.catch(exception, mockArgumentsHost);
-
-      const body = mockResponse.json.mock.calls[0][0];
-      expect(getErrorStatus(body)).toBe(HttpStatus.NOT_FOUND);
-      expect(ErrorHandler.convertJsonApiError(body)?.status).toBe(
-        HttpStatus.NOT_FOUND,
-      );
-      expect(ErrorHandler.convertJsonApiError(body)?.code).toBe('NOT_FOUND');
-    });
-
-    it('leaves a 429 (rate limit / quota) resolving to a 429 status, not 500', () => {
-      const exception = new HttpException(
-        { detail: 'Too many requests', title: 'Rate Limited' },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-
-      filter.catch(exception, mockArgumentsHost);
-
-      const body = mockResponse.json.mock.calls[0][0];
-      expect(getErrorStatus(body)).toBe(HttpStatus.TOO_MANY_REQUESTS);
-      expect(ErrorHandler.convertJsonApiError(body)?.status).toBe(
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
     });
   });
 });

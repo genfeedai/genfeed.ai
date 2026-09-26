@@ -15,6 +15,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
@@ -68,6 +69,20 @@ const TIMELINE_STEPS = [
     selector: '.step-actions',
   },
 ];
+
+/**
+ * Surfaces a non-blocking scrape notice as a toast instead of the step's
+ * inline error `Alert`. `handleStepComplete` navigates away immediately
+ * after this fires, so an inline notice would never be seen; `AppToaster`
+ * (packages/ui/src/components/providers/AppProviders.tsx) is mounted in the
+ * root layout, not per-route, so the toast survives that navigation and the
+ * user actually sees it on the next step (#5080 review). `warning` (not
+ * `error`) since the underlying setup already succeeded or is continuing
+ * regardless.
+ */
+function notifyScrapeIssue(message: string): void {
+  NotificationsService.getInstance().warning(message);
+}
 
 function normalizeWebsiteUrl(url: string): string | null {
   const trimmedUrl = url.trim();
@@ -391,7 +406,7 @@ function BrandContentContent() {
             const code = resolveBrandScrapeIssueCode(
               scrapeResult.scrapeWarning.code,
             );
-            setErrorMessage(translate(`notices.scrapeIssue.codes.${code}`));
+            notifyScrapeIssue(translate(`notices.scrapeIssue.codes.${code}`));
           }
         } catch (scrapeError) {
           logger.error('Failed to scrape brand during onboarding', scrapeError);
@@ -403,7 +418,7 @@ function BrandContentContent() {
             return;
           }
 
-          setErrorMessage(translate(`notices.scrapeIssue.codes.${code}`));
+          notifyScrapeIssue(translate(`notices.scrapeIssue.codes.${code}`));
         }
       }
 
