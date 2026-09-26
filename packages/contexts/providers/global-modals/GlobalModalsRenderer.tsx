@@ -10,7 +10,6 @@ import {
   LazyModalGallery,
   LazyModalGenerateIllustration,
   LazyModalMetadata,
-  LazyModalPost,
   LazyModalPostBatch,
   LazyModalPostRemix,
   LazyModalPostRepurpose,
@@ -48,8 +47,6 @@ export default function GlobalModalsRenderer({
   generateIllustrationConfig,
   generateIllustrationTrigger,
   handleBrandOverlayConfirm,
-  handlePostConfirm,
-  handlePostCreated,
   ingredientOverlayData,
   ingredientOverlayTrigger,
   metadataConfig,
@@ -68,12 +65,6 @@ export default function GlobalModalsRenderer({
 }: GlobalModalsRendererProps) {
   return (
     <>
-      <LazyModalPost
-        credentials={credentials}
-        onConfirm={handlePostConfirm}
-        onCreated={handlePostCreated}
-      />
-
       <LazyModalPostBatch
         key={openTrigger}
         ingredient={publishIngredient || undefined}
