@@ -883,7 +883,12 @@ Tweet 3: Tech innovation is changing the world.`,
 
     beforeEach(() => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
+      // Resolves the second batch item's `ingredientId` by default so tests
+      // that aren't specifically about ingredient resolution keep both
+      // items scheduled (#5193: an unresolved id now excludes the item).
+      mockIngredientsService.findByIds.mockResolvedValue([mockIngredient]);
       mockPostsService.batchSchedule.mockResolvedValue({
+        invalidTargetPostIds: [],
         missingPostIds: [],
         posts: [
           { ...mockPost, status: PostStatus.SCHEDULED },
@@ -970,6 +975,7 @@ Tweet 3: Tech innovation is changing the world.`,
       // The scoped read inside batchSchedule reports ids outside the
       // organization instead of the controller probing each one.
       mockPostsService.batchSchedule.mockResolvedValueOnce({
+        invalidTargetPostIds: [],
         missingPostIds: [postId, testId('other')],
         posts: [],
       });
@@ -990,6 +996,26 @@ Tweet 3: Tech innovation is changing the world.`,
       await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
 
       expect(mockIngredientsService.findByIds).toHaveBeenCalled();
+    });
+
+    it('excludes an item whose ingredientId does not resolve instead of scheduling it with no media (#5193)', async () => {
+      // The ingredient exists for no one in this organization (or a typo'd
+      // id): dropping just the id and scheduling anyway used to silently
+      // leave the post without the media its target expected.
+      mockIngredientsService.findByIds.mockResolvedValueOnce([]);
+
+      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+
+      expect(mockPostsService.batchSchedule).toHaveBeenCalledWith(
+        [expect.objectContaining({ postId, text: 'Scheduled tweet 1' })],
+        organizationId,
+        expect.anything(),
+        mockUser.id,
+      );
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'Skipped posts with an unresolved ingredient id',
+        expect.objectContaining({ postIds: [testId('other')] }),
+      );
     });
   });
 
