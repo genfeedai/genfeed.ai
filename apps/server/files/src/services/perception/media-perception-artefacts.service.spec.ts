@@ -39,10 +39,12 @@ async function makeHarness(options: { hasAudio?: boolean } = {}) {
     convertVideoToAudio: vi.fn(async (_input: string, output: string) => {
       fs.writeFileSync(output, 'mp3');
     }),
-    extractFrame: vi.fn(async (_input: string, output: string) => {
-      fs.writeFileSync(output, frameBytes);
-      return output;
-    }),
+    extractFrame: vi.fn(
+      async (_input: string, output: string, _timeInSeconds: number) => {
+        fs.writeFileSync(output, frameBytes);
+        return output;
+      },
+    ),
     getTempPath: vi.fn((type: string, id: string) =>
       path.join(root, `${type}-${id}`),
     ),
