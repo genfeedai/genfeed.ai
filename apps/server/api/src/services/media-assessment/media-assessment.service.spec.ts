@@ -313,7 +313,21 @@ describe('MediaAssessmentService', () => {
     const caption = 'Sunset yoga on the beach';
     const { service } = makeHarness({
       config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
-      perceptions: [perceptionRow('asset-1')],
+      perceptions: [
+        perceptionRow('asset-1', {
+          description: {
+            brandElements: [],
+            contentWarnings: [],
+            hasPeople: true,
+            hasSuspectedMinors: false,
+            setting: 'studio',
+            subjects: ['instructor'],
+            summary: 'An instructor demonstrates a stretch indoors.',
+            textOnScreen: '',
+          },
+          descriptionStatus: 'ready',
+        }),
+      ],
       textDecisions: [
         {
           assetHash: HASH,
@@ -366,7 +380,11 @@ describe('MediaAssessmentService', () => {
       }),
     ]);
     expect(assessment.warnings).toEqual([
-      expect.objectContaining({ code: 'text:caption_inconsistent' }),
+      expect.objectContaining({
+        code: 'text:caption_inconsistent',
+        message:
+          'The caption may not match the media (90%). The media shows: An instructor demonstrates a stretch indoors.',
+      }),
     ]);
   });
 
@@ -392,6 +410,60 @@ describe('MediaAssessmentService', () => {
     await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
       isBlocking: false,
       reasons: [],
+    });
+  });
+
+  it('keeps applying a persisted confident flag while no decision provider is bound', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      isDecisionProviderBound: false,
+      perceptions: [perceptionRow('asset-1')],
+      textDecisions: [
+        {
+          assetHash: HASH,
+          decisions: [
+            {
+              confidence: 0.97,
+              name: 'isBrandSafe',
+              source: 'transcript',
+              value: false,
+            },
+          ],
+          ingredientId: 'asset-1',
+          mode: 'live',
+          subjectKey: 'asset',
+        },
+      ],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: true,
+      reasons: [expect.objectContaining({ code: 'text:not_brand_safe' })],
+    });
+  });
+
+  it.each([
+    ['over other bytes', { assetHash: 'f'.repeat(64) }],
+    ['that no longer parses', { decisions: 'not-an-array' }],
+  ])('treats an asset decision %s as undecided', async (_label, overrides) => {
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1')],
+      textDecisions: [
+        {
+          assetHash: HASH,
+          decisions: [],
+          ingredientId: 'asset-1',
+          mode: 'live',
+          subjectKey: 'asset',
+          ...overrides,
+        },
+      ],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: true,
+      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
     });
   });
 

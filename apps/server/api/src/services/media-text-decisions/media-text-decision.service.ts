@@ -33,6 +33,35 @@ export const CAPTION_SWEEP_WINDOW_MS = 30 * 60 * 1000;
 
 export type MediaTextDecisionOutcome = 'decided' | 'skipped';
 
+/** Per subject: persisted, nothing to do, or a question went unanswered. */
+type SubjectOutcome = 'decided' | 'none' | 'unanswered';
+
+/**
+ * Artefact statuses the asset-level questions cannot be judged over: still
+ * running, or terminally failed (the text was never seen, so a decision over
+ * what remains would be a guess).
+ */
+const UNJUDGEABLE_STATUSES = ['failed', 'pending'];
+
+/**
+ * A question went unanswered (provider failure or timeout). Thrown after the
+ * job so BullMQ's backoff paces the retry instead of the two-minute sweep.
+ */
+export class MediaTextDecisionUnansweredError extends Error {
+  constructor(ingredientId: string) {
+    super(`Text decisions unanswered for asset ${ingredientId}`);
+    this.name = 'MediaTextDecisionUnansweredError';
+  }
+}
+
+function hasUnjudgeableText(perception: IMediaPerception): boolean {
+  return [
+    perception.descriptionStatus,
+    perception.ocrStatus,
+    perception.transcriptStatus,
+  ].some((status) => UNJUDGEABLE_STATUSES.includes(status));
+}
+
 type DecisionContext = {
   brandId: string | null;
   organizationId: string;
@@ -50,9 +79,11 @@ type DecisionContext = {
  *
  * A provider that is unbound behaves as `off`. A provider failure persists
  * nothing for that subject — never a guess, and never a row that reads as
- * decided — so the sweep retries it while the asset is inside the lookback
- * window and a live assessment keeps reporting it as unchecked. Pending
- * perception skips the job the same way.
+ * decided — and throws once the job is done, so the queue's backoff paces
+ * the retry while a live assessment keeps reporting the asset as unchecked.
+ * Pending perception skips the job; a failed transcript, OCR or description
+ * leaves the asset undecided for good (review while `live`), since judging
+ * the remaining text alone would pass what was never read.
  */
 @Injectable()
 export class MediaTextDecisionService {
@@ -98,12 +129,19 @@ export class MediaTextDecisionService {
       brandId: ingredient.brandId ?? null,
       organizationId: job.organizationId,
     };
-    const didAsset = await this.decideAsset(job, perception, context, {
-      description: ingredient.brand?.description ?? null,
-      name: ingredient.brand?.label ?? null,
-    });
-    const didCaptions = await this.decideCaptions(job, perception, context);
-    return didAsset || didCaptions ? 'decided' : 'skipped';
+    const asset = hasUnjudgeableText(perception)
+      ? 'none'
+      : await this.decideAsset(job, perception, context, {
+          description: ingredient.brand?.description ?? null,
+          name: ingredient.brand?.label ?? null,
+        });
+    const captions = await this.decideCaptions(job, perception, context);
+    if (asset === 'unanswered' || captions === 'unanswered') {
+      throw new MediaTextDecisionUnansweredError(job.ingredientId);
+    }
+    return asset === 'decided' || captions === 'decided'
+      ? 'decided'
+      : 'skipped';
   }
 
   /**
@@ -126,8 +164,17 @@ export class MediaTextDecisionService {
         take: limit,
         where: {
           isDeleted: false,
+          // Only perceptions the asset questions can be judged over: nothing
+          // pending, no text artefact failed.
           mediaPerceptions: {
-            some: { isDeleted: false, updatedAt: { gte: since } },
+            some: {
+              descriptionStatus: { notIn: UNJUDGEABLE_STATUSES },
+              framesStatus: { not: 'pending' },
+              isDeleted: false,
+              ocrStatus: { notIn: UNJUDGEABLE_STATUSES },
+              transcriptStatus: { notIn: UNJUDGEABLE_STATUSES },
+              updatedAt: { gte: since },
+            },
           },
           mediaTextDecisions: {
             none: { isDeleted: false, subjectKey: MEDIA_TEXT_ASSET_SUBJECT },
@@ -141,7 +188,9 @@ export class MediaTextDecisionService {
         take: limit,
         where: {
           isDeleted: false,
-          mediaPerceptions: { some: { isDeleted: false } },
+          mediaPerceptions: {
+            some: { descriptionStatus: 'ready', isDeleted: false },
+          },
           organizationId: { not: null },
           postIngredients: {
             some: {
@@ -169,11 +218,11 @@ export class MediaTextDecisionService {
     perception: IMediaPerception,
     context: DecisionContext,
     brand: { description: string | null; name: string | null },
-  ): Promise<boolean> {
+  ): Promise<SubjectOutcome> {
     if (
       await this.hasRecord(job, MEDIA_TEXT_ASSET_SUBJECT, perception.assetHash)
     ) {
-      return false;
+      return 'none';
     }
     const transcript =
       perception.transcript?.text.trim().slice(0, MAX_TRANSCRIPT_CHARS) ?? '';
@@ -192,10 +241,15 @@ export class MediaTextDecisionService {
         sceneSummary: description?.summary ?? null,
         transcript,
       };
-      for (const name of ['isBrandSafe', 'isOnBrand'] as const) {
+      // On-brand needs a brand to judge against; without a description the
+      // question has no answer, so it is not asked.
+      const names = brand.description?.trim()
+        ? (['isBrandSafe', 'isOnBrand'] as const)
+        : (['isBrandSafe'] as const);
+      for (const name of names) {
         const decision = await this.decide(name, state, context, source);
         if (!decision) {
-          return false;
+          return 'unanswered';
         }
         decisions.push(decision);
       }
@@ -206,17 +260,17 @@ export class MediaTextDecisionService {
       perception.assetHash,
       decisions,
     );
-    return true;
+    return 'decided';
   }
 
   private async decideCaptions(
     job: IMediaPerceptionCandidate,
     perception: IMediaPerception,
     context: DecisionContext,
-  ): Promise<boolean> {
+  ): Promise<SubjectOutcome> {
     const description = perception.description;
     if (!description) {
-      return false;
+      return 'none';
     }
     const posts = await this.prisma.post.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -233,7 +287,7 @@ export class MediaTextDecisionService {
           .filter((caption) => caption.length > 0),
       ),
     );
-    let didDecide = false;
+    let outcome: SubjectOutcome = 'none';
     for (const caption of captions) {
       const subjectKey = captionSubjectKey(caption);
       if (await this.hasRecord(job, subjectKey, perception.assetHash)) {
@@ -251,12 +305,12 @@ export class MediaTextDecisionService {
         'description',
       );
       if (!decision) {
-        continue;
+        return 'unanswered';
       }
       await this.persist(job, subjectKey, perception.assetHash, [decision]);
-      didDecide = true;
+      outcome = 'decided';
     }
-    return didDecide;
+    return outcome;
   }
 
   private async decide(

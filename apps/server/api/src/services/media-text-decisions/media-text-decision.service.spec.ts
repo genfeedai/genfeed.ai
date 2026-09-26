@@ -1,5 +1,8 @@
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
-import { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
+import {
+  MediaTextDecisionService,
+  MediaTextDecisionUnansweredError,
+} from '@api/services/media-text-decisions/media-text-decision.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import type { IMediaPerception } from '@genfeedai/contracts/interfaces';
@@ -40,6 +43,7 @@ function perception(overrides: Partial<IMediaPerception> = {}) {
 
 function makeHarness(
   options: {
+    brand?: { description: string | null; label: string } | null;
     existing?: boolean;
     isBound?: boolean;
     mode?: string;
@@ -49,6 +53,7 @@ function makeHarness(
 ) {
   const decide = vi.fn().mockResolvedValue({ confidence: 0.93, value: false });
   const upsert = vi.fn().mockResolvedValue({});
+  const ingredientFindMany = vi.fn().mockResolvedValue([]);
   const findFirst = vi
     .fn()
     .mockResolvedValue(options.existing ? { id: 'decision-1' } : null);
@@ -58,8 +63,12 @@ function makeHarness(
   const service = new MediaTextDecisionService(
     {
       ingredient: {
+        findMany: ingredientFindMany,
         findFirst: vi.fn().mockResolvedValue({
-          brand: { description: 'Craft cocktail bar.', label: 'Barrel' },
+          brand:
+            options.brand === undefined
+              ? { description: 'Craft cocktail bar.', label: 'Barrel' }
+              : options.brand,
           brandId: 'brand-1',
         }),
       },
@@ -86,7 +95,7 @@ function makeHarness(
     { get: (key: string) => config[key] } as unknown as ConfigService,
     { warn: vi.fn() } as unknown as LoggerService,
   );
-  return { decide, service, upsert };
+  return { decide, ingredientFindMany, service, upsert };
 }
 
 describe('MediaTextDecisionService', () => {
@@ -175,11 +184,13 @@ describe('MediaTextDecisionService', () => {
     expect(h.decide).not.toHaveBeenCalled();
   });
 
-  it('persists nothing when the provider does not answer, so the sweep retries', async () => {
+  it('persists nothing and throws for a backed-off retry when the provider does not answer', async () => {
     const h = makeHarness({ posts: [] });
     h.decide.mockResolvedValue(null);
 
-    await expect(h.service.evaluate(JOB)).resolves.toBe('skipped');
+    await expect(h.service.evaluate(JOB)).rejects.toBeInstanceOf(
+      MediaTextDecisionUnansweredError,
+    );
 
     expect(h.upsert).not.toHaveBeenCalled();
   });
@@ -191,17 +202,71 @@ describe('MediaTextDecisionService', () => {
       .mockResolvedValueOnce({ confidence: 0.9, value: true })
       .mockResolvedValueOnce(null);
 
-    await h.service.evaluate(JOB);
+    await expect(h.service.evaluate(JOB)).rejects.toBeInstanceOf(
+      MediaTextDecisionUnansweredError,
+    );
 
     expect(h.upsert).toHaveBeenCalledTimes(1);
     expect(h.upsert.mock.calls[0][0].create.subjectKey).toBe('asset');
+  });
+
+  it.each([
+    ['transcript', { transcriptStatus: 'failed' }],
+    ['OCR', { ocrStatus: 'failed' }],
+    ['description', { description: null, descriptionStatus: 'failed' }],
+  ] as const)(
+    'never judges the asset when its %s failed',
+    async (_label, overrides) => {
+      const h = makeHarness({
+        perception: perception(overrides as Partial<IMediaPerception>),
+        posts: [],
+      });
+
+      await expect(h.service.evaluate(JOB)).resolves.toBe('skipped');
+
+      expect(h.decide).not.toHaveBeenCalled();
+      expect(h.upsert).not.toHaveBeenCalled();
+    },
+  );
+
+  it('sweeps only perceptions the asset questions can be judged over', async () => {
+    const h = makeHarness();
+
+    await h.service.findUndecidedAssets(new Date(0), 50);
+
+    const [undecided, recentlyPosted] = h.ingredientFindMany.mock.calls;
+    expect(undecided[0].where.mediaPerceptions.some).toEqual(
+      expect.objectContaining({
+        descriptionStatus: { notIn: ['failed', 'pending'] },
+        framesStatus: { not: 'pending' },
+        ocrStatus: { notIn: ['failed', 'pending'] },
+        transcriptStatus: { notIn: ['failed', 'pending'] },
+      }),
+    );
+    expect(recentlyPosted[0].where.mediaPerceptions.some).toEqual({
+      descriptionStatus: 'ready',
+      isDeleted: false,
+    });
+  });
+
+  it('does not ask on-brand without a brand description', async () => {
+    const h = makeHarness({ brand: null, posts: [] });
+
+    await expect(h.service.evaluate(JOB)).resolves.toBe('decided');
+
+    expect(h.decide).toHaveBeenCalledTimes(1);
+    expect(h.decide.mock.calls[0][1].decisionPoint).toBe(
+      'media_text.is_brand_safe',
+    );
   });
 
   it('keeps no partial asset row when only one question is answered', async () => {
     const h = makeHarness({ posts: [] });
     h.decide.mockResolvedValueOnce(null);
 
-    await h.service.evaluate(JOB);
+    await expect(h.service.evaluate(JOB)).rejects.toBeInstanceOf(
+      MediaTextDecisionUnansweredError,
+    );
 
     expect(h.upsert).not.toHaveBeenCalled();
   });
