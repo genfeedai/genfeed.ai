@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   createPostsGenerationHttpException,
   generationFailureMessage,
@@ -39,6 +40,7 @@ import {
   finalizeDeferredTextCredits,
   finalizeOutputCredits,
 } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import { resolveTextModelMinimumCredits } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -83,6 +85,7 @@ export class PostsGenerationController {
 
   constructor(
     private readonly logger: LoggerService,
+    private readonly modelsService: ModelsService,
     private readonly postGenerationService: PostGenerationService,
     private readonly postRepurposeService: PostRepurposeService,
     private readonly postVariationService: PostVariationService,
@@ -177,16 +180,25 @@ export class PostsGenerationController {
   @Post('draft-generations')
   @Credits({
     description: 'Generate post draft (text model)',
-    modelKey: DEFAULT_MINI_TEXT_MODEL,
     source: ActivitySource.POST_GENERATION,
   })
+  @DeferCreditsUntilModelResolution()
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   async generateDraftText(
+    @Req() request: Request,
     @Body() dto: GeneratePostDraftDto,
     @CurrentUser() user: User,
   ): Promise<PostDraftGenerationResult> {
-    return this.postGenerationService.generateDraftText(dto, user);
+    const result = await this.postGenerationService.generateDraftText(
+      dto,
+      user,
+    );
+    finalizeDeferredTextCredits(
+      request,
+      await resolveTextModelMinimumCredits(this.modelsService, result.model),
+    );
+    return result;
   }
 
   @Post('account-generations')

@@ -1,4 +1,4 @@
-import { brandPath, orgPath } from '@e2e/utils/app-chrome';
+import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -469,7 +469,11 @@ test.describe('Agent Onboarding', () => {
         },
       );
 
-      const onboardingPath = brandPath(APP_ROUTES.AGENT.ONBOARDING);
+      // Onboarding is the org-scoped agent surface: proxy.ts sends every
+      // incomplete-onboarding user to `/:org/~/agent/onboarding`, never a
+      // brand path, and the promoted thread route must stay there too (see
+      // AgentWorkspaceLayoutClient.tsx's onboarding-scoped `orgHref` use).
+      const onboardingPath = orgPath(APP_ROUTES.AGENT.ONBOARDING);
       const threadPath = `${onboardingPath}/${threadId}`;
 
       await authenticatedPage.goto(onboardingPath);

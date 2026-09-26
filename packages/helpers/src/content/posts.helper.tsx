@@ -183,6 +183,15 @@ export function getPublishingPostHref(postId: string): string {
   return `${APP_ROUTES.PUBLISHING.POSTS}/${postId}`;
 }
 
+/**
+ * Canonical path for a release group under Publishing.
+ * Release groups have no detail route; the Posts library opens the
+ * ReleaseDetailDrawer from the `release` query param.
+ */
+export function getPublishingReleaseHref(releaseGroupId: string): string {
+  return createPublishingPostsFilterRoute({ release: releaseGroupId });
+}
+
 export function normalizePublishingPostsStatus(
   value?: string | string[] | null,
 ): PublishingPostsStatus {

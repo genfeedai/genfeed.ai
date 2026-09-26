@@ -12,7 +12,7 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1215,
+    "actual": 1214,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
@@ -64,18 +64,6 @@
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
-  },
-  {
-    "actual": 1208,
-    "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/posts/services/posts.service.ts"
-  },
-  {
-    "actual": 170,
-    "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostsService.patch"
   },
   {
     "actual": 1085,
