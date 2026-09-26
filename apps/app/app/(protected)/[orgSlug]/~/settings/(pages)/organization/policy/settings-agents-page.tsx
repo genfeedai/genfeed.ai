@@ -9,6 +9,7 @@ import { useAgentModelAccess } from '@hooks/data/billing/use-agent-model-access/
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import type {
   AgentPolicyState,
+  OverrideCategoryModels,
   PolicyFormAction,
   PolicyFormState,
 } from '@props/settings/policy.props';
@@ -90,12 +91,6 @@ function policyFormReducer(
       return state;
   }
 }
-
-type OverrideCategoryModels = {
-  generation: Array<Pick<IModel, 'id' | 'key'>>;
-  review: Array<Pick<IModel, 'id' | 'key'>>;
-  thinking: Array<Pick<IModel, 'id' | 'key'>>;
-};
 
 /**
  * Model override keys are only ever safe to persist once the catalog has
