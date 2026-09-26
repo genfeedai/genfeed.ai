@@ -57,7 +57,9 @@ export interface SecondOrderCascadeTarget {
  *
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
  * `currentBrandId`, a per-user UI pointer — the member row belongs to its own org
- * and must NOT move), plus `ContentVersionPin`, `LlmVendorCost`,
+ * and must NOT move), `ApiKey` (its `defaultBrandId` is the same kind of
+ * per-key preference pointer, not brand-owned content), plus
+ * `ContentVersionPin`, `LlmVendorCost`,
  * `MediaVendorCost`, and `PublishApproval` (records whose composite Brand foreign
  * keys cascade atomically with the Brand row instead of being rewritten by the
  * generic target loop).
@@ -754,6 +756,10 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * listed here — so a new one can't slip through unreviewed.
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  // Single-column FK to Brand.id, same reasoning as Member.currentBrandId: an
+  // API key never moves orgs, so defaultBrandId cannot share the compound
+  // (brandId, organizationId) cascade used by brand-owned content (#5219).
+  'ApiKey',
   // Retained security history blocks relocation, including indirect and deleted audits.
   'AgentPublishAudit',
   'AgentUntrustedContentAudit',
@@ -786,6 +792,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  * via SECOND_ORDER_TARGETS.
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'api_keys',
   'agent_publish_audits',
   'agent_untrusted_content_audits',
   'agent_transfers',

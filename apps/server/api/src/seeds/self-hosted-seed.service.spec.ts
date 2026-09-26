@@ -24,6 +24,7 @@ describe('SelfHostedSeedService', () => {
   const userId = 'user_owner';
   let prisma: {
     brand: {
+      findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
@@ -44,6 +45,7 @@ describe('SelfHostedSeedService', () => {
   beforeEach(() => {
     prisma = {
       brand: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'brand_default' }),
         findMany: vi.fn().mockResolvedValue([
           {
             defaultImageModel: null,
@@ -137,8 +139,14 @@ describe('SelfHostedSeedService', () => {
       },
       where: { key: 'user' },
     });
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { isDeleted: false, organizationId },
+    });
     expect(prisma.member.create).toHaveBeenCalledWith({
       data: {
+        currentBrandId: 'brand_default',
         isActive: true,
         organizationId,
         roleId: 'role_owner',

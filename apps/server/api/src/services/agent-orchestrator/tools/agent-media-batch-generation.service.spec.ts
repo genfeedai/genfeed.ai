@@ -10,6 +10,7 @@ describe('AgentMediaBatchGenerationService internal strategy attribution', () =>
     const service = new AgentMediaBatchGenerationService(
       { warn: vi.fn() } as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) },
+      { findOne: vi.fn() } as never,
       {} as never,
       batches as never,
       undefined,

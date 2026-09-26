@@ -1281,7 +1281,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     );
   });
 
-  it('falls back to the selected brand when a credential has no brand', async () => {
+  it('falls back to the member current brand when a credential has no brand', async () => {
     const createBatch = vi.fn().mockResolvedValue({
       id: 'batch-selected-1',
       status: 'PENDING',
@@ -1290,7 +1290,9 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }) } as never,
-      { findOne: vi.fn().mockResolvedValue(null) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({ currentBrandId: 'member-brand' }),
+      } as never,
       { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
       { cancelBatch: vi.fn(), createBatch } as never,
       { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,
