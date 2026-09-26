@@ -1,0 +1,17 @@
+{
+  "id": "camera-instruction",
+  "version": 1,
+  "medium": "video",
+  "isDraft": true,
+  "title": "Camera instruction",
+  "rationale": "Whether the model can be directed. A generator that produces a lovely shot other than the one you asked for cannot be used in an edit.",
+  "prompt": "Start on a close-up of a kettle beginning to steam. Push in slowly for two seconds, then whip-pan left to a person looking up from a laptop. No cuts.",
+  "referenceRoles": ["none"],
+  "outputSpec": { "aspectRatio": "16:9", "count": 1, "durationSeconds": 6 },
+  "rubric": [
+    "Is the requested camera move the one performed?",
+    "Is it genuinely one continuous shot?",
+    "Does the timing match the instruction?",
+    "Craft of the resulting shot"
+  ]
+}

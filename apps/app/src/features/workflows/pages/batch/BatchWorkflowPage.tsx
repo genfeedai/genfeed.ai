@@ -56,7 +56,12 @@ function BatchWorkflowPageContent() {
   } = useBatchWorkflowPage();
 
   const showDetail =
-    isHistory && Boolean(requestedExecutionId && activeBatchStatus);
+    isHistory &&
+    Boolean(
+      requestedExecutionId &&
+        activeBatchStatus &&
+        activeBatchStatus.id === requestedExecutionId,
+    );
 
   return (
     <Container

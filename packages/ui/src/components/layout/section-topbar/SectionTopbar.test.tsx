@@ -193,6 +193,45 @@ describe('SectionTopbar', () => {
     expect(topbar.className).not.toMatch(/border-b/);
   });
 
+  it('keeps the bordered bar mounted when forceVisible is set, even with nothing else to show', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(<SectionTopbar title="Library" forceVisible />);
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar.tagName).not.toBe('H1');
+    expect(topbar).toHaveClass('border-b', 'border-border');
+  });
+
+  it('gives a forced-visible empty bar the same minimum height as a populated row', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    const { rerender } = render(
+      <SectionTopbar title="Library" titleVisibility="sr-only" forceVisible />,
+    );
+
+    // The empty row must not be a thin sliver that then jumps once real
+    // actions mount — match a populated row's height (size-8 action inside
+    // this row's own py-1.5) via the same min-h-11 token.
+    expect(screen.getByTestId('section-topbar').lastElementChild).toHaveClass(
+      'min-h-11',
+    );
+
+    rerender(
+      <SectionTopbar
+        title="Library"
+        titleVisibility="sr-only"
+        forceVisible
+        actions={<button type="button">Refresh</button>}
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar').lastElementChild).toHaveClass(
+      'min-h-11',
+    );
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+  });
+
   it('clusters Help immediately left of chrome-only actions on the right', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 

@@ -7,9 +7,13 @@
  * - Configure integrations
  * - BYOK (Bring Your Own Key) management
  */
+
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { isModelOnAllowlist } from '@api/collections/models/utils/enabled-model.util';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
+import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -23,7 +27,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
-import { ByokProvider, MemberRole } from '@genfeedai/contracts';
+import { ByokProvider, MemberRole, ModelCategory } from '@genfeedai/contracts';
+import {
+  AGENT_GENERATION_OVERRIDE_CATEGORIES,
+  AGENT_REVIEW_OVERRIDE_CATEGORIES,
+  AGENT_THINKING_OVERRIDE_CATEGORIES,
+} from '@genfeedai/contracts/constants';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
@@ -81,6 +90,7 @@ export class OrganizationsSettingsController {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
+    private readonly modelsService: ModelsService,
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
@@ -105,6 +115,90 @@ export class OrganizationsSettingsController {
       throw new BadRequestException(
         'Default avatar must reference an avatar image ingredient in this organization',
       );
+    }
+  }
+
+  /**
+   * Rejects a model override key the settings page's own picker could never
+   * have shown — the frontend resolves each override against its selector's
+   * enabled, category-scoped catalog before persisting (see
+   * resolveEnabledModelsForCategory / resolveOverrideForSave), but the API
+   * must not trust that a client did so. An override left unchanged from the
+   * stored value is exempt: the frontend's own preserve rule can legitimately
+   * resend a value that no longer resolves (a model removed from the
+   * allowlist after it was saved) rather than silently drop it, and that is
+   * not a new invalid input for this save to reject.
+   */
+  private async validateAgentPolicyModelOverrides(
+    organizationSetting: OrganizationSettingDocument,
+    settingsDto: UpdateOrganizationSettingDto,
+  ): Promise<void> {
+    const overrides = settingsDto.agentPolicy;
+    if (!overrides) {
+      return;
+    }
+
+    const enabledModelIds = Array.isArray(settingsDto.enabledModelIds)
+      ? settingsDto.enabledModelIds
+      : (organizationSetting.enabledModelIds ?? []);
+
+    const checks: Array<{
+      categories: readonly ModelCategory[];
+      field:
+        | 'generationModelOverride'
+        | 'reviewModelOverride'
+        | 'thinkingModelOverride';
+    }> = [
+      {
+        categories: AGENT_GENERATION_OVERRIDE_CATEGORIES,
+        field: 'generationModelOverride',
+      },
+      {
+        categories: AGENT_REVIEW_OVERRIDE_CATEGORIES,
+        field: 'reviewModelOverride',
+      },
+      {
+        categories: AGENT_THINKING_OVERRIDE_CATEGORIES,
+        field: 'thinkingModelOverride',
+      },
+    ];
+
+    const pendingChecks = checks.filter(({ field }) => {
+      const value = overrides[field]?.trim();
+      if (!value) {
+        return false;
+      }
+      const storedValue = organizationSetting.agentPolicy?.[field];
+      // Preserve rule: an unrelated save can resend the exact stored value
+      // even if it would no longer validate — that is not a new input.
+      return value !== storedValue;
+    });
+
+    if (pendingChecks.length === 0) {
+      return;
+    }
+
+    const availableModels = await this.modelsService.findAvailableModels({
+      organizationId: organizationSetting.organizationId,
+    });
+
+    for (const { categories, field } of pendingChecks) {
+      const value = (overrides[field] as string).trim();
+      const categorySet = new Set<string>(categories);
+      const enabledInCategory = availableModels.filter(
+        (model) =>
+          categorySet.has(model.category) &&
+          isModelOnAllowlist(model, enabledModelIds),
+      );
+      const isValid = enabledInCategory.some(
+        (model) => model.id === value || model.key === value,
+      );
+
+      if (!isValid) {
+        throw new BadRequestException(
+          `${field} "${value}" is not an enabled model for its category`,
+        );
+      }
     }
   }
 
@@ -202,6 +296,11 @@ export class OrganizationsSettingsController {
       await this.organizationSettingsService.ensureForOrganization(
         resolvedOrganizationId,
       );
+
+    await this.validateAgentPolicyModelOverrides(
+      organizationSettings,
+      settingsDto,
+    );
 
     const data = await this.organizationSettingsService.patch(
       organizationSettings.id,

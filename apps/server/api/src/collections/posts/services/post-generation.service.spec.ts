@@ -282,6 +282,7 @@ Tweet 3: Tech innovation is changing the world.`,
         organizationId,
         platform: CredentialPlatform.TWITTER,
         query: 'Launch day',
+        userId,
       });
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
         DEFAULT_MINI_TEXT_MODEL,

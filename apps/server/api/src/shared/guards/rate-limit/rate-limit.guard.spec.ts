@@ -27,6 +27,7 @@ function createMockContext(overrides: {
   method?: string;
   path?: string;
   currentCount?: number;
+  params?: Record<string, string>;
 }) {
   const {
     rateLimitOptions,
@@ -36,6 +37,7 @@ function createMockContext(overrides: {
     method = 'GET',
     path = '/test',
     currentCount = 1,
+    params = {},
   } = overrides;
 
   const mockIncr = vi.fn().mockResolvedValue(currentCount);
@@ -52,6 +54,7 @@ function createMockContext(overrides: {
     headers: {},
     ip,
     method,
+    params,
     path,
     route: { path },
   };
@@ -209,6 +212,36 @@ describe('RateLimitGuard', () => {
     await guard.canActivate(context as never);
     const key = mockIncr.mock.calls[0][0] as string;
     expect(key).toContain('10.0.0.1');
+  });
+
+  it('keys two different webhookId route params separately under ip scope', async () => {
+    // Regression coverage for #5248: `request.route.path` is the route's
+    // *pattern* (e.g. `/:webhookId`), not the resolved value, so every
+    // webhook behind the same route previously shared one IP-scoped
+    // counter. A `webhookId` route param must now split the key, matching
+    // the public workflow-webhook trigger's "keyed on webhookId + IP" rate
+    // limit.
+    const rateLimitOptions: RateLimitOptions = { limit: 100, scope: 'ip' };
+    const a = createMockContext({
+      ip: '10.0.0.1',
+      params: { webhookId: 'wh_aaaa' },
+      rateLimitOptions,
+    });
+    const b = createMockContext({
+      ip: '10.0.0.1',
+      params: { webhookId: 'wh_bbbb' },
+      rateLimitOptions,
+    });
+
+    await a.guard.canActivate(a.context as never);
+    await b.guard.canActivate(b.context as never);
+
+    const keyA = a.mockIncr.mock.calls[0][0] as string;
+    const keyB = b.mockIncr.mock.calls[0][0] as string;
+
+    expect(keyA).toContain('wh_aaaa');
+    expect(keyB).toContain('wh_bbbb');
+    expect(keyA).not.toBe(keyB);
   });
 
   it('sets Retry-After header when limit exceeded', async () => {
