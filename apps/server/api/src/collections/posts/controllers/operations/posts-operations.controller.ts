@@ -32,7 +32,6 @@ import {
   ActivityKey,
   ActivitySource,
   ApiKeyScope,
-  CredentialPlatform,
   IngredientCategory,
   PostCategory,
   TargetExecutionState,
@@ -99,43 +98,6 @@ export class PostsOperationsController {
         return PostCategory.VIDEO;
       default:
         return PostCategory.TEXT;
-    }
-  }
-
-  private validateScheduledThreadReply(
-    dto: CreatePostDto,
-    platform: CredentialPlatform,
-    platformLabel: string,
-    executionState: TargetExecutionState,
-  ): void {
-    if (executionState !== TargetExecutionState.SCHEDULED) {
-      return;
-    }
-
-    const supportsTextOnly = new Set([
-      CredentialPlatform.THREADS,
-      CredentialPlatform.TWITTER,
-    ]).has(platform);
-    if (dto.category === PostCategory.TEXT && !supportsTextOnly) {
-      throw new HttpException(
-        {
-          detail: `${platformLabel} requires media when scheduling. Please add at least one image or video.`,
-          title: 'Text-only posts not supported',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    if (
-      !supportsTextOnly &&
-      (!dto.ingredients || dto.ingredients.length === 0)
-    ) {
-      throw new HttpException(
-        {
-          detail: `${platformLabel} requires at least one image or video when scheduling.`,
-          title: 'Media required when scheduling',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
     }
   }
 
@@ -216,32 +178,64 @@ export class PostsOperationsController {
           : [];
       const ingredientSet = new Set(ingredients.map((i) => i.id.toString()));
 
+      // An `ingredientId` the caller's organization doesn't own must not
+      // silently become "no media" and still get scheduled (#5193) — that
+      // turns a caller's mistake (typo'd id, an id from another org) into a
+      // media-less post on whatever platform they targeted. Drop the whole
+      // item instead of just the id.
+      const unresolvedIngredientPostIds = dto.items
+        .filter(
+          (item) => item.ingredientId && !ingredientSet.has(item.ingredientId),
+        )
+        .map((item) => String(item.postId));
+      const unresolvedIngredientPostIdSet = new Set(
+        unresolvedIngredientPostIds,
+      );
+      const schedulableItems = dto.items.filter(
+        (item) => !unresolvedIngredientPostIdSet.has(String(item.postId)),
+      );
+
       // One scoped read + one transaction for the whole batch, replacing the
       // per-item `patch` loop (2–4 sequential round-trips each).
-      const { missingPostIds, posts: updatedPosts } =
-        await this.postsService.batchSchedule(
-          dto.items.map((item) => ({
-            ingredientIds:
-              item.ingredientId && ingredientSet.has(item.ingredientId)
-                ? [item.ingredientId]
-                : [],
-            postId: String(item.postId),
-            scheduledDate: String(item.scheduledDate),
-            text: item.text,
-            timezone: item.timezone,
-          })),
-          user.organizationId.toString(),
-          {
-            credentialId: dto.credentialId,
-            platform: String(credential.platform),
-          },
-          user.id,
-        );
+      const {
+        invalidTargetPostIds,
+        missingPostIds,
+        posts: updatedPosts,
+      } = await this.postsService.batchSchedule(
+        schedulableItems.map((item) => ({
+          ingredientIds:
+            item.ingredientId && ingredientSet.has(item.ingredientId)
+              ? [item.ingredientId]
+              : [],
+          postId: String(item.postId),
+          scheduledDate: String(item.scheduledDate),
+          text: item.text,
+          timezone: item.timezone,
+        })),
+        user.organizationId.toString(),
+        {
+          credentialId: dto.credentialId,
+          platform: String(credential.platform),
+        },
+        user.id,
+      );
 
+      if (unresolvedIngredientPostIds.length > 0) {
+        this.logger.warn('Skipped posts with an unresolved ingredient id', {
+          count: unresolvedIngredientPostIds.length,
+          postIds: unresolvedIngredientPostIds,
+        });
+      }
       if (missingPostIds.length > 0) {
         this.logger.warn('Skipped posts not found in organization', {
           count: missingPostIds.length,
           postIds: missingPostIds,
+        });
+      }
+      if (invalidTargetPostIds.length > 0) {
+        this.logger.warn('Skipped posts that failed channel validation', {
+          count: invalidTargetPostIds.length,
+          postIds: invalidTargetPostIds,
         });
       }
 
@@ -339,12 +333,11 @@ export class PostsOperationsController {
           credentialsService: this.credentialsService,
           requestedExecutionState,
         });
-      this.validateScheduledThreadReply(
-        createPostDto,
-        credentialPlatform,
-        credential?.platform ?? credentialPlatform,
-        requestedExecutionState,
-      );
+      // Text-only-platform and media-kind checks used to be hardcoded here
+      // (THREADS/TWITTER only, drifted from `post-create.handler.ts`'s own
+      // set). `postsService.addThreadReply()` routes through `create()`,
+      // which now runs the channel contract every scheduling path shares
+      // (#5193).
       const { firstIngredient, ingredientIds } =
         await this.resolveThreadReplyIngredients(
           createPostDto.ingredients,

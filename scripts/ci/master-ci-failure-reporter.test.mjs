@@ -255,30 +255,33 @@ test('reportMasterCiFailure fails loudly when the tracker label does not land', 
   assert.equal(graphqlCalls.length, 0);
 });
 
-test('reportMasterCiFailure files the issue but fails when triage GraphQL is denied', async () => {
+test('reportMasterCiFailure files the issue and warns once, without failing the job, when triage GraphQL is permission-denied', async () => {
+  // Regression test for #5204: the reporter token (CONSOLE_DEPLOY_TOKEN) can
+  // lack the org-level scopes for native issue metadata / Project #12. That
+  // must degrade to a single actionable warning, not fail the job — the
+  // tracker issue itself was already created by this point.
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
   };
   const warnings = [];
 
-  await assert.rejects(
-    reportMasterCiFailure({
-      github,
-      owner: 'genfeedai',
-      repo: 'genfeed.ai',
-      body: 'first red push',
-      date: '2026-08-08',
-      core: {
-        info: () => {},
-        warning: (m) => warnings.push(m),
-      },
-    }),
-    /Resource not accessible by integration/,
-  );
+  const result = await reportMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'first red push',
+    date: '2026-08-08',
+    core: {
+      info: () => {},
+      warning: (m) => warnings.push(m),
+    },
+  });
 
+  assert.equal(result.action, 'created');
   assert.equal(created.length, 1);
-  assert.ok(warnings.some((w) => w.includes('Could not triage')));
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /not authorized/);
 });
 
 test('reportMasterCiFailure keeps Project membership when native metadata verification fails', async () => {
@@ -289,21 +292,26 @@ test('reportMasterCiFailure keeps Project membership when native metadata verifi
       mutationOrder.push('project');
       return { addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } } };
     }
-    mutationOrder.push('metadata');
-    return {
-      updateIssue: {
-        issue: {
-          id: vars.issueId,
-          issueType: { id: ISSUE_TYPE_BUG },
-          issueFieldValues: {
-            nodes: [
-              { field: { name: 'Priority' }, value: PRIORITY_P0 },
-              { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
-            ],
+    if (query.includes('updateIssue(')) {
+      mutationOrder.push('metadata');
+      return {
+        updateIssue: {
+          issue: {
+            id: vars.issueId,
+            issueType: { id: ISSUE_TYPE_BUG },
+            issueFieldValues: {
+              nodes: [
+                { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
+              ],
+            },
           },
         },
-      },
-    };
+      };
+    }
+    // The current-Priority read, ahead of the metadata write.
+    mutationOrder.push('priority-read');
+    return { node: { issueFieldValues: { nodes: [] } } };
   };
 
   await assert.rejects(
@@ -319,7 +327,7 @@ test('reportMasterCiFailure keeps Project membership when native metadata verifi
   );
 
   assert.equal(created.length, 1);
-  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+  assert.deepEqual(mutationOrder, ['project', 'priority-read', 'metadata']);
 });
 
 test('reportMasterCiFailure still writes native metadata when Project membership fails', async () => {
@@ -330,25 +338,30 @@ test('reportMasterCiFailure still writes native metadata when Project membership
       mutationOrder.push('project');
       throw new Error('Project is unavailable');
     }
-    mutationOrder.push('metadata');
-    return {
-      updateIssue: {
-        issue: {
-          id: vars.issueId,
-          issueType: { id: ISSUE_TYPE_BUG },
-          issueFieldValues: {
-            nodes: [
-              { field: { name: 'Priority' }, value: PRIORITY_P0 },
-              { field: { name: 'Area' }, value: AREA_INFRA },
-              {
-                field: { name: 'Blast radius' },
-                value: BLAST_RADIUS_INFRA,
-              },
-            ],
+    if (query.includes('updateIssue(')) {
+      mutationOrder.push('metadata');
+      return {
+        updateIssue: {
+          issue: {
+            id: vars.issueId,
+            issueType: { id: ISSUE_TYPE_BUG },
+            issueFieldValues: {
+              nodes: [
+                { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                { field: { name: 'Area' }, value: AREA_INFRA },
+                {
+                  field: { name: 'Blast radius' },
+                  value: BLAST_RADIUS_INFRA,
+                },
+              ],
+            },
           },
         },
-      },
-    };
+      };
+    }
+    // The current-Priority read, ahead of the metadata write.
+    mutationOrder.push('priority-read');
+    return { node: { issueFieldValues: { nodes: [] } } };
   };
 
   await assert.rejects(
@@ -364,7 +377,7 @@ test('reportMasterCiFailure still writes native metadata when Project membership
   );
 
   assert.equal(created.length, 1);
-  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+  assert.deepEqual(mutationOrder, ['project', 'priority-read', 'metadata']);
 });
 
 test('resolveMasterCiFailure closes all open trackers', async () => {

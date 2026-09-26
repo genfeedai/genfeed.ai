@@ -182,6 +182,23 @@ describe('SkillsService', () => {
       ).rejects.toThrow('Duplicate skill configuration');
     },
   );
+
+  it('uses workflow-neutral wording for duplicate skill configuration, since this path also serves agent turns', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: false },
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow(),
+      makeSkillRow({ id: 'other-skill' }),
+    ]);
+
+    await expect(
+      service.resolveBrandSkills('org-1', 'brand-1', {}),
+    ).rejects.toThrow(
+      'Duplicate skill configuration found. Resolve duplicate skill slugs before continuing.',
+    );
+  });
+
   it('deduplicates the same canonical row and ignores ineligible duplicate slugs', async () => {
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: false },
