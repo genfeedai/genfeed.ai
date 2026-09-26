@@ -1186,8 +1186,33 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # A pull request run is cancelled when a newer push supersedes it
+      # (cancel-in-progress above). Its jobs then read "cancelled" and, without
+      # this, the gate paints the old commit red although nothing failed. Only
+      # a run whose PR head has since moved counts as superseded; a manual
+      # cancel on the current head, merge-queue runs and master pushes keep
+      # failing closed. A failed lookup also fails closed.
+      - name: Detect a pull request run superseded by a newer push
+        id: supersession
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          current_head="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha' 2>/dev/null || true)"
+          if [ -n "${current_head}" ] && [ "${current_head}" != "${RUN_HEAD_SHA}" ]; then
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            echo "superseded_by=${current_head}" >> "$GITHUB_OUTPUT"
+          else
+            echo "superseded=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Aggregate test and build results
         env:
+          RUN_SUPERSEDED: ${{ steps.supersession.outputs.superseded }}
+          SUPERSEDED_BY: ${{ steps.supersession.outputs.superseded_by }}
           TEST_SCOPE_APP: ${{ needs.test-scope.outputs.app }}
           TEST_SCOPE_API: ${{ needs.test-scope.outputs.api }}
           TEST_SCOPE_APP_TESTS: ${{ needs.test-scope.outputs.app_tests }}

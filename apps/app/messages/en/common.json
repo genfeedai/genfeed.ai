@@ -1053,6 +1053,7 @@
       "statsCompleted": "Completed",
       "statsFailed": "Failed",
       "statsCredits": "Credits",
+      "statsDegraded": "Statistics may be outdated; retrying.",
       "creditsEstimated": "Estimated credits; the run has not been reconciled yet.",
       "paginationLabel": "runs"
     },

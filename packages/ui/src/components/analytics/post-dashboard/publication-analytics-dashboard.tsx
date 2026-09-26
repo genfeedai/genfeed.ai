@@ -7,7 +7,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import type { PostAnalyticsDashboardProps } from '@genfeedai/props/analytics/analytics.props';
 import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
+import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
 import PlatformAnalyticsBreakdown from '@ui/analytics/platform-breakdown/platform-analytics-breakdown';

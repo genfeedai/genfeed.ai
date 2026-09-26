@@ -145,6 +145,12 @@ export class AllExceptionFilter implements ExceptionFilter {
   protected writeJsonApiError(
     res: ExpressResponse,
     error: {
+      /**
+       * Stable, non-generic code (e.g. `BrandScrapeErrorCode`) an exception
+       * attached to its own response body. Falls back to the HTTP status
+       * string so every JSON:API error keeps a `code` member (#5080).
+       */
+      code?: string;
       detail: string;
       pointer: string;
       source?: Record<string, unknown>;
@@ -154,11 +160,18 @@ export class AllExceptionFilter implements ExceptionFilter {
   ) {
     res.status(error.status).json(
       new this.JSONAPIError({
-        code: error.status.toString(),
+        code: error.code ?? error.status.toString(),
         detail: error.detail,
         source: error.source ?? {
           pointer: error.pointer,
         },
+        // The HTTP status always goes on its own `status` member (per
+        // JSON:API) so a client never has to parse a semantic `code` (e.g.
+        // `BrandScrapeErrorCode`) to learn the status — `code` used to be
+        // the only place the status appeared, which broke every client
+        // helper that read it from there once `code` stopped being a status
+        // string (#5080 review).
+        status: error.status.toString(),
         title: error.title,
       }),
     );
