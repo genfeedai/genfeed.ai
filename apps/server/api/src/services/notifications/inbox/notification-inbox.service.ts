@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createLibraryAssetRoute,
+  createMessagesConversationRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
@@ -103,6 +104,8 @@ function inboxSourceHref(
 type SocialReplyInboxPayload = {
   accountHandle: string | null;
   brandId: string;
+  /** Absent on version 1 payloads, which link to the Messages inbox. */
+  newestConversationId: string | null;
   replyCount: number;
 };
 
@@ -129,6 +132,12 @@ function readSocialReplyPayload(
         ? payload.accountHandle.slice(0, 280)
         : null,
     brandId: payload.brandId,
+    newestConversationId:
+      typeof payload.newestConversationId === 'string' &&
+      payload.newestConversationId.length > 0 &&
+      payload.newestConversationId.length <= 200
+        ? payload.newestConversationId
+        : null,
     replyCount: payload.replyCount,
   };
 }
@@ -300,7 +309,11 @@ export class NotificationInboxService {
             ? inboxSourceHref(
                 member.organization.slug,
                 brandSlug,
-                APP_ROUTES.MESSAGES.ROOT,
+                socialReply.newestConversationId
+                  ? createMessagesConversationRoute(
+                      socialReply.newestConversationId,
+                    )
+                  : APP_ROUTES.MESSAGES.ROOT,
               )
             : null,
           sourceLabel: null,

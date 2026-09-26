@@ -2,6 +2,23 @@ vi.mock('@/components/shell/NotificationInboxMenu', () => ({
   default: () => <div data-testid="notification-inbox" />,
 }));
 
+const messagesUnread = vi.hoisted(() => ({
+  count: 0,
+  spy: vi.fn(),
+}));
+vi.mock('@/components/shell/use-messages-unread-count', () => ({
+  useMessagesUnreadCount: (brandId?: string) => {
+    messagesUnread.spy(brandId);
+    return messagesUnread.count;
+  },
+}));
+
+// The constants barrel is mocked below, so the catalog-backed stub cannot load.
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: { count?: number }) =>
+    key === 'unreadBadge' ? `${values?.count} unread conversations` : key,
+}));
+
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
@@ -251,6 +268,8 @@ describe('AppProtectedTopbar', () => {
     workspaceInspectorState.value = null;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
+    messagesUnread.count = 0;
+    messagesUnread.spy.mockClear();
     mockPush.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -309,6 +328,32 @@ describe('AppProtectedTopbar', () => {
       cloudSyncIndicator.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('badges the Messages tile with the route brand unread count', () => {
+    messagesUnread.count = 3;
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand');
+    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        badges: {
+          messages: { count: 3, label: '3 unread conversations' },
+        },
+      }),
+    );
+  });
+
+  it('counts every brand for the org-scoped Messages tile', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined);
   });
 
   it('does not inject the context brand into explicit org-scoped routes', () => {

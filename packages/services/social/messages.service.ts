@@ -6,6 +6,8 @@ import type {
   SocialConversationStatus,
   SocialInboxQuery,
   SocialInboxSyncEnqueueResult,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
   SocialMessage,
   SocialMessageQuery,
 } from '@genfeedai/contracts/interfaces';
@@ -64,6 +66,35 @@ export class SocialMessagesService extends BaseService<
     signal?: AbortSignal,
   ): Promise<SocialConversationModel> {
     return this.findOne(id, {}, signal);
+  }
+
+  unreadCount(
+    params: SocialInboxUnreadCountQuery = {},
+    signal?: AbortSignal,
+  ): Promise<SocialInboxUnreadCount> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/unread-count`,
+      this.instance
+        .get<JsonApiResponseDocument>('/unread-count', { params, signal })
+        .then((response) =>
+          this.extractResource<SocialInboxUnreadCount>(response.data),
+        ),
+    );
+  }
+
+  /** Marks the conversation read for the current user. */
+  markRead(
+    conversationId: string,
+    signal?: AbortSignal,
+  ): Promise<SocialConversationModel> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${conversationId}/read`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${conversationId}/read`, undefined, {
+          signal,
+        })
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 
   listMessages(

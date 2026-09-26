@@ -13,6 +13,7 @@ import type { AppSwitcherItemConfig } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import type {
+  AppSwitcherBadge,
   AppSwitcherNavigationTarget,
   AppSwitcherProps,
 } from '@genfeedai/props/ui/app-switcher.props';
@@ -389,6 +390,7 @@ function getActiveItemKey({
 
 function AppSwitcherGridItem({
   app,
+  badge,
   isActive,
   isLocked = false,
   href,
@@ -397,6 +399,7 @@ function AppSwitcherGridItem({
   onPreviewShow,
 }: {
   app: LifecycleAppSwitcherItemConfig;
+  badge?: AppSwitcherBadge;
   isActive: boolean;
   isLocked?: boolean;
   href: string;
@@ -422,7 +425,9 @@ function AppSwitcherGridItem({
         aria-label={
           isLocked
             ? `${app.label} — locked. Generate your first asset to unlock.`
-            : app.label
+            : badge && badge.count > 0
+              ? `${app.label}, ${badge.label}`
+              : app.label
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
         onFocus={(event) => {
@@ -453,6 +458,14 @@ function AppSwitcherGridItem({
             <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />
             </span>
+          ) : badge && badge.count > 0 ? (
+            <span
+              aria-hidden="true"
+              data-testid={`app-switcher-badge-${app.itemKey}`}
+              className="absolute -right-1.5 -top-1.5 rounded-full bg-info px-1 text-[10px] tabular-nums text-info-foreground"
+            >
+              {badge.count > 99 ? '99+' : badge.count}
+            </span>
           ) : null}
         </span>
         <span
@@ -476,6 +489,7 @@ function AppSwitcherGridItem({
 }
 
 export function AppSwitcher({
+  badges,
   brandAwareSlug,
   brandSlug,
   currentPath,
@@ -719,6 +733,7 @@ export function AppSwitcher({
                   <AppSwitcherGridItem
                     key={app.itemKey}
                     app={app}
+                    badge={badges?.[app.id]}
                     isActive={app.itemKey === activeItemKey}
                     isLocked={isAppLocked(app)}
                     href={navigation.href}

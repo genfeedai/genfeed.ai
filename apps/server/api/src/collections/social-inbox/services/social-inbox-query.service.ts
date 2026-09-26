@@ -12,11 +12,14 @@ import type {
   SocialInboxListQuery,
   SocialInboxPage,
   SocialInboxScope,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  SocialConversationStatus,
   SocialMessageDirection,
   SocialMessageType,
 } from '@genfeedai/contracts';
@@ -96,6 +99,26 @@ export class SocialInboxQueryService {
       page,
       limit,
     );
+  }
+
+  /**
+   * Conversations with unread inbound messages, brand-filtered exactly like
+   * the Messages list's Unread view. Archived threads never count.
+   */
+  async countUnreadConversations(
+    scope: SocialInboxScope,
+    query: SocialInboxUnreadCountQuery,
+  ): Promise<SocialInboxUnreadCount> {
+    const brandId = this.resolveListBrandId(scope, query);
+    const unreadCount = await this.prisma.socialConversation.count({
+      where: scopedWhere(scope.organizationId, {
+        ...(brandId ? { OR: [{ brandId }, { brandId: null }] } : {}),
+        status: { not: SocialConversationStatus.ARCHIVED },
+        unreadCount: { gt: 0 },
+      }),
+    });
+
+    return { id: brandId ?? scope.organizationId, unreadCount };
   }
 
   async getConversation(

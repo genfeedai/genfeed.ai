@@ -9,12 +9,15 @@ import type {
   SocialInboxListQuery,
   SocialInboxPage,
   SocialInboxScope,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
   XPostRepliesIngestInput,
   XPostRepliesIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
@@ -39,6 +42,7 @@ export class SocialInboxService {
     private readonly queryService: SocialInboxQueryService,
     private readonly ingestionService: SocialInboxIngestionService,
     private readonly actionService: SocialInboxActionService,
+    private readonly readStateService: SocialInboxReadStateService,
   ) {}
 
   listConversations(
@@ -48,11 +52,25 @@ export class SocialInboxService {
     return this.queryService.listConversations(scope, query);
   }
 
+  countUnreadConversations(
+    scope: SocialInboxScope,
+    query: SocialInboxUnreadCountQuery,
+  ): Promise<SocialInboxUnreadCount> {
+    return this.queryService.countUnreadConversations(scope, query);
+  }
+
   getConversation(
     scope: SocialInboxScope,
     conversationId: string,
   ): Promise<SocialConversationDocument> {
     return this.queryService.getConversation(scope, conversationId);
+  }
+
+  markConversationRead(
+    scope: SocialInboxScope,
+    conversationId: string,
+  ): Promise<SocialConversationDocument> {
+    return this.readStateService.markConversationRead(scope, conversationId);
   }
 
   listMessages(

@@ -4,6 +4,7 @@ import { SocialInboxProviderError } from '@api/collections/social-inbox/services
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
@@ -138,6 +139,9 @@ type TestContext = {
     queueTriggerEvent: ReturnType<typeof vi.fn>;
   };
   service: SocialInboxService;
+  socialReplyNotifications: {
+    markConversationRepliesRead: ReturnType<typeof vi.fn>;
+  };
   twitterService: {
     buildTweetUrl: ReturnType<typeof vi.fn>;
     listDirectMessages: ReturnType<typeof vi.fn>;
@@ -447,6 +451,9 @@ function createContext(): TestContext {
   const logger = {
     warn: vi.fn(),
   };
+  const socialReplyNotifications = {
+    markConversationRepliesRead: vi.fn().mockResolvedValue(0),
+  };
   const queryService = new SocialInboxQueryService(prisma as never);
   const realtimeService = new SocialInboxRealtimeService(
     notificationsPublisher as never,
@@ -474,6 +481,12 @@ function createContext(): TestContext {
     systemWorkflowRunner as never,
   );
   actionService.onModuleInit();
+  const readStateService = new SocialInboxReadStateService(
+    prisma as never,
+    queryService,
+    realtimeService,
+    socialReplyNotifications as never,
+  );
 
   return {
     conversations,
@@ -488,7 +501,9 @@ function createContext(): TestContext {
       queryService,
       ingestionService,
       actionService,
+      readStateService,
     ),
+    socialReplyNotifications,
     twitterService,
     youtubeService,
   };
@@ -575,6 +590,110 @@ describe('SocialInboxService', () => {
       brandTwoOnly.docs[0]?.id as string,
     );
     expect(openedAcrossBrand.brandId).toBe('brand-2');
+  });
+
+  describe('unread state', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    async function seedThread(
+      service: SocialInboxService,
+      input: { brandId: string; id: string; organizationId?: string },
+    ) {
+      return service.ingestInboundMessage({
+        body: `Thread ${input.id}`,
+        brandId: input.brandId,
+        conversationType: 'comment',
+        externalConversationId: `thread-${input.id}`,
+        externalMessageId: `comment-${input.id}`,
+        organizationId: input.organizationId ?? 'org-1',
+        participantExternalId: `author-${input.id}`,
+        participantName: 'Taylor',
+        platform: 'youtube',
+      });
+    }
+
+    it('counts unread conversations scoped to the organization and brand', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      await seedThread(context.service, { brandId: 'brand-1', id: 'b' });
+      await seedThread(context.service, { brandId: 'brand-2', id: 'c' });
+      await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'd',
+        organizationId: 'org-2',
+      });
+      // Read, archived, and deleted threads never count.
+      context.conversations[1].unreadCount = 0;
+      await seedThread(context.service, { brandId: 'brand-1', id: 'e' });
+      context.conversations[4].status = 'archived';
+      await seedThread(context.service, { brandId: 'brand-1', id: 'f' });
+      context.conversations[5].isDeleted = true;
+
+      await expect(
+        context.service.countUnreadConversations(scope, { brandId: 'brand-1' }),
+      ).resolves.toEqual({ id: 'brand-1', unreadCount: 1 });
+      await expect(
+        context.service.countUnreadConversations(scope, { allBrands: true }),
+      ).resolves.toEqual({ id: 'org-1', unreadCount: 2 });
+
+      const where =
+        context.prisma.socialConversation.count.mock.calls[0][0].where;
+      expect(where).toMatchObject({
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: { not: 'archived' },
+        unreadCount: { gt: 0 },
+      });
+    });
+
+    it('marks a conversation read and clears the acting user replies', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+      );
+
+      expect(read.unreadCount).toBe(0);
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+      expect(context.notificationsPublisher.emit).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ kind: 'conversation-updated' }),
+      );
+    });
+
+    it('never marks another organization conversation read', async () => {
+      const context = createContext();
+      await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'a',
+        organizationId: 'org-2',
+      });
+
+      await expect(
+        context.service.markConversationRead(
+          scope,
+          context.conversations[0].id,
+        ),
+      ).rejects.toThrow();
+      expect(context.conversations[0].unreadCount).toBe(1);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   it('authorizes typed agent selectors against the current inbox scope', async () => {
@@ -2137,7 +2256,12 @@ describe('SocialInboxService', () => {
 
       expect(result).toEqual({
         conversationsCreated: 1,
-        createdMessageIds: ['1980000000000000101'],
+        createdMessages: [
+          {
+            conversationId: 'conversation-1',
+            externalMessageId: '1980000000000000101',
+          },
+        ],
         messagesCreated: 1,
       });
       expect(context.conversations).toEqual([
@@ -2164,7 +2288,7 @@ describe('SocialInboxService', () => {
 
       expect(second).toEqual({
         conversationsCreated: 0,
-        createdMessageIds: [],
+        createdMessages: [],
         messagesCreated: 0,
       });
       expect(context.messages).toHaveLength(1);

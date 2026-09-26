@@ -1359,7 +1359,8 @@
         "unread": "Unread"
       }
     },
-    "title": "Messages"
+    "title": "Messages",
+    "unreadBadge": "{count, plural, one {# unread conversation} other {# unread conversations}}"
   },
   "modelProviderContract": {
     "discoveredAtLabel": "Discovered:",

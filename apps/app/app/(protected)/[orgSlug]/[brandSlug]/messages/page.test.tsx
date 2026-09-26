@@ -36,9 +36,13 @@ const mocks = vi.hoisted(() => ({
     organizationId: 'org-1',
     selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
   },
+  getConversation: vi.fn(),
   getService: vi.fn(),
   href: vi.fn((path: string) => `/acme/demo${path}`),
   listMessagesPage: vi.fn(),
+  markRead: vi.fn(),
+  refreshInboxIndicators: vi.fn(),
+  searchParams: new URLSearchParams(),
   listPage: vi.fn(),
   postReply: vi.fn(),
   replace: vi.fn(),
@@ -94,6 +98,10 @@ vi.mock(
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandContext,
+}));
+
+vi.mock('@/components/shell/use-messages-unread-count', () => ({
+  useRefreshInboxIndicators: () => mocks.refreshInboxIndicators,
 }));
 
 vi.mock('@/components/workspace-shell/WorkspaceNavPanelContext', () => ({
@@ -262,7 +270,7 @@ vi.mock('next/link', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/demo/messages',
   useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 vi.mock('./messages-surface-adapter', () => ({
@@ -359,12 +367,21 @@ describe('SocialMessagesPage', () => {
     mocks.brandContext.credentialsLoading = false;
     mocks.brandContext.isBrandScopeResolved = true;
     mocks.workspaceNavPanel = null;
+    mocks.searchParams = new URLSearchParams();
+    mocks.markRead.mockImplementation(async (id: string) => {
+      const listed = await mocks.listPage.mock.results.at(-1)?.value;
+      const current =
+        listed?.items.find((item: { id: string }) => item.id === id) ??
+        (await mocks.getConversation.mock.results.at(-1)?.value);
+      return { ...current, unreadCount: 0 };
+    });
     mocks.getService.mockResolvedValue({
       approveDraft: vi.fn(),
       createDraft: vi.fn(),
-      getConversation: vi.fn(),
+      getConversation: mocks.getConversation,
       listMessagesPage: mocks.listMessagesPage,
       listPage: mocks.listPage,
+      markRead: mocks.markRead,
       postReply: mocks.postReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
@@ -485,6 +502,68 @@ describe('SocialMessagesPage', () => {
     );
     expect(mocks.postReply).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
+  });
+
+  it('opens the conversation named in the URL and marks it read', async () => {
+    const linked = {
+      ...conversation,
+      id: 'conversation-linked',
+      participantName: 'Jordan',
+      unreadCount: 2,
+    };
+    mocks.searchParams = new URLSearchParams(
+      'socialConversation=conversation-linked',
+    );
+    mocks.getConversation.mockResolvedValue(linked);
+
+    render(<SocialMessagesPage />);
+
+    await waitFor(() =>
+      expect(mocks.getConversation).toHaveBeenCalledWith(
+        'conversation-linked',
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Jordan',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() =>
+      expect(mocks.listMessagesPage).toHaveBeenCalledWith(
+        'conversation-linked',
+        { limit: 50, page: 1 },
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-linked',
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+  });
+
+  it('does not send a read receipt for an already read conversation', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [{ ...conversation, unreadCount: 0 }],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(mocks.markRead).not.toHaveBeenCalled();
   });
 
   it('shows sync as the primary empty action when an account is connected', async () => {

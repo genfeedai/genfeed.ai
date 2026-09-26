@@ -20,12 +20,17 @@ function setup() {
       findFirst: vi.fn().mockResolvedValue({ userId: 'user-credential' }),
     },
     member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+    notificationInboxItem: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     notificationPreference: { findFirst: vi.fn().mockResolvedValue(null) },
     organization: {
       findFirst: vi.fn().mockResolvedValue({ userId: 'user-owner' }),
     },
+    socialConversation: { findMany: vi.fn().mockResolvedValue([]) },
   };
-  const logger = { warn: vi.fn() };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const service = new SocialReplyNotificationService(
     prisma as never,
     logger as never,
@@ -37,7 +42,17 @@ const input = {
   accountHandle: '@acme',
   brandId: 'brand-1',
   credentialId: 'credential-1',
-  newReplyExternalIds: ['1800000000000000002', '1800000000000000010', '999'],
+  newReplies: [
+    {
+      conversationId: 'conversation-a',
+      externalMessageId: '1800000000000000002',
+    },
+    {
+      conversationId: 'conversation-b',
+      externalMessageId: '1800000000000000010',
+    },
+    { conversationId: 'conversation-a', externalMessageId: '999' },
+  ],
   occurredAt: new Date('2026-09-25T12:00:00.000Z'),
   organizationId: 'org-1',
   platform: 'twitter',
@@ -52,7 +67,7 @@ describe('SocialReplyNotificationService', () => {
 
   it('writes nothing when the sync run created no replies', async () => {
     await expect(
-      context.service.recordNewReplies({ ...input, newReplyExternalIds: [] }),
+      context.service.recordNewReplies({ ...input, newReplies: [] }),
     ).resolves.toBeNull();
 
     expect(context.prisma.credential.findFirst).not.toHaveBeenCalled();
@@ -75,9 +90,12 @@ describe('SocialReplyNotificationService', () => {
         payload: expect.objectContaining({
           accountHandle: 'acme',
           brandId: 'brand-1',
+          conversationIds: ['conversation-b', 'conversation-a'],
           kind: 'social_reply',
+          newestConversationId: 'conversation-b',
           newestReplyId: '1800000000000000010',
           replyCount: 3,
+          version: 2,
           summary: '3 new replies on @acme',
         }),
         sourceId: 'credential-1',
@@ -130,7 +148,7 @@ describe('SocialReplyNotificationService', () => {
     await context.service.recordNewReplies(input);
     await context.service.recordNewReplies({
       ...input,
-      newReplyExternalIds: [...input.newReplyExternalIds].reverse(),
+      newReplies: [...input.newReplies].reverse(),
     });
 
     const [first, second] =
@@ -183,6 +201,128 @@ describe('SocialReplyNotificationService', () => {
       },
     });
     expect(context.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  describe('markConversationRepliesRead', () => {
+    const readInput = {
+      conversationId: 'conversation-a',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    it('reads only items whose every conversation is read', async () => {
+      context.prisma.notificationInboxItem.findMany.mockResolvedValue([
+        {
+          event: { payload: { conversationIds: ['conversation-a'] } },
+          id: 'i1',
+        },
+        {
+          event: {
+            payload: { conversationIds: ['conversation-a', 'conversation-b'] },
+          },
+          id: 'i2',
+        },
+      ]);
+      context.prisma.socialConversation.findMany.mockResolvedValue([
+        { id: 'conversation-b' },
+      ]);
+      context.prisma.notificationInboxItem.updateMany.mockResolvedValue({
+        count: 1,
+      });
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).resolves.toBe(1);
+
+      expect(
+        context.prisma.notificationInboxItem.findMany,
+      ).toHaveBeenCalledWith({
+        select: { event: { select: { payload: true } }, id: true },
+        where: {
+          event: {
+            isDeleted: false,
+            organizationId: 'org-1',
+            payload: {
+              array_contains: ['conversation-a'],
+              path: ['conversationIds'],
+            },
+          },
+          isDeleted: false,
+          organizationId: 'org-1',
+          readAt: null,
+          topic: 'social.reply',
+          userId: 'user-1',
+        },
+      });
+      expect(context.prisma.socialConversation.findMany).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          id: { in: ['conversation-a', 'conversation-b'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+          unreadCount: { gt: 0 },
+        },
+      });
+      expect(
+        context.prisma.notificationInboxItem.updateMany,
+      ).toHaveBeenCalledWith({
+        data: { readAt: expect.any(Date) },
+        where: {
+          id: { in: ['i1'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+          readAt: null,
+          topic: 'social.reply',
+          userId: 'user-1',
+        },
+      });
+    });
+
+    it('leaves an aggregated item unread while another thread is unread', async () => {
+      context.prisma.notificationInboxItem.findMany.mockResolvedValue([
+        {
+          event: {
+            payload: { conversationIds: ['conversation-a', 'conversation-b'] },
+          },
+          id: 'i2',
+        },
+      ]);
+      context.prisma.socialConversation.findMany.mockResolvedValue([
+        { id: 'conversation-b' },
+      ]);
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).resolves.toBe(0);
+      expect(
+        context.prisma.notificationInboxItem.updateMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('ignores version 1 payloads without conversation ids', async () => {
+      context.prisma.notificationInboxItem.findMany.mockResolvedValue([
+        { event: { payload: { version: 1 } }, id: 'legacy' },
+      ]);
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).resolves.toBe(0);
+      expect(context.prisma.socialConversation.findMany).not.toHaveBeenCalled();
+      expect(
+        context.prisma.notificationInboxItem.updateMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('logs and swallows failures so the thread read still succeeds', async () => {
+      context.prisma.notificationInboxItem.findMany.mockRejectedValue(
+        new Error('db unavailable'),
+      );
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).resolves.toBe(0);
+      expect(context.logger.error).toHaveBeenCalledOnce();
+    });
   });
 
   it('formats singular and handle-less summaries', () => {

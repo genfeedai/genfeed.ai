@@ -24,10 +24,12 @@ import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
+import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
@@ -152,6 +154,15 @@ function AppProtectedTopbarContent({
     resolvedOrgSlug,
     selectedBrand,
   });
+  const translateMessages = useTranslations('common.messages');
+  // The Messages tile opens the brand in the URL, else the org-wide inbox:
+  // the badge counts the same scope.
+  const messagesBadgeBrandId = effectiveBrandSlug
+    ? getBrandEntityId(
+        brands.find((brand) => brand.slug === effectiveBrandSlug),
+      ) || undefined
+    : undefined;
+  const messagesUnreadCount = useMessagesUnreadCount(messagesBadgeBrandId);
   const isOrganizationSettingsRoute =
     Boolean(effectiveOrgSlug) &&
     isOrganizationScopeRoute &&
@@ -306,6 +317,14 @@ function AppProtectedTopbarContent({
           {effectiveOrgSlug ? (
             <AppSwitcher
               variant="icon"
+              badges={{
+                messages: {
+                  count: messagesUnreadCount,
+                  label: translateMessages('unreadBadge', {
+                    count: messagesUnreadCount,
+                  }),
+                },
+              }}
               currentPath={pathname}
               orgSlug={effectiveOrgSlug}
               brandAwareSlug={brandAwareAppSlug}

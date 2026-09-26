@@ -469,6 +469,41 @@ describe('NotificationInboxService', () => {
       }),
     ]);
   });
+  it('deep-links a version 2 social reply to its newest conversation', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'social.reply',
+        event: {
+          sourceId: 'credential-1',
+          sourceType: 'social_credential',
+          eventKey: 'social.reply.received',
+          payload: {
+            version: 2,
+            kind: 'social_reply',
+            brandId: 'brand-1',
+            accountHandle: 'acme',
+            replyCount: 2,
+            newestConversationId: 'conversation/b',
+            conversationIds: ['conversation/b', 'conversation-a'],
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(page.docs[0]).toEqual(
+      expect.objectContaining({
+        sourceHref:
+          '/acme/acme-brand/messages?socialConversation=conversation%2Fb',
+        socialReply: { accountHandle: 'acme', replyCount: 2 },
+      }),
+    );
+  });
   it('does not link a social reply for a brand the member is not assigned to', async () => {
     const { service, prisma } = await setup();
     prisma.member.findFirst.mockResolvedValue({
