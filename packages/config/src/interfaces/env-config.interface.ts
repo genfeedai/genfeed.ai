@@ -187,15 +187,20 @@ export interface IEnvConfig {
   OPENROUTER_API_KEY?: string;
 
   // === Typed decisions (TypeSafe AI / Jev) ===
+  // Agent auto-routing (#4865) no longer calls Jev — the candidate is a
+  // deterministic registry read. `shadow` only logs it; `live` dispatches it.
   AGENT_AUTO_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
-  AGENT_AUTO_ROUTING_MIN_CONFIDENCE?: number;
   REPLY_BOT_INTENT_DECISION_MODE?: 'off' | 'shadow' | 'live';
   REPLY_BOT_INTENT_MIN_CONFIDENCE?: number;
-  TASK_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  // Capped at shadow (release-blocker follow-up, epic #4863): the provider
+  // answer is recorded but never acted on.
+  TASK_ROUTING_DECISION_MODE?: 'off' | 'shadow';
   TASK_ROUTING_MIN_CONFIDENCE?: number;
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
-  PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  // Capped at shadow (release-blocker follow-up, epic #4863): the provider
+  // answer is recorded but never acted on.
+  PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow';
   PATTERN_ANALYZER_MIN_CONFIDENCE?: number;
   UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow';
   UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
