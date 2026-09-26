@@ -9,6 +9,7 @@ import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-asse
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import { getActionDefinition } from '@genfeedai/actions';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -153,6 +154,7 @@ describe('ContentGeneratorService', () => {
     error: ReturnType<typeof vi.fn>;
   };
   let actionExecutors: Map<string, (request: never) => unknown>;
+  let workflowRunner: ReturnType<typeof createContentGenerationRunnerFake>;
 
   beforeEach(async () => {
     contextAssemblyService = {
@@ -175,7 +177,7 @@ describe('ContentGeneratorService', () => {
     };
     mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     actionExecutors = new Map();
-    const workflowRunner = createContentGenerationRunnerFake(actionExecutors);
+    workflowRunner = createContentGenerationRunnerFake(actionExecutors);
 
     const module = await Test.createTestingModule({
       providers: [
@@ -206,6 +208,65 @@ describe('ContentGeneratorService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('registered generation workflows', () => {
+    type GraphNode = {
+      data?: {
+        config?: { actionId?: string; parameters?: Record<string, unknown> };
+        inputVariableKeys?: string[];
+      };
+      id: string;
+      type: string;
+    };
+    type GraphDefinition = {
+      canonicalId: string;
+      definition: {
+        edges: Array<{ source: string; target: string; targetHandle?: string }>;
+        nodes: GraphNode[];
+      };
+    };
+    const registered = () =>
+      workflowRunner.registerWorkflow.mock.calls.map(
+        ([definition]) => definition as GraphDefinition,
+      );
+
+    it("wires every input each node's action contract requires", () => {
+      expect(registered().length).toBeGreaterThan(0);
+      for (const { canonicalId, definition } of registered()) {
+        for (const node of definition.nodes) {
+          const actionId = node.data?.config?.actionId;
+          if (node.type !== 'genfeedAction' || !actionId) continue;
+          const required = (getActionDefinition(actionId)?.inputSchema
+            ?.required ?? []) as string[];
+          const wired = new Set([
+            ...(node.data?.inputVariableKeys ?? []),
+            ...Object.keys(node.data?.config?.parameters ?? {}),
+            ...definition.edges
+              .filter((edge) => edge.target === node.id)
+              .map((edge) => edge.targetHandle),
+          ]);
+          expect(
+            required.filter((key) => !wired.has(key)),
+            `${canonicalId} › ${node.id}`,
+          ).toEqual([]);
+        }
+      }
+    });
+
+    it('feeds freeform generation the loaded context', () => {
+      for (const { definition } of registered()) {
+        const stateSources = definition.edges
+          .filter(
+            (edge) =>
+              edge.target === 'generate-freeform' &&
+              edge.targetHandle === 'state',
+          )
+          .map((edge) => edge.source);
+        if (stateSources.length === 0) continue;
+        expect(stateSources).toEqual(['load-context']);
+      }
+    });
   });
 
   it('generates content using available patterns', async () => {

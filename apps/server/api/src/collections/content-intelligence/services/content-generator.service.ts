@@ -98,8 +98,9 @@ function contentGenerationDefinition(
           targetHandle: 'condition',
         },
         {
-          id: 'plan-freeform',
-          source: 'plan-generation',
+          // Freeform generation reads the loaded context, not the plan.
+          id: 'context-freeform',
+          source: 'load-context',
           target: 'generate-freeform',
           targetHandle: 'state',
         },
@@ -168,10 +169,12 @@ function contentGenerationDefinition(
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.FREEFORM,
           id: 'generate-freeform',
+          inputVariableKeys: ['dto'],
         }),
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.FINALIZE,
           id: 'finalize-generation',
+          inputVariableKeys: ['dto'],
         }),
       ],
     },
