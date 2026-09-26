@@ -7,6 +7,7 @@ export const notificationInboxAttributes = createEntityAttributes([
   'sourceHref',
   'sourceLabel',
   'failure',
+  'socialReply',
 ]);
 export const notificationInboxCountAttributes = createEntityAttributes([
   'unreadCount',

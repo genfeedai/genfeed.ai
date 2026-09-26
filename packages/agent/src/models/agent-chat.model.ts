@@ -524,6 +524,8 @@ export interface AgentPageContext {
   researchReferences?: ScopedResearchFindingReference[];
   selectedText?: string;
   socialReferences?: SocialInboxReference[];
+  /** Viewer's IANA timezone, so the agent can resolve "today" and slot times. */
+  timezone?: string;
   url?: string;
 }
 

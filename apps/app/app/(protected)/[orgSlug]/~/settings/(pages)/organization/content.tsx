@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
+import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 // The pseudo-locale is a QA instrument, not a language — offering it to an
 // entire organization would put every member on accented, padded English.
@@ -176,6 +177,7 @@ export default function SettingsOrganizationPage() {
 
       <OrganizationIdentityDefaultsCard />
       <OrganizationGenerationDefaultsCard />
+      <OrganizationPublishingCapsCard />
     </div>
   );
 }

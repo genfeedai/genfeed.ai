@@ -7,6 +7,7 @@ import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/li
 import { SystemEmailEligibilityService } from '@api/services/lifecycle-emails/system-email-eligibility.service';
 import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { SocialReplyNotificationService } from '@api/services/notifications/social-reply-notifications/social-reply-notification.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
@@ -31,6 +32,7 @@ import { Module } from '@nestjs/common';
     LifecycleEmailDeliveryService,
     NotificationPreferenceService,
     NotificationsService,
+    SocialReplyNotificationService,
     WorkflowNotificationDeliveryService,
     WorkflowNotificationOutboxService,
     WorkflowNotificationQueueService,
@@ -56,6 +58,7 @@ import { Module } from '@nestjs/common';
     NotificationsService,
     LifecycleEmailDeliveryService,
     NotificationPreferenceService,
+    SocialReplyNotificationService,
     WorkflowNotificationDeliveryService,
     WorkflowNotificationOutboxService,
     WorkflowNotificationQueueService,

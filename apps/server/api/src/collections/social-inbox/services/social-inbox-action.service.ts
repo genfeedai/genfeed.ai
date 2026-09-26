@@ -30,12 +30,15 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { scopedWhere } from '@api/index';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { Platform, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -49,8 +52,9 @@ export type SocialInboxOutboundWorkflowState = {
   body: string;
   conversationId: string;
   error?: string;
-  errorKind?: 'bad-request' | 'conflict' | 'provider';
+  errorKind?: 'bad-gateway' | 'bad-request' | 'conflict' | 'provider';
   externalMessageId?: string;
+  externalParentMessageId?: string;
   externalUrl?: string;
   idempotencyKey?: string;
   messageType: OutboundMessageType;
@@ -69,6 +73,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
+    private readonly twitterService: TwitterService,
     private readonly queryService: SocialInboxQueryService,
     private readonly realtimeService: SocialInboxRealtimeService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
@@ -371,6 +376,9 @@ export class SocialInboxActionService implements OnModuleInit {
       if (result.errorKind === 'conflict') {
         throw new ConflictException(result.error);
       }
+      if (result.errorKind === 'bad-gateway') {
+        throw new BadGatewayException(result.error);
+      }
       throw new Error(result.error);
     }
     const messageId = this.requiredString(
@@ -460,6 +468,9 @@ export class SocialInboxActionService implements OnModuleInit {
         ...('url' in result && typeof result.url === 'string'
           ? { externalUrl: result.url }
           : {}),
+        ...('inReplyToId' in result && typeof result.inReplyToId === 'string'
+          ? { externalParentMessageId: result.inReplyToId }
+          : {}),
       };
     } catch (error: unknown) {
       return {
@@ -467,7 +478,11 @@ export class SocialInboxActionService implements OnModuleInit {
         error:
           error instanceof Error ? error.message : 'Provider publish failed',
         errorKind:
-          error instanceof BadRequestException ? 'bad-request' : 'provider',
+          error instanceof BadRequestException
+            ? 'bad-request'
+            : error instanceof BadGatewayException
+              ? 'bad-gateway'
+              : 'provider',
       };
     }
   }
@@ -623,9 +638,66 @@ export class SocialInboxActionService implements OnModuleInit {
       };
     }
 
+    if (conversation.platform === Platform.TWITTER) {
+      return this.postTwitterReply(conversation, conversation.brandId, text);
+    }
+
     throw new BadRequestException(
       `${conversation.platform} replies are not supported`,
     );
+  }
+
+  /**
+   * Reply on X to the latest inbound tweet in the thread, falling back to the
+   * tweet that opened the conversation. Posts through `TwitterService.postTweet`
+   * (the same call the author reply loop uses), which resolves the
+   * conversation's X credential and refreshes its OAuth token.
+   */
+  private async postTwitterReply(
+    conversation: SocialConversationDocument,
+    brandId: string,
+    text: string,
+  ): Promise<OutboundPublishResult> {
+    const latestInbound = await this.prisma.socialMessage.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { externalMessageId: true },
+      where: scopedWhere(conversation.organizationId, {
+        conversationId: conversation.id,
+        direction: 'inbound',
+        externalMessageId: { not: null },
+      }),
+    });
+    const inReplyToId =
+      latestInbound?.externalMessageId ?? conversation.externalParentId;
+    if (!inReplyToId) {
+      throw new BadRequestException('X reply requires a tweet id');
+    }
+
+    let tweetId: string | undefined;
+    try {
+      tweetId = await this.twitterService.postTweet(
+        conversation.organizationId,
+        brandId,
+        text,
+        inReplyToId,
+        {},
+        conversation.credentialId ?? undefined,
+      );
+    } catch (error: unknown) {
+      throw new BadGatewayException(mapTwitterApiError(error));
+    }
+
+    if (!tweetId) {
+      throw new BadGatewayException('X did not return the posted reply id');
+    }
+
+    return {
+      inReplyToId,
+      messageId: tweetId,
+      url: conversation.accountHandle
+        ? this.twitterService.buildTweetUrl(tweetId, conversation.accountHandle)
+        : `https://x.com/i/status/${tweetId}`,
+    };
   }
 
   private async executeProviderDmAction(
@@ -680,6 +752,9 @@ export class SocialInboxActionService implements OnModuleInit {
           status: 'sent',
         }) as Prisma.InputJsonValue,
         externalMessageId: state.externalMessageId,
+        ...(state.externalParentMessageId === undefined
+          ? {}
+          : { externalParentMessageId: state.externalParentMessageId }),
         failureReason: null,
         sourceUrl: state.externalUrl,
         status: 'sent',

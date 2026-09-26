@@ -257,6 +257,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform schedule handler that enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
   },
   {
+    file: 'apps/server/workers/src/crons/x-replies/cron.x-reply-watch.service.ts',
+    id: 'x-reply-watch',
+    methodName: 'watchRecentPostReplies',
+    reason:
+      'Platform schedule handler; one X mentions read per account with a post published in the last 24 hours, feeding the social inbox and the social.reply notification.',
+  },
+  {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
     id: 'youtube-messages',
     methodName: 'syncYoutubeMessages',

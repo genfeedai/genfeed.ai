@@ -32,6 +32,7 @@ import {
   type TwitterDirectMessageListing,
   TwitterInboxService,
   type TwitterInboxTweet,
+  type TwitterMentionsPage,
 } from './twitter-inbox.service';
 import { TwitterPublishingService } from './twitter-publishing.service';
 import {
@@ -50,6 +51,7 @@ export type {
   TwitterInboxDmMessage,
   TwitterInboxDmThread,
   TwitterInboxTweet,
+  TwitterMentionsPage,
 } from './twitter-inbox.service';
 export { resolveTwitterReplySettings } from './twitter-publishing.service';
 
@@ -717,6 +719,28 @@ export class TwitterService {
     credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
     return this.inboxService.listMentions(
+      organizationId,
+      brandId,
+      options,
+      credentialId,
+    );
+  }
+
+  /**
+   * One page of mentions, newest first, with X's token for the next (older)
+   * page. Use to read every mention since a cursor without skipping any.
+   */
+  public async listMentionsPage(
+    organizationId: string,
+    brandId: string,
+    options: {
+      limit?: number;
+      paginationToken?: string;
+      sinceId?: string;
+    } = {},
+    credentialId?: string,
+  ): Promise<TwitterMentionsPage> {
+    return this.inboxService.listMentionsPage(
       organizationId,
       brandId,
       options,
