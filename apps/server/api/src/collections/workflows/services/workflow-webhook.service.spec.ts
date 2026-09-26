@@ -71,6 +71,47 @@ describe('WorkflowWebhookService', () => {
       });
     });
 
+    it('generates a webhook id and secret with at least 128/256 bits of CSPRNG entropy (base64url)', async () => {
+      // Regression coverage for #5248: `wh_${Date.now()...}_${Math.random()...}`
+      // and a `Math.random()`-driven secret are both predictable and, for
+      // `authType: 'none'` webhooks, the id is the only credential.
+      prisma.workflow.findFirst.mockResolvedValue({
+        config: {},
+        id: 'workflow-1',
+        organizationId: 'org-1',
+      });
+      prisma.workflow.update.mockResolvedValue({});
+
+      const result = await service.generateWebhook(
+        'workflow-1',
+        'org-1',
+        'secret',
+      );
+
+      // base64url of 16 bytes (128 bits) is 22 chars, no padding/+/ or /.
+      expect(result.webhookId).toMatch(/^wh_[A-Za-z0-9_-]{22}$/);
+      // base64url of 32 bytes (256 bits) is 43 chars.
+      expect(result.webhookSecret).toMatch(/^whsec_[A-Za-z0-9_-]{43}$/);
+    });
+
+    it('never repeats a webhook id or secret across calls', async () => {
+      prisma.workflow.findFirst.mockResolvedValue({
+        config: {},
+        id: 'workflow-1',
+        organizationId: 'org-1',
+      });
+      prisma.workflow.update.mockResolvedValue({});
+
+      const results = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          service.generateWebhook('workflow-1', 'org-1', 'secret'),
+        ),
+      );
+
+      expect(new Set(results.map((r) => r.webhookId)).size).toBe(20);
+      expect(new Set(results.map((r) => r.webhookSecret)).size).toBe(20);
+    });
+
     it('omits the secret when authType is none', async () => {
       prisma.workflow.findFirst.mockResolvedValue({
         config: {},

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -5,12 +6,13 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import {
+  WorkflowExecutionTrigger,
+  WorkflowWebhookAuthType,
+} from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
-
-export type WorkflowWebhookAuthType = 'none' | 'secret' | 'bearer';
 
 /**
  * Per-workflow inbound webhook subsystem: credential generation/rotation,
@@ -35,7 +37,7 @@ export class WorkflowWebhookService {
   async generateWebhook(
     workflowId: string,
     organizationId: string,
-    authType: WorkflowWebhookAuthType = 'secret',
+    authType: WorkflowWebhookAuthType = WorkflowWebhookAuthType.SECRET,
   ): Promise<{
     webhookId: string;
     webhookUrl: string;
@@ -44,7 +46,9 @@ export class WorkflowWebhookService {
   }> {
     const webhookId = this.generateWebhookId();
     const webhookSecret =
-      authType !== 'none' ? this.generateWebhookSecret() : null;
+      authType !== WorkflowWebhookAuthType.NONE
+        ? this.generateWebhookSecret()
+        : null;
     const baseUrl = this.configService.apiUrl;
 
     await this.patchWorkflowConfig(workflowId, organizationId, {
@@ -87,7 +91,7 @@ export class WorkflowWebhookService {
     organizationId: string,
   ): Promise<void> {
     await this.patchWorkflowConfig(workflowId, organizationId, {
-      webhookAuthType: 'secret',
+      webhookAuthType: WorkflowWebhookAuthType.SECRET,
       webhookId: null,
       webhookLastTriggeredAt: null,
       webhookSecret: null,
@@ -182,12 +186,17 @@ export class WorkflowWebhookService {
   }
 
   /**
-   * Generate a unique webhook ID
+   * Generate a unique, unguessable webhook ID.
+   *
+   * For `authType: 'none'` webhooks this ID is the *only* credential — it
+   * must not be enumerable or predictable, so it uses the same CSPRNG as
+   * the secret (128 bits of entropy is plenty for an identifier that isn't
+   * itself compared, just looked up). Previously `Date.now()` + `Math.random()`,
+   * which is both time-correlated and not cryptographically secure — see
+   * genfeedai/genfeed.ai#5248.
    */
   private generateWebhookId(): string {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 10);
-    return `wh_${timestamp}_${random}`;
+    return `wh_${randomBytes(16).toString('base64url')}`;
   }
 
   private getWorkflowConfigRecord(config: unknown): Record<string, unknown> {
@@ -226,15 +235,11 @@ export class WorkflowWebhookService {
   }
 
   /**
-   * Generate a secure webhook secret
+   * Generate a secure webhook secret: 256 bits from `crypto.randomBytes`,
+   * base64url-encoded. Previously built from `Math.random()` (not a CSPRNG —
+   * predictable given enough samples) — see genfeedai/genfeed.ai#5248.
    */
   private generateWebhookSecret(): string {
-    const chars =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let secret = 'whsec_';
-    for (let i = 0; i < 32; i++) {
-      secret += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return secret;
+    return `whsec_${randomBytes(32).toString('base64url')}`;
   }
 }
