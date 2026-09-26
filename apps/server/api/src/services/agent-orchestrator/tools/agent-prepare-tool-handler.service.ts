@@ -1,5 +1,6 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
@@ -44,6 +45,12 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+interface AgentMembersServiceLike {
+  findOne: (
+    params: Record<string, unknown>,
+  ) => Promise<{ currentBrandId?: unknown } | null>;
+}
+
 /**
  * Prepare/UI handoff tools (generation, workflow trigger, voice clone, clip run,
  * next-step suggestions).
@@ -54,6 +61,8 @@ export class AgentPrepareToolHandler {
   constructor(
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     private readonly workflowsService: WorkflowsService,
     @Optional()
     private readonly organizationSettingsService?: OrganizationSettingsService,
@@ -208,14 +217,13 @@ export class AgentPrepareToolHandler {
     ctx: ToolExecutionContext,
     params: Record<string, unknown> = {},
   ): Promise<AgentToolResult> {
-    const currentBrand = await this.brandsService.findOne(
-      {
-        isSelected: true,
-        organizationId: ctx.organizationId,
-        userId: ctx.userId,
-      },
-      'none',
-    );
+    const currentBrand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
 
     const orgSettings = this.organizationSettingsService
       ? await this.organizationSettingsService.findOne({
@@ -377,14 +385,13 @@ export class AgentPrepareToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const currentBrand = await this.brandsService.findOne(
-      {
-        isSelected: true,
-        organizationId: ctx.organizationId,
-        userId: ctx.userId,
-      },
-      'none',
-    );
+    const currentBrand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
     const selectedBrandId = currentBrand
       ? String((currentBrand as Record<string, unknown>).id)
       : null;

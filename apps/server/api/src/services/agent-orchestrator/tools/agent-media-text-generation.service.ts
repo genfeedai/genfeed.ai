@@ -1,3 +1,8 @@
+import type {
+  ResolveGenerationBrandMembersServiceLike,
+  ResolveGenerationBrandServiceLike,
+} from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
@@ -101,6 +106,10 @@ export class AgentMediaTextGenerationService {
     private readonly newslettersService: NewslettersService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
+    @Inject('AGENT_BRANDS_SERVICE')
+    private readonly brandsService: ResolveGenerationBrandServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: ResolveGenerationBrandMembersServiceLike,
   ) {}
 
   async aiAction(
@@ -303,11 +312,27 @@ export class AgentMediaTextGenerationService {
       (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
       ContentIntelligencePlatform.TWITTER;
     const knowledge = resolveToolKnowledgeSelection(params, ctx);
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      explicitBrandId:
+        typeof params.brandId === 'string' ? params.brandId : undefined,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    if (!brand?.id) {
+      return {
+        creditsUsed: 0,
+        error: 'A brand is required to generate content.',
+        success: false,
+      };
+    }
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
         additionalContext: params.additionalContext as string[] | undefined,
-        brandId: params.brandId ? (params.brandId as string) : undefined,
+        brandId: String(brand.id),
         ...(knowledge ? { knowledge } : {}),
         platform,
         topic: params.topic as string,

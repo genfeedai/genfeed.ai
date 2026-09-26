@@ -30,6 +30,18 @@
     "symbol": "BillingAccountsService.linkOrganization"
   },
   {
+    "actual": 1016,
+    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"
+  },
+  {
+    "actual": 153,
+    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
+    "metric": "method-lines",
+    "symbol": "BrandRelocationService.relocateToOrganization"
+  },
+  {
     "actual": 182,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",
@@ -114,7 +126,7 @@
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
   },
   {
-    "actual": 266,
+    "actual": 276,
     "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
     "metric": "method-lines",
     "symbol": "ProactiveOnboardingService.prepareBrand"
@@ -204,7 +216,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 203,
+    "actual": 202,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
@@ -234,7 +246,7 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 1087,
+    "actual": 1095,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts"

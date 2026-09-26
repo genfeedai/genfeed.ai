@@ -29,6 +29,12 @@ export interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+export interface AgentMembersServiceLike {
+  findOne: (
+    params: Record<string, unknown>,
+  ) => Promise<{ currentBrandId?: unknown } | null>;
+}
+
 export interface RecurringScaffoldParams {
   contentType: RecurringTaskContentType;
   count: number;

@@ -22,6 +22,8 @@ import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashb
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
+import { MembersModule } from '@api/collections/members/members.module';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -178,6 +180,7 @@ import { Module } from '@nestjs/common';
     BrandInterviewModule,
     BrandsCoreModule,
     BotsModule,
+    MembersModule,
     OutreachCampaignsModule,
     ConfigModule,
     ContentIntelligenceModule,
@@ -291,6 +294,10 @@ import { Module } from '@nestjs/common';
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,
+    },
+    {
+      provide: 'AGENT_MEMBERS_SERVICE',
+      useExisting: MembersService,
     },
     {
       provide: 'AGENT_BOTS_SERVICE',

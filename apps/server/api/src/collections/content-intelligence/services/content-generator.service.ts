@@ -862,6 +862,13 @@ Return one variation per post.`;
     if (!platform) {
       throw new Error('Missing required content generation input: platform');
     }
+    if (
+      typeof input.brandId !== 'string' ||
+      input.brandId.trim().length === 0
+    ) {
+      // #5219: generation always has an explicit brand — no server-side guessing.
+      throw new Error('Missing required content generation input: brandId');
+    }
     return {
       ...input,
       platform,

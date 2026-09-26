@@ -21,8 +21,13 @@ export class GenerateArticlesDto {
   @MaxLength(500)
   prompt!: string;
 
-  @IsEntityId()
+  // Required in effect (#5219): every caller here (articles-operations
+  // controller, agent-generation-gateway) already falls back to
+  // `user.brandId` — the member's real currentBrandId invariant, the
+  // sanctioned "app" resolution per #5219 — when this is omitted, so the DTO
+  // itself stays optional rather than duplicating that fallback here.
   @IsOptional()
+  @IsEntityId()
   brandId?: string;
 
   @IsOptional()
