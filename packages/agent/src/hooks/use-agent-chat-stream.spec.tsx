@@ -1201,22 +1201,7 @@ describe('useAgentChatStream', () => {
     ).toHaveLength(0);
   });
 
-  it('does not emit a redundant store notification when marking a thread running with no cached conversation to evict', async () => {
-    useAgentChatStore.setState({
-      conversationCacheByThread: {},
-      threads: [
-        {
-          id: 'thread-a',
-          contextVersion: 1,
-          status: AgentThreadStatus.ACTIVE,
-          createdAt: '2026-09-08T10:00:00Z',
-          updatedAt: '2026-09-08T10:00:00Z',
-          attentionState: null,
-          pendingInputCount: 0,
-          runStatus: 'running',
-        },
-      ],
-    });
+  async function markThreadRunningNotificationCount(): Promise<number> {
     const apiService = createApiService({
       chatStream: vi.fn(async () => ({
         brandId: null,
@@ -1239,10 +1224,62 @@ describe('useAgentChatStream', () => {
       }
     });
     unsubscribe();
+    return listener.mock.calls.length;
+  }
 
-    // Only the thread-summary update should notify -- the cache-eviction
-    // setState is skipped entirely when there is nothing cached to evict.
-    expect(listener).toHaveBeenCalledTimes(1);
+  it('skips the cache-eviction store notification when no conversation is cached for the thread', async () => {
+    useAgentChatStore.setState({
+      conversationCacheByThread: {},
+      threads: [
+        {
+          id: 'thread-a',
+          contextVersion: 1,
+          status: AgentThreadStatus.ACTIVE,
+          createdAt: '2026-09-08T10:00:00Z',
+          updatedAt: '2026-09-08T10:00:00Z',
+          attentionState: null,
+          pendingInputCount: 0,
+          runStatus: 'running',
+        },
+      ],
+    });
+
+    const withoutCacheEntry = await markThreadRunningNotificationCount();
+
+    resetAgentStreamRuntime();
+    socketHandlers.clear();
+    useAgentChatStore.setState({
+      conversationCacheByThread: {
+        'thread-a': {
+          cachedAt: Date.now(),
+          error: null,
+          latestProposedPlan: null,
+          hasMoreMessages: false,
+          messages: [],
+          messagesCursor: null,
+          pendingInputRequest: null,
+          workEvents: [],
+        },
+      },
+      threads: [
+        {
+          id: 'thread-a',
+          contextVersion: 1,
+          status: AgentThreadStatus.ACTIVE,
+          createdAt: '2026-09-08T10:00:00Z',
+          updatedAt: '2026-09-08T10:00:00Z',
+          attentionState: null,
+          pendingInputCount: 0,
+          runStatus: 'running',
+        },
+      ],
+    });
+
+    const withCacheEntry = await markThreadRunningNotificationCount();
+
+    // Evicting an existing cache entry is a real state change and must still
+    // notify; skipping the eviction when nothing is cached must not.
+    expect(withCacheEntry).toBe(withoutCacheEntry + 1);
   });
 
   it('ignores a handoff acknowledgement after another thread took the stream', async () => {
