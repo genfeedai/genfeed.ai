@@ -75,6 +75,18 @@ describe('AdminApiKeyGuard', () => {
         'Invalid authorization header format',
       );
     });
+
+    it.each([
+      ['a valid-looking key', `Bearer ${VALID_KEY} extra`],
+      ['an already-invalid key', 'Bearer wrong-key-here-xyz extra-field'],
+    ])(
+      'throws when the header has a surplus field after %s',
+      (_label, authHeader) => {
+        expect(() => guard.canActivate(makeContext(authHeader))).toThrow(
+          new UnauthorizedException('Invalid authorization header format'),
+        );
+      },
+    );
   });
 
   describe('missing server config', () => {
