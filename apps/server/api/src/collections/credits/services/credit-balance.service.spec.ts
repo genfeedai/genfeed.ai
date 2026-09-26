@@ -8,45 +8,28 @@ import {
 } from '@libs/prisma/tenant-context';
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 
-const walletAccessWhere = (organizationId: string) => ({
-  OR: [
-    { organizationId },
-    {
-      billingAccount: {
-        isDeleted: false,
-        OR: [
-          { organizations: { some: { id: organizationId, isDeleted: false } } },
-          {
-            organizationLinks: {
-              some: {
-                isDeleted: false,
-                organizationId,
-                status: BillingAccountOrganizationStatus.LINKED,
-              },
-            },
-          },
-        ],
-      },
-    },
-  ],
-});
-
-const guardCreditBalance = (args: unknown) =>
+const guardQuery = (model: string, args: unknown) =>
   assertTenantScopedQuery({
     args,
     isCloud: true,
-    model: 'CreditBalance',
+    model,
     operation: 'findFirst',
-    tenantModelNames: new Set(['CreditBalance']),
+    tenantModelNames: new Set(['CreditBalance', 'BillingAccountOrganization']),
   });
 
 describe('CreditBalanceService', () => {
   const prisma = {
     $executeRaw: vi.fn(),
+    billingAccountOrganization: {
+      findFirst: vi.fn(),
+    },
     creditBalance: {
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+    },
+    organization: {
+      findFirst: vi.fn(),
     },
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
@@ -57,26 +40,160 @@ describe('CreditBalanceService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.organization.findFirst.mockResolvedValue(null);
+    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
   });
 
-  it('finds a shared billing-account wallet only through an active link to the requesting organization', async () => {
+  it('returns the wallet the organization owns directly, without consulting billing-account relations', async () => {
     prisma.creditBalance.findFirst.mockResolvedValue({
       balance: 100,
       billingAccountId: 'ba_1',
       heldAmount: 6,
       id: 'balance_1',
       isDeleted: false,
-      organizationId: 'org_1',
+      organizationId: 'org_2',
       version: 1,
     });
 
-    await service.getOrCreateBalance('org_2', undefined, 'ba_1');
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+    );
 
+    expect(balance.id).toBe('balance_1');
     expect(prisma.creditBalance.findFirst).toHaveBeenCalledWith({
       where: {
-        ...walletAccessWhere('org_2'),
         billingAccountId: 'ba_1',
         isDeleted: false,
+        organizationId: 'org_2',
+      },
+    });
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+    expect(prisma.billingAccountOrganization.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('finds a shared wallet through the organization directly attached to its billing account', async () => {
+    prisma.creditBalance.findFirst.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValue({
+      billingAccount: {
+        creditBalances: [
+          {
+            balance: 100,
+            billingAccountId: 'ba_1',
+            heldAmount: 6,
+            id: 'balance_1',
+            isDeleted: false,
+            organizationId: null,
+            version: 1,
+          },
+        ],
+      },
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+    );
+
+    expect(balance.id).toBe('balance_1');
+    expect(prisma.organization.findFirst).toHaveBeenCalledWith({
+      select: {
+        billingAccount: {
+          select: {
+            creditBalances: {
+              take: 1,
+              where: { billingAccountId: 'ba_1', isDeleted: false },
+            },
+          },
+          where: { isDeleted: false },
+        },
+      },
+      where: { id: 'org_2', isDeleted: false },
+    });
+    expect(prisma.billingAccountOrganization.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('finds a shared wallet only through a LINKED, non-deleted BillingAccountOrganization row', async () => {
+    prisma.creditBalance.findFirst.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
+    prisma.billingAccountOrganization.findFirst.mockResolvedValue({
+      billingAccount: {
+        creditBalances: [
+          {
+            balance: 100,
+            billingAccountId: 'ba_1',
+            heldAmount: 6,
+            id: 'balance_1',
+            isDeleted: false,
+            organizationId: 'org_1',
+            version: 1,
+          },
+        ],
+      },
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+    );
+
+    expect(balance.id).toBe('balance_1');
+    expect(prisma.billingAccountOrganization.findFirst).toHaveBeenCalledWith({
+      select: {
+        billingAccount: {
+          select: {
+            creditBalances: {
+              take: 1,
+              where: { billingAccountId: 'ba_1', isDeleted: false },
+            },
+          },
+          where: { isDeleted: false },
+        },
+      },
+      where: {
+        billingAccountId: 'ba_1',
+        isDeleted: false,
+        organizationId: 'org_2',
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+  });
+
+  it('never reaches another organization wallet when unlinked, and provisions its own instead', async () => {
+    prisma.creditBalance.findFirst
+      .mockResolvedValueOnce(null) // own-wallet check for the shared lookup
+      .mockResolvedValueOnce(null); // findByOrganization default-wallet lookup
+    prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
+    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.creditBalance.create.mockResolvedValue({
+      balance: 0,
+      billingAccountId: 'ba_1',
+      heldAmount: 0,
+      id: 'balance_new',
+      isDeleted: false,
+      organizationId: 'org_2',
+      version: 0,
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+    );
+
+    expect(balance.id).toBe('balance_new');
+    expect(balance.organizationId).toBe('org_2');
+    expect(prisma.creditBalance.create).toHaveBeenCalledWith({
+      data: {
+        balance: 0,
+        billingAccountId: 'ba_1',
+        heldAmount: 0,
+        isDeleted: false,
+        organizationId: 'org_2',
+        version: 0,
       },
     });
   });
@@ -93,12 +210,15 @@ describe('CreditBalanceService', () => {
         organizationId: walletOrganizationId,
         version: 1,
       };
-      prisma.creditBalance.findFirst
-        .mockResolvedValueOnce(balance)
-        .mockResolvedValueOnce({ ...balance, heldAmount: 4, version: 2 });
+      prisma.creditBalance.findFirst.mockResolvedValueOnce(balance);
       prisma.$executeRaw.mockResolvedValue(1);
+      prisma.organization.findFirst.mockResolvedValue({
+        billingAccount: {
+          creditBalances: [{ ...balance, heldAmount: 4, version: 2 }],
+        },
+      });
 
-      await service.applyDelta('org_2', {
+      const snapshot = await service.applyDelta('org_2', {
         billingAccountId: 'ba_1',
         heldDelta: -2,
       });
@@ -106,12 +226,24 @@ describe('CreditBalanceService', () => {
       const mutation = prisma.$executeRaw.mock.calls[0]?.[0];
       expect(mutation.values).toContain(walletOrganizationId);
       expect(mutation.values).not.toContain('org_2');
-      expect(prisma.creditBalance.findFirst).toHaveBeenNthCalledWith(2, {
-        where: {
-          ...walletAccessWhere('org_2'),
-          id: 'balance_1',
-          isDeleted: false,
+      expect(snapshot.held).toBe(4);
+      expect(prisma.organization.findFirst).toHaveBeenCalledWith({
+        select: {
+          billingAccount: {
+            select: {
+              creditBalances: {
+                take: 1,
+                where: {
+                  billingAccountId: 'ba_1',
+                  id: 'balance_1',
+                  isDeleted: false,
+                },
+              },
+            },
+            where: { isDeleted: false },
+          },
         },
+        where: { id: 'org_2', isDeleted: false },
       });
     },
   );
@@ -121,14 +253,14 @@ describe('CreditBalanceService', () => {
       let hatchWasOpen = true;
       prisma.creditBalance.findFirst.mockImplementation(async (args) => {
         hatchWasOpen = isCrossOrgUnsafe();
-        guardCreditBalance(args);
+        guardQuery('CreditBalance', args);
         return {
           balance: 100,
           billingAccountId: 'ba_1',
           heldAmount: 6,
           id: 'balance_1',
           isDeleted: false,
-          organizationId: 'org_1',
+          organizationId: 'org_2',
           version: 1,
         };
       });
@@ -143,7 +275,7 @@ describe('CreditBalanceService', () => {
 
     it('rejects a wallet lookup for an organization other than the request tenant', async () => {
       prisma.creditBalance.findFirst.mockImplementation(async (args) => {
-        guardCreditBalance(args);
+        guardQuery('CreditBalance', args);
         return null;
       });
 
@@ -160,7 +292,7 @@ describe('CreditBalanceService', () => {
       prisma.creditBalance.findFirst.mockImplementation(async (args) => {
         hatchWasOpen = isCrossOrgUnsafe();
         capturedArgs = args;
-        guardCreditBalance(args);
+        guardQuery('CreditBalance', args);
         return null;
       });
       prisma.creditBalance.create.mockResolvedValue({
@@ -194,11 +326,22 @@ describe('CreditBalanceService', () => {
         version: 1,
       };
       prisma.creditBalance.findFirst.mockImplementation(async (args) => {
-        guardCreditBalance(args);
+        guardQuery('CreditBalance', args);
         return prisma.creditBalance.findFirst.mock.calls.length === 1
           ? wallet
-          : { ...wallet, heldAmount: 8, version: 2 };
+          : null;
       });
+      prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
+      prisma.billingAccountOrganization.findFirst.mockImplementation(
+        async (args) => {
+          guardQuery('BillingAccountOrganization', args);
+          return {
+            billingAccount: {
+              creditBalances: [{ ...wallet, heldAmount: 8, version: 2 }],
+            },
+          };
+        },
+      );
       prisma.$executeRaw.mockResolvedValue(1);
 
       await expect(

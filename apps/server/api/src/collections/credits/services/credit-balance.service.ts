@@ -66,13 +66,11 @@ export class CreditBalanceService {
 
     const client = tx ?? this.prisma;
     if (billingAccountId) {
-      const shared = await client.creditBalance.findFirst({
-        where: {
-          ...this.walletAccessWhere(organizationId),
-          billingAccountId,
-          isDeleted: false,
-        },
-      });
+      const shared = await this.findAccessibleWallet(
+        organizationId,
+        { billingAccountId },
+        client,
+      );
       if (shared) {
         return shared;
       }
@@ -108,40 +106,66 @@ export class CreditBalanceService {
    * A shared BillingAccount wallet may be owned by another organization, or by
    * none, so it cannot be filtered by the requesting organizationId alone. The
    * requesting organization may use a wallet it owns, or one whose billing
-   * account it is actively attached to (direct `billingAccountId` or a LINKED,
-   * non-deleted BillingAccountOrganization row — the same two paths
-   * BillingAccountsService.resolveForOrganization accepts). The database
-   * enforces the link, and the tenant guard still sees organizationId.
+   * account it is actively attached to (direct `Organization.billingAccountId`
+   * or a LINKED, non-deleted `BillingAccountOrganization` row — the same two
+   * paths `BillingAccountsService.resolveForOrganization` accepts).
+   *
+   * Each path is proven with its own tenant-scoped query rather than an `OR`
+   * folded into the `CreditBalance` lookup itself: `organizationId` on
+   * `CreditBalance` may be null or another org's, so it can never be the
+   * thing that proves access. Instead every branch starts from a row that is
+   * already known to belong to `organizationId` — the org's own row, or a
+   * LINKED `BillingAccountOrganization` row scoped with `scopedWhere` — and
+   * reads the wallet through the Prisma relation from there, so the join
+   * itself (not an `OR`) is what proves the wallet is reachable.
    */
-  private walletAccessWhere(
+  private async findAccessibleWallet(
     organizationId: string,
-  ): Prisma.CreditBalanceWhereInput {
-    return {
-      OR: [
-        { organizationId },
-        {
-          billingAccount: {
-            isDeleted: false,
-            OR: [
-              {
-                organizations: {
-                  some: { id: organizationId, isDeleted: false },
-                },
-              },
-              {
-                organizationLinks: {
-                  some: {
-                    isDeleted: false,
-                    organizationId,
-                    status: BillingAccountOrganizationStatus.LINKED,
-                  },
-                },
-              },
-            ],
-          },
-        },
-      ],
+    filter: { billingAccountId?: string; id?: string },
+    client: PrismaService | PrismaTransactionClient,
+  ): Promise<CreditBalanceDocument | null> {
+    const own = await client.creditBalance.findFirst({
+      where: scopedWhere(organizationId, { ...filter }),
+    });
+    if (own) {
+      return own;
+    }
+
+    const walletWhere: Prisma.CreditBalanceWhereInput = {
+      ...filter,
+      isDeleted: false,
     };
+
+    const direct = await client.organization.findFirst({
+      select: {
+        billingAccount: {
+          select: { creditBalances: { take: 1, where: walletWhere } },
+          where: { isDeleted: false },
+        },
+      },
+      where: { id: organizationId, isDeleted: false },
+    });
+    const directWallet = direct?.billingAccount?.creditBalances[0];
+    if (directWallet) {
+      return directWallet;
+    }
+
+    const linked = await client.billingAccountOrganization.findFirst({
+      select: {
+        billingAccount: {
+          select: { creditBalances: { take: 1, where: walletWhere } },
+          where: { isDeleted: false },
+        },
+      },
+      where: scopedWhere(organizationId, {
+        status: BillingAccountOrganizationStatus.LINKED,
+        ...(filter.billingAccountId
+          ? { billingAccountId: filter.billingAccountId }
+          : {}),
+      }),
+    });
+
+    return linked?.billingAccount?.creditBalances[0] ?? null;
   }
 
   toSnapshot(balance: CreditBalanceDocument): ICreditWalletSnapshot {
@@ -208,13 +232,14 @@ export class CreditBalanceService {
       );
     }
 
-    const next = await client.creditBalance.findFirst({
-      where: {
-        ...this.walletAccessWhere(organizationId),
+    const next = await this.findAccessibleWallet(
+      organizationId,
+      {
+        billingAccountId: balance.billingAccountId ?? undefined,
         id: balance.id,
-        isDeleted: false,
       },
-    });
+      client,
+    );
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
@@ -244,13 +269,11 @@ export class CreditBalanceService {
       },
       tx,
     );
-    const next = await (tx ?? this.prisma).creditBalance.findFirst({
-      where: {
-        ...this.walletAccessWhere(organizationId),
-        id: snapshot.id,
-        isDeleted: false,
-      },
-    });
+    const next = await this.findAccessibleWallet(
+      organizationId,
+      { billingAccountId, id: snapshot.id },
+      tx ?? this.prisma,
+    );
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
