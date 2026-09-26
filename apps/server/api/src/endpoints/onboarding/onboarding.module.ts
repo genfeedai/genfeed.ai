@@ -15,18 +15,29 @@ import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service'
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
+import { OnboardingStarterAssetsService } from '@api/endpoints/onboarding/services/onboarding-starter-assets.service';
+import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
+import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { ONBOARDING_STARTER_ASSETS_QUEUE } from '@genfeedai/contracts/queue';
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [OnboardingController],
-  exports: [OnboardingService],
+  // OnboardingStarterAssetsService is exported so the workers app (which
+  // imports this module for the BullMQ processor) can run the same
+  // generation logic the queue producer enqueues — see
+  // `OnboardingStarterAssetsProcessor`.
+  exports: [OnboardingService, OnboardingStarterAssetsService],
   imports: [
+    AgentGenerationGatewayModule,
     BatchGenerationModule,
     BrandScraperModule,
     BrandsModule,
@@ -35,6 +46,7 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     FilesClientModule,
     LinksModule,
+    LlmDispatcherModule,
     MembersModule,
     ModelsModule,
     OrganizationSettingsModule,
@@ -44,6 +56,13 @@ import { Module } from '@nestjs/common';
     RolesModule,
     UserSetupModule,
     UsersModule,
+    BullModule.registerQueue({
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+      name: ONBOARDING_STARTER_ASSETS_QUEUE,
+    }),
   ],
   providers: [
     OnboardingService,
@@ -54,6 +73,8 @@ import { Module } from '@nestjs/common';
     // BrandsModule per REST audit #1354 to break the module import cycle.
     OnboardingPreviewService,
     OnboardingReadinessService,
+    OnboardingStarterAssetsQueueService,
+    OnboardingStarterAssetsService,
   ],
 })
 export class OnboardingModule {}

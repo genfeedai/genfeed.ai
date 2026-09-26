@@ -6,6 +6,7 @@ import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
+  calculateAgentExactCredits,
   calculateAgentRoundCredits,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   DEFAULT_GROK_MODEL_KEY,
@@ -20,6 +21,13 @@ import {
 } from './agent-chat-models.constant';
 import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';
+
+describe('calculateAgentExactCredits', () => {
+  it('applies the operator multiplier once, defaulting to 1.7', () => {
+    expect(calculateAgentExactCredits(0.01)).toBe(1.7);
+    expect(calculateAgentExactCredits(0.01, 1.5)).toBe(1.5);
+  });
+});
 
 describe('calculateAgentRoundCredits', () => {
   it('derives credits from list price, prompt and completion tokens both', () => {

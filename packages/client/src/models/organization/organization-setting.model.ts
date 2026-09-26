@@ -42,6 +42,11 @@ export class OrganizationSetting
 
   declare public timezone?: string;
 
+  declare public quotaYoutube?: number;
+  declare public quotaTiktok?: number;
+  declare public quotaTwitter?: number;
+  declare public quotaInstagram?: number;
+
   declare public enabledModelIds?: string[];
   declare public defaultAvatarPhotoUrl?: string | null;
   declare public defaultVoiceId?: string | null;

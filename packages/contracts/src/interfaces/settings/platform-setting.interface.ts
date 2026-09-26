@@ -1,3 +1,4 @@
+import type { MarginInputMode } from '../../enums/platform-setting.enum';
 import type { TypedDecisionProviderName } from '../ai/typed-decision.interface';
 import type { IBaseEntity } from '../core/base.interface';
 
@@ -10,12 +11,29 @@ import type { IBaseEntity } from '../core/base.interface';
  */
 export interface IPlatformSetting extends IBaseEntity {
   /**
-   * Margin multiplier applied on top of the base provider-cost markup when
-   * computing customer-facing model credit costs. 1.0 = base margin only,
-   * 1.2 = +20% markup on top of the base. See `applyMargin` in
+   * Sell/cost ratio applied to provider USD for **generation** billing. 1.0 =
+   * provider cost, 3.33 = 70% margin on sell price. See `applyMargin` in
+   * `@genfeedai/pricing`. Independent of `marginMultiplierAgentChat` — see
+   * issue #5172.
+   */
+  marginMultiplierGeneration: number;
+
+  /**
+   * Sell/cost ratio applied to provider USD for **agent chat** billing. 1.0 =
+   * provider cost, 1.7 = 70% markup on provider cost. See
+   * `calculateAgentExactCredits` in `@genfeedai/contracts/constants`.
+   * Independent of `marginMultiplierGeneration` — see issue #5172.
+   */
+  marginMultiplierAgentChat: number;
+
+  /**
+   * How an operator types and reads both margin multipliers above in
+   * `/admin`: a markup percent on provider cost, or a margin percent on sell
+   * price. Never changes what is stored or billed — billing always applies
+   * `cost × multiplier`. See `multiplierToPercent` / `percentToMultiplier` in
    * `@genfeedai/pricing`.
    */
-  marginMultiplier: number;
+  marginInputMode: MarginInputMode;
 
   /**
    * Which provider answers typed decisions (epic #4863). `none` keeps every
@@ -31,6 +49,8 @@ export interface IPlatformSetting extends IBaseEntity {
 
 /** Fields a platform operator may update via `/admin`. */
 export interface IUpdatePlatformSettingPayload {
-  marginMultiplier?: number;
+  marginMultiplierGeneration?: number;
+  marginMultiplierAgentChat?: number;
+  marginInputMode?: MarginInputMode;
   typedDecisionProvider?: TypedDecisionProviderName;
 }

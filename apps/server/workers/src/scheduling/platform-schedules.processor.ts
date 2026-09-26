@@ -25,6 +25,7 @@ import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-statu
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 import { CronWorkflowArtifactsService } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.service';
+import { CronXReplyWatchService } from '@workers/crons/x-replies/cron.x-reply-watch.service';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
@@ -82,6 +83,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly threadComments: ThreadCommentDeliveryService,
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
+    private readonly xReplyWatch: CronXReplyWatchService,
   ) {
     super();
     this.handlers = {
@@ -154,6 +156,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowArtifacts.queueExpiredArtifactCleanup(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE]: () =>
         this.workflowSchedules.reconcileContinuations(),
+      [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
+        this.xReplyWatch.watchRecentPostReplies(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>
         this.youtubeMessages.syncYoutubeMessages(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: () =>

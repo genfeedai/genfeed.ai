@@ -33,6 +33,7 @@ async function setup() {
     workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
     agentThreadEvent: { findMany: vi.fn().mockResolvedValue([]) },
     agentStrategy: { findMany: vi.fn().mockResolvedValue([]) },
+    brand: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -424,6 +425,83 @@ describe('NotificationInboxService', () => {
       sourceHref: '/acme/~/workspace/activity',
       sourceLabel: null,
     });
+  });
+  it('renders social replies with a Messages link on an accessible brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'social.reply',
+        event: {
+          sourceId: 'credential-1',
+          sourceType: 'social_credential',
+          eventKey: 'social.reply.received',
+          payload: {
+            kind: 'social_reply',
+            brandId: 'brand-1',
+            accountHandle: 'acme',
+            replyCount: 3,
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(prisma.brand.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['brand-1'] },
+        isDeleted: false,
+        organizationId: 'org',
+      },
+      select: { id: true, slug: true },
+    });
+    expect(page.docs).toEqual([
+      expect.objectContaining({
+        topic: 'social.reply',
+        outcome: 'completed',
+        sourceHref: '/acme/acme-brand/messages',
+        sourceLabel: null,
+        failure: null,
+        socialReply: { accountHandle: 'acme', replyCount: 3 },
+      }),
+    ]);
+  });
+  it('does not link a social reply for a brand the member is not assigned to', async () => {
+    const { service, prisma } = await setup();
+    prisma.member.findFirst.mockResolvedValue({
+      ...member,
+      role: { key: 'member' },
+      brands: [{ id: 'brand-other' }],
+    });
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'social.reply',
+        event: {
+          sourceId: 'credential-1',
+          sourceType: 'social_credential',
+          eventKey: 'social.reply.received',
+          payload: {
+            kind: 'social_reply',
+            brandId: 'brand-1',
+            accountHandle: null,
+            replyCount: 1,
+          },
+        },
+      }),
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(prisma.brand.findMany).not.toHaveBeenCalled();
+    expect(page.docs[0]).toEqual(
+      expect.objectContaining({
+        sourceHref: null,
+        socialReply: { accountHandle: null, replyCount: 1 },
+      }),
+    );
   });
   it('writes only unread owned rows and propagates failed mutations', async () => {
     const { service, prisma } = await setup();

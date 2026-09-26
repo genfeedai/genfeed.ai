@@ -642,6 +642,17 @@ describe('Serializer Attributes', () => {
       const unique = new Set(organizationSettingsAttributes);
       expect(unique.size).toBe(organizationSettingsAttributes.length);
     });
+
+    it('exposes the per-platform daily publishing caps', () => {
+      expect(organizationSettingsAttributes).toEqual(
+        expect.arrayContaining([
+          'quotaYoutube',
+          'quotaTiktok',
+          'quotaTwitter',
+          'quotaInstagram',
+        ]),
+      );
+    });
   });
 
   describe('credentialAttributes', () => {

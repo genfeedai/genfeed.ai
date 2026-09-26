@@ -38,7 +38,7 @@ describe('model-capabilities.constant', () => {
 
   it('routes BGE as the text embedding capability', () => {
     expect(
-      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5],
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5],
     ).toMatchObject({
       category: ModelCategory.EMBEDDING,
       maxReferences: 0,

@@ -114,6 +114,28 @@ describe('publishing content library federation', () => {
     ).toEqual(['group-2', 'group-1']);
   });
 
+  it('strips stored HTML out of release titles', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          baseContent: '<p>AI content is taking over!</p>',
+          createdAt: '2026-08-11T10:00:00Z',
+          id: 'group-html',
+          status: 'paused',
+          title: '<p>AI content is taking over! Manual content...</p>',
+        } as IReleaseGroup,
+      ],
+    });
+
+    expect(items[0]?.title).toBe(
+      'AI content is taking over! Manual content...',
+    );
+    expect(items[0]?.summary).toBe('AI content is taking over!');
+  });
+
   it('normalizes public posts to the same published status used by articles', () => {
     const items = createPublishingContentLibraryItems({
       ...collections,

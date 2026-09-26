@@ -128,6 +128,8 @@ export function buildTargetPreview({
 }: TargetPreviewProps): PlatformPreviewTarget {
   const caption = resolveTargetCaption(release, target);
   const signature = resolveSignature(release, target);
+  const { caption: _captionOverride, ...channelSettings } =
+    target.settings ?? {};
   return {
     author: {
       avatarUrl: credential.externalAvatar || undefined,
@@ -149,7 +151,7 @@ export function buildTargetPreview({
         url: item.url || undefined,
       })),
     platform: target.platform,
-    settings: target.settings,
+    settings: channelSettings,
     title: release.title,
   };
 }

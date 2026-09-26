@@ -44,15 +44,15 @@ export function chooseAuthorizedVersionId(
 }
 
 export interface ReadableVersionChoice {
+  allowsCatalogRead?: boolean;
   pointer: AuthorizedVersionPointer;
   readGrantVersionId?: string | null;
 }
 
 /**
- * The body a caller may read. A use-only grant can select execution without
- * making that different version readable. Trusted system catalog rows are
- * private and unpublished, so their captured current version is the readable
- * body. Other owners do not fall through to a current draft.
+ * The body a caller may read. A use-only grant does not make another version
+ * readable. A system catalog exposes its current version only when its source
+ * policy allows that read. Other owners do not fall through to a current draft.
  */
 export function chooseReadableVersionId(
   choice: ReadableVersionChoice,
@@ -70,7 +70,10 @@ export function chooseReadableVersionId(
   ) {
     return choice.pointer.publishedVersionId;
   }
-  if (choice.pointer.ownerKind === 'system') {
+  if (
+    choice.pointer.ownerKind === 'system' &&
+    choice.allowsCatalogRead === true
+  ) {
     return choice.pointer.currentVersionId;
   }
   return null;

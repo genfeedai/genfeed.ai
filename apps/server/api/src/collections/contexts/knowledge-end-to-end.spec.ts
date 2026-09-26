@@ -211,9 +211,14 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       prismaService,
       logger as never,
       {
-        generateEmbedding: vi.fn(async (_model: string, text: string) =>
-          embed(text),
-        ),
+        embeddings: vi.fn(async ({ input }: { input: string | string[] }) => ({
+          data: [
+            {
+              embedding: embed(Array.isArray(input) ? input[0] : input),
+              index: 0,
+            },
+          ],
+        })),
       } as never,
       { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
     );

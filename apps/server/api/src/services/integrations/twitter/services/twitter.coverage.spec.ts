@@ -1373,6 +1373,38 @@ describe('TwitterService (coverage)', () => {
         expect.objectContaining({ status: 429 }),
       );
     });
+
+    it('pages with pagination_token and returns the next token', async () => {
+      mockV2Get.mockResolvedValue({
+        ...recordedMentions,
+        meta: { next_token: 'page-3' },
+      });
+
+      const page = await service.listMentionsPage('org', 'brand', {
+        limit: 100,
+        paginationToken: 'page-2',
+        sinceId: '1970000000000000000',
+      });
+
+      expect(mockV2Get).toHaveBeenCalledWith(
+        'users/brand-user-id/mentions',
+        expect.objectContaining({
+          max_results: 100,
+          pagination_token: 'page-2',
+          since_id: '1970000000000000000',
+        }),
+      );
+      expect(page.nextToken).toBe('page-3');
+      expect(page.tweets).toHaveLength(2);
+    });
+
+    it('omits nextToken on the last page', async () => {
+      mockV2Get.mockResolvedValue(recordedMentions);
+
+      const page = await service.listMentionsPage('org', 'brand');
+
+      expect(page).not.toHaveProperty('nextToken');
+    });
   });
 
   describe('listDirectMessages', () => {

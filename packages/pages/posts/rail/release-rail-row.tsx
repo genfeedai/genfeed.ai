@@ -157,7 +157,7 @@ export function ReleaseRailActions({
   const { visible } = visibleTargets(release.targets);
   const primaryTargetId = visible[0]?.id ?? release.id;
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
       <Link
         aria-label={translate('open')}
         className={buttonVariants({

@@ -8,10 +8,6 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 });
 
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import {
-  CONTEXT_EMBEDDING_DIMENSION,
-  DEFAULT_CONTEXT_EMBEDDING_MODEL,
-} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -557,101 +553,6 @@ describe('ReplicateService (coverage)', () => {
         'llm failed',
       );
       expect(mockLoggerService.error).toHaveBeenCalled();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // generateEmbedding
-  // -------------------------------------------------------------------------
-
-  describe('generateEmbedding', () => {
-    it('returns a fixed-width embedding from BGE prediction output', async () => {
-      const embedding = Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.1);
-      const wait = vi
-        .fn()
-        .mockResolvedValue({ id: 'pred_bge', output: [embedding] });
-      const create = vi.fn().mockResolvedValue({ id: 'pred_bge' });
-      service.client = makeClient({
-        predictions: { create, get: vi.fn() },
-        wait,
-      }) as unknown as typeof service.client;
-
-      const result = await service.generateEmbedding(
-        DEFAULT_CONTEXT_EMBEDDING_MODEL,
-        'some text about cats',
-      );
-
-      expect(result).toEqual(embedding);
-      expect(create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          input: { texts: '["some text about cats"]' },
-        }),
-      );
-    });
-
-    it('propagates error and logs on failure', async () => {
-      const err = new Error('embedding failed');
-      service.client = makeClient({
-        predictions: { create: vi.fn().mockRejectedValue(err), get: vi.fn() },
-      }) as unknown as typeof service.client;
-
-      await expect(
-        service.generateEmbedding(DEFAULT_CONTEXT_EMBEDDING_MODEL, 'text'),
-      ).rejects.toThrow('embedding failed');
-      expect(mockLoggerService.error).toHaveBeenCalled();
-    });
-
-    it('rejects embedding dimension drift', async () => {
-      const wait = vi
-        .fn()
-        .mockResolvedValue({ id: 'pred_bge_short', output: [[0.1, 0.2]] });
-      service.client = makeClient({
-        predictions: {
-          create: vi.fn().mockResolvedValue({ id: 'pred_bge_short' }),
-          get: vi.fn(),
-        },
-        wait,
-      }) as unknown as typeof service.client;
-
-      await expect(
-        service.generateEmbedding(DEFAULT_CONTEXT_EMBEDDING_MODEL, 'text'),
-      ).rejects.toThrow(`expected ${CONTEXT_EMBEDDING_DIMENSION}`);
-    });
-
-    it('accepts apiKeyOverride', async () => {
-      const embedding = Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.5);
-      const wait = vi
-        .fn()
-        .mockResolvedValue({ id: 'pred_bge_override', output: embedding });
-      const overrideClient = makeClient({
-        predictions: {
-          create: vi.fn().mockResolvedValue({ id: 'pred_bge_override' }),
-          get: vi.fn(),
-        },
-        wait,
-      });
-      const spy = vi
-        .spyOn(
-          service as unknown as {
-            getClientForRequest: (k?: string) => unknown;
-          },
-          'getClientForRequest',
-        )
-        .mockReturnValue(
-          overrideClient as unknown as ReturnType<
-            (typeof service)['client']['predictions']['create']
-          >,
-        );
-
-      const result = await service.generateEmbedding(
-        DEFAULT_CONTEXT_EMBEDDING_MODEL,
-        'override text',
-        'my-key',
-      );
-
-      expect(result).toEqual(embedding);
-      expect(spy).toHaveBeenCalledWith('my-key');
-      spy.mockRestore();
     });
   });
 

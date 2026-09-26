@@ -74,8 +74,11 @@ export interface KnowledgeSourceIngestState {
   chunks?: string[];
   extracted?: {
     endMs?: number;
+    etag?: string;
+    lastModified?: string;
     mediaUrl?: string;
     mimeType?: string;
+    notModified?: boolean;
     startMs?: number;
     text: string;
   };
@@ -490,6 +493,7 @@ export class KnowledgeSourceIngestService {
       };
     }
     await this.writeProcessingState(state, KnowledgeProcessingState.READY);
+    await this.persistExtractedValidators(state);
     if (state.version && !state.version.isCurrent) {
       await this.promoteRefreshCandidate(state);
     } else if (isStillCurrent) {
@@ -806,6 +810,31 @@ export class KnowledgeSourceIngestService {
         status: 'queued',
       }),
       data: status === 'failed' ? { error, status } : { status },
+    });
+  }
+
+  /**
+   * Persists the HTTP cache validators (`etag` / `Last-Modified`) an
+   * extraction observed onto the source row so the next refresh cycle can
+   * send a conditional GET instead of re-fetching the full body. Missing
+   * validators are left untouched rather than cleared, since a category
+   * without them (e.g. pasted text) should not erase a prior URL fetch's
+   * validators.
+   */
+  private async persistExtractedValidators(
+    state: KnowledgeSourceIngestState,
+  ): Promise<void> {
+    const etag = state.extracted?.etag;
+    const lastModified = state.extracted?.lastModified;
+    if (etag === undefined && lastModified === undefined) {
+      return;
+    }
+    await this.prisma.knowledgeSource.updateMany({
+      where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      data: {
+        ...(etag !== undefined ? { etag } : {}),
+        ...(lastModified !== undefined ? { lastModified } : {}),
+      },
     });
   }
 

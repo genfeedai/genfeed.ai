@@ -8,7 +8,12 @@ import {
   PLATFORM_SETTING_KEY,
   TYPED_DECISION_PROVIDER_LABELS,
 } from '@genfeedai/contracts/constants';
-import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
+import {
+  DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  setRuntimeAgentChatMarginMultiplier,
+  setRuntimeMarginMultiplier,
+} from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,19 +48,24 @@ export class PlatformSettingsService
   }
 
   /**
-   * Hydrate the process-scoped pricing runtime from the persisted margin
-   * multiplier on boot so API-context cost→price estimates use the configured
-   * value. Failures are non-fatal — pricing falls back to the 1.0 default.
+   * Hydrate the process-scoped pricing runtimes from the persisted margin
+   * multipliers on boot so API-context cost→price estimates use the
+   * configured values. Generation and agent chat are hydrated independently
+   * (#5172) — one failing to read never falls back to the other's default.
+   * Failures are non-fatal — pricing falls back to each knob's own default.
    */
   async onModuleInit(): Promise<void> {
     try {
       const settings = await this.getSingleton();
-      setRuntimeMarginMultiplier(settings.marginMultiplier);
+      setRuntimeMarginMultiplier(settings.marginMultiplierGeneration);
+      setRuntimeAgentChatMarginMultiplier(settings.marginMultiplierAgentChat);
     } catch (error) {
       this.logger?.warn(
-        'Failed to hydrate margin multiplier on boot; using default 1.0',
+        `Failed to hydrate margin multipliers on boot; using defaults ${DEFAULT_GENERATION_MARGIN_MULTIPLIER} (generation) / ${DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER} (agent chat)`,
         { error },
       );
+      setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+      setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
     }
   }
 
@@ -99,10 +109,10 @@ export class PlatformSettingsService
   }
 
   /**
-   * Apply an operator update to the singleton row and re-hydrate the
-   * process-scoped pricing runtime so the new margin takes effect immediately
-   * in this process. Only whitelisted fields are patched — the singleton `key`
-   * and `id` can never be mutated through this path.
+   * Apply an operator update to the singleton row and re-hydrate both
+   * process-scoped pricing runtimes so the new margins take effect
+   * immediately in this process. Only whitelisted fields are patched — the
+   * singleton `key` and `id` can never be mutated through this path.
    */
   async updateSingleton(
     dto: UpdatePlatformSettingDto,
@@ -111,20 +121,28 @@ export class PlatformSettingsService
 
     const current = await this.getSingleton();
     const patchData = {
-      ...(dto.marginMultiplier === undefined
+      ...(dto.marginMultiplierGeneration === undefined
         ? {}
-        : { marginMultiplier: dto.marginMultiplier }),
+        : { marginMultiplierGeneration: dto.marginMultiplierGeneration }),
+      ...(dto.marginMultiplierAgentChat === undefined
+        ? {}
+        : { marginMultiplierAgentChat: dto.marginMultiplierAgentChat }),
+      ...(dto.marginInputMode === undefined
+        ? {}
+        : { marginInputMode: dto.marginInputMode }),
       ...(dto.typedDecisionProvider === undefined
         ? {}
         : { typedDecisionProvider: dto.typedDecisionProvider }),
     };
     if (Object.keys(patchData).length === 0) {
-      setRuntimeMarginMultiplier(current.marginMultiplier);
+      setRuntimeMarginMultiplier(current.marginMultiplierGeneration);
+      setRuntimeAgentChatMarginMultiplier(current.marginMultiplierAgentChat);
       return current;
     }
 
     const updated = await this.patch(current.id, patchData);
-    setRuntimeMarginMultiplier(updated.marginMultiplier);
+    setRuntimeMarginMultiplier(updated.marginMultiplierGeneration);
+    setRuntimeAgentChatMarginMultiplier(updated.marginMultiplierAgentChat);
     return updated;
   }
 

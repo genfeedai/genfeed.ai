@@ -103,6 +103,7 @@ export interface ReleaseDetailDrawerProps {
   onClose: () => void;
   onRescheduleRelease: (scheduledDate: string) => void;
   onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
+  onResumeRelease?: () => void;
   onRetryTarget: (targetId: string) => void;
   /**
    * Identifier of the in-flight mutation, or `null` when idle. Drives both the

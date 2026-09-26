@@ -54,7 +54,14 @@ type TwitterMentionsResponse = {
     text?: string;
   }>;
   includes?: { users?: TwitterUserInclude[] };
+  meta?: { next_token?: string };
 };
+
+export interface TwitterMentionsPage {
+  /** Present when X has another (older) page for the same query. */
+  nextToken?: string;
+  tweets: TwitterInboxTweet[];
+}
 
 type TwitterDmEventsResponse = {
   data?: Array<{
@@ -194,6 +201,29 @@ export class TwitterInboxService {
     options: { limit?: number; sinceId?: string } = {},
     credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
+    const page = await this.listMentionsPage(
+      organizationId,
+      brandId,
+      options,
+      credentialId,
+    );
+    return page.tweets;
+  }
+
+  /**
+   * One page of mentions, newest first. Pass `paginationToken` from the
+   * previous page's `nextToken` to read older mentions for the same query.
+   */
+  async listMentionsPage(
+    organizationId: string,
+    brandId: string,
+    options: {
+      limit?: number;
+      paginationToken?: string;
+      sinceId?: string;
+    } = {},
+    credentialId?: string,
+  ): Promise<TwitterMentionsPage> {
     const caller = `TwitterService ${CallerUtil.getCallerName()}`;
     const credential = await this.resolveCredential(
       organizationId,
@@ -217,16 +247,25 @@ export class TwitterInboxService {
       if (options.sinceId) {
         params.since_id = options.sinceId;
       }
+      if (options.paginationToken) {
+        params.pagination_token = options.paginationToken;
+      }
       const response = (await client.v2.get(
         `users/${userId}/mentions`,
         params,
       )) as TwitterMentionsResponse;
       const tweets = toInboxTweets(response, userId);
       this.loggerService.log(`${caller} found ${tweets.length} mentions`, {
+        hasNextPage: Boolean(response.meta?.next_token),
         sinceId: options.sinceId,
         userId,
       });
-      return tweets;
+      return {
+        ...(response.meta?.next_token
+          ? { nextToken: response.meta.next_token }
+          : {}),
+        tweets,
+      };
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;

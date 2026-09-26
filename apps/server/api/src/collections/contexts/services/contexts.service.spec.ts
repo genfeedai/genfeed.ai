@@ -7,7 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -77,7 +77,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as unknown as ReplicateService,
+      {} as unknown as OpenRouterService,
       {} as unknown as RouterService,
     );
 

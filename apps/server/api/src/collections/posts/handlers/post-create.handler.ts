@@ -48,7 +48,13 @@ function extractLabelFromText(text: string, maxLength: number = 50): string {
     return '';
   }
 
-  const trimmed = text.trim();
+  const trimmed = text
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!trimmed) {
+    return '';
+  }
   if (trimmed.length <= maxLength) {
     return trimmed;
   }

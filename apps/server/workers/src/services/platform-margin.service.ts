@@ -1,13 +1,19 @@
 import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
-import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
+import {
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  setRuntimeMarginMultiplier,
+} from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Hydrates the process-scoped pricing runtime from the operator-configured
- * `PlatformSetting.marginMultiplier` so every `applyMargin` call during a model
- * discovery run bakes the configured margin into customer-facing model costs.
+ * Hydrates the process-scoped **generation** pricing runtime from the
+ * operator-configured `PlatformSetting.marginMultiplierGeneration` so every
+ * `applyMargin` call during a model discovery run bakes the configured margin
+ * into customer-facing model costs. Workers never bill agent chat, so this
+ * service does not touch `PlatformSetting.marginMultiplierAgentChat` — see
+ * `PlatformSettingsService.onModuleInit` in the API for that hydration.
  */
 @Injectable()
 export class PlatformMarginService {
@@ -19,8 +25,9 @@ export class PlatformMarginService {
   ) {}
 
   /**
-   * Read the singleton margin multiplier and apply it to the pricing runtime.
-   * Non-fatal on failure — pricing falls back to the 1.0 default.
+   * Read the singleton generation margin multiplier and apply it to the
+   * pricing runtime. Non-fatal on failure — pricing falls back to the 3.33
+   * default.
    *
    * @returns The multiplier that was applied.
    */
@@ -29,7 +36,8 @@ export class PlatformMarginService {
       const row = await this.prisma.platformSetting.findUnique({
         where: { key: PLATFORM_SETTING_KEY },
       });
-      const multiplier = row?.marginMultiplier ?? 1;
+      const multiplier =
+        row?.marginMultiplierGeneration ?? DEFAULT_GENERATION_MARGIN_MULTIPLIER;
       setRuntimeMarginMultiplier(multiplier);
       this.logger.log(`${this.context} hydrated margin multiplier`, {
         multiplier,
@@ -37,11 +45,11 @@ export class PlatformMarginService {
       return multiplier;
     } catch (error) {
       this.logger.warn(
-        `${this.context} failed to hydrate margin multiplier; using default 1.0`,
+        `${this.context} failed to hydrate margin multiplier; using default ${DEFAULT_GENERATION_MARGIN_MULTIPLIER}`,
         error,
       );
-      setRuntimeMarginMultiplier(1);
-      return 1;
+      setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+      return DEFAULT_GENERATION_MARGIN_MULTIPLIER;
     }
   }
 }

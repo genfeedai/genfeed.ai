@@ -3,13 +3,17 @@
 import { PostStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
-import type { MutableRefObject } from 'react';
+import { useTranslations } from 'next-intl';
+import { type MutableRefObject, useEffect, useRef } from 'react';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -55,6 +59,35 @@ export default function PostDetailCardBody({
   hasAnalytics,
   showAnalytics,
 }: PostDetailCardBodyProps) {
+  const translate = useTranslations('pages.posts.detail');
+  const tweetLength = calculateTweetLength(
+    stripHtmlToPlainText(descriptionValue),
+  );
+  const tweetLimit = 280;
+  const isTweetOverLimit = tweetLength > tweetLimit;
+
+  // Unwrap a legacy post's stored HTML into plain text once, the moment its
+  // id shows up here — never on every render, which would re-run against the
+  // reader's own in-progress typing and trim away the trailing space they
+  // just pressed. Deliberately keyed on post identity only, so
+  // `descriptionValue`/`onDescriptionChange` are read but not depended on.
+  const sanitizedPostIdRef = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see comment above.
+  useEffect(() => {
+    if (!isTwitter || !isEditable || !post?.id) {
+      return;
+    }
+    if (sanitizedPostIdRef.current === post.id) {
+      return;
+    }
+    sanitizedPostIdRef.current = post.id;
+    const plainText = stripHtmlToPlainText(descriptionValue);
+    if (plainText !== descriptionValue) {
+      onDescriptionChange(plainText);
+      currentDescriptionsRef.current.set(post.id, plainText);
+    }
+  }, [post?.id, isTwitter, isEditable]);
+
   return (
     <Card className="overflow-hidden space-y-3">
       <div className="flex items-start gap-3">
@@ -103,8 +136,35 @@ export default function PostDetailCardBody({
               <h3 className="font-semibold text-lg">{post.label}</h3>
             )}
 
-            {/* Editor for publisher scope */}
-            {isEditable && (
+            {isEditable && isTwitter ? (
+              <FormControl
+                label={
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <span>{translate('tweetFieldLabel')}</span>
+                    <span
+                      className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                    >
+                      {tweetLength} / {tweetLimit}
+                    </span>
+                  </div>
+                }
+              >
+                <Textarea
+                  name="tweetBody"
+                  value={descriptionValue}
+                  placeholder={placeholder}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onDescriptionChange(value);
+                    if (post?.id) {
+                      currentDescriptionsRef.current.set(post.id, value);
+                    }
+                  }}
+                />
+              </FormControl>
+            ) : null}
+
+            {isEditable && !isTwitter ? (
               <LazyRichTextEditor
                 placeholder={placeholder}
                 toolbarMode="hidden"
@@ -117,7 +177,7 @@ export default function PostDetailCardBody({
                   }
                 }}
               />
-            )}
+            ) : null}
 
             {/* Read-only content display for non-publisher scopes */}
             {!isEditable && post.description && (

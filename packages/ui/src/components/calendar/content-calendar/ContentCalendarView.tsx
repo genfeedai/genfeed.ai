@@ -553,6 +553,9 @@ export default function ContentCalendarView<T extends CalendarItem>({
         channelsNode.setAttribute('aria-label', `Channels: ${channelLabels}`);
         channelsNode.title = channelLabels;
         for (const icon of channelIcons) {
+          if (icon instanceof Element) {
+            icon.classList.add('gen-calendar-event-channel-icon');
+          }
           channelsNode.appendChild(icon);
         }
         container.appendChild(channelsNode);
