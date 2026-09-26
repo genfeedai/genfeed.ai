@@ -5,9 +5,23 @@
  * human rejected, the contestant with a good mean and a bad tail, the
  * generation that cost ten times the median. The analyzer reads scores the run
  * already produced (no provider calls) and emits a capped, reviewable section.
+ *
+ * Imports the leaf `../rows` schemas, never `../contracts`: the report schema
+ * embeds this section, so importing it back would be a cycle.
  */
 
 import { z } from 'zod';
+import type { FixtureRow, PairwiseResult, ScoredRow } from '../rows';
+import {
+  contestantProvenanceSchema,
+  FIXTURE_VISIBILITIES,
+  fixtureInputSchema,
+  humanDecisionSchema,
+  judgeVoteSchema,
+  pairwiseResultSchema,
+  SUITE_NAMES,
+  scoreBandSchema,
+} from '../rows';
 
 export const OUTLIER_CLASSES = [
   'judge_human_disagreement',
@@ -19,8 +33,8 @@ export const OUTLIER_CLASSES = [
 export const outlierClassSchema = z.enum(OUTLIER_CLASSES);
 export type OutlierClass = z.infer<typeof outlierClassSchema>;
 
-export const fixtureVisibilitySchema = z.enum(['synthetic', 'private']);
-export type FixtureVisibility = z.infer<typeof fixtureVisibilitySchema>;
+/** Rate key for judge-suite rows, which score a text with no contestant. */
+export const JUDGED_OUTPUT_KEY = 'judged-output';
 
 const unitScoreSchema = z.number().min(0).max(1);
 
@@ -32,13 +46,13 @@ export const outlierThresholdsSchema = z
   .object({
     version: z.string().min(1),
     /** Judge score may sit this far outside the human band before it counts. */
-    judgeHumanBandTolerance: z.number().min(0).max(1),
+    judgeHumanBandTolerance: unitScoreSchema,
     /** Max − min judge score on one case above which the panel disagrees. */
-    judgeSpreadMax: z.number().min(0).max(1),
+    judgeSpreadMax: unitScoreSchema,
     /** Lower/upper percentiles per content kind × contestant. */
     extremeScoreLowPercentile: unitScoreSchema,
     extremeScoreHighPercentile: unitScoreSchema,
-    /** Smaller groups make percentiles noise; they are skipped and counted. */
+    /** Smaller groups make percentiles noise; they are skipped and listed. */
     extremeScoreMinGroupSize: z.number().int().min(2),
     /** Multiple of the run median above which a case is a cost/latency outlier. */
     costMultiple: z.number().gt(1),
@@ -67,68 +81,9 @@ export const DEFAULT_OUTLIER_THRESHOLDS: OutlierThresholds = {
   maxCasesPerClassAndContestant: 5,
 };
 
-export const outlierContestantSchema = z.object({
-  id: z.string().min(1),
-  registryKey: z.string().min(1),
-  provider: z.string().min(1),
-  model: z.string().min(1),
-  modelVersion: z.string().nullable(),
-  family: z.string().min(1),
-  isCompiled: z.boolean(),
-});
-export type OutlierContestant = z.infer<typeof outlierContestantSchema>;
-
-export const pairwiseChoiceSchema = z.enum(['a', 'b', 'tie']);
-
-export const outlierVoteSchema = z.object({
-  judgeRegistryKey: z.string().min(1),
-  provider: z.string().min(1),
-  model: z.string().min(1),
-  modelVersion: z.string().nullable(),
-  family: z.string().min(1),
-  score: unitScoreSchema.nullable(),
-  choice: pairwiseChoiceSchema.nullable(),
-  rationale: z.string().nullable(),
-});
-export type OutlierVote = z.infer<typeof outlierVoteSchema>;
-
-export const humanLabelSchema = z
-  .object({
-    band: z.object({ min: unitScoreSchema, max: unitScoreSchema }),
-    decision: z.string().nullable(),
-  })
-  .refine((label) => label.band.min <= label.band.max, {
-    message: 'humanLabel.band.min must not exceed band.max',
-  });
-export type HumanLabel = z.infer<typeof humanLabelSchema>;
-
-/**
- * One scored row of a run, as the harness report carries it. Missing
- * artifacts, rationales or inputs are allowed here: the analyzer names them
- * on the outlier instead of dropping the case.
- */
-export const outlierInputCaseSchema = z.object({
-  runId: z.string().min(1),
-  suite: z.string().min(1),
-  contentKind: z.string().min(1),
-  fixtureId: z.string().min(1),
-  brandFixtureId: z.string().min(1),
-  fixtureVisibility: fixtureVisibilitySchema,
-  input: z.unknown().optional(),
-  contestant: outlierContestantSchema,
-  artifactRef: z.string().nullable(),
-  votes: z.array(outlierVoteSchema),
-  humanLabel: humanLabelSchema.optional(),
-  rubricVersion: z.string().min(1),
-  costCredits: z.number().min(0).nullable(),
-  latencyMs: z.number().min(0).nullable(),
-  voidReason: z.string().nullable(),
-});
-export type OutlierInputCase = z.infer<typeof outlierInputCaseSchema>;
-
 export const outlierMissingFieldSchema = z.enum([
   'input',
-  'artifactRef',
+  'artifact',
   'rationale',
   'votes',
 ]);
@@ -140,76 +95,95 @@ export const outlierReviewSchema = z.object({
   isPromoted: z.boolean(),
 });
 
+/**
+ * Everything needed to review a case without re-running it: the fixture
+ * input, the artifact (inline text or a reference), every judge's score and
+ * rationale, the human label, rubric version and model provenance.
+ */
 export const outlierRecordSchema = z.object({
-  id: z.string().min(1),
-  runId: z.string().min(1),
-  class: outlierClassSchema,
-  suite: z.string().min(1),
-  contentKind: z.string().min(1),
-  fixtureId: z.string().min(1),
-  brandFixtureId: z.string().min(1),
-  fixtureVisibility: fixtureVisibilitySchema,
-  input: z.unknown().optional(),
-  contestant: outlierContestantSchema,
   artifactRef: z.string().nullable(),
-  votes: z.array(outlierVoteSchema),
-  humanLabel: humanLabelSchema.optional(),
-  rubricVersion: z.string().min(1),
-  costCredits: z.number().min(0).nullable(),
-  latencyMs: z.number().min(0).nullable(),
+  brandFixtureId: z.string().min(1),
+  callIds: z.array(z.string()),
+  class: outlierClassSchema,
+  contentKind: z.string().min(1),
+  contestant: contestantProvenanceSchema.nullable(),
+  costCredits: z.number().nonnegative(),
+  fixtureId: z.string().min(1),
+  fixtureVisibility: z.enum(FIXTURE_VISIBILITIES),
+  humanLabel: z
+    .object({
+      band: scoreBandSchema.nullable(),
+      decision: humanDecisionSchema.nullable(),
+    })
+    .nullable(),
+  id: z.string().min(1),
+  input: fixtureInputSchema.nullable(),
+  latencyMs: z.number().nonnegative(),
+  missingFields: z.array(outlierMissingFieldSchema),
+  output: z.string().nullable(),
+  /** Split pairwise battles this case lost or won, with their votes. */
+  pairs: z.array(pairwiseResultSchema),
   /** Why this case crossed the threshold, in one line. */
   reason: z.string().min(1),
-  /** How far past the threshold; orders cases inside the cap. */
-  severity: z.number().min(0),
-  missingFields: z.array(outlierMissingFieldSchema),
   review: outlierReviewSchema.optional(),
+  rubricVersion: z.string().min(1),
+  runId: z.string().min(1),
+  /** How far past the threshold; orders cases inside the cap. */
+  severity: z.number().nonnegative(),
+  suite: z.enum(SUITE_NAMES),
+  votes: z.array(judgeVoteSchema),
 });
 export type OutlierRecord = z.infer<typeof outlierRecordSchema>;
 
 const classCountsSchema = z.object({
-  judge_human_disagreement: z.number().int().min(0),
-  judge_disagreement: z.number().int().min(0),
-  extreme_score: z.number().int().min(0),
-  cost_latency: z.number().int().min(0),
+  cost_latency: z.number().int().nonnegative(),
+  extreme_score: z.number().int().nonnegative(),
+  judge_disagreement: z.number().int().nonnegative(),
+  judge_human_disagreement: z.number().int().nonnegative(),
 });
 export type OutlierClassCounts = z.infer<typeof classCountsSchema>;
 
 /** Counts sit next to rates: small fixture sets make a rate alone misleading. */
 export const outlierRateSchema = z.object({
-  key: z.string().min(1),
-  caseCount: z.number().int().min(0),
-  outlierCaseCount: z.number().int().min(0),
-  outlierRate: unitScoreSchema,
   byClass: classCountsSchema,
+  caseCount: z.number().int().nonnegative(),
+  key: z.string().min(1),
+  outlierCaseCount: z.number().int().nonnegative(),
+  outlierRate: unitScoreSchema,
 });
 export type OutlierRate = z.infer<typeof outlierRateSchema>;
 
-export const outlierClassTotalSchema = z.object({
-  class: outlierClassSchema,
-  total: z.number().int().min(0),
-  reported: z.number().int().min(0),
-});
-
 export const outlierSectionSchema = z.object({
-  status: z.enum(['ok', 'failed']),
-  /** Set when analysis threw; the run itself is never voided by it. */
-  error: z.string().optional(),
-  thresholds: outlierThresholdsSchema,
-  caseCount: z.number().int().min(0),
-  cap: z.object({
-    perClassAndContestant: z.number().int().min(1),
-  }),
-  totals: z.array(outlierClassTotalSchema),
-  byContestant: z.array(outlierRateSchema),
   byContentKind: z.array(outlierRateSchema),
+  byContestant: z.array(outlierRateSchema),
+  cap: z.object({ perClassAndContestant: z.number().int().min(1) }),
+  caseCount: z.number().int().nonnegative(),
+  cases: z.array(outlierRecordSchema),
+  /** Set when analysis failed; the run itself is never voided by it. */
+  error: z.string().optional(),
   /** content kind × contestant groups too small for a percentile cut. */
   extremeScoreSkippedGroups: z.array(
     z.object({
       contentKind: z.string().min(1),
       contestantKey: z.string().min(1),
-      scoredCaseCount: z.number().int().min(0),
+      scoredCaseCount: z.number().int().nonnegative(),
     }),
   ),
-  cases: z.array(outlierRecordSchema),
+  status: z.enum(['ok', 'failed']),
+  thresholds: outlierThresholdsSchema,
+  totals: z.array(
+    z.object({
+      class: outlierClassSchema,
+      reported: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative(),
+    }),
+  ),
 });
 export type OutlierSection = z.infer<typeof outlierSectionSchema>;
+
+export interface OutlierAnalysisInput {
+  fixtureRowsById: Map<string, FixtureRow>;
+  pairs: PairwiseResult[];
+  rows: ScoredRow[];
+  thresholds: OutlierThresholds;
+}

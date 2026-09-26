@@ -5,5 +5,6 @@
  */
 
 import type { ReportAnalyzer } from './contracts';
+import { outlierReportAnalyzer } from './outliers';
 
-export const REPORT_ANALYZERS: ReportAnalyzer[] = [];
+export const REPORT_ANALYZERS: ReportAnalyzer[] = [outlierReportAnalyzer];

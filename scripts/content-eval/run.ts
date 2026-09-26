@@ -18,6 +18,8 @@
  *   --seed=<n>                        default 1, recorded on every call
  *   --tie-band=<0..1>                 pointwise tie band (default in contracts.ts)
  *   --out=<report.json>               write the report here instead of stdout
+ *   --outlier-thresholds=<path.json>  outlier cut (#5234); defaults in
+ *                                     outliers/contracts.ts, recorded per run
  *
  * Exit codes: 0 pass · 1 threshold failure, spend abort or run error · 2 usage.
  *
@@ -27,9 +29,10 @@
  * nearest tsconfig, so this directory's own tsconfig covers the harness.
  */
 
+import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { REPORT_ANALYZERS } from './analyzers';
-import { parseCliArgs, UsageError } from './cli';
+import { parseCliArgs, readFlag, UsageError } from './cli';
 import type { DispatcherKind, EvalDispatcher } from './contracts';
 import { createStubDispatcher } from './dispatchers/stub';
 import { resolveRepoPath } from './provenance';
@@ -45,6 +48,14 @@ async function createDispatcher(kind: DispatcherKind): Promise<EvalDispatcher> {
   return createLiveDispatcher();
 }
 
+/** Validated with the suite config, before any provider call. */
+function readOutlierThresholds(argv: string[]): unknown {
+  const path = readFlag(argv, 'outlier-thresholds');
+  return path === undefined
+    ? undefined
+    : JSON.parse(readFileSync(resolveRepoPath(path), 'utf8'));
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const { out, ...args } = parseCliArgs(argv);
@@ -52,6 +63,7 @@ async function main(): Promise<number> {
     ...args,
     argv,
     createDispatcher,
+    outlierThresholds: readOutlierThresholds(argv),
   });
 
   if (out) {
