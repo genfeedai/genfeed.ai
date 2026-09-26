@@ -1,3 +1,11 @@
+vi.hoisted(() => {
+  vi.stubEnv('NODE_ENV', 'test');
+  process.env.PORT = process.env.PORT ?? '3013';
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL ?? 'postgresql://user:pass@localhost:5432/genfeed';
+  process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+});
+
 import type { DynamicModule, Provider } from '@nestjs/common';
 import {
   MODULE_METADATA,
