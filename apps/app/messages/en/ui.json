@@ -7,7 +7,9 @@
     "failed": "Could not generate a draft. Please try again.",
     "platform": "Channel",
     "account": "Publishing account",
-    "noAccount": "Draft only — connect an account later"
+    "noAccount": "Draft only — connect an account later",
+    "postContent": "Post content",
+    "tweetPlaceholder": "Write the tweet"
   },
   "analyticsTrends": {
     "median": "Median",

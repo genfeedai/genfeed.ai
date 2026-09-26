@@ -10,10 +10,12 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
+  RELEASE_RESUME_ACTION,
   targetRescheduleAction,
   targetRetryAction,
 } from './release-detail-drawer';
@@ -29,6 +31,10 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ getToken }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
 
 vi.mock('@services/organization/credentials.service', () => ({
@@ -201,6 +207,35 @@ describe('ReleaseDetailDrawer', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('explains why a paused post will not publish', () => {
+    const onResumeRelease = vi.fn();
+    render(
+      <ReleaseDetailDrawer
+        brandId="brand-1"
+        error={null}
+        pendingAction={null}
+        reconnectHref="/settings/social"
+        release={release({
+          status: ReleaseStatus.PAUSED,
+          targets: [target({ executionState: TargetExecutionState.PAUSED })],
+        })}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onResumeRelease={onResumeRelease}
+        onRetryTarget={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'This post is paused, so the publisher will not send it at the scheduled time.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Resume post' }));
+    expect(onResumeRelease).toHaveBeenCalledOnce();
+  });
+
   it('retries a failed target and surfaces why it failed', () => {
     const { onRetryTarget } = renderDrawer({
       status: ReleaseStatus.FAILED,
@@ -339,8 +374,11 @@ describe('ReleaseDetailDrawer', () => {
     );
   });
 
-  it('shows the analytics empty state rather than an empty table', () => {
+  it('shows the analytics empty state rather than an empty table', async () => {
+    const user = userEvent.setup();
     renderDrawer();
+
+    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
 
     expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
   });
@@ -364,7 +402,7 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeInTheDocument();
   });
 
-  it('toggles a target live preview without affecting its siblings', () => {
+  it('renders a live preview for every channel target', () => {
     renderDrawer({
       targets: [
         target(),
@@ -372,47 +410,31 @@ describe('ReleaseDetailDrawer', () => {
       ],
     });
 
-    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Preview Instagram target' }),
-    );
-
-    expect(screen.getByTestId('target-preview')).toHaveTextContent('target-1');
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Hide Instagram target' }),
-    );
-
-    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('target-preview')).toHaveLength(2);
   });
 
-  it('resets the open preview when the drawer is pointed at a different release', () => {
-    const { view } = renderDrawer();
+  it('moves analytics into a tab alongside the preview', async () => {
+    const user = userEvent.setup();
+    renderDrawer();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Preview Instagram target' }),
-    );
-    expect(screen.getByTestId('target-preview')).toBeInTheDocument();
+    expect(screen.getAllByTestId('target-preview').length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText('No target analytics yet'),
+    ).not.toBeInTheDocument();
 
-    view.rerender(
-      <ReleaseDetailDrawer
-        error={null}
-        onClose={vi.fn()}
-        onRescheduleRelease={vi.fn()}
-        onRescheduleTarget={vi.fn()}
-        onRetryTarget={vi.fn()}
-        pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/social"
-        release={release({ id: 'release-2' })}
-      />,
-    );
+    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
 
     expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Preview' }));
+
+    expect(screen.getAllByTestId('target-preview').length).toBeGreaterThan(0);
   });
 
   it('exposes stable action identifiers for the page to key pending state on', () => {
     expect(RELEASE_RESCHEDULE_ACTION).toBe('release:reschedule');
+    expect(RELEASE_RESUME_ACTION).toBe('release:resume');
     expect(targetRescheduleAction('t-1')).toBe('target:reschedule:t-1');
     expect(targetRetryAction('t-1')).toBe('target:retry:t-1');
   });

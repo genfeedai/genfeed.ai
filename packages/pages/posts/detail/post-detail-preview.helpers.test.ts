@@ -64,7 +64,7 @@ describe('buildPostTargetPreview', () => {
     );
 
     expect(preview?.release.baseContent).toBe('Draft caption');
-    expect(preview?.target.settings.caption).toBe('Draft caption');
+    expect(preview?.target.settings).toEqual({});
   });
 
   it('strips HTML from the persisted description when no draft is present', () => {

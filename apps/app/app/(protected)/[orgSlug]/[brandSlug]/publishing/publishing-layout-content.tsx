@@ -12,7 +12,9 @@ import {
   ModalEnum,
   PostFormat,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   PublishingLayoutAction,
   PublishingLayoutState,
@@ -27,7 +29,7 @@ import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useMemo, useReducer, useState } from 'react';
+import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 const initialPublishingLayoutState: PublishingLayoutState = {
@@ -81,11 +83,10 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 };
 
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
-  const { refresh } = useRouter();
+  const { push, refresh } = useRouter();
   const pathname = usePathname();
+  const { href } = useOrgUrl();
   const { credentials } = useBrand();
-  const [creationPlatform, setCreationPlatform] =
-    useState<CredentialPlatform>();
   const openAgentComposer = useOpenAgentComposer();
   const translate = useTranslations('pages.publishing.layout');
 
@@ -114,17 +115,23 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     routeSuffix[0] === 'campaigns' ||
     routeSuffix[0] === 'calendar';
   const handleRefresh = useCallback(() => {
-    if (typeof refreshFn === 'function') {
-      refreshFn();
-    } else {
+    if (typeof refreshFn !== 'function') {
       refresh();
+      return;
+    }
+    const result = refreshFn();
+    if (typeof result === 'function') {
+      void result();
     }
   }, [refreshFn, refresh]);
 
   const handleNewPost = useCallback(() => {
-    setCreationPlatform(undefined);
-    openModal(ModalEnum.POST_CREATE);
-  }, []);
+    push(href(APP_ROUTES.PUBLISHING.POSTS_NEW));
+  }, [href, push]);
+
+  const handleNewXPost = useCallback(() => {
+    push(`${href(APP_ROUTES.PUBLISHING.POSTS_NEW)}?platform=twitter`);
+  }, [href, push]);
 
   const xCredentials = useMemo(
     () =>
@@ -240,12 +247,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
               <DropdownMenuItem onSelect={handleNewPost}>
                 {translate('socialPost')}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  setCreationPlatform(CredentialPlatform.TWITTER);
-                  openModal(ModalEnum.POST_CREATE);
-                }}
-              >
+              <DropdownMenuItem onSelect={handleNewXPost}>
                 {translate('xPost')}
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -285,13 +287,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       >
         {children}
       </Container>
-      <LazyModalPost
-        key={creationPlatform ?? 'social'}
-        modalId={ModalEnum.POST_CREATE}
-        credentials={creationPlatform ? xCredentials : credentials}
-        defaultPlatform={creationPlatform}
-        onConfirm={handleRefresh}
-      />
       <LazyModalPost
         defaultPlatform={CredentialPlatform.TWITTER}
         credentials={xCredentials}

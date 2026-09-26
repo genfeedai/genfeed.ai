@@ -310,9 +310,11 @@
   gap: 0.125rem;
 }
 
-.fc .gen-calendar-event-channel-icon {
+.fc .gen-calendar-event-channel-icon,
+.fc .gen-calendar-event-channels svg {
   width: 0.75rem;
   height: 0.75rem;
+  flex: none;
 }
 
 /*
