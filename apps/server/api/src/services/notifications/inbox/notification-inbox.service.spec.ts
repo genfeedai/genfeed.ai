@@ -426,7 +426,89 @@ describe('NotificationInboxService', () => {
       sourceLabel: null,
     });
   });
-  it('renders social replies with a Messages link on an accessible brand', async () => {
+  it('links social replies to their thread on an accessible brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'social.reply',
+        event: {
+          sourceId: 'credential-1',
+          sourceType: 'social_credential',
+          eventKey: 'social.reply.received',
+          payload: {
+            version: 2,
+            kind: 'social_reply',
+            brandId: 'brand-1',
+            accountHandle: 'acme',
+            replyCount: 3,
+            newestConversationId: 'conversation-1',
+            conversationIds: ['conversation-1'],
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(prisma.brand.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['brand-1'] },
+        isDeleted: false,
+        organizationId: 'org',
+      },
+      select: { id: true, slug: true },
+    });
+    expect(page.docs).toEqual([
+      expect.objectContaining({
+        topic: 'social.reply',
+        outcome: 'completed',
+        sourceHref:
+          '/acme/acme-brand/messages?socialConversation=conversation-1',
+        sourceLabel: null,
+        failure: null,
+        socialReply: { accountHandle: 'acme', replyCount: 3 },
+      }),
+    ]);
+  });
+  it('deep-links a version 2 social reply to its newest conversation', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'social.reply',
+        event: {
+          sourceId: 'credential-1',
+          sourceType: 'social_credential',
+          eventKey: 'social.reply.received',
+          payload: {
+            version: 2,
+            kind: 'social_reply',
+            brandId: 'brand-1',
+            accountHandle: 'acme',
+            replyCount: 2,
+            newestConversationId: 'conversation/b',
+            conversationIds: ['conversation/b', 'conversation-a'],
+          },
+        },
+      }),
+    ]);
+    prisma.brand.findMany.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+
+    const page = await service.list('org', 'recipient');
+
+    expect(page.docs[0]).toEqual(
+      expect.objectContaining({
+        sourceHref:
+          '/acme/acme-brand/messages?socialConversation=conversation%2Fb',
+        socialReply: { accountHandle: 'acme', replyCount: 2 },
+      }),
+    );
+  });
+  it('does not render a payload without the social reply shape as a reply', async () => {
     const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
       fixture(1, {
@@ -450,24 +532,7 @@ describe('NotificationInboxService', () => {
 
     const page = await service.list('org', 'recipient');
 
-    expect(prisma.brand.findMany).toHaveBeenCalledWith({
-      where: {
-        id: { in: ['brand-1'] },
-        isDeleted: false,
-        organizationId: 'org',
-      },
-      select: { id: true, slug: true },
-    });
-    expect(page.docs).toEqual([
-      expect.objectContaining({
-        topic: 'social.reply',
-        outcome: 'completed',
-        sourceHref: '/acme/acme-brand/messages',
-        sourceLabel: null,
-        failure: null,
-        socialReply: { accountHandle: 'acme', replyCount: 3 },
-      }),
-    ]);
+    expect(page.docs[0]).not.toHaveProperty('socialReply');
   });
   it('does not link a social reply for a brand the member is not assigned to', async () => {
     const { service, prisma } = await setup();
@@ -484,10 +549,13 @@ describe('NotificationInboxService', () => {
           sourceType: 'social_credential',
           eventKey: 'social.reply.received',
           payload: {
+            version: 2,
             kind: 'social_reply',
             brandId: 'brand-1',
             accountHandle: null,
             replyCount: 1,
+            newestConversationId: 'conversation-1',
+            conversationIds: ['conversation-1'],
           },
         },
       }),

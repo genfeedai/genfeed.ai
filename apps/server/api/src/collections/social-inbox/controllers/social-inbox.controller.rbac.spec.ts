@@ -50,6 +50,21 @@ describe('SocialInboxController RBAC', () => {
     ).toEqual(['owner', 'admin', 'creator']);
   });
 
+  it('lets every member read unread state', () => {
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.countUnreadConversations,
+      ),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(
+        'roles',
+        SocialInboxController.prototype.markConversationRead,
+      ),
+    ).toBeUndefined();
+  });
+
   it('should require owner, admin, or creator role for createDraft', () => {
     const metadata = Reflect.getMetadata(
       'roles',

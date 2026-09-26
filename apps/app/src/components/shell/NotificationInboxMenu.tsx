@@ -242,7 +242,10 @@ export default function NotificationInboxMenu() {
                       {item.sourceHref ? (
                         <Link
                           href={item.sourceHref}
-                          onClick={() => setOpen(false)}
+                          onClick={() => {
+                            if (!item.readAt) read.mutate([item.id]);
+                            setOpen(false);
+                          }}
                           className="group flex min-w-0 flex-1 items-start gap-2.5"
                         >
                           {body}

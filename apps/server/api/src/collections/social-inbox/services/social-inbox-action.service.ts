@@ -23,6 +23,7 @@ import {
   SOCIAL_INBOX_OUTBOUND_ACTION_IDS,
 } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import {
   type SystemWorkflowActionRequest,
@@ -75,6 +76,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
     private readonly queryService: SocialInboxQueryService,
+    private readonly readStateService: SocialInboxReadStateService,
     private readonly realtimeService: SocialInboxRealtimeService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
@@ -293,15 +295,20 @@ export class SocialInboxActionService implements OnModuleInit {
     conversationId: string,
     patch: SocialConversationPatch,
   ): Promise<SocialConversationDocument> {
-    await this.queryService.getConversation(scope, conversationId);
+    const conversation = await this.queryService.getConversation(
+      scope,
+      conversationId,
+    );
 
     const data: Prisma.SocialConversationUpdateInput = {};
+    // Resolving/archiving clears unread too, atomically bounded by what was seen (see clearSeenUnreadCount).
+    let seenUnreadCount = 0;
 
     if (patch.status !== undefined) {
       data.status = patch.status;
       data.needsReview = patch.status === 'needs_review';
-      if (patch.status === 'resolved') {
-        data.unreadCount = 0;
+      if (patch.status === 'resolved' || patch.status === 'archived') {
+        seenUnreadCount = conversation.unreadCount;
       }
     }
 
@@ -323,6 +330,15 @@ export class SocialInboxActionService implements OnModuleInit {
       data,
       where: { id: conversationId },
     });
+
+    // Shared with mark-read (clearSeenUnreadCount); it emits its own realtime update.
+    if (seenUnreadCount > 0) {
+      return this.readStateService.clearSeenUnreadCount(
+        scope,
+        updated,
+        seenUnreadCount,
+      );
+    }
 
     await this.realtimeService.emit(
       updated.organizationId,

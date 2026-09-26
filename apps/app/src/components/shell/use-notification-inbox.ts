@@ -10,6 +10,9 @@ import {
 } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+/** Root query key of the bell; invalidating it refreshes count and history. */
+export const NOTIFICATION_INBOX_QUERY_KEY = 'notification-inbox';
+
 export function useNotificationInbox(open: boolean) {
   const { organizationId, isReady } = useCollectionScope();
   const { userId, isSignedIn } = useAuthIdentity();
@@ -17,7 +20,7 @@ export function useNotificationInbox(open: boolean) {
     UsersService.getInstance(token),
   );
   const client = useQueryClient();
-  const key = ['notification-inbox', userId, organizationId];
+  const key = [NOTIFICATION_INBOX_QUERY_KEY, userId, organizationId];
   const enabled = isReady && isSignedIn && Boolean(organizationId);
   const count = useQuery({
     queryKey: [...key, 'count'],
