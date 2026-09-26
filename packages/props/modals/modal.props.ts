@@ -218,7 +218,7 @@ export interface ModalPostProps extends ModalVisibilityProps {
   post?: IPost | null;
   ingredient?: IIngredient | null;
   ingredients?: IIngredient[]; // For carousel support
-  modalId?: ModalEnum;
+  modalId: ModalEnum;
   credential?: ICredential | null;
   credentials?: ICredential[];
   parentPost?: IPost | null;
