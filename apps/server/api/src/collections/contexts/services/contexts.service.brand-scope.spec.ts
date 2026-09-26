@@ -6,7 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { MockSql } from '@api/shared/testing/prisma-mock';
@@ -62,9 +62,9 @@ describe('ContextsService brand-scoped retrieval', () => {
       findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
     };
-    const generateEmbedding = vi
-      .fn()
-      .mockResolvedValue(new Array(1024).fill(0.1));
+    const embeddings = vi.fn().mockResolvedValue({
+      data: [{ embedding: new Array(1024).fill(0.1), index: 0 }],
+    });
     const logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -80,13 +80,13 @@ describe('ContextsService brand-scoped retrieval', () => {
         contextBase,
       } as unknown as PrismaService,
       logger,
-      { generateEmbedding } as unknown as ReplicateService,
+      { embeddings } as unknown as OpenRouterService,
       {
         getDefaultModel: vi.fn().mockResolvedValue('bge'),
       } as unknown as RouterService,
     );
 
-    return { contextBase, generateEmbedding, queryRaw, service };
+    return { contextBase, embeddings, queryRaw, service };
   }
 
   /** The similarity statement is the last raw query (after the embed claim). */

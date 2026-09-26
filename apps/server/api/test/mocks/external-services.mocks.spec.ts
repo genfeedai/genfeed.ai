@@ -37,7 +37,6 @@ describe('External Services Mocks', () => {
       expect(mock).toHaveProperty('generateImageToVideo');
       expect(mock).toHaveProperty('generateTextToVideo');
       expect(mock).toHaveProperty('generateTextToImage');
-      expect(mock).toHaveProperty('generateEmbedding');
     });
 
     it('should return prediction ID for model runs', async () => {
@@ -46,17 +45,6 @@ describe('External Services Mocks', () => {
 
       expect(typeof result).toBe('string');
       expect(result).toContain('mock-replicate');
-    });
-
-    it('should return embedding array', async () => {
-      const mock = createMockReplicateService();
-      const result = await mock.generateEmbedding(
-        'embedding-model',
-        'test text',
-      );
-
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(1024);
     });
   });
 

@@ -1133,7 +1133,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
 
-    [MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5]: {
+    [MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5]: {
       category: ModelCategory.EMBEDDING,
       isBatchSupported: false,
       maxOutputs: 1,

@@ -9,7 +9,7 @@ describe('context-embedding.constant', () => {
   it('pins the embedding model and dimension used by pgvector', () => {
     expect(CONTEXT_EMBEDDING_DIMENSION).toBe(1024);
     expect(DEFAULT_CONTEXT_EMBEDDING_MODEL).toBe(
-      MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5,
+      MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5,
     );
   });
 });

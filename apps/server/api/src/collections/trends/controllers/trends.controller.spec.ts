@@ -64,12 +64,15 @@ describe('TrendsController', () => {
     getTrendingHashtags: vi.fn(),
     getTrendingSounds: vi.fn(),
     getTrendSourceItems: vi.fn(),
+    getTrendById: vi.fn(),
     getTrends: vi.fn(),
     getTrendsDiscovery: vi.fn(),
     getTrendsWithAccessControl: vi.fn(),
     getViralLeaderboard: vi.fn(),
     getViralVideos: vi.fn(),
     refreshTrends: vi.fn(),
+    analyzeTrendPatterns: vi.fn(),
+    getRelatedTrends: vi.fn(),
   };
 
   const mockTrendPreferencesService = {
@@ -680,6 +683,60 @@ describe('TrendsController', () => {
           },
         ],
       });
+    });
+  });
+
+  describe('getTrendById', () => {
+    it('returns the trend, related trends, and analysis as JSON:API documents', async () => {
+      mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+      mockTrendsService.getRelatedTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.analyzeTrendPatterns.mockResolvedValue({
+        averageMentions: 100,
+        averageViralityScore: 80,
+        growthRate: 12,
+        platform: mockTrend.platform,
+        topic: mockTrend.topic,
+        trendDirection: 'rising',
+      });
+
+      const result = await controller.getTrendById(
+        mockReq,
+        mockUser,
+        'trend-1',
+      );
+
+      expect(trendsService.getTrendById).toHaveBeenCalledWith(
+        'trend-1',
+        mockUser.organizationId,
+      );
+      expect(trendsService.getRelatedTrends).toHaveBeenCalledWith(
+        mockTrend.topic,
+        mockTrend.platform,
+        mockUser.organizationId,
+        10,
+      );
+      expect(trendsService.analyzeTrendPatterns).toHaveBeenCalledWith(
+        mockTrend.topic,
+        mockTrend.platform,
+        14,
+      );
+      // Both `trend` and `relatedTrends` are serialized -- they must come
+      // back as JSON:API documents (a `data` envelope), not bare objects
+      // or arrays. This is the contract the frontend service deserializes
+      // with `deserializeResource`/`deserializeCollection`.
+      expect(result.trend).toEqual({ data: mockTrend });
+      expect(result.relatedTrends).toEqual({ data: [mockTrend] });
+      expect(result.analysis).toEqual(
+        expect.objectContaining({ trendDirection: 'rising' }),
+      );
+    });
+
+    it('throws NotFoundException when the trend does not exist', async () => {
+      mockTrendsService.getTrendById.mockResolvedValue(null);
+
+      await expect(
+        controller.getTrendById(mockReq, mockUser, 'missing-trend'),
+      ).rejects.toThrow('Trend not found');
     });
   });
 });
