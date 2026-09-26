@@ -1,3 +1,4 @@
+import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -221,6 +222,17 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly harness?: boolean;
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @ValidateNested()
+  @Type(() => KnowledgeSelectionDto)
+  @ApiProperty({
+    description:
+      'Explicit Knowledge sources or spaces to ground this generation on; omit for automatic brand Knowledge',
+    required: false,
+    type: KnowledgeSelectionDto,
+  })
+  readonly knowledge?: KnowledgeSelectionDto;
 
   // Video generation only generates the video: background music is an
   // editing action that belongs in the Studio editor's audio tracks now, not

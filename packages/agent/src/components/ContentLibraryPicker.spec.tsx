@@ -37,6 +37,25 @@ describe('ContentLibraryPicker', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the Knowledge section in the same library dialog', () => {
+    render(
+      <ContentLibraryPicker
+        isOpen
+        items={ITEMS}
+        knowledgeSection={<section aria-label="Knowledge">Auto</section>}
+        onOpenChange={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('region', { name: 'Knowledge' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Reference Launch thread' }),
+    ).toBeInTheDocument();
+  });
+
   // Regression: when the mentions fetch fails (or resolves with a non-array
   // body), the picker must fall back to its empty state instead of throwing
   // `Cannot read properties of undefined (reading 'length')` — that render

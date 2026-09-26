@@ -10,7 +10,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import KnowledgeContextPicker from '@pages/library/knowledge/components/KnowledgeContextPicker';
+import KnowledgeReferenceSection from '@pages/library/knowledge/components/KnowledgeReferenceSection';
 import type { AgentWorkspacePageShellProps } from '@props/agent/agent-workspace-page-shell.props';
 import type { BrandKnowledgeSelection } from '@props/content/knowledge-library.props';
 import { TasksService } from '@services/management/tasks.service';
@@ -163,9 +163,10 @@ export function AgentWorkspacePageShell({
       <AgentFullPage
         apiService={agentApiService}
         authReady={isLoaded}
-        knowledgePicker={
-          <KnowledgeContextPicker
+        knowledgeSection={
+          <KnowledgeReferenceSection
             brandId={knowledgeBrandId}
+            key={knowledgeBrandId ?? 'no-brand'}
             onChange={handleKnowledgeSelectionChange}
             value={knowledgeSelection}
           />

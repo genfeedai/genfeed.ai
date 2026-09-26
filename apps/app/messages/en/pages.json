@@ -1595,20 +1595,18 @@
         "refreshUnavailable": "Could not refresh “{title}”. Check the source URL and availability, then try again.",
         "refreshError": "Failed to refresh source"
       },
-      "picker": {
-        "label": "Knowledge",
-        "selectedLabel": "Knowledge · {count} selected",
-        "title": "Ground this generation",
-        "description": "Pick sources or spaces; only ready, visible sources apply.",
-        "purposes": "Purposes",
+      "reference": {
+        "title": "Knowledge",
+        "auto": "Auto — use brand knowledge",
+        "autoHint": "Genfeed retrieves the best-matching brand knowledge and cites it.",
+        "explicitHint": "Only the sources you pick ground this generation, and they are cited.",
+        "nothingPicked": "Nothing picked yet — brand knowledge stays automatic until you pick a source.",
         "spaces": "Spaces",
         "inbox": "Inbox",
         "sources": "Sources",
         "loading": "Loading…",
         "empty": "No ready sources yet. Add some in Library › Knowledge.",
-        "budget": "Up to {passages} passages · ~{tokens} tokens",
-        "brandDefault": "Brand default: top matches from all sources",
-        "clear": "Clear"
+        "budget": "Up to {passages} passages · ~{tokens} tokens"
       }
     },
     "assetDeepLink": {

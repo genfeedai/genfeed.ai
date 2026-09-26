@@ -1,6 +1,5 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
-import { KnowledgeReceiptList } from '@genfeedai/agent/components/KnowledgeReceiptList';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -13,6 +12,7 @@ import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
+import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { useTranslations } from 'next-intl';
