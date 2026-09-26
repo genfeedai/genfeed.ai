@@ -1,5 +1,5 @@
-import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -81,8 +81,7 @@ export class MediaVisionEvaluationService {
       job.ingredientId,
     );
     if (
-      !perception ||
-      perception.framesStatus !== 'ready' ||
+      perception?.framesStatus !== 'ready' ||
       perception.frames.length === 0
     ) {
       return 'skipped';
@@ -120,7 +119,10 @@ export class MediaVisionEvaluationService {
       },
       where: scopedWhere(job.organizationId, { id: job.ingredientId }),
     });
-    if (!ingredient) {
+    // An evaluation needs an accountable user: the asset's creator, else the
+    // organization owner.
+    const userId = ingredient?.userId ?? ingredient?.organization?.userId;
+    if (!ingredient || !userId) {
       return 'skipped';
     }
 
@@ -160,7 +162,7 @@ export class MediaVisionEvaluationService {
             : IngredientCategory.VIDEO,
         data: data as Prisma.InputJsonValue,
         organizationId: job.organizationId,
-        userId: ingredient.userId ?? ingredient.organization.userId,
+        userId,
       },
       select: { id: true },
     });
