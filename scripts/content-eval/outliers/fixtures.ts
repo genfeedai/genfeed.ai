@@ -114,10 +114,13 @@ export function buildSyntheticOutlierRows(): ScoredRow[] {
         syntheticVote('delta', 0.07),
       ],
     }),
-    // judge_human_disagreement: judges love what the human rejected.
+    // judge_human_disagreement: a judge-suite row (no contestant) whose
+    // judges love the text the human rejected.
     syntheticRow({
       contentKind: 'caption',
+      contestant: null,
       fixtureId: 'caption-judge-human',
+      suite: 'judge',
       humanLabel: { band: { max: 0.3, min: 0.1 }, decision: 'reject' },
       votes: [syntheticVote('gamma', 0.8), syntheticVote('delta', 0.85)],
     }),
@@ -154,14 +157,19 @@ export function buildSyntheticOutlierRows(): ScoredRow[] {
   ];
 }
 
-/** judge_disagreement: the judges split on the challenger vs the baseline. */
+/**
+ * judge_disagreement: each judge is consistent across both orderings, but the
+ * two judges settle on opposite winners.
+ */
 export function buildSyntheticOutlierPairs(): PairwiseResult[] {
   return [
     {
       baselineId: SYNTHETIC_CONTESTANTS.baseline.id,
       battleVotes: [
         syntheticVote('gamma', null, 'a', 'gamma prefers the challenger'),
+        syntheticVote('gamma', null, 'a', 'gamma still prefers it swapped'),
         syntheticVote('delta', null, 'b', 'delta prefers the baseline'),
+        syntheticVote('delta', null, 'b', 'delta still prefers it swapped'),
       ],
       challengerId: SYNTHETIC_CONTESTANTS.challenger.id,
       contentKind: 'caption',

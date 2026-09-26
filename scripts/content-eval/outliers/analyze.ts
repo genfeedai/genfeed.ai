@@ -5,6 +5,7 @@
 
 import type {
   FixtureRow,
+  PairwiseChoice,
   PairwiseResult,
   ReportAnalyzerInput,
   ScoredRow,
@@ -21,6 +22,7 @@ import {
   type OutlierRecord,
   type OutlierSection,
   type OutlierThresholds,
+  outlierSectionSchema,
   outlierThresholdsSchema,
 } from './contracts';
 
@@ -41,8 +43,9 @@ export function contestantKey(row: Pick<ScoredRow, 'contestant'>): string {
   return row.contestant?.id ?? JUDGED_OUTPUT_KEY;
 }
 
+/** Internal map key; NUL-joined so ids containing `:` cannot collide. */
 function rowKey(row: RowIdentity): string {
-  return `${row.contentKind}:${row.fixtureId}:${contestantKey(row)}`;
+  return [row.contentKind, row.fixtureId, contestantKey(row)].join('\u0000');
 }
 
 function judgeScores(row: ScoredRow): number[] {
@@ -91,7 +94,10 @@ function detectJudgeHumanDisagreement(
   row: ScoredRow,
   thresholds: OutlierThresholds,
 ): OutlierFinding | null {
-  const band = row.humanLabel?.band;
+  // A fixture band labels the fixture's own text, so it only measures a
+  // judge on judge-suite rows; generated contestant outputs copy the band
+  // from their fixture but were never labelled themselves.
+  const band = row.contestant === null ? row.humanLabel?.band : null;
   if (!band) {
     return null;
   }
@@ -122,20 +128,46 @@ function detectJudgeHumanDisagreement(
 }
 
 /**
- * A pair is split when its judges' battle votes disagree on the winner, or
- * when the ordered battle and the independent pointwise scores disagree.
- * Votes are already normalised to the challenger's side (`a` = challenger).
+ * Each judge's settled choice. A judge votes once per ordering (normalised
+ * to the challenger's side); when its two votes differ it is position-biased,
+ * which the run already reports as `positionBiasRate`, so it casts no vote
+ * here rather than counting as a disagreement with itself.
  */
-export function isSplitPair(pair: PairwiseResult): boolean {
-  const decisive = new Set(
-    pair.battleVotes.flatMap((vote) =>
-      vote.choice === 'a' || vote.choice === 'b' ? [vote.choice] : [],
-    ),
+function settledJudgeChoices(pair: PairwiseResult): PairwiseChoice[] {
+  const byJudge = new Map<string, Set<PairwiseChoice>>();
+  for (const vote of pair.battleVotes) {
+    if (vote.choice === null) continue;
+    const choices = byJudge.get(vote.judgeRegistryKey) ?? new Set();
+    choices.add(vote.choice);
+    byJudge.set(vote.judgeRegistryKey, choices);
+  }
+  return [...byJudge.values()].flatMap((choices) =>
+    choices.size === 1 ? [...choices] : [],
   );
+}
+
+/**
+ * Why a pair is split, or null: distinct judges settled on opposite winners,
+ * or the ordered battle contradicts the independent pointwise scores.
+ */
+export function splitPairReason(pair: PairwiseResult): string | null {
+  const winners = new Set(
+    settledJudgeChoices(pair).filter((choice) => choice !== 'tie'),
+  );
+  if (winners.size > 1) {
+    return `judges split on the winner vs ${pair.baselineId}`;
+  }
+
   const isSignalConflict =
     (pair.orderedChoice === 'a' && pair.pointwiseChoice === 'b') ||
     (pair.orderedChoice === 'b' && pair.pointwiseChoice === 'a');
-  return decisive.size > 1 || isSignalConflict;
+  return isSignalConflict
+    ? `ordered battle (${pair.orderedChoice}) contradicts pointwise scores (${pair.pointwiseChoice}) vs ${pair.baselineId}`
+    : null;
+}
+
+export function isSplitPair(pair: PairwiseResult): boolean {
+  return splitPairReason(pair) !== null;
 }
 
 function detectJudgeDisagreement(
@@ -164,10 +196,10 @@ function detectJudgeDisagreement(
     ...(isSplitVote
       ? [`split verdict (${[...voteChoices].sort().join(' / ')})`]
       : []),
-    ...splitPairs.map(
-      (pair) =>
-        `split pairwise verdict vs ${pair.baselineId} (ordered ${pair.orderedChoice ?? 'n/a'}, pointwise ${pair.pointwiseChoice ?? 'n/a'})`,
-    ),
+    ...splitPairs.flatMap((pair) => {
+      const reason = splitPairReason(pair);
+      return reason === null ? [] : [reason];
+    }),
   ];
 
   return {
@@ -246,12 +278,15 @@ function detectCostLatency(
   rows: ScoredRow[],
   thresholds: OutlierThresholds,
 ): Map<string, OutlierFinding> {
+  // Voided rows (failed generations) cost and take ~0; letting them into the
+  // median would flag healthy rows, or switch the class off entirely.
+  const completed = rows.filter((row) => row.voidReason === null);
   const medianCost = quantile(
-    rows.map((row) => row.costCredits),
+    completed.map((row) => row.costCredits),
     0.5,
   );
   const medianLatency = quantile(
-    rows.map((row) => row.latencyMs),
+    completed.map((row) => row.latencyMs),
     0.5,
   );
 
@@ -297,7 +332,9 @@ function splitPairsByChallengerRow(
 ): Map<string, PairwiseResult[]> {
   const byRow = new Map<string, PairwiseResult[]>();
   for (const pair of pairs.filter(isSplitPair)) {
-    const key = `${pair.contentKind}:${pair.fixtureId}:${pair.challengerId}`;
+    const key = [pair.contentKind, pair.fixtureId, pair.challengerId].join(
+      '\u0000',
+    );
     byRow.set(key, [...(byRow.get(key) ?? []), pair]);
   }
   return byRow;
@@ -319,7 +356,13 @@ function toRecord(
     fixtureId: row.fixtureId,
     fixtureVisibility: row.fixtureVisibility,
     humanLabel: row.humanLabel,
-    id: `${row.runId}:${finding.class}:${rowKey(row)}`,
+    id: [
+      row.runId,
+      finding.class,
+      row.contentKind,
+      row.fixtureId,
+      contestantKey(row),
+    ].join(':'),
     input,
     latencyMs: row.latencyMs,
     missingFields: findMissingFields(row, input),
@@ -506,7 +549,18 @@ export function analyzeRunOutliers(
 
   const thresholds = parsed?.data ?? DEFAULT_OUTLIER_THRESHOLDS;
   try {
-    return analyzeOutliers({ ...input, thresholds });
+    // The report is schema-parsed as a whole; an invalid section must
+    // degrade to `failed` here rather than throw there and fail the run.
+    const section = outlierSectionSchema.safeParse(
+      analyzeOutliers({ ...input, thresholds }),
+    );
+    return section.success
+      ? section.data
+      : failedSection(
+          thresholds,
+          input.rows.length,
+          `invalid outlier section: ${section.error.message}`,
+        );
   } catch (error: unknown) {
     return failedSection(
       thresholds,

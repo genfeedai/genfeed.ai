@@ -35,6 +35,7 @@ import { REPORT_ANALYZERS } from './analyzers';
 import { parseCliArgs, readFlag, UsageError } from './cli';
 import type { DispatcherKind, EvalDispatcher } from './contracts';
 import { createStubDispatcher } from './dispatchers/stub';
+import { outlierThresholdsSchema } from './outliers';
 import { resolveRepoPath } from './provenance';
 import { renderSummary, writeReport } from './report';
 import { runContentEval } from './runner';
@@ -48,12 +49,35 @@ async function createDispatcher(kind: DispatcherKind): Promise<EvalDispatcher> {
   return createLiveDispatcher();
 }
 
-/** Validated with the suite config, before any provider call. */
+/** Read and validated before the run starts, so a bad file is a usage error. */
 function readOutlierThresholds(argv: string[]): unknown {
   const path = readFlag(argv, 'outlier-thresholds');
-  return path === undefined
-    ? undefined
-    : JSON.parse(readFileSync(resolveRepoPath(path), 'utf8'));
+  if (path === undefined) {
+    return undefined;
+  }
+  if (path.trim() === '') {
+    throw new UsageError('--outlier-thresholds needs a path to a JSON file');
+  }
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(resolveRepoPath(path), 'utf8'));
+  } catch (error: unknown) {
+    throw new UsageError(
+      `--outlier-thresholds=${path} is not a readable JSON file: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const parsed = outlierThresholdsSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new UsageError(
+      `--outlier-thresholds=${path} is invalid: ${parsed.error.issues
+        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+        .join('; ')}`,
+    );
+  }
+
+  return parsed.data;
 }
 
 async function main(): Promise<number> {

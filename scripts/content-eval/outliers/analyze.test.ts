@@ -18,7 +18,6 @@ import {
   buildSyntheticFixtureRows,
   buildSyntheticOutlierPairs,
   buildSyntheticOutlierRows,
-  SYNTHETIC_CONTESTANTS,
   SYNTHETIC_OUTLIER_RUN_ID,
   syntheticRow,
   syntheticVote,
@@ -41,7 +40,10 @@ function fixtureIdsOf(
 ): string[] {
   return section.cases
     .filter((record) => record.class === outlierClass)
-    .map((record) => `${record.fixtureId}@${record.contestant?.id}`)
+    .map(
+      (record) =>
+        `${record.fixtureId}@${record.contestant?.id ?? 'judged-output'}`,
+    )
     .sort();
 }
 
@@ -56,7 +58,7 @@ describe('analyzeOutliers on the synthetic run', () => {
       ).toBeGreaterThan(0);
     }
     expect(fixtureIdsOf(section, 'judge_human_disagreement')).toEqual([
-      'caption-judge-human@alpha-raw',
+      'caption-judge-human@judged-output',
     ]);
     expect(fixtureIdsOf(section, 'judge_disagreement')).toEqual([
       'caption-judge-spread@alpha-raw',
@@ -89,9 +91,9 @@ describe('analyzeOutliers on the synthetic run', () => {
       (candidate) => candidate.fixtureId === 'caption-judge-human',
     );
     expect(record).toMatchObject({
-      contestant: SYNTHETIC_CONTESTANTS.baseline,
+      contestant: null,
       humanLabel: { band: { max: 0.3, min: 0.1 }, decision: 'reject' },
-      id: `${SYNTHETIC_OUTLIER_RUN_ID}:judge_human_disagreement:caption:caption-judge-human:alpha-raw`,
+      id: `${SYNTHETIC_OUTLIER_RUN_ID}:judge_human_disagreement:caption:caption-judge-human:judged-output`,
       input: { prompt: 'Synthetic prompt for caption-judge-human' },
       missingFields: [],
       output: 'Synthetic output for caption-judge-human',
@@ -114,7 +116,7 @@ describe('analyzeOutliers on the synthetic run', () => {
       'media/caption-pairwise/beta-compiled.png',
     );
     expect(record?.pairs).toEqual(buildSyntheticOutlierPairs());
-    expect(record?.reason).toContain('split pairwise verdict vs alpha-raw');
+    expect(record?.reason).toContain('judges split on the winner vs alpha-raw');
   });
 
   it('names missing fields instead of dropping the outlier', () => {
@@ -133,12 +135,12 @@ describe('analyzeOutliers on the synthetic run', () => {
           cost_latency: 2,
           extreme_score: 1,
           judge_disagreement: 1,
-          judge_human_disagreement: 1,
+          judge_human_disagreement: 0,
         },
-        caseCount: 16,
+        caseCount: 15,
         key: 'alpha-raw',
-        outlierCaseCount: 5,
-        outlierRate: 5 / 16,
+        outlierCaseCount: 4,
+        outlierRate: 4 / 15,
       },
       {
         byClass: {
@@ -151,6 +153,18 @@ describe('analyzeOutliers on the synthetic run', () => {
         key: 'beta-compiled',
         outlierCaseCount: 1,
         outlierRate: 1 / 4,
+      },
+      {
+        byClass: {
+          cost_latency: 0,
+          extreme_score: 0,
+          judge_disagreement: 0,
+          judge_human_disagreement: 1,
+        },
+        caseCount: 1,
+        key: 'judged-output',
+        outlierCaseCount: 1,
+        outlierRate: 1,
       },
     ]);
     expect(
@@ -169,8 +183,13 @@ describe('analyzeOutliers on the synthetic run', () => {
     expect(section.extremeScoreSkippedGroups).toEqual([
       {
         contentKind: 'caption',
+        contestantKey: 'judged-output',
+        scoredCaseCount: 1,
+      },
+      {
+        contentKind: 'caption',
         contestantKey: 'alpha-raw',
-        scoredCaseCount: 3,
+        scoredCaseCount: 2,
       },
       {
         contentKind: 'caption',
@@ -238,22 +257,53 @@ describe('outlier thresholds', () => {
     ).toEqual([]);
   });
 
-  it('keys judge-suite rows without a contestant', () => {
-    const judged = buildSyntheticOutlierRows()
-      .filter((row) => row.fixtureId === 'caption-judge-human')
-      .map((row) => ({ ...row, contestant: null, suite: 'judge' as const }));
+  it('ignores fixture bands copied onto generated contestant rows', () => {
+    const generated = syntheticRow({
+      contentKind: 'caption',
+      fixtureId: 'generated-with-fixture-band',
+      humanLabel: { band: { max: 0.3, min: 0.1 }, decision: 'reject' },
+      votes: [syntheticVote('gamma', 0.9), syntheticVote('delta', 0.9)],
+    });
+    expect(
+      analyzeOutliers({
+        fixtureRowsById: new Map(),
+        pairs: [],
+        rows: [generated],
+        thresholds: DEFAULT_OUTLIER_THRESHOLDS,
+      }).cases,
+    ).toEqual([]);
+  });
+
+  it('computes cost and latency medians over completed rows only', () => {
+    const completed = ['a', 'b', 'c', 'd'].map((suffix) =>
+      syntheticRow({ contentKind: 'ad-copy', fixtureId: `done-${suffix}` }),
+    );
+    const expensive = syntheticRow({
+      contentKind: 'ad-copy',
+      costCredits: 40,
+      fixtureId: 'done-expensive',
+    });
+    // Six failed generations at ~0 cost would drag a naive median to 0.
+    const voided = ['a', 'b', 'c', 'd', 'e', 'f'].map((suffix) =>
+      syntheticRow({
+        contentKind: 'ad-copy',
+        costCredits: 0,
+        fixtureId: `void-${suffix}`,
+        isAccepted: null,
+        latencyMs: 0,
+        output: null,
+        voidReason: 'generation failed',
+      }),
+    );
     const section = analyzeOutliers({
       fixtureRowsById: new Map(),
       pairs: [],
-      rows: judged,
+      rows: [...completed, expensive, ...voided],
       thresholds: DEFAULT_OUTLIER_THRESHOLDS,
     });
-    expect(section.byContestant.map((rate) => rate.key)).toEqual([
-      'judged-output',
+    expect(fixtureIdsOf(section, 'cost_latency')).toEqual([
+      'done-expensive@alpha-raw',
     ]);
-    expect(section.cases[0]?.id).toBe(
-      `${SYNTHETIC_OUTLIER_RUN_ID}:judge_human_disagreement:caption:caption-judge-human:judged-output`,
-    );
   });
 });
 
@@ -304,7 +354,7 @@ describe('score helpers', () => {
     expect(rowScore({ ...row, votes: [] })).toBeNull();
   });
 
-  it('treats ordered-vs-pointwise conflicts as split pairs', () => {
+  it('splits pairs on judges, not on one position-biased judge', () => {
     const [pair] = buildSyntheticOutlierPairs();
     if (!pair) throw new Error('fixture pair missing');
     const unanimous = {
@@ -314,8 +364,17 @@ describe('score helpers', () => {
         choice: 'a' as const,
       })),
     };
+    const positionBiased = {
+      ...pair,
+      battleVotes: [
+        syntheticVote('gamma', null, 'a'),
+        syntheticVote('gamma', null, 'b'),
+      ],
+      isPositionBiased: true,
+    };
     expect(isSplitPair(pair)).toBe(true);
     expect(isSplitPair(unanimous)).toBe(false);
+    expect(isSplitPair(positionBiased)).toBe(false);
     expect(
       isSplitPair({ ...unanimous, orderedChoice: 'b', pointwiseChoice: 'a' }),
     ).toBe(true);

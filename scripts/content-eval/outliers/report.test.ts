@@ -139,7 +139,8 @@ describe('outlier section in content-eval reports', () => {
     expect(summary).toContain(
       '  outliers (outlier-thresholds-v1): judge_human_disagreement 1 · judge_disagreement 2 · extreme_score 1 · cost_latency 2',
     );
-    expect(summary).toContain('  outliers alpha-raw: 5/16 cases (31.3%)');
+    expect(summary).toContain('  outliers alpha-raw: 4/15 cases (26.7%)');
     expect(summary).toContain('  outliers beta-compiled: 1/4 cases (25.0%)');
+    expect(summary).toContain('  outliers judged-output: 1/1 cases (100.0%)');
   });
 });
