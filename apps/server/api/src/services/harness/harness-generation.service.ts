@@ -1,6 +1,6 @@
 import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
@@ -75,7 +75,7 @@ export class HarnessGenerationService {
     @Optional()
     private readonly harnessProfilesService?: HarnessProfilesService,
     @Optional()
-    private readonly contextsService?: ContextsService,
+    private readonly knowledgeContentRetrievalService?: KnowledgeContentRetrievalService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
     @Optional()
@@ -206,11 +206,11 @@ export class HarnessGenerationService {
     organizationId: string;
     topic: string;
   }): Promise<HarnessSourceRecord[]> {
-    const contextsService = this.resolveProvider(
-      this.contextsService,
-      ContextsService,
+    const knowledgeContentRetrievalService = this.resolveProvider(
+      this.knowledgeContentRetrievalService,
+      KnowledgeContentRetrievalService,
     );
-    if (!contextsService) {
+    if (!knowledgeContentRetrievalService) {
       return [];
     }
 
@@ -218,14 +218,15 @@ export class HarnessGenerationService {
       ? HARNESS_SELECTED_KNOWLEDGE_LIMIT
       : HARNESS_MEMORY_LIMIT;
     try {
-      const hits = await contextsService.retrieveBrandContentMemory({
-        brandId: params.brandId,
-        limit,
-        minRelevance: 0.65,
-        organizationId: params.organizationId,
-        query: params.topic,
-        ...(params.filters ?? {}),
-      });
+      const hits =
+        await knowledgeContentRetrievalService.retrieveBrandContentMemory({
+          brandId: params.brandId,
+          limit,
+          minRelevance: 0.65,
+          organizationId: params.organizationId,
+          query: params.topic,
+          ...(params.filters ?? {}),
+        });
       return brandMemoryHitsToHarnessSources(hits, {
         limit,
         minRelevance: 0.65,
