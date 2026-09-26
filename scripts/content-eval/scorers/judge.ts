@@ -24,8 +24,8 @@ import type {
   RubricRecord,
 } from '../contracts';
 import { requireModelFamily } from '../families';
-import { meteredCall } from '../provenance';
-import { SpendCapExceededError, UnmeteredCallError } from '../spend';
+import { MeteredCallError, meteredCall } from '../provenance';
+import { SpendCapExceededError } from '../spend';
 import {
   BATTLE_RUBRIC,
   CONTENT_QUALITY_RUBRIC,
@@ -73,10 +73,12 @@ export function resolvePointwiseRubric(rubricVersion: string): EvalRubricSpec {
 }
 
 function isFatal(error: unknown): boolean {
-  return (
-    error instanceof SpendCapExceededError ||
-    error instanceof UnmeteredCallError
-  );
+  return error instanceof SpendCapExceededError;
+}
+
+/** The charged call behind a failure, so the void still carries its cost. */
+function failedCall(error: unknown): CallProvenance | null {
+  return error instanceof MeteredCallError ? error.provenance : null;
 }
 
 function describe(error: unknown): string {
@@ -179,12 +181,13 @@ export function createEvalJudge({
           throw error;
         }
 
+        const failed = failedCall(error);
         return {
-          callId: null,
+          callId: failed?.callId ?? null,
           failure: describe(error),
           isFirstPreferred: null,
           rationale: null,
-          vote: vote(judgeRegistryKey, null, {
+          vote: vote(judgeRegistryKey, failed, {
             choice: null,
             rationale: null,
             score: null,
@@ -228,12 +231,13 @@ export function createEvalJudge({
           throw error;
         }
 
+        const failed = failedCall(error);
         return {
-          callId: null,
+          callId: failed?.callId ?? null,
           failure: describe(error),
           rationale: null,
           score: null,
-          vote: vote(judgeRegistryKey, null, {
+          vote: vote(judgeRegistryKey, failed, {
             choice: null,
             rationale: null,
             score: null,

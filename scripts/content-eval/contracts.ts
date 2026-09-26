@@ -35,7 +35,8 @@ export type FixtureVisibility = (typeof FIXTURE_VISIBILITIES)[number];
 export const PAIRWISE_CHOICES = ['a', 'b', 'tie'] as const;
 export type PairwiseChoice = (typeof PAIRWISE_CHOICES)[number];
 
-export const ABORT_REASONS = ['spend'] as const;
+/** `spend`: the cap stopped the run. `error`: an unexpected failure mid-run. */
+export const ABORT_REASONS = ['spend', 'error'] as const;
 export type AbortReason = (typeof ABORT_REASONS)[number];
 
 // ─── Thresholds ─────────────────────────────────────────────────────────────
@@ -71,17 +72,21 @@ export type ScoreBand = z.infer<typeof scoreBandSchema>;
 export const humanDecisionSchema = z.enum(['approve', 'reject']);
 export type HumanDecision = z.infer<typeof humanDecisionSchema>;
 
+export const countRangeSchema = z
+  .object({
+    max: z.number().int().nonnegative(),
+    min: z.number().int().nonnegative(),
+  })
+  .refine((range) => range.min <= range.max, 'range.min must be <= range.max');
+export type CountRange = z.infer<typeof countRangeSchema>;
+
 /** Deterministic brief rules applied to a generated or judged text. */
 export const contentBriefSchema = z.object({
   bannedPhrases: z.array(z.string().min(1)).default([]),
   guidance: z.string().optional(),
-  hashtagRange: z
-    .object({ max: z.number().int().nonnegative(), min: z.number().int() })
-    .optional(),
+  hashtagRange: countRangeSchema.optional(),
   isCtaRequired: z.boolean().default(false),
-  linkRange: z
-    .object({ max: z.number().int().nonnegative(), min: z.number().int() })
-    .optional(),
+  linkRange: countRangeSchema.optional(),
   maxCharacters: z.number().int().positive().optional(),
   minCharacters: z.number().int().nonnegative().optional(),
   /** Structured kinds (carousels, threads as JSON): output must match this. */
@@ -232,11 +237,20 @@ export const callProvenanceSchema = z.object({
   /**
    * `reported`: provider charge; `catalogue`: priced by the harness from the
    * model catalogue; `retail-credits`: product credits charged for a media
-   * generation, which include margin and so overstate vendor cost.
+   * generation, which include margin and so overstate vendor cost;
+   * `reservation`: usage unknown (failed or unreported call), so the
+   * worst-case reservation is charged.
    */
-  costEvidence: z.enum(['reported', 'catalogue', 'retail-credits']),
+  costEvidence: z.enum([
+    'reported',
+    'catalogue',
+    'retail-credits',
+    'reservation',
+  ]),
   credits: z.number().nonnegative(),
   family: z.string().min(1),
+  /** The call errored (provider, schema repair, timeout) but was still charged. */
+  isFailed: z.boolean().default(false),
   kind: z.enum(CALL_ROLES),
   latencyMs: z.number().nonnegative(),
   model: z.string().min(1),
@@ -365,14 +379,15 @@ export const contestantSummarySchema = z.object({
   meanScore: z.number().min(0).max(1).nullable(),
   rows: z.number().int().nonnegative(),
   spentCredits: z.number().nonnegative(),
-  voidRate: z.number().min(0).max(1),
+  /** Rates are null, not 0, when there is nothing to divide by. */
+  voidRate: z.number().min(0).max(1).nullable(),
   vsBaseline: z
     .object({
-      lossRate: z.number().min(0).max(1),
+      lossRate: z.number().min(0).max(1).nullable(),
       pairs: z.number().int().nonnegative(),
-      tieRate: z.number().min(0).max(1),
-      voidRate: z.number().min(0).max(1),
-      winRate: z.number().min(0).max(1),
+      tieRate: z.number().min(0).max(1).nullable(),
+      voidRate: z.number().min(0).max(1).nullable(),
+      winRate: z.number().min(0).max(1).nullable(),
     })
     .nullable(),
 });
@@ -707,4 +722,14 @@ export interface ContentEvalCliArgs {
   seed: number;
   suite: SuiteName;
   tieBand: number;
+}
+
+export interface ChargeableUsage {
+  costEvidence: CallProvenance['costEvidence'];
+  costUsd: number;
+}
+
+export interface ReservationTokens {
+  completion: number;
+  prompt: number;
 }

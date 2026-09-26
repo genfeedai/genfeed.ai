@@ -37,6 +37,17 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('rejects an empty judge list as a usage error', () => {
+    expect(() =>
+      parseCliArgs([
+        '--max-credits=5',
+        '--suite=ladder',
+        '--fixture=f.jsonl',
+        '--judge=,',
+      ]),
+    ).toThrow(UsageError);
+  });
+
   it('rejects an unknown suite', () => {
     expect(() =>
       parseCliArgs([

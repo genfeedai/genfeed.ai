@@ -89,8 +89,9 @@ export function mean(values: number[]): number | null {
     : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function rate(count: number, total: number): number {
-  return total === 0 ? 0 : count / total;
+/** Null when there is nothing to divide by, so "no data" never reads as 0%. */
+export function rate(count: number, total: number): number | null {
+  return total === 0 ? null : count / total;
 }
 
 export function percentile(values: number[], fraction: number): number {

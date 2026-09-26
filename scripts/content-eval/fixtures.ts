@@ -13,15 +13,25 @@ import {
 } from './provenance';
 
 export function parseFixture(contents: string, path: string): FixtureRow[] {
+  // Errors name the file line, counting comment and blank lines.
   const rows = contents
     .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('//'))
-    .map((line, index) => {
-      const parsed = fixtureRowSchema.safeParse(JSON.parse(line));
+    .map((line, index) => ({ line: line.trim(), lineNumber: index + 1 }))
+    .filter(({ line }) => line.length > 0 && !line.startsWith('//'))
+    .map(({ line, lineNumber }) => {
+      let raw: unknown;
+      try {
+        raw = JSON.parse(line);
+      } catch (error: unknown) {
+        throw new Error(
+          `${path} line ${lineNumber}: invalid JSON (${error instanceof Error ? error.message : String(error)})`,
+        );
+      }
+
+      const parsed = fixtureRowSchema.safeParse(raw);
       if (!parsed.success) {
         throw new Error(
-          `${path} row ${index + 1}: ${parsed.error.issues
+          `${path} line ${lineNumber}: ${parsed.error.issues
             .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
             .join('; ')}`,
         );

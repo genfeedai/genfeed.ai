@@ -292,3 +292,79 @@ describe('suite-owned preparation', () => {
     }
   });
 });
+
+describe('fail-closed run handling', () => {
+  it('rejects a judge row without output before creating a dispatcher', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+    const directory = mkdtempSync(join(tmpdir(), 'content-eval-'));
+    const fixturePath = join(directory, 'judge.jsonl');
+    writeFileSync(
+      fixturePath,
+      `${JSON.stringify({
+        brandFixtureId: 'synthetic-kelder',
+        contentKind: 'social-post',
+        id: 'no-output',
+        input: { prompt: 'Write a post.' },
+        rubricVersion: 'content-quality-v1',
+        source: { reference: 'synthetic:kelder', visibility: 'synthetic' },
+      })}\n`,
+    );
+    const createDispatcher = vi.fn(
+      async (_kind: DispatcherKind): Promise<EvalDispatcher> =>
+        createStubDispatcher(),
+    );
+
+    await expect(
+      runContentEval(
+        options({ createDispatcher, fixturePath, models: [], suite: 'judge' }),
+      ),
+    ).rejects.toThrow('needs input.output');
+    expect(createDispatcher).not.toHaveBeenCalled();
+  });
+
+  it('writes a partial report marked aborted: error on an unexpected failure', async () => {
+    const { SUITE_RUNNERS } = await import('./suites');
+    const previous = SUITE_RUNNERS['media-ladder'];
+    SUITE_RUNNERS['media-ladder'] = {
+      async run(context, onProgress) {
+        await context.judge.pointwise({
+          judgeRegistryKey: JUDGE,
+          output: 'A calm skillet.',
+          row: context.rows[0] ?? fail('fixture has rows'),
+        });
+        onProgress({
+          contestants: [],
+          judges: [],
+          pairs: [],
+          positionBiasRate: null,
+          rows: [],
+          thresholdChecks: [],
+        });
+        throw new Error('unexpected suite failure');
+      },
+      suite: 'media-ladder',
+    };
+
+    try {
+      const { exitCode, report } = await runContentEval(
+        options({ suite: 'media-ladder' }),
+      );
+
+      expect(contentEvalReportSchema.safeParse(report).success).toBe(true);
+      expect(report.aborted).toBe('error');
+      expect(report.abortMessage).toBe('unexpected suite failure');
+      // The judge call made before the failure is still on the books.
+      expect(report.calls).toHaveLength(1);
+      expect(report.passed).toBe(false);
+      expect(exitCode).toBe(1);
+    } finally {
+      SUITE_RUNNERS['media-ladder'] = previous;
+    }
+  });
+});
+
+function fail(message: string): never {
+  throw new Error(message);
+}

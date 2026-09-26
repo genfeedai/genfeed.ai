@@ -8,6 +8,7 @@ import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 import type {
   ContentBrief,
+  CountRange,
   DeterministicCheck,
   FixtureRow,
 } from '../contracts';
@@ -24,7 +25,7 @@ function countMatches(text: string, pattern: RegExp): number {
 function rangeCheck(
   id: string,
   actual: number,
-  range: { max: number; min: number } | undefined,
+  range: CountRange | undefined,
 ): DeterministicCheck | null {
   if (!range) {
     return null;
@@ -73,6 +74,22 @@ function lengthChecks(
   return checks;
 }
 
+/**
+ * Compiles a fixture's output schema. Called for every row before a run
+ * starts, so an unsupported schema fails validation, not a paid run.
+ */
+export function compileOutputSchema(
+  schema: Record<string, unknown>,
+): z.ZodType {
+  try {
+    return z.fromJSONSchema(schema);
+  } catch (error: unknown) {
+    throw new Error(
+      `Unsupported outputJsonSchema: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 function jsonSchemaCheck(
   text: string,
   schema: Record<string, unknown> | undefined,
@@ -88,7 +105,7 @@ function jsonSchemaCheck(
     return { detail: 'output is not JSON', id: 'json-schema', passed: false };
   }
 
-  const result = z.fromJSONSchema(schema).safeParse(parsed);
+  const result = compileOutputSchema(schema).safeParse(parsed);
   return {
     detail: result.success
       ? 'matches output schema'

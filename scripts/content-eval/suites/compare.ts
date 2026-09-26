@@ -26,7 +26,7 @@ import type {
 } from '../contracts';
 import { CONTENT_EVAL_THRESHOLDS } from '../contracts';
 import { requireModelFamily } from '../families';
-import { meteredCall } from '../provenance';
+import { MeteredCallError, meteredCall } from '../provenance';
 import { hasPassedAll, runDeterministicChecks } from '../scorers/deterministic';
 import {
   orderedChoice,
@@ -34,7 +34,7 @@ import {
   positionBiasRate,
   reconcileVerdict,
 } from '../scorers/pairwise';
-import { SpendCapExceededError, UnmeteredCallError } from '../spend';
+import { SpendCapExceededError } from '../spend';
 import {
   atMost,
   humanLabelOf,
@@ -80,10 +80,7 @@ export function buildGenerationMessages(
 }
 
 function isFatal(error: unknown): boolean {
-  return (
-    error instanceof SpendCapExceededError ||
-    error instanceof UnmeteredCallError
-  );
+  return error instanceof SpendCapExceededError;
 }
 
 async function answerRow(
@@ -145,15 +142,17 @@ async function answerRow(
       throw error;
     }
 
+    // A failed generation was still charged; keep its cost on the void row.
+    const failed = error instanceof MeteredCallError ? error.provenance : null;
     return {
       scoredRow: {
         ...base,
-        callIds: [],
+        callIds: failed ? [failed.callId] : [],
         contestant: provenance,
-        costCredits: 0,
+        costCredits: failed?.credits ?? 0,
         deterministicChecks: [],
         isAccepted: null,
-        latencyMs: 0,
+        latencyMs: failed?.latencyMs ?? 0,
         output: null,
         voidReason: `generation failed: ${error instanceof Error ? error.message : String(error)}`,
         votes: [],

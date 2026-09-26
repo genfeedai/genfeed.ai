@@ -7,6 +7,7 @@
 
 import type {
   JudgeSummary,
+  ScoreBand,
   ScoredRow,
   SuiteContext,
   SuiteOutcome,
@@ -24,10 +25,7 @@ import {
 } from './shared';
 
 /** 0 inside the band, otherwise the distance to its nearest edge. */
-export function distanceToBand(
-  score: number,
-  band: { max: number; min: number },
-): number {
+export function distanceToBand(score: number, band: ScoreBand): number {
   if (score < band.min) {
     return band.min - score;
   }
@@ -100,6 +98,8 @@ export const judgeSuite: SuiteRunner = {
     const rows: ScoredRow[] = [];
 
     for (const row of context.rows) {
+      // Checked for every row in prepareTextSuite before any call; this
+      // narrows the type.
       const output = row.input.output;
       if (!output) {
         throw new Error(`Judge fixture row ${row.id} has no input.output`);

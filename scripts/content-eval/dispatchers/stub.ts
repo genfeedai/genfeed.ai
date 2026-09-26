@@ -14,7 +14,7 @@ import type {
   StubDispatcherOptions,
 } from '../contracts';
 import { canonicalJson } from '../provenance';
-import { estimateTokens } from '../spend';
+import { EvalDispatchError, estimateTokens } from '../spend';
 
 export const STUB_PROVIDER = 'stub';
 /** $1 per million tokens: small, non-zero, so spend is visibly metered. */
@@ -99,7 +99,13 @@ export function createStubDispatcher(
       request: EvalStructuredRequest<TResult>,
     ): Promise<EvalStructuredResponse<TResult>> {
       if (failingModels.has(request.model)) {
-        throw new Error(`Stub failure for ${request.model}`);
+        // Models a provider that refused before billing anything.
+        throw new EvalDispatchError(
+          `Stub failure for ${request.model}`,
+          { completionTokens: 0, costUsd: 0, promptTokens: 0 },
+          STUB_PROVIDER,
+          0,
+        );
       }
 
       const raw =

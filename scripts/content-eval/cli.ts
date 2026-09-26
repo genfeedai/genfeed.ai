@@ -88,6 +88,13 @@ export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
     throw new UsageError('--tie-band must be between 0 and 1');
   }
 
+  const judgeRegistryKeys = readList(
+    requireFlag(argv, 'judge', 'judge model registry key(s)'),
+  );
+  if (judgeRegistryKeys.length === 0) {
+    throw new UsageError('--judge needs at least one registry key');
+  }
+
   return {
     dispatcherKind: readEnum(
       'dispatcher',
@@ -95,9 +102,7 @@ export function parseCliArgs(argv: string[]): ContentEvalCliArgs {
       DISPATCHER_KINDS,
     ),
     fixturePath: requireFlag(argv, 'fixture', 'path to a JSONL fixture'),
-    judgeRegistryKeys: readList(
-      requireFlag(argv, 'judge', 'judge model registry key(s)'),
-    ),
+    judgeRegistryKeys,
     maxCredits,
     models: readList(readFlag(argv, 'models')),
     out: readFlag(argv, 'out') ?? null,

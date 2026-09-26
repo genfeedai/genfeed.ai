@@ -34,6 +34,7 @@ import type {
   EvalStructuredResponse,
   EvalUsage,
 } from '../contracts';
+import { EvalDispatchError } from '../spend';
 
 function toOpenRouterMessage(message: EvalMessage): OpenRouterMessage {
   return { content: message.content, role: message.role };
@@ -113,29 +114,45 @@ export async function createLiveDispatcher(): Promise<EvalDispatcher> {
       };
       let modelVersion = request.model;
       let provider = servedProvider(null, request.model);
+      let hasUsage = false;
 
       // The dispatcher has no seed parameter today; the seed is recorded in
       // provenance so a re-run uses the same one once it does.
-      const value = await service.completeStructured({
-        max_tokens: request.maxTokens,
-        messages: request.messages.map(toOpenRouterMessage),
-        model: request.model,
-        onAttempt: (response) => {
-          // A repair retry is a second billed call; sum both.
-          usage.promptTokens += response.usage?.prompt_tokens ?? 0;
-          usage.completionTokens += response.usage?.completion_tokens ?? 0;
-          const cost = response.usage?.cost;
-          usage.costUsd =
-            usage.costUsd === null || typeof cost !== 'number'
-              ? null
-              : usage.costUsd + cost;
-          modelVersion = response.model ?? modelVersion;
-          provider = servedProvider(response, request.model);
-        },
-        schema: request.schema,
-        schemaName: request.schemaName,
-        temperature: request.temperature,
-      });
+      let value: TResult;
+      try {
+        value = await service.completeStructured({
+          max_tokens: request.maxTokens,
+          messages: request.messages.map(toOpenRouterMessage),
+          model: request.model,
+          onAttempt: (response) => {
+            // A repair retry is a second billed call; sum both.
+            hasUsage = hasUsage || response.usage !== undefined;
+            usage.promptTokens += response.usage?.prompt_tokens ?? 0;
+            usage.completionTokens += response.usage?.completion_tokens ?? 0;
+            const cost = response.usage?.cost;
+            usage.costUsd =
+              usage.costUsd === null || typeof cost !== 'number'
+                ? null
+                : usage.costUsd + cost;
+            modelVersion = response.model ?? modelVersion;
+            provider = servedProvider(response, request.model);
+          },
+          schema: request.schema,
+          schemaName: request.schemaName,
+          temperature: request.temperature,
+        });
+      } catch (error: unknown) {
+        // Attempts that completed before the failure were billed; a call
+        // that never answered reports null so the ledger charges the
+        // reservation.
+        throw new EvalDispatchError(
+          error instanceof Error ? error.message : String(error),
+          hasUsage ? usage : null,
+          provider,
+          Date.now() - startedAt,
+          { cause: error },
+        );
+      }
 
       return {
         latencyMs: Date.now() - startedAt,

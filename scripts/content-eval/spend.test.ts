@@ -5,6 +5,7 @@ import {
   reservationCostUsd,
   SpendCapExceededError,
   SpendLedger,
+  upperBoundTokens,
   usdToCredits,
 } from './spend';
 
@@ -18,6 +19,7 @@ function provenance(costUsd: number, credits: number): CallProvenance {
     costUsd,
     credits,
     family: 'anthropic',
+    isFailed: false,
     kind: 'judge',
     latencyMs: 5,
     model: 'anthropic/claude-sonnet-5',
@@ -82,6 +84,26 @@ describe('pricing', () => {
     expect(catalogueCostUsd('unknown/model', 1000, 1000)).toBeNull();
     // A router settles from the provider's reported cost, never the catalogue.
     expect(catalogueCostUsd('openrouter/auto', 1000, 1000)).toBeNull();
+  });
+
+  it('reserves the repair retry as well as the first attempt', () => {
+    const single = catalogueCostUsd('google/gemini-2.5-flash-lite', 1000, 1000);
+    const reserved = reservationCostUsd(
+      'google/gemini-2.5-flash-lite',
+      1000,
+      1000,
+    );
+
+    expect(single).not.toBeNull();
+    // Two prompts, the rejected answer echoed back, and two completions.
+    expect(reserved).toBeCloseTo(
+      catalogueCostUsd('google/gemini-2.5-flash-lite', 3000, 2000) ?? 0,
+    );
+  });
+
+  it('bounds prompt tokens by UTF-8 bytes, so non-Latin text is not undercounted', () => {
+    expect(upperBoundTokens('abcd')).toBe(4);
+    expect(upperBoundTokens('日本語')).toBe(9);
   });
 
   it('reserves an unpriced model at the priciest catalogue rate', () => {
