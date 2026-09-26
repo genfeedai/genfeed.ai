@@ -30,6 +30,7 @@ import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -52,6 +53,7 @@ import { Module } from '@nestjs/common';
   exports: [ArticleAnalyticsService, ArticlesContentService, ArticlesService],
   imports: [
     ActivitiesModule,
+    AgentChatModelRegistryModule,
     BrandsCoreModule,
     ByokModule,
     ConfigModule,

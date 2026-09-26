@@ -355,6 +355,20 @@ export function buildAgentProactiveWorkflowDefinition(): SystemWorkflowGraphDefi
           targetHandle: 'state',
         },
         {
+          // `agent.autopilot.finalize` uses the shared `sweepFinalInput`
+          // contract (batch + discovery + state, all required — see
+          // `automation-action-contracts.ts`), same as every `sweepDefinition`
+          // workflow (content engine, content pipeline, harness, livestream,
+          // reply, social, trends). Those all wire their discover node's
+          // output into finalize's `discovery` handle; this hand-rolled
+          // definition never did, so every run failed action-contract
+          // validation on `$.discovery` (#5162).
+          id: 'discover-finalize',
+          source: discover.id,
+          target: finalize.id,
+          targetHandle: 'discovery',
+        },
+        {
           id: 'dispatch-finalize',
           source: dispatch.id,
           target: finalize.id,

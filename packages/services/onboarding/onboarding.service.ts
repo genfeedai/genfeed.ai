@@ -180,4 +180,25 @@ export class OnboardingService extends HTTPBaseService {
       throw error;
     }
   }
+
+  /**
+   * Queue the starter post + ad draft for the new brand. Generation runs in
+   * the background — this resolves as soon as the job is queued.
+   */
+  async queueStarterAssets(
+    brandId: string,
+    websiteUrl?: string,
+  ): Promise<{ queued: boolean }> {
+    try {
+      const response = await this.instance.post<{ queued: boolean }>(
+        'starter-assets',
+        { brandId, ...(websiteUrl ? { websiteUrl } : {}) },
+      );
+      logger.info('POST /starter-assets success', { brandId });
+      return response.data;
+    } catch (error) {
+      logger.error('POST /starter-assets failed', error);
+      throw error;
+    }
+  }
 }

@@ -1,4 +1,8 @@
-import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
+import {
+  resolveAgentPromptSurface,
+  resolveBrandSurfaceSuggestions,
+} from '@genfeedai/agent/utils/agent-surface-suggestions.util';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 
 const profile: IBrandAgentConfig = {
@@ -46,11 +50,24 @@ describe('resolveBrandSurfaceSuggestions', () => {
   });
 
   it('adapts the same profile to another prompt-bar surface', () => {
-    const suggestions = resolveBrandSurfaceSuggestions('/calendar', profile);
+    const suggestions = resolveBrandSurfaceSuggestions(
+      APP_ROUTES.PUBLISHING.CALENDAR,
+      profile,
+    );
 
     expect(suggestions).toHaveLength(3);
     expect(suggestions[0]?.prompt).toContain("next week's content");
     expect(suggestions[2]?.prompt).toContain('brand consistency');
+  });
+
+  it('resolves the publishing calendar before the generic publishing surface', () => {
+    expect(resolveAgentPromptSurface(APP_ROUTES.PUBLISHING.CALENDAR)).toBe(
+      'calendar',
+    );
+    expect(resolveAgentPromptSurface(APP_ROUTES.PUBLISHING.REVIEW)).toBe(
+      'review',
+    );
+    expect(resolveAgentPromptSurface('/calendar')).toBeNull();
   });
 
   it('falls back to existing hard-coded actions when no profile topics exist', () => {

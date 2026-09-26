@@ -5,6 +5,7 @@ import {
   normalizePlatform,
   readAvailability,
   sanitizeBody,
+  TWITTER_DM_REASON,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
@@ -89,7 +90,7 @@ describe('getAvailability', () => {
     });
   });
 
-  it('allows an X comment reply and DM when the tweet and participant ids exist', () => {
+  it('allows an X comment reply but never an X DM', () => {
     expect(
       getAvailability({
         conversationType: SocialConversationType.COMMENT,
@@ -99,9 +100,37 @@ describe('getAvailability', () => {
       }),
     ).toEqual({
       canPostReply: true,
-      canSendDm: true,
+      canSendDm: false,
       postReplyReason: undefined,
-      sendDmReason: undefined,
+      sendDmReason: TWITTER_DM_REASON,
+    });
+  });
+
+  it('refuses both actions on an X DM thread with explainable reasons', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.DM,
+        participantExternalId: 'x-user-1',
+        platform: Platform.TWITTER,
+      }),
+    ).toEqual({
+      canPostReply: false,
+      canSendDm: false,
+      postReplyReason:
+        'Direct message threads have no post or comment to reply on',
+      sendDmReason: TWITTER_DM_REASON,
+    });
+  });
+
+  it('requires a tweet id before offering an X reply', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        platform: Platform.TWITTER,
+      }),
+    ).toMatchObject({
+      canPostReply: false,
+      postReplyReason: 'X reply requires a tweet id',
     });
   });
 
@@ -165,6 +194,23 @@ describe('getAvailability', () => {
     expect(readAvailability(conversation)).toMatchObject({
       canPostReply: false,
       canSendDm: false,
+    });
+  });
+
+  it('ignores a stale stored X DM flag but keeps the stored reply flag', () => {
+    const conversation = {
+      availability: { canPostReply: true, canSendDm: true },
+      conversationType: SocialConversationType.COMMENT,
+      externalParentId: 'tweet-1',
+      participantExternalId: 'x-user-1',
+      platform: Platform.TWITTER,
+    } as unknown as SocialConversationDocument;
+
+    expect(readAvailability(conversation)).toEqual({
+      canPostReply: true,
+      canSendDm: false,
+      postReplyReason: undefined,
+      sendDmReason: TWITTER_DM_REASON,
     });
   });
 });

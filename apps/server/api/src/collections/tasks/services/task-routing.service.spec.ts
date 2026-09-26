@@ -247,13 +247,13 @@ describe('TaskRoutingService', () => {
       expect(decision.outputTypeSource).toBe('keyword');
     });
 
-    it('routes on the decided output type in live mode above the threshold', async () => {
+    it('caps a configured live mode at shadow — the provider never overrides the keyword answer', async () => {
       service = buildService({
         TASK_ROUTING_DECISION_MODE: 'live',
         TASK_ROUTING_MIN_CONFIDENCE: 0.85,
       });
       typedDecisionService.choose.mockResolvedValue({
-        confidence: 0.91,
+        confidence: 0.99,
         value: 'newsletter',
       });
 
@@ -262,37 +262,19 @@ describe('TaskRoutingService', () => {
         'Title',
       );
 
-      expect(decision.outputType).toBe('newsletter');
-      expect(decision.outputTypeSource).toBe('decision');
-      expect(decision.outputTypeConfidence).toBe(0.91);
-      expect(decision.executionPathUsed).toBe('caption_generation');
-      expect(decision.reviewTriggered).toBe(true);
-      expect(decision.routingSummary).toBe(
-        'Detected a newsletter request and routed it to the writing generation path for review.',
+      // Jev still computed and was still called (shadow telemetry), but the
+      // request-routing decision point (#4867, release-blocker follow-up to
+      // epic #4863) can no longer dispatch on it — `live` is not reachable.
+      expect(typedDecisionService.choose).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ mode: 'shadow' }),
       );
-    });
-
-    it('falls back to the keyword answer below the threshold', async () => {
-      service = buildService({
-        TASK_ROUTING_DECISION_MODE: 'live',
-        TASK_ROUTING_MIN_CONFIDENCE: 0.85,
-      });
-      typedDecisionService.choose.mockResolvedValue({
-        confidence: 0.84,
-        value: 'newsletter',
-      });
-
-      const decision = await service.buildRoutingDecision(
-        decisionDto('make a video'),
-        'Title',
-      );
-
-      expect(decision.outputType).toBe('video');
+      expect(decision.outputType).toBe('ingredient');
       expect(decision.outputTypeSource).toBe('keyword');
       expect(decision.outputTypeConfidence).toBeUndefined();
     });
 
-    it('treats a null answer exactly like a sub-threshold one', async () => {
+    it('treats a null answer exactly like the shadow-mode fallback', async () => {
       service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
       typedDecisionService.choose.mockResolvedValue(null);
 
@@ -330,14 +312,12 @@ describe('TaskRoutingService', () => {
       expect(decision.outputType).toBe('ingredient');
     });
 
-    it('asks the facet filter about the decided modality and keeps the filter authoritative', async () => {
+    it('keeps the facet filter authoritative on the keyword modality, not the shadowed provider answer', async () => {
       service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.97,
         value: 'image',
       });
-      // A skill the facet filter rejected is simply not in the list a
-      // decision can reorder — resolveBrandSkills returns the survivors.
       skillsService.resolveBrandSkills.mockResolvedValue([]);
 
       const decision = await service.buildRoutingDecision(
@@ -350,15 +330,14 @@ describe('TaskRoutingService', () => {
         'brand-1',
         expect.objectContaining({
           channel: 'tiktok',
-          modality: 'image',
+          modality: 'text',
           workflowStage: 'creation',
         }),
       );
-      expect(decision.skillsUsed).toEqual([]);
-      expect(decision.outputType).toBe('image');
+      expect(decision.outputType).toBe('ingredient');
     });
 
-    it('carries the decision provenance onto a skill-driven decision', async () => {
+    it('carries no decision provenance onto a skill-driven decision — the answer is shadowed only', async () => {
       service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.93,
@@ -377,14 +356,14 @@ describe('TaskRoutingService', () => {
       ]);
 
       const decision = await service.buildRoutingDecision(
-        decisionDto('something for the launch'),
+        decisionDto('post this hook'),
         'Title',
       );
 
       expect(decision.skillsUsed).toEqual(['hook-writer']);
       expect(decision.outputType).toBe('post');
-      expect(decision.outputTypeSource).toBe('decision');
-      expect(decision.outputTypeConfidence).toBe(0.93);
+      expect(decision.outputTypeSource).toBe('keyword');
+      expect(decision.outputTypeConfidence).toBeUndefined();
     });
   });
 });

@@ -982,6 +982,10 @@ export class StripeCheckoutWebhookHandler {
         'skills-pro-receipt',
         async () => {
           const email = this.readSkillsProBuyerEmail(session);
+          const { dbUser, organizationId } = await this.resolveSkillsProBuyer(
+            session,
+            email,
+          );
           const existingReceipt = await this.findSkillsProReceiptBySessionId(
             session.id,
           );
@@ -1000,6 +1004,17 @@ export class StripeCheckoutWebhookHandler {
               email,
               existingReceiptId,
             );
+            await this.supportService.upsertSkillsProLead({
+              email,
+              organizationId,
+              productType: this.parseSkillsProProductType(session),
+              receiptId: existingReceiptId,
+              skillSlugs: this.parseSkillsProSlugs(
+                session.metadata?.skillSlugs,
+                session.metadata?.skillSlug,
+              ),
+              userId: String(dbUser.id),
+            });
             this.loggerService.log(`${url} skills-pro receipt already exists`, {
               productType: 'bundle',
               sessionId: session.id,
@@ -1008,8 +1023,7 @@ export class StripeCheckoutWebhookHandler {
           }
 
           const receiptId = `sk_rcpt_${nanoid(16)}`;
-          const productType =
-            session.metadata?.productType === 'skill' ? 'skill' : 'bundle';
+          const productType = this.parseSkillsProProductType(session);
           const skillSlugs = this.parseSkillsProSlugs(
             session.metadata?.skillSlugs,
             session.metadata?.skillSlug,
@@ -1036,11 +1050,20 @@ export class StripeCheckoutWebhookHandler {
                   ? String(session.payment_intent)
                   : undefined,
                 stripeSessionId: session.id,
+                userId: String(dbUser.id),
               },
             },
           });
 
           await this.sendSkillsProReceiptEmail(session.id, email, receiptId);
+          await this.supportService.upsertSkillsProLead({
+            email,
+            organizationId,
+            productType,
+            receiptId,
+            skillSlugs,
+            userId: String(dbUser.id),
+          });
 
           this.loggerService.log(`${url} skills-pro receipt created`, {
             ...getEmailLogMetadata(email),
@@ -1076,6 +1099,32 @@ export class StripeCheckoutWebhookHandler {
     }
 
     return email;
+  }
+
+  private parseSkillsProProductType(session: StripeCheckoutSession): string {
+    return session.metadata?.productType === 'skill' ? 'skill' : 'bundle';
+  }
+
+  /**
+   * Find-or-create the buyer's user account by email, the same way the
+   * managed-credits checkout path does (`resolveManagedCheckoutUser`), so an
+   * anonymous Skills Pro buyer is never invisible to the console CRM. Returns
+   * the buyer's organization id when one already exists (or was just
+   * provisioned for a new user).
+   */
+  private async resolveSkillsProBuyer(
+    session: StripeCheckoutSession,
+    email: string,
+  ): Promise<{ dbUser: UserDocument; organizationId: string | null }> {
+    const { dbUser } = await this.resolveManagedCheckoutUser(session, email);
+    const organization = await this.organizationsService.findOne({
+      userId: String(dbUser.id),
+    });
+
+    return {
+      dbUser,
+      organizationId: organization ? String(organization.id) : null,
+    };
   }
 
   private readSkillsProReceiptId(receipt: SkillReceiptDocument): string | null {

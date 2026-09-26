@@ -137,24 +137,31 @@ describe('MediaPromptEnhancementService', () => {
     expect(JSON.stringify(receipt)).not.toContain('Internal routing hint');
   });
 
-  it('stops on unavailable harness guidance without calling a model', async () => {
+  it('falls back to the original prompt without calling a model when the harness brief is unavailable', async () => {
     const { service, harness, promptEnhancement } = setup();
     harness.resolveBrief.mockResolvedValue(null);
-    await expect(service.enhance(input)).rejects.toThrow(
-      'Prompt enhancement is unavailable',
-    );
+    const receipt = await service.enhance(input);
+    expect(receipt).toEqual({
+      originalPrompt: input.prompt,
+      enhancedPrompt: input.prompt,
+      brandId: 'brand',
+      status: 'failed',
+      source: 'brand',
+      appliedPacks: [],
+    });
     expect(promptEnhancement.enhance).not.toHaveBeenCalled();
   });
 
-  it('does not hide a provider failure or return a stale applied receipt', async () => {
+  it('falls back to the original prompt instead of hiding a provider failure behind a stale applied receipt', async () => {
     const { service, promptEnhancement } = setup();
     promptEnhancement.enhance.mockRejectedValue(new Error('Unavailable'));
-    await expect(service.enhance(input)).rejects.toThrow(
-      'Prompt enhancement is unavailable',
-    );
+    const receipt = await service.enhance(input);
+    expect(receipt.status).toBe('failed');
+    expect(receipt.enhancedPrompt).toBe(input.prompt);
+    expect(receipt.originalPrompt).toBe(input.prompt);
   });
   it.each(['brief', 'provider', 'response', 'receipt'] as const)(
-    'logs only sanitized diagnostics for %s failures',
+    'falls back to the original prompt and logs only sanitized diagnostics for %s failures',
     async (stage) => {
       const { service, harness, promptEnhancement, packs, logger } = setup();
       const sensitive = 'private prompt and brand guidance from provider error';
@@ -168,23 +175,23 @@ describe('MediaPromptEnhancementService', () => {
         );
       if (stage === 'receipt')
         packs.listLoadedPackVersions.mockRejectedValue(new Error(sensitive));
-      await expect(
-        service.enhance({
-          ...input,
-          prompt: sensitive,
-          model: sensitive,
-          contentType: 'video',
-        }),
-      ).rejects.toThrow('Prompt enhancement is unavailable');
+      const receipt = await service.enhance({
+        ...input,
+        prompt: sensitive,
+        model: sensitive,
+        contentType: 'video',
+      });
+      expect(receipt.status).toBe('failed');
+      expect(receipt.enhancedPrompt).toBe(sensitive);
       expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
-        'Media prompt enhancement failed',
+        'Media prompt enhancement failed; generating with original prompt',
         {
           contentType: 'video',
           model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
           stage,
+          error: expect.any(String),
         },
       );
-      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(sensitive);
       expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
         'Private guidance',
       );
@@ -226,16 +233,15 @@ describe('MediaPromptEnhancementService', () => {
     );
     expect(harness.formatBrief).not.toHaveBeenCalled();
   });
-  it('classifies shared enhancer output validation failures as response failures', async () => {
+  it('classifies shared enhancer output validation failures as response failures and falls back', async () => {
     const { service, promptEnhancement, logger } = setup();
     promptEnhancement.enhance.mockRejectedValue(
       new PromptEnhancementResponseError(),
     );
-    await expect(service.enhance(input)).rejects.toThrow(
-      'Prompt enhancement is unavailable',
-    );
+    const receipt = await service.enhance(input);
+    expect(receipt.status).toBe('failed');
     expect(logger.warn).toHaveBeenCalledWith(
-      'Media prompt enhancement failed',
+      'Media prompt enhancement failed; generating with original prompt',
       expect.objectContaining({ stage: 'response' }),
     );
   });

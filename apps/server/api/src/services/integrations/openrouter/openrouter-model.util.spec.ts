@@ -6,7 +6,7 @@ import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 describe('isOpenRouterTextModel', () => {
   it('matches product text defaults', () => {
     expect(DEFAULT_TEXT_MODEL).toBe(LLM_DEFAULTS.planning);
-    expect(DEFAULT_MINI_TEXT_MODEL).toBe(LLM_DEFAULTS.grokFast);
+    expect(DEFAULT_MINI_TEXT_MODEL).toBe(LLM_DEFAULTS.productTextFallback);
     expect(isOpenRouterTextModel(DEFAULT_TEXT_MODEL)).toBe(true);
     expect(isOpenRouterTextModel(DEFAULT_MINI_TEXT_MODEL)).toBe(true);
   });

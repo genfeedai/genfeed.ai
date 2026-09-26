@@ -2,6 +2,8 @@ import {
   OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
   type OpenRouterChatCompletionParams,
   type OpenRouterChatCompletionResponse,
+  type OpenRouterEmbeddingParams,
+  type OpenRouterEmbeddingResponse,
   type OpenRouterStreamChunk,
   type OpenRouterStreamTokenHandler,
   type OpenRouterToolCallResponse,
@@ -56,6 +58,7 @@ function parseRawProviderError(value: unknown): UnknownRecord | undefined {
 @Injectable()
 export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+  private readonly embeddingsUrl = 'https://openrouter.ai/api/v1/embeddings';
   private readonly generationUrl = 'https://openrouter.ai/api/v1/generation';
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -152,6 +155,46 @@ export class OpenRouterService {
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,
+        this.getSafeErrorDetails(error),
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * OpenAI-compatible `/embeddings` call, routed and ZDR-gated the same way
+   * as `chatCompletion`. Returns the raw embedding vector for a single input;
+   * callers assert the expected dimension since OpenRouter does not.
+   */
+  async embeddings(
+    params: OpenRouterEmbeddingParams,
+    apiKeyOverride?: string,
+  ): Promise<OpenRouterEmbeddingResponse> {
+    const apiKey = this.resolveApiKey(apiKeyOverride);
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<OpenRouterEmbeddingResponse>(
+          this.embeddingsUrl,
+          {
+            ...params,
+            provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://genfeed.ai',
+              'X-Title': 'Genfeed AI',
+            },
+          },
+        ),
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName}.embeddings failed`,
         this.getSafeErrorDetails(error),
       );
       throw error;

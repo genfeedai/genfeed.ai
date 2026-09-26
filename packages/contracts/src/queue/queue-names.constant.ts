@@ -18,6 +18,11 @@ export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const REPLICATE_POLL_QUEUE = 'replicate-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 
+// ---------- Onboarding ----------
+/** Drafts the starter post + ad for a brand in the background so the domain
+ * loading step never blocks the operator from entering the app. */
+export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
+
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -26,6 +31,7 @@ export const ALL_QUEUE_NAMES = [
   HEYGEN_POLL_QUEUE,
   REPLICATE_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
+  ONBOARDING_STARTER_ASSETS_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

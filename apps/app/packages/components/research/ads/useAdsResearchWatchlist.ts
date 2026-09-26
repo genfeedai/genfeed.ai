@@ -59,13 +59,18 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
   // Readiness is a deployment fact, not a brand one: which archives this
   // install can reach at all. It is fetched here so the panel can explain an
   // empty watchlist row without the page wiring a second hook for it.
-  const { data: readiness = [] } = useQuery({
+  //
+  // A failed or malformed response must never take the whole Ads page down —
+  // fall back to an empty list instead of letting a non-array response reach
+  // AdsResearchWatchlistPanel's `readiness.filter(...)` and crash the tree.
+  const { data: rawReadiness } = useQuery({
     queryFn: async () => {
       const service = await getAdsResearchService();
       return await service.listWatchlistReadiness();
     },
     queryKey: ['ads-research-watchlist-readiness'],
   });
+  const readiness = Array.isArray(rawReadiness) ? rawReadiness : [];
 
   async function addAdvertiser(
     input: CreateAdWatchedAdvertiserInput,

@@ -6,7 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -51,9 +51,9 @@ describe('ContextsService.autoCreateFromAccount', () => {
       },
       post: { findMany: vi.fn().mockResolvedValue(posts) },
     };
-    const generateEmbedding = vi
-      .fn()
-      .mockResolvedValue(new Array(1024).fill(0.1));
+    const embeddings = vi.fn().mockResolvedValue({
+      data: [{ embedding: new Array(1024).fill(0.1), index: 0 }],
+    });
     const service = new ContextsService(
       prisma as unknown as PrismaService,
       {
@@ -62,7 +62,7 @@ describe('ContextsService.autoCreateFromAccount', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      { generateEmbedding } as unknown as ReplicateService,
+      { embeddings } as unknown as OpenRouterService,
       {
         getDefaultModel: vi.fn().mockResolvedValue('bge'),
       } as unknown as RouterService,
@@ -81,7 +81,7 @@ describe('ContextsService.autoCreateFromAccount', () => {
 
     expect(prisma.post.findMany).toHaveBeenCalled();
     expect(prisma.contextEntry.create.mock.calls.length).toBeGreaterThan(1);
-    expect(generateEmbedding.mock.calls.length).toBeGreaterThan(1);
+    expect(embeddings.mock.calls.length).toBeGreaterThan(1);
     expect(prisma.$executeRaw).toHaveBeenCalled();
     const firstCreate = prisma.contextEntry.create.mock.calls[0]?.[0] as
       | { data: { data: { metadata: { source: string } } } }

@@ -171,6 +171,19 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('keeps the new-post composer nested under Posts', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/new')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'New post',
+      parentHref: '/publishing/posts',
+      parentLabel: 'Posts',
+      rootHref: '/publishing/overview',
+      rootLabel: 'Publishing',
+    });
+  });
+
   it('keeps the content desk breadcrumb nested under Posts for /acme/moonrise/publishing/posts/post-1', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/post-1')

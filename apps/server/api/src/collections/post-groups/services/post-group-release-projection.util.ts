@@ -18,9 +18,16 @@ export function toSyntheticReleaseGroup(
     return null;
   }
 
-  const contentTitle = target.description.replace(/<[^>]+>/g, ' ').trim();
+  const contentTitle = target.description
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const labelTitle = target.label
+    ?.replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const title =
-    target.label?.trim() ||
+    labelTitle ||
     (contentTitle.length > 80
       ? `${contentTitle.slice(0, 77).trimEnd()}...`
       : contentTitle) ||

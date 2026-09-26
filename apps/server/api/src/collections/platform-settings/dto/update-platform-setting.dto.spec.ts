@@ -8,10 +8,16 @@ describe('UpdatePlatformSettingDto', () => {
     return validate(plainToInstance(UpdatePlatformSettingDto, payload));
   }
 
-  it('accepts a positive margin multiplier', async () => {
-    await expect(validateDto({ marginMultiplier: 1.25 })).resolves.toHaveLength(
-      0,
-    );
+  it('accepts a positive generation margin multiplier', async () => {
+    await expect(
+      validateDto({ marginMultiplierGeneration: 3.5 }),
+    ).resolves.toHaveLength(0);
+  });
+
+  it('accepts a positive agent-chat margin multiplier', async () => {
+    await expect(
+      validateDto({ marginMultiplierAgentChat: 1.25 }),
+    ).resolves.toHaveLength(0);
   });
 
   it('accepts an empty payload (all fields optional)', async () => {
@@ -19,22 +25,50 @@ describe('UpdatePlatformSettingDto', () => {
   });
 
   it('rejects a negative margin multiplier', async () => {
-    const errors = await validateDto({ marginMultiplier: -1 });
-    expect(errors.length).toBeGreaterThan(0);
+    const generation = await validateDto({ marginMultiplierGeneration: -1 });
+    expect(generation.length).toBeGreaterThan(0);
+
+    const agentChat = await validateDto({ marginMultiplierAgentChat: -1 });
+    expect(agentChat.length).toBeGreaterThan(0);
   });
 
   it('rejects a zero margin multiplier', async () => {
-    const errors = await validateDto({ marginMultiplier: 0 });
-    expect(errors.length).toBeGreaterThan(0);
+    const generation = await validateDto({ marginMultiplierGeneration: 0 });
+    expect(generation.length).toBeGreaterThan(0);
+
+    const agentChat = await validateDto({ marginMultiplierAgentChat: 0 });
+    expect(agentChat.length).toBeGreaterThan(0);
   });
 
   it('rejects a multiplier above the operator safety cap', async () => {
-    const errors = await validateDto({ marginMultiplier: 11 });
-    expect(errors.length).toBeGreaterThan(0);
+    const generation = await validateDto({ marginMultiplierGeneration: 11 });
+    expect(generation.length).toBeGreaterThan(0);
+
+    const agentChat = await validateDto({ marginMultiplierAgentChat: 11 });
+    expect(agentChat.length).toBeGreaterThan(0);
   });
 
   it('rejects a non-numeric margin multiplier', async () => {
-    const errors = await validateDto({ marginMultiplier: 'high' });
+    const generation = await validateDto({
+      marginMultiplierGeneration: 'high',
+    });
+    expect(generation.length).toBeGreaterThan(0);
+
+    const agentChat = await validateDto({ marginMultiplierAgentChat: 'high' });
+    expect(agentChat.length).toBeGreaterThan(0);
+  });
+
+  it('accepts every known margin input mode', async () => {
+    await expect(
+      validateDto({ marginInputMode: 'MARKUP' }),
+    ).resolves.toHaveLength(0);
+    await expect(
+      validateDto({ marginInputMode: 'MARGIN' }),
+    ).resolves.toHaveLength(0);
+  });
+
+  it('rejects a margin input mode this deployment does not know', async () => {
+    const errors = await validateDto({ marginInputMode: 'discount' });
     expect(errors.length).toBeGreaterThan(0);
   });
 

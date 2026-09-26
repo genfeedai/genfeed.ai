@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import {
   type INotificationInboxItem,
+  SOCIAL_REPLY_NOTIFICATION_TOPIC,
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -97,6 +98,81 @@ function inboxSourceHref(
     return createBrandAppRoute(org, slug, path);
   }
   return createOrganizationAppRoute(org, path);
+}
+
+type SocialReplyInboxPayload = {
+  accountHandle: string | null;
+  brandId: string;
+  replyCount: number;
+};
+
+function readSocialReplyPayload(
+  topic: string,
+  payload: Prisma.JsonValue,
+): SocialReplyInboxPayload | null {
+  if (
+    topic !== SOCIAL_REPLY_NOTIFICATION_TOPIC ||
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    payload.kind !== 'social_reply' ||
+    typeof payload.brandId !== 'string' ||
+    typeof payload.replyCount !== 'number' ||
+    !Number.isInteger(payload.replyCount) ||
+    payload.replyCount < 1
+  ) {
+    return null;
+  }
+  return {
+    accountHandle:
+      typeof payload.accountHandle === 'string' && payload.accountHandle
+        ? payload.accountHandle.slice(0, 280)
+        : null,
+    brandId: payload.brandId,
+    replyCount: payload.replyCount,
+  };
+}
+
+/**
+ * Brand slugs for `social.reply` rows, limited to brands the member may open.
+ * A brand outside that set still lists the item, just without a link.
+ */
+async function loadSocialReplyBrandSlugs(input: {
+  member: { brands: Array<{ id: string }>; role: { key: string } };
+  organizationId: string;
+  page: Array<{ event: { payload: Prisma.JsonValue }; topic: string }>;
+  prisma: PrismaService;
+}): Promise<Map<string, string>> {
+  const { member, organizationId, page, prisma } = input;
+  const brandIds = [
+    ...new Set(
+      page.flatMap((row) => {
+        const payload = readSocialReplyPayload(row.topic, row.event.payload);
+        return payload ? [payload.brandId] : [];
+      }),
+    ),
+  ];
+  if (brandIds.length === 0) {
+    return new Map();
+  }
+  const isAdmin =
+    member.role.key === MemberRole.OWNER ||
+    member.role.key === MemberRole.ADMIN;
+  const assigned = member.brands.map((brand) => brand.id);
+  const visibleIds =
+    !isAdmin && assigned.length > 0
+      ? brandIds.filter((id) => assigned.includes(id))
+      : brandIds;
+  if (visibleIds.length === 0) {
+    return new Map();
+  }
+  const brands = await prisma.brand.findMany({
+    where: scopedWhere(organizationId, { id: { in: visibleIds } }),
+    select: { id: true, slug: true },
+  });
+  return new Map(
+    brands.flatMap((brand) => (brand.slug ? [[brand.id, brand.slug]] : [])),
+  );
 }
 
 @Injectable()
@@ -203,7 +279,38 @@ export class NotificationInboxService {
       userId,
     });
 
+    const socialReplyBrandSlugs = await loadSocialReplyBrandSlugs({
+      member,
+      organizationId,
+      page,
+      prisma: this.prisma,
+    });
+
     const docs = page.map((row) => {
+      const socialReply = readSocialReplyPayload(row.topic, row.event.payload);
+      if (socialReply) {
+        const brandSlug = socialReplyBrandSlugs.get(socialReply.brandId);
+        return {
+          id: row.id,
+          topic: row.topic,
+          occurredAt: row.occurredAt,
+          readAt: row.readAt,
+          outcome: 'completed' as const,
+          sourceHref: brandSlug
+            ? inboxSourceHref(
+                member.organization.slug,
+                brandSlug,
+                APP_ROUTES.MESSAGES.ROOT,
+              )
+            : null,
+          sourceLabel: null,
+          failure: null,
+          socialReply: {
+            accountHandle: socialReply.accountHandle,
+            replyCount: socialReply.replyCount,
+          },
+        };
+      }
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
       const strategyId = thread?.agentStrategyId ?? strategyIdFromPayload(row);

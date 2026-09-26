@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
+import { SCHEDULE_TODAYS_TWEETS_PROMPT } from './agent-quick-prompts.constant';
 import { AGENT_SLASH_COMMANDS } from './agent-slash-commands.constant';
 import {
   CONVERSATION_COMPOSER_ACTIONS,
@@ -128,6 +129,21 @@ describe('conversation composer action registry', () => {
         }),
       ]),
     );
+  });
+
+  it('offers /tweets-today with the same prompt as the schedule-today chip', () => {
+    expect(
+      AGENT_SLASH_COMMANDS.find((command) => command.name === 'tweets-today'),
+    ).toMatchObject({
+      kind: 'prompt',
+      promptPrefix: SCHEDULE_TODAYS_TWEETS_PROMPT,
+    });
+  });
+
+  it('keeps slash command names unique', () => {
+    const names = AGENT_SLASH_COMMANDS.map((command) => command.name);
+
+    expect(new Set(names).size).toBe(names.length);
   });
 
   it('routes every action to brand when a brand is selected, else org', () => {

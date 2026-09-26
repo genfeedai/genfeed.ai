@@ -3,6 +3,7 @@ import {
   collectionDocument,
   installMockHttp,
   type MockHttpInstance,
+  resourceDocument,
 } from '@services/__mocks__/http.mock';
 import { TrendsService } from '@services/social/trends.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -196,14 +197,43 @@ describe('TrendsService HTTP methods', () => {
       expect(result).toEqual(health);
     });
 
-    it('getTrendById GETs the trend detail', async () => {
-      const detail = { id: 'trend_1', label: 'AI' };
-      http.get.mockResolvedValue(axiosResponse(detail));
+    it('getTrendById deserializes the trend and related-trends JSON:API documents', async () => {
+      const analysis = {
+        averageMentions: 100,
+        averageViralityScore: 42,
+        growthRate: 5,
+        platform: 'tiktok',
+        topic: 'AI',
+        trendDirection: 'rising' as const,
+      };
+      http.get.mockResolvedValue(
+        axiosResponse({
+          analysis,
+          relatedTrends: collectionDocument(
+            [{ label: 'AI on X', topic: 'AI' }],
+            { type: 'trend' },
+          ),
+          trend: resourceDocument(
+            { label: 'AI', topic: 'AI' },
+            { id: 'trend_1', type: 'trend' },
+          ),
+        }),
+      );
 
       const result = await service.getTrendById('trend_1');
 
       expect(http.get).toHaveBeenCalledWith('/trend_1');
-      expect(result).toEqual(detail);
+      expect(result).toEqual({
+        analysis,
+        relatedTrends: [
+          expect.objectContaining({ label: 'AI on X', topic: 'AI' }),
+        ],
+        trend: expect.objectContaining({
+          id: 'trend_1',
+          label: 'AI',
+          topic: 'AI',
+        }),
+      });
     });
 
     it('getTrendContent passes filters and falls back to empty items', async () => {

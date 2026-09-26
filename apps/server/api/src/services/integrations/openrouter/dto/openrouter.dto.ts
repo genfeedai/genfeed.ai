@@ -153,6 +153,25 @@ export interface OpenRouterStreamChunk {
  */
 export type OpenRouterStreamTokenHandler = (delta: string) => Promise<void>;
 
+/**
+ * OpenAI-compatible `/embeddings` request. OpenRouter proxies embedding
+ * models (e.g. `baai/bge-large-en-v1.5`) behind the same ZDR/data-retention
+ * policy as chat completions.
+ */
+export interface OpenRouterEmbeddingParams {
+  model: string;
+  input: string | string[];
+}
+
+export interface OpenRouterEmbeddingResponse {
+  model?: string;
+  data: Array<{ embedding: number[]; index: number }>;
+  usage?: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+}
+
 export enum OpenRouterModelTier {
   FAST = 'fast',
   STANDARD = 'standard',

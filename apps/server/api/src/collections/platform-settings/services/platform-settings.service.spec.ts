@@ -1,7 +1,11 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
 import {
+  DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  getRuntimeAgentChatMarginMultiplier,
   getRuntimeMarginMultiplier,
+  setRuntimeAgentChatMarginMultiplier,
   setRuntimeMarginMultiplier,
 } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
@@ -32,12 +36,14 @@ describe('PlatformSettingsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    setRuntimeMarginMultiplier(1);
+    setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+    setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
     service = buildService({ TYPESAFE_API_KEY: 'typesafe-key' });
   });
 
   afterEach(() => {
-    setRuntimeMarginMultiplier(1);
+    setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
+    setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
   });
 
   describe('getSingleton', () => {
@@ -45,7 +51,8 @@ describe('PlatformSettingsService', () => {
       const row = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1.2,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.4,
       };
       const findOne = vi
         .spyOn(service, 'findOne')
@@ -64,7 +71,8 @@ describe('PlatformSettingsService', () => {
       const created = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+        marginMultiplierGeneration: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
       };
       vi.spyOn(service, 'findOne').mockResolvedValue(null as never);
       const create = vi
@@ -79,7 +87,8 @@ describe('PlatformSettingsService', () => {
       const winner = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+        marginMultiplierGeneration: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
       };
       const findOne = vi
         .spyOn(service, 'findOne')
@@ -119,49 +128,106 @@ describe('PlatformSettingsService', () => {
   });
 
   describe('updateSingleton', () => {
-    it('patches the singleton and hydrates the pricing runtime', async () => {
+    it('patches the generation multiplier and hydrates its own runtime only', async () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
       };
-      const updated = { ...current, marginMultiplier: 1.5 };
+      const updated = { ...current, marginMultiplierGeneration: 4 };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
       const patch = vi
         .spyOn(service, 'patch')
         .mockResolvedValue(updated as never);
 
-      const result = await service.updateSingleton({ marginMultiplier: 1.5 });
+      const result = await service.updateSingleton({
+        marginMultiplierGeneration: 4,
+      });
 
-      expect(patch).toHaveBeenCalledWith('ps-1', { marginMultiplier: 1.5 });
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        marginMultiplierGeneration: 4,
+      });
       expect(result).toBe(updated);
-      expect(getRuntimeMarginMultiplier()).toBe(1.5);
+      expect(getRuntimeMarginMultiplier()).toBe(4);
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(1.7);
+    });
+
+    it('patches the agent-chat multiplier and hydrates its own runtime only', async () => {
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+      };
+      const updated = { ...current, marginMultiplierAgentChat: 2.1 };
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
+      const patch = vi
+        .spyOn(service, 'patch')
+        .mockResolvedValue(updated as never);
+
+      const result = await service.updateSingleton({
+        marginMultiplierAgentChat: 2.1,
+      });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        marginMultiplierAgentChat: 2.1,
+      });
+      expect(result).toBe(updated);
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(2.1);
+      expect(getRuntimeMarginMultiplier()).toBe(3.33);
+    });
+
+    it('patches the margin input mode', async () => {
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginInputMode: 'MARGIN',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+      };
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        marginInputMode: 'MARKUP',
+      } as never);
+
+      await service.updateSingleton({ marginInputMode: 'MARKUP' });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        marginInputMode: 'MARKUP',
+      });
     });
 
     it('never patches the singleton key even if one is smuggled in', async () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 1,
       };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
-      const patch = vi
-        .spyOn(service, 'patch')
-        .mockResolvedValue({ ...current, marginMultiplier: 2 } as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        marginMultiplierGeneration: 2,
+      } as never);
 
       await service.updateSingleton({
         key: 'rogue',
-        marginMultiplier: 2,
+        marginMultiplierGeneration: 2,
       } as never);
 
-      expect(patch).toHaveBeenCalledWith('ps-1', { marginMultiplier: 2 });
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        marginMultiplierGeneration: 2,
+      });
     });
 
     it('patches the typed-decision provider an operator selected', async () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 1,
         typedDecisionProvider: 'none',
       };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
@@ -195,7 +261,8 @@ describe('PlatformSettingsService', () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 1,
         typedDecisionProvider: 'jev',
       };
       vi.spyOn(keyless, 'getSingleton').mockResolvedValue(current as never);
@@ -215,7 +282,8 @@ describe('PlatformSettingsService', () => {
       const current = {
         id: 'ps-1',
         key: PLATFORM_SETTING_KEY,
-        marginMultiplier: 1,
+        marginMultiplierAgentChat: 1.9,
+        marginMultiplierGeneration: 1.5,
       };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
       const patch = vi.spyOn(service, 'patch');
@@ -224,27 +292,35 @@ describe('PlatformSettingsService', () => {
 
       expect(result).toBe(current);
       expect(patch).not.toHaveBeenCalled();
-      expect(getRuntimeMarginMultiplier()).toBe(1);
+      expect(getRuntimeMarginMultiplier()).toBe(1.5);
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(1.9);
     });
   });
 
   describe('onModuleInit', () => {
-    it('hydrates the pricing runtime from the persisted multiplier', async () => {
+    it('hydrates both pricing runtimes from the persisted multipliers', async () => {
       vi.spyOn(service, 'getSingleton').mockResolvedValue({
-        marginMultiplier: 1.3,
+        marginMultiplierAgentChat: 2.2,
+        marginMultiplierGeneration: 1.3,
       } as never);
 
       await service.onModuleInit();
 
       expect(getRuntimeMarginMultiplier()).toBe(1.3);
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(2.2);
     });
 
-    it('does not throw and keeps the default when hydration fails', async () => {
+    it('does not throw and keeps both defaults when hydration fails', async () => {
       vi.spyOn(service, 'getSingleton').mockRejectedValue(new Error('db down'));
 
       await expect(service.onModuleInit()).resolves.toBeUndefined();
       expect(logger.warn).toHaveBeenCalled();
-      expect(getRuntimeMarginMultiplier()).toBe(1);
+      expect(getRuntimeMarginMultiplier()).toBe(
+        DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+      );
+      expect(getRuntimeAgentChatMarginMultiplier()).toBe(
+        DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+      );
     });
   });
 });

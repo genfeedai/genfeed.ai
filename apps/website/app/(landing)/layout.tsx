@@ -7,8 +7,14 @@ const overlay = (
   <div className="pointer-events-none fixed inset-0 z-0 bg-dots opacity-40" />
 );
 
+// Every landing page offers both paths: self-serve sign-up and a sales call.
 const topbar = (
-  <LandingTopbar ctaHref={EnvironmentService.calendly} ctaLabel="Book a Call" />
+  <LandingTopbar
+    ctaHref={`${EnvironmentService.apps.app}/sign-up`}
+    ctaLabel="Start free"
+    secondaryCtaHref={EnvironmentService.calendly}
+    secondaryCtaLabel="Book a Call"
+  />
 );
 
 export default function LandingLayout({ children }: LayoutProps) {
