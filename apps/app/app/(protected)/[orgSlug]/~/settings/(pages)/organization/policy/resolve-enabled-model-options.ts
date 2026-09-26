@@ -1,3 +1,4 @@
+import type { ModelCategory } from '@genfeedai/contracts';
 import {
   AGENT_GENERATION_OVERRIDE_CATEGORIES,
   AGENT_REVIEW_OVERRIDE_CATEGORIES,
