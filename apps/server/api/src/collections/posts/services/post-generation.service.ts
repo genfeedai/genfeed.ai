@@ -200,6 +200,7 @@ export class PostGenerationService {
       organizationId: identity.organizationId,
       platform: dto.platform,
       query: dto.prompt.trim(),
+      userId: identity.userId,
     });
 
     if (brandContext) {
