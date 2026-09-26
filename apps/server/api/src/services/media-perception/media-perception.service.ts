@@ -297,17 +297,24 @@ export class MediaPerceptionService {
     now: Date,
     limit: number,
   ): Promise<IMediaPerceptionCandidate[]> {
-    // tenant-scope-ignore: administrative discovery reads tenant identifiers only; each queued job re-reads its row under its own organization scope.
-    return this.prisma.mediaPerception.findMany({
-      orderBy: { nextAttemptAt: 'asc' },
-      select: { ingredientId: true, organizationId: true },
+    // Queried from the ingredient side so a deleted asset is never retried.
+    const rows = await this.prisma.ingredient.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true, organizationId: true },
       take: limit,
       where: {
-        ingredient: { isDeleted: false },
         isDeleted: false,
-        nextAttemptAt: { lte: now },
+        mediaPerceptions: {
+          some: { isDeleted: false, nextAttemptAt: { lte: now } },
+        },
+        organizationId: { not: null },
       },
     });
+    return rows.flatMap((row) =>
+      row.organizationId
+        ? [{ ingredientId: row.id, organizationId: row.organizationId }]
+        : [],
+    );
   }
 
   private async loadIngredient(
