@@ -115,7 +115,6 @@ describe('applyReleaseTargetUpdates', () => {
       dependencies,
     );
 
-    expect(transition).not.toHaveBeenCalled();
     expect(updateMany).toHaveBeenCalledWith({
       data: {
         description: 'Updated caption',
@@ -136,7 +135,64 @@ describe('applyReleaseTargetUpdates', () => {
         },
       },
     });
+    // The caption changed and this target is already SCHEDULED (#5193):
+    // `applyReleaseTargetUpdates` doesn't route a non-status update through
+    // `PostLifecycleService` for the write itself, so it re-validates the
+    // target directly afterward instead of leaving it SCHEDULED unchecked.
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(transition).toHaveBeenCalledWith(
+      {
+        actorId: 'user-1',
+        groupId: 'group-1',
+        mutation: {
+          description: 'Updated caption',
+          scheduledDate: new Date('2026-07-09T12:00:00.000Z'),
+          timezone: 'Europe/Malta',
+        },
+        nextState: TargetExecutionState.SCHEDULED,
+        organizationId: 'org-1',
+        postId: 'target-scheduled',
+        reason: 'Release lifecycle updated',
+      },
+      tx,
+    );
     expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('resyncs each target ingredients relation when the release media changes', async () => {
+    const update = vi.fn().mockResolvedValue({ id: 'target-scheduled' });
+    tx = { post: { update, updateMany } } as unknown as SchedulerTx;
+
+    await applyReleaseTargetUpdates(
+      tx,
+      {
+        currentTargets: [
+          makeTarget({
+            id: 'target-scheduled',
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+        ],
+        groupId: 'group-1',
+        input: {
+          media: [{ assetId: 'asset-1' }, { assetId: 'asset-2' }],
+        },
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      dependencies,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      data: {
+        ingredients: { set: [{ id: 'asset-1' }, { id: 'asset-2' }] },
+      },
+      where: expect.objectContaining({ id: 'target-scheduled' }),
+    });
+    expect(transition).toHaveBeenCalledTimes(1);
+    expect(transition.mock.calls[0]?.[0]).toMatchObject({
+      nextState: TargetExecutionState.SCHEDULED,
+      postId: 'target-scheduled',
+    });
   });
 
   it('writes nothing when neither status nor target fields change', async () => {

@@ -1,13 +1,15 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
+  type ChannelValidationMedia,
+  toValidationMedia,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
   formatMediaReadinessBlockers,
   readBlockingDiagnostics,
   readWarningDiagnostics,
 } from '@api/services/media-readiness/media-readiness.evaluator';
-import { PostCategory } from '@genfeedai/contracts';
 import type { MediaReadinessReport } from '@genfeedai/contracts/api-types/contracts';
-import type { ValidateChannelTargetSettingsInput } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { MediaReadinessDiagnostic } from '@genfeedai/contracts/api-types/contracts/media-readiness.contract';
 import { planThreadChildDelivery } from '@workers/services/thread-comment-schedule.util';
 
@@ -20,9 +22,7 @@ import { planThreadChildDelivery } from '@workers/services/thread-comment-schedu
  * which assets the gate covers and how a report is read.
  */
 
-export type ChannelValidationMedia = NonNullable<
-  ValidateChannelTargetSettingsInput['media']
->;
+export type { ChannelValidationMedia };
 
 /** A thread child paired with the scheduling fields the planner reads. */
 export type PlannedThreadChild = {
@@ -41,28 +41,9 @@ export type MediaGateOutcome = {
   warnings: MediaReadinessDiagnostic[];
 };
 
-export function toValidationMedia(
-  post: PostEntity | PostDocument,
-): ChannelValidationMedia | undefined {
-  const ingredients = Array.isArray(post.ingredients)
-    ? (post.ingredients as unknown[])
-    : [];
-  const kind: ChannelValidationMedia[number]['kind'] =
-    post.category === PostCategory.VIDEO || post.category === PostCategory.REEL
-      ? 'video'
-      : 'image';
-  const media = ingredients.flatMap((ingredient) => {
-    const id =
-      typeof ingredient === 'string'
-        ? ingredient
-        : ingredient && typeof ingredient === 'object' && 'id' in ingredient
-          ? ingredient.id
-          : undefined;
-    return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
-  });
-
-  return media.length > 0 ? media : undefined;
-}
+// `toValidationMedia` moved to the API layer (#5193) so the schedule-time
+// choke point and this publish-time re-check share one Post → media mapping.
+export { toValidationMedia };
 
 export function toPlannedThreadChildren(
   children: PostDocument[],

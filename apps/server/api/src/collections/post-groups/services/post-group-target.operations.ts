@@ -7,6 +7,10 @@ import type {
 import type { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import {
+  InvalidChannelTargetScheduleException,
+  toChannelTargetError,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import type { ScheduledPostWorkflowSource } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -15,6 +19,7 @@ import {
   assertApiKeyPublishingScope,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
+  canTransitionPostLifecycle,
   type PostLifecycleMutation,
   type PostLifecycleService,
   scopedWhere,
@@ -370,6 +375,7 @@ async function updateTargetInTransaction(
     params.targetId,
   );
   const validation = dependencies.contractService.validateTargetUpdate(
+    group,
     existing,
     input,
   );
@@ -570,6 +576,30 @@ export async function applyReleaseTargetUpdates(
   if (context.input.timezone !== undefined) {
     targetUpdate.timezone = context.input.timezone;
   }
+
+  // A release-level media rewrite (#5193) must reach every target's own
+  // copy before anything re-validates against it: each target's
+  // `ingredients` relation mirrors `PostGroup.media` (set at
+  // target-creation time) and otherwise drifts silently the first time the
+  // caller edits media without also touching status.
+  if (context.input.media !== undefined) {
+    const newIngredientIds = context.input.media.map((item) => ({
+      id: item.assetId,
+    }));
+    for (const target of context.currentTargets) {
+      if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+        continue;
+      }
+      await tx.post.update({
+        data: { ingredients: { set: newIngredientIds } },
+        where: scopedWhere(context.organizationId, { id: target.id }),
+      });
+    }
+  }
+  const mediaOrCaptionChanged =
+    context.input.media !== undefined ||
+    context.input.baseContent !== undefined;
+
   if (context.input.status !== undefined) {
     const nextState = dependencies.contractService.toTargetState(
       context.input.status,
@@ -578,26 +608,94 @@ export async function applyReleaseTargetUpdates(
       if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
         continue;
       }
-      await dependencies.postLifecycleService.transition(
-        {
-          actorId: context.userId,
-          groupId: context.groupId,
-          mutation: targetUpdate,
-          nextState,
-          organizationId: context.organizationId,
-          postId: target.id,
-          reason: 'Release lifecycle updated',
-        },
+      await transitionReleaseTargetOrFail(
         tx,
+        context,
+        dependencies,
+        target,
+        nextState,
+        targetUpdate,
       );
     }
-  } else if (Object.keys(targetUpdate).length > 0) {
-    await tx.post.updateMany({
-      data: targetUpdate,
-      where: scopedWhere(context.organizationId, {
+  } else {
+    if (Object.keys(targetUpdate).length > 0) {
+      await tx.post.updateMany({
+        data: targetUpdate,
+        where: scopedWhere(context.organizationId, {
+          groupId: context.groupId,
+          targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
+        }),
+      });
+    }
+    // Neither branch above routes an already-SCHEDULED target through
+    // `PostLifecycleService`, so a media/caption-only edit that leaves
+    // `status` untouched would otherwise leave a now-invalid target
+    // SCHEDULED. Re-check it directly and fail it with the contract reason.
+    if (mediaOrCaptionChanged) {
+      for (const target of context.currentTargets) {
+        if (target.targetExecutionState !== TargetExecutionState.SCHEDULED) {
+          continue;
+        }
+        await transitionReleaseTargetOrFail(
+          tx,
+          context,
+          dependencies,
+          target,
+          TargetExecutionState.SCHEDULED,
+          targetUpdate,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Transition one release target, catching a channel-contract failure
+ * (#5193) so it fails just that target instead of the whole release update
+ * — a release fans this out over every target it holds.
+ */
+async function transitionReleaseTargetOrFail(
+  tx: SchedulerTx,
+  context: ReleaseTargetUpdateContext,
+  dependencies: PostGroupTargetOperationDependencies,
+  target: SchedulerPostTarget,
+  nextState: TargetExecutionState,
+  mutation: PostLifecycleMutation,
+): Promise<void> {
+  try {
+    await dependencies.postLifecycleService.transition(
+      {
+        actorId: context.userId,
         groupId: context.groupId,
-        targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-      }),
-    });
+        mutation,
+        nextState,
+        organizationId: context.organizationId,
+        postId: target.id,
+        reason: 'Release lifecycle updated',
+      },
+      tx,
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof InvalidChannelTargetScheduleException)) {
+      throw error;
+    }
+    const recoveryState = canTransitionPostLifecycle(
+      target.targetExecutionState as TargetExecutionState,
+      TargetExecutionState.FAILED,
+    )
+      ? TargetExecutionState.FAILED
+      : (target.targetExecutionState as TargetExecutionState);
+    await dependencies.postLifecycleService.transition(
+      {
+        actorId: context.userId,
+        error: toChannelTargetError(error.validation),
+        groupId: context.groupId,
+        nextState: recoveryState,
+        organizationId: context.organizationId,
+        postId: target.id,
+        reason: 'Channel target failed validation after a release update',
+      },
+      tx,
+    );
   }
 }

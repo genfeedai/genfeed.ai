@@ -28,6 +28,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
@@ -66,6 +67,22 @@ type PurchasedCreditsReference = {
   actorUserId?: string;
   referenceId: string;
   referenceType: string;
+};
+
+export type SkillsProLeadInput = {
+  email: string;
+  organizationId?: string | null;
+  productType: string;
+  receiptId: string;
+  skillSlugs: string[];
+  userId: string;
+};
+
+export type SubscriptionLeadInput = {
+  organizationId: string;
+  stripeSubscriptionId: string;
+  tier: SubscriptionTier;
+  userId?: string | null;
 };
 
 type SubscriptionCreditGrantLookup = {
@@ -675,6 +692,99 @@ export class StripeWebhookSupportService {
       this.loggerService.error(
         `${url} failed to update org tier/models`,
         error,
+      );
+    }
+  }
+
+  /**
+   * Give a Skills Pro buyer CRM visibility: one lead per buyer, keyed by
+   * user id since the receipt is organization-less until first claim.
+   * Best-effort — a failure here must not fail the webhook, the receipt and
+   * its email are the durable purchase record.
+   */
+  async upsertSkillsProLead(input: SkillsProLeadInput): Promise<void> {
+    try {
+      const data = toPrismaJson({
+        email: input.email,
+        productType: input.productType,
+        receiptId: input.receiptId,
+        skillSlugs: input.skillSlugs,
+        source: 'skills-pro',
+      });
+
+      // tenant-scope-ignore: a Skills Pro lead tracks a buyer, not an organization — the buyer may have no org yet, so it is scoped by userId instead.
+      const existing = await this.prisma.lead.findFirst({
+        where: {
+          data: { equals: 'skills-pro', path: ['source'] },
+          isDeleted: false,
+          userId: input.userId,
+        },
+      });
+
+      if (existing) {
+        // tenant-scope-ignore: same lead just read above by userId; there is no organization to scope this update by.
+        await this.prisma.lead.update({
+          data: { data },
+          where: { id: existing.id },
+        });
+        return;
+      }
+
+      await this.prisma.lead.create({
+        data: {
+          data,
+          organizationId: input.organizationId ?? null,
+          userId: input.userId,
+        },
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to upsert skills-pro lead`,
+        { error, receiptId: input.receiptId, userId: input.userId },
+      );
+    }
+  }
+
+  /**
+   * Give a Pro/Scale subscription CRM visibility: one lead per organization,
+   * updated on every `invoice.paid` so the tier stays current. Best-effort —
+   * a failure here must not fail subscription reconciliation.
+   */
+  async upsertSubscriptionLead(input: SubscriptionLeadInput): Promise<void> {
+    try {
+      const data = toPrismaJson({
+        source: 'subscription',
+        stripeSubscriptionId: input.stripeSubscriptionId,
+        tier: input.tier,
+      });
+
+      const existing = await this.prisma.lead.findFirst({
+        where: {
+          data: { equals: 'subscription', path: ['source'] },
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      });
+
+      if (existing) {
+        await this.prisma.lead.update({
+          data: { data },
+          where: scopedWhere(input.organizationId, { id: existing.id }),
+        });
+        return;
+      }
+
+      await this.prisma.lead.create({
+        data: {
+          data,
+          organizationId: input.organizationId,
+          userId: input.userId ?? undefined,
+        },
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to upsert subscription lead`,
+        { error, organizationId: input.organizationId },
       );
     }
   }

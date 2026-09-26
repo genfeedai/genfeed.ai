@@ -1,6 +1,11 @@
+import {
+  InvalidChannelTargetScheduleException,
+  toChannelTargetError,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { AgentArtifactReferenceService } from '@api/index';
 import { scopedWhere } from '@api/index';
+import type { PostLifecycleService } from '@api/post-lifecycle/post-lifecycle.service';
 import type { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import type {
   BatchItemFull,
@@ -8,11 +13,13 @@ import type {
 } from '@api/services/batch-generation/batch-generation.types';
 import {
   AgentPublishDecision,
+  PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IPublishApproval } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
 export function appendApprovedReviewEvent(
@@ -136,4 +143,80 @@ export async function pinApprovedDrafts(input: {
     }
   }
   return { publishApprovals, versionPinIds };
+}
+
+/**
+ * Transition one approved review item's post to SCHEDULED. Approving a batch
+ * approves every selected item in one call, so one item's content failing
+ * the channel contract (#5193) — media the chosen platform can't take, a
+ * caption that no longer fits — must not undo the approval decision recorded
+ * for the rest: this fails just that item's post (to FAILED) instead of the
+ * whole batch.
+ */
+export async function scheduleApprovedReviewPost(input: {
+  batchId: string;
+  createdByUserId: string;
+  logger: Pick<LoggerService, 'error' | 'warn'>;
+  orgId: string;
+  postId: string;
+  postLifecycleService: Pick<PostLifecycleService, 'transition'>;
+  reviewedAt: string;
+  transaction: Prisma.TransactionClient;
+  versionPinId?: string;
+}): Promise<void> {
+  try {
+    await input.postLifecycleService.transition(
+      {
+        actorId: input.createdByUserId,
+        mutation: {
+          reviewDecision: PersistedReviewDecision.APPROVED,
+          reviewVersionPinId: input.versionPinId,
+          reviewedAt: new Date(input.reviewedAt),
+        },
+        nextState: TargetExecutionState.SCHEDULED,
+        organizationId: input.orgId,
+        postId: input.postId,
+        reason: 'Review item approved for scheduling',
+      },
+      input.transaction,
+    );
+  } catch (error: unknown) {
+    if (!(error instanceof InvalidChannelTargetScheduleException)) {
+      throw error;
+    }
+    input.logger.warn('Approved review item failed channel validation', {
+      batchId: input.batchId,
+      error: error.message,
+      orgId: input.orgId,
+      postId: input.postId,
+    });
+    try {
+      await input.postLifecycleService.transition(
+        {
+          actorId: input.createdByUserId,
+          error: toChannelTargetError(error.validation),
+          mutation: {
+            reviewDecision: PersistedReviewDecision.APPROVED,
+            reviewVersionPinId: input.versionPinId,
+            reviewedAt: new Date(input.reviewedAt),
+          },
+          nextState: TargetExecutionState.FAILED,
+          organizationId: input.orgId,
+          postId: input.postId,
+          reason: 'Channel target failed validation while approving',
+        },
+        input.transaction,
+      );
+    } catch (recoveryError: unknown) {
+      input.logger.error(
+        'Failed to record channel validation failure on review item',
+        {
+          batchId: input.batchId,
+          error: recoveryError,
+          orgId: input.orgId,
+          postId: input.postId,
+        },
+      );
+    }
+  }
 }
