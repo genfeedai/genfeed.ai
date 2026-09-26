@@ -108,8 +108,11 @@ export class RateLimitGuard implements CanActivate {
     // see genfeedai/genfeed.ai#5248 (public workflow webhook trigger, keyed
     // on webhookId + IP).
     const routeIdParam = request.params?.webhookId;
-    if (routeIdParam) {
-      parts.push('id', routeIdParam);
+    const webhookIdParam = Array.isArray(routeIdParam)
+      ? routeIdParam[0]
+      : routeIdParam;
+    if (webhookIdParam) {
+      parts.push('id', webhookIdParam);
     }
 
     // Add custom identifier from rate limit options if provided

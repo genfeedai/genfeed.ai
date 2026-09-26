@@ -1,6 +1,9 @@
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import {
+  WorkflowExecutionTrigger,
+  WorkflowWebhookAuthType,
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowWebhookService', () => {
@@ -45,7 +48,7 @@ describe('WorkflowWebhookService', () => {
       const result = await service.generateWebhook(
         'workflow-1',
         'org-1',
-        'secret',
+        WorkflowWebhookAuthType.SECRET,
       );
 
       expect(result.webhookId).toMatch(/^wh_/);
@@ -85,7 +88,7 @@ describe('WorkflowWebhookService', () => {
       const result = await service.generateWebhook(
         'workflow-1',
         'org-1',
-        'secret',
+        WorkflowWebhookAuthType.SECRET,
       );
 
       // base64url of 16 bytes (128 bits) is 22 chars, no padding/+/ or /.
@@ -104,7 +107,11 @@ describe('WorkflowWebhookService', () => {
 
       const results = await Promise.all(
         Array.from({ length: 20 }, () =>
-          service.generateWebhook('workflow-1', 'org-1', 'secret'),
+          service.generateWebhook(
+            'workflow-1',
+            'org-1',
+            WorkflowWebhookAuthType.SECRET,
+          ),
         ),
       );
 
@@ -123,7 +130,7 @@ describe('WorkflowWebhookService', () => {
       const result = await service.generateWebhook(
         'workflow-1',
         'org-1',
-        'none',
+        WorkflowWebhookAuthType.NONE,
       );
 
       expect(result.webhookSecret).toBeNull();
