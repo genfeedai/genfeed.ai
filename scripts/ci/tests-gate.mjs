@@ -73,9 +73,7 @@ export function createTestsGateJobs(env) {
     'TEST_SCOPE_API_TESTS',
     allowEmptyScope,
   );
-  // Empty when the scope job never finished (e.g. a cancelled run), like the
-  // other scope outputs; a failed or cancelled scope job fails the gate anyway.
-  const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE', allowEmptyScope);
+  const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE');
 
   return [
     {
@@ -141,29 +139,7 @@ export function createTestsGateJobs(env) {
   ];
 }
 
-/**
- * A pull request run cancelled because a newer push replaced it. Read from
- * the gate job's supersession step; empty (never superseded) on merge-queue
- * and master runs, so their cancellations keep failing the gate.
- */
-export function readSupersession(env) {
-  const superseded = parseBoolean(
-    env.RUN_SUPERSEDED ?? '',
-    'RUN_SUPERSEDED',
-    true,
-  );
-  const supersededBy = env.SUPERSEDED_BY?.trim() || null;
-  return { superseded, supersededBy };
-}
-
-// Classifications a newer push can cause on its own: cancelled jobs, and
-// applicable jobs that never ran because a cancelled job upstream was skipped.
-const SUPERSESSION_CLASSIFICATIONS = new Set(['cancelled', 'missing']);
-
-export function evaluateTestsGate(
-  jobs,
-  { superseded = false, supersededBy = null } = {},
-) {
+export function evaluateTestsGate(jobs) {
   const failures = [];
   const rows = [];
 
@@ -198,31 +174,6 @@ export function evaluateTestsGate(
     rows.push({ ...job, classification });
   }
 
-  // A superseded pull request run is not evaluated: branch protection reads
-  // the Tests Gate on the new head, and a red gate here only marks an old
-  // commit as broken when nothing failed. A job that genuinely failed before
-  // the newer push still fails the gate.
-  const isSupersededOnly =
-    superseded &&
-    failures.length > 0 &&
-    rows.every(
-      (row) =>
-        SUPERSESSION_CLASSIFICATIONS.has(row.classification) ||
-        row.classification === 'passed' ||
-        row.classification === 'not applicable' ||
-        row.classification === DORMANT_CLASSIFICATION,
-    );
-
-  if (isSupersededOnly) {
-    return {
-      passed: true,
-      superseded: true,
-      supersededBy,
-      failures: [],
-      rows,
-    };
-  }
-
   return {
     passed: failures.length === 0,
     failures,
@@ -244,18 +195,12 @@ export function formatTestsGateSummary(evaluation) {
     );
   }
 
-  let verdict = evaluation.passed
-    ? 'All applicable test and build jobs passed.'
-    : `Gate failures: ${evaluation.failures.join('; ')}.`;
-  if (evaluation.superseded) {
-    const newer = evaluation.supersededBy
-      ? `commit ${evaluation.supersededBy.slice(0, 12)}`
-      : 'a newer push';
-    verdict =
-      `Superseded by ${newer}: this run was cancelled before it finished, so ` +
-      'its jobs are not evaluated. The Tests Gate on the newer commit decides.';
-  }
-  lines.push('', verdict);
+  lines.push(
+    '',
+    evaluation.passed
+      ? 'All applicable test and build jobs passed.'
+      : `Gate failures: ${evaluation.failures.join('; ')}.`,
+  );
 
   // Name the paused surfaces explicitly. A dormant workspace is skipped even on
   // a `full-suite` run, so "all applicable jobs passed" must not be read as
@@ -283,10 +228,7 @@ function runCli() {
   let evaluation;
 
   try {
-    evaluation = evaluateTestsGate(
-      createTestsGateJobs(process.env),
-      readSupersession(process.env),
-    );
+    evaluation = evaluateTestsGate(createTestsGateJobs(process.env));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
