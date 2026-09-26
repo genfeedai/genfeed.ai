@@ -1,4 +1,8 @@
 import {
+  InvalidChannelTargetScheduleException,
+  toChannelTargetError,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
   AgentArtifactReferenceService,
   PostLifecycleService,
   scopedWhere,
@@ -326,21 +330,61 @@ export class BatchGenerationReviewService {
     }
 
     for (const postId of postIdsToSchedule) {
-      await this.postLifecycleService.transition(
-        {
-          actorId: createdByUserId,
-          mutation: {
-            reviewDecision: PersistedReviewDecision.APPROVED,
-            reviewVersionPinId: versionPinIds.get(postId),
-            reviewedAt: new Date(reviewedAt),
+      try {
+        await this.postLifecycleService.transition(
+          {
+            actorId: createdByUserId,
+            mutation: {
+              reviewDecision: PersistedReviewDecision.APPROVED,
+              reviewVersionPinId: versionPinIds.get(postId),
+              reviewedAt: new Date(reviewedAt),
+            },
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId: orgId,
+            postId,
+            reason: 'Review item approved for scheduling',
           },
-          nextState: TargetExecutionState.SCHEDULED,
-          organizationId: orgId,
+          transaction,
+        );
+      } catch (error: unknown) {
+        // Approving a batch approves every selected item in one call. One
+        // item's content failing the channel contract (#5193) — media the
+        // chosen platform can't take, a caption that no longer fits — must
+        // not undo the approval decision recorded for the rest; fail just
+        // that item's post instead of the whole batch.
+        if (!(error instanceof InvalidChannelTargetScheduleException)) {
+          throw error;
+        }
+        this.logger.warn('Approved review item failed channel validation', {
+          batchId,
+          error: error.message,
+          orgId,
           postId,
-          reason: 'Review item approved for scheduling',
-        },
-        transaction,
-      );
+        });
+        try {
+          await this.postLifecycleService.transition(
+            {
+              actorId: createdByUserId,
+              error: toChannelTargetError(error.validation),
+              mutation: {
+                reviewDecision: PersistedReviewDecision.APPROVED,
+                reviewVersionPinId: versionPinIds.get(postId),
+                reviewedAt: new Date(reviewedAt),
+              },
+              nextState: TargetExecutionState.FAILED,
+              organizationId: orgId,
+              postId,
+              reason: 'Channel target failed validation while approving',
+            },
+            transaction,
+          );
+        } catch (recoveryError: unknown) {
+          this.logger.error(
+            'Failed to record channel validation failure on review item',
+            { batchId, error: recoveryError, orgId, postId },
+          );
+        }
+      }
     }
 
     const batchUpdate = await writeBatchJsonAndItemRows(transaction, {

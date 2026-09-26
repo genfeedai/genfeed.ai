@@ -5,6 +5,7 @@ import { IngredientEntity } from '@api/collections/ingredients/entities/ingredie
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { assertValidChannelTargetSchedule } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
@@ -76,6 +77,21 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'tags',
   'timezone',
   'visibility',
+]);
+// Fields that can turn an otherwise-valid scheduled target invalid: a media
+// swap, a credential swap onto a different platform, a caption edit, or a
+// settings change. `visibility` is handled separately (`requestedVisibility`
+// already triggers a re-check). Touching any of these on a post that is
+// already SCHEDULED — not just one this call is newly scheduling — must
+// re-run the channel contract (#5193 acceptance: "editing media or the
+// credential on a scheduled post re-validates it").
+const SCHEDULE_REVALIDATION_FIELDS = new Set<string>([
+  'category',
+  'credentialId',
+  'description',
+  'ingredients',
+  'platform',
+  'targetSettings',
 ]);
 
 type ContentMentionPostRecord = {
@@ -279,6 +295,23 @@ export class PostsService extends BaseService<
     this.assertPublishTarget(executionState, dto.credentialId, dto.platform);
     this.assertVisibilitySupported(visibility, dto.platform);
     await this.assertCampaignMembership(dto);
+    if (executionState === TargetExecutionState.SCHEDULED) {
+      // Choke point for #5193: every caller of `create()` that schedules a
+      // standalone Post — POST /posts, replies, autopilot auto-publish, the
+      // workflow Publish node, the legacy repeat scheduler — runs the same
+      // channel contract check here instead of each hand-rolling its own
+      // (previously divergent, previously text-only-only) platform rules.
+      assertValidChannelTargetSchedule({
+        caption: dto.description,
+        category: dto.category,
+        credentialId: dto.credentialId,
+        ingredients: dto.ingredients,
+        platform: dto.platform,
+        publishMode: 'scheduled',
+        settings: dto.targetSettings as Record<string, unknown> | undefined,
+        visibility,
+      });
+    }
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -463,11 +496,19 @@ export class PostsService extends BaseService<
     }
 
     let currentPost: PostDocument | null = null;
+    // Broader than the credential/platform-presence check below: also loads
+    // the current row when the edit could invalidate an *already* scheduled
+    // target (media, credential, caption, settings), not only when this call
+    // is the one newly setting SCHEDULED.
+    const touchesScheduleRevalidationFields = Object.keys(dto).some((key) =>
+      SCHEDULE_REVALIDATION_FIELDS.has(key),
+    );
 
     if (
       requestedExecutionState === TargetExecutionState.SCHEDULED ||
       isPublishingPost ||
-      requestedVisibility !== undefined
+      requestedVisibility !== undefined ||
+      touchesScheduleRevalidationFields
     ) {
       currentPost = await this.findOne({ id: id });
       if (currentPost) {
@@ -484,6 +525,33 @@ export class PostsService extends BaseService<
     if (requestedVisibility !== undefined && currentPost) {
       const targetPlatform = resolvedPlatform ?? currentPost.platform;
       this.assertVisibilitySupported(requestedVisibility, targetPlatform);
+    }
+
+    // Choke point for #5193: this covers both a PATCH that newly schedules a
+    // post and one that edits material fields (media, credential, caption,
+    // settings) on a post that is already SCHEDULED — the latter is the
+    // "editing media or the credential on a scheduled post re-validates it"
+    // acceptance criterion, since `patch()` writes directly and never routes
+    // through `PostLifecycleService`.
+    const effectiveExecutionState =
+      requestedExecutionState ?? currentPost?.targetExecutionState;
+    if (
+      currentPost &&
+      effectiveExecutionState === TargetExecutionState.SCHEDULED
+    ) {
+      const targetPlatform = resolvedPlatform ?? currentPost.platform;
+      assertValidChannelTargetSchedule({
+        caption: dto.description ?? currentPost.description,
+        category: (dto.category as string | undefined) ?? currentPost.category,
+        credentialId: dto.credentialId ?? currentPost.credentialId,
+        ingredients: dto.ingredients ?? currentPost.ingredients,
+        platform: targetPlatform,
+        publishMode: 'scheduled',
+        settings:
+          (dto.targetSettings as Record<string, unknown> | undefined) ??
+          (currentPost.targetSettings as Record<string, unknown> | undefined),
+        visibility: requestedVisibility ?? currentPost.visibility,
+      });
     }
 
     const { ingredients, tags } = dto;

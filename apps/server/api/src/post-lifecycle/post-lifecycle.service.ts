@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { assertValidChannelTargetSchedule } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   SERVER_TOKENS,
   type ServerLogger,
@@ -212,6 +213,17 @@ export class PostLifecycleService {
       return this.stale(input, currentState, 'workflow_execution_mismatch');
     }
 
+    // Single choke point for #5193: every path that moves — or keeps — a
+    // Post at SCHEDULED runs through `transition()`, directly or through a
+    // caller that ends up here, so validating the channel contract here
+    // instead of at each caller's own boundary is what makes it impossible to
+    // bypass. Runs for both a real state change and an idempotent re-apply
+    // (editing media/credential/settings on an already-scheduled target),
+    // since both reach this point with `nextState === SCHEDULED`.
+    if (input.nextState === TargetExecutionState.SCHEDULED) {
+      await this.assertScheduleTargetIsValid(transaction, target, input);
+    }
+
     if (currentState === input.nextState) {
       const updated = await this.updateIdempotentTarget(
         transaction,
@@ -341,6 +353,69 @@ export class PostLifecycleService {
     return transaction.post.findFirst({
       where: scopedWhere(input.organizationId, { id: input.postId }),
     });
+  }
+
+  /**
+   * Merge the pending mutation over the persisted row and validate against
+   * the channel contract. `PostLifecycleMutation` carries plain scalar
+   * overrides (never Prisma's `{ set: ... }` operation envelopes) in every
+   * caller this repo has today, so reading string/object fields directly is
+   * sufficient. Ingredients aren't part of the mutation (a relation write,
+   * not a scalar column), so they're read fresh from the row — which already
+   * reflects any connect/set the caller issued earlier in the same
+   * transaction.
+   */
+  private async assertScheduleTargetIsValid(
+    transaction: PostLifecycleTransaction,
+    target: Post,
+    input: PostLifecycleTransitionInput,
+  ): Promise<void> {
+    const mutation = (input.mutation ?? {}) as Record<string, unknown>;
+    const platform = this.mergedString(mutation.platform, target.platform);
+    if (!platform) {
+      // No channel chosen yet: nothing to validate against. Existing
+      // credential/platform-presence checks at the caller's own boundary
+      // still gate this before it ever reaches SCHEDULED.
+      return;
+    }
+
+    const ingredientRow = await transaction.post.findFirst({
+      select: { ingredients: { select: { id: true } } },
+      where: scopedWhere(input.organizationId, { id: target.id }),
+    });
+
+    assertValidChannelTargetSchedule({
+      caption: this.mergedString(mutation.description, target.description),
+      category: target.category,
+      credentialId: this.mergedString(
+        mutation.credentialId,
+        target.credentialId,
+      ),
+      ingredients: ingredientRow?.ingredients ?? [],
+      platform,
+      publishMode: 'scheduled',
+      settings: this.mergedRecord(
+        mutation.targetSettings,
+        target.targetSettings,
+      ),
+      visibility: input.visibility ?? target.visibility ?? undefined,
+    });
+  }
+
+  private mergedString(value: unknown, fallback: string | null): string | null {
+    return typeof value === 'string' ? value : fallback;
+  }
+
+  private mergedRecord(
+    value: unknown,
+    fallback: Prisma.JsonValue,
+  ): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return fallback && typeof fallback === 'object' && !Array.isArray(fallback)
+      ? (fallback as Record<string, unknown>)
+      : {};
   }
 
   private parseState(value: string): TargetExecutionState {
