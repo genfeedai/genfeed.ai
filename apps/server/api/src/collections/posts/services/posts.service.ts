@@ -5,13 +5,21 @@ import { IngredientEntity } from '@api/collections/ingredients/entities/ingredie
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { assertValidChannelTargetSchedule } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  assertPublishTarget,
+  assertValidChannelTargetSchedule,
+  assertVisibilitySupported,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
   type PostBatchScheduleResult,
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
+import {
+  POST_SCALAR_FIELDS,
+  preparePostPatchWrite,
+} from '@api/collections/posts/services/post-patch-write.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -38,7 +46,6 @@ import {
   TargetExecutionState,
   type TargetValidationState,
 } from '@genfeedai/contracts';
-import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import {
   projectLegacyPostStatus,
   resolveDefaultTargetExecutionState,
@@ -56,43 +63,6 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
-const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
-  'category',
-  'credentialId',
-  'description',
-  'format',
-  'ingredients',
-  'isRepeat',
-  'isShareToFeedSelected',
-  'label',
-  'maxRepeats',
-  'parentId',
-  'platform',
-  'publishIntent',
-  'repeatDaysOfWeek',
-  'repeatEndDate',
-  'repeatFrequency',
-  'repeatInterval',
-  'scheduledDate',
-  'tags',
-  'timezone',
-  'visibility',
-]);
-// Fields that can turn an otherwise-valid scheduled target invalid: a media
-// swap, a credential swap onto a different platform, a caption edit, or a
-// settings change. `visibility` is handled separately (`requestedVisibility`
-// already triggers a re-check). Touching any of these on a post that is
-// already SCHEDULED — not just one this call is newly scheduling — must
-// re-run the channel contract (#5193 acceptance: "editing media or the
-// credential on a scheduled post re-validates it").
-const SCHEDULE_REVALIDATION_FIELDS = new Set<string>([
-  'category',
-  'credentialId',
-  'description',
-  'ingredients',
-  'platform',
-  'targetSettings',
-]);
 
 type ContentMentionPostRecord = {
   category: string;
@@ -137,7 +107,7 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   userId?: string;
 };
 
-type PostUpdateInput = Partial<UpdatePostDto> & {
+export type PostUpdateInput = Partial<UpdatePostDto> & {
   agentStrategyId?: string;
   brandId?: string;
   organizationId?: string;
@@ -148,93 +118,6 @@ type PostUpdateInput = Partial<UpdatePostDto> & {
   targetSettings?: Prisma.InputJsonValue;
   userId?: string;
 };
-
-const POST_SCALAR_FIELDS = [
-  'agentContextSource',
-  'agentContextVersion',
-  'agentStrategyId',
-  'agentThreadId',
-  'analyticsCollectedAt',
-  'analyticsCollectionAttemptKey',
-  'analyticsCollectionError',
-  'analyticsCollectionRequestedAt',
-  'analyticsCollectionState',
-  'analyticsNextCollectAt',
-  'brandId',
-  'campaignId',
-  'category',
-  'contentRunId',
-  'credentialId',
-  'creativeVersion',
-  'description',
-  'entityArticleId',
-  'entityIngredientId',
-  'entityModel',
-  'externalId',
-  'externalShortcode',
-  'format',
-  'generationId',
-  'groupId',
-  'hookVersion',
-  'knowledgeReceipts',
-  'isAnalyticsEnabled',
-  'isDeleted',
-  'isRepeat',
-  'isShareToFeedSelected',
-  'label',
-  'lastAttemptAt',
-  'maxRepeats',
-  'nextScheduledDate',
-  'order',
-  'originalPostId',
-  'organizationId',
-  'parentId',
-  'personaId',
-  'platform',
-  'promptUsed',
-  'publicationDate',
-  'publishedAt',
-  'publishApprovalId',
-  'publishIntent',
-  'quoteTweetId',
-  'repeatCount',
-  'repeatDaysOfWeek',
-  'repeatEndDate',
-  'repeatFrequency',
-  'repeatInterval',
-  'reviewFeedback',
-  'reviewBatchId',
-  'reviewDecision',
-  'reviewEvents',
-  'reviewItemId',
-  'reviewVersionPinId',
-  'reviewedAt',
-  'retryCount',
-  'scheduleSlot',
-  'scheduledDate',
-  'seoBreakdown',
-  'seoScore',
-  'source',
-  'sourceActionId',
-  'sourceWorkflowId',
-  'sourceWorkflowName',
-  'targetExecutionState',
-  'targetAttachments',
-  'targetError',
-  'targetIdempotencyKey',
-  'targetReadiness',
-  'targetSettings',
-  'targetValidationIssues',
-  'targetValidationState',
-  'threadDelayMinutes',
-  'timezone',
-  'uploadedAt',
-  'url',
-  'userId',
-  'variantId',
-  'visibility',
-  'workflowExecutionId',
-] as const;
 
 @Injectable()
 export class PostsService extends BaseService<
@@ -292,8 +175,8 @@ export class PostsService extends BaseService<
     const visibility = dto.visibility ?? PostVisibility.PUBLIC;
     prismaWriteData.targetExecutionState = executionState;
     prismaWriteData.visibility = visibility;
-    this.assertPublishTarget(executionState, dto.credentialId, dto.platform);
-    this.assertVisibilitySupported(visibility, dto.platform);
+    assertPublishTarget(executionState, dto.credentialId, dto.platform);
+    assertVisibilitySupported(visibility, dto.platform);
     await this.assertCampaignMembership(dto);
     if (executionState === TargetExecutionState.SCHEDULED) {
       // Choke point for #5193: every caller of `create()` that schedules a
@@ -450,174 +333,17 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const requestedExecutionState = dto.targetExecutionState;
-    const requestedVisibility = dto.visibility;
-    const isPublishingPost =
-      requestedExecutionState === TargetExecutionState.PUBLISHED;
-    const changesApprovalScope = Object.keys(dto).some((key) =>
-      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
-    );
-    const approvalContext = changesApprovalScope
-      ? await this.prisma.post.findFirst({
-          select: { organizationId: true, publishApprovalId: true },
-          where: { id, isDeleted: false },
-        })
-      : null;
-    if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
-      await this.publishApprovalsService.assertPostMutable(
-        approvalContext.organizationId,
-        id,
-      );
-    }
-
-    let resolvedPlatform: string | undefined;
-    if (dto.credentialId && approvalContext) {
-      const credential = await this.prisma.credential.findFirst({
-        select: { platform: true },
-        where: {
-          id: dto.credentialId,
-          isConnected: true,
-          isDeleted: false,
-          organizationId: approvalContext.organizationId,
+    const { approvalContext, currentPost, isPublishingPost, prismaWriteData } =
+      await preparePostPatchWrite(
+        {
+          findOne: (params) => this.findOne(params),
+          logger: this.logger,
+          prisma: this.prisma,
+          publishApprovalsService: this.publishApprovalsService,
         },
-      });
-      if (!credential) {
-        throw new BadRequestException(
-          'The selected publishing credential is unavailable for this organization.',
-        );
-      }
-      const domainPlatform = fromPrismaCredentialPlatform(credential.platform);
-      if (!domainPlatform) {
-        throw new BadRequestException(
-          `Unknown credential platform: ${credential.platform}`,
-        );
-      }
-      resolvedPlatform = domainPlatform;
-    }
-
-    let currentPost: PostDocument | null = null;
-    // Broader than the credential/platform-presence check below: also loads
-    // the current row when the edit could invalidate an *already* scheduled
-    // target (media, credential, caption, settings), not only when this call
-    // is the one newly setting SCHEDULED.
-    const touchesScheduleRevalidationFields = Object.keys(dto).some((key) =>
-      SCHEDULE_REVALIDATION_FIELDS.has(key),
-    );
-
-    if (
-      requestedExecutionState === TargetExecutionState.SCHEDULED ||
-      isPublishingPost ||
-      requestedVisibility !== undefined ||
-      touchesScheduleRevalidationFields
-    ) {
-      currentPost = await this.findOne({ id: id });
-      if (currentPost) {
-        const targetCredentialId = dto.credentialId ?? currentPost.credentialId;
-        const targetPlatform = resolvedPlatform ?? currentPost.platform;
-        this.assertPublishTarget(
-          requestedExecutionState,
-          targetCredentialId,
-          targetPlatform,
-        );
-      }
-    }
-
-    if (requestedVisibility !== undefined && currentPost) {
-      const targetPlatform = resolvedPlatform ?? currentPost.platform;
-      this.assertVisibilitySupported(requestedVisibility, targetPlatform);
-    }
-
-    // Choke point for #5193: this covers both a PATCH that newly schedules a
-    // post and one that edits material fields (media, credential, caption,
-    // settings) on a post that is already SCHEDULED — the latter is the
-    // "editing media or the credential on a scheduled post re-validates it"
-    // acceptance criterion, since `patch()` writes directly and never routes
-    // through `PostLifecycleService`.
-    const effectiveExecutionState =
-      requestedExecutionState ?? currentPost?.targetExecutionState;
-    if (
-      currentPost &&
-      effectiveExecutionState === TargetExecutionState.SCHEDULED
-    ) {
-      const targetPlatform = resolvedPlatform ?? currentPost.platform;
-      assertValidChannelTargetSchedule({
-        caption: dto.description ?? currentPost.description,
-        category: (dto.category as string | undefined) ?? currentPost.category,
-        credentialId: dto.credentialId ?? currentPost.credentialId,
-        ingredients: dto.ingredients ?? currentPost.ingredients,
-        platform: targetPlatform,
-        publishMode: 'scheduled',
-        settings:
-          (dto.targetSettings as Record<string, unknown> | undefined) ??
-          (currentPost.targetSettings as Record<string, unknown> | undefined),
-        visibility: requestedVisibility ?? currentPost.visibility,
-      });
-    }
-
-    const { ingredients, tags } = dto;
-    const dtoRecord = dto as unknown as Record<string, unknown>;
-
-    const prismaWriteData: Record<string, unknown> = {
-      ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
-      ...(resolvedPlatform !== undefined && { platform: resolvedPlatform }),
-      ...(ingredients !== undefined && {
-        ingredients: { set: ingredients.map((id) => ({ id })) },
-      }),
-      ...(tags !== undefined && {
-        tags: { set: tags.map((id) => ({ id })) },
-      }),
-    };
-    if (requestedExecutionState) {
-      prismaWriteData.targetExecutionState = requestedExecutionState;
-    }
-    if (requestedVisibility) {
-      prismaWriteData.visibility = requestedVisibility;
-    }
-
-    // Convert scheduledDate from user timezone to UTC if timezone is provided
-    if (dto.scheduledDate && dto.timezone) {
-      const convertedDate = TimezoneUtil.convertToUTC(
-        new Date(dto.scheduledDate),
-        dto.timezone,
+        id,
+        dto,
       );
-
-      this.logger.log(
-        `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
-      );
-
-      prismaWriteData.scheduledDate = convertedDate;
-    }
-
-    // If parent post is being scheduled, automatically schedule all children
-    if (requestedExecutionState === TargetExecutionState.SCHEDULED) {
-      if (currentPost && !currentPost.parentId) {
-        // Find all children and update them to SCHEDULED
-        const updateResult = await this.prisma.post.updateMany({
-          data: {
-            credentialId: dto.credentialId ?? currentPost.credentialId,
-            platform: resolvedPlatform ?? currentPost.platform,
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-            ...(prismaWriteData.scheduledDate
-              ? { scheduledDate: prismaWriteData.scheduledDate as Date }
-              : {}),
-          },
-          where: {
-            isDeleted: false,
-            organizationId: currentPost.organizationId,
-            parentId: id,
-            targetExecutionState: {
-              not: TargetExecutionState.PUBLISHED,
-            },
-          },
-        });
-
-        this.logger.log(`Auto-scheduled children for parent post ${id}`, {
-          childrenUpdated: updateResult.count,
-          parentId: id,
-          executionState: TargetExecutionState.SCHEDULED,
-        });
-      }
-    }
 
     const updatedPost = await super.patch(
       id,
@@ -644,44 +370,6 @@ export class PostsService extends BaseService<
 
     await this.bindScheduledPublish(updatedPost, dto.userId);
     return updatedPost;
-  }
-
-  private assertPublishTarget(
-    status: TargetExecutionState | undefined,
-    credentialId: string | null | undefined,
-    platform: string | null | undefined,
-  ): void {
-    const normalizedStatus = status?.toLowerCase();
-    if (
-      normalizedStatus !== TargetExecutionState.SCHEDULED &&
-      normalizedStatus !== TargetExecutionState.PUBLISHING &&
-      normalizedStatus !== TargetExecutionState.PUBLISHED
-    ) {
-      return;
-    }
-
-    if (!credentialId || !platform) {
-      throw new BadRequestException(
-        'A credential and platform are required before scheduling or publishing a post.',
-      );
-    }
-  }
-
-  private assertVisibilitySupported(
-    visibility: PostVisibility,
-    platform: string | null | undefined,
-  ): void {
-    if (!platform && visibility === PostVisibility.PUBLIC) {
-      return;
-    }
-    if (
-      !platform ||
-      !getSupportedPostVisibilities(platform).includes(visibility)
-    ) {
-      throw new BadRequestException(
-        `${platform ?? 'The selected platform'} does not support ${visibility} visibility.`,
-      );
-    }
   }
 
   private async assertCampaignMembership(dto: PostCreateInput): Promise<void> {

@@ -1,15 +1,67 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { PostCategory } from '@genfeedai/contracts';
+import {
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   type ChannelTargetValidationResult,
   getChannelCapability,
+  getSupportedPostVisibilities,
   resolveChannelTargetSettings,
   type ValidateChannelTargetSettingsInput,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
+
+/**
+ * A credential and platform are required before a Post can move toward
+ * SCHEDULED / PUBLISHING / PUBLISHED. Shared by `create` and `patch` so both
+ * paths reject an under-specified target the same way, before any write.
+ */
+export function assertPublishTarget(
+  status: TargetExecutionState | undefined,
+  credentialId: string | null | undefined,
+  platform: string | null | undefined,
+): void {
+  const normalizedStatus = status?.toLowerCase();
+  if (
+    normalizedStatus !== TargetExecutionState.SCHEDULED &&
+    normalizedStatus !== TargetExecutionState.PUBLISHING &&
+    normalizedStatus !== TargetExecutionState.PUBLISHED
+  ) {
+    return;
+  }
+
+  if (!credentialId || !platform) {
+    throw new BadRequestException(
+      'A credential and platform are required before scheduling or publishing a post.',
+    );
+  }
+}
+
+/**
+ * The chosen visibility must be one the target platform's capability catalog
+ * actually supports. Shared by `create` and `patch`.
+ */
+export function assertVisibilitySupported(
+  visibility: PostVisibility,
+  platform: string | null | undefined,
+): void {
+  if (!platform && visibility === PostVisibility.PUBLIC) {
+    return;
+  }
+  if (
+    !platform ||
+    !getSupportedPostVisibilities(platform).includes(visibility)
+  ) {
+    throw new BadRequestException(
+      `${platform ?? 'The selected platform'} does not support ${visibility} visibility.`,
+    );
+  }
+}
 
 /**
  * Single choke point for "does this content satisfy the target channel"
