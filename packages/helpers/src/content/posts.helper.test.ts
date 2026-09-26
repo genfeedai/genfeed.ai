@@ -77,6 +77,15 @@ describe('PostsHelper', () => {
     );
   });
 
+  it('builds a release group href that filters the posts library', () => {
+    // Release groups (ReleaseGroupsService) are not posts, so this must go
+    // through the `release` query param rather than getPublishingPostHref's
+    // `/publishing/posts/:id` post-detail path.
+    expect(PostsHelper.getPublishingReleaseHref('release-1')).toBe(
+      '/publishing/posts?release=release-1',
+    );
+  });
+
   describe('getPublishingPostsStatusPath', () => {
     it('maps published/public status onto the posted filter route', () => {
       expect(PostsHelper.getPublishingPostsStatusPath(PostStatus.PUBLIC)).toBe(
