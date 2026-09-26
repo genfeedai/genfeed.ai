@@ -10,6 +10,10 @@ import {
   schedulePostGroupTarget,
   updatePostGroupTarget,
 } from '@api/collections/post-groups/services/post-group-target.operations';
+import {
+  InvalidChannelTargetScheduleException,
+  toChannelTargetError,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import type { ScheduledPostWorkflowSource } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -19,7 +23,11 @@ import {
   assertApiKeyPublishingScope,
   type PublishingCapability,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { PostLifecycleService, scopedWhere } from '@api/index';
+import {
+  canTransitionPostLifecycle,
+  PostLifecycleService,
+  scopedWhere,
+} from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -877,17 +885,61 @@ export class PostGroupsService {
         ) {
           continue;
         }
-        await this.postLifecycleService.transition(
-          {
-            actorId: userId,
+        try {
+          await this.postLifecycleService.transition(
+            {
+              actorId: userId,
+              groupId: group.id,
+              nextState,
+              organizationId,
+              postId: target.id,
+              reason: `Release targets moved to ${nextState}`,
+            },
+            tx,
+          );
+        } catch (error: unknown) {
+          // Resuming (or otherwise re-entering SCHEDULED) fans out over every
+          // target in the release. One target failing the channel contract
+          // (#5193) — a credential that lost media support, a channel that
+          // went hidden — must not block its siblings from resuming; fail
+          // just that target with the contract reason instead.
+          if (
+            nextState !== TargetExecutionState.SCHEDULED ||
+            !(error instanceof InvalidChannelTargetScheduleException)
+          ) {
+            throw error;
+          }
+          this.logger.warn('Release target failed channel validation', {
+            error: error.message,
             groupId: group.id,
-            nextState,
             organizationId,
-            postId: target.id,
-            reason: `Release targets moved to ${nextState}`,
-          },
-          tx,
-        );
+            targetId: target.id,
+          });
+          // FAILED isn't reachable from every state this loop can start from
+          // (PAUSED → FAILED is not a legal transition), so fall back to
+          // recording the error on the target's current state when FAILED
+          // itself isn't reachable — a same-state transition is always legal.
+          const currentTargetState =
+            target.targetExecutionState as TargetExecutionState;
+          const recoveryState = canTransitionPostLifecycle(
+            currentTargetState,
+            TargetExecutionState.FAILED,
+          )
+            ? TargetExecutionState.FAILED
+            : currentTargetState;
+          await this.postLifecycleService.transition(
+            {
+              actorId: userId,
+              error: toChannelTargetError(error.validation),
+              groupId: group.id,
+              nextState: recoveryState,
+              organizationId,
+              postId: target.id,
+              reason: 'Channel target failed validation while resuming',
+            },
+            tx,
+          );
+        }
       }
 
       return this.persistenceService.hydrateWithDerivedStatus(

@@ -1,3 +1,8 @@
+import {
+  assertValidChannelTargetSchedule,
+  InvalidChannelTargetScheduleException,
+  toChannelTargetError,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import type { PublishApprovalsService } from '@api/index';
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
@@ -357,6 +362,43 @@ export class ReleaseRecurrenceMaterializerService {
       context.sourceSchedule,
       context.occurrenceAt,
     );
+
+    // Re-validate against the channel contract (#5193) instead of trusting
+    // the source target's own (possibly stale) validation state: the
+    // credential may have lost media support, or the capability catalog may
+    // have changed, since the release this occurrence is cloned from was
+    // last scheduled. One target failing must not block materializing the
+    // rest of the occurrence — clone it as FAILED with the contract reason
+    // instead of SCHEDULED.
+    let targetExecutionState: TargetExecutionState =
+      TargetExecutionState.SCHEDULED;
+    let targetError: Prisma.InputJsonValue | typeof Prisma.JsonNull =
+      Prisma.JsonNull;
+    try {
+      assertValidChannelTargetSchedule({
+        caption: sourceTarget.description,
+        category: sourceTarget.category,
+        credentialId: sourceTarget.credentialId,
+        ingredients: sourceTarget.ingredients,
+        platform: sourceTarget.platform,
+        publishMode: 'scheduled',
+        settings: sourceTarget.targetSettings as Record<string, unknown> | null,
+        visibility: sourceTarget.visibility,
+      });
+    } catch (error: unknown) {
+      if (!(error instanceof InvalidChannelTargetScheduleException)) {
+        throw error;
+      }
+      targetExecutionState = TargetExecutionState.FAILED;
+      const channelError = toChannelTargetError(error.validation);
+      targetError = channelError ? this.toJson(channelError) : Prisma.JsonNull;
+      this.logger.warn(`${this.logContext} materialized target is invalid`, {
+        error: error.message,
+        groupId: context.group.id,
+        sourceTargetId: sourceTarget.id,
+      });
+    }
+
     const target = await tx.post.create({
       data: {
         agentContextSource: sourceTarget.agentContextSource,
@@ -387,7 +429,8 @@ export class ReleaseRecurrenceMaterializerService {
         sourceWorkflowId: sourceTarget.sourceWorkflowId,
         sourceWorkflowName: sourceTarget.sourceWorkflowName,
         targetAttachments: this.copyJson(sourceTarget.targetAttachments),
-        targetExecutionState: TargetExecutionState.SCHEDULED,
+        targetError,
+        targetExecutionState,
         targetIdempotencyKey: this.targetKey(
           context.rootReleaseId,
           context.nextRepeatCount,

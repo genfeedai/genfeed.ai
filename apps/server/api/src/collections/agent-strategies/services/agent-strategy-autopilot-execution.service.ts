@@ -30,6 +30,7 @@ import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strate
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { filterTargetsByMediaCapability } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -842,12 +843,26 @@ export class AgentStrategyAutopilotExecutionService {
     // addresses every connected account rather than whichever row a
     // platform-only lookup happened to return first. The draft becomes the
     // first account's post; the rest are siblings sharing one groupId.
-    const targets = await this.postAccountFanoutService.resolveTargets({
+    const resolvedTargets = await this.postAccountFanoutService.resolveTargets({
       brandId,
       caption: content,
       organizationId,
       platforms,
     });
+    // This is a text-only draft, so filter out any connected account whose
+    // platform requires media before creating a post for it (#5193) — a
+    // video-only channel like YouTube or TikTok would otherwise get a
+    // caption-only SCHEDULED post the channel contract rejects on its own.
+    const { eligible: targets, skipped } = filterTargetsByMediaCapability(
+      resolvedTargets,
+      undefined,
+    );
+    if (skipped.length > 0) {
+      this.logger.warn('Skipped auto-publish targets requiring media', {
+        agentStrategyId: getStrategyId(strategy),
+        platforms: skipped.map((target) => target.platform),
+      });
+    }
     for (const target of targets) {
       const gate = await this.evaluateDraft(
         strategy,
