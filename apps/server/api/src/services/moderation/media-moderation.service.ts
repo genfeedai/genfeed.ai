@@ -281,25 +281,34 @@ export class MediaModerationService {
     if (!this.isActive) {
       return [];
     }
-    // tenant-scope-ignore: administrative discovery reads tenant identifiers only; each queued job re-reads its rows under its own organization scope.
-    return this.prisma.mediaPerception.findMany({
+    // Queried from the ingredient side: deleted assets are excluded, and an
+    // asset whose perception settled but has no moderation record qualifies.
+    const rows = await this.prisma.ingredient.findMany({
       // Newest first: an asset that keeps failing ages out of the window
       // instead of holding the head of every batch.
       orderBy: { updatedAt: 'desc' },
-      select: { ingredientId: true, organizationId: true },
+      select: { id: true, organizationId: true },
       take: limit,
       where: {
-        framesStatus: { not: 'pending' },
-        ingredient: {
-          isDeleted: false,
-          mediaModerations: { none: { isDeleted: false } },
-        },
         isDeleted: false,
-        ocrStatus: { not: 'pending' },
-        transcriptStatus: { not: 'pending' },
-        updatedAt: { gte: since },
+        mediaModerations: { none: { isDeleted: false } },
+        mediaPerceptions: {
+          some: {
+            framesStatus: { not: 'pending' },
+            isDeleted: false,
+            ocrStatus: { not: 'pending' },
+            transcriptStatus: { not: 'pending' },
+            updatedAt: { gte: since },
+          },
+        },
+        organizationId: { not: null },
       },
     });
+    return rows.flatMap((row) =>
+      row.organizationId
+        ? [{ ingredientId: row.id, organizationId: row.organizationId }]
+        : [],
+    );
   }
 
   private async classify(
