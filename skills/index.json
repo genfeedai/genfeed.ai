@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T07:00:18.000Z",
+  "generatedAt": "2026-09-26T12:54:19.000Z",
   "skills": [
     {
       "description": "Create paid ad copy for Meta, Google, LinkedIn, TikTok, and X using direct-response frameworks, platform limits, variants, and test plans. Triggers on ad headlines, ad creative, paid social ads, Google ads, and ad variants.",
@@ -67,7 +67,7 @@
       "slug": "genfeed-brand-os"
     },
     {
-      "description": "Craft optimized prompts for AI image generation across all major models. Triggers on \"write an image prompt\", \"create a prompt for\", \"optimize this image prompt\", \"prompt for flux\", \"prompt for dall-e\", \"prompt for midjourney\", \"image prompt for\".",
+      "description": "Craft optimized prompts for AI image and short video generation across major models, visual formats, aspect ratios, and content goals. Triggers on image prompts, video prompts, prompt optimization, Flux, DALL-E, Midjourney, and Genfeed visual prompts.",
       "path": "skills/image-prompt-engineer/SKILL.md",
       "slug": "image-prompt-engineer"
     },
