@@ -175,14 +175,34 @@ describe('MediaTextDecisionService', () => {
     expect(h.decide).not.toHaveBeenCalled();
   });
 
-  it('leaves a decision absent when the provider does not answer', async () => {
+  it('persists nothing when the provider does not answer, so the sweep retries', async () => {
+    const h = makeHarness({ posts: [] });
+    h.decide.mockResolvedValue(null);
+
+    await expect(h.service.evaluate(JOB)).resolves.toBe('skipped');
+
+    expect(h.upsert).not.toHaveBeenCalled();
+  });
+
+  it('persists no caption row when the caption decision fails', async () => {
+    const h = makeHarness();
+    h.decide
+      .mockResolvedValueOnce({ confidence: 0.9, value: true })
+      .mockResolvedValueOnce({ confidence: 0.9, value: true })
+      .mockResolvedValueOnce(null);
+
+    await h.service.evaluate(JOB);
+
+    expect(h.upsert).toHaveBeenCalledTimes(1);
+    expect(h.upsert.mock.calls[0][0].create.subjectKey).toBe('asset');
+  });
+
+  it('keeps no partial asset row when only one question is answered', async () => {
     const h = makeHarness({ posts: [] });
     h.decide.mockResolvedValueOnce(null);
 
     await h.service.evaluate(JOB);
 
-    expect(h.upsert.mock.calls[0][0].create.decisions).toEqual([
-      expect.objectContaining({ name: 'isOnBrand' }),
-    ]);
+    expect(h.upsert).not.toHaveBeenCalled();
   });
 });

@@ -48,9 +48,11 @@ type DecisionContext = {
  * - caption subjects: `isCaptionConsistent` for each caption the asset is
  *   posted with, judged against the scene description.
  *
- * A provider that is unbound behaves as `off`; a provider failure leaves that
- * decision absent (never a guess). Pending perception skips the job — the
- * assessment reports the asset as pending instead.
+ * A provider that is unbound behaves as `off`. A provider failure persists
+ * nothing for that subject — never a guess, and never a row that reads as
+ * decided — so the sweep retries it while the asset is inside the lookback
+ * window and a live assessment keeps reporting it as unchecked. Pending
+ * perception skips the job the same way.
  */
 @Injectable()
 export class MediaTextDecisionService {
@@ -192,9 +194,10 @@ export class MediaTextDecisionService {
       };
       for (const name of ['isBrandSafe', 'isOnBrand'] as const) {
         const decision = await this.decide(name, state, context, source);
-        if (decision) {
-          decisions.push(decision);
+        if (!decision) {
+          return false;
         }
+        decisions.push(decision);
       }
     }
     await this.persist(
@@ -247,12 +250,10 @@ export class MediaTextDecisionService {
         context,
         'description',
       );
-      await this.persist(
-        job,
-        subjectKey,
-        perception.assetHash,
-        decision ? [decision] : [],
-      );
+      if (!decision) {
+        continue;
+      }
+      await this.persist(job, subjectKey, perception.assetHash, [decision]);
       didDecide = true;
     }
     return didDecide;
