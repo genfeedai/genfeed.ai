@@ -220,7 +220,8 @@ export class ApifyAdsService {
           response === 'research_subscription_unverified' ||
           response === 'research_collection_recovery_pending' ||
           response === 'research_collection_cost_unverified' ||
-          response === 'research_collection_start_unconfirmed'
+          response === 'research_collection_start_unconfirmed' ||
+          response === 'research_collection_start_unreconciled'
         ) {
           throw error;
         }

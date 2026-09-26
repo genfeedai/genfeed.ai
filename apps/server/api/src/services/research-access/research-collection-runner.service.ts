@@ -30,6 +30,31 @@ const TERMINAL_RUN_STATUSES = new Set([
 ]);
 
 /**
+ * Upper bound for the actor-start POST itself. Apify's run-list API carries
+ * no caller-supplied identity: a run object exposes only id/status/timing and
+ * a provider-generated `meta` (origin/clientIp/userAgent), never a
+ * correlation id we set, and the "Run Actor" endpoint has no query parameter
+ * for one either. The only place a correlation value could ride along is the
+ * actor `input` itself, but this runner starts ~20 different third-party
+ * actors (see APIFY_ACTOR_REGISTRY in apify-base.service.ts) whose input
+ * schemas we do not own and cannot verify here (no live Apify calls in this
+ * change) — many Apify actor schemas reject unknown input properties, so
+ * stuffing a correlation field into every request risks turning a rare,
+ * already-mitigated recovery ambiguity into a routine, and much worse,
+ * start failure. So the start call is bounded by an explicit timeout
+ * instead: `isAmbiguousApifyStartError` can only fire (no HTTP status
+ * received) within this window, which caps how late a run that is genuinely
+ * ours can first appear in the actor's run list.
+ */
+const RUN_START_TIMEOUT_MS = 30_000;
+
+/**
+ * Clock skew and the small gap between recording `startAttemptedAt` and
+ * actually issuing the POST (rate-limit bookkeeping runs in between).
+ */
+const RUN_START_MATCH_BUFFER_MS = 5_000;
+
+/**
  * Hosted research collection. A retry uses the recorded Apify run before
  * any new start, and settles that run's cost at most once.
  */
@@ -294,19 +319,22 @@ export class ResearchCollectionRunner {
         );
       }
     } else {
-      // Bound the match to the window our own start could plausibly have
-      // landed in: from just before we attempted it through the lease that
-      // covered it. A run outside that window belongs to some other
-      // request against the same actor and must not keep this recovery
-      // pending forever.
-      const latestStart = job.leaseExpiresAt
-        ? job.leaseExpiresAt.getTime()
-        : startedAt + RESEARCH_COLLECTION_LEASE_MS;
+      // Bound the match to the window our own start's POST call could
+      // plausibly still be resolving in: from just before we attempted it
+      // through its own explicit timeout (RUN_START_TIMEOUT_MS), not the
+      // much longer anti-duplicate lease. leaseExpiresAt exists only to
+      // block a second caller from starting another actor run while this
+      // one is ambiguous — it must not also widen the evidence window, or
+      // an unrelated run on the shared hosted token that starts anywhere in
+      // that (up to 15-30 minute) span would count as ours and keep
+      // recovery pending indefinitely, exactly the bug this fixes.
+      const latestStart =
+        startedAt + RUN_START_TIMEOUT_MS + RUN_START_MATCH_BUFFER_MS;
       const sawRun = runs.some((run) => {
         const started = Date.parse(run.startedAt);
         return (
           Number.isFinite(started) &&
-          started >= startedAt - 2_000 &&
+          started >= startedAt - RUN_START_MATCH_BUFFER_MS &&
           started <= latestStart
         );
       });
@@ -315,22 +343,25 @@ export class ResearchCollectionRunner {
           'research_collection_recovery_pending',
         );
       }
-      if (runs.length > 0) {
-        // Unrelated runs from this actor are not evidence our start is
-        // still pending. Once the bound has elapsed without a match, stop
-        // waiting: reconcile as unreconciled (not failed, since we cannot
-        // confirm the provider rejected the start) and release the hold.
-        const reconciled = await this.jobs.finishUnreconciledStart(job, now);
-        if (!reconciled) {
-          throw new ServiceUnavailableException(
-            'research_collection_recovery_pending',
-          );
-        }
-        await this.releaseReservation(this.reservationFrom(job), 0);
+      // No run in the list can be tied to our request — this covers both an
+      // empty list and a list full of runs that started outside our narrow
+      // window. Per the issue's requirement, a candidate that cannot be tied
+      // to the request is not evidence either way, so both cases reconcile
+      // the same way: UNRECONCILED (not FAILED, since we cannot confirm the
+      // provider rejected the start), with the hold released. Splitting this
+      // by runs.length would make FAILED depend on whether this actor
+      // happens to have any run history at all, which is incidental and not
+      // what the issue asks for.
+      const reconciled = await this.jobs.finishUnreconciledStart(job, now);
+      if (!reconciled) {
         throw new ServiceUnavailableException(
-          'research_collection_start_unreconciled',
+          'research_collection_recovery_pending',
         );
       }
+      await this.releaseReservation(this.reservationFrom(job), 0);
+      throw new ServiceUnavailableException(
+        'research_collection_start_unreconciled',
+      );
     }
     const released = await this.jobs.finishExpiredUnrecorded(job, now);
     if (!released) {
@@ -374,6 +405,7 @@ export class ResearchCollectionRunner {
     const response = await firstValueFrom(
       this.httpService.post<ApifyActorRunResponse>(url, input, {
         headers: this.authHeaders(token),
+        timeout: RUN_START_TIMEOUT_MS,
       }),
     );
     return response.data.data;

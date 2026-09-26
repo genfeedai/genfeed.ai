@@ -244,7 +244,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.post).not.toHaveBeenCalled();
   });
 
-  it('releases an expired start only after an empty list still matches the lease', async () => {
+  it('reconciles as unreconciled, not failed, once an empty list still matches the lease', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
     jobs.claim.mockResolvedValue({
@@ -260,13 +260,14 @@ describe('ResearchCollectionRunner', () => {
       token: 'token',
     });
     http.get.mockReturnValue(of({ data: { data: { items: [] } } }));
-    jobs.finishExpiredUnrecorded.mockResolvedValue(true);
+    jobs.finishUnreconciledStart.mockResolvedValue(true);
 
     await expect(
       runner.run('org-1', job.actorId, { query: 'acme' }),
-    ).rejects.toThrow('research_collection_start_unconfirmed');
+    ).rejects.toThrow('research_collection_start_unreconciled');
     expect(http.post).not.toHaveBeenCalled();
-    expect(jobs.finishExpiredUnrecorded).toHaveBeenCalledTimes(1);
+    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
     expect(budget.reconcileRun).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-1' }),
       0,
@@ -274,7 +275,65 @@ describe('ResearchCollectionRunner', () => {
     vi.useRealTimers();
   });
 
-  it('does not keep recovery pending on an unrelated run far outside the lease window', async () => {
+  it('does not keep recovery pending on an unrelated run far outside the start-timeout window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      leaseExpiresAt: new Date('2026-09-24T12:15:00.000Z'),
+      startAttemptedAt: new Date('2026-09-24T12:00:00.000Z'),
+      status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+      upstreamRunId: null,
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    http.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            // A different request against the same actor, well before "now"
+            // (12:16) but also well past our own start's ~35s match window
+            // (12:00:00 + RUN_START_TIMEOUT_MS + buffer). Still inside the
+            // old, much wider lease window this bug used to key off.
+            items: [
+              {
+                id: 'run-unrelated',
+                startedAt: '2026-09-24T12:10:00.000Z',
+                status: 'RUNNING',
+              },
+            ],
+          },
+        },
+      }),
+    );
+    jobs.finishUnreconciledStart.mockResolvedValue(true);
+
+    await expect(
+      runner.run('org-1', job.actorId, { query: 'acme' }),
+    ).rejects.toThrow('research_collection_start_unreconciled');
+    expect(http.post).not.toHaveBeenCalled();
+    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
+    expect(budget.reconcileRun).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
+    vi.useRealTimers();
+  });
+
+  it('keeps recovery pending on an unrelated run that lands inside the start-timeout window', async () => {
+    // The dangerous case the issue calls out: on the shared hosted token,
+    // another org's request can genuinely start a run within a few seconds
+    // of ours. We cannot tie a candidate run to our request (Apify's run
+    // list carries no caller-supplied identity — see the RUN_START_TIMEOUT_MS
+    // comment in the runner), so a same-actor run this close in time is
+    // treated as possible evidence and recovery stays pending rather than
+    // risk reconciling a job whose actor start may in fact still be running.
+    // The lease has still expired (now is past leaseExpiresAt) so this
+    // exercises the actual run-list match, not the outer active-lease guard.
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
     jobs.claim.mockResolvedValue({
@@ -295,8 +354,10 @@ describe('ResearchCollectionRunner', () => {
           data: {
             items: [
               {
-                id: 'run-unrelated',
-                startedAt: '2026-09-24T13:00:00.000Z',
+                // Another org's or request's run, started 10s after ours —
+                // inside the ~35s match window, indistinguishable from ours.
+                id: 'run-another-org',
+                startedAt: '2026-09-24T12:00:10.000Z',
                 status: 'RUNNING',
               },
             ],
@@ -304,18 +365,14 @@ describe('ResearchCollectionRunner', () => {
         },
       }),
     );
-    jobs.finishUnreconciledStart.mockResolvedValue(true);
 
     await expect(
       runner.run('org-1', job.actorId, { query: 'acme' }),
-    ).rejects.toThrow('research_collection_start_unreconciled');
+    ).rejects.toThrow('research_collection_recovery_pending');
     expect(http.post).not.toHaveBeenCalled();
-    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(jobs.finishUnreconciledStart).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
-      expect.objectContaining({ reservationKey: 'reservation-1' }),
-      0,
-    );
+    expect(budget.reconcileRun).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -341,7 +398,7 @@ describe('ResearchCollectionRunner', () => {
             items: [
               {
                 id: 'run-unrelated',
-                startedAt: '2026-09-24T13:00:00.000Z',
+                startedAt: '2026-09-24T12:10:00.000Z',
                 status: 'RUNNING',
               },
             ],
@@ -359,7 +416,7 @@ describe('ResearchCollectionRunner', () => {
     vi.useRealTimers();
   });
 
-  it('does not release an empty delayed list when the lease fence moved', async () => {
+  it('does not release an empty delayed list when the unreconciled fence moved', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
     jobs.claim.mockResolvedValue({
@@ -375,13 +432,14 @@ describe('ResearchCollectionRunner', () => {
       token: 'token',
     });
     http.get.mockReturnValue(of({ data: { data: { items: [] } } }));
-    jobs.finishExpiredUnrecorded.mockResolvedValue(false);
+    jobs.finishUnreconciledStart.mockResolvedValue(false);
 
     await expect(
       runner.run('org-1', job.actorId, { query: 'acme' }),
     ).rejects.toThrow('research_collection_recovery_pending');
     expect(http.post).not.toHaveBeenCalled();
-    expect(jobs.finishExpiredUnrecorded).toHaveBeenCalledTimes(1);
+    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
     expect(budget.reconcileRun).not.toHaveBeenCalled();
     vi.useRealTimers();
   });

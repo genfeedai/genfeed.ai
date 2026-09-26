@@ -1,5 +1,6 @@
 import type { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ApifyAdsService } from './apify-ads.service';
 
@@ -114,5 +115,18 @@ describe('public archive transports', () => {
         organizationId: 'org',
       }),
     ).rejects.toThrow('paid_creative_source_unavailable');
+  });
+  it('passes through an unreconciled collection start instead of masking it', async () => {
+    const { service, run } = setup();
+    run.mockRejectedValue(
+      new ServiceUnavailableException('research_collection_start_unreconciled'),
+    );
+    await expect(
+      service.fetchMetaAdLibraryCreatives({
+        query: 'coffee',
+        limit: 5,
+        organizationId: 'org',
+      }),
+    ).rejects.toThrow('research_collection_start_unreconciled');
   });
 });
