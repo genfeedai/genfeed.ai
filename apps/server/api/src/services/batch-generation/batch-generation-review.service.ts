@@ -46,6 +46,7 @@ import {
 import {
   appendApprovedReviewEvent,
   pinApprovedDrafts,
+  scheduleApprovedReviewPost,
 } from '@api/services/batch-generation/batch-generation-review-approval';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
@@ -326,21 +327,17 @@ export class BatchGenerationReviewService {
     }
 
     for (const postId of postIdsToSchedule) {
-      await this.postLifecycleService.transition(
-        {
-          actorId: createdByUserId,
-          mutation: {
-            reviewDecision: PersistedReviewDecision.APPROVED,
-            reviewVersionPinId: versionPinIds.get(postId),
-            reviewedAt: new Date(reviewedAt),
-          },
-          nextState: TargetExecutionState.SCHEDULED,
-          organizationId: orgId,
-          postId,
-          reason: 'Review item approved for scheduling',
-        },
+      await scheduleApprovedReviewPost({
+        batchId,
+        createdByUserId,
+        logger: this.logger,
+        orgId,
+        postId,
+        postLifecycleService: this.postLifecycleService,
+        reviewedAt,
         transaction,
-      );
+        versionPinId: versionPinIds.get(postId),
+      });
     }
 
     const batchUpdate = await writeBatchJsonAndItemRows(transaction, {

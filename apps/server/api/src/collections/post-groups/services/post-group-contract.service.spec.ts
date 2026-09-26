@@ -494,6 +494,75 @@ describe('PostGroupContractService', () => {
       'X override',
     );
   });
+
+  describe('validateTargetUpdate (#5193)', () => {
+    it('does not re-run the channel contract when neither settings nor visibility change', () => {
+      const validation = service.validateTargetUpdate(
+        makeGroup(),
+        makeTarget(),
+        { order: 2 },
+      );
+
+      expect(validation).toBeUndefined();
+    });
+
+    it('validates against the release real media instead of treating every target as media-less', () => {
+      // The old check never loaded media/caption at all, so it validated
+      // settings/visibility in isolation with an implicit empty media array
+      // — which would have wrongly failed a YouTube target that actually has
+      // valid video media, exactly like this one.
+      const group = makeGroup({
+        media: [{ assetId: 'asset-1', kind: 'video' }],
+      });
+      const target = makeTarget({
+        platform: CredentialPlatform.YOUTUBE,
+        targetSettings: { privacyStatus: 'private' },
+      });
+
+      const validation = service.validateTargetUpdate(group, target, {
+        visibility: PostVisibility.PUBLIC,
+      });
+
+      expect(validation?.valid).toBe(true);
+    });
+
+    it('rejects a settings update when the release has no media a video-only channel accepts', () => {
+      const group = makeGroup({ media: [] });
+      const target = makeTarget({ platform: CredentialPlatform.YOUTUBE });
+
+      expect(() =>
+        service.validateTargetUpdate(group, target, {
+          settings: { privacyStatus: 'public' },
+        }),
+      ).toThrow(BadRequestException);
+    });
+
+    it('uses the target caption override over the release base content', () => {
+      const group = makeGroup({ baseContent: 'x'.repeat(300) });
+      const target = makeTarget({
+        description: 'Short X caption',
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      const validation = service.validateTargetUpdate(group, target, {
+        visibility: PostVisibility.PUBLIC,
+      });
+
+      expect(validation?.valid).toBe(true);
+    });
+
+    it('does not throw an invalid settings update when the target is reverting to draft', () => {
+      const group = makeGroup({ media: [] });
+      const target = makeTarget({ platform: CredentialPlatform.YOUTUBE });
+
+      expect(() =>
+        service.validateTargetUpdate(group, target, {
+          executionState: TargetExecutionState.DRAFT,
+          settings: { privacyStatus: 'public' },
+        }),
+      ).not.toThrow();
+    });
+  });
 });
 
 function makeGroup(
