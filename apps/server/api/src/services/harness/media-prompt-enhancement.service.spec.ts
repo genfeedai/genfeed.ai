@@ -1,6 +1,5 @@
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,13 +25,14 @@ function setup(enabled = true) {
     ]),
   };
   const promptEnhancement = {
+    resolveModel: vi.fn().mockResolvedValue('admin/default-text'),
     enhance: vi.fn().mockResolvedValue({
       result: 'A cinematic view of a red bicycle',
       tokensUsed: 10,
       isByok: false,
     }),
   };
-  const logger = { warn: vi.fn() };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   return {
     logger,
     settings,
@@ -183,18 +183,32 @@ describe('MediaPromptEnhancementService', () => {
       });
       expect(receipt.status).toBe('failed');
       expect(receipt.enhancedPrompt).toBe(sensitive);
-      expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
-        'Media prompt enhancement failed; generating with original prompt',
-        {
-          contentType: 'video',
-          model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
-          stage,
-          error: expect.any(String),
-        },
-      );
-      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
-        'Private guidance',
-      );
+      const diagnostics = {
+        contentType: 'video',
+        model: 'admin/default-text',
+        stage,
+        error: expect.any(String),
+      };
+      const message =
+        'Media prompt enhancement failed; generating with original prompt';
+      if (stage === 'provider') {
+        // An unreachable text model is an operator configuration error.
+        expect(logger.error).toHaveBeenCalledExactlyOnceWith(
+          message,
+          undefined,
+          diagnostics,
+        );
+        expect(logger.warn).not.toHaveBeenCalled();
+      } else {
+        expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+          message,
+          diagnostics,
+        );
+        expect(logger.error).not.toHaveBeenCalled();
+      }
+      expect(
+        JSON.stringify([...logger.warn.mock.calls, ...logger.error.mock.calls]),
+      ).not.toContain('Private guidance');
     },
   );
   it('folds existing harness guidance locally without sending it to the text enhancer', async () => {

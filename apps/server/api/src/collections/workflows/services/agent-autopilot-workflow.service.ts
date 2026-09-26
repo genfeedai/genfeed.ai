@@ -3,9 +3,14 @@ import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-g
 import { lockAgentStrategy } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import {
+  AGENT_STRATEGY_MAX_CONSECUTIVE_FAILURES,
+  isAgentStrategyDue,
+} from '@api/collections/agent-strategies/services/agent-strategy-due.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { PROACTIVE_AGENT_TURN_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { scopedWhere } from '@api/index';
@@ -92,8 +97,9 @@ export interface AgentWorkflowHandoffContext {
   workflowRunId?: string;
 }
 
-const MAX_CONSECUTIVE_FAILURES = 5;
 const MAX_STRATEGIES_PER_CYCLE = 20;
+/** Page size for the ordered, paginated active-strategy scan (#5252 review). */
+const STRATEGY_DISCOVERY_PAGE_SIZE = 100;
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
 const PROACTIVE_LOCK_TTL_SECONDS = 900;
@@ -206,24 +212,45 @@ export class AgentAutopilotWorkflowService {
       return { baseInput: { organizationId }, items: [], organizationId };
     }
     const now = new Date();
-    const strategies = await this.prisma.agentStrategy.findMany({
-      select: {
-        agentType: true,
-        brandId: true,
-        config: true,
-        goalId: true,
-        id: true,
-        label: true,
-        organizationId: true,
-        userId: true,
-      },
-      take: MAX_STRATEGIES_PER_CYCLE * 5,
-      where: scopedWhere(organizationId, { isActive: true }),
-    });
-    const items = strategies
-      .map((strategy) => this.toStrategySnapshot(strategy))
-      .filter((strategy) => this.isDueStrategy(strategy, now))
-      .slice(0, MAX_STRATEGIES_PER_CYCLE);
+    const items: AgentStrategySnapshot[] = [];
+    // Paginate in stable `id` order rather than a single unordered
+    // `take: MAX_STRATEGIES_PER_CYCLE * 5` (#5252 review): without an
+    // explicit order, Postgres does not guarantee which rows a `LIMIT`
+    // returns, so an org with more active strategies than that cap could
+    // have some silently never scanned, cycle after cycle. Stop as soon as
+    // MAX_STRATEGIES_PER_CYCLE due strategies are found — that is the most
+    // this cycle will dispatch anyway.
+    let cursor: string | undefined;
+    while (items.length < MAX_STRATEGIES_PER_CYCLE) {
+      const page = await this.prisma.agentStrategy.findMany({
+        orderBy: { id: 'asc' },
+        select: {
+          agentType: true,
+          brandId: true,
+          config: true,
+          goalId: true,
+          id: true,
+          label: true,
+          organizationId: true,
+          userId: true,
+        },
+        take: STRATEGY_DISCOVERY_PAGE_SIZE,
+        where: scopedWhere(organizationId, {
+          isActive: true,
+          ...(cursor ? { id: { gt: cursor } } : {}),
+        }),
+      });
+      if (page.length === 0) break;
+      for (const strategy of page) {
+        const snapshot = this.toStrategySnapshot(strategy);
+        if (this.isDueStrategy(snapshot, now)) {
+          items.push(snapshot);
+          if (items.length >= MAX_STRATEGIES_PER_CYCLE) break;
+        }
+      }
+      cursor = page[page.length - 1].id;
+      if (page.length < STRATEGY_DISCOVERY_PAGE_SIZE) break;
+    }
     return { baseInput: { organizationId }, items, organizationId };
   }
 
@@ -288,17 +315,7 @@ export class AgentAutopilotWorkflowService {
   }
 
   private isDueStrategy(strategy: AgentStrategySnapshot, now: Date): boolean {
-    const config = this.readConfig(strategy);
-    const consecutiveFailures = config.consecutiveFailures ?? 0;
-    const requiresManualReactivation =
-      config.requiresManualReactivation ?? false;
-    const nextRunAt = this.parseDate(config.nextRunAt);
-
-    return (
-      consecutiveFailures < MAX_CONSECUTIVE_FAILURES &&
-      !requiresManualReactivation &&
-      (!nextRunAt || nextRunAt <= now)
-    );
+    return isAgentStrategyDue(this.readConfig(strategy), now);
   }
 
   private async executeStrategy(
@@ -436,7 +453,7 @@ export class AgentAutopilotWorkflowService {
           threadId: dispatchThreadId,
         },
         organizationId,
-        source: 'proactive',
+        source: PROACTIVE_AGENT_TURN_SOURCE,
         userId,
       });
 
@@ -480,7 +497,7 @@ export class AgentAutopilotWorkflowService {
           config: toPrismaJson({
             ...latest,
             consecutiveFailures: newFailureCount,
-            ...(newFailureCount >= MAX_CONSECUTIVE_FAILURES
+            ...(newFailureCount >= AGENT_STRATEGY_MAX_CONSECUTIVE_FAILURES
               ? { requiresManualReactivation: true }
               : {}),
           }),

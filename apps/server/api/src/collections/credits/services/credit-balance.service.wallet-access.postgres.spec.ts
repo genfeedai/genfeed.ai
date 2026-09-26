@@ -19,9 +19,7 @@ vi.unmock('@genfeedai/prisma');
 vi.unmock('@prisma/adapter-pg');
 
 // Explicit opt-in only: an isolated migrated database, never DATABASE_URL.
-// Not configured today, so this suite is skipped (same as every other
-// `*.postgres.spec.ts` file in this package) until that database exists —
-// wire `CREDIT_BALANCE_TEST_DATABASE_URL` to run it for real.
+// Skipped unless `CREDIT_BALANCE_TEST_DATABASE_URL` is set.
 const connectionString = process.env.CREDIT_BALANCE_TEST_DATABASE_URL;
 
 describe.skipIf(!connectionString)(
@@ -206,7 +204,7 @@ describe.skipIf(!connectionString)(
       expect(balance.balance).toBe(30);
     });
 
-    it('unlinked-denied: never reaches another organization wallet, and provisions its own instead', async () => {
+    it('unlinked-denied: never reaches another organization wallet, and provisions its own untagged instead', async () => {
       const [, , , orgUnlinked] = organizationIds;
       const [, , baUnlinked] = billingAccountIds;
       const balance = await service.getOrCreateBalance(
@@ -215,7 +213,7 @@ describe.skipIf(!connectionString)(
         baUnlinked,
       );
       expect(balance.organizationId).toBe(orgUnlinked);
-      expect(balance.billingAccountId).toBe(baUnlinked);
+      expect(balance.billingAccountId).toBeNull();
       expect(balance.balance).toBe(0);
 
       const ownerWallet = await database().creditBalance.findFirst({
@@ -225,6 +223,44 @@ describe.skipIf(!connectionString)(
         },
       });
       expect(ownerWallet?.balance).toBe(40);
+    });
+
+    it('unlinked-denied: never claims the wallet slot of a billing account that has no wallet yet', async () => {
+      const [, , , orgUnlinked] = organizationIds;
+      const [, , baUnlinked] = billingAccountIds;
+      await database().creditBalance.deleteMany({
+        where: { billingAccountId: baUnlinked },
+      });
+
+      const balance = await service.getOrCreateBalance(
+        orgUnlinked,
+        undefined,
+        baUnlinked,
+      );
+      expect(balance.organizationId).toBe(orgUnlinked);
+      expect(balance.billingAccountId).toBeNull();
+
+      const claimed = await database().creditBalance.count({
+        where: { billingAccountId: baUnlinked, isDeleted: false },
+      });
+      expect(claimed).toBe(0);
+    });
+
+    it('linked: provisions the billing account wallet when the account has none yet', async () => {
+      const [, , orgLinked] = organizationIds;
+      const [, baLinked] = billingAccountIds;
+      await database().creditBalance.deleteMany({
+        where: { billingAccountId: baLinked },
+      });
+
+      const balance = await service.getOrCreateBalance(
+        orgLinked,
+        undefined,
+        baLinked,
+      );
+      expect(balance.organizationId).toBe(orgLinked);
+      expect(balance.billingAccountId).toBe(baLinked);
+      expect(balance.balance).toBe(0);
     });
 
     it('reservation-authorized: a detached organization still reaches the billing account its reservation holds credits on', async () => {
@@ -272,11 +308,11 @@ describe.skipIf(!connectionString)(
         reservation.id,
       );
       expect(wrongBillingAccount.organizationId).toBe(orgUnlinked);
-      expect(wrongBillingAccount.billingAccountId).toBe(baDirect);
+      expect(wrongBillingAccount.billingAccountId).toBeNull();
       expect(wrongBillingAccount.balance).toBe(0);
 
       await database().creditBalance.deleteMany({
-        where: { billingAccountId: baDirect, organizationId: orgUnlinked },
+        where: { organizationId: orgUnlinked },
       });
 
       // Right billing account, wrong (nonexistent) reservation.
@@ -287,7 +323,7 @@ describe.skipIf(!connectionString)(
         'reservation-that-does-not-exist',
       );
       expect(wrongReservation.organizationId).toBe(orgUnlinked);
-      expect(wrongReservation.billingAccountId).toBe(baUnlinked);
+      expect(wrongReservation.billingAccountId).toBeNull();
       expect(wrongReservation.balance).toBe(0);
     });
   },

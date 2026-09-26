@@ -353,6 +353,84 @@ describe('SystemWorkflowRunnerService definitions', () => {
     }
   });
 
+  it.each([
+    ['agent.turn.execute', 'agent'],
+    ['agent.thread.ui-action', 'agent'],
+    ['agent.thread.input-response', 'agent'],
+    ['clip-hook-review', 'agent'],
+  ])(
+    'keeps %s from source %s off the platform queue (#5162)',
+    async (canonicalId, source) => {
+      const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+      const createExecution = vi
+        .fn()
+        .mockResolvedValue({ id: 'execution-1', status: 'PENDING' });
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+      );
+      runner.registerWorkflow({ ...definition, canonicalId });
+      const internals = runner as unknown as RunnerInternals;
+      vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+      vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue(
+        {
+          currentVersion: { id: 'version-1' },
+          id: 'workflow-1',
+          label: 'Workflow',
+        },
+      );
+      await runner.enqueueWorkflow({
+        actionType: canonicalId,
+        canonicalId,
+        organizationId: 'org-1',
+        source,
+        userId: 'tenant-user',
+      });
+      const options = queueSystemWorkflow.mock.calls[0][2];
+      expect(options.usePlatformQueue).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ['PlatformWorkflowSchedulesService', 'analytics-sync'],
+    ['proactive', 'agent.turn.execute'],
+  ])(
+    'routes a %s dispatch to the platform queue (#5162)',
+    async (source, canonicalId) => {
+      const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+      const createExecution = vi
+        .fn()
+        .mockResolvedValue({ id: 'execution-1', status: 'PENDING' });
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+      );
+      runner.registerWorkflow({ ...definition, canonicalId });
+      const internals = runner as unknown as RunnerInternals;
+      vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+      vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue(
+        {
+          currentVersion: { id: 'version-1' },
+          id: 'workflow-1',
+          label: 'Workflow',
+        },
+      );
+      await runner.enqueueWorkflow({
+        actionType: canonicalId,
+        canonicalId,
+        organizationId: 'org-1',
+        source,
+        userId: 'tenant-user',
+      });
+      const options = queueSystemWorkflow.mock.calls[0][2];
+      expect(options.usePlatformQueue).toBe(true);
+    },
+  );
+
   it('marks a precreated parent failed when queueing fails', async () => {
     const queueError = new Error('queue unavailable');
     const queueSystemWorkflow = vi.fn().mockRejectedValue(queueError);
@@ -578,9 +656,10 @@ describe('SystemWorkflowRunnerService definitions', () => {
     const queueSystemWorkflow = vi
       .fn()
       .mockImplementation(async (_input, jobId) => jobId);
-    const { executors, runner } = createRunner({
-      queueSystemWorkflow,
-    });
+    const prisma = {
+      workflow: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const { executors, runner } = createRunner({ queueSystemWorkflow }, prisma);
     runner.onModuleInit();
     runner.registerWorkflow(definition);
 
@@ -608,6 +687,43 @@ describe('SystemWorkflowRunnerService definitions', () => {
       expect.objectContaining({ inputValues: { item: 'b' } }),
       expect.stringMatching(/^workflow\.for-each-/),
       expect.objectContaining({ delayMs: 1_500 }),
+    );
+  });
+
+  it('routes scheduled for-each children to the platform queue when the parent is a platform-sweep workflow (#5252 review)', async () => {
+    const queueSystemWorkflow = vi
+      .fn()
+      .mockImplementation(async (_input, jobId) => jobId);
+    const prisma = {
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: 'analytics-sync',
+            }),
+          },
+        }),
+      },
+    };
+    const { executors, runner } = createRunner({ queueSystemWorkflow }, prisma);
+    runner.onModuleInit();
+    runner.registerWorkflow(definition);
+
+    await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      executableForEachNode({
+        childWorkflowId: definition.canonicalId,
+        itemInputKey: 'item',
+        mode: 'scheduled',
+      }),
+      new Map([['items', ['a']]]),
+      executionContext(),
+    );
+
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringMatching(/^workflow\.for-each-/),
+      expect.objectContaining({ usePlatformQueue: true }),
     );
   });
 

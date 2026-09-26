@@ -132,6 +132,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.oauthClientCleanup.deleteAbandonedClients(),
       [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: () =>
         this.patternExtraction.computeDailyPatterns(),
+      [PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE]: () =>
+        this.workflowSchedules.reconcilePendingExecutions(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
         this.posts.publishScheduledPosts(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>

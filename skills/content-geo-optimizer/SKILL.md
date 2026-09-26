@@ -4,7 +4,7 @@ description: Optimize long-form content for generative answer engines with a GEO
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Content GEO Optimizer

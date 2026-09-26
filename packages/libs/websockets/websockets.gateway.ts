@@ -1,3 +1,4 @@
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   BetterAuthJwksVerifier,
   createBetterAuthJwksVerifierOptions,
@@ -284,7 +285,8 @@ export class WebSocketGateway
 
     const headerToken = client.handshake.headers.authorization;
     if (typeof headerToken === 'string') {
-      return headerToken.split(' ').pop();
+      const parsed = parseAuthorizationHeader(headerToken);
+      return parsed?.normalizedScheme === 'bearer' ? parsed.token : undefined;
     }
 
     return undefined;

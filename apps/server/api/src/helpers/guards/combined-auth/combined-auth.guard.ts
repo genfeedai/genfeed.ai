@@ -18,6 +18,10 @@ import type {
   User as PrismaUser,
 } from '@genfeedai/prisma';
 import {
+  isBearerScheme,
+  parseAuthorizationHeader,
+} from '@libs/auth/authorization-header';
+import {
   requestPresentsApiKeyInUrl,
   URL_API_CREDENTIAL_REJECTION,
 } from '@libs/auth/url-credentials';
@@ -71,16 +75,12 @@ export class CombinedAuthGuard implements CanActivate {
   private resolveBearerToken(
     authHeader: string | undefined,
   ): string | undefined {
-    if (!authHeader) {
+    const parsed = parseAuthorizationHeader(authHeader);
+    if (parsed?.normalizedScheme !== 'bearer') {
       return undefined;
     }
 
-    const [scheme, token] = authHeader.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer') {
-      return undefined;
-    }
-
-    return token?.trim() || undefined;
+    return parsed.token;
   }
 
   /**
@@ -297,6 +297,19 @@ export class CombinedAuthGuard implements CanActivate {
 
     const authHeader = request.headers.authorization;
     const token = this.resolveBearerToken(authHeader);
+
+    // A presented header that attempts the Bearer scheme but fails strict
+    // parsing (blank token, or surplus whitespace-separated fields) is a
+    // malformed credential, not an absent one — it must never be downgraded
+    // to anonymous/local-admin access in HYBRID mode, nor silently deferred
+    // to a downstream guard in CLOUD mode. A header presenting some other
+    // scheme entirely (e.g. `Basic ...` from an nginx reverse-proxy doing
+    // its own HTTP basic auth in front of the app) carries no Bearer
+    // credential at all, so it is treated the same as an absent header —
+    // in CLOUD mode that still ends in 401 once the downstream guard runs.
+    if (authHeader !== undefined && !token && isBearerScheme(authHeader)) {
+      throw new UnauthorizedException('Unauthorized');
+    }
 
     // 4. HYBRID mode: opportunistic auth
     if (isSelfHostedDeployment() && isBetterAuthEnabled()) {
