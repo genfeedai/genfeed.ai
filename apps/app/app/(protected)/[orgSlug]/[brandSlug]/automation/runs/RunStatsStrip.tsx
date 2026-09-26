@@ -21,20 +21,26 @@ function formatStat(value: number | undefined): string {
 /** Same KPI cards as the other overviews; five stats on one row at desktop. */
 export default function RunStatsStrip({
   isLoading,
+  isStatsDegraded = false,
   stats,
 }: RunStatsStripProps) {
   const translate = useTranslations('common.automation.workflowExecutions');
+  const degradedDescription = isStatsDegraded
+    ? translate('statsDegraded')
+    : undefined;
   return (
     <KPISection
       gridCols={{ desktop: 5, mobile: 2, tablet: 3 }}
       isLoading={isLoading}
       items={[
         {
+          description: degradedDescription,
           icon: ListChecks,
           label: translate('statsTotal'),
           value: formatStat(stats.total),
         },
         {
+          description: degradedDescription,
           icon: Activity,
           label: translate('statsActive'),
           value: formatStat(stats.active),

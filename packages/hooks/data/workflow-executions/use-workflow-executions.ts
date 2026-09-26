@@ -1,5 +1,6 @@
 'use client';
 
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type {
   WorkflowExecutionListQueryParams,
@@ -9,7 +10,8 @@ import { getLocalDayWindow } from '@genfeedai/helpers';
 import { WorkflowExecutionsService } from '@genfeedai/services/automation/workflow-executions.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useQuery } from '@tanstack/react-query';
+import { logger } from '@services/core/logger.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UseWorkflowExecutionsOptions {
@@ -23,7 +25,17 @@ export interface UseWorkflowExecutionsReturn {
   isLoading: boolean;
   isError: boolean;
   isRefreshing: boolean;
+  /** True when the last statistics request failed or returned garbage and
+   * `stats` is a fallback (previous cache, or zeros with a derived `active`)
+   * rather than a fresh summary. */
+  isStatsDegraded: boolean;
   refresh: () => Promise<void>;
+  stats: WorkflowExecutionStats;
+}
+
+interface WorkflowExecutionsQueryData {
+  executions: IWorkflowExecution[];
+  isStatsDegraded: boolean;
   stats: WorkflowExecutionStats;
 }
 
@@ -60,6 +72,20 @@ function coerceExecutionStats(value: unknown): WorkflowExecutionStats {
   };
 }
 
+/** Ground truth for `stats.active` when the statistics summary is unavailable:
+ * count the currently-fetched execution list directly, so a degraded stats
+ * response never freezes `refetchInterval` while a run is still in flight. */
+function countActiveExecutions(executions: IWorkflowExecution[]): number {
+  return executions.reduce(
+    (count, execution) =>
+      execution.status === WorkflowExecutionStatus.PENDING ||
+      execution.status === WorkflowExecutionStatus.RUNNING
+        ? count + 1
+        : count,
+    0,
+  );
+}
+
 export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
   options: UseWorkflowExecutionsOptions = {},
@@ -79,16 +105,18 @@ export function useWorkflowExecutions(
     options.organizationId === undefined || Boolean(options.organizationId);
   const isEnabled =
     isIdentityReady && isScopeReady && (options.enabled ?? true);
+  const queryClient = useQueryClient();
+  const queryKey = [
+    'workflow-executions',
+    userId ?? 'anonymous',
+    options.organizationId ?? orgId ?? 'no-org',
+    params,
+    dayWindow,
+  ];
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     // Wait for identity so the first paint never shows an empty "0" strip.
     enabled: isEnabled,
-    queryKey: [
-      'workflow-executions',
-      userId ?? 'anonymous',
-      options.organizationId ?? orgId ?? 'no-org',
-      params,
-      dayWindow,
-    ],
+    queryKey,
     queryFn: async () => {
       const token = await resolveAuthToken(getToken);
       if (!token)
@@ -105,11 +133,36 @@ export function useWorkflowExecutions(
       if (executionsResult.status === 'rejected') {
         throw executionsResult.reason;
       }
-      const stats =
-        statsResult.status === 'fulfilled'
-          ? coerceExecutionStats(statsResult.value)
-          : EMPTY_STATS;
-      return { executions: executionsResult.value, stats };
+      const executions = executionsResult.value;
+      if (statsResult.status === 'fulfilled') {
+        return {
+          executions,
+          isStatsDegraded: false,
+          stats: coerceExecutionStats(statsResult.value),
+        };
+      }
+      // A rejected stats call must not reset `active` to 0: that stops
+      // `refetchInterval` below from ever polling again while a run is
+      // still PENDING/RUNNING. Fall back to the previously cached summary
+      // (if any) and always recompute `active` from the execution list
+      // that was just fetched successfully, since it is ground truth.
+      logger.warn(
+        'Workflow execution stats request failed; keeping executions with degraded stats',
+        {
+          error: statsResult.reason,
+        },
+      );
+      const previous =
+        queryClient.getQueryData<WorkflowExecutionsQueryData>(queryKey);
+      const fallbackStats = previous?.stats ?? EMPTY_STATS;
+      return {
+        executions,
+        isStatsDegraded: true,
+        stats: {
+          ...fallbackStats,
+          active: countActiveExecutions(executions),
+        },
+      };
     },
     // `stats` is coerced above before it is cached, so a null/degraded
     // response can never make this throw and stop polling.
@@ -132,6 +185,7 @@ export function useWorkflowExecutions(
     isRefreshing: isFetching && !isPending,
     isError,
     isLoading: options.enabled !== false && isPending,
+    isStatsDegraded: data?.isStatsDegraded ?? false,
     refresh: async () => {
       await refetch();
     },

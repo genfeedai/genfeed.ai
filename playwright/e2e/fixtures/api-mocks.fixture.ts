@@ -227,6 +227,13 @@ function normalizeWorkflow(
   };
 }
 
+/** Mock credits-per-run derivation shared by `normalizeExecution` (the
+ * JSON:API resource) and `buildWorkflowExecutionStats` (the summary), so the
+ * two mocks can never drift on the completed/non-completed credit split. */
+function creditsForMockExecutionStatus(status: string): number {
+  return status.toUpperCase() === 'COMPLETED' ? 18 : 7;
+}
+
 function normalizeExecution(
   execution: {
     id: string;
@@ -262,7 +269,7 @@ function normalizeExecution(
     createdAt: execution.startedAt,
     // The serializer exposes creditsUsed at the top level; the history table
     // reads it there when an execution has no accounting summary.
-    creditsUsed: execution.status === 'COMPLETED' ? 18 : 7,
+    creditsUsed: creditsForMockExecutionStatus(execution.status),
     durationMs,
     error:
       execution.status === 'FAILED'
@@ -270,7 +277,7 @@ function normalizeExecution(
         : undefined,
     id: execution.id,
     metadata: {
-      creditsUsed: execution.status === 'COMPLETED' ? 18 : 7,
+      creditsUsed: creditsForMockExecutionStatus(execution.status),
       logs: execution.logs,
     },
     nodeResults: execution.logs.map((_log, index) => ({
@@ -2147,10 +2154,10 @@ function buildWorkflowExecutionStats(
   const active = normalized.filter(
     (status) => status === 'PENDING' || status === 'RUNNING',
   ).length;
-  // Matches normalizeExecution's creditsUsed derivation so the mocked
-  // summary agrees with the mocked executions' reported credits.
+  // Shares creditsForMockExecutionStatus with normalizeExecution so the
+  // mocked summary agrees with the mocked executions' reported credits.
   const totalCredits = normalized.reduce(
-    (sum, status) => sum + (status === 'COMPLETED' ? 18 : 7),
+    (sum, status) => sum + creditsForMockExecutionStatus(status),
     0,
   );
 

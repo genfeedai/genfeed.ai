@@ -39,4 +39,20 @@ describe('RunStatsStrip', () => {
     expect(screen.getByText('5,500')).toBeVisible();
     expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
   });
+
+  it('surfaces a degraded note instead of showing real-looking numbers silently', () => {
+    render(<RunStatsStrip isLoading={false} isStatsDegraded stats={stats} />);
+
+    expect(
+      screen.getAllByText('Statistics may be outdated; retrying.'),
+    ).toHaveLength(2);
+  });
+
+  it('renders no degraded note when stats are fresh', () => {
+    render(<RunStatsStrip isLoading={false} stats={stats} />);
+
+    expect(
+      screen.queryByText('Statistics may be outdated; retrying.'),
+    ).not.toBeInTheDocument();
+  });
 });
