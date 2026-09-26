@@ -178,6 +178,25 @@ async function openTikTokTrendFeed(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
 }
 
+/**
+ * The remix brief inspector prepares a run but never generates until the
+ * concept is complete (#5113: "save an editable concept before generation").
+ * Fill the minimum required fields (angle + one storyboard scene) and choose
+ * Generate to reach the studio handoff the remaining assertions depend on.
+ */
+async function completeRemixConceptAndGenerate(page: Page): Promise<void> {
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Generate' })).toBeVisible();
+  await dialog
+    .getByLabel('Angle')
+    .fill('Lead with the proof, then hand off to Northstar.');
+  await dialog.getByRole('button', { name: 'Add scene' }).click();
+  await dialog
+    .getByLabel('Visual intent')
+    .fill('Open on the outcome, then show the proof point.');
+  await dialog.getByRole('button', { name: 'Generate' }).click();
+}
+
 async function routeRemixRun(
   page: Page,
   options: RemixFixtureOptions,
@@ -311,6 +330,7 @@ test.describe('Discovery prefilled remix handoff', () => {
 
     await openTikTokTrendFeed(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
+    await completeRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-tiktok-1$/,
@@ -431,6 +451,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await completeRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-meta-1$/,
@@ -614,6 +635,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await completeRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-saved-ad-1$/,
@@ -931,6 +953,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
+    await completeRemixConceptAndGenerate(authenticatedPage);
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();
