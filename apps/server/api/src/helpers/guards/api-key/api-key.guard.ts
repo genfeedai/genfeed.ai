@@ -1,6 +1,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   CanActivate,
   ExecutionContext,
@@ -26,9 +27,13 @@ export class ApiKeyAuthGuard implements CanActivate {
       throw new UnauthorizedException('API key required');
     }
 
-    // Support both "Bearer" and "ApiKey" prefixes
-    const [type, key] = authHeader.split(' ');
-    if (!key || (type !== 'Bearer' && type !== 'ApiKey')) {
+    // Support both "Bearer" and "ApiKey" schemes, case-insensitively (RFC
+    // 7235) — CombinedAuthGuard already accepts e.g. `bearer gf_...` and
+    // routes it here, so this guard must recognize the same scheme casing.
+    const parsed = parseAuthorizationHeader(authHeader);
+    const normalizedType = parsed?.normalizedScheme;
+    const key = parsed?.token;
+    if (!key || (normalizedType !== 'bearer' && normalizedType !== 'apikey')) {
       throw new UnauthorizedException('Invalid authorization format');
     }
 

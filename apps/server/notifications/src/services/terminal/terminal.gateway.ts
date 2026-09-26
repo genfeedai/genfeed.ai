@@ -1,3 +1,4 @@
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { BetterAuthJwksVerifier } from '@libs/auth/better-auth-jwks.verifier';
 import { Logger } from '@nestjs/common';
 import {
@@ -335,8 +336,9 @@ export class TerminalGateway
     }
 
     const headerToken = client.handshake.headers.authorization;
-    if (typeof headerToken === 'string' && headerToken.startsWith('Bearer ')) {
-      return headerToken.slice('Bearer '.length).trim() || undefined;
+    if (typeof headerToken === 'string') {
+      const parsed = parseAuthorizationHeader(headerToken);
+      return parsed?.normalizedScheme === 'bearer' ? parsed.token : undefined;
     }
 
     return undefined;

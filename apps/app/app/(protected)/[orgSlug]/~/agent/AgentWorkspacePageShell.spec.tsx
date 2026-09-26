@@ -1,6 +1,13 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
@@ -22,11 +29,25 @@ const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();
 
+const agentChatState = {
+  activeThreadId: null as string | null,
+  threads: [] as Array<{ brandId?: string | null; id: string }>,
+};
+let composerShellBrandId: string | undefined;
+
 vi.mock('@genfeedai/agent', () => ({
   AgentFullPage: (props: Record<string, unknown>) => {
     agentFullPageSpy(props);
     return null;
   },
+  useAgentChatStore: (selector: (state: typeof agentChatState) => unknown) =>
+    selector(agentChatState),
+  useConversationComposerShell: () =>
+    composerShellBrandId ? { brandId: composerShellBrandId } : null,
+}));
+
+vi.mock('@pages/library/knowledge/components/KnowledgeContextPicker', () => ({
+  default: () => null,
 }));
 
 const pushMock = vi.fn();
@@ -89,6 +110,9 @@ vi.mock('./agent-workspace-context', () => ({
 describe('AgentWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
+    agentChatState.activeThreadId = null;
+    agentChatState.threads = [];
+    composerShellBrandId = undefined;
     completeOnboardingFlowMock.mockReset();
     completeOnboardingFlowMock.mockResolvedValue(undefined);
     pushMock.mockClear();
@@ -200,5 +224,59 @@ describe('AgentWorkspacePageShell', () => {
     });
 
     expect(createFollowUpTasksMock).toHaveBeenCalledWith('workspace-task-1');
+  });
+
+  it('mounts the Knowledge picker for the brand the next turn runs under', () => {
+    composerShellBrandId = 'brand-composer';
+    agentChatState.activeThreadId = 'thread-1';
+    agentChatState.threads = [{ brandId: 'brand-thread', id: 'thread-1' }];
+    render(<AgentWorkspacePageShell threadId="thread-1" />);
+
+    const props = agentFullPageSpy.mock.lastCall?.[0] as {
+      knowledgePicker: ReactElement<{ brandId?: string }>;
+      knowledgeSelection: unknown;
+    };
+    expect(props.knowledgePicker.props.brandId).toBe('brand-composer');
+    expect(props.knowledgeSelection).toEqual({});
+  });
+
+  it("falls back to the open thread's brand for the Knowledge picker", () => {
+    agentChatState.activeThreadId = 'thread-1';
+    agentChatState.threads = [{ brandId: 'brand-thread', id: 'thread-1' }];
+    render(<AgentWorkspacePageShell threadId="thread-1" />);
+
+    const props = agentFullPageSpy.mock.lastCall?.[0] as {
+      knowledgePicker: ReactElement<{ brandId?: string }>;
+    };
+    expect(props.knowledgePicker.props.brandId).toBe('brand-thread');
+  });
+
+  it('sends the picked Knowledge and drops it when the brand changes', () => {
+    composerShellBrandId = 'brand-a';
+    const { rerender } = render(<AgentWorkspacePageShell />);
+
+    const initialProps = agentFullPageSpy.mock.lastCall?.[0] as {
+      knowledgePicker: ReactElement<{
+        onChange: (value: { sourceIds: string[] }) => void;
+      }>;
+    };
+    const picker = initialProps.knowledgePicker;
+    act(() => picker.props.onChange({ sourceIds: ['source-a'] }));
+
+    expect(agentFullPageSpy.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({
+        knowledgeSelection: { sourceIds: ['source-a'] },
+      }),
+    );
+
+    composerShellBrandId = 'brand-b';
+    rerender(<AgentWorkspacePageShell />);
+
+    const props = agentFullPageSpy.mock.lastCall?.[0] as {
+      knowledgePicker: ReactElement<{ brandId?: string }>;
+      knowledgeSelection: unknown;
+    };
+    expect(props.knowledgePicker.props.brandId).toBe('brand-b');
+    expect(props.knowledgeSelection).toEqual({});
   });
 });

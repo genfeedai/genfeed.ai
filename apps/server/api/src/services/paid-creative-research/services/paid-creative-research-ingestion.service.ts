@@ -157,6 +157,21 @@ export class PaidCreativeResearchIngestionService {
           accessCode,
         );
       }
+      if (isUnreconciledStartError(error)) {
+        // The hosted collection's own start could not be confirmed or ruled
+        // out within its recovery window (see ResearchCollectionRunner). It
+        // is neither a confirmed source outage nor an access problem, so it
+        // gets its own error code rather than the generic
+        // paid_creative_source_unavailable — the operator-facing copy for it
+        // tells the user it is safe to retry.
+        return this.markUnavailable(
+          organizationId,
+          advertiser,
+          platform,
+          resolvePaidCreativeProvider(platform),
+          'research_collection_start_unreconciled',
+        );
+      }
       this.loggerService.error(
         `${this.logContext} fetch failed for advertiser ${advertiser.id}`,
         error,
@@ -395,12 +410,25 @@ function collectionAccessErrorCode(
   error: unknown,
 ): 'research_paid_access_required' | 'research_subscription_unverified' | null {
   if (!(error instanceof ServiceUnavailableException)) return null;
-  const response = error.getResponse();
+  // getResponse() returns the createBody-wrapped { message, error, statusCode }
+  // object in this Nest version, not the raw string passed to the
+  // constructor, so comparing it to a string here was always false and
+  // denyCollection never ran for either code. error.message reliably holds
+  // the exact string (see the same fix in apify-ads.service.ts's
+  // runAdsActor).
+  const { message } = error;
   if (
-    response === 'research_paid_access_required' ||
-    response === 'research_subscription_unverified'
+    message === 'research_paid_access_required' ||
+    message === 'research_subscription_unverified'
   ) {
-    return response;
+    return message;
   }
   return null;
+}
+
+function isUnreconciledStartError(error: unknown): boolean {
+  return (
+    error instanceof ServiceUnavailableException &&
+    error.message === 'research_collection_start_unreconciled'
+  );
 }
