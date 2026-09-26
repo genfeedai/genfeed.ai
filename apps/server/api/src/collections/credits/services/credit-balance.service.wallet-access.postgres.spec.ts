@@ -148,6 +148,9 @@ describe.skipIf(!connectionString)(
 
     afterEach(async () => {
       const db = database();
+      await db.creditReservation.deleteMany({
+        where: { organizationId: { in: organizationIds } },
+      });
       await db.creditBalance.deleteMany({
         where: {
           OR: [
@@ -227,14 +230,65 @@ describe.skipIf(!connectionString)(
     it('reservation-authorized: a detached organization still reaches the billing account its reservation holds credits on', async () => {
       const [, , , orgUnlinked] = organizationIds;
       const [, , baUnlinked] = billingAccountIds;
+      const reservation = await database().creditReservation.create({
+        data: {
+          amount: 5,
+          billingAccountId: baUnlinked,
+          expiresAt: new Date(Date.now() + 60_000),
+          idempotencyKey: `wallet-access-${orgUnlinked}`,
+          organizationId: orgUnlinked,
+        },
+      });
+
       const balance = await service.getOrCreateBalance(
         orgUnlinked,
         undefined,
         baUnlinked,
-        true,
+        reservation.id,
       );
+
       expect(balance.billingAccountId).toBe(baUnlinked);
       expect(balance.balance).toBe(40);
+    });
+
+    it('reservation-authorized: a mismatched reservationId or billingAccountId reaches no wallet, and provisions the organization its own instead', async () => {
+      const [, , , orgUnlinked] = organizationIds;
+      const [baDirect, , baUnlinked] = billingAccountIds;
+      const reservation = await database().creditReservation.create({
+        data: {
+          amount: 5,
+          billingAccountId: baUnlinked,
+          expiresAt: new Date(Date.now() + 60_000),
+          idempotencyKey: `wallet-access-mismatch-${orgUnlinked}`,
+          organizationId: orgUnlinked,
+        },
+      });
+
+      // Right reservation, wrong billing account.
+      const wrongBillingAccount = await service.getOrCreateBalance(
+        orgUnlinked,
+        undefined,
+        baDirect,
+        reservation.id,
+      );
+      expect(wrongBillingAccount.organizationId).toBe(orgUnlinked);
+      expect(wrongBillingAccount.billingAccountId).toBe(baDirect);
+      expect(wrongBillingAccount.balance).toBe(0);
+
+      await database().creditBalance.deleteMany({
+        where: { billingAccountId: baDirect, organizationId: orgUnlinked },
+      });
+
+      // Right billing account, wrong (nonexistent) reservation.
+      const wrongReservation = await service.getOrCreateBalance(
+        orgUnlinked,
+        undefined,
+        baUnlinked,
+        'reservation-that-does-not-exist',
+      );
+      expect(wrongReservation.organizationId).toBe(orgUnlinked);
+      expect(wrongReservation.billingAccountId).toBe(baUnlinked);
+      expect(wrongReservation.balance).toBe(0);
     });
   },
 );

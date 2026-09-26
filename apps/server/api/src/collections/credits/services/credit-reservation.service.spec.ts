@@ -435,9 +435,9 @@ describe('CreditReservationService', () => {
       {
         billingAccountId: 'ba_1',
         heldDelta: -12,
-        isBillingAccountPreauthorized: true,
       },
       txClient,
+      'res_1',
     );
     expect(snapshot.held).toBe(0);
     expect(snapshot.available).toBe(100);
@@ -599,9 +599,9 @@ describe('CreditReservationService', () => {
       {
         billingAccountId: 'ba_1',
         heldDelta: -20,
-        isBillingAccountPreauthorized: true,
       },
       txClient,
+      'res_1',
     );
   });
 

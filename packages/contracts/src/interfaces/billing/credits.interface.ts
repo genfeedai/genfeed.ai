@@ -39,14 +39,4 @@ export interface IApplyCreditDeltaInput {
   heldDelta?: number;
   maxOverdraftCredits?: number;
   billingAccountId?: string | null;
-  /**
-   * True when `billingAccountId` was already proven to belong to this
-   * organization by an independently tenant-scoped row — e.g. a
-   * `CreditReservation` matched with `scopedWhere` — rather than by the
-   * caller's current-day link to the billing account. Reversing that
-   * specific, already-authorized commitment (a reservation release or
-   * settlement) must succeed even if the organization has since detached
-   * from the billing account; placing a new hold must not skip that check.
-   */
-  isBillingAccountPreauthorized?: boolean;
 }

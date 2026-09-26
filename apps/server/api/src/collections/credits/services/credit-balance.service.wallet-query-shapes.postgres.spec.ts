@@ -69,10 +69,11 @@ describe('CreditBalanceService wallet-lookup argument shapes (real Prisma client
     ).rejects.toThrow(CANT_REACH_DATABASE);
   });
 
-  it('path 4 (reservation-authorized): a well-formed argument shape only fails at the connection', async () => {
+  it('path 4 (reservation-authorized — rooted at CreditReservation, a tenant model, rather than a caller-asserted flag; CreditReservation.billingAccount is also a required to-one relation, so no nested `where` on it either): a well-formed argument shape only fails at the connection', async () => {
     await expect(
       service['findReservationAuthorizedWallet'](
-        'ba_1',
+        'org_1',
+        'res_1',
         { billingAccountId: 'ba_1' },
         client,
       ),
@@ -104,4 +105,41 @@ describe('CreditBalanceService wallet-lookup argument shapes (real Prisma client
       } as never),
     ).rejects.toThrow(/where/i);
   });
+
+  it("regression: a `where` nested inside CreditReservation.billingAccount's relation-select fails validation before any connection is attempted, same as path 3", async () => {
+    await expect(
+      client.creditReservation.findFirst({
+        select: {
+          billingAccount: {
+            select: {
+              creditBalances: { take: 1, where: { isDeleted: false } },
+            },
+            // Invalid: CreditReservation.billingAccount is also a required
+            // to-one relation. This is exactly the mistake findLinkedWallet
+            // made — guarding against repeating it here too.
+            where: { isDeleted: false },
+          },
+        },
+        where: {
+          billingAccountId: 'ba_1',
+          id: 'res_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+        // Cast needed: TS correctly rejects this shape now that the real
+        // Prisma types are in scope — that rejection is the point.
+      } as never),
+    ).rejects.toThrow(/where/i);
+  });
 });
+
+// findReservationAuthorizedWallet only ever queries `creditReservation
+// .findFirst`, scoped to organizationId via `scopedWhere` — never a bare
+// `billingAccount.findFirst({ id })`, which is what made the previous
+// caller-asserted boolean flag unsafe (no organizationId for a tenant guard
+// to check). Behavioral proof that a mismatched reservationId or
+// billingAccountId matches no row — rather than another organization's
+// wallet — needs an actual query result to distinguish "no match" from
+// "unreachable database", so it lives in credit-balance.service.spec.ts
+// (mocked) and credit-balance.service.wallet-access.postgres.spec.ts (real
+// database), not here.
