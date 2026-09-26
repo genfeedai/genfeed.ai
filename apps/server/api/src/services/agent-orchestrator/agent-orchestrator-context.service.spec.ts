@@ -51,6 +51,7 @@ function createService(options?: {
     {
       getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
       resolveModelKey: vi.fn().mockResolvedValue('test-model'),
+      resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
     } as never,
     {} as never,
     { findOne: vi.fn().mockResolvedValue(options?.thread ?? null) } as never,
@@ -94,6 +95,7 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
       {
         getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
         resolveModelKey: vi.fn().mockResolvedValue('test-model'),
+        resolveOverrideModelKey: vi.fn().mockResolvedValue('test-model'),
       } as never,
       {} as never,
       { findOne: vi.fn() } as never,
@@ -550,6 +552,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     registry: {
       getLocalDefaultModelKey: ReturnType<typeof vi.fn>;
       resolveModelKey: ReturnType<typeof vi.fn>;
+      resolveOverrideModelKey: ReturnType<typeof vi.fn>;
     };
     service: AgentOrchestratorContextService;
   } {
@@ -562,6 +565,7 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     const registry = {
       getLocalDefaultModelKey: vi.fn().mockResolvedValue('local-default-model'),
       resolveModelKey: vi.fn().mockResolvedValue('resolved-model'),
+      resolveOverrideModelKey: vi.fn().mockResolvedValue('resolved-model'),
     };
     const service = new AgentOrchestratorContextService(
       registry as never,
@@ -634,7 +638,8 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveModelKey).toHaveBeenCalledWith(undefined);
+    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(null);
+    expect(registry.resolveModelKey).not.toHaveBeenCalled();
     expect(result.model).toBe('resolved-model');
   });
 
@@ -646,7 +651,8 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveModelKey).toHaveBeenCalledWith(undefined);
+    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(null);
+    expect(registry.resolveModelKey).not.toHaveBeenCalled();
   });
 
   it('prefers the org thinking-model override over the agent-type default', async () => {
@@ -659,7 +665,14 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
       CONTEXT,
     );
 
-    expect(registry.resolveModelKey).toHaveBeenCalledWith('thinking-model');
+    // Runs through resolveOverrideModelKey, not the general resolveModelKey
+    // — an org-level override that has gone stale (retired, no longer
+    // enabled) must fall back to the platform default rather than trying an
+    // unknown key against the provider (#5228).
+    expect(registry.resolveOverrideModelKey).toHaveBeenCalledWith(
+      'thinking-model',
+    );
+    expect(registry.resolveModelKey).not.toHaveBeenCalled();
   });
 
   it('prefers an explicit strategy model over the thinking-model override and agent-type default', async () => {
@@ -674,5 +687,6 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
     );
 
     expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
+    expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
   });
 });
