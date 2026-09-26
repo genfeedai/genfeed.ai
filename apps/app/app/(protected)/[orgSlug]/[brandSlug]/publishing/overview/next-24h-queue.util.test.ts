@@ -177,4 +177,19 @@ describe('buildNext24hQueue', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0]?.items[0]?.scheduledAt).toBe('2026-09-01T14:00:00.000Z');
   });
+
+  it('strips stored HTML out of release titles', () => {
+    const releases = [
+      buildRelease({
+        title: '<p>AI content is taking over! Manual content...</p>',
+        targets: [buildTarget({ scheduledAt: '2026-09-01T13:00:00.000Z' })],
+      }),
+    ];
+
+    const groups = buildNext24hQueue(releases, NOW);
+
+    expect(groups[0]?.items[0]?.title).toBe(
+      'AI content is taking over! Manual content...',
+    );
+  });
 });
