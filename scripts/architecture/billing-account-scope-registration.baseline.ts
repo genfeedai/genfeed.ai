@@ -23,10 +23,10 @@ export const BILLING_ACCOUNT_SCOPE_REGISTRATION_BASELINE: readonly BillingAccoun
   [
     {
       file: 'apps/server/api/src/tenancy/billing-account-scope.ts',
-      line: 170,
+      line: 171,
     },
     {
       file: 'apps/server/api/src/tenancy/billing-account-scope.ts',
-      line: 189,
+      line: 190,
     },
   ];

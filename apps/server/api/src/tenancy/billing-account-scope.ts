@@ -35,14 +35,15 @@ export type BillingAccountScope = {
 export function isBillingAccountScope(
   value: unknown,
 ): value is BillingAccountScope {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<PropertyKey, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    BILLING_ACCOUNT_SCOPE_BRAND in value &&
-    (value as Record<string, unknown>)[BILLING_ACCOUNT_SCOPE_BRAND] === true &&
-    typeof (value as { billingAccountId?: unknown }).billingAccountId ===
-      'string' &&
-    (value as { billingAccountId: string }).billingAccountId.length > 0
+    candidate[BILLING_ACCOUNT_SCOPE_BRAND] === true &&
+    typeof candidate.billingAccountId === 'string' &&
+    candidate.billingAccountId.length > 0
   );
 }
 

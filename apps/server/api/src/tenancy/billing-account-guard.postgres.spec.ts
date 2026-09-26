@@ -297,29 +297,35 @@ describe.skipIf(!connectionString)(
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('rejects resolution when more than one LINKED row exists (ambiguous)', async () => {
+    // The ">1 LINKED row" ambiguous-conflict branch in
+    // resolveBillingAccountAccess cannot be exercised against a real
+    // database: billing_account_organizations_active_org_key is a partial
+    // unique index on (organizationId) WHERE status = 'LINKED' AND
+    // "isDeleted" = false, so Postgres itself refuses a second live LINKED
+    // row for the same organization before the code ever runs. See
+    // billing-account-scope.spec.ts's "rejects when more than one LINKED row
+    // is returned (ambiguous)" for that defensive branch, proven with a fake
+    // client instead.
+    it('confirms the database itself forbids a second live LINKED row for the same organization', async () => {
       const db = database();
       await db.billingAccount.create({ data: { id: billingAccountIds[1] } });
-      await db.billingAccountOrganization.createMany({
-        data: [
-          {
-            billingAccountId: billingAccountIds[0],
-            organizationId: organizationIds[0],
-            status: BillingAccountOrganizationStatus.LINKED,
-          },
-          {
+      await db.billingAccountOrganization.create({
+        data: {
+          billingAccountId: billingAccountIds[0],
+          organizationId: organizationIds[0],
+          status: BillingAccountOrganizationStatus.LINKED,
+        },
+      });
+
+      await expect(
+        db.billingAccountOrganization.create({
+          data: {
             billingAccountId: billingAccountIds[1],
             organizationId: organizationIds[0],
             status: BillingAccountOrganizationStatus.LINKED,
           },
-        ],
-      });
-
-      await expect(
-        runWithTenantContext({ organizationId: organizationIds[0] }, () =>
-          resolveBillingAccountAccess(organizationIds[0], guardedPrisma),
-        ),
-      ).rejects.toThrow('Billing account could not be resolved');
+        }),
+      ).rejects.toThrow(/unique constraint/i);
     });
 
     it('reserves, settles, and releases credits with no tenant context (BullMQ/worker shape)', async () => {

@@ -32,7 +32,10 @@ import {
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
-import { withBillingAccountScopeRollback } from '@libs/prisma/tenant-context';
+import {
+  crossOrgUnsafe,
+  withBillingAccountScopeRollback,
+} from '@libs/prisma/tenant-context';
 import {
   ConflictException,
   ForbiddenException,
@@ -308,14 +311,22 @@ export class BillingAccountsService {
             },
           });
           if (!alreadyLinked) {
-            // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
-            const linkedCount = await tx.billingAccountOrganization.count({
-              where: {
-                billingAccountId: currentAccount.id,
-                isDeleted: false,
-                status: BillingAccountOrganizationStatus.LINKED,
-              },
-            });
+            // The plan-limit count runs before this organization is linked
+            // (that's what the rest of this transaction is about to do), so
+            // there is no organizationId-based proof to resolve yet — this
+            // is authorized instead by the actor's BillingAccountMember role
+            // on currentAccount.id, already verified above by requireRole.
+            const linkedCount = await crossOrgUnsafe(
+              async () =>
+                // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
+                await tx.billingAccountOrganization.count({
+                  where: {
+                    billingAccountId: currentAccount.id,
+                    isDeleted: false,
+                    status: BillingAccountOrganizationStatus.LINKED,
+                  },
+                }),
+            );
             const limit = this.organizationLimitForTier(
               currentAccount.planTier,
             );
@@ -709,14 +720,25 @@ export class BillingAccountsService {
     };
   }
 
+  /**
+   * Called only from `ensureForOrganization`, before the candidate org is
+   * linked — the actor's ownership of `billingAccountId` was already proven
+   * via `billingAccountMember.findMany({where:{role: OWNER, userId}})` a few
+   * lines up, not via any organizationId, so there is no scope to resolve
+   * yet either.
+   */
   private async countLinkedOrganizations(billingAccountId: string) {
-    return this.prisma.billingAccountOrganization.count({
-      where: {
-        billingAccountId,
-        isDeleted: false,
-        status: BillingAccountOrganizationStatus.LINKED,
-      },
-    });
+    return crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
+        await this.prisma.billingAccountOrganization.count({
+          where: {
+            billingAccountId,
+            isDeleted: false,
+            status: BillingAccountOrganizationStatus.LINKED,
+          },
+        }),
+    );
   }
 
   private async usageByOrganization(scope: BillingAccountScope) {

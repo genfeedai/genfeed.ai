@@ -121,14 +121,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "billingAccountOrganization",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "76e2c49c8648240a1fe3",
-      "method": "count",
-      "model": "BillingAccountOrganization",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "botActivity",
       "file": "apps/server/api/src/collections/bot-activities/services/bot-activities.service.ts",
       "fingerprint": "9f5a806541980fc5b19d",
