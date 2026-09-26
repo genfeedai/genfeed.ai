@@ -213,6 +213,11 @@ describe('WebhooksController', () => {
         ['wrong scheme', 'Basic my-bearer-token'],
         ['single field', 'Bearer'],
       ])(
+        // Regression coverage for #5206: a naive
+        // `startsWith('Bearer ')`/`substring(7)` parse either missed a
+        // differently-cased scheme or silently kept surplus fields as part
+        // of the "token" (which then just failed the secret compare instead
+        // of being rejected outright as malformed).
         'rejects with the generic 401 for a %s Authorization header',
         async (_label, authorization) => {
           mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(

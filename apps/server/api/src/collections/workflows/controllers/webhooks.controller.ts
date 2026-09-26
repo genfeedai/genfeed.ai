@@ -14,6 +14,7 @@ import {
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { WorkflowWebhookAuthType } from '@genfeedai/contracts';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -105,7 +106,14 @@ export class WebhooksController {
         throw this.unauthorized();
       }
     } else if (authType === WorkflowWebhookAuthType.BEARER) {
-      const token = this.extractBearerToken(authHeader);
+      // RFC 7235: scheme names are case-insensitive — parseAuthorizationHeader
+      // (shared with CombinedAuthGuard, ApiKeyAuthGuard, etc. — see #5206)
+      // rejects anything but exactly one scheme and one token.
+      const parsedAuthHeader = parseAuthorizationHeader(authHeader);
+      const token =
+        parsedAuthHeader?.normalizedScheme === 'bearer'
+          ? parsedAuthHeader.token
+          : undefined;
       if (
         !token ||
         !workflow.webhookSecret ||
@@ -177,40 +185,6 @@ export class WebhooksController {
     }
 
     return isWorkflowWebhookAuthType(raw) ? raw : undefined;
-  }
-
-  /**
-   * Strictly extract a bearer token: exactly one scheme and one token,
-   * scheme compared case-insensitively (RFC 7235).
-   *
-   * TODO(#5206 / #5227): replace with the shared `parseAuthorizationHeader`
-   * from `@libs/auth/authorization-header` once that PR merges — duplicated
-   * here (rather than depending on unmerged work) so this fix doesn't block
-   * on it. Keep the two in sync until then.
-   */
-  private extractBearerToken(
-    authHeader: string | undefined,
-  ): string | undefined {
-    if (!authHeader) {
-      return undefined;
-    }
-
-    const trimmed = authHeader.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-
-    const parts = trimmed.split(/\s+/);
-    if (parts.length !== 2) {
-      return undefined;
-    }
-
-    const [scheme, token] = parts;
-    if (!scheme || !token || scheme.toLowerCase() !== 'bearer') {
-      return undefined;
-    }
-
-    return token;
   }
 
   /**
