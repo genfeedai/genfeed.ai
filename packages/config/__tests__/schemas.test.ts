@@ -1250,3 +1250,24 @@ describe('untrusted content activation boundary', () => {
     expect(result.value.UNTRUSTED_CONTENT_DECISION_MODE).toBe(mode ?? 'off');
   });
 });
+
+describe('media perception configuration', () => {
+  it('defaults perception on with six frames and a 24h lookback', () => {
+    const result = Joi.object(generalAiSchema).validate({});
+    expect(result.error).toBeUndefined();
+    expect(result.value).toMatchObject({
+      MEDIA_PERCEPTION_ENABLED: 'true',
+      MEDIA_PERCEPTION_FRAME_COUNT: 6,
+      MEDIA_PERCEPTION_LOOKBACK_HOURS: 24,
+    });
+  });
+
+  it.each([
+    { MEDIA_PERCEPTION_FRAME_COUNT: 0 },
+    { MEDIA_PERCEPTION_FRAME_COUNT: 25 },
+    { MEDIA_PERCEPTION_LOOKBACK_HOURS: 721 },
+    { MEDIA_PERCEPTION_ENABLED: 'yes' },
+  ])('rejects %o', (value) => {
+    expect(Joi.object(generalAiSchema).validate(value).error).toBeDefined();
+  });
+});

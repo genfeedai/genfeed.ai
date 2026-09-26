@@ -22,6 +22,32 @@ export const modelDiscoveryDecisionSchema = {
 };
 
 /**
+ * Media validation (#4877). Perception (#4879) turns each completed image,
+ * video or audio asset into persisted text artefacts off the publish path.
+ */
+export const mediaValidationSchema = {
+  // Frames, OCR and transcript need no model; the scene description calls the
+  // vision model below. `false` stops the workers sweep from enqueuing assets.
+  MEDIA_PERCEPTION_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  // Evenly spaced stills sampled per video. Each costs one OCR pass and one
+  // image in the vision prompt, so keep it small.
+  MEDIA_PERCEPTION_FRAME_COUNT: Joi.number()
+    .integer()
+    .min(1)
+    .max(24)
+    .default(6),
+  // How far back the sweep looks for completed assets without a record.
+  // Older assets are not perceived; readers report them as pending.
+  MEDIA_PERCEPTION_LOOKBACK_HOURS: Joi.number()
+    .integer()
+    .min(1)
+    .max(720)
+    .default(24),
+  // Vision model for the scene description; empty uses LLM_DEFAULTS.fastText.
+  MEDIA_PERCEPTION_VISION_MODEL: Joi.string().optional().allow(''),
+};
+
+/**
  * General AI config
  */
 export const generalAiSchema = {
@@ -93,6 +119,7 @@ export const generalAiSchema = {
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
   CONTENT_EVAL_GENFEED_API_KEY: Joi.string().optional().allow(''),
   ...modelDiscoveryDecisionSchema,
+  ...mediaValidationSchema,
   // Live activation is closed pending reviewed provider and real-traffic evidence (#4944).
   // Shadow records flags without withholding tool results.
   UNTRUSTED_CONTENT_DECISION_MODE: Joi.string()

@@ -14,6 +14,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
@@ -136,6 +137,15 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: true,
         },
         name: ONBOARDING_STARTER_ASSETS_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 60_000, type: 'exponential' },
+          removeOnComplete: true,
+          removeOnFail: { age: 30 * 60 },
+        },
+        name: MEDIA_PERCEPTION_QUEUE,
       },
     ),
   ],
