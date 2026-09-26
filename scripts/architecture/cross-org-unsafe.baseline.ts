@@ -21,4 +21,16 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/trends/services/modules/trend-analysis.service.ts',
       line: 103,
     },
+    // #5217: billing account plan-limit counts run before the candidate
+    // organization is linked (or, in linkOrganization, before the actor's
+    // membership proof extends to it) — authorized by the actor's
+    // BillingAccountMember role on the account, not by any organizationId.
+    {
+      file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
+      line: 319,
+    },
+    {
+      file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
+      line: 731,
+    },
   ];

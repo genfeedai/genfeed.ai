@@ -1,6 +1,7 @@
 export {
   buildMediaPromptFromHarness,
   isVisualContentKind,
+  selectMediaKnowledgeSources,
 } from '../media-prompt';
 export type { PersuasionLayerId } from '../persuasion/viral-psychology';
 export {

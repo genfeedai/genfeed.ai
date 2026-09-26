@@ -9,14 +9,24 @@ const mocks = vi.hoisted(() => {
   const findChildren = vi.fn();
   const getPosts = vi.fn();
   const findOne = vi.fn();
-  const service = { findChildren, findOne, getPosts };
+  const ingredientsFindOne = vi.fn();
+  const ingredientsService = {
+    findChildren,
+    findOne: ingredientsFindOne,
+    getPosts,
+  };
+  const categoryService = { findOne };
+  const resolvers = new Map<unknown, () => Promise<unknown>>();
 
   return {
+    categoryService,
     findChildren,
     findOne,
     getPosts,
     href: vi.fn((path: string) => `/acme/northstar${path}`),
-    resolveService: async () => service,
+    ingredientsFindOne,
+    ingredientsService,
+    resolvers,
   };
 });
 
@@ -32,7 +42,14 @@ vi.mock('next-intl', async () => {
 // async function per render invalidates every consumer callback built on it,
 // which re-fires their effects on each commit and spins the component forever.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.resolveService,
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const key = factory.toString();
+    const existing = mocks.resolvers.get(key);
+    if (existing) return existing;
+    const resolver = async () => factory('token');
+    mocks.resolvers.set(key, resolver);
+    return resolver;
+  },
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -40,7 +57,15 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@services/content/ingredients.service', () => ({
-  IngredientsService: { getInstance: vi.fn() },
+  IngredientsService: { getInstance: () => mocks.ingredientsService },
+}));
+
+vi.mock('@services/ingredients/images.service', () => ({
+  ImagesService: { getInstance: () => mocks.categoryService },
+}));
+
+vi.mock('@services/ingredients/videos.service', () => ({
+  VideosService: { getInstance: () => mocks.categoryService },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -104,6 +129,55 @@ describe('StudioGenerateInspector', () => {
       await screen.findByText('A founder beside a window.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Prompt enhanced')).toBeInTheDocument();
+    // The receipt is read through the image route, never a generic
+    // single-ingredient read the API does not serve.
+    expect(mocks.findOne).toHaveBeenCalledWith(
+      'ing-1',
+      undefined,
+      expect.any(AbortSignal),
+    );
+    expect(mocks.ingredientsFindOne).not.toHaveBeenCalled();
+  });
+
+  it('shows the Knowledge versions folded into the submitted prompt', async () => {
+    mocks.findOne.mockResolvedValue({
+      id: 'ing-1',
+      generationHarness: {
+        originalPrompt: 'Mascot poster',
+        enhancedPrompt: 'Mascot poster with a teal heron.',
+        status: 'applied',
+        source: 'request',
+        brandId: 'brand-1',
+        appliedPacks: [],
+        knowledgeReceipts: [
+          {
+            excerpt: 'Our mascot Pim is a teal heron.',
+            kind: 'TEXT',
+            purpose: 'INSPIRATION',
+            relevance: 0.58,
+            sourceId: 'source-1',
+            title: 'Mascot visual guide',
+            version: 1,
+            versionId: 'version-1',
+          },
+        ],
+      },
+    });
+    render(
+      <StudioGenerateInspector
+        job={recipeJob}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+
+    const receipts = await screen.findByRole('region', {
+      name: 'Knowledge sources',
+    });
+    expect(receipts).toHaveTextContent('Mascot visual guide');
+    expect(receipts).toHaveTextContent('Version 1');
   });
 
   it('shows the enriched recipe instead of the raw composer text', () => {

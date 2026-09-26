@@ -403,6 +403,9 @@ export class VideoGenerationPreparationService {
       contentType: 'video',
       model,
       harness: createVideoDto.harness,
+      ...(createVideoDto.knowledge
+        ? { knowledgeSelection: createVideoDto.knowledge }
+        : {}),
       promptId: createVideoDto.promptId,
       ...(createVideoDto.requestedSkillSlugs?.length
         ? { requestedSkillSlugs: createVideoDto.requestedSkillSlugs }

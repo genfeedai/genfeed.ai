@@ -1,5 +1,13 @@
 import { IngredientStatus, type Prisma } from '@genfeedai/prisma';
-import { brandScope, scopedWhere } from './scoped-where';
+import {
+  type BillingAccountAccessClient,
+  resolveBillingAccountAccess,
+} from './billing-account-scope';
+import {
+  billingAccountScopedWhere,
+  brandScope,
+  scopedWhere,
+} from './scoped-where';
 
 describe('scopedWhere', () => {
   it('forces the tenant scope, overriding caller input', () => {
@@ -65,6 +73,94 @@ describe('scopedWhere typing', () => {
     });
 
     expect(where.organizationId).toBe('org-1');
+  });
+});
+
+function fakeBillingAccountClient(
+  overrides: Partial<BillingAccountAccessClient> = {},
+): BillingAccountAccessClient {
+  return {
+    billingAccount: {
+      findFirst: async ({ where }) => ({ id: where.id, isDeleted: false }),
+    },
+    billingAccountOrganization: { findMany: async () => [] },
+    organization: {
+      findFirst: async ({ where }) => ({
+        billingAccountId: 'billing-1',
+        id: where.id,
+      }),
+    },
+    ...overrides,
+  } as BillingAccountAccessClient;
+}
+
+describe('billingAccountScopedWhere', () => {
+  it('builds the canonical billing-account scope for a resolved scope', async () => {
+    const scope = await resolveBillingAccountAccess(
+      'org-1',
+      fakeBillingAccountClient(),
+    );
+
+    expect(
+      billingAccountScopedWhere(scope, {
+        billingAccountId: 'attacker-supplied',
+        id: 'row-1',
+      }),
+    ).toEqual({
+      billingAccountId: 'billing-1',
+      id: 'row-1',
+      isDeleted: false,
+    });
+  });
+
+  it('defaults to live rows when the caller omits isDeleted', async () => {
+    const scope = await resolveBillingAccountAccess(
+      'org-1',
+      fakeBillingAccountClient(),
+    );
+
+    expect(billingAccountScopedWhere(scope, { id: 'row-1' })).toEqual({
+      billingAccountId: 'billing-1',
+      id: 'row-1',
+      isDeleted: false,
+    });
+  });
+
+  it('honors an explicit isDeleted instead of clobbering it', async () => {
+    const scope = await resolveBillingAccountAccess(
+      'org-1',
+      fakeBillingAccountClient(),
+    );
+
+    expect(
+      billingAccountScopedWhere(scope, { id: 'row-1', isDeleted: true }),
+    ).toEqual({
+      billingAccountId: 'billing-1',
+      id: 'row-1',
+      isDeleted: true,
+    });
+  });
+
+  it('keeps billingAccountId non-overridable, even under a spread ordering attack', async () => {
+    const scope = await resolveBillingAccountAccess(
+      'org-1',
+      fakeBillingAccountClient(),
+    );
+    const where = billingAccountScopedWhere(scope, {
+      billingAccountId: 'billing-attacker',
+    });
+
+    expect(where.billingAccountId).toBe('billing-1');
+  });
+
+  it('rejects a forged scope that lacks the runtime brand (#5217, MAJOR 2)', () => {
+    const forged = {
+      billingAccountId: 'billing-1',
+    } as unknown as Parameters<typeof billingAccountScopedWhere>[0];
+
+    expect(() => billingAccountScopedWhere(forged, {})).toThrowError(
+      'billingAccountScopedWhere: scope must come from resolveBillingAccountAccess',
+    );
   });
 });
 

@@ -442,6 +442,12 @@ function hasTenantGuard(callText: string): boolean {
   const whereText = callText.slice(whereIndex);
   return (
     /\bwhere\s*:\s*scopedWhere\s*\(/i.test(whereText) ||
+    // `billingAccountScopedWhere` (#5217, `apps/server/api/src/tenancy/scoped-where.ts`)
+    // is `scopedWhere`'s billing-account-shared-model counterpart: it
+    // non-overridably spreads `billingAccountId`/`isDeleted` into the where
+    // clause from a `BillingAccountScope` that can only come from
+    // `resolveBillingAccountAccess`. Same tenant guarantee, different key.
+    /\bwhere\s*:\s*billingAccountScopedWhere\s*\(/i.test(whereText) ||
     /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i.test(
       whereText,
     )

@@ -1,12 +1,12 @@
 'use client';
 
-import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
   PreparePausedMetaCampaignDraft,
 } from '@genfeedai/contracts/api-types/contracts';
+import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -24,6 +24,30 @@ const IN_FLIGHT_PHASES = new Set<BrandRemixRunView['phase']>([
   'paid_draft_creating',
   'partially_ready',
 ]);
+
+const IN_FLIGHT_SCENE_STATES = new Set([
+  'analysing',
+  'generating',
+  'assembling',
+]);
+
+/**
+ * A run keeps refreshing while generation is in flight, including provider
+ * scene work still being recorded after a cancellation.
+ */
+function isStudioRemixRunInFlight(run: BrandRemixRunView): boolean {
+  const pipeline = run.scenePipeline;
+  if (IN_FLIGHT_PHASES.has(run.phase)) return true;
+  if (!pipeline) return false;
+  return (
+    IN_FLIGHT_SCENE_STATES.has(pipeline.state) ||
+    Object.values(pipeline.scenes).some((scene) =>
+      [scene.image.state, scene.video.state].some(
+        (state) => state === 'claimed' || state === 'submitted',
+      ),
+    )
+  );
+}
 
 export type StudioRemixRunStatus =
   | 'idle'
@@ -161,7 +185,7 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
   }, [fetchRun, runId]);
 
   useEffect(() => {
-    if (!run || !IN_FLIGHT_PHASES.has(run.phase)) {
+    if (!run || !isStudioRemixRunInFlight(run)) {
       return;
     }
 
@@ -302,11 +326,12 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
     [run, perform, getContentRunsService],
   );
   const executeScenes = useCallback(async () => {
-    if (run?.scenePipeline?.quote)
+    const quoteId = run?.scenePipeline?.quote?.id;
+    if (run && quoteId)
       await perform(async () =>
         (await getContentRunsService()).executeBrandRemixScenes(run.id, {
           expectedRevision: run.revision,
-          quoteId: run.scenePipeline!.quote!.id,
+          quoteId,
         }),
       );
   }, [run, perform, getContentRunsService]);

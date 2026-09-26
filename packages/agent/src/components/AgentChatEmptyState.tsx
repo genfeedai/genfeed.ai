@@ -26,7 +26,7 @@ type AgentChatEmptyStateProps = {
   /** Knowledge selection sent with every turn from the composer. */
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided Knowledge picker rendered inside the composer. */
-  knowledgePicker?: ReactNode;
+  knowledgeSection?: ReactNode;
   chatAttachments: AttachmentItem[];
   clearAllAttachments: () => void;
   dragHandlers: DragHandlers;
@@ -66,7 +66,7 @@ type AgentChatEmptyStateProps = {
 
 export function AgentChatEmptyState({
   knowledgeSelection,
-  knowledgePicker,
+  knowledgeSection,
   addFiles,
   agentMode,
   onAgentModeChange,
@@ -186,7 +186,7 @@ export function AgentChatEmptyState({
                 onAgentModeChange={onAgentModeChange}
                 apiService={apiService}
                 knowledgeSelection={knowledgeSelection}
-                knowledgePicker={knowledgePicker}
+                knowledgeSection={knowledgeSection}
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
                 disabled={isReadOnly}

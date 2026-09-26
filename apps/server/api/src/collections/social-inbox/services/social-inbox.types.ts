@@ -70,10 +70,16 @@ export interface XPostRepliesIngestInput {
   replies: ReadonlyArray<{ post: XReplyTargetPost; reply: TwitterInboxTweet }>;
 }
 
+/** A message an ingestion call created, with the conversation that holds it. */
+export interface CreatedSocialMessageRef {
+  conversationId: string;
+  externalMessageId: string;
+}
+
 export interface XPostRepliesIngestResult {
   conversationsCreated: number;
-  /** External ids of messages this call created (not ones it re-saw). */
-  createdMessageIds: string[];
+  /** Messages this call created (not ones it re-saw). */
+  createdMessages: CreatedSocialMessageRef[];
   messagesCreated: number;
 }
 

@@ -28,7 +28,7 @@ export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-
 
 export function AgentChatContainer({
   knowledgeSelection,
-  knowledgePicker,
+  knowledgeSection,
   apiService,
   archivedNotice,
   isLoadingThread = false,
@@ -244,7 +244,7 @@ export function AgentChatContainer({
             onAgentModeChange={container.setAgentMode}
             apiService={apiService}
             knowledgeSelection={knowledgeSelection}
-            knowledgePicker={knowledgePicker}
+            knowledgeSection={knowledgeSection}
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
             composerBanner={
@@ -366,7 +366,7 @@ export function AgentChatContainer({
               onAgentModeChange={container.setAgentMode}
               apiService={apiService}
               knowledgeSelection={knowledgeSelection}
-              knowledgePicker={knowledgePicker}
+              knowledgeSection={knowledgeSection}
               chatAttachments={container.chatAttachments}
               clearAllAttachments={container.clearAllAttachments}
               dragHandlers={container.dragHandlers}

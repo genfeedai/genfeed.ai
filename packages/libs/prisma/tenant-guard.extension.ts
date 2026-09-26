@@ -1,6 +1,8 @@
 import { assertTenantScopedQuery } from './tenant-guard';
 
 export type TenantGuardOptions = {
+  /** Billing-account-capable tenant model names (#5217); see `TenantGuardArgs`. */
+  billingAccountModelNames?: ReadonlySet<string>;
   isCloud: boolean;
   tenantModelNames: ReadonlySet<string>;
 };
@@ -31,6 +33,7 @@ export function createTenantGuardExtension(
         async $allOperations({ args, model, operation, query }) {
           assertTenantScopedQuery({
             args,
+            billingAccountModelNames: options.billingAccountModelNames,
             isCloud: options.isCloud,
             model,
             operation,

@@ -1,20 +1,17 @@
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import type { KnowledgeReceiptListProps } from '@genfeedai/props/content/knowledge-library.props';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 const EXCERPT_LENGTH = 160;
 
-/** Keys resolve under `pages.library.knowledge.purpose`. */
+/** Keys resolve under `ui.knowledgeReceipts.purpose`. */
 const PURPOSE_KEY: Record<KnowledgeSourcePurpose, string> = {
   [KnowledgeSourcePurpose.BRAND_TRUTH]: 'brandTruth',
   [KnowledgeSourcePurpose.INSPIRATION]: 'inspiration',
   [KnowledgeSourcePurpose.RESEARCH]: 'research',
 };
-
-interface KnowledgeReceiptListProps {
-  receipts: KnowledgeReceipt[];
-}
 
 function toExcerpt(text: string): string {
   const flattened = text.replace(/\s+/g, ' ').trim();
@@ -27,11 +24,10 @@ function toExcerpt(text: string): string {
  * Receipts for the exact Knowledge source versions that grounded a generated
  * output. One row per source version; the strongest passage is the excerpt.
  */
-export function KnowledgeReceiptList({
+export default function KnowledgeReceiptList({
   receipts,
 }: KnowledgeReceiptListProps): ReactElement | null {
-  const translate = useTranslations('agent.messageCards');
-  const translatePurpose = useTranslations('pages.library.knowledge.purpose');
+  const translate = useTranslations('ui.knowledgeReceipts');
   const byVersion = new Map<string, KnowledgeReceipt>();
   for (const receipt of receipts) {
     const current = byVersion.get(receipt.versionId);
@@ -45,12 +41,12 @@ export function KnowledgeReceiptList({
 
   return (
     <section
-      aria-label={translate('knowledgeSources')}
+      aria-label={translate('title')}
       className="space-y-1.5 border-t border-border/50 pt-2"
       data-testid="knowledge-receipts"
     >
       <p className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-        {translate('knowledgeSources')}
+        {translate('title')}
       </p>
       <ul className="space-y-1.5">
         {[...byVersion.values()].map((receipt) => (
@@ -70,11 +66,11 @@ export function KnowledgeReceiptList({
               )}
               {PURPOSE_KEY[receipt.purpose] ? (
                 <span className="text-muted-foreground">
-                  {translatePurpose(PURPOSE_KEY[receipt.purpose])}
+                  {translate(`purpose.${PURPOSE_KEY[receipt.purpose]}`)}
                 </span>
               ) : null}
               <span className="text-muted-foreground">
-                {translate('knowledgeVersion', { version: receipt.version })}
+                {translate('version', { version: receipt.version })}
               </span>
             </p>
             {receipt.excerpt.trim() ? (

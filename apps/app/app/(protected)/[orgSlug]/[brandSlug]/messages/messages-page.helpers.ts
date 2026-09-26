@@ -40,8 +40,6 @@ export const EMPTY_MESSAGES_PAGINATION: MessagesPaginationState = {
   totalPages: 1,
 };
 
-export const SELECTED_CONVERSATION_PARAM = 'socialConversation';
-
 export const ALL_BRANDS_FILTER = 'all' as const;
 
 export const AUTOMATION_OPTIONS: Array<{

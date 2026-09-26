@@ -1,6 +1,10 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import {
+  billingAccountScopedWhere,
+  resolveBillingAccountAccess,
+} from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
@@ -192,6 +196,13 @@ export class ReferralsService {
   ): Promise<IReferralClaimResult> {
     const code = rawCode.trim().toLowerCase();
     const targetAccount = await this.resolveActorAccount(actor);
+    // Guard-visible proof (#5217) that actor.organizationId may use
+    // targetAccount — resolveActorAccount already proved this via
+    // BillingAccountsService.resolveForOrganization, which this mirrors.
+    const targetScope = await resolveBillingAccountAccess(
+      actor.organizationId,
+      this.prisma,
+    );
     const referralCode = await this.prisma.referralCode.findFirst({
       where: { code, isActive: true, isDeleted: false },
     });
@@ -234,14 +245,11 @@ export class ReferralsService {
       return { isAccepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
-    // tenant-scope-ignore: paid-account eligibility is billing-account scoped and must cover every authoritative organization link
     const targetLinks = await this.prisma.billingAccountOrganization.findMany({
       select: { organizationId: true },
-      where: {
-        billingAccountId: targetAccount.id,
-        isDeleted: false,
+      where: billingAccountScopedWhere(targetScope, {
         status: BillingAccountOrganizationStatus.LINKED,
-      },
+      }),
     });
     const liveLinkedOrganizations = await this.prisma.organization.findMany({
       select: { id: true },

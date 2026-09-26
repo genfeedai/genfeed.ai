@@ -593,6 +593,16 @@ export function isUserFacingAppPathname(pathname: string): boolean {
   );
 }
 
+/** Query param that selects one conversation in the Messages inbox. */
+export const MESSAGES_CONVERSATION_QUERY_PARAM = 'socialConversation';
+
+/** Brand-relative path that opens one Messages conversation. */
+export function createMessagesConversationRoute(
+  conversationId: string,
+): string {
+  return `${APP_ROUTES.MESSAGES.ROOT}?${MESSAGES_CONVERSATION_QUERY_PARAM}=${encodeURIComponent(conversationId)}`;
+}
+
 /** Brand-relative path to a destination hub: `/platforms/instagram`. */
 export function createPlatformHomeRoute(platform: string): string {
   return `${APP_ROUTES.PLATFORMS.ROOT}/${encodeURIComponent(platform)}`;

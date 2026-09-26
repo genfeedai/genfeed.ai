@@ -1,9 +1,5 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
-import { OptionSelect } from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import {
   ButtonSize,
@@ -16,11 +12,15 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
+import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import { OptionSelect } from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
 import type { UseStudioRemixRunResult } from '@pages/studio/generate/hooks/useStudioRemixRun';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -187,6 +187,26 @@ export default function StudioRemixScenes({
   const dirty =
     JSON.stringify(storyboard) !==
     JSON.stringify(run.concept?.storyboard ?? []);
+  const hasIncompleteIdentity = storyboard.some(
+    (scene) =>
+      scene.identity &&
+      (!scene.identity.avatarAssetId || !scene.identity.speechVoiceId),
+  );
+  const canCancel =
+    Boolean(pipeline?.operation) &&
+    !immutable &&
+    (Boolean(active) || pipeline?.state === 'partial_failure');
+  const isRecordingAcceptedWork = Object.values(pipeline?.scenes ?? {}).some(
+    (scene) =>
+      [scene.image.state, scene.video.state].some(
+        (state) => state === 'claimed' || state === 'submitted',
+      ),
+  );
+  const canResume =
+    Boolean(pipeline?.operation) &&
+    !immutable &&
+    (pipeline?.state === 'partial_failure' ||
+      (pipeline?.state === 'cancelled' && !isRecordingAcceptedWork));
   return (
     <section
       aria-label={t('title')}
@@ -265,7 +285,7 @@ export default function StudioRemixScenes({
           size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
         />
-        {active ? (
+        {canCancel ? (
           <Button
             label={t('cancel')}
             isDisabled={isWorking}
@@ -274,7 +294,7 @@ export default function StudioRemixScenes({
             variant={ButtonVariant.SECONDARY}
           />
         ) : null}
-        {pipeline?.operation && !immutable ? (
+        {canResume ? (
           <Button
             label={t('resume')}
             isDisabled={isWorking}
@@ -481,9 +501,12 @@ export default function StudioRemixScenes({
           </div>
         );
       })}
+      {hasIncompleteIdentity ? (
+        <p className="text-xs text-destructive">{t('identityPairRequired')}</p>
+      ) : null}
       <Button
         label={t('save')}
-        isDisabled={disabled || !dirty}
+        isDisabled={disabled || !dirty || hasIncompleteIdentity}
         onClick={() => void actions.saveScenes({ concept: { storyboard } })}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}

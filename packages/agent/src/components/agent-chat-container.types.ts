@@ -9,7 +9,7 @@ export interface AgentChatContainerProps {
   /** Knowledge selection sent with every turn from the composer. */
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided Knowledge picker rendered inside the composer. */
-  knowledgePicker?: ReactNode;
+  knowledgeSection?: ReactNode;
   /**
    * When set (archived thread), the prompt bar is replaced by an alert +
    * Unarchive control. Cleared after a successful unarchive.

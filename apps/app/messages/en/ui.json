@@ -17,6 +17,15 @@
     "whyItWorks": "Why it works",
     "notEvaluated": "Not evaluated"
   },
+  "knowledgeReceipts": {
+    "title": "Knowledge sources",
+    "version": "Version {version}",
+    "purpose": {
+      "brandTruth": "Brand Truth",
+      "inspiration": "Inspiration",
+      "research": "Research"
+    }
+  },
   "generationHarness": {
     "appliedContext": "Applied context",
     "brand": "This brand",

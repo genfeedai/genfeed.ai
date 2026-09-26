@@ -6,7 +6,10 @@ import type {
   SplitFrameResult,
   SplitResponse,
 } from '@genfeedai/props/studio/contact-sheet.props';
-import { ImageEditSerializer, ImageSerializer } from '@genfeedai/serializers';
+import {
+  ImageEditSerializer,
+  ImageGenerationSerializer,
+} from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
@@ -30,8 +33,7 @@ export class ImagesService extends IngredientsService<Image> {
   }
 
   public async post(body: Partial<IImage> | ImageGenerationPayload) {
-    // Use the ImageSerializer to properly serialize the data
-    const data = ImageSerializer.serialize(body);
+    const data = ImageGenerationSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument
       .then((res) => this.mapOne(res.data));

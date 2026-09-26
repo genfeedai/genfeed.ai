@@ -3,7 +3,16 @@ export interface AppSwitcherNavigationTarget {
   href: string;
 }
 
+/** Count pill on one app tile, e.g. unread Messages conversations. */
+export interface AppSwitcherBadge {
+  count: number;
+  /** Accessible description of the count, already localized. */
+  label: string;
+}
+
 export interface AppSwitcherProps {
+  /** Count pills keyed by app id; a missing or zero count renders nothing. */
+  badges?: Readonly<Partial<Record<string, AppSwitcherBadge>>>;
   /** Selected brand context used by brand-aware apps when the current route is org-scoped. */
   brandAwareSlug?: string;
   brandSlug?: string;

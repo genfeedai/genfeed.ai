@@ -24,7 +24,7 @@ interface AgentFullPageProps {
   /** Knowledge selection sent with every turn from the composer. */
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided Knowledge picker rendered inside the composer. */
-  knowledgePicker?: ReactNode;
+  knowledgeSection?: ReactNode;
   authReady?: boolean;
   threadId?: string;
   showThreadSidebar?: boolean;
@@ -49,7 +49,7 @@ interface AgentFullPageProps {
 
 export function AgentFullPage({
   knowledgeSelection,
-  knowledgePicker,
+  knowledgeSection,
   apiService,
   authReady = true,
   threadId,
@@ -173,7 +173,7 @@ export function AgentFullPage({
               }
               apiService={apiService}
               knowledgeSelection={knowledgeSelection}
-              knowledgePicker={knowledgePicker}
+              knowledgeSection={knowledgeSection}
               isLoadingThread={isLoadingThread}
               isStreaming
               isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}

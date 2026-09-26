@@ -1,3 +1,4 @@
+import { generationRequestAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { buildSerializer } from '@serializers/builders';
 import {
   videoCaptionSerializerConfig,
@@ -15,6 +16,17 @@ const SERVER_VIDEO_CONFIG = {
 export const { VideoSerializer } = buildSerializer(
   'server',
   SERVER_VIDEO_CONFIG,
+);
+
+export const { VideoSerializer: VideoGenerationSerializer } = buildSerializer(
+  'server',
+  {
+    ...SERVER_VIDEO_CONFIG,
+    attributes: [
+      ...SERVER_VIDEO_CONFIG.attributes,
+      ...generationRequestAttributes,
+    ],
+  },
 );
 
 export const { VideoEditSerializer } = buildSerializer(

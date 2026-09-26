@@ -4,6 +4,7 @@ import type {
   KnowledgeSpace,
 } from '@genfeedai/client/models';
 import type {
+  KnowledgeReceipt,
   KnowledgeSelection,
   KnowledgeSourceCaptureRequest,
   KnowledgeSourceUpdateRequest,
@@ -58,7 +59,7 @@ export interface KnowledgeStateBadgeProps {
   version?: KnowledgeSourceVersion;
 }
 
-export interface KnowledgeContextPickerProps {
+export interface KnowledgeReferenceSectionProps {
   brandId: string | undefined;
   onChange: (selection: KnowledgeSelection) => void;
   value: KnowledgeSelection;
@@ -68,4 +69,8 @@ export interface KnowledgeContextPickerProps {
 export interface BrandKnowledgeSelection {
   brandId: string | undefined;
   value: KnowledgeSelection;
+}
+
+export interface KnowledgeReceiptListProps {
+  receipts: KnowledgeReceipt[];
 }

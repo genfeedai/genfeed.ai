@@ -86,6 +86,7 @@
     "check:test-collection": "node scripts/architecture/check-test-collection.mjs",
     "check:test-id-literals": "bun run scripts/architecture/check-test-id-literals.ts",
     "check:cross-org-unsafe": "bun run scripts/architecture/check-cross-org-unsafe.ts",
+    "check:billing-account-scope-registration": "bun run scripts/architecture/check-billing-account-scope-registration.ts",
     "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",

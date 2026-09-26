@@ -37,7 +37,7 @@ type AgentChatPromptBarProps = {
   /** Knowledge selection sent with every turn from the composer. */
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided Knowledge picker rendered inside the composer. */
-  knowledgePicker?: ReactNode;
+  knowledgeSection?: ReactNode;
   composerBanner?: ReactNode;
   layoutMode: 'fixed' | 'surface-fixed';
   followUps?: readonly ComposerFollowUp[];
@@ -84,7 +84,7 @@ type AgentChatPromptBarProps = {
 
 export function AgentChatPromptBar({
   knowledgeSelection,
-  knowledgePicker,
+  knowledgeSection,
   composerBanner,
   agentMode,
   onAgentModeChange,
@@ -228,7 +228,7 @@ export function AgentChatPromptBar({
         onStop={onStop}
         apiService={apiService}
         knowledgeSelection={knowledgeSelection}
-        knowledgePicker={knowledgePicker}
+        knowledgeSection={knowledgeSection}
         // Error ends the turn from the operator's POV — show Send again, not Stop.
         showStop={isRunActive && !error}
         willQueueFollowUp={isBusy}

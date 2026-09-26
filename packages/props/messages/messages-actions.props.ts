@@ -8,6 +8,8 @@ export interface UseMessagesActionsParams {
   readonly conversationType: MessagesSurface;
   readonly getMessagesService: () => Promise<SocialMessagesService>;
   readonly loadConversations: (signal?: AbortSignal) => Promise<void>;
+  /** A reply or resolve zeroed a thread's unread state server-side. */
+  readonly onInboxReadStateChange?: () => void;
   readonly onLoadError?: (message: string | null) => void;
   readonly refreshSelectedThread: () => Promise<void>;
   readonly selectedConversation: SocialConversationModel | null;

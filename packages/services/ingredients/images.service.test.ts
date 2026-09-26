@@ -5,11 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@genfeedai/serializers', () => ({
   AvatarSerializer: { serialize: vi.fn((data) => data) },
   ImageEditSerializer: { serialize: vi.fn((data) => data) },
+  ImageGenerationSerializer: { serialize: vi.fn((data) => data) },
   ImageSerializer: { serialize: vi.fn((data) => data) },
   IngredientBulkDeleteSerializer: { serialize: vi.fn((data) => data) },
   IngredientSerializer: { serialize: vi.fn((data) => data) },
   MetadataSerializer: { serialize: vi.fn((data) => data) },
   MusicSerializer: { serialize: vi.fn((data) => data) },
+  VideoGenerationSerializer: { serialize: vi.fn((data) => data) },
   VideoSerializer: { serialize: vi.fn((data) => data) },
 }));
 
