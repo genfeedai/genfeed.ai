@@ -226,6 +226,13 @@ describe('ContentGeneratorService', () => {
         nodes: GraphNode[];
       };
     };
+    const readRequiredInputKeys = (schema: unknown): string[] => {
+      if (typeof schema !== 'object' || schema === null) return [];
+      if (!('required' in schema) || !Array.isArray(schema.required)) return [];
+      return schema.required.filter(
+        (key): key is string => typeof key === 'string',
+      );
+    };
     const registered = () =>
       workflowRunner.registerWorkflow.mock.calls.map(
         ([definition]) => definition as GraphDefinition,
@@ -237,8 +244,9 @@ describe('ContentGeneratorService', () => {
         for (const node of definition.nodes) {
           const actionId = node.data?.config?.actionId;
           if (node.type !== 'genfeedAction' || !actionId) continue;
-          const required = (getActionDefinition(actionId)?.inputSchema
-            ?.required ?? []) as string[];
+          const required = readRequiredInputKeys(
+            getActionDefinition(actionId)?.inputSchema,
+          );
           const wired = new Set([
             ...(node.data?.inputVariableKeys ?? []),
             ...Object.keys(node.data?.config?.parameters ?? {}),
