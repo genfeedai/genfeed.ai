@@ -7,14 +7,17 @@ import {
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 /**
- * Non-exported brand key. Nothing outside this module can produce an object
- * with this property, so `BillingAccountScope` cannot be constructed from a
- * raw `billingAccountId` string anywhere else in the codebase (#5217). Also
- * used at runtime by `isBillingAccountScope` — a plain object shaped like a
- * scope but built with `as`/`as unknown as BillingAccountScope` still lacks
- * this actual property, so `billingAccountScopedWhere` (see
- * `./scoped-where`) can catch a forged token instead of trusting the type
- * system alone.
+ * Non-exported brand key, kept on the TYPE for compile-time nominal typing
+ * only — `BillingAccountScope` cannot be *written* as a literal anywhere
+ * outside this module without the symbol in scope, so a plain
+ * `{ billingAccountId: 'x' } as BillingAccountScope` still fails to type-check.
+ *
+ * It is deliberately NOT the runtime authority any more (hardening after the
+ * second review pass): a symbol-keyed property is still an *enumerable* own
+ * property, so `{ ...realScope, billingAccountId: 'victim' }` copies it
+ * straight through an object spread, forging a scope for an arbitrary id
+ * with the real scope's brand attached. See `ISSUED_BILLING_ACCOUNT_SCOPES`
+ * below for the actual runtime check.
  */
 const BILLING_ACCOUNT_SCOPE_BRAND: unique symbol = Symbol(
   'BillingAccountScope',
@@ -31,7 +34,28 @@ export type BillingAccountScope = {
   readonly [BILLING_ACCOUNT_SCOPE_BRAND]: true;
 };
 
-/** Runtime check that `value` actually carries the brand (#5217, MAJOR 2). */
+/**
+ * Every scope object this module has actually issued via
+ * `brandBillingAccountScope`, tracked by object identity rather than by any
+ * property the object carries (#5217, MAJOR 2; hardening after the second
+ * review pass). This is what makes the brand unforgeable at runtime:
+ *
+ * - Object-identity (`WeakSet`) membership can't be produced by copying
+ *   properties — `{ ...realScope, billingAccountId: 'victim' }` is a *new*
+ *   object, never added to this set, so it fails `isBillingAccountScope`
+ *   even though it still carries the (enumerable, guessable-by-symbol-leak)
+ *   brand property.
+ * - `Object.freeze()` in `brandBillingAccountScope` closes the remaining
+ *   gap: without it, mutating a *real* scope's `billingAccountId` in place
+ *   (same object identity, still WeakSet-registered) would pass this check
+ *   for whatever id was written last.
+ * - `WeakSet` (not `Set`) so an issued-but-discarded scope can still be
+ *   garbage-collected; nothing here needs to enumerate issued scopes, only
+ *   test membership.
+ */
+const ISSUED_BILLING_ACCOUNT_SCOPES = new WeakSet<object>();
+
+/** Runtime check that `value` was actually issued by this module (#5217, MAJOR 2). */
 export function isBillingAccountScope(
   value: unknown,
 ): value is BillingAccountScope {
@@ -39,9 +63,12 @@ export function isBillingAccountScope(
     return false;
   }
 
+  if (!ISSUED_BILLING_ACCOUNT_SCOPES.has(value)) {
+    return false;
+  }
+
   const candidate = value as Record<PropertyKey, unknown>;
   return (
-    candidate[BILLING_ACCOUNT_SCOPE_BRAND] === true &&
     typeof candidate.billingAccountId === 'string' &&
     candidate.billingAccountId.length > 0
   );
@@ -86,10 +113,17 @@ export type BillingAccountAccessClient<
 function brandBillingAccountScope(
   billingAccountId: string,
 ): BillingAccountScope {
-  return {
+  const scope: BillingAccountScope = {
     billingAccountId,
     [BILLING_ACCOUNT_SCOPE_BRAND]: true,
   };
+
+  // Freeze before registering: once issued, nothing (including this module)
+  // can mutate `billingAccountId` in place on a still-WeakSet-registered
+  // object and have it pass isBillingAccountScope for a different id.
+  Object.freeze(scope);
+  ISSUED_BILLING_ACCOUNT_SCOPES.add(scope);
+  return scope;
 }
 
 /**

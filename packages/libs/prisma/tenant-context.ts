@@ -28,7 +28,25 @@ type TenantStore = {
 };
 
 const storage = new AsyncLocalStorage<TenantStore>();
-const EMPTY_BILLING_ACCOUNT_IDS: ReadonlySet<string> = new Set();
+
+/**
+ * A read-only membership check over the active `BillingAccountScope`s for
+ * the current tenant context. Deliberately not `ReadonlySet<string>`: that
+ * type is a compile-time-only restriction — the live `Set` underneath is
+ * still trivially reachable and mutable via a cast (`as Set<string>`), so a
+ * caller outside `registerBillingAccountScope` could otherwise add or clear
+ * scopes without going through the one function CI's import ratchet
+ * enforces. Exposing only `has()` removes that escape hatch: there is no
+ * value this view returns that a caller can widen back into the underlying
+ * `Set`.
+ */
+export type BillingAccountScopeMembership = {
+  has(billingAccountId: string): boolean;
+};
+
+const EMPTY_BILLING_ACCOUNT_SCOPES: BillingAccountScopeMembership = {
+  has: () => false,
+};
 
 /** Trims a tenant identifier (`organizationId` or `billingAccountId`) to `undefined` when blank. */
 function sanitizeId(value: string | undefined): string | undefined {
@@ -124,9 +142,22 @@ export function registerBillingAccountScope(billingAccountId: string): void {
   store.billingAccountIds.add(sanitized);
 }
 
-/** The `billingAccountId`s proven active in the current tenant context. */
-export function getActiveBillingAccountScopes(): ReadonlySet<string> {
-  return storage.getStore()?.billingAccountIds ?? EMPTY_BILLING_ACCOUNT_IDS;
+/**
+ * Whether `billingAccountId`s are proven active in the current tenant
+ * context. Returns a `has()`-only view rather than the live `Set` (see
+ * `BillingAccountScopeMembership`) so no caller of this getter — including
+ * the runtime guard itself — can mutate or replace the underlying scope
+ * store; only `registerBillingAccountScope` can.
+ */
+export function getActiveBillingAccountScopes(): BillingAccountScopeMembership {
+  const billingAccountIds = storage.getStore()?.billingAccountIds;
+  if (!billingAccountIds) {
+    return EMPTY_BILLING_ACCOUNT_SCOPES;
+  }
+
+  return {
+    has: (billingAccountId: string) => billingAccountIds.has(billingAccountId),
+  };
 }
 
 /**

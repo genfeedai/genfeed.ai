@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { BillingAccountScopeMembership } from './tenant-context';
 import {
   crossOrgUnsafe,
   getActiveBillingAccountScopes,
@@ -8,6 +9,21 @@ import {
   runWithTenantContext,
   withBillingAccountScopeRollback,
 } from './tenant-context';
+
+/**
+ * `getActiveBillingAccountScopes()` returns a `has()`-only view (hardening,
+ * #5231), not a `Set`, so these tests assert membership against an expected
+ * id list instead of `.size`/`toEqual(new Set(...))`.
+ */
+function expectActiveScopes(
+  actual: BillingAccountScopeMembership,
+  expectedIds: readonly string[],
+): void {
+  for (const id of expectedIds) {
+    expect(actual.has(id)).toBe(true);
+  }
+  expect(actual.has('__not-a-registered-scope__')).toBe(false);
+}
 
 describe('tenant context', () => {
   it('is empty outside a store', () => {
@@ -47,12 +63,12 @@ describe('tenant context', () => {
 
 describe('billing account scope registration', () => {
   it('is empty outside a tenant context', () => {
-    expect(getActiveBillingAccountScopes().size).toBe(0);
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
   });
 
   it('is a no-op outside a tenant context (nothing to register into)', () => {
     registerBillingAccountScope('billing-1');
-    expect(getActiveBillingAccountScopes().size).toBe(0);
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
   });
 
   it('registers a billingAccountId as active for the current tenant context', () => {
@@ -61,8 +77,8 @@ describe('billing account scope registration', () => {
       return getActiveBillingAccountScopes();
     });
 
-    expect(seen).toEqual(new Set(['billing-1']));
-    expect(getActiveBillingAccountScopes().size).toBe(0);
+    expectActiveScopes(seen, ['billing-1']);
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
   });
 
   it('accumulates multiple registered scopes in the same context', () => {
@@ -73,7 +89,7 @@ describe('billing account scope registration', () => {
       return getActiveBillingAccountScopes();
     });
 
-    expect(seen).toEqual(new Set(['billing-1', 'billing-2']));
+    expectActiveScopes(seen, ['billing-1', 'billing-2']);
   });
 
   it('does not carry a registered scope into a nested runWithTenantContext', () => {
@@ -84,7 +100,7 @@ describe('billing account scope registration', () => {
       );
     });
 
-    expect(seen.size).toBe(0);
+    expectActiveScopes(seen, []);
   });
 
   it('is visible inside the crossOrgUnsafe escape hatch', () => {
@@ -93,7 +109,22 @@ describe('billing account scope registration', () => {
       return crossOrgUnsafe(() => getActiveBillingAccountScopes());
     });
 
-    expect(seen).toEqual(new Set(['billing-1']));
+    expectActiveScopes(seen, ['billing-1']);
+  });
+
+  it('does not expose a mutable Set through the returned view', () => {
+    const seen = runWithTenantContext({ organizationId: 'org-1' }, () => {
+      registerBillingAccountScope('billing-1');
+      return getActiveBillingAccountScopes();
+    });
+
+    // The view is has()-only — there is no `.add`/`.delete`/`.size` a caller
+    // could use to mutate or introspect the underlying Set (hardening,
+    // #5231). Object.keys should show only the `has` method, never any
+    // Set-shaped internals leaking through.
+    expect(Object.keys(seen)).toEqual(['has']);
+    expect('add' in seen).toBe(false);
+    expect('size' in seen).toBe(false);
   });
 });
 
@@ -110,7 +141,7 @@ describe('withBillingAccountScopeRollback', () => {
       },
     );
 
-    expect(seen).toEqual(new Set(['billing-existing', 'billing-new']));
+    expectActiveScopes(seen, ['billing-existing', 'billing-new']);
   });
 
   it('discards a scope registered mid-operation when it throws (rolled-back transaction)', async () => {
@@ -128,7 +159,8 @@ describe('withBillingAccountScopeRollback', () => {
       },
     );
 
-    expect(seen).toEqual(new Set(['billing-existing']));
+    expectActiveScopes(seen, ['billing-existing']);
+    expect(seen.has('billing-doomed')).toBe(false);
   });
 
   it('is a no-op outside a tenant context', async () => {
@@ -138,7 +170,7 @@ describe('withBillingAccountScopeRollback', () => {
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');
-    expect(getActiveBillingAccountScopes().size).toBe(0);
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
   });
 
   it('propagates the resolved value on success', async () => {

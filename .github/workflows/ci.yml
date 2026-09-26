@@ -899,15 +899,32 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      # `bunx prisma` from the repo root doesn't find the workspace-local,
+      # pinned `prisma` (it isn't hoisted there) and can silently fetch an
+      # unpinned version instead; and Prisma 7's datasource URL comes only
+      # from packages/prisma/prisma.config.mjs's own `process.env.DATABASE_URL`
+      # read; a bare `bunx prisma migrate deploy` here fails with
+      # "datasource.url property is required". `working-directory:
+      # packages/prisma` + `bun x` (not `bunx`) matches e2e.yml's existing,
+      # working pattern for this same schema/config pair.
+      #
+      # Cost: fully migrate billing_scope_test once, then `CREATE DATABASE
+      # ... TEMPLATE` credit_balance_test from it — a near-instant file-level
+      # copy — instead of running the full ~260-migration deploy twice per
+      # shard. Every shard still gets both databases fully migrated (matrix
+      # shards are separate runners/containers, so this can't be skipped on
+      # "some" shards without knowing which ones vitest's file-count-based
+      # sharding will hand a *.postgres.spec.ts file — verified this isn't
+      # knowable ahead of time: `vitest list --shard=N/M` does not actually
+      # respect `--shard`, it lists the whole suite regardless of N/M).
       - name: Provision billing-account-scope and credit-balance test databases
+        working-directory: packages/prisma
+        env:
+          PGPASSWORD: genfeed_local
         run: |
-          for db in billing_scope_test credit_balance_test; do
-            PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -tc \
-              "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1 || \
-              PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -c "CREATE DATABASE ${db};"
-          done
-          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
-          DATABASE_URL="$CREDIT_BALANCE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
+          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bun x prisma migrate deploy
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Mark test start
@@ -1023,15 +1040,17 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      # See the identical step in test-api-changed above for why this needs
+      # working-directory + `bun x` (not root `bunx`) and why it templates
+      # the second database instead of running the full migration twice.
       - name: Provision billing-account-scope and credit-balance test databases
+        working-directory: packages/prisma
+        env:
+          PGPASSWORD: genfeed_local
         run: |
-          for db in billing_scope_test credit_balance_test; do
-            PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -tc \
-              "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1 || \
-              PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -c "CREATE DATABASE ${db};"
-          done
-          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
-          DATABASE_URL="$CREDIT_BALANCE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
+          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bun x prisma migrate deploy
+          psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Mark test start

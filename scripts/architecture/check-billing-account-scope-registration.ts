@@ -1,6 +1,7 @@
 /**
- * Ratchet: `registerBillingAccountScope(` call sites must not grow unnoticed
- * (#5217, MAJOR 2).
+ * Ratchet: importing `registerBillingAccountScope` from `tenant-context`
+ * must not grow unnoticed (#5217, MAJOR 2; import-based redesign, #5231
+ * hardening).
  *
  * `registerBillingAccountScope` marks a `billingAccountId` as an active
  * `BillingAccountScope` for the runtime tenant guard — it takes a raw
@@ -8,10 +9,26 @@
  * behind it. Only `resolveBillingAccountAccessInternal`, the resolution
  * logic shared by `resolveBillingAccountAccess` and
  * `BillingAccountsService.resolveForOrganization` (both in
- * `apps/server/api/src/tenancy/billing-account-scope.ts`), may call it. New
- * call sites fail CI until they are added to the baseline with review; stale
- * baseline entries fail until removed, so the list can only shrink without
- * an explicit change.
+ * `apps/server/api/src/tenancy/billing-account-scope.ts`), may call it.
+ *
+ * This scans **imports**, not call expressions. A call-expression scan is
+ * trivially defeated:
+ *
+ *   import { registerBillingAccountScope as reg } from '@libs/prisma/tenant-context';
+ *   const fn = reg; fn(id);                          // aliased, still a call — caught by luck
+ *   obj[someKey](id);                                 // element access — never a plain `foo(` call
+ *   somewhere.pass(reg);                               // passed as a value, called far away
+ *   import * as tenantContext from '@libs/prisma/tenant-context';
+ *   tenantContext.registerBillingAccountScope(id);     // namespace import, property access
+ *
+ * every one of these still needs to *get* the function from the module
+ * before doing anything with it, so gating on the import itself is strictly
+ * more robust: any named import of `registerBillingAccountScope` (by its
+ * original exported name, regardless of a local `as` alias) or any
+ * namespace import of the whole module is flagged, full stop — we don't try
+ * to prove the imported binding is actually invoked. New occurrences fail CI
+ * until reviewed into the baseline; stale baseline entries fail until
+ * removed, so the list can only shrink without an explicit change.
  *
  *   bun run check:billing-account-scope-registration
  */
@@ -27,6 +44,12 @@ import {
 import { parseSourceFile } from './parse-source-file';
 
 const HATCH_NAME = 'registerBillingAccountScope';
+
+// Matches the path-aliased specifier (`@libs/prisma/tenant-context`) and any
+// relative specifier ending in `tenant-context` (`./tenant-context`,
+// `../tenant-context`, `../../libs/prisma/tenant-context`, …) — every way
+// this module can legitimately be imported in this repo.
+const TENANT_CONTEXT_MODULE_PATTERN = /(?:^|\/)tenant-context$/;
 
 const DEFAULT_INCLUDE_GLOBS = ['apps/**/*.ts', 'packages/**/*.ts'];
 
@@ -52,7 +75,7 @@ export type BillingAccountScopeRegistrationOccurrence = {
 
 export type BillingAccountScopeRegistrationViolation =
   | {
-      kind: 'new-call';
+      kind: 'new-import';
       message: string;
       occurrence: BillingAccountScopeRegistrationOccurrence;
     }
@@ -93,15 +116,24 @@ function entryKey(entry: BillingAccountScopeRegistrationBaselineEntry): string {
   return `${entry.file}:${entry.line}`;
 }
 
-function isHatchCallee(expression: ts.Expression): boolean {
-  if (ts.isIdentifier(expression)) {
-    return expression.text === HATCH_NAME;
-  }
+/**
+ * Whether an import declaration's module specifier is (or resolves to) the
+ * `tenant-context` module — the only place `registerBillingAccountScope` is
+ * exported from.
+ */
+function isTenantContextModuleSpecifier(specifierText: string): boolean {
+  return TENANT_CONTEXT_MODULE_PATTERN.test(specifierText);
+}
 
-  return (
-    ts.isPropertyAccessExpression(expression) &&
-    expression.name.text === HATCH_NAME
-  );
+/**
+ * Whether an import specifier names `registerBillingAccountScope` as the
+ * binding it pulls in — by the module's *exported* name, so
+ * `{ registerBillingAccountScope as reg }` is still caught even though the
+ * local binding is called `reg` everywhere else in the file.
+ */
+function importsHatchByExportedName(specifier: ts.ImportSpecifier): boolean {
+  const exportedName = specifier.propertyName?.text ?? specifier.name.text;
+  return exportedName === HATCH_NAME;
 }
 
 function collectOccurrences(
@@ -113,14 +145,33 @@ function collectOccurrences(
   const file = normalizePath(path.relative(rootDir, filePath));
   const occurrences: BillingAccountScopeRegistrationOccurrence[] = [];
 
+  const lineOf = (node: ts.Node): number =>
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+    1;
+
   const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && isHatchCallee(node.expression)) {
-      occurrences.push({
-        file,
-        line:
-          sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-            .line + 1,
-      });
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      isTenantContextModuleSpecifier(node.moduleSpecifier.text)
+    ) {
+      const namedBindings = node.importClause?.namedBindings;
+
+      if (namedBindings && ts.isNamespaceImport(namedBindings)) {
+        // `import * as ns from '@libs/prisma/tenant-context'` — flags
+        // unconditionally. We can't statically rule out `ns.registerBillingAccountScope(...)`,
+        // `ns['registerBillingAccountScope'](...)`, or passing `ns` on as a
+        // value, so any namespace import of this module is itself the
+        // violation.
+        occurrences.push({ file, line: lineOf(node) });
+      } else if (namedBindings && ts.isNamedImports(namedBindings)) {
+        for (const specifier of namedBindings.elements) {
+          if (importsHatchByExportedName(specifier)) {
+            occurrences.push({ file, line: lineOf(node) });
+            break;
+          }
+        }
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -160,9 +211,10 @@ export function runBillingAccountScopeRegistrationCheck(
     }
 
     violations.push({
-      kind: 'new-call',
+      kind: 'new-import',
       message:
-        'New registerBillingAccountScope() call site. Only resolveBillingAccountAccessInternal ' +
+        'New import of registerBillingAccountScope (or a namespace import of tenant-context) ' +
+        'outside the reviewed baseline. Only resolveBillingAccountAccessInternal ' +
         '(apps/server/api/src/tenancy/billing-account-scope.ts) may register a billing-account ' +
         'scope — a raw billingAccountId string has no org-scoped proof behind it. Route through ' +
         'resolveBillingAccountAccess / resolveLiveBillingAccount instead, or add this to ' +
@@ -180,9 +232,9 @@ export function runBillingAccountScopeRegistrationCheck(
       entry,
       kind: 'stale-baseline-entry',
       message:
-        'Baseline entry is no longer a registerBillingAccountScope() call. Remove it from ' +
-        'scripts/architecture/billing-account-scope-registration.baseline.ts so the ratchet only ' +
-        'ever shrinks (#5217).',
+        'Baseline entry no longer imports registerBillingAccountScope from tenant-context. Remove ' +
+        'it from scripts/architecture/billing-account-scope-registration.baseline.ts so the ratchet ' +
+        'only ever shrinks (#5217).',
     });
   }
 
@@ -198,10 +250,10 @@ function main(): void {
 
   if (result.violations.length > 0) {
     console.error(
-      'check:billing-account-scope-registration — call-site ratchet failed:',
+      'check:billing-account-scope-registration — import ratchet failed:',
     );
     for (const violation of result.violations) {
-      if (violation.kind === 'new-call') {
+      if (violation.kind === 'new-import') {
         console.error(
           `- ${violation.occurrence.file}:${violation.occurrence.line} ${violation.message}`,
         );
@@ -217,7 +269,7 @@ function main(): void {
 
   console.log(
     `check:billing-account-scope-registration — ${result.scannedFileCount} files scanned; ` +
-      `${result.occurrences.length} baselined registerBillingAccountScope() call site(s), no new ones.`,
+      `${result.occurrences.length} baselined registerBillingAccountScope import(s), no new ones.`,
   );
 }
 

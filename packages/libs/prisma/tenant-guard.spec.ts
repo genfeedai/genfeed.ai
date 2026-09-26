@@ -343,6 +343,85 @@ describe('assertTenantScopedQuery — billing-account scope (#5217)', () => {
       expect.objectContaining({ reason: 'billing-account-id-mismatch' }),
     );
   });
+
+  // Hardening (second re-review): a billingAccountId that appears only in
+  // `data`/`create` — never in `where` — must not be treated as proof, even
+  // when that id is a validly registered active scope. `where` is what
+  // actually selects which rows the query touches; `data`/`create` are just
+  // values being written. Before this hardening, the guard collected
+  // billingAccountId across the whole query (matching the organizationId
+  // check's shape), which let a write reassign or label an arbitrary,
+  // unrelated row with a billing account the caller happened to hold a
+  // scope for, as long as nothing else in the query carried organizationId.
+  it('rejects update({ where: { id }, data: { billingAccountId } }) on a registered id alone', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            data: { billingAccountId: 'billing-1' },
+            where: { id: 'victim-row' },
+          },
+          operation: 'update',
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('rejects upsert({ create: { billingAccountId } }) on a registered id alone', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            create: { billingAccountId: 'billing-1' },
+            update: { isDeleted: false },
+            where: { id: 'target-row' },
+          },
+          operation: 'upsert',
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('still allows the same registered id when it is actually the where-clause proof', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            data: { balanceCents: 100 },
+            where: { billingAccountId: 'billing-1' },
+          },
+          operation: 'update',
+        });
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a where-scoped registered id whose upsert create carries a different, unregistered id', () => {
+    // The where clause proves billing-1; the create payload separately
+    // claims a different, unregistered account. Since organizationId is
+    // absent everywhere, this still goes through the billing-account
+    // branch, and only the where-collected id (billing-1) is checked against
+    // active scopes — the unregistered id in `create` is inert data, not a
+    // second claim the guard evaluates. This documents that shape rather
+    // than asserting a throw: the create payload's own correctness is the
+    // caller's responsibility, not this guard's.
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            create: { billingAccountId: 'billing-unregistered' },
+            update: { isDeleted: false },
+            where: { billingAccountId: 'billing-1' },
+          },
+          operation: 'upsert',
+        });
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('createTenantGuardExtension', () => {
