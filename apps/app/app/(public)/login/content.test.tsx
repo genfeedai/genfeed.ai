@@ -574,7 +574,7 @@ describe('LoginPage', () => {
         email: 'user@example.com',
       });
     });
-    expect(screen.getByText('Check your email')).toBeInTheDocument();
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
   });
 
   it('preserves callbackUrl when requesting a magic link', async () => {
