@@ -5,6 +5,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -54,14 +55,18 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     ReferralsModule,
     VideoCompletionCoreModule,
     WebhooksCoreModule,
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 1,
-        removeOnComplete: 20,
-        removeOnFail: 50,
+    BullModule.registerQueue(
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 20,
+          removeOnFail: 50,
+        },
+        name: PLATFORM_SCHEDULE_QUEUE,
       },
-      name: PLATFORM_SCHEDULE_QUEUE,
-    }),
+      // The registry drains platform-sweep jobs queued here before #5162.
+      { name: WORKFLOW_EXECUTION_QUEUE },
+    ),
     CronBatchGenerationModule,
     CronByokBillingModule,
     CronCredentialsModule,
