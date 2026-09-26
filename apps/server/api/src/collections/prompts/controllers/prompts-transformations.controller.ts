@@ -1,8 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -10,6 +14,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import { resolveTextModelMinimumCredits } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -34,6 +40,7 @@ import type { Request } from 'express';
 export class PromptsTransformationsController {
   constructor(
     readonly loggerService: LoggerService,
+    private readonly modelsService: ModelsService,
     private readonly promptTransformationService: PromptTransformationService,
   ) {}
 
@@ -77,9 +84,9 @@ export class PromptsTransformationsController {
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
     description: 'Prompt enhancement using AI',
-    modelKey: DEFAULT_MINI_TEXT_MODEL,
     source: ActivitySource.PROMPT_ENHANCEMENT,
   })
+  @DeferCreditsUntilModelResolution()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'PromptsOperationsController.enhanceExisting',
@@ -90,9 +97,11 @@ export class PromptsTransformationsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const prompt = await this.promptTransformationService.enhanceExisting(
-      promptId,
-      user,
+    const { model, prompt } =
+      await this.promptTransformationService.enhanceExisting(promptId, user);
+    finalizeDeferredTextCredits(
+      request,
+      await resolveTextModelMinimumCredits(this.modelsService, model),
     );
 
     return serializeSingle(request, PromptSerializer, prompt);

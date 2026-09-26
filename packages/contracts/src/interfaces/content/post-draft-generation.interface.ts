@@ -9,4 +9,6 @@ export interface PostDraftGenerationInput {
 
 export interface PostDraftGenerationResult {
   description: string;
+  /** Text model actually used — the resolved Admin default, or the seed fallback. */
+  model?: string;
 }

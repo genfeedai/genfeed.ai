@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
@@ -81,7 +82,6 @@ function createDeliveryMocks() {
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
-    postsService: { patch: vi.fn().mockResolvedValue(undefined) },
     prisma: {
       credential: { findMany: vi.fn() },
       post: {
@@ -132,12 +132,16 @@ function createDeliveryMocks() {
 }
 
 function createDeliveryService(mocks: DeliveryMocks) {
-  const service = new ScheduledPostDeliveryService(
+  const postFailureService = new ScheduledPostFailureService(
     mocks.logger as never,
     mocks.activitiesService as never,
+    mocks.schedulerPublishStateService as never,
+  );
+  const service = new ScheduledPostDeliveryService(
+    mocks.logger as never,
+    postFailureService,
     mocks.credentialsService as never,
     mocks.organizationsService as never,
-    mocks.postsService as never,
     mocks.quotaService as never,
     mocks.publisherFactory as never,
     mocks.systemWorkflowRunner as never,
@@ -773,6 +777,137 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('fails a text-only post on a video-required channel and notifies the owner', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.YOUTUBE,
+    });
+    const post = createScheduledPost({ platform: CredentialPlatform.YOUTUBE });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'YouTube requires at least 1 media item(s).',
+        executionState: TargetExecutionState.FAILED,
+        success: false,
+      }),
+    );
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'channel_target_invalid',
+          isRetryable: false,
+          message: 'YouTube requires at least 1 media item(s).',
+        }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      'YouTube requires at least 1 media item(s).',
+      undefined,
+    );
+    expect(mocks.activitiesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: 'post-1',
+        key: ActivityKey.POST_FAILED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        value: 'YouTube requires at least 1 media item(s).',
+      }),
+    );
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'YouTube requires at least 1 media item(s).',
+        post,
+      }),
+    );
+  });
+
+  it('fails the pending thread children of a parent that fails before the provider', async () => {
+    mocks.credentialsService.findOne.mockResolvedValue(null);
+    const post = createScheduledPost({
+      children: [{ groupId: 'group-1', id: 'child-1' }],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      { groupId: 'group-1', id: 'child-1', organizationId: 'org-1' },
+      expect.objectContaining({
+        error: expect.objectContaining({ code: 'parent_failed' }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      'Parent post failed',
+      {
+        priorExecutionStates: [
+          TargetExecutionState.SCHEDULED,
+          TargetExecutionState.PUBLISHING,
+        ],
+      },
+    );
+  });
+
+  it('does not notify when the failed transition was stale', async () => {
+    mocks.credentialsService.findOne.mockResolvedValue(null);
+    mocks.schedulerPublishStateService.transitionPost
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const post = createScheduledPost();
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Credential not found',
+        success: false,
+      }),
+    );
+    expect(mocks.activitiesService.create).not.toHaveBeenCalled();
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('keeps a failed target failed when recording the owner notification throws', async () => {
+    mocks.credentialsService.findOne.mockResolvedValue(null);
+    mocks.activitiesService.create.mockRejectedValue(
+      new Error('activity store unavailable'),
+    );
+    const post = createScheduledPost();
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Credential not found',
+        executionState: TargetExecutionState.FAILED,
+      }),
+    );
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({
+        executionState: TargetExecutionState.SCHEDULED,
+      }),
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to record publish failure activity'),
+      expect.objectContaining({ error: 'activity store unavailable' }),
+    );
+  });
+
   it('resolves consume-time readiness tenant-scoped for the post own credential', async () => {
     mockSuccessfulPublisher(mocks);
     const post = createScheduledPost();
@@ -928,7 +1063,14 @@ describe('ScheduledPostDeliveryService', () => {
       children,
       'tweet-1',
     );
-    expect(mocks.postsService.patch).not.toHaveBeenCalled();
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'child-1' }),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('parks a delayed comment and publishes only the immediate ones', async () => {
@@ -990,7 +1132,22 @@ describe('ScheduledPostDeliveryService', () => {
     const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(expect.objectContaining({ success: true }));
-    expect(mocks.postsService.patch).toHaveBeenCalledWith('child-1', {});
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'child-1', organizationId: 'org-1' }),
+      expect.objectContaining({
+        error: expect.objectContaining({ message: 'thread child rejected' }),
+        executionState: TargetExecutionState.FAILED,
+      }),
+      'thread child rejected',
+      {
+        priorExecutionStates: [
+          TargetExecutionState.SCHEDULED,
+          TargetExecutionState.PUBLISHING,
+        ],
+      },
+    );
     expect(mocks.logger.error).toHaveBeenCalledWith(
       expect.stringContaining('failed to publish thread children'),
       expect.objectContaining({

@@ -1,15 +1,31 @@
+import { InvalidChannelTargetScheduleException } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
+  PostCategory,
   PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+
+async function captureChannelTargetError(
+  promise: Promise<unknown>,
+): Promise<InvalidChannelTargetScheduleException> {
+  try {
+    await promise;
+  } catch (error: unknown) {
+    if (error instanceof InvalidChannelTargetScheduleException) {
+      return error;
+    }
+    throw error;
+  }
+  throw new Error('Expected the promise to reject.');
+}
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post plus real enum
 // value objects, so `normalizeData` resolves `category` as a genuine Prisma
@@ -424,6 +440,84 @@ describe('PostsService batchSchedule', () => {
     expect(post.create).not.toHaveBeenCalled();
   });
 
+  describe('channel target validation choke point on create (#5193)', () => {
+    it('rejects scheduling a text-only post to a video-only platform', async () => {
+      const { post, service } = makeService();
+
+      const error = await captureChannelTargetError(
+        service.create(
+          {
+            brandId: 'brand-1',
+            category: PostCategory.TEXT,
+            credentialId: 'credential-1',
+            description: 'No media at all',
+            ingredients: [],
+            label: 'Text-only',
+            organizationId: 'org-1',
+            platform: CredentialPlatform.YOUTUBE,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            userId: 'user-1',
+          },
+          [],
+        ),
+      );
+
+      expect(error.validation.errors[0]?.code).toBe(
+        'channel_target.media_required',
+      );
+      expect(post.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects an image on a video-only platform, not just missing media', async () => {
+      const { post, service } = makeService();
+
+      const error = await captureChannelTargetError(
+        service.create(
+          {
+            brandId: 'brand-1',
+            category: PostCategory.IMAGE,
+            credentialId: 'credential-1',
+            description: 'An image, not a video',
+            ingredients: ['ingredient-1'],
+            label: 'Image on YouTube',
+            organizationId: 'org-1',
+            platform: CredentialPlatform.YOUTUBE,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            userId: 'user-1',
+          },
+          [],
+        ),
+      );
+
+      expect(error.validation.errors[0]?.code).toBe(
+        'channel_target.unsupported_media_kind',
+      );
+      expect(post.create).not.toHaveBeenCalled();
+    });
+
+    it('allows scheduling a video to a video-only platform', async () => {
+      const { post, service } = makeService();
+
+      await service.create(
+        {
+          brandId: 'brand-1',
+          category: PostCategory.VIDEO,
+          credentialId: 'credential-1',
+          description: 'A real video',
+          ingredients: ['ingredient-1'],
+          label: 'Video on YouTube',
+          organizationId: 'org-1',
+          platform: CredentialPlatform.YOUTUBE,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          userId: 'user-1',
+        },
+        [],
+      );
+
+      expect(post.create).toHaveBeenCalled();
+    });
+  });
+
   it('derives platform from a changed credential in the post organization', async () => {
     const { credential, post, service } = makeService();
     post.findFirst.mockResolvedValue({
@@ -518,8 +612,11 @@ describe('PostsService batchSchedule', () => {
         publishApprovalId: null,
       })
       .mockResolvedValueOnce({
+        category: 'IMAGE',
         credentialId: 'credential-1',
+        description: 'Existing caption',
         id: 'post-1',
+        ingredients: [{ id: 'ingredient-1' }],
         parentId: null,
         platform: CredentialPlatform.TWITTER,
         status: PostStatus.DRAFT,
@@ -549,6 +646,124 @@ describe('PostsService batchSchedule', () => {
     );
   });
 
+  describe('re-validates media/credential edits on an already-scheduled post (#5193)', () => {
+    // `patch()` writes directly (it never routes through PostLifecycleService),
+    // so `findOne` — backed by `post.findFirst`, same as `patch`'s own
+    // approval-context read — is this choke point's only source for the
+    // current, already-persisted state. The first `findFirst` call is always
+    // the approval-context read; the second is `findOne`'s.
+    it('rejects swapping the credential to a platform the existing media cannot satisfy', async () => {
+      const { credential, post, service } = makeService();
+      post.findFirst
+        .mockResolvedValueOnce({
+          organizationId: 'org-1',
+          publishApprovalId: null,
+        })
+        .mockResolvedValueOnce({
+          category: 'IMAGE',
+          credentialId: 'credential-1',
+          description: 'Existing caption',
+          id: 'post-1',
+          ingredients: [{ id: 'ingredient-1' }],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.INSTAGRAM,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          visibility: PostVisibility.PUBLIC,
+        });
+      credential.findFirst.mockResolvedValue({
+        platform: CredentialPlatform.YOUTUBE,
+      });
+
+      const error = await captureChannelTargetError(
+        service.patch('post-1', { credentialId: 'credential-youtube' }, []),
+      );
+
+      expect(error.validation.errors[0]?.code).toBe(
+        'channel_target.unsupported_media_kind',
+      );
+      expect(post.update).not.toHaveBeenCalled();
+    });
+
+    it('re-validates when the caller edits media on an already-scheduled post without touching execution state', async () => {
+      const { post, service } = makeService();
+      post.findFirst
+        .mockResolvedValueOnce({
+          organizationId: 'org-1',
+          publishApprovalId: null,
+        })
+        .mockResolvedValueOnce({
+          category: 'VIDEO',
+          credentialId: 'credential-1',
+          description: 'Existing caption',
+          id: 'post-1',
+          ingredients: [{ id: 'ingredient-1' }],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.YOUTUBE,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          visibility: PostVisibility.PUBLIC,
+        });
+
+      // Removing the only ingredient leaves this YouTube target with no
+      // video at all.
+      const error = await captureChannelTargetError(
+        service.patch('post-1', { ingredients: [] }, []),
+      );
+
+      expect(error.validation.errors[0]?.code).toBe(
+        'channel_target.media_required',
+      );
+      expect(post.update).not.toHaveBeenCalled();
+    });
+
+    it('allows a media edit that still satisfies the platform', async () => {
+      const { post, service } = makeService();
+      post.findFirst
+        .mockResolvedValueOnce({
+          organizationId: 'org-1',
+          publishApprovalId: null,
+        })
+        .mockResolvedValueOnce({
+          category: 'VIDEO',
+          credentialId: 'credential-1',
+          description: 'Existing caption',
+          id: 'post-1',
+          ingredients: [{ id: 'ingredient-1' }],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.YOUTUBE,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          visibility: PostVisibility.PUBLIC,
+        });
+
+      await service.patch('post-1', { ingredients: ['ingredient-2'] }, []);
+
+      expect(post.update).toHaveBeenCalled();
+    });
+
+    it('does not re-check a post that is not scheduled', async () => {
+      const { post, service } = makeService();
+      post.findFirst
+        .mockResolvedValueOnce({
+          organizationId: 'org-1',
+          publishApprovalId: null,
+        })
+        .mockResolvedValueOnce({
+          category: 'TEXT',
+          credentialId: 'credential-1',
+          description: 'Draft caption',
+          id: 'post-1',
+          ingredients: [],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.YOUTUBE,
+          targetExecutionState: TargetExecutionState.DRAFT,
+          visibility: PostVisibility.PUBLIC,
+        });
+
+      await service.patch('post-1', { description: 'Updated draft' }, []);
+
+      expect(post.update).toHaveBeenCalled();
+    });
+  });
+
   it('skips the database entirely for an empty batch', async () => {
     const { $transaction, post, service } = makeService();
 
@@ -559,7 +774,11 @@ describe('PostsService batchSchedule', () => {
       'user-1',
     );
 
-    expect(result).toEqual({ missingPostIds: [], posts: [] });
+    expect(result).toEqual({
+      invalidTargetPostIds: [],
+      missingPostIds: [],
+      posts: [],
+    });
     expect(post.findMany).not.toHaveBeenCalled();
     expect($transaction).not.toHaveBeenCalled();
   });
@@ -591,7 +810,14 @@ describe('PostsService batchSchedule', () => {
 
     expect(post.findMany).toHaveBeenCalledTimes(1);
     expect(post.findMany).toHaveBeenCalledWith({
-      select: { id: true, parentId: true, publishApprovalId: true },
+      select: {
+        category: true,
+        id: true,
+        parentId: true,
+        publishApprovalId: true,
+        targetSettings: true,
+        visibility: true,
+      },
       where: {
         id: { in: ['post-1', 'post-2'] },
         isDeleted: false,
@@ -659,7 +885,11 @@ describe('PostsService batchSchedule', () => {
 
     expect($transaction).not.toHaveBeenCalled();
     expect(cacheService.invalidateByTags).not.toHaveBeenCalled();
-    expect(result).toEqual({ missingPostIds: ['post-foreign'], posts: [] });
+    expect(result).toEqual({
+      invalidTargetPostIds: [],
+      missingPostIds: ['post-foreign'],
+      posts: [],
+    });
   });
 
   it('queues each root post cascade immediately before its own update', async () => {

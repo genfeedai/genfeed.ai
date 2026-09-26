@@ -19,6 +19,7 @@ import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.uti
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -73,6 +74,8 @@ export class PromptTransformationService {
     private readonly promptsService: PromptsService,
     private readonly websocketService: NotificationsPublisherService,
     @Optional() private readonly templatesService?: TemplatesService,
+    @Optional()
+    private readonly agentChatModelRegistry?: AgentChatModelRegistryService,
   ) {}
 
   async parse(
@@ -180,7 +183,7 @@ export class PromptTransformationService {
   async enhanceExisting(
     promptId: string,
     user: User,
-  ): Promise<PromptDocument | null> {
+  ): Promise<{ model: string; prompt: PromptDocument | null }> {
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
@@ -218,8 +221,16 @@ export class PromptTransformationService {
       const cinematicGuidance = isCinematicPromptCategory(normalizedType)
         ? loadCinematicLexiconGuidance()
         : '';
+      // Admin → Automation → Models `isDefault` TEXT row wins; DEFAULT_MINI_TEXT_MODEL
+      // (#5161) is only the seed used when no Admin default resolves.
+      const model = this.agentChatModelRegistry
+        ? await this.agentChatModelRegistry.resolveModelKey(
+            undefined,
+            DEFAULT_MINI_TEXT_MODEL,
+          )
+        : DEFAULT_MINI_TEXT_MODEL;
       const { input } = await this.promptBuilderService.buildPrompt(
-        DEFAULT_MINI_TEXT_MODEL,
+        model,
         {
           maxTokens: TEXT_GENERATION_LIMITS.promptEnhancement,
           modelCategory: ModelCategory.TEXT,
@@ -234,7 +245,7 @@ export class PromptTransformationService {
         user.organizationId,
       );
       const result = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_MINI_TEXT_MODEL,
+        model,
         input,
       );
 
@@ -251,7 +262,10 @@ export class PromptTransformationService {
         }),
       });
 
-      return this.promptsService.findOne({ id: promptId });
+      return {
+        model,
+        prompt: await this.promptsService.findOne({ id: promptId }),
+      };
     } catch (error: unknown) {
       await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
