@@ -190,19 +190,29 @@ export class MediaVisionEvaluationService {
     if (!this.isActive) {
       return [];
     }
-    // tenant-scope-ignore: administrative discovery reads tenant identifiers only; each queued job re-reads its rows under its own organization scope.
-    return this.prisma.mediaPerception.findMany({
+    // Queried from the ingredient side so deleted assets are excluded.
+    const rows = await this.prisma.ingredient.findMany({
       orderBy: { updatedAt: 'desc' },
-      select: { ingredientId: true, organizationId: true },
+      select: { id: true, organizationId: true },
       take: limit,
       where: {
-        framesStatus: 'ready',
-        ingredient: { isDeleted: false },
         isDeleted: false,
-        updatedAt: { gte: since },
-        visionEvaluationId: null,
+        mediaPerceptions: {
+          some: {
+            framesStatus: 'ready',
+            isDeleted: false,
+            updatedAt: { gte: since },
+            visionEvaluationId: null,
+          },
+        },
+        organizationId: { not: null },
       },
     });
+    return rows.flatMap((row) =>
+      row.organizationId
+        ? [{ ingredientId: row.id, organizationId: row.organizationId }]
+        : [],
+    );
   }
 
   private async linkEvaluation(
