@@ -230,12 +230,6 @@ describe('buildContestants', () => {
       buildContestants('harness-ab', [BASELINE, CHALLENGER]),
     ).toThrow('exactly one');
   });
-
-  it('refuses the reserved media-ladder suite until it is registered', async () => {
-    await expect(
-      runContentEval(options({ suite: 'media-ladder' })),
-    ).rejects.toThrow('reserved but not implemented');
-  });
 });
 
 describe('suite-owned preparation', () => {
