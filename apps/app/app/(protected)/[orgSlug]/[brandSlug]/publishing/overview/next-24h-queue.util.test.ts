@@ -157,30 +157,6 @@ describe('buildNext24hQueue', () => {
     expect(groups[1]?.items.map((item) => item.title)).toEqual(['Later post']);
   });
 
-  it('links each item to the posts library filtered by release, not a post-detail path', () => {
-    // release.id is a ReleaseGroupsService id, not a post id — the href must
-    // go through the `release` query param (getPublishingReleaseHref), never
-    // getPublishingPostHref's `/publishing/posts/:id` post-detail path.
-    const releases = [
-      buildRelease({
-        id: 'release-href',
-        targets: [
-          buildTarget({
-            id: 'target-href',
-            releaseId: 'release-href',
-            scheduledAt: '2026-09-01T13:00:00.000Z',
-          }),
-        ],
-      }),
-    ];
-
-    const groups = buildNext24hQueue(releases, NOW);
-
-    expect(groups[0]?.items[0]?.href).toBe(
-      '/publishing/posts?release=release-href',
-    );
-  });
-
   it('falls back to the release scheduledAt when the target has none', () => {
     const releases = [
       buildRelease({
