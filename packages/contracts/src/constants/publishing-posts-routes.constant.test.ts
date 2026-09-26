@@ -30,7 +30,7 @@ describe('publishing-posts-routes.constant', () => {
     },
   );
 
-  it('builds a release deep link', () => {
+  it('builds the release drawer deep link', () => {
     expect(createPublishingPostsFilterRoute({ release: 'release-1' })).toBe(
       `${APP_ROUTES.PUBLISHING.POSTS}?${PUBLISHING_POSTS_QUERY_KEYS.RELEASE}=release-1`,
     );

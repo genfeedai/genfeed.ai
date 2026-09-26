@@ -25,6 +25,7 @@ import { AccountPublishingContextService } from '@api/collections/credentials/se
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
@@ -42,6 +43,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -197,6 +199,18 @@ describe('PostsOperationsController', () => {
     buildSystemPrompt: vi.fn(),
   };
 
+  const mockAgentChatModelRegistry = {
+    resolveModelKey: vi
+      .fn()
+      .mockImplementation(
+        (_key?: string, fallbackKey?: string) => fallbackKey ?? '',
+      ),
+  };
+
+  const mockModelsService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+
   const mockConfigService = {
     get: vi.fn((key: string) => {
       const config: Record<string, unknown> = {
@@ -340,7 +354,12 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: AgentContextAssemblyService,
           useValue: mockAgentContextAssemblyService,
         },
+        {
+          provide: AgentChatModelRegistryService,
+          useValue: mockAgentChatModelRegistry,
+        },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: ModelsService, useValue: mockModelsService },
         { provide: CredentialsService, useValue: mockCredentialsService },
         { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: MembersService, useValue: mockMembersService },

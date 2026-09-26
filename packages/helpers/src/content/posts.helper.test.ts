@@ -75,6 +75,9 @@ describe('PostsHelper', () => {
     expect(PostsHelper.getPublishingPostHref('post-1')).toBe(
       '/publishing/posts/post-1',
     );
+    expect(PostsHelper.getPublishingReleaseHref('release-1')).toBe(
+      '/publishing/posts?release=release-1',
+    );
   });
 
   it('builds a release group href that filters the posts library', () => {

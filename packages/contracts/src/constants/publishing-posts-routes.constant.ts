@@ -32,6 +32,7 @@ export type PublishingPostsPublicationState =
 
 export interface PublishingPostsFilterRouteOptions {
   publicationState?: PublishingPostsPublicationState;
+  /** Release-group id; opens the Posts library with its detail drawer. */
   release?: string;
   status?: string;
 }

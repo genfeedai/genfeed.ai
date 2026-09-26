@@ -483,14 +483,6 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "c08ddddba8d0f07791f8",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "c0810f7299b9a1efdb91",
       "method": "update",
       "model": "CreditBalance",

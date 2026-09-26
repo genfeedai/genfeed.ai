@@ -185,9 +185,9 @@ export function getPublishingPostHref(postId: string): string {
 
 /**
  * Canonical path for a release group under Publishing.
- * Release groups (ReleaseGroupsService) are not posts — this opens the Posts
- * library filtered to that release, which reads the `release` query param
- * and opens the matching ReleaseDetailDrawer.
+ * Release groups (ReleaseGroupsService) are not posts and have no detail
+ * route — this opens the Posts library filtered to that release, which
+ * reads the `release` query param and opens the matching ReleaseDetailDrawer.
  */
 export function getPublishingReleaseHref(releaseGroupId: string): string {
   return createPublishingPostsFilterRoute({ release: releaseGroupId });
