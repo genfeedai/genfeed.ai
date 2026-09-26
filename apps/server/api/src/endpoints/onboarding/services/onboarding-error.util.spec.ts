@@ -91,4 +91,42 @@ describe('withOnboardingErrorHandling', () => {
       },
     });
   });
+
+  it('attaches a stable code to a wrapped 500 without leaking the raw error message (#5080)', async () => {
+    await expect(
+      withOnboardingErrorHandling(
+        logger as never,
+        'scrapeBrand',
+        {
+          code: 'BRAND_SCRAPE_UNKNOWN',
+          detail: 'Failed to setup brand',
+          title: 'Brand Setup Failed',
+        },
+        async () => {
+          throw new Error('duplicate key value violates constraint secret_x');
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'BRAND_SCRAPE_UNKNOWN',
+        detail: 'Failed to setup brand',
+        title: 'Brand Setup Failed',
+      },
+    });
+  });
+
+  it('omits the code member entirely when none is configured', async () => {
+    await expect(
+      withOnboardingErrorHandling(
+        logger as never,
+        'createBrand',
+        { detail: 'could not create brand', title: 'Onboarding' },
+        async () => {
+          throw new Error('disk full');
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.not.objectContaining({ code: expect.anything() }),
+    });
+  });
 });

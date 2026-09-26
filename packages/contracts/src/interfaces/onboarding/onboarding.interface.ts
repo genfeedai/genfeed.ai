@@ -3,6 +3,7 @@ import type {
   OnboardingStatus,
   OnboardingStep,
 } from '../..';
+import type { BrandScrapeErrorCode } from '../../enums/brand-scrape-error-code.enum';
 import type { IBrandAgentPrompting } from '../organization/brand-profile.interface';
 
 export type OnboardingAccessMode = 'server' | 'byok' | 'cloud';
@@ -119,12 +120,27 @@ export interface IBrandSetupRequest {
   additionalNotes?: string;
 }
 
+/**
+ * A classified, non-blocking brand-scrape failure surfaced alongside a
+ * successful `IBrandSetupResponse`. The scrape step always falls back to a
+ * minimal brand profile rather than failing setup, so a real cause (site
+ * unreachable, blocked, timed out, empty, or an upstream provider error)
+ * would otherwise be silently dropped (#5080). `code` is a stable wire value
+ * from `BrandScrapeErrorCode`; `message` is safe to show the user as-is.
+ */
+export interface IBrandScrapeWarning {
+  code: BrandScrapeErrorCode;
+  message: string;
+}
+
 export interface IBrandSetupResponse {
   success: boolean;
   brandId: string;
   knowledgeBaseId: string;
   extractedData: IExtractedBrandData;
   message?: string;
+  /** Set when the scrape degraded to a fallback brand profile. */
+  scrapeWarning?: IBrandScrapeWarning;
 }
 
 export interface IConfirmBrandDataRequest {

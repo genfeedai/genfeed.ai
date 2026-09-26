@@ -1633,6 +1633,15 @@
         "accountType": "We couldn't save your account type. Try selecting it again.",
         "continue": "We couldn't save your workspace. Check your connection and try again.",
         "initialization": "We couldn't load your workspace details. You can retry Continue or Skip Onboarding.",
+        "scrapeCodes": {
+          "BRAND_SCRAPE_EMPTY_CONTENT": "That website didn't have enough content for us to extract. Add a few brand details yourself, then press Continue.",
+          "BRAND_SCRAPE_INVALID_URL": "That website address doesn't look valid. Fix it above, then press Continue.",
+          "BRAND_SCRAPE_SITE_BLOCKED": "That website blocked our request to read it. Add a few brand details yourself, then press Continue.",
+          "BRAND_SCRAPE_SITE_UNREACHABLE": "We couldn't reach that website. Double-check the address, then press Continue to try again.",
+          "BRAND_SCRAPE_TIMEOUT": "That website took too long to respond. Press Continue to try again.",
+          "BRAND_SCRAPE_UNKNOWN": "We couldn't finish setting up your brand. Check your connection, then press Continue to try again.",
+          "BRAND_SCRAPE_UPSTREAM_PROVIDER_ERROR": "That website is temporarily unavailable. Press Continue to try again shortly."
+        },
         "skip": "We couldn't skip onboarding. Check your connection and try again.",
         "title": "Onboarding could not continue"
       },

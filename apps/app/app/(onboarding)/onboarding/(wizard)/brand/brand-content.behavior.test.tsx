@@ -576,6 +576,88 @@ describe('BrandContent behavior', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('shows a classified, actionable message and retries after a scrape warning (#5080)', async () => {
+    scrapeMock.mockResolvedValueOnce({
+      brandId: 'brand_1',
+      scrapeWarning: {
+        code: 'BRAND_SCRAPE_SITE_UNREACHABLE',
+        message: 'We could not reach that website.',
+      },
+      success: true,
+    });
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'unreachable-site.example' },
+    });
+    openVoice();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      await screen.findByText(
+        "We couldn't reach that website. Double-check the address, then press Continue to try again.",
+      ),
+    ).toBeVisible();
+    // Onboarding progress is not lost: the wizard stays on this step instead
+    // of navigating away, and Continue is available to retry.
+    expect(handleStepCompleteMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
+    expect(scrapeMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a classified, actionable message when the scrape request itself fails (#5080)', async () => {
+    scrapeMock.mockRejectedValueOnce({
+      errors: [
+        {
+          code: 'BRAND_SCRAPE_UNKNOWN',
+          detail: 'Failed to setup brand',
+          title: 'Brand Setup Failed',
+        },
+      ],
+    });
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'flaky-site.example' },
+    });
+    openVoice();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      await screen.findByText(
+        "We couldn't finish setting up your brand. Check your connection, then press Continue to try again.",
+      ),
+    ).toBeVisible();
+    expect(handleStepCompleteMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the generic scrape message for an unrecognized or missing error code', async () => {
+    scrapeMock.mockRejectedValueOnce(new Error('network down'));
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'flaky-site.example' },
+    });
+    openVoice();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      await screen.findByText(
+        "We couldn't finish setting up your brand. Check your connection, then press Continue to try again.",
+      ),
+    ).toBeVisible();
+    expect(handleStepCompleteMock).not.toHaveBeenCalled();
+  });
+
   it('shows an actionable error and allows retry when skipping fails', async () => {
     patchSettingsMock
       .mockRejectedValueOnce(new Error('forbidden'))

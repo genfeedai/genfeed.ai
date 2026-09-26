@@ -25,6 +25,10 @@ import {
 } from '@/lib/onboarding/onboarding-access.util';
 import BrandAccountTypeSelector from './brand-account-type-selector';
 import BrandFormFields from './brand-form-fields';
+import {
+  extractBrandScrapeErrorCode,
+  resolveBrandScrapeIssueCode,
+} from './brand-scrape-issue.util';
 import BrandStepHeader from './brand-step-header';
 
 const DEFAULT_ORGANIZATION_LABEL = 'Default Organization';
@@ -351,9 +355,14 @@ function BrandContentContent() {
       );
 
       if (brandUrl) {
-        // Enrichment should not block the user from continuing.
-        void brandsService
-          .scrape(brandId, {
+        // Brand rename above already persisted, so a scrape issue never
+        // loses onboarding progress — the user can fix the site/URL (or just
+        // leave it) and press Continue again, which retries this same call
+        // (#5080). We stop short of `handleStepComplete` here so the
+        // classified message is visible before the wizard navigates away.
+        let scrapeResult: Awaited<ReturnType<typeof brandsService.scrape>>;
+        try {
+          scrapeResult = await brandsService.scrape(brandId, {
             brandName: effectiveBrandName,
             brandUrl,
             organizationName: effectiveOrganizationName,
@@ -363,10 +372,25 @@ function BrandContentContent() {
             ...(trimmedTargetAudience
               ? { targetAudience: trimmedTargetAudience }
               : {}),
-          })
-          .catch((error) => {
-            logger.error('Failed to scrape brand during onboarding', error);
           });
+        } catch (scrapeError) {
+          logger.error('Failed to scrape brand during onboarding', scrapeError);
+          const code = resolveBrandScrapeIssueCode(
+            extractBrandScrapeErrorCode(scrapeError),
+          );
+          setErrorMessage(translate(`errors.scrapeCodes.${code}`));
+          setSubmitting(false);
+          return;
+        }
+
+        if (scrapeResult.scrapeWarning) {
+          const code = resolveBrandScrapeIssueCode(
+            scrapeResult.scrapeWarning.code,
+          );
+          setErrorMessage(translate(`errors.scrapeCodes.${code}`));
+          setSubmitting(false);
+          return;
+        }
       }
 
       await handleStepComplete('brand');
