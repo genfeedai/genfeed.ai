@@ -675,6 +675,73 @@ describe('SocialInboxService', () => {
       );
     });
 
+    it('clears the acting user replies when a thread is resolved', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'needs_review',
+      });
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'resolved',
+      });
+
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+    });
+
+    it('clears the acting user replies once a reply is posted, not when it fails', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-reply',
+        externalMessageId: 'comment-reply',
+        externalParentId: 'comment-reply',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+
+      context.youtubeService.postCommentReply.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+      await expect(
+        context.service.postReply(scope, inbound.conversationId, {
+          idempotencyKey: 'reply-fail',
+          text: 'Thanks!',
+        }),
+      ).rejects.toThrow();
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+
+      await context.service.postReply(scope, inbound.conversationId, {
+        idempotencyKey: 'reply-ok',
+        text: 'Thanks!',
+      });
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+    });
+
     it('never marks another organization conversation read', async () => {
       const context = createContext();
       await seedThread(context.service, {

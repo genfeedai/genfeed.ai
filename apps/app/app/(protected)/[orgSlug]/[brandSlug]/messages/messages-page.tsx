@@ -388,6 +388,7 @@ export default function MessagesPage() {
     conversationType: filters.conversationType,
     getMessagesService,
     loadConversations,
+    onInboxReadStateChange: refreshInboxIndicators,
     onLoadError: setLoadError,
     refreshSelectedThread,
     selectedConversation,

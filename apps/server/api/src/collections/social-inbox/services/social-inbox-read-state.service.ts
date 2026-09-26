@@ -47,14 +47,27 @@ export class SocialInboxReadStateService {
       );
     }
 
-    if (scope.userId) {
-      await this.socialReplyNotifications.markConversationRepliesRead({
-        conversationId: conversation.id,
-        organizationId: scope.organizationId,
-        userId: scope.userId,
-      });
-    }
+    await this.clearReplyNotifications(scope, conversation.id);
 
     return withEffectiveAvailability(updated);
+  }
+
+  /**
+   * Clear the acting user's reply notifications for a thread whose unread
+   * counter was zeroed (read, replied to or resolved). Items covering other
+   * still-unread threads stay unread.
+   */
+  async clearReplyNotifications(
+    scope: SocialInboxScope,
+    conversationId: string,
+  ): Promise<void> {
+    if (!scope.userId) {
+      return;
+    }
+    await this.socialReplyNotifications.markConversationRepliesRead({
+      conversationId,
+      organizationId: scope.organizationId,
+      userId: scope.userId,
+    });
   }
 }

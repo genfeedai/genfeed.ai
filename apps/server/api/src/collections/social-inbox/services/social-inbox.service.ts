@@ -112,12 +112,18 @@ export class SocialInboxService {
     return this.actionService.createDraft(scope, conversationId, input);
   }
 
-  approveDraft(
+  async approveDraft(
     scope: SocialInboxScope,
     conversationId: string,
     messageId: string,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.approveDraft(scope, conversationId, messageId);
+    const sent = await this.actionService.approveDraft(
+      scope,
+      conversationId,
+      messageId,
+    );
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
   rejectDraft(
@@ -134,12 +140,18 @@ export class SocialInboxService {
     );
   }
 
-  postReply(
+  async postReply(
     scope: SocialInboxScope,
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.postReply(scope, conversationId, input);
+    const sent = await this.actionService.postReply(
+      scope,
+      conversationId,
+      input,
+    );
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
   sendDm(
@@ -150,12 +162,23 @@ export class SocialInboxService {
     return this.actionService.sendDm(scope, conversationId, input);
   }
 
-  updateConversation(
+  async updateConversation(
     scope: SocialInboxScope,
     conversationId: string,
     patch: SocialConversationPatch,
   ): Promise<SocialConversationDocument> {
-    return this.actionService.updateConversation(scope, conversationId, patch);
+    const updated = await this.actionService.updateConversation(
+      scope,
+      conversationId,
+      patch,
+    );
+    if (patch.status === 'resolved') {
+      await this.readStateService.clearReplyNotifications(
+        scope,
+        conversationId,
+      );
+    }
+    return updated;
   }
 
   ingestYoutubeComments(

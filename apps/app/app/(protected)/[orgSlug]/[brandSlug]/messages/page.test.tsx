@@ -486,6 +486,8 @@ describe('SocialMessagesPage', () => {
       target: { value: 'Thanks for the detail.' },
     });
     const replyButton = screen.getByRole('button', { name: /^Reply$/ });
+    const indicatorRefreshesBeforeReply =
+      mocks.refreshInboxIndicators.mock.calls.length;
     fireEvent.click(replyButton);
     fireEvent.click(replyButton);
 
@@ -502,6 +504,10 @@ describe('SocialMessagesPage', () => {
     );
     expect(mocks.postReply).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
+    // A posted reply zeroes the thread server-side; the bell and badge refresh.
+    expect(mocks.refreshInboxIndicators.mock.calls.length).toBeGreaterThan(
+      indicatorRefreshesBeforeReply,
+    );
   });
 
   it('opens the conversation named in the URL and marks it read', async () => {
