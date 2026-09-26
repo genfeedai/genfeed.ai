@@ -1,4 +1,5 @@
 import type { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
+import type { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
 import type { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import type { MediaModerationJobData } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -10,9 +11,11 @@ describe('MediaModerationProcessor', () => {
     const moderate = vi.fn().mockResolvedValue('classified');
     const logger = { log: vi.fn() };
     const evaluate = vi.fn().mockResolvedValue('evaluated');
+    const decide = vi.fn().mockResolvedValue('decided');
     const processor = new MediaModerationProcessor(
       { moderate } as unknown as MediaModerationService,
       { evaluate } as unknown as MediaVisionEvaluationService,
+      { evaluate: decide } as unknown as MediaTextDecisionService,
       logger as unknown as LoggerService,
     );
     const data: MediaModerationJobData = {
@@ -24,10 +27,12 @@ describe('MediaModerationProcessor', () => {
 
     expect(moderate).toHaveBeenCalledWith(data);
     expect(evaluate).toHaveBeenCalledWith(data);
+    expect(decide).toHaveBeenCalledWith(data);
     expect(logger.log).toHaveBeenCalledWith(
       'MediaModerationProcessor finished',
       expect.objectContaining({
         outcome: 'classified',
+        textOutcome: 'decided',
         visionOutcome: 'evaluated',
       }),
     );

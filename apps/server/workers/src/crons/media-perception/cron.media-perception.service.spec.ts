@@ -1,6 +1,7 @@
 import type { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
+import type { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
 import type { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import type { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -30,6 +31,13 @@ function makeHarness(isEnabled = true) {
       ]),
   };
   const moderationQueue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+  const text = {
+    findUndecidedAssets: vi
+      .fn()
+      .mockResolvedValue([
+        { ingredientId: 'asset-5', organizationId: 'org-1' },
+      ]),
+  };
   const vision = {
     findUnevaluatedAssets: vi
       .fn()
@@ -44,6 +52,7 @@ function makeHarness(isEnabled = true) {
     moderation as unknown as MediaModerationService,
     moderationQueue as unknown as MediaModerationQueueService,
     vision as unknown as MediaVisionEvaluationService,
+    text as unknown as MediaTextDecisionService,
     logger as unknown as LoggerService,
   );
   return { logger, moderation, moderationQueue, perception, queue, service };
@@ -55,7 +64,7 @@ describe('CronMediaPerceptionService', () => {
     const now = new Date('2026-09-26T12:00:00.000Z');
 
     await expect(service.queueDuePerceptions(now)).resolves.toEqual({
-      queuedModerations: 2,
+      queuedModerations: 3,
       queuedPerceptions: 1,
       queuedRetries: 1,
     });
@@ -109,7 +118,7 @@ describe('CronMediaPerceptionService', () => {
     queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
 
     await expect(service.queueDuePerceptions()).resolves.toEqual({
-      queuedModerations: 2,
+      queuedModerations: 3,
       queuedPerceptions: 0,
       queuedRetries: 1,
     });

@@ -1,5 +1,6 @@
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
+import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -63,6 +64,7 @@ function moderationRow(ingredientId: string, hate: number, mode = 'shadow') {
 
 function makeHarness(options: {
   categories?: Record<string, string>;
+  textDecisions?: Record<string, unknown>[];
   config?: Record<string, unknown>;
   evaluations?: Record<string, unknown>[];
   moderations?: Record<string, unknown>[];
@@ -101,6 +103,9 @@ function makeHarness(options: {
       },
       mediaPerception: {
         findMany: vi.fn().mockResolvedValue(options.perceptions ?? []),
+      },
+      mediaTextDecision: {
+        findMany: vi.fn().mockResolvedValue(options.textDecisions ?? []),
       },
     } as unknown as PrismaService,
     { evaluatePublishReadiness } as unknown as MediaReadinessService,
@@ -295,6 +300,83 @@ describe('MediaAssessmentService', () => {
     await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
       isBlocking: false,
       reasons: [],
+    });
+  });
+
+  it('forces review on a confident not-brand-safe transcript and warns on caption mismatch (#4882)', async () => {
+    const caption = 'Sunset yoga on the beach';
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1')],
+      textDecisions: [
+        {
+          assetHash: HASH,
+          decisions: [
+            { confidence: 0.95, name: 'isBrandSafe', source: 'transcript', value: false },
+            { confidence: 0.6, name: 'isOnBrand', source: 'transcript', value: false },
+          ],
+          ingredientId: 'asset-1',
+          mode: 'live',
+          subjectKey: 'asset',
+        },
+        {
+          assetHash: HASH,
+          decisions: [
+            { confidence: 0.9, name: 'isCaptionConsistent', source: 'description', value: false },
+          ],
+          ingredientId: 'asset-1',
+          mode: 'live',
+          subjectKey: captionSubjectKey(caption),
+        },
+      ],
+    });
+
+    const assessment = await service.assessPublishMedia({ ...REQUEST, caption });
+
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        code: 'text:not_brand_safe',
+        message: 'The transcript was judged not brand-safe (95%).',
+        source: 'transcript',
+      }),
+    ]);
+    expect(assessment.warnings).toEqual([
+      expect.objectContaining({ code: 'text:caption_inconsistent' }),
+    ]);
+  });
+
+  it('treats a live text gate without a decision as checks pending', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1')],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: true,
+      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
+    });
+  });
+
+  it('ignores text decisions outside live mode', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'shadow', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1')],
+      textDecisions: [
+        {
+          assetHash: HASH,
+          decisions: [
+            { confidence: 0.99, name: 'isBrandSafe', source: 'transcript', value: false },
+          ],
+          ingredientId: 'asset-1',
+          mode: 'shadow',
+          subjectKey: 'asset',
+        },
+      ],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: false,
     });
   });
 });

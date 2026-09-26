@@ -40,3 +40,21 @@ Per-category precision and recall come from
 #4883's benchmark mode runs this set against the configured provider and prints
 them. **No live flip may cite this set alone**: it is a floor for wiring and
 regression, sized for coverage, not a statistically meaningful accuracy claim.
+
+## `media-text-transcripts.jsonl` and `caption-description-pairs.jsonl`
+
+Starter sets for the text decisions on perception output (#4882), in the
+typed-decision fixture shape — `state` is exactly what
+`MediaTextDecisionService` sends, `expected` holds one boolean per question:
+
+```json
+{ "state": { "brand": { … }, "transcript": "…" }, "expected": { "isBrandSafe": true, "isOnBrand": false }, "source": "synthetic" }
+{ "state": { "caption": "…", "sceneSummary": "…", "subjects": […], "textOnScreen": "…" }, "expected": { "isCaptionConsistent": false }, "source": "synthetic" }
+```
+
+They are **synthetic and small** (33 transcripts across three brand profiles,
+20 caption/description pairs) and exist so the wiring and benchmark tooling
+(#4883) run end to end. The issue's gate for `MEDIA_TEXT_GATE_DECISION_MODE=live`
+— at least 150 transcripts and 150 caption/description pairs **labelled by an
+operator**, with accuracy reported — is not met by these files and stays open
+until an operator-labelled set replaces them.

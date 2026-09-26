@@ -14,6 +14,10 @@ import {
   MEDIA_MODERATION_SELECT,
   toMediaModeration,
 } from '@api/services/moderation/media-moderation.record';
+import {
+  captionSubjectKey,
+  resolveMediaTextGateSettings,
+} from '@api/services/media-text-decisions/media-text-decision.settings';
 import { resolveModerationSettings } from '@api/services/moderation/moderation.settings';
 import {
   applyModerationMode,
@@ -25,9 +29,14 @@ import type {
   MediaAssessmentReason,
   MediaReadinessReport,
 } from '@genfeedai/contracts/api-types/contracts';
+import {
+  MEDIA_TEXT_ASSET_SUBJECT,
+  mediaTextDecisionRecordSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { AgentPublishMediaAssessment } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type {
   IEvaluationData,
+  IMediaAssessmentRequest,
   IMediaPublishGate,
   IMediaReadinessRequest,
 } from '@genfeedai/contracts/interfaces';
@@ -80,7 +89,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
   }
 
   async assessPublishMedia(
-    request: IMediaReadinessRequest,
+    request: IMediaAssessmentRequest,
   ): Promise<MediaAssessment> {
     const assetIds = Array.from(new Set(request.assetIds)).filter(
       (assetId) => assetId.length > 0,
@@ -136,6 +145,14 @@ export class MediaAssessmentService implements IMediaPublishGate {
       request.organizationId,
       mediaAssetIds,
       reasons,
+      unchecked,
+    );
+    await this.collectTextDecisions(
+      request.organizationId,
+      mediaAssetIds,
+      request.caption,
+      reasons,
+      warnings,
       unchecked,
     );
     for (const assetId of unchecked) {
@@ -211,6 +228,90 @@ export class MediaAssessmentService implements IMediaPublishGate {
           message: `Moderation flagged ${category.replace('_', ' ')} (${Math.round((top?.confidence ?? 0) * 100)}% on ${where}).`,
           source: 'moderation',
         });
+      }
+    }
+  }
+
+  /**
+   * Text decisions on perception output (#4882). In `live`, a confident
+   * `false` on brand safety or on-brand forces review, and an asset without
+   * its asset-level decision yet is unchecked; a confident caption
+   * inconsistency is only ever a warning.
+   */
+  private async collectTextDecisions(
+    organizationId: string,
+    assetIds: readonly string[],
+    caption: string | undefined,
+    reasons: MediaAssessmentReason[],
+    warnings: MediaAssessmentReason[],
+    unchecked: Set<string>,
+  ): Promise<void> {
+    const settings = resolveMediaTextGateSettings(this.configService);
+    if (settings.mode !== 'live') {
+      return;
+    }
+    const subjectKeys = [MEDIA_TEXT_ASSET_SUBJECT];
+    const captionKey = caption?.trim() ? captionSubjectKey(caption) : null;
+    if (captionKey) {
+      subjectKeys.push(captionKey);
+    }
+    const rows = await this.prisma.mediaTextDecision.findMany({
+      select: {
+        assetHash: true,
+        decisions: true,
+        ingredientId: true,
+        mode: true,
+        subjectKey: true,
+      },
+      where: scopedWhere(organizationId, {
+        ingredientId: { in: [...assetIds] },
+        subjectKey: { in: subjectKeys },
+      }),
+    });
+    const decidedAssets = new Set(
+      rows
+        .filter((row) => row.subjectKey === MEDIA_TEXT_ASSET_SUBJECT)
+        .map((row) => row.ingredientId),
+    );
+    for (const assetId of assetIds) {
+      if (!decidedAssets.has(assetId)) {
+        unchecked.add(assetId);
+      }
+    }
+    for (const row of rows) {
+      const record = mediaTextDecisionRecordSchema.safeParse(row);
+      if (!record.success) {
+        continue;
+      }
+      for (const decision of record.data.decisions) {
+        if (decision.value || decision.confidence < settings.minConfidence) {
+          continue;
+        }
+        const origin =
+          decision.source === 'transcript' ? 'transcript' : 'scene description';
+        const confidence = `${Math.round(decision.confidence * 100)}%`;
+        if (decision.name === 'isBrandSafe') {
+          reasons.push({
+            assetId: row.ingredientId,
+            code: 'text:not_brand_safe',
+            message: `The ${origin} was judged not brand-safe (${confidence}).`,
+            source: decision.source,
+          });
+        } else if (decision.name === 'isOnBrand') {
+          reasons.push({
+            assetId: row.ingredientId,
+            code: 'text:off_brand',
+            message: `The ${origin} was judged off-brand (${confidence}).`,
+            source: decision.source,
+          });
+        } else if (row.subjectKey === captionKey) {
+          warnings.push({
+            assetId: row.ingredientId,
+            code: 'text:caption_inconsistent',
+            message: `The caption may not match the media (${confidence}).`,
+            source: 'description',
+          });
+        }
       }
     }
   }

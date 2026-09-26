@@ -1,6 +1,7 @@
 import { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
+import { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,6 +36,7 @@ export class CronMediaPerceptionService {
     private readonly mediaModerationService: MediaModerationService,
     private readonly moderationQueueService: MediaModerationQueueService,
     private readonly mediaVisionEvaluationService: MediaVisionEvaluationService,
+    private readonly mediaTextDecisionService: MediaTextDecisionService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -88,7 +90,7 @@ export class CronMediaPerceptionService {
     // without a moderation record. Empty when no provider is active.
     // Vision flags (#4881) run in the same gates job; the shared job id
     // dedupes an asset that needs both.
-    const [unmoderated, unevaluated] = await Promise.all([
+    const [unmoderated, unevaluated, undecided] = await Promise.all([
       this.mediaModerationService.findUnmoderatedAssets(
         since,
         MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
@@ -97,8 +99,13 @@ export class CronMediaPerceptionService {
         since,
         MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
       ),
+      this.mediaTextDecisionService.findUndecidedAssets(
+        since,
+        MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
+        now,
+      ),
     ]);
-    for (const candidate of [...unmoderated, ...unevaluated]) {
+    for (const candidate of [...unmoderated, ...unevaluated, ...undecided]) {
       if (
         await this.tryEnqueue(() =>
           this.moderationQueueService.enqueue(candidate),
