@@ -17,6 +17,7 @@ import type {
   Organization,
   User as PrismaUser,
 } from '@genfeedai/prisma';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   requestPresentsApiKeyInUrl,
   URL_API_CREDENTIAL_REJECTION,
@@ -71,16 +72,12 @@ export class CombinedAuthGuard implements CanActivate {
   private resolveBearerToken(
     authHeader: string | undefined,
   ): string | undefined {
-    if (!authHeader) {
+    const parsed = parseAuthorizationHeader(authHeader);
+    if (parsed?.scheme.toLowerCase() !== 'bearer') {
       return undefined;
     }
 
-    const [scheme, token] = authHeader.split(' ');
-    if (scheme?.toLowerCase() !== 'bearer') {
-      return undefined;
-    }
-
-    return token?.trim() || undefined;
+    return parsed.token;
   }
 
   /**

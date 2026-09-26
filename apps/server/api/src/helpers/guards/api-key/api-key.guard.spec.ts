@@ -110,6 +110,25 @@ describe('ApiKeyAuthGuard', () => {
       );
     });
 
+    it.each([
+      ['Bearer', 'Bearer gf_test_abc123 extra'],
+      ['ApiKey', 'ApiKey gf_test_abc123 extra'],
+    ])(
+      'should throw UnauthorizedException for a %s header with surplus fields',
+      async (_scheme, authorization) => {
+        request = buildMockRequest({
+          ...request,
+          headers: { authorization },
+        });
+        mockContext = createMockExecutionContext({ request });
+
+        await expect(guard.canActivate(mockContext)).rejects.toThrow(
+          new UnauthorizedException('Invalid authorization format'),
+        );
+        expect(apiKeysService.findByKey).not.toHaveBeenCalled();
+      },
+    );
+
     it('should return true for non-API key tokens', async () => {
       request = buildMockRequest({
         ...request,

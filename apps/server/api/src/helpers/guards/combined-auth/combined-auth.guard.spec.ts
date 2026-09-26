@@ -185,6 +185,8 @@ describe('CombinedAuthGuard', () => {
     ['empty bearer', 'Bearer'],
     ['blank bearer', 'Bearer   '],
     ['malformed', 'Token abc'],
+    ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
+    ['multiple surplus fields', 'Bearer session-token extra more'],
   ])(
     'rejects a presented %s Authorization header on optional auth',
     async (_label, authorization) => {
@@ -194,6 +196,53 @@ describe('CombinedAuthGuard', () => {
         UnauthorizedException,
       );
       expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('never treats a gf_ key with surplus fields as a valid API key on a required-auth route', async () => {
+    // Before this fix, resolveBearerToken silently truncated
+    // `Bearer gf_<key> extra` down to `gf_<key>` and routed it to
+    // ApiKeyAuthGuard as if it were a well-formed key. It must now be
+    // treated as unparseable so it falls through to Better Auth (which
+    // rejects it as an invalid session token) instead of being validated
+    // as an API key.
+    const mockRequest = {
+      headers: { authorization: 'Bearer gf_1234567890abcdef extra' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockRejectedValue(
+      new UnauthorizedException('Unauthorized'),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(betterAuthGuard.canActivate).toHaveBeenCalledWith(
+      mockExecutionContext,
+    );
+  });
+
+  it.each([
+    ['surplus fields on a session token', 'Bearer session-token extra'],
+    ['malformed scheme', 'Token abc'],
+  ])(
+    'passes a %s Authorization header through to Better Auth (which rejects it) on required auth',
+    async (_label, authorization) => {
+      const mockRequest = { headers: { authorization } };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+      betterAuthGuard.canActivate.mockRejectedValue(
+        new UnauthorizedException('Unauthorized'),
+      );
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     },
   );

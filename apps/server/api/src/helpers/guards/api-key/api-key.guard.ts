@@ -1,6 +1,7 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import {
   CanActivate,
   ExecutionContext,
@@ -27,7 +28,9 @@ export class ApiKeyAuthGuard implements CanActivate {
     }
 
     // Support both "Bearer" and "ApiKey" prefixes
-    const [type, key] = authHeader.split(' ');
+    const parsed = parseAuthorizationHeader(authHeader);
+    const type = parsed?.scheme;
+    const key = parsed?.token;
     if (!key || (type !== 'Bearer' && type !== 'ApiKey')) {
       throw new UnauthorizedException('Invalid authorization format');
     }
