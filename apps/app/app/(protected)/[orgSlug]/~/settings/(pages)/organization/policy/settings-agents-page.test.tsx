@@ -439,6 +439,120 @@ describe('SettingsAgentsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('defers model overrides until the catalog loads, and omits them from the PATCH payload while it is loading', async () => {
+    let resolveCatalog: (models: unknown[]) => void = () => {};
+    mocks.findAllPages.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCatalog = resolve;
+        }),
+    );
+    renderPage();
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalled();
+    });
+    const [, firstPayload] = mocks.patchSettings.mock.calls[0] as [
+      string,
+      { agentPolicy: Record<string, unknown> },
+    ];
+    expect(firstPayload.agentPolicy).not.toHaveProperty(
+      'generationModelOverride',
+    );
+    expect(firstPayload.agentPolicy).not.toHaveProperty('reviewModelOverride');
+    expect(firstPayload.agentPolicy).not.toHaveProperty(
+      'thinkingModelOverride',
+    );
+
+    resolveCatalog([
+      {
+        category: 'text',
+        id: 'gpt-5.5-id',
+        key: 'gpt-5.5',
+        label: 'GPT-5.5',
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('gpt-5.5');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'high_quality' },
+    });
+
+    await waitFor(() => {
+      const lastCall = mocks.patchSettings.mock.calls.at(-1) as [
+        string,
+        { agentPolicy: Record<string, unknown> },
+      ];
+      expect(lastCall[1].agentPolicy).toHaveProperty(
+        'thinkingModelOverride',
+        'gpt-5.5',
+      );
+    });
+  });
+
+  it('shows a stored override with no catalog match as unresolved and does not re-save the raw value', async () => {
+    mocks.settings.agentPolicy = {
+      ...(mocks.settings.agentPolicy as Record<string, unknown>),
+      thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+    };
+    renderPage();
+
+    await waitFor(() => {
+      // Falls back to the "Auto" placeholder value instead of the raw CUID.
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__auto__');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'budget' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: null,
+          }),
+        }),
+      );
+    });
+  });
+
+  it('does not resolve an override key that is only enabled for a different selector category', async () => {
+    mocks.settings.agentPolicy = {
+      ...(mocks.settings.agentPolicy as Record<string, unknown>),
+      // A valid catalog key, but it belongs to the generation (media)
+      // category — the thinking selector must not accept it.
+      thinkingModelOverride: 'google/nano-banana-2',
+    };
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__auto__');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'budget' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: null,
+          }),
+        }),
+      );
+    });
+  });
+
   it('replaces the thinking model picker with the locked model and an upgrade hint on the free tier', async () => {
     mocks.modelAccess = {
       isLocked: true,

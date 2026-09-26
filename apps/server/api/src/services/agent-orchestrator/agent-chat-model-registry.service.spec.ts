@@ -164,6 +164,77 @@ describe('AgentChatModelRegistryService', () => {
       'deepseek/deepseek-v4-flash-0731',
     );
   });
+
+  it('follows succeededBy when an active isDefault row has been retired, never returning the retired key', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+    await expect(service.resolveModelKey(undefined)).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+  });
+
+  it('falls back to the cheapest selectable row when the retired default has no successor', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: null,
+          }),
+          row({
+            cost: 9,
+            isDefault: false,
+            key: 'available',
+            lifecycle: ModelLifecycle.AVAILABLE,
+          }),
+          row({
+            cost: 2,
+            isDefault: false,
+            key: 'recommended',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe('recommended');
+  });
 });
 
 describe('AgentChatModelRegistryService round pricing', () => {

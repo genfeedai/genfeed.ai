@@ -203,22 +203,43 @@ export class AgentChatModelRegistryService
   }
 
   /**
-   * Platform default for cloud chat. Prefers `isDefault` on an active row,
-   * then cheapest active, then seed key only if the registry is empty.
+   * Platform default for cloud chat. Prefers `isDefault` on an active,
+   * non-Retired row (matching {@link listSelectable}'s eligibility), then
+   * cheapest active selectable row, then seed key only if the registry is
+   * empty. An `isDefault` row that has since been Retired follows its
+   * `succeededBy` chain rather than being returned directly or silently
+   * falling through to an unrelated cheapest row.
    */
   async getDefaultModelKey(): Promise<string> {
     await this.ensureFresh();
-    const active = [...this.byKey.values()].filter((row) => row.isActive);
-    const marked = active.find((row) => row.isDefault);
+    const selectable = [...this.byKey.values()].filter(
+      (row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED,
+    );
+    const marked = selectable.find((row) => row.isDefault);
     if (marked) {
       return marked.key;
     }
-    const recommended = active.filter(
+
+    const retiredDefault = [...this.byKey.values()].find(
+      (row) =>
+        row.isActive &&
+        row.isDefault &&
+        row.lifecycle === ModelLifecycle.RETIRED,
+    );
+    const successorKey = retiredDefault?.succeededBy?.trim();
+    const successor = successorKey
+      ? selectable.find((row) => row.key === successorKey)
+      : undefined;
+    if (successor) {
+      return successor.key;
+    }
+
+    const recommended = selectable.filter(
       (row) => row.lifecycle === ModelLifecycle.RECOMMENDED,
     );
-    const cheapest = [...(recommended.length > 0 ? recommended : active)].sort(
-      (left, right) => left.cost - right.cost,
-    )[0];
+    const cheapest = [
+      ...(recommended.length > 0 ? recommended : selectable),
+    ].sort((left, right) => left.cost - right.cost)[0];
     if (cheapest) {
       return cheapest.key;
     }

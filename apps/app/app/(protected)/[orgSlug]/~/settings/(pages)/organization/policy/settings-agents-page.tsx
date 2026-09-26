@@ -26,6 +26,7 @@ import {
   AGENT_REVIEW_MODEL_CATEGORIES,
   AGENT_THINKING_MODEL_CATEGORIES,
   resolveEnabledModelOptions,
+  resolveEnabledModelsForCategory,
   resolveStoredAgentModelKey,
 } from './resolve-enabled-model-options';
 
@@ -90,10 +91,55 @@ function policyFormReducer(
   }
 }
 
+type OverrideCategoryModels = {
+  generation: Array<Pick<IModel, 'id' | 'key'>>;
+  review: Array<Pick<IModel, 'id' | 'key'>>;
+  thinking: Array<Pick<IModel, 'id' | 'key'>>;
+};
+
+/**
+ * Model override keys are only ever safe to persist once the catalog has
+ * loaded successfully — without it there is nothing to validate a stored
+ * key against, so overrides are deferred (omitted from the payload) rather
+ * than resolved against an empty or stale list. Each override is then
+ * validated against its own selector's category-and-enabled model list, not
+ * the full catalog, so a key enabled only for another selector can't slip
+ * through.
+ */
 function buildAgentPolicyPayload(
   form: PolicyFormState,
-  models: Array<Pick<IModel, 'id' | 'key'>>,
+  categoryModels: OverrideCategoryModels,
+  isCatalogLoaded: boolean,
 ): AgentPolicyState {
+  const overrides: Pick<
+    AgentPolicyState,
+    'generationModelOverride' | 'reviewModelOverride' | 'thinkingModelOverride'
+  > = {};
+
+  if (!form.allowAdvancedOverrides) {
+    overrides.generationModelOverride = null;
+    overrides.reviewModelOverride = null;
+    overrides.thinkingModelOverride = null;
+  } else if (isCatalogLoaded) {
+    overrides.generationModelOverride =
+      resolveStoredAgentModelKey(
+        form.generationModelOverride,
+        categoryModels.generation,
+      ) || null;
+    overrides.reviewModelOverride =
+      resolveStoredAgentModelKey(
+        form.reviewModelOverride,
+        categoryModels.review,
+      ) || null;
+    overrides.thinkingModelOverride =
+      resolveStoredAgentModelKey(
+        form.thinkingModelOverride,
+        categoryModels.thinking,
+      ) || null;
+  }
+  // else: catalog has not loaded (or failed to load) — defer by omitting the
+  // override keys entirely so a save never persists an unvalidated value.
+
   return {
     allowAdvancedOverrides: form.allowAdvancedOverrides,
     autonomyDefault: form.autonomyDefault,
@@ -102,16 +148,8 @@ function buildAgentPolicyPayload(
       brandDailyCreditCap: toNumberOrNull(form.brandDailyCreditCap),
       useOrganizationPool: true,
     },
-    generationModelOverride: form.allowAdvancedOverrides
-      ? resolveStoredAgentModelKey(form.generationModelOverride, models) || null
-      : null,
     qualityTierDefault: form.qualityTierDefault,
-    reviewModelOverride: form.allowAdvancedOverrides
-      ? resolveStoredAgentModelKey(form.reviewModelOverride, models) || null
-      : null,
-    thinkingModelOverride: form.allowAdvancedOverrides
-      ? resolveStoredAgentModelKey(form.thinkingModelOverride, models) || null
-      : null,
+    ...overrides,
   };
 }
 
@@ -149,7 +187,10 @@ export default function SettingsAgentsPage() {
 
   const { modelAccess, modelCosts } = useAgentModelAccess();
 
-  const { data: catalogModels = EMPTY_CATALOG_MODELS } = useQuery({
+  const {
+    data: catalogModels = EMPTY_CATALOG_MODELS,
+    isSuccess: isCatalogLoaded,
+  } = useQuery({
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<IModel[]> => {
       const service = await getModelsService();
@@ -188,6 +229,43 @@ export default function SettingsAgentsPage() {
     };
   }, []);
 
+  const enabledModelIds = settings?.enabledModelIds ?? [];
+  const thinkingCategoryModels = useMemo(
+    () =>
+      resolveEnabledModelsForCategory(
+        enabledModelIds,
+        catalogModels,
+        AGENT_THINKING_MODEL_CATEGORIES,
+      ),
+    [catalogModels, enabledModelIds],
+  );
+  const generationCategoryModels = useMemo(
+    () =>
+      resolveEnabledModelsForCategory(
+        enabledModelIds,
+        catalogModels,
+        AGENT_GENERATION_MODEL_CATEGORIES,
+      ),
+    [catalogModels, enabledModelIds],
+  );
+  const reviewCategoryModels = useMemo(
+    () =>
+      resolveEnabledModelsForCategory(
+        enabledModelIds,
+        catalogModels,
+        AGENT_REVIEW_MODEL_CATEGORIES,
+      ),
+    [catalogModels, enabledModelIds],
+  );
+  const categoryModels = useMemo<OverrideCategoryModels>(
+    () => ({
+      generation: generationCategoryModels,
+      review: reviewCategoryModels,
+      thinking: thinkingCategoryModels,
+    }),
+    [generationCategoryModels, reviewCategoryModels, thinkingCategoryModels],
+  );
+
   const persistPolicy = useCallback(
     async (next: PolicyFormState) => {
       if (!organizationId) {
@@ -198,7 +276,11 @@ export default function SettingsAgentsPage() {
       try {
         const service = await getOrganizationsService();
         await service.patchSettings(organizationId, {
-          agentPolicy: buildAgentPolicyPayload(next, catalogModels),
+          agentPolicy: buildAgentPolicyPayload(
+            next,
+            categoryModels,
+            isCatalogLoaded,
+          ),
         });
         await refresh();
       } catch (error) {
@@ -207,7 +289,13 @@ export default function SettingsAgentsPage() {
         dispatch({ payload: false, type: 'SET_IS_SAVING' });
       }
     },
-    [catalogModels, getOrganizationsService, organizationId, refresh],
+    [
+      categoryModels,
+      getOrganizationsService,
+      isCatalogLoaded,
+      organizationId,
+      refresh,
+    ],
   );
 
   const updateAndPersist = useCallback(
@@ -235,7 +323,6 @@ export default function SettingsAgentsPage() {
     [persistPolicy],
   );
 
-  const enabledModelIds = settings?.enabledModelIds ?? [];
   const thinkingModelOptions = useMemo(
     () =>
       resolveEnabledModelOptions(
@@ -296,7 +383,7 @@ export default function SettingsAgentsPage() {
         generationModelOptions={generationModelOptions}
         generationModelOverride={resolveStoredAgentModelKey(
           generationModelOverride,
-          catalogModels,
+          generationCategoryModels,
         )}
         modelCostEstimates={modelCosts}
         isSaving={isSaving}
@@ -315,12 +402,12 @@ export default function SettingsAgentsPage() {
         reviewModelOptions={reviewModelOptions}
         reviewModelOverride={resolveStoredAgentModelKey(
           reviewModelOverride,
-          catalogModels,
+          reviewCategoryModels,
         )}
         thinkingModelOptions={thinkingModelOptions}
         thinkingModelOverride={resolveStoredAgentModelKey(
           thinkingModelOverride,
-          catalogModels,
+          thinkingCategoryModels,
         )}
       />
     </div>
