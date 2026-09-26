@@ -66,6 +66,7 @@ export interface CatalogLock {
   sourceRepository: string;
   sourceCommit: string;
   sourceCommittedAt: string;
+  sourceSkillSlugs: string[];
   skills: CatalogEntry[];
 }
 export function assertSafePath(path: string): void {
@@ -172,13 +173,28 @@ export function createCatalogLock(
   directory: string,
   sourceCommit: string,
   sourceCommittedAt: string,
+  sourceSkillSlugs: string[],
 ): CatalogLock {
+  // App procedures must not also ship as separately edited public copies.
+  const published = sourceSkillSlugs.filter((slug) =>
+    APPLICATION_PROCEDURES.has(slug),
+  );
+  if (published.length)
+    throw new Error(
+      `Application procedures also published in ${SOURCE_REPOSITORY}: ${published.join(', ')}`,
+    );
+  const missing = UPSTREAM_SLUGS.filter(
+    (slug) => !sourceSkillSlugs.includes(slug),
+  );
+  if (missing.length)
+    throw new Error(`Pinned skills missing from source: ${missing.join(', ')}`);
   return {
     schemaVersion: 1,
     compilerVersion: CATALOG_COMPILER_VERSION,
     sourceRepository: SOURCE_REPOSITORY,
     sourceCommit,
     sourceCommittedAt,
+    sourceSkillSlugs,
     skills: catalogSlugs(directory).map((slug) => {
       const upstream = UPSTREAM_SLUGS.includes(slug);
       // Free content skills come only from the pinned public source; only app procedures are authored here.
@@ -222,13 +238,16 @@ export function validateCatalogLock(directory: string): CatalogLock {
   ) as CatalogLock;
   if (
     !/^[a-f0-9]{40}$/.test(lock.sourceCommit) ||
-    !Number.isFinite(Date.parse(lock.sourceCommittedAt))
+    !Number.isFinite(Date.parse(lock.sourceCommittedAt)) ||
+    !Array.isArray(lock.sourceSkillSlugs) ||
+    lock.sourceSkillSlugs.some((slug) => typeof slug !== 'string')
   )
     throw new Error('Invalid catalog source pin');
   const expected = createCatalogLock(
     directory,
     lock.sourceCommit,
     lock.sourceCommittedAt,
+    lock.sourceSkillSlugs,
   );
   if (JSON.stringify(lock) !== JSON.stringify(expected))
     throw new Error(
