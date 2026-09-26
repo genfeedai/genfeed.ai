@@ -228,7 +228,14 @@ describe('proactive dispatch failure accounting across real services', () => {
     }
     expect(fixture.queue.queueSystemWorkflow).toHaveBeenCalledTimes(3);
     // #5136: the idempotency guard now keys off a fresh per-attempt dispatchId
-    // rather than the (now-reused) agent thread id.
+    // rather than the (now-reused) agent thread id. Assert the exact value
+    // the third attempt dispatched with, not just its shape, so the guard
+    // stays tied to that specific attempt's execution.
+    const thirdRun = fixture.executions.get('run-3');
+    expect(thirdRun).toBeDefined();
+    const thirdDispatchId = (thirdRun?.result as { metadata: Row } | undefined)
+      ?.metadata.dispatchId;
+    expect(typeof thirdDispatchId).toBe('string');
     expect(fixture.prisma.workflowExecution.findFirst).toHaveBeenLastCalledWith(
       {
         where: {
@@ -236,7 +243,7 @@ describe('proactive dispatch failure accounting across real services', () => {
           isDeleted: false,
           result: {
             path: ['metadata', 'dispatchId'],
-            equals: expect.any(String),
+            equals: thirdDispatchId,
           },
         },
         select: { id: true },

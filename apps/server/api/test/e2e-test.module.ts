@@ -335,6 +335,9 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
     },
   },
   {
+    // Inert by default so PostsService/BrandSetupService/UserSetupService
+    // resolve; specs asserting signup-credit or mission-completion behavior
+    // must override this token with their own assertable mock.
     provide: OnboardingCreditGrantsService,
     useValue: {
       completeMissions: () => Promise.resolve([]),
