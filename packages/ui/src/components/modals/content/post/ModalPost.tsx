@@ -4,7 +4,6 @@ import {
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  ModalEnum,
   Platform,
   PostFormat,
   PostVisibility,
@@ -33,7 +32,7 @@ const EMPTY_ARRAY: never[] = [];
 export default function ModalPost({
   post,
   ingredient,
-  modalId = ModalEnum.POST,
+  modalId,
   credential,
   credentials = EMPTY_ARRAY,
   parentPost,
