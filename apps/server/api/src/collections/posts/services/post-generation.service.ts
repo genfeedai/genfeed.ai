@@ -29,6 +29,7 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -77,6 +78,7 @@ export class PostGenerationService {
   constructor(
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly brandsService: BrandsService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
@@ -747,8 +749,14 @@ export class PostGenerationService {
       identity,
       context,
     );
-    const { input } = await this.promptBuilderService.buildPrompt(
+    // Admin → Automation → Models `isDefault` TEXT row wins; DEFAULT_MINI_TEXT_MODEL
+    // (#5161) is only the seed used when no Admin default resolves.
+    const model = await this.agentChatModelRegistry.resolveModelKey(
+      undefined,
       DEFAULT_MINI_TEXT_MODEL,
+    );
+    const { input } = await this.promptBuilderService.buildPrompt(
+      model,
       {
         brandingMode: 'off',
         modelCategory: ModelCategory.TEXT,
@@ -768,10 +776,7 @@ export class PostGenerationService {
     );
     for (let attempt = 0; attempt < 2; attempt++) {
       const description = (
-        await this.replicateService.generateTextCompletionSync(
-          DEFAULT_MINI_TEXT_MODEL,
-          input,
-        )
+        await this.replicateService.generateTextCompletionSync(model, input)
       )?.trim();
       if (!description) {
         throw new BadRequestException('No draft was generated. Try again.');
@@ -783,7 +788,7 @@ export class PostGenerationService {
           context.constraints.usesWeightedCharacters,
         )
       ) {
-        return { description };
+        return { description, model };
       }
     }
     throw new BadRequestException(

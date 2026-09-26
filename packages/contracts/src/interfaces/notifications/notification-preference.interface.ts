@@ -10,9 +10,11 @@ export const PRODUCT_EMAIL_TOPICS = [
   'generation.status',
 ] as const;
 export type ProductEmailTopic = (typeof PRODUCT_EMAIL_TOPICS)[number];
+export const SOCIAL_REPLY_NOTIFICATION_TOPIC = 'social.reply' as const;
 export const NOTIFICATION_TOPICS = [
   'workflow.status',
   'agent.status',
+  SOCIAL_REPLY_NOTIFICATION_TOPIC,
   ...PRODUCT_EMAIL_TOPICS,
 ] as const;
 export const PRODUCT_EMAIL_PREFERENCES = [
@@ -72,7 +74,28 @@ export function defaultProductEmailPreference(topic: string): boolean {
 }
 export type NotificationTopic = (typeof NOTIFICATION_TOPICS)[number];
 
-export const NOTIFICATION_CHANNELS = ['email'] as const;
+/**
+ * In-app (notification inbox) topics. No stored preference row means the
+ * default below applies; an explicit disabled row opts the user out.
+ */
+export const IN_APP_NOTIFICATION_PREFERENCES = [
+  {
+    topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
+    label: 'Replies to your posts',
+    description:
+      'An in-app notification when people reply to X posts you published in the last 24 hours.',
+    isDefaultEnabled: true,
+  },
+] as const;
+
+export function defaultInAppNotificationPreference(topic: string): boolean {
+  return (
+    IN_APP_NOTIFICATION_PREFERENCES.find((entry) => entry.topic === topic)
+      ?.isDefaultEnabled ?? false
+  );
+}
+
+export const NOTIFICATION_CHANNELS = ['email', 'in_app'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 export interface INotificationPreference extends IBaseEntity {

@@ -34,7 +34,6 @@ const captured = vi.hoisted(() => ({
   record: {} as Record<string, Record<string, unknown>>,
 }));
 
-const routerPushMock = vi.hoisted(() => vi.fn());
 const reloadMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const refreshBrandsMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(undefined),
@@ -68,7 +67,7 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/workspace',
-  useRouter: () => ({ push: routerPushMock, refresh: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
   useSearchParams: () => ({ toString: () => '' }),
 }));
 
@@ -94,7 +93,6 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalGallery: makeStub('ModalGallery'),
   LazyModalGenerateIllustration: makeStub('ModalGenerateIllustration'),
   LazyModalMetadata: makeStub('ModalMetadata'),
-  LazyModalPost: makeStub('ModalPost'),
   LazyModalPostBatch: makeStub('ModalPostBatch'),
   LazyModalPostRemix: makeStub('ModalPostRemix'),
   LazyModalPrompt: makeStub('ModalPrompt'),
@@ -261,22 +259,6 @@ describe('GlobalModals interactions', () => {
     expect(postCloseMock).toHaveBeenCalledTimes(1);
     expect(postRefreshMock).toHaveBeenCalledTimes(1);
     expect(captured.record.ModalPostBatch?.isOpen).toBe(false);
-  });
-
-  it('routes to the publisher when a post is created from the post modal', () => {
-    renderProvider();
-
-    act(() => {
-      getCallback<(postId: string) => void>(
-        'ModalPost',
-        'onCreated',
-      )('post_42');
-    });
-
-    expect(routerPushMock).toHaveBeenCalledTimes(1);
-    expect(String(routerPushMock.mock.calls[0]?.[0])).toContain('post_42');
-
-    getCallback<() => void>('ModalPost', 'onConfirm')();
   });
 
   it('queues confirms and advances the queue as each one resolves', async () => {

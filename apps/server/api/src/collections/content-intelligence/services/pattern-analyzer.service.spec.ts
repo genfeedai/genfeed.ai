@@ -845,16 +845,23 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     });
   });
 
-  it('persists the decided labels in live mode above the threshold', async () => {
+  it('caps a configured live mode at shadow — a confident decided label never overrides the rule-based one', async () => {
     setDecisionConfig('live', 0.8);
     decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST, 0.81);
 
     const { patterns } = await service.analyzeCreator(creatorId);
 
+    // Jev still computed and was called (shadow telemetry), but the pattern
+    // analyzer's two label decisions (#4868, release-blocker follow-up to
+    // epic #4863) can no longer dispatch on it — `live` is not reachable.
+    expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ mode: 'shadow' }),
+    );
     expect(patterns[0]).toMatchObject({
       isLowConfidence: false,
-      patternType: ContentPatternType.TEMPLATE,
-      templateCategory: ContentPatternCategory.LIST,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
     });
   });
 
@@ -905,7 +912,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     expect(patterns[0].templateCategory).toBeUndefined();
   });
 
-  it('keeps the rule-based category when only the pattern type is decided', async () => {
+  it('keeps the rule-based type and category even when a decided pattern type is confident — shadowed, not applied', async () => {
     setDecisionConfig('live');
     mockTypedDecisionService.choose.mockImplementation(
       async (_params: unknown, context: { decisionPoint: string }) =>
@@ -918,7 +925,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
 
     expect(patterns[0]).toMatchObject({
       isLowConfidence: false,
-      patternType: ContentPatternType.STRUCTURE,
+      patternType: ContentPatternType.HOOK,
       templateCategory: ContentPatternCategory.QUESTION,
     });
   });

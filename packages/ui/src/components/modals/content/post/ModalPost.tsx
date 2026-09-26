@@ -4,7 +4,6 @@ import {
 } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  ModalEnum,
   Platform,
   PostFormat,
   PostVisibility,
@@ -18,6 +17,8 @@ import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { calculateTweetLength } from '@helpers/formatting/tweet-length/tweet-length.helper';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
@@ -31,7 +32,7 @@ const EMPTY_ARRAY: never[] = [];
 export default function ModalPost({
   post,
   ingredient,
-  modalId = ModalEnum.POST,
+  modalId,
   credential,
   credentials = EMPTY_ARRAY,
   parentPost,
@@ -135,12 +136,19 @@ export default function ModalPost({
         }
       }
 
+      // X carries no formatting, so its description is always plain text; the
+      // other platforms edit through a rich-text editor and keep their HTML.
+      const descriptionForSubmit =
+        targetPlatform === Platform.TWITTER
+          ? stripHtmlToPlainText(formData.description)
+          : formData.description;
+
       if (isEditMode && post?.id) {
         entity = post;
         const url = `PATCH /posts/${entity.id}`;
         const result = await postsService.patch(entity.id, {
           credentialId: formData.credentialId || undefined,
-          description: formData.description.trim(),
+          description: descriptionForSubmit,
           format: formData.format,
           label: formData.label?.trim() || '',
           ...(formData.scheduledDate
@@ -158,7 +166,7 @@ export default function ModalPost({
         const result = await postsService.post({
           brandId: brandId || undefined,
           credentialId: formData.credentialId || undefined,
-          description: formData.description.trim(),
+          description: descriptionForSubmit,
           format: formData.format,
           ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',
@@ -218,16 +226,23 @@ export default function ModalPost({
   // Manually populate form when post changes (transform objects to IDs)
   useEffect(() => {
     if (post) {
-      form.setValue('label', post.label || '');
-      form.setValue('description', post.description || '');
-      form.setValue('format', post.format || PostFormat.STANDARD);
-      form.setValue(
-        'platform',
+      const resolvedPlatform =
         post.platform ??
-          post.credential?.platform ??
-          defaultPlatform ??
-          Platform.TWITTER,
+        post.credential?.platform ??
+        defaultPlatform ??
+        Platform.TWITTER;
+      form.setValue('label', post.label || '');
+      // X never carries formatting, so a legacy post whose description still
+      // has stored HTML (pre-#4629) is unwrapped here, once, on load — not on
+      // every keystroke, which would fight the textarea for trailing spaces.
+      form.setValue(
+        'description',
+        resolvedPlatform === Platform.TWITTER
+          ? stripHtmlToPlainText(post.description)
+          : post.description || '',
       );
+      form.setValue('format', post.format || PostFormat.STANDARD);
+      form.setValue('platform', resolvedPlatform);
       form.setValue(
         'scheduledDate',
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
@@ -276,7 +291,11 @@ export default function ModalPost({
     form.watch('format'),
   );
 
-  const currentLength = Array.from(form.watch('description') || '').length;
+  const descriptionText = stripHtmlToPlainText(form.watch('description') || '');
+  const currentLength =
+    selectedPlatform === Platform.TWITTER
+      ? calculateTweetLength(descriptionText)
+      : Array.from(descriptionText).length;
   const isOverLimit = currentLength > charLimit;
 
   // YouTube requires a title

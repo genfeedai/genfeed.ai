@@ -12,11 +12,9 @@ import type {
   IIngredient,
   IPost,
 } from '@genfeedai/contracts/interfaces';
-import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   GlobalModalGalleryConfig,
@@ -32,27 +30,14 @@ import type {
 import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
-import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useState } from 'react';
 
 export function useGlobalModalsState() {
   const { credentials, refreshBrands, settings } = useBrand();
   const { user } = useAuthUser();
-  const router = useRouter();
-  const { href } = useOrgUrl();
 
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
-  );
-
-  // Memoized callbacks for LazyModalPost to prevent infinite re-renders
-  const handlePostConfirm = useCallback(() => {}, []);
-  const handlePostCreated = useCallback(
-    (postId: string) => {
-      closeModal(ModalEnum.POST);
-      router.push(href(getPublishingPostHref(postId)));
-    },
-    [router, href],
   );
 
   const [publishIngredients, setPublishIngredients] = useState<IIngredient[]>(
@@ -413,8 +398,6 @@ export function useGlobalModalsState() {
     generateIllustrationConfig,
     generateIllustrationTrigger,
     handleBrandOverlayConfirm,
-    handlePostConfirm,
-    handlePostCreated,
     hasOpenGlobalModal,
     ingredientOverlayData,
     ingredientOverlayTrigger,

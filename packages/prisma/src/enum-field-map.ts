@@ -4575,12 +4575,16 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'id',
       'isDeleted',
       'key',
-      'marginMultiplier',
+      'marginInputMode',
+      'marginMultiplierAgentChat',
+      'marginMultiplierGeneration',
       'typedDecisionProvider',
       'updatedAt',
     ],
     listFields: [],
-    enumFields: {},
+    enumFields: {
+      marginInputMode: { enumType: 'MarginInputMode', isRequired: true },
+    },
     relationIdFields: {},
   },
   Post: {

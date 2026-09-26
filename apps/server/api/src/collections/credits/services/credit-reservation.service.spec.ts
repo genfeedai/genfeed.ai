@@ -392,6 +392,57 @@ describe('CreditReservationService', () => {
     });
   });
 
+  it('returns held credits to the balance when a failed generation releases its reservation', async () => {
+    const reservation = {
+      id: 'res_1',
+      organizationId: 'org_1',
+      billingAccountId: 'ba_1',
+      actorUserId: 'user_1',
+      amount: 12,
+      status: CreditReservationStatus.RESERVED,
+      workloadType: 'image_generation',
+      workloadId: 'ingredient_1',
+    };
+    prisma.creditReservation.findFirst.mockResolvedValue(reservation);
+    prisma.creditReservation.updateMany.mockResolvedValue({ count: 1 });
+    creditBalanceService.applyDelta.mockResolvedValue({
+      available: 100,
+      billingAccountId: 'ba_1',
+      held: 0,
+      id: 'bal_1',
+      organizationId: 'org_1',
+      settled: 100,
+      version: 3,
+    });
+
+    const snapshot = await service.release({
+      organizationId: 'org_1',
+      reason: 'release',
+      reservationId: 'res_1',
+    });
+
+    expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+      data: { status: CreditReservationStatus.RELEASED },
+      where: {
+        id: 'res_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      },
+    });
+    expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
+      'org_1',
+      {
+        billingAccountId: 'ba_1',
+        heldDelta: -12,
+      },
+      txClient,
+      'res_1',
+    );
+    expect(snapshot.held).toBe(0);
+    expect(snapshot.available).toBe(100);
+  });
+
   it('settles accepted interpolation at its held quote without releasing it', async () => {
     const reservation = {
       id: 'hold',
@@ -545,8 +596,12 @@ describe('CreditReservationService', () => {
     await expect(service.expireDue()).resolves.toBe(1);
     expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
       'org_1',
-      { billingAccountId: 'ba_1', heldDelta: -20 },
+      {
+        billingAccountId: 'ba_1',
+        heldDelta: -20,
+      },
       txClient,
+      'res_1',
     );
   });
 

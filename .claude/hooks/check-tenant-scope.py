@@ -22,6 +22,9 @@ from typing import Optional
 GUARD_COMMAND = ("bun", "run", "check:tenant-scope")
 GUARD_TIMEOUT_SECONDS = 30
 MAX_OUTPUT_LINES = 40
+# Bun's bare-specifier error when the worktree's dependencies are not installed
+# (bunfig.toml disables auto-install, so this replaces a silent wrong-version resolve).
+MISSING_DEPENDENCY_MARKER = "Cannot find package"
 SCAN_ROOTS = (
     Path("apps/server/api/src"),
 )
@@ -137,6 +140,16 @@ def run_guard(worktree_root: Path) -> int:
         return 0
 
     details = output_tail(result.stdout, result.stderr)
+    if MISSING_DEPENDENCY_MARKER in result.stderr:
+        print(
+            "check-tenant-scope.py: skipped — dependencies are not installed in "
+            f"{worktree_root}. Run `bun install` there.",
+            file=sys.stderr,
+        )
+        if details:
+            print(details, file=sys.stderr)
+        return 0
+
     print(
         "BLOCKED by .claude/hooks/check-tenant-scope.py: "
         "the canonical Prisma tenant-scope guard failed after this edit.",

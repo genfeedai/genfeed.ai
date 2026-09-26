@@ -6,6 +6,7 @@ import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
+  calculateAgentExactCredits,
   calculateAgentRoundCredits,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   DEFAULT_GROK_MODEL_KEY,
@@ -20,6 +21,13 @@ import {
 } from './agent-chat-models.constant';
 import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
 import { MODEL_KEYS } from './model-keys.constant';
+
+describe('calculateAgentExactCredits', () => {
+  it('applies the operator multiplier once, defaulting to 1.7', () => {
+    expect(calculateAgentExactCredits(0.01)).toBe(1.7);
+    expect(calculateAgentExactCredits(0.01, 1.5)).toBe(1.5);
+  });
+});
 
 describe('calculateAgentRoundCredits', () => {
   it('derives credits from list price, prompt and completion tokens both', () => {
@@ -237,8 +245,13 @@ describe('LLM_DEFAULTS', () => {
   });
 
   it('points every picker-facing role at a catalogued model', () => {
+    // grokFast and productTextFallback are deliberately not in the agent
+    // chat picker: grokFast is the cheap X-drafts key, productTextFallback
+    // is the drafts/prompt-enhancement seed used only when no Admin default
+    // TEXT model resolves (#5161).
+    const NON_PICKER_ROLES = new Set(['grokFast', 'productTextFallback']);
     for (const [role, key] of Object.entries(LLM_DEFAULTS)) {
-      if (role === 'grokFast') {
+      if (NON_PICKER_ROLES.has(role)) {
         continue;
       }
 
@@ -250,6 +263,13 @@ describe('LLM_DEFAULTS', () => {
     expect(LLM_DEFAULTS.grokFast).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST);
     expect(LLM_DEFAULTS.grokFast).not.toBe(LLM_DEFAULTS.grok);
     expect(getAgentChatModel(LLM_DEFAULTS.grokFast)).toBeUndefined();
+  });
+
+  it('keeps productTextFallback off the agent chat picker', () => {
+    expect(LLM_DEFAULTS.productTextFallback).toBe(
+      MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
+    );
+    expect(getAgentChatModel(LLM_DEFAULTS.productTextFallback)).toBeUndefined();
   });
 });
 

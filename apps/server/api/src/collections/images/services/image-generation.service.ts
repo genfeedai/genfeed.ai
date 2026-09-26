@@ -587,7 +587,10 @@ export class ImageGenerationService {
         visualDirection: params.style || params.createImageDto.style,
         width: params.width,
       });
-      if (params.generationHarness.status === 'skipped') {
+      if (
+        params.generationHarness.status === 'skipped' ||
+        params.generationHarness.status === 'failed'
+      ) {
         if (compiled.dispatch)
           compiled.dispatch.prompt = params.generationHarness.originalPrompt;
         compiled.evidence = rawPromptBriefEvidence(compiled.evidence);

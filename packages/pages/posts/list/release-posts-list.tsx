@@ -32,6 +32,8 @@ import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import { ReleaseRailActions } from '@pages/posts/rail/release-rail-row';
 import {
+  releaseContentPreview,
+  releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
 } from '@pages/posts/rail/release-rail-row.helpers';
@@ -584,8 +586,10 @@ export default function ReleasePostsList({
                       ? release.targets
                       : []
                     ).map((target) => target.platform)}
-                    title={release.title || translateRail('open')}
-                    summary={release.baseContent?.split('\n')[0]}
+                    title={
+                      releaseDisplayTitle(release) || translateRail('open')
+                    }
+                    summary={releaseContentPreview(release)}
                   />
                 </div>
               ),

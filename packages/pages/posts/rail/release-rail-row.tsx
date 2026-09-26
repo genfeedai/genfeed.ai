@@ -14,6 +14,8 @@ import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.help
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
+  releaseContentPreview,
+  releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
   targetTone,
@@ -91,10 +93,10 @@ export default function ReleaseRailRow({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">
-          {release.title || translate('open')}
+          {releaseDisplayTitle(release) || translate('open')}
         </p>
         <p className="truncate text-xs text-foreground/55">
-          {release.baseContent?.split('\n')[0] || ''}
+          {releaseContentPreview(release)}
         </p>
       </div>
 
@@ -157,7 +159,7 @@ export function ReleaseRailActions({
   const { visible } = visibleTargets(release.targets);
   const primaryTargetId = visible[0]?.id ?? release.id;
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
       <Link
         aria-label={translate('open')}
         className={buttonVariants({

@@ -1,5 +1,6 @@
 import type { AgentPageContext as AgentRequestPageContext } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 
 export interface AgentPageContextState extends AgentRequestPageContext {
   placeholder?: string;
@@ -22,10 +23,17 @@ type AgentPageContextTextKey =
   | 'postContent'
   | 'route'
   | 'selectedText'
+  | 'timezone'
   | 'url';
 
+/**
+ * Maps the visible page context onto the request payload. The viewer's
+ * timezone rides along with any non-empty context so the agent can turn
+ * "today" or "at 9am" into absolute schedule times.
+ */
 export function toAgentRequestPageContext(
   context: AgentPageContextState | null | undefined,
+  timezone: string = getBrowserTimezone(),
 ): AgentRequestPageContext | undefined {
   if (!context) {
     return undefined;
@@ -66,5 +74,11 @@ export function toAgentRequestPageContext(
     requestContext.researchReferences = context.researchReferences;
   }
 
-  return Object.keys(requestContext).length > 0 ? requestContext : undefined;
+  if (Object.keys(requestContext).length === 0) {
+    return undefined;
+  }
+
+  assign('timezone', context.timezone ?? timezone);
+
+  return requestContext;
 }

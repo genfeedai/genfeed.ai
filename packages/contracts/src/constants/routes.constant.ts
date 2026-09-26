@@ -258,10 +258,12 @@ export const APP_ROUTES = {
      * param filter on this single route — see
      * `createPublishingPostsFilterRoute` — never a dedicated path.
      * - List: `/publishing/posts`
+     * - New: `/publishing/posts/new`
      * - Editor: `/publishing/posts/:id` (social post today; article/newsletter
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
+    POSTS_NEW: '/publishing/posts/new',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a

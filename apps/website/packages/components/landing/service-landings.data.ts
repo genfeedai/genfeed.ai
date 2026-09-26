@@ -79,7 +79,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Done-For-You',
     closingDescription:
-      'This page is intentionally simple: if the model fits, book a call and we will scope the engagement.',
+      'Start free and run it yourself on Genfeed, or book a call and we will scope the engagement.',
     closingTitle: 'If You Need Content Volume Without Building a Team',
     deliverableBuckets: [
       {
@@ -195,7 +195,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Founder Content',
     closingDescription:
-      'If founder-led content is bottlenecked by time, consistency, or execution, the next step is a call.',
+      'If founder-led content is bottlenecked by time, consistency, or execution, start free on Genfeed or book a call and we will run it for you.',
     closingTitle: 'Founder-Led Content Without Founder-Led Production',
     deliverableBuckets: [
       {
@@ -321,7 +321,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'LinkedIn Content',
     closingDescription:
-      'If LinkedIn is a real revenue channel for your business, this page should end with one action: book the call.',
+      'If LinkedIn is a real revenue channel for your business, start free on Genfeed or book a call and we will run it for you.',
     closingTitle: 'LinkedIn Content For Companies That Need Consistency',
     deliverableBuckets: [
       {
@@ -448,7 +448,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'X Growth',
     closingDescription:
-      'If X matters to your business and your account is not keeping up, book a call and we will scope the growth engine.',
+      'Start free and run the X growth loop yourself on Genfeed, or book a call and we will run it for you.',
     closingTitle: 'Grow On X Without Living On X',
     deliverableBuckets: [
       {
@@ -480,7 +480,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription:
-      'The full X growth loop, operated by us inside your Genfeed workspace. You keep the account, the assets, and the data.',
+      'The full X growth loop inside your Genfeed workspace. Run it yourself, or have us run it. Either way you keep the account, the assets, and the data.',
     deliverablesTitle: 'What You Get',
     faqDescription: 'What people usually ask before booking.',
     faqs: [
@@ -488,6 +488,11 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         answer:
           'Founders, operators, and brands where X drives deals, hiring, fundraising, or distribution, and the account underperforms because nobody owns it day to day.',
         question: 'Who is this for?',
+      },
+      {
+        answer:
+          'Yes. Start free, connect your X account, and use Genfeed for trend monitoring, drafting, scheduling, and analytics yourself. If you would rather hand it off, book a call and we run the same loop for you.',
+        question: 'Can I run it myself instead of hiring you?',
       },
       {
         answer:
@@ -511,7 +516,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Pricing is scoped on the call around posting volume, format mix (text, threads, video), and how much reply coverage you want.',
+          'Self-serve starts free on pay-as-you-go. Done-for-you is scoped on the call around posting volume, format mix (text, threads, video), and how much reply coverage you want.',
         question: 'How does pricing work?',
       },
     ],
@@ -524,8 +529,8 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     ],
     heroAccent: 'X account',
     heroDescription:
-      'Done-for-you X growth for founders and brands. Daily posts, threads, replies, and video, run on Genfeed so your account compounds without you living on the timeline.',
-    heroTitle: 'We grow your',
+      'Genfeed runs the X (Twitter) growth loop: trends, daily posts and threads in your voice, replies, video, and analytics. Start free and run it yourself, or book a call and we run it for you.',
+    heroTitle: 'Grow your',
     includes: [
       'X growth strategy and content pillars',
       'Voice calibration',
@@ -537,10 +542,10 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       'Monthly performance review',
     ],
     intro:
-      'X rewards accounts that show up every day with a sharp point of view and join the conversation while it is still moving. Almost nobody can sustain that on top of a real job. We run the engine on Genfeed, from trend monitoring and drafting in your voice to replies, scheduling, and analytics, and you approve what ships.',
+      'X rewards accounts that show up every day with a sharp point of view and join the conversation while it is still moving. Almost nobody can sustain that on top of a real job. Genfeed handles trend monitoring, drafting in your voice, replies, scheduling, and analytics. Run it yourself, or let us run it while you approve what ships.',
     metaDescription:
-      'Done-for-you X (Twitter) growth. Daily posts, threads, replies, and video run on Genfeed so your account grows without you living on the timeline.',
-    metaTitle: 'X Growth Service | Genfeed.ai',
+      'Grow your X (Twitter) account with Genfeed: trend alerts, posts and threads in your voice, reply drafts, and analytics. Start free or have us run it.',
+    metaTitle: 'X (Twitter) Growth Service | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -721,7 +726,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Launch Content',
     closingDescription:
-      'If you have a specific launch window and need fast coordinated output, book the call and we will scope the sprint.',
+      'If you have a specific launch window, start free on Genfeed or book a call and we will scope the sprint.',
     closingTitle: 'Launch Content Without Last-Minute Chaos',
     deliverableBuckets: [
       {
