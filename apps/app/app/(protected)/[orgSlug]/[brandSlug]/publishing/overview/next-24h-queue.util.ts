@@ -4,7 +4,7 @@ import type {
   Next24hQueueGroup,
   Next24hQueueItem,
 } from '@genfeedai/props/publisher/publishing-overview.props';
-import { getPublishingPostHref } from '@helpers/content/posts.helper';
+import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
 import { resolveAccountLabel } from './account-label.util';
 
 export type {
@@ -55,7 +55,7 @@ export function buildNext24hQueue(
 
       items.push({
         accountLabel: resolveAccountLabel(target.credential, target.platform),
-        href: getPublishingPostHref(release.id),
+        href: getPublishingReleaseHref(release.id),
         platform: target.platform,
         releaseId: release.id,
         scheduledAt,
