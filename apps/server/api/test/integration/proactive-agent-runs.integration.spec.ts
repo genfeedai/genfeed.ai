@@ -234,6 +234,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       runner as never,
       logger as never,
       { reconcile: vi.fn() } as never,
+      { reconcile: vi.fn() } as never,
     );
     const processorArgs = Array.from({ length: 30 }, () => ({}));
     processorArgs[0] = { isDevSchedulersEnabled: true };
