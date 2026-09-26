@@ -56,7 +56,7 @@ export const mediaValidationSchema = {
     .valid('none', 'openai')
     .default('none')
     .description(
-      'Moderation classifier (#4880). `none` sends nothing off the host, persists no verdict and makes the gate off in every mode; `openai` uses omni-moderation (images and text)',
+      'Moderation classifier (#4880). `none` sends nothing off the host and persists no new verdict; while the mode is `live`, verdicts stored from an earlier provider still apply. `openai` uses omni-moderation (images and text)',
     ),
   MODERATION_MODE: Joi.string()
     .valid('off', 'shadow', 'live')
@@ -75,7 +75,7 @@ export const mediaValidationSchema = {
     .max(1)
     .default(0.85)
     .description(
-      'Minimum confidence for a `false` text decision to count. Policy: the lowest confidence decile whose benchmark accuracy is at least 95% for both isBrandSafe and isOnBrand',
+      'Minimum confidence for a `false` text decision to count. Policy: over `false` answers only, the lowest confidence-decile floor from which every non-empty decile at or above has at least 95% of labels also false, with at least 20 such labels; the higher of the isBrandSafe and isOnBrand suggestions printed by `bench:typed-decisions --mode=media`',
     ),
   MODERATION_THRESHOLDS: Joi.string()
     .pattern(
@@ -84,7 +84,7 @@ export const mediaValidationSchema = {
     .optional()
     .allow('')
     .description(
-      'Per-category moderation thresholds as `category=confidence` pairs (e.g. `sexual=0.5,violence=0.7`); unset categories keep DEFAULT_MODERATION_THRESHOLDS and lower is stricter. Policy: each threshold is the lowest score decile with at least 95% flag accuracy on a labelled set with at least 20 positives; sexual_minors (0.2) and self_harm (0.4) are recall-biased and may only go lower without a written decision; spam (0.9) is precision-biased',
+      'Per-category moderation thresholds as `category=confidence` pairs (e.g. `sexual=0.5,violence=0.7`); unset categories keep DEFAULT_MODERATION_THRESHOLDS and lower is stricter. Policy: each threshold is the lowest score-decile floor from which every non-empty decile at or above has a positive-label rate of at least 95%, with at least 20 labelled positives at or above it (printed as `suggested` by `bench:typed-decisions --mode=media`); sexual_minors (0.2) and self_harm (0.4) are recall-biased and may only go lower without a written decision; spam (0.9) is precision-biased',
     ),
 };
 

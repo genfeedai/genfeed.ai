@@ -38,7 +38,7 @@ import {
   buildReadinessSamples,
   scoreReadinessSamples,
 } from '@api-test/fixtures/media-gates/readiness-samples.fixture';
-import type { ModerationCategory } from '@genfeedai/contracts';
+import { ModerationCategory } from '@genfeedai/contracts';
 import type { ModerationScores } from '@genfeedai/contracts/api-types/contracts';
 import type {
   IModerationProvider,
@@ -47,19 +47,20 @@ import type {
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
+  binByScore,
   type MediaTextBenchmarkCase,
   type ModerationFixtureRow,
   parseMediaTextRow,
   parseModerationRow,
   renderModerationCategories,
   renderReadinessSummary,
-  toModerationOutcomes,
+  renderScoreBins,
+  suggestThreshold,
 } from './media-report';
 import {
   type BenchmarkOutcome,
   formatAccuracy,
   percentile,
-  renderCalibration,
   renderConfusionMatrix,
 } from './report';
 
@@ -133,7 +134,6 @@ async function runModeration(
       .filter(Boolean),
   ];
   const rows = paths.flatMap((path) => readLines(path).map(parseModerationRow));
-  const outcomes: BenchmarkOutcome[] = [];
   const samples: Array<{
     expected: ModerationCategory[];
     scores: ModerationScores;
@@ -145,20 +145,12 @@ async function runModeration(
     try {
       // Sequential on purpose, as in the decision benchmark.
       const scores = await classify(provider, row);
-      const latencyMs = Date.now() - startedAt;
-      latencies.push(latencyMs);
+      latencies.push(Date.now() - startedAt);
+      // parseModerationRow rejected any label that is not a category.
       samples.push({
         expected: row.expected as ModerationCategory[],
         scores,
       });
-      outcomes.push(
-        ...toModerationOutcomes(
-          row.expected,
-          scores,
-          settings.thresholds,
-          latencyMs,
-        ),
-      );
     } catch (error: unknown) {
       failures += 1;
       options.logger.warn(
@@ -175,7 +167,18 @@ async function runModeration(
   report += `  rows:      ${rows.length} (${failures} failed)\n`;
   report += `  latency:   p50 ${percentile(latencies, 0.5)}ms · p95 ${percentile(latencies, 0.95)}ms\n`;
   report += `\n${renderModerationCategories(calibration, settings.thresholds)}`;
-  report += `\nCalibration (flag accuracy by category score decile)\n${renderCalibration(outcomes)}`;
+  report +=
+    '\nCalibration (positive-label rate by score decile, per category)\n';
+  for (const category of Object.values(ModerationCategory).sort()) {
+    const bins = binByScore(
+      samples.map((sample) => ({
+        isPositive: sample.expected.includes(category),
+        score: sample.scores[category] ?? 0,
+      })),
+    );
+    report += `  ${category} (configured ${settings.thresholds[category].toFixed(2)})\n`;
+    report += renderScoreBins(bins, suggestThreshold(bins));
+  }
 
   const minRecall = options.readNumberFlag('min-recall');
   const measured = calibration.filter((row) => row.recall !== null);
@@ -242,9 +245,23 @@ async function runTextDecisions(
     );
     const correct = answered.filter((outcome) => outcome.isCorrect).length;
     const accuracy = answered.length === 0 ? 0 : correct / answered.length;
-    if (minAccuracy !== undefined && accuracy < minAccuracy) {
+    // Accuracy over answered cases only would pass 1 right out of 150.
+    if (
+      minAccuracy !== undefined &&
+      (accuracy < minAccuracy || answered.length < outcomes.length)
+    ) {
       isPassing = false;
     }
+    // Only a `false` answer acts (MEDIA_TEXT_GATE_MIN_CONFIDENCE), so only
+    // `false` answers are calibrated: how often was the label also false?
+    const falseBins = binByScore(
+      answered
+        .filter((outcome) => outcome.predicted === false)
+        .map((outcome) => ({
+          isPositive: outcome.expected === false,
+          score: outcome.confidence ?? 0,
+        })),
+    );
     report += `\n  ${name}\n`;
     report += `    answered:  ${formatAccuracy(answered.length, outcomes.length)}\n`;
     report += `    accuracy:  ${formatAccuracy(correct, answered.length)}\n`;
@@ -253,7 +270,7 @@ async function runTextDecisions(
       0.5,
     )}ms\n`;
     report += `    confusion:\n${indent(renderConfusionMatrix(outcomes))}`;
-    report += `    calibration:\n${indent(renderCalibration(outcomes))}`;
+    report += `    \`false\` answers by confidence decile (label also false):\n${renderScoreBins(falseBins, suggestThreshold(falseBins))}`;
   }
   if (
     cases.length > 0 &&

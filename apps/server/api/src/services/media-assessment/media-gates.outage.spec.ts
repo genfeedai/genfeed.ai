@@ -7,7 +7,11 @@ import {
 import { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
-import { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
+import {
+  MediaTextDecisionService,
+  MediaTextDecisionUnansweredError,
+} from '@api/services/media-text-decisions/media-text-decision.service';
+import { MEDIA_TEXT_DECISION_TIMEOUT_MS } from '@api/services/media-text-decisions/media-text-decision.settings';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import { NullModerationProvider } from '@api/services/moderation/providers/null-moderation.provider';
 import { NullTypedDecisionProvider } from '@api/services/typed-decisions/providers/null-typed-decision.provider';
@@ -31,7 +35,10 @@ import type { PrismaService } from '@libs/prisma/prisma.service';
  * Provider-outage matrix for the media gates (#4883).
  *
  * Every classifier gate runs `live` against two broken providers: `none` (no
- * adapter bound) and `timeout` (a stub whose every call times out). The
+ * adapter bound) and `timeout`. For moderation and vision, `timeout` is a
+ * vendor call rejecting with the SDK's timeout; for text decisions it is a
+ * provider that never answers, so `TypedDecisionService`'s own timer fires.
+ * The
  * contract under test is the one the outage drill documents:
  * - no gate job persists a verdict, a flag or a decision it did not get;
  * - the publish-path assessment never calls a provider and never throws;
@@ -48,6 +55,12 @@ const LIVE_CONFIG = {
   MODERATION_MODE: 'live',
 };
 
+const ALL_SHADOW = {
+  MEDIA_GATE_VISION_MODE: 'shadow',
+  MEDIA_TEXT_GATE_DECISION_MODE: 'shadow',
+  MODERATION_MODE: 'shadow',
+};
+
 type Outage = 'none' | 'timeout';
 
 function timeoutError(): Error {
@@ -58,6 +71,20 @@ function timeoutError(): Error {
 
 function rejectWithTimeout(): Promise<never> {
   return Promise.reject(timeoutError());
+}
+
+/** Never answers; settles only when the caller aborts on its own timeout. */
+function hangUntilAborted(
+  _params: unknown,
+  options?: { signal?: AbortSignal },
+): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    options?.signal?.addEventListener(
+      'abort',
+      () => reject(options.signal?.reason),
+      { once: true },
+    );
+  });
 }
 
 function moderationProvider(outage: Outage): IModerationProvider {
@@ -78,10 +105,10 @@ function decisionProvider(outage: Outage): TypedDecisionProvider {
     return new NullTypedDecisionProvider();
   }
   return {
-    choose: vi.fn(rejectWithTimeout),
-    decide: vi.fn(rejectWithTimeout),
+    choose: vi.fn(hangUntilAborted),
+    decide: vi.fn(hangUntilAborted),
     name: 'jev',
-    score: vi.fn(rejectWithTimeout),
+    score: vi.fn(hangUntilAborted),
   };
 }
 
@@ -90,7 +117,6 @@ function config(outage: Outage, overrides: Record<string, unknown> = {}) {
     ...LIVE_CONFIG,
     MODERATION_PROVIDER: outage === 'none' ? 'none' : 'openai',
     OPENAI_API_KEY: outage === 'none' ? '' : 'test-openai-key',
-    TYPED_DECISION_TIMEOUT_MS: 50,
     ...overrides,
   };
   return { get: (key: string) => values[key] } as unknown as ConfigService;
@@ -253,6 +279,7 @@ describe.each<Outage>(['none', 'timeout'])(
     });
 
     it('text decisions persist nothing they were not answered', async () => {
+      vi.useFakeTimers();
       const w = writes();
       const provider = decisionProvider(outage);
       const typedDecisions = new TypedDecisionService(
@@ -286,14 +313,28 @@ describe.each<Outage>(['none', 'timeout'])(
         logger(),
       );
 
-      await expect(service.evaluate(JOB)).resolves.toBe('skipped');
-      expect(w.textUpsert).not.toHaveBeenCalled();
+      try {
+        const run = service.evaluate(JOB);
+        if (outage === 'none') {
+          await expect(run).resolves.toBe('skipped');
+        } else {
+          // Thrown once the job is done, so BullMQ's backoff paces the retry.
+          const settled = expect(run).rejects.toBeInstanceOf(
+            MediaTextDecisionUnansweredError,
+          );
+          await vi.advanceTimersByTimeAsync(MEDIA_TEXT_DECISION_TIMEOUT_MS * 3);
+          await settled;
+          expect(provider.decide).toHaveBeenCalled();
+        }
+        expect(w.textUpsert).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     describe('publish-path assessment', () => {
       function assessment(overrides: Record<string, unknown> = {}) {
         const provider = decisionProvider(outage);
-        const moderation = moderationProvider(outage);
         const readiness = {
           evaluatePublishReadiness: vi.fn().mockResolvedValue({
             checkedAt: NOW.toISOString(),
@@ -325,7 +366,7 @@ describe.each<Outage>(['none', 'timeout'])(
             logger(),
           ),
         );
-        return { moderation, provider, service };
+        return { provider, service };
       }
 
       const request = {
@@ -336,7 +377,7 @@ describe.each<Outage>(['none', 'timeout'])(
       };
 
       it('holds unchecked media for review without calling any provider', async () => {
-        const { moderation, provider, service } = assessment();
+        const { provider, service } = assessment();
 
         const result = await service.assessPublishMedia(request);
 
@@ -345,7 +386,6 @@ describe.each<Outage>(['none', 'timeout'])(
           'perception:checks_pending',
         ]);
         if (outage === 'timeout') {
-          expect(moderation.classifyText).not.toHaveBeenCalled();
           expect(provider.decide).not.toHaveBeenCalled();
         }
 
@@ -361,12 +401,30 @@ describe.each<Outage>(['none', 'timeout'])(
         expect(policy.reason).toMatch(/^Media review required:/);
       });
 
+      // One gate live at a time, so a gate that stopped marking media
+      // unchecked cannot hide behind another's `checks_pending`. An unbound
+      // provider makes its gate off (nothing could ever check the media);
+      // vision has no unbound state.
+      it.each([
+        ['moderation', { MODERATION_MODE: 'live' }],
+        ['vision', { MEDIA_GATE_VISION_MODE: 'live' }],
+        ['text', { MEDIA_TEXT_GATE_DECISION_MODE: 'live' }],
+      ])(
+        '%s alone holds unchecked media unless its provider is unbound',
+        async (gate, live) => {
+          const { service } = assessment({ ...ALL_SHADOW, ...live });
+
+          const result = await service.assessPublishMedia(request);
+
+          const isUnbound = outage === 'none' && gate !== 'vision';
+          expect(result.reasons.map((reason) => reason.code)).toEqual(
+            isUnbound ? [] : ['perception:checks_pending'],
+          );
+        },
+      );
+
       it('changes nothing while every gate is in shadow', async () => {
-        const { service } = assessment({
-          MEDIA_GATE_VISION_MODE: 'shadow',
-          MEDIA_TEXT_GATE_DECISION_MODE: 'shadow',
-          MODERATION_MODE: 'shadow',
-        });
+        const { service } = assessment(ALL_SHADOW);
 
         await expect(service.assessPublishMedia(request)).resolves.toEqual({
           isBlocking: false,

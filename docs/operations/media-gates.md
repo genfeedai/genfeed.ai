@@ -50,7 +50,9 @@ Every `shadow` → `live` flip, per layer and per deployment, needs:
 ## Threshold policy
 
 Thresholds are data, set in configuration, and justified by the calibration
-table the benchmark prints ("flag accuracy by category score decile").
+tables the benchmark prints. For each moderation category, and for each text
+question's `false` answers, the benchmark prints the **positive-label rate per
+score decile** and a **suggested** threshold computed from the rule below.
 
 ### Moderation
 
@@ -66,10 +68,14 @@ Moderation thresholds are per category, a minimum score in `0..1`, and set in
 | `drugs`, `violence`, `weapons` | 0.70 | precision; common in legitimate brand content |
 | `spam` | 0.90 | precision; low harm, high false-positive cost |
 
-**Rule:** a category's threshold is the lowest score decile whose flag accuracy
-is at least 95% on a labelled set with at least 20 positives for that category.
-The recall-biased categories may go lower, but never higher than their default,
-without a written decision.
+**Rule:** a category's threshold is the lowest decile floor from which every
+non-empty decile at or above it has a positive-label rate of at least 95%, with
+at least 20 labelled positives at or above it. That is the precision a flag
+would have if the threshold sat at that floor. The benchmark prints it as
+`suggested`.
+
+The recall-biased categories may go lower than the suggestion, but never higher
+than their default, without a written decision.
 
 A category the set cannot measure (the benchmark prints `n/a`) keeps its
 default and must not be cited as calibrated. The defaults above are provisional
@@ -96,9 +102,13 @@ Changing which values flag is a contract change, reviewed like code.
 ### Text decisions
 
 A `false` answer counts at or above `MEDIA_TEXT_GATE_MIN_CONFIDENCE`
-(default 0.85). Set it to the lowest confidence decile whose accuracy is at
-least 95% for both `isBrandSafe` and `isOnBrand`. `isCaptionConsistent` only
-ever warns.
+(default 0.85). Only `false` answers act, so only they are calibrated: for each
+confidence decile, the rate at which the label was also `false`. Apply the same
+rule as for moderation, and use the higher suggestion of `isBrandSafe` and
+`isOnBrand`. `isCaptionConsistent` only ever warns.
+
+`--min-accuracy` fails a question that has any unanswered case, so a provider
+that answers 1 case in 150 cannot pass on that one answer.
 
 ## Outage drill
 
@@ -139,9 +149,9 @@ imports changes. The Full Suite runs it on every push to `master`.
 | Generation | Unaffected; perception keeps frames, OCR and transcript, and retries the description |
 | Manual publish | Unaffected. Only readiness gates it, and readiness is deterministic |
 | Publish latency | Unchanged. The assessment reads rows only and never calls a provider |
-| Moderation job | Throws; BullMQ retries it. No verdict or activity is written |
-| Vision job | Records a paid attempt, up to 3; no evaluation is written |
-| Text-decision job | Writes nothing; the sweep retries while the asset is inside the lookback |
+| Moderation job | Throws; BullMQ retries it (3 attempts, backoff from 60s). No verdict or activity is written |
+| Vision job | Records a paid attempt on each try, up to 3 in total; no evaluation is written |
+| Text-decision job | Writes nothing, and throws so the job retries with the same backoff |
 | Auto-publish and the agent tool | Held for review with "Media checks are still running…"; never rejected |
 | Badges and cards | Moderation, vision and text badges are missing; readiness diagnostics still show |
 
@@ -150,15 +160,33 @@ provider outage is invisible apart from missing badges. With any gate `live`,
 the only user-visible effect is that autonomous publishes go to review until
 their checks complete. That is the fail-closed choice made in #4881.
 
-**Recovery.** When the provider returns, the sweeps pick up moderation and text
-decisions for assets still inside `MEDIA_PERCEPTION_LOOKBACK_HOURS`.
+**Recovery.** Moderation, vision and text decisions run in one media-gates job
+per asset. A failure in any of them fails the job, and BullMQ retries all three
+(3 attempts with exponential backoff from 60s). After the last attempt, the
+failed job holds the asset's job id for 30 minutes. The sweep then offers the
+asset again, as long as it is still inside `MEDIA_PERCEPTION_LOOKBACK_HOURS`.
+Moderation and text decisions recover on their own once the provider returns.
 
-Vision stops after 3 paid attempts. An asset that exhausted its attempts during
-a long outage stays `checks_pending` while vision is `live`, and needs a human
-approval. Plan an outage longer than about 3 sweep cycles as a switch to
-`shadow`, not a wait.
+Vision does not. Each retry of the shared job spends one of the asset's 3 paid
+vision attempts, so an outage of the vision model, or of any other gate while
+vision is also failing, exhausts them within minutes. An asset that ran out of
+attempts stays `checks_pending` for good while vision is `live`, and needs a
+human approval. **Switch vision to `shadow` as soon as an outage is detected**;
+waiting it out does not work.
+
+**Failed perception.** When perception's transcript, OCR or scene description
+failed for good, the text questions are never asked over what remains, because
+that would pass text that was never read. While the text gate is `live`, the
+asset stays `checks_pending` and needs a human approval.
 
 **Unbound providers are not outages.** With `MODERATION_PROVIDER=none`, or no
-typed-decision provider bound in /admin, that gate behaves as `off`, even when
-its mode is `live`. Vision has no unbound state: a `live` vision mode without a
-working vision model holds media for review.
+typed-decision provider bound in /admin, that gate classifies nothing new and
+never marks media as unchecked, even when its mode is `live`.
+
+Results already stored still apply while the mode is `live`:
+- moderation scores from an earlier provider;
+- confident text decisions.
+
+Unbinding a provider never loosens the gate for media that was already flagged.
+Vision has no unbound state: a `live` vision mode without a working vision model
+holds media for review.

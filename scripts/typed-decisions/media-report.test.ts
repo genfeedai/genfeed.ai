@@ -1,11 +1,14 @@
 import { MEDIA_TEXT_DECISION_QUESTIONS } from '@genfeedai/contracts/api-types/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  binByScore,
   parseMediaTextRow,
   parseModerationRow,
   renderModerationCategories,
   renderReadinessSummary,
-  toModerationOutcomes,
+  renderScoreBins,
+  type ScoreBin,
+  suggestThreshold,
 } from './media-report';
 
 describe('parseModerationRow', () => {
@@ -25,54 +28,67 @@ describe('parseModerationRow', () => {
     expect(() => parseModerationRow('{"text":"x"}', 0)).toThrow(/row 1/);
     expect(() => parseModerationRow('{"expected":[]}', 2)).toThrow(/row 3/);
   });
+
+  it('rejects a label that is not a moderation category', () => {
+    expect(() =>
+      parseModerationRow('{"expected":["self-harm"],"text":"x"}', 0),
+    ).toThrow(/row 1 names unknown categories: self-harm/);
+  });
 });
 
-describe('toModerationOutcomes', () => {
-  it('scores each category against its own threshold', () => {
-    const outcomes = toModerationOutcomes(
-      ['hate'],
-      { hate: 0.6, spam: 0.8 },
-      { hate: 0.5, spam: 0.9, violence: 0.7 },
-      12,
-    );
+function bin(lower: number, positives: number, total: number): ScoreBin {
+  return { lower, positives, total, upper: lower + 0.1 };
+}
 
-    expect(outcomes).toEqual([
-      {
-        confidence: 0.6,
-        expected: true,
-        isCorrect: true,
-        latencyMs: 12,
-        predicted: true,
-      },
-      {
-        confidence: 0.8,
-        expected: false,
-        isCorrect: true,
-        latencyMs: 12,
-        predicted: false,
-      },
-      {
-        confidence: 0,
-        expected: false,
-        isCorrect: true,
-        latencyMs: 12,
-        predicted: false,
-      },
+describe('binByScore', () => {
+  it('buckets scores into deciles, counting positives, with 1 in the top bin', () => {
+    const bins = binByScore([
+      { isPositive: false, score: 0 },
+      { isPositive: true, score: 0.55 },
+      { isPositive: false, score: 0.59 },
+      { isPositive: true, score: 1 },
     ]);
+
+    expect(bins).toHaveLength(10);
+    expect(bins[0]).toMatchObject({ positives: 0, total: 1 });
+    expect(bins[5]).toMatchObject({ positives: 1, total: 2 });
+    expect(bins[9]).toMatchObject({ positives: 1, total: 1 });
+  });
+});
+
+describe('suggestThreshold', () => {
+  it('returns the lowest floor from which every bin clears the rate with enough positives', () => {
+    const bins = [
+      bin(0, 0, 90),
+      bin(0.5, 3, 10),
+      bin(0.6, 10, 10),
+      bin(0.7, 0, 0),
+      bin(0.8, 12, 12),
+    ];
+
+    expect(suggestThreshold(bins)).toBeCloseTo(0.6);
   });
 
-  it('marks a missed label and a false flag incorrect', () => {
-    const outcomes = toModerationOutcomes(
-      ['violence'],
-      { hate: 0.7, violence: 0.2 },
-      { hate: 0.5, violence: 0.7 },
-      1,
-    );
+  it('is null when too few positives clear the rate', () => {
+    expect(suggestThreshold([bin(0.8, 5, 5), bin(0.9, 5, 5)])).toBeNull();
+  });
 
-    expect(outcomes.map((outcome) => outcome.isCorrect)).toEqual([
-      false,
-      false,
-    ]);
+  it('is null when the top bin already misses the rate', () => {
+    expect(suggestThreshold([bin(0.8, 40, 40), bin(0.9, 1, 3)])).toBeNull();
+  });
+});
+
+describe('renderScoreBins', () => {
+  it('prints non-empty bins and the suggestion, or why there is none', () => {
+    const bins = [bin(0, 0, 4), bin(0.1, 0, 0), bin(0.9, 2, 2)];
+
+    const withSuggestion = renderScoreBins(bins, 0.9);
+    expect(withSuggestion).toContain('0.0–0.1  positive 0.0% (0/4)');
+    expect(withSuggestion).not.toContain('0.1–0.2');
+    expect(withSuggestion).toContain('suggested: 0.9');
+    expect(renderScoreBins(bins, null)).toContain(
+      'suggested: n/a (needs >= 20 positives in bins at >= 95%; 2 labelled)',
+    );
   });
 });
 

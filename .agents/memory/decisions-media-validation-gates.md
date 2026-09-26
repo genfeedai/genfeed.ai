@@ -35,8 +35,10 @@ Perception (#4879) only produces inputs. It never gates.
 - **Unchecked is never clean.** While a classifier gate is `live`, a media
   asset without that gate's result is `perception:checks_pending` and goes to
   review. A provider failure persists nothing, so it cannot read as a result.
-- **Unbound means off.** Moderation `none`, or no typed-decision provider
-  bound in /admin, makes that gate `off` even when its mode is `live`.
+- **Unbound means nothing new.** With moderation `none`, or no typed-decision
+  provider bound in /admin, that gate classifies nothing new and never marks
+  media unchecked. Stored flags still apply while the mode is `live`, so
+  unbinding never loosens an existing flag.
 - **Every live flip cites a benchmark run** from
   `bench:typed-decisions -- --mode=media`, and needs a completed outage drill.
 
