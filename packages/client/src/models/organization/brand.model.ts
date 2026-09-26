@@ -35,7 +35,6 @@ export class Brand extends BaseEntity implements IBrand {
   declare public primaryColor: string;
   declare public secondaryColor: string;
   declare public backgroundColor: string;
-  declare public isSelected: boolean;
   declare public text?: string;
   declare public scope: AssetScope;
   declare public isVerified: boolean;

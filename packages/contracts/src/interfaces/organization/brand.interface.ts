@@ -79,7 +79,6 @@ export interface IBrand extends IBaseEntity {
   isFleetEnabled: boolean;
   scope: AssetScope;
   isActive: boolean;
-  isSelected: boolean;
   isHighlighted?: boolean;
 
   agentConfig?: IBrandAgentConfig;

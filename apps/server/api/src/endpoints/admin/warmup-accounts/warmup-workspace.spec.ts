@@ -336,7 +336,7 @@ describe('warm-up workspace handoff', () => {
         isDeleted: false,
       },
       data: expect.objectContaining({
-        lastUsedBrandId: 'brand-1',
+        currentBrandId: 'brand-1',
         roleKey: 'admin',
       }),
     });

@@ -11,6 +11,7 @@ function createHandler(): AgentWorkspaceToolHandler {
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
+    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[5],
   );
 }
 
@@ -58,18 +59,27 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
       }),
     };
     const brands = { findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }) };
+    // #5219: resolveGenerationBrand's per-member fallback. Defaults to the
+    // brand the pre-#5219 isSelected fixtures used, so tests that don't care
+    // about member resolution keep working unchanged.
+    const members = {
+      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+    };
     const handler = new AgentWorkspaceToolHandler(
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
       brands as unknown as ConstructorParameters<
         typeof AgentWorkspaceToolHandler
       >[1],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
+      members as unknown as ConstructorParameters<
+        typeof AgentWorkspaceToolHandler
+      >[2],
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
       uploads as unknown as ConstructorParameters<
         typeof AgentWorkspaceToolHandler
-      >[4],
+      >[5],
     );
-    return { brands, handler, uploads };
+    return { brands, handler, members, uploads };
   }
   const params = {
     filename: 'photo.png',
@@ -114,17 +124,21 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
   });
 
   it('resolves the selected brand for headless MCP calls', async () => {
-    const { brands, handler, uploads } = fixture();
+    const { brands, handler, members, uploads } = fixture();
     const result = await handler.requestMediaUpload(params, {
       organizationId: 'org-1',
       userId: 'user-1',
     });
     expect(result.success).toBe(true);
-    expect(brands.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      isSelected: true,
+    // #5219: no isSelected filter — resolved via the acting member's
+    // currentBrandId.
+    expect(members.findOne).toHaveBeenCalledWith({
       organizationId: 'org-1',
       userId: 'user-1',
+    });
+    expect(brands.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: 'org-1',
     });
     expect(uploads.getPresignedUploadUrl).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
@@ -133,8 +147,11 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
   });
 
   it('rejects an explicit brand outside the organization without falling back', async () => {
-    const { brands, handler, uploads } = fixture();
+    const { brands, handler, members, uploads } = fixture();
     brands.findOne.mockResolvedValue(null);
+    // No member fallback available either, so resolution has nowhere left to
+    // fall through to once the request-scoped brand comes back empty.
+    members.findOne.mockResolvedValueOnce({});
     const result = await handler.requestMediaUpload(params, {
       ...ctx,
       brandId: 'foreign-brand',
@@ -143,7 +160,6 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
     expect(brands.findOne).toHaveBeenCalledExactlyOnceWith({
       id: 'foreign-brand',
       organizationId: 'org-1',
-      isDeleted: false,
     });
     expect(uploads.getPresignedUploadUrl).not.toHaveBeenCalled();
   });

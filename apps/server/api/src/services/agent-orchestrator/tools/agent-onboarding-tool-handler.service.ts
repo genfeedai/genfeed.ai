@@ -223,7 +223,6 @@ export class AgentOnboardingToolHandler {
       backgroundColor: '#000000',
       description: proposal.description,
       fontFamily: 'montserrat_black',
-      isSelected: false,
       label: proposal.label,
       organizationId: ctx.organizationId,
       primaryColor: '#000000',

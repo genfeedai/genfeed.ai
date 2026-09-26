@@ -20,7 +20,7 @@ function buildIdentityKey(userId: string): string {
  * path collapses from ~5 sequential DB queries to a single Redis GET.
  *
  * Invalidated alongside `RequestContextCacheService` / `AccessBootstrapCacheService`
- * wherever `lastUsedOrganizationId` / `lastUsedBrandId` change.
+ * wherever `lastUsedOrganizationId` / `currentBrandId` change.
  */
 @Injectable()
 export class BetterAuthIdentityCacheService {

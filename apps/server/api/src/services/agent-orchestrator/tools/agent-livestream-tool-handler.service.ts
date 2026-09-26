@@ -1,4 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { MembersService } from '@api/collections/members/services/members.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   BotCategory,
@@ -91,6 +93,7 @@ interface AgentBotsLivestreamServiceLike {
 export class AgentLivestreamToolHandler {
   constructor(
     private readonly brandsService: BrandsService,
+    private readonly membersService: MembersService,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -683,44 +686,16 @@ export class AgentLivestreamToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown> | null> {
-    if (typeof params.brandId === 'string') {
-      const explicitBrand = await this.brandsService.findOne({
-        id: params.brandId,
-        organizationId: ctx.organizationId,
-      });
-
-      if (explicitBrand) {
-        return explicitBrand as unknown as Record<string, unknown>;
-      }
-    }
-
-    const currentBrand = await this.brandsService.findOne({
-      isSelected: true,
+    // #5219: explicit param, then thread/route context, then the acting
+    // member's currentBrandId. No "first brand in the org" guess.
+    return resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      explicitBrandId:
+        typeof params.brandId === 'string' ? params.brandId : undefined,
+      membersService: this.membersService,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
-
-    if (currentBrand) {
-      return currentBrand as unknown as Record<string, unknown>;
-    }
-
-    if (ctx.brandId) {
-      const contextBrand = await this.brandsService.findOne({
-        id: ctx.brandId,
-        organizationId: ctx.organizationId,
-      });
-
-      if (contextBrand) {
-        return contextBrand as unknown as Record<string, unknown>;
-      }
-    }
-
-    const firstOrgBrand = await this.brandsService.findOne({
-      organizationId: ctx.organizationId,
-    });
-
-    return firstOrgBrand
-      ? (firstOrgBrand as unknown as Record<string, unknown>)
-      : null;
   }
 }

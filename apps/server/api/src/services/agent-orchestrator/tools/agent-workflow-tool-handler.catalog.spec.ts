@@ -88,6 +88,7 @@ describe('AgentWorkflowToolInstallService system workflow catalog', () => {
       {} as never,
       {} as never,
       brandsService as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       systemWorkflowCatalogService as never,
       {} as never,
     );

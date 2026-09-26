@@ -182,10 +182,21 @@ export class MembersService extends BaseService<
     );
   }
 
-  async setLastUsedBrand(
+  /**
+   * Set the member's current brand. currentBrandId is a required per-member
+   * invariant (#5219) — there is no "clear" case. Callers must already have
+   * resolved brandId to a non-deleted brand of this organizationId (e.g. via
+   * BrandsService.selectBrandForUser, or a brand this method's caller just
+   * created in the same organization).
+   */
+  async setCurrentBrand(
     filter: Record<string, unknown>,
-    brandId: string | null,
+    brandId: string,
   ): Promise<void> {
+    if (!brandId) {
+      throw new TypeError('setCurrentBrand requires a brandId');
+    }
+
     const where = filter as {
       organizationId?: unknown;
       userId?: unknown;
@@ -202,10 +213,10 @@ export class MembersService extends BaseService<
 
     if (!organizationId || !userId) {
       this.logger.warn(
-        'setLastUsedBrand skipped: filter missing organizationId/userId scope',
+        'setCurrentBrand skipped: filter missing organizationId/userId scope',
         {
           filter,
-          operation: 'setLastUsedBrand',
+          operation: 'setCurrentBrand',
           service: this.constructorName,
         },
       );
@@ -214,7 +225,7 @@ export class MembersService extends BaseService<
 
     await this.prisma.member.updateMany({
       where: scopedWhere(organizationId, { userId }),
-      data: { lastUsedBrandId: brandId },
+      data: { currentBrandId: brandId },
     });
   }
 }

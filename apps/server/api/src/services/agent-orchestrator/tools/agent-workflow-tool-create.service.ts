@@ -11,6 +11,7 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { resolveWorkflowBrand } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.helpers';
 import type {
   AgentBrandsServiceLike,
+  AgentMembersServiceLike,
   GeneratedWorkflowGraph,
   RecurringScaffoldParams,
   RecurringTaskContentType,
@@ -39,6 +40,8 @@ export class AgentWorkflowToolCreateService {
     private readonly workflowsService: WorkflowsService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     @Optional()
     private readonly workflowGenerationService?: WorkflowGenerationService,
   ) {}
@@ -70,7 +73,12 @@ export class AgentWorkflowToolCreateService {
       return this.createWorkflowFromRecurringScaffold(params, ctx);
     }
 
-    const brand = await resolveWorkflowBrand(this.brandsService, params, ctx);
+    const brand = await resolveWorkflowBrand(
+      this.brandsService,
+      this.membersService,
+      params,
+      ctx,
+    );
     if (!brand) {
       return {
         creditsUsed: 0,
@@ -114,7 +122,12 @@ export class AgentWorkflowToolCreateService {
       return parsed.error;
     }
 
-    const brand = await resolveWorkflowBrand(this.brandsService, params, ctx);
+    const brand = await resolveWorkflowBrand(
+      this.brandsService,
+      this.membersService,
+      params,
+      ctx,
+    );
     if (!brand) {
       return {
         creditsUsed: 0,

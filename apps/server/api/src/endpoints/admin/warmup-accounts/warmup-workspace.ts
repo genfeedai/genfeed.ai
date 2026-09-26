@@ -423,7 +423,7 @@ export async function claimWarmupWorkspace(
       roleId: role.id,
       roleKey: role.key,
       isActive: true,
-      lastUsedBrandId: brandId,
+      currentBrandId: brandId,
     },
   });
   if (account.operatorUserId !== userId)

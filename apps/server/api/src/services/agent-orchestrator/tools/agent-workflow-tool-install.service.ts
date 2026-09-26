@@ -17,6 +17,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.helpers';
 import type {
   AgentBrandsServiceLike,
+  AgentMembersServiceLike,
   OfficialWorkflowSource,
   OfficialWorkflowSourceKind,
   RecurringTaskContentType,
@@ -47,6 +48,8 @@ export class AgentWorkflowToolInstallService {
     private readonly workflowsService: WorkflowsService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     private readonly systemWorkflowCatalogService: SystemWorkflowCatalogService,
     private readonly createService: AgentWorkflowToolCreateService,
     @Optional()
@@ -779,7 +782,12 @@ export class AgentWorkflowToolInstallService {
       return;
     }
 
-    const brand = await resolveWorkflowBrand(this.brandsService, params, ctx);
+    const brand = await resolveWorkflowBrand(
+      this.brandsService,
+      this.membersService,
+      params,
+      ctx,
+    );
     const schedule = readOptionalString(params.schedule);
     const timezone = readOptionalString(params.timezone) ?? 'UTC';
 

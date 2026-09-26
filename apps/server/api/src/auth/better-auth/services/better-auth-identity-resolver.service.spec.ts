@@ -145,7 +145,7 @@ describe('BetterAuthIdentityResolverService', () => {
     usersService.findOne.mockResolvedValue({ id: 'user_3' });
     organizationsService.findAll.mockResolvedValue({ docs: [{ id: 'org_3' }] });
     membersService.findActiveForUserAccess.mockResolvedValue([
-      { lastUsedBrandId: 'brand_last', organizationId: 'org_3' },
+      { currentBrandId: 'brand_last', organizationId: 'org_3' },
     ]);
     brandsService.findOne.mockResolvedValue({ id: 'brand_last' });
 
@@ -170,7 +170,7 @@ describe('BetterAuthIdentityResolverService', () => {
       lastUsedOrganizationId: 'org_pref',
     });
     membersService.findActiveForUserAccess.mockResolvedValue([
-      { lastUsedBrandId: 'brand_pref', organizationId: 'org_pref' },
+      { currentBrandId: 'brand_pref', organizationId: 'org_pref' },
     ]);
     organizationsService.findAll.mockResolvedValue({
       docs: [{ id: 'org_pref' }],
@@ -198,7 +198,7 @@ describe('BetterAuthIdentityResolverService', () => {
       lastUsedOrganizationId: 'org_stale',
     });
     membersService.findActiveForUserAccess.mockResolvedValue([
-      { lastUsedBrandId: 'brand_live', organizationId: 'org_live' },
+      { currentBrandId: 'brand_live', organizationId: 'org_live' },
     ]);
     organizationsService.findAll.mockResolvedValue({
       docs: [{ id: 'org_live' }],
@@ -230,7 +230,7 @@ describe('BetterAuthIdentityResolverService', () => {
     membersService.findActiveForUserAccess.mockResolvedValue([
       { organizationId: 'org_deleted' },
       { organizationId: 'org_missing' },
-      { lastUsedBrandId: 'brand_live', organizationId: 'org_live' },
+      { currentBrandId: 'brand_live', organizationId: 'org_live' },
       { organizationId: 'org_live' },
     ]);
     organizationsService.findAll.mockResolvedValue({

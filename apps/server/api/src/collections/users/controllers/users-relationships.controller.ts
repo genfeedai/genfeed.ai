@@ -355,16 +355,6 @@ export class UsersRelationshipsController {
       await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
     }
 
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-      data.id,
-    );
-
     return serializeSingle(request, BrandSerializer, data);
   }
 

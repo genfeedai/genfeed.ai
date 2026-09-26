@@ -24,6 +24,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
@@ -234,6 +235,10 @@ describe('PostsOperationsController', () => {
     findOne: vi.fn(),
   };
 
+  const mockBrandsService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -362,6 +367,7 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: ModelsService, useValue: mockModelsService },
         { provide: CredentialsService, useValue: mockCredentialsService },
         { provide: IngredientsService, useValue: mockIngredientsService },
+        { provide: BrandsService, useValue: mockBrandsService },
         { provide: MembersService, useValue: mockMembersService },
         { provide: LoggerService, useValue: mockLoggerService },
         PostGenerationService,

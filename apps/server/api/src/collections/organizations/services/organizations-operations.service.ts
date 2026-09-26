@@ -168,7 +168,6 @@ export class OrganizationsOperationsService {
       description:
         input.description ?? 'Default description. Use it as a pre-prompt',
       fontFamily: 'montserrat-black',
-      isSelected: true,
       label,
       organizationId: organization.id,
       primaryColor: '#000000',
@@ -179,6 +178,7 @@ export class OrganizationsOperationsService {
 
     const role = await this.findProvisioningRole();
     await this.membersService.create({
+      currentBrandId: brand.id.toString(),
       isActive: true,
       organizationId: organization.id,
       roleId: String(role.id),
@@ -200,15 +200,6 @@ export class OrganizationsOperationsService {
     await this.usersService.patch(userId, {
       lastUsedOrganizationId: organizationId,
     });
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organizationId,
-        userId,
-      },
-      brand.id.toString(),
-    );
     await this.userAccessCacheService.invalidateAll(userId);
 
     return {
@@ -238,9 +229,9 @@ export class OrganizationsOperationsService {
       );
     }
 
-    let brand = member?.lastUsedBrandId
+    let brand = member?.currentBrandId
       ? await this.brandsService.findOne({
-          id: member.lastUsedBrandId,
+          id: member.currentBrandId,
           organizationId,
         })
       : null;
@@ -259,7 +250,7 @@ export class OrganizationsOperationsService {
       lastUsedOrganizationId: organizationId,
     });
     if (member) {
-      await this.membersService.setLastUsedBrand(
+      await this.membersService.setCurrentBrand(
         {
           isActive: true,
           isDeleted: false,

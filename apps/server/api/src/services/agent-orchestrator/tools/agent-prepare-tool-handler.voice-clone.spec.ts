@@ -31,6 +31,7 @@ function createHandler(params: {
   return new AgentPrepareToolHandler(
     brandsService as unknown as PrepareHandlerCtor[0],
     {} as PrepareHandlerCtor[1],
+    {} as PrepareHandlerCtor[2],
     undefined,
     voicesService as unknown as VoicesService,
     catalogService as unknown as ExternalVoiceCatalogService,

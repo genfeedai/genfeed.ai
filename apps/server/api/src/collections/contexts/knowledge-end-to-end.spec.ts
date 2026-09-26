@@ -282,27 +282,26 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       getOrSet: (_key: string, factory: () => Promise<unknown>) => factory(),
     };
     const fakeBrandsService = {
-      // `isSelected` stands in for the organization's default brand — an
-      // unbranded thread's identity layer still resolves to it, but RAG
-      // scoping must key off the *caller's* brandId, never this fallback.
       findOne: vi.fn(
-        async (filter: {
-          id?: string;
-          isSelected?: boolean;
-          organizationId: string;
-        }) => {
+        async (filter: { id?: string; organizationId: string }) => {
           if (filter.id) return fakeBrand(filter.id, filter.organizationId);
-          if (filter.isSelected)
-            return fakeBrand('brand-a', filter.organizationId);
           return null;
         },
       ),
       resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
     };
+    // #5219: Brand.isSelected is retired. The acting member's own
+    // currentBrandId stands in for the old org-wide fallback — an unbranded
+    // thread's identity layer still resolves to it, but RAG scoping must key
+    // off the *caller's* explicit brandId, never this fallback.
+    const fakeMembersService = {
+      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-a' }),
+    };
     agentContextAssembly = new AgentContextAssemblyService(
       fakeBrandsService as never,
       { getInsights: vi.fn().mockResolvedValue([]) } as never,
       knowledgeContentRetrieval,
+      fakeMembersService as never,
       { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
       noopCache as never,
       logger as never,

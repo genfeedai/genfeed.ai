@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -25,7 +26,15 @@ type AgentBrandsServiceLike = {
     query: Record<string, unknown>,
     options: Record<string, unknown>,
   ) => Promise<{ docs?: unknown[] }>;
-  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+  findOne: (
+    query: Record<string, unknown>,
+  ) => Promise<Record<string, unknown> | null>;
+};
+
+type AgentMembersServiceLike = {
+  findOne: (
+    query: Record<string, unknown>,
+  ) => Promise<{ currentBrandId?: unknown } | null>;
 };
 
 /**
@@ -38,6 +47,8 @@ export class AgentWorkspaceToolHandler {
     private readonly creditsUtilsService: CreditsUtilsService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    @Inject('AGENT_MEMBERS_SERVICE')
+    private readonly membersService: AgentMembersServiceLike,
     private readonly postsService: PostsService,
     private readonly personasService: PersonasService,
     private readonly presignedUploadService: PresignedUploadService,
@@ -103,9 +114,8 @@ export class AgentWorkspaceToolHandler {
   }
 
   async getCurrentBrand(ctx: ToolExecutionContext): Promise<AgentToolResult> {
-    // Prefer explicit thread/run scope over the user's selected-brand flag.
-    // Agent turns always carry brandId in context when the URL/thread has one;
-    // relying only on isSelected fails when that flag is false or stale.
+    // Prefer explicit thread/run scope over the member's currentBrandId (#5219).
+    // Agent turns always carry brandId in context when the URL/thread has one.
     const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
 
     const currentBrand = await this.findCurrentBrand(ctx);
@@ -131,20 +141,19 @@ export class AgentWorkspaceToolHandler {
     };
   }
 
-  private findCurrentBrand(ctx: ToolExecutionContext): Promise<unknown> {
+  private findCurrentBrand(
+    ctx: ToolExecutionContext,
+  ): Promise<Record<string, unknown> | null> {
     const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
-    return scopedBrandId
-      ? this.brandsService.findOne({
-          id: scopedBrandId,
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        })
-      : this.brandsService.findOne({
-          isDeleted: false,
-          isSelected: true,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        });
+    // #5219: thread/route scope first, then the acting member's
+    // currentBrandId. No implicit "any brand in the org" fallback.
+    return resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: scopedBrandId,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
   }
 
   async listPosts(

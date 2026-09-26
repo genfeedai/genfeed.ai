@@ -41,8 +41,6 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly defaultImageToVideoModel: BrandDocument['defaultImageToVideoModel'];
   declare readonly defaultMusicModel: BrandDocument['defaultMusicModel'];
 
-  declare readonly isSelected: boolean;
-
   declare readonly referenceImages: BrandDocument['referenceImages'];
   declare readonly agentConfig: BrandDocument['agentConfig'];
 

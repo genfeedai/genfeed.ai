@@ -35,4 +35,10 @@ export class GenerateHooksDto {
   @IsOptional()
   @IsEntityId()
   credentialId?: string;
+
+  // Resolved through resolveGenerationBrand if omitted (route/thread context,
+  // then the acting member's currentBrandId) — never left brand-less (#5219).
+  @IsOptional()
+  @IsEntityId()
+  brandId?: string;
 }
