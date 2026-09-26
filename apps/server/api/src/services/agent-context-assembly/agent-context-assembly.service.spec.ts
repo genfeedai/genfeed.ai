@@ -91,6 +91,7 @@ describe('AgentContextAssemblyService', () => {
     retrieveOrgAndPersonalContentMemory: ReturnType<typeof vi.fn>;
   };
   let loggerService: ReturnType<typeof createLogger>;
+  let membersService: { findOne: ReturnType<typeof vi.fn> };
   let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
   let patternMatcherService: {
     getTopPatternsForBrand: ReturnType<typeof vi.fn>;
@@ -113,6 +114,12 @@ describe('AgentContextAssemblyService', () => {
       retrieveOrgAndPersonalContentMemory: vi.fn().mockResolvedValue([]),
     };
     loggerService = createLogger();
+    // Stands in for the retired org-wide isSelected fallback: the acting
+    // member's own currentBrandId, used purely for cosmetic identity when a
+    // caller has no explicit brand scope (#5219).
+    membersService = {
+      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
+    };
     organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
@@ -129,6 +136,7 @@ describe('AgentContextAssemblyService', () => {
       brandsService as never,
       brandMemoryService as never,
       knowledgeContentRetrievalService as never,
+      membersService as never,
       prisma as never,
       cacheService as never,
       loggerService as never,
@@ -686,21 +694,24 @@ describe('AgentContextAssemblyService', () => {
     expect(context.layersUsed).not.toContain('performancePatterns');
   });
 
-  it('skips automatic retrieval entirely for an unscoped thread with no actor', async () => {
-    const context = (await service.assembleContext({
+  it('resolves no identity at all for an unscoped thread with no actor (#5219: no org-wide guess)', async () => {
+    // With Brand.isSelected retired, cosmetic identity falls back to the
+    // acting member's currentBrandId. No brandId and no userId means there is
+    // no member to consult, so assembleContext must return null rather than
+    // guessing any brand in the org.
+    const context = await service.assembleContext({
       layers: { brandMemory: false, recentPosts: false },
       organizationId: 'org-1',
       query: 'launch post',
-    })) as AssembledBrandContext;
+    });
 
+    expect(context).toBeNull();
     expect(
       knowledgeContentRetrievalService.retrieveBrandContentMemory,
     ).not.toHaveBeenCalled();
     expect(
       knowledgeContentRetrievalService.retrieveOrgAndPersonalContentMemory,
     ).not.toHaveBeenCalled();
-    expect(context.ragEntries).toBeUndefined();
-    expect(context.layersUsed).not.toContain('ragContext');
   });
 
   it('drops retrieved passages without citation identity instead of showing them uncited', async () => {
