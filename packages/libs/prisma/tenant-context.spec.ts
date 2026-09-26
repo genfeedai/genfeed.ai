@@ -6,6 +6,7 @@ import {
   isCrossOrgUnsafe,
   registerBillingAccountScope,
   runWithTenantContext,
+  withBillingAccountScopeRollback,
 } from './tenant-context';
 
 describe('tenant context', () => {
@@ -93,5 +94,58 @@ describe('billing account scope registration', () => {
     });
 
     expect(seen).toEqual(new Set(['billing-1']));
+  });
+});
+
+describe('withBillingAccountScopeRollback', () => {
+  it('keeps a scope registered when the operation succeeds', async () => {
+    const seen = await runWithTenantContext(
+      { organizationId: 'org-1' },
+      async () => {
+        registerBillingAccountScope('billing-existing');
+        await withBillingAccountScopeRollback(async () => {
+          registerBillingAccountScope('billing-new');
+        });
+        return getActiveBillingAccountScopes();
+      },
+    );
+
+    expect(seen).toEqual(new Set(['billing-existing', 'billing-new']));
+  });
+
+  it('discards a scope registered mid-operation when it throws (rolled-back transaction)', async () => {
+    const seen = await runWithTenantContext(
+      { organizationId: 'org-1' },
+      async () => {
+        registerBillingAccountScope('billing-existing');
+        await expect(
+          withBillingAccountScopeRollback(async () => {
+            registerBillingAccountScope('billing-doomed');
+            throw new Error('transaction rolled back');
+          }),
+        ).rejects.toThrow('transaction rolled back');
+        return getActiveBillingAccountScopes();
+      },
+    );
+
+    expect(seen).toEqual(new Set(['billing-existing']));
+  });
+
+  it('is a no-op outside a tenant context', async () => {
+    await expect(
+      withBillingAccountScopeRollback(async () => {
+        registerBillingAccountScope('billing-1');
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+    expect(getActiveBillingAccountScopes().size).toBe(0);
+  });
+
+  it('propagates the resolved value on success', async () => {
+    const value = await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      withBillingAccountScopeRollback(async () => 'resolved'),
+    );
+
+    expect(value).toBe('resolved');
   });
 });

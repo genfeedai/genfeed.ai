@@ -250,6 +250,99 @@ describe('assertTenantScopedQuery — billing-account scope (#5217)', () => {
       ),
     ).not.toThrow();
   });
+
+  // BLOCKER fix: outside any tenant context (BullMQ processors, cron, Stripe
+  // webhooks, the signup listener) a billing-account-model query must behave
+  // exactly like master — no enforcement at all — even though it names a
+  // billingAccountId and nothing has (or could have) registered it as an
+  // active scope.
+  it('does not throw with no tenant context, even naming an unregistered billingAccountId', () => {
+    expect(() => guardBillingAccount()).not.toThrow();
+    expect(() =>
+      guardBillingAccount({
+        args: {
+          data: { billingAccountId: 'billing-1' },
+          where: { id: 'row-1', isDeleted: false },
+        },
+        operation: 'updateMany',
+      }),
+    ).not.toThrow();
+  });
+
+  // BLOCKER fix: a query that already carries a matching organizationId
+  // (credit-reservation settle copying reservation.billingAccountId into
+  // `data` alongside an organization-scoped `where`, billing-accounts
+  // linkOrganization's pre-scope alreadyLinked check, etc.) must fall
+  // through to the existing organizationId check and never require the
+  // billingAccountId to be a registered scope.
+  it('does not require a registered scope when organizationId already matches the tenant context', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        guardBillingAccount({
+          args: {
+            data: { billingAccountId: 'billing-unregistered' },
+            where: { isDeleted: false, organizationId: 'org-1' },
+          },
+          operation: 'updateMany',
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  // MAJOR 1 fix: a registered billing scope must never let an explicit,
+  // mismatched organizationId elsewhere in the same query (where, data, or
+  // an OR arm) slip through. The organizationId check always still runs
+  // when organizationId is present anywhere.
+  it('still rejects a mismatched organizationId even with a valid registered billing scope', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: { billingAccountId: 'billing-1', organizationId: 'org-2' },
+          },
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'organization-id-mismatch' }));
+  });
+
+  it('still rejects a mismatched organizationId hidden in an OR arm alongside a valid billing scope', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: {
+              OR: [
+                { billingAccountId: 'billing-1' },
+                { organizationId: 'org-2' },
+              ],
+            },
+          },
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'organization-id-mismatch' }));
+  });
+
+  it('rejects an unregistered billingAccountId inside an OR arm with no organizationId anywhere', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: {
+              OR: [
+                { billingAccountId: 'billing-1' },
+                { billingAccountId: 'billing-unregistered' },
+              ],
+            },
+          },
+        });
+      }),
+    ).toThrow(
+      expect.objectContaining({ reason: 'billing-account-id-mismatch' }),
+    );
+  });
 });
 
 describe('createTenantGuardExtension', () => {

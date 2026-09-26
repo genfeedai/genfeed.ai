@@ -877,6 +877,13 @@ jobs:
           --health-retries 10
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      # Separate, fully-migrated databases on the same Postgres service
+      # (#5217 / #5191) — unlike the shared `test` database above, these run
+      # `prisma migrate deploy` for real, so the billing-account-scope and
+      # credit-balance *.postgres.spec.ts suites get an actual schema instead
+      # of self-skipping.
+      BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
+      CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -892,6 +899,15 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      - name: Provision billing-account-scope and credit-balance test databases
+        run: |
+          for db in billing_scope_test credit_balance_test; do
+            PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -tc \
+              "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1 || \
+              PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -c "CREATE DATABASE ${db};"
+          done
+          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
+          DATABASE_URL="$CREDIT_BALANCE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Mark test start
@@ -983,6 +999,13 @@ jobs:
           --health-retries 10
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      # Separate, fully-migrated databases on the same Postgres service
+      # (#5217 / #5191) — unlike the shared `test` database above, these run
+      # `prisma migrate deploy` for real, so the billing-account-scope and
+      # credit-balance *.postgres.spec.ts suites get an actual schema instead
+      # of self-skipping.
+      BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
+      CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
     needs: [trust, test-scope]
     # Full sharded suite is explicit: release/deploy QA or a planner escalation
     # for validation machinery and root dependency changes.
@@ -1000,6 +1023,15 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      - name: Provision billing-account-scope and credit-balance test databases
+        run: |
+          for db in billing_scope_test credit_balance_test; do
+            PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -tc \
+              "SELECT 1 FROM pg_database WHERE datname = '${db}'" | grep -q 1 || \
+              PGPASSWORD=genfeed_local psql -h localhost -U genfeed -d test -c "CREATE DATABASE ${db};"
+          done
+          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
+          DATABASE_URL="$CREDIT_BALANCE_TEST_DATABASE_URL" bunx prisma migrate deploy --schema packages/prisma/prisma/schema.prisma
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Mark test start

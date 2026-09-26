@@ -4,6 +4,7 @@ import {
   type BillingAccountScope,
   billingAccountScopedWhere,
   resolveBillingAccountAccess,
+  resolveLiveBillingAccount,
   scopedWhere,
 } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -31,6 +32,7 @@ import {
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { withBillingAccountScopeRollback } from '@libs/prisma/tenant-context';
 import {
   ConflictException,
   ForbiddenException,
@@ -47,45 +49,18 @@ export class BillingAccountsService {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Thin wrapper around the shared resolution logic in
+   * `resolveLiveBillingAccount` (`@api/tenancy/billing-account-scope`,
+   * #5217) — same lookup order, same conflict/not-found conditions, same
+   * organizationId-matches-tenant-context requirement, as
+   * `resolveBillingAccountAccess`. Kept on this service (rather than having
+   * every caller import the tenancy helper directly) because it returns the
+   * full `BillingAccount` row callers already depend on (label, status,
+   * planTier, stripeCustomerId, …), not just a scope.
+   */
   async resolveForOrganization(organizationId: string) {
-    const organization = await this.prisma.organization.findFirst({
-      where: { id: organizationId, isDeleted: false },
-    });
-    if (!organization) {
-      throw new NotFoundException('Organization');
-    }
-
-    if (organization.billingAccountId) {
-      const account = await this.prisma.billingAccount.findFirst({
-        where: { id: organization.billingAccountId, isDeleted: false },
-      });
-      if (!account) {
-        throw new ConflictException('Billing account could not be resolved');
-      }
-      return account;
-    }
-
-    const links = await this.prisma.billingAccountOrganization.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        status: BillingAccountOrganizationStatus.LINKED,
-      },
-    });
-    if (links.length > 1) {
-      throw new ConflictException('Billing account could not be resolved');
-    }
-    if (links.length === 1) {
-      const account = await this.prisma.billingAccount.findFirst({
-        where: { id: links[0].billingAccountId, isDeleted: false },
-      });
-      if (!account) {
-        throw new ConflictException('Billing account could not be resolved');
-      }
-      return account;
-    }
-
-    throw new NotFoundException('Billing account not found');
+    return resolveLiveBillingAccount(organizationId, this.prisma);
   }
 
   async ensureForOrganization(input: {
@@ -257,224 +232,238 @@ export class BillingAccountsService {
 
     await this.requireRole(account.id, input.actorUserId, MUTATING_ROLE);
 
-    const linkedAccount = await this.prisma.$transaction(
-      async (tx) => {
-        const currentAccount = await tx.billingAccount.findFirst({
-          where: { id: account.id, isDeleted: false },
-        });
-        if (!currentAccount) {
-          throw new NotFoundException('BillingAccount');
-        }
+    // resolveBillingAccountAccess registers its scope as active for the rest
+    // of the request the instant it resolves, even though it ran inside this
+    // still-uncommitted transaction. If the transaction later rolls back
+    // (any throw below), that registration must not outlive it (#5217,
+    // minor) — the org was never durably linked, so the scope was never
+    // really proven.
+    const linkedAccount = await withBillingAccountScopeRollback(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const currentAccount = await tx.billingAccount.findFirst({
+            where: { id: account.id, isDeleted: false },
+          });
+          if (!currentAccount) {
+            throw new NotFoundException('BillingAccount');
+          }
 
-        const organization = await tx.organization.findFirst({
-          select: { billingAccountId: true, id: true },
-          where: { id: input.organizationId, isDeleted: false },
-        });
-        if (!organization) {
-          throw new NotFoundException('Organization');
-        }
-        const targetMembership = await tx.member.findFirst({
-          select: { role: { select: { key: true } }, roleKey: true },
-          where: {
-            isActive: true,
-            isDeleted: false,
-            organizationId: input.organizationId,
-            userId: input.actorUserId,
-          },
-        });
-        const targetRole =
-          targetMembership?.roleKey ?? targetMembership?.role.key;
-        if (
-          targetRole !== MemberRole.OWNER &&
-          targetRole !== MemberRole.ADMIN
-        ) {
-          throw new ForbiddenException(
-            'Organization administration permission required',
-          );
-        }
-        if (
-          organization.billingAccountId &&
-          organization.billingAccountId !== currentAccount.id
-        ) {
-          throw new ConflictException(
-            'Organization already belongs to another billing account',
-          );
-        }
+          const organization = await tx.organization.findFirst({
+            select: { billingAccountId: true, id: true },
+            where: { id: input.organizationId, isDeleted: false },
+          });
+          if (!organization) {
+            throw new NotFoundException('Organization');
+          }
+          const targetMembership = await tx.member.findFirst({
+            select: { role: { select: { key: true } }, roleKey: true },
+            where: {
+              isActive: true,
+              isDeleted: false,
+              organizationId: input.organizationId,
+              userId: input.actorUserId,
+            },
+          });
+          const targetRole =
+            targetMembership?.roleKey ?? targetMembership?.role.key;
+          if (
+            targetRole !== MemberRole.OWNER &&
+            targetRole !== MemberRole.ADMIN
+          ) {
+            throw new ForbiddenException(
+              'Organization administration permission required',
+            );
+          }
+          if (
+            organization.billingAccountId &&
+            organization.billingAccountId !== currentAccount.id
+          ) {
+            throw new ConflictException(
+              'Organization already belongs to another billing account',
+            );
+          }
 
-        const conflictingLink = await tx.billingAccountOrganization.findFirst({
-          where: {
-            billingAccountId: { not: currentAccount.id },
-            isDeleted: false,
-            organizationId: input.organizationId,
-            status: BillingAccountOrganizationStatus.LINKED,
-          },
-        });
-        if (conflictingLink) {
-          throw new ConflictException(
-            'Organization already belongs to another billing account',
+          const conflictingLink = await tx.billingAccountOrganization.findFirst(
+            {
+              where: {
+                billingAccountId: { not: currentAccount.id },
+                isDeleted: false,
+                organizationId: input.organizationId,
+                status: BillingAccountOrganizationStatus.LINKED,
+              },
+            },
           );
-        }
+          if (conflictingLink) {
+            throw new ConflictException(
+              'Organization already belongs to another billing account',
+            );
+          }
 
-        const alreadyLinked = await tx.billingAccountOrganization.findFirst({
-          where: {
-            billingAccountId: currentAccount.id,
-            isDeleted: false,
-            organizationId: input.organizationId,
-            status: BillingAccountOrganizationStatus.LINKED,
-          },
-        });
-        if (!alreadyLinked) {
-          // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
-          const linkedCount = await tx.billingAccountOrganization.count({
+          const alreadyLinked = await tx.billingAccountOrganization.findFirst({
             where: {
               billingAccountId: currentAccount.id,
               isDeleted: false,
+              organizationId: input.organizationId,
               status: BillingAccountOrganizationStatus.LINKED,
             },
           });
-          const limit = this.organizationLimitForTier(currentAccount.planTier);
-          if (limit !== null && linkedCount >= limit) {
-            throw new PlanLimitExceededException({
-              currentCount: linkedCount,
-              limit,
-              resource: 'organizations',
-              upgradeTier: getUpgradeTierForLimit(
-                'organizations',
-                this.parseTier(currentAccount.planTier),
-              ),
+          if (!alreadyLinked) {
+            // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
+            const linkedCount = await tx.billingAccountOrganization.count({
+              where: {
+                billingAccountId: currentAccount.id,
+                isDeleted: false,
+                status: BillingAccountOrganizationStatus.LINKED,
+              },
+            });
+            const limit = this.organizationLimitForTier(
+              currentAccount.planTier,
+            );
+            if (limit !== null && linkedCount >= limit) {
+              throw new PlanLimitExceededException({
+                currentCount: linkedCount,
+                limit,
+                resource: 'organizations',
+                upgradeTier: getUpgradeTierForLimit(
+                  'organizations',
+                  this.parseTier(currentAccount.planTier),
+                ),
+              });
+            }
+
+            await tx.billingAccountOrganization.create({
+              data: {
+                billingAccountId: currentAccount.id,
+                organizationId: input.organizationId,
+                status: BillingAccountOrganizationStatus.LINKED,
+              },
             });
           }
 
-          await tx.billingAccountOrganization.create({
-            data: {
-              billingAccountId: currentAccount.id,
-              organizationId: input.organizationId,
-              status: BillingAccountOrganizationStatus.LINKED,
-            },
+          await tx.organization.update({
+            data: { billingAccountId: currentAccount.id },
+            where: { id: input.organizationId },
           });
-        }
 
-        await tx.organization.update({
-          data: { billingAccountId: currentAccount.id },
-          where: { id: input.organizationId },
-        });
-
-        // The update above is what makes this organization-scoped proof
-        // (#5217) succeed: resolveBillingAccountAccess re-reads the
-        // organization it just wrote and follows its now-current
-        // billingAccountId, inside the same transaction.
-        const scope = await resolveBillingAccountAccess(
-          input.organizationId,
-          tx,
-        );
-
-        const orgBalance = await tx.creditBalance.findFirst({
-          where: { isDeleted: false, organizationId: input.organizationId },
-        });
-        const accountBalance = await tx.creditBalance.findFirst({
-          where: billingAccountScopedWhere(scope, {}),
-        });
-
-        if (
-          orgBalance?.billingAccountId &&
-          orgBalance.billingAccountId !== currentAccount.id
-        ) {
-          throw new ConflictException(
-            'Organization credit balance belongs to another billing account',
+          // The update above is what makes this organization-scoped proof
+          // (#5217) succeed: resolveBillingAccountAccess re-reads the
+          // organization it just wrote and follows its now-current
+          // billingAccountId, inside the same transaction.
+          const scope = await resolveBillingAccountAccess(
+            input.organizationId,
+            tx,
           );
-        }
 
-        if (
-          orgBalance &&
-          accountBalance &&
-          orgBalance.id !== accountBalance.id
-        ) {
-          const mergedBalance = await tx.creditBalance.updateMany({
-            data: {
-              balance: { increment: orgBalance.balance },
-              heldAmount: { increment: orgBalance.heldAmount },
-              version: { increment: 1 },
-            },
-            where: billingAccountScopedWhere(scope, { id: accountBalance.id }),
+          const orgBalance = await tx.creditBalance.findFirst({
+            where: { isDeleted: false, organizationId: input.organizationId },
           });
-          if (mergedBalance.count !== 1) {
+          const accountBalance = await tx.creditBalance.findFirst({
+            where: billingAccountScopedWhere(scope, {}),
+          });
+
+          if (
+            orgBalance?.billingAccountId &&
+            orgBalance.billingAccountId !== currentAccount.id
+          ) {
             throw new ConflictException(
-              'Billing account credit balance changed during organization link',
+              'Organization credit balance belongs to another billing account',
             );
           }
 
-          const retiredBalance = await tx.creditBalance.updateMany({
-            data: { isDeleted: true },
-            where: {
-              id: orgBalance.id,
-              isDeleted: false,
-              organizationId: input.organizationId,
-              OR: [
-                { billingAccountId: null },
-                { billingAccountId: currentAccount.id },
-              ],
-            },
-          });
-          if (retiredBalance.count !== 1) {
-            throw new ConflictException(
-              'Organization credit balance changed during billing account link',
-            );
+          if (
+            orgBalance &&
+            accountBalance &&
+            orgBalance.id !== accountBalance.id
+          ) {
+            const mergedBalance = await tx.creditBalance.updateMany({
+              data: {
+                balance: { increment: orgBalance.balance },
+                heldAmount: { increment: orgBalance.heldAmount },
+                version: { increment: 1 },
+              },
+              where: billingAccountScopedWhere(scope, {
+                id: accountBalance.id,
+              }),
+            });
+            if (mergedBalance.count !== 1) {
+              throw new ConflictException(
+                'Billing account credit balance changed during organization link',
+              );
+            }
+
+            const retiredBalance = await tx.creditBalance.updateMany({
+              data: { isDeleted: true },
+              where: {
+                id: orgBalance.id,
+                isDeleted: false,
+                organizationId: input.organizationId,
+                OR: [
+                  { billingAccountId: null },
+                  { billingAccountId: currentAccount.id },
+                ],
+              },
+            });
+            if (retiredBalance.count !== 1) {
+              throw new ConflictException(
+                'Organization credit balance changed during billing account link',
+              );
+            }
+          } else if (orgBalance && !orgBalance.billingAccountId) {
+            const attachedBalance = await tx.creditBalance.updateMany({
+              data: { billingAccountId: currentAccount.id },
+              where: {
+                billingAccountId: null,
+                id: orgBalance.id,
+                isDeleted: false,
+                organizationId: input.organizationId,
+              },
+            });
+            if (attachedBalance.count !== 1) {
+              throw new ConflictException(
+                'Organization credit balance changed during billing account link',
+              );
+            }
+          } else if (!orgBalance && !accountBalance) {
+            await tx.creditBalance.create({
+              data: {
+                balance: 0,
+                billingAccountId: currentAccount.id,
+                heldAmount: 0,
+                organizationId: input.organizationId,
+                version: 0,
+              },
+            });
           }
-        } else if (orgBalance && !orgBalance.billingAccountId) {
-          const attachedBalance = await tx.creditBalance.updateMany({
+
+          await tx.customer.updateMany({
+            data: { billingAccountId: currentAccount.id },
+            where: { isDeleted: false, organizationId: input.organizationId },
+          });
+          await tx.subscription.updateMany({
+            data: { billingAccountId: currentAccount.id },
+            where: { isDeleted: false, organizationId: input.organizationId },
+          });
+          await tx.creditTransaction.updateMany({
             data: { billingAccountId: currentAccount.id },
             where: {
               billingAccountId: null,
-              id: orgBalance.id,
               isDeleted: false,
               organizationId: input.organizationId,
             },
           });
-          if (attachedBalance.count !== 1) {
-            throw new ConflictException(
-              'Organization credit balance changed during billing account link',
-            );
-          }
-        } else if (!orgBalance && !accountBalance) {
-          await tx.creditBalance.create({
-            data: {
-              balance: 0,
-              billingAccountId: currentAccount.id,
-              heldAmount: 0,
+          await tx.creditReservation.updateMany({
+            data: { billingAccountId: currentAccount.id },
+            where: {
+              isDeleted: false,
               organizationId: input.organizationId,
-              version: 0,
+              status: CreditReservationStatus.RESERVED,
             },
           });
-        }
 
-        await tx.customer.updateMany({
-          data: { billingAccountId: currentAccount.id },
-          where: { isDeleted: false, organizationId: input.organizationId },
-        });
-        await tx.subscription.updateMany({
-          data: { billingAccountId: currentAccount.id },
-          where: { isDeleted: false, organizationId: input.organizationId },
-        });
-        await tx.creditTransaction.updateMany({
-          data: { billingAccountId: currentAccount.id },
-          where: {
-            billingAccountId: null,
-            isDeleted: false,
-            organizationId: input.organizationId,
-          },
-        });
-        await tx.creditReservation.updateMany({
-          data: { billingAccountId: currentAccount.id },
-          where: {
-            isDeleted: false,
-            organizationId: input.organizationId,
-            status: CreditReservationStatus.RESERVED,
-          },
-        });
-
-        return currentAccount;
-      },
-      { isolationLevel: 'Serializable' },
+          return currentAccount;
+        },
+        { isolationLevel: 'Serializable' },
+      ),
     );
 
     this.logger.log('Linked organization to billing account', {

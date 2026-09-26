@@ -218,7 +218,9 @@ export { LifecycleEmailDeliveryService } from './services/lifecycle-emails/lifec
 export {
   type BillingAccountAccessClient,
   type BillingAccountScope,
+  isBillingAccountScope,
   resolveBillingAccountAccess,
+  resolveLiveBillingAccount,
 } from './tenancy/billing-account-scope';
 export {
   billingAccountScopedWhere,

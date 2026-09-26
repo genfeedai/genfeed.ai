@@ -1,4 +1,7 @@
-import type { BillingAccountScope } from './billing-account-scope';
+import {
+  type BillingAccountScope,
+  isBillingAccountScope,
+} from './billing-account-scope';
 
 /**
  * Canonical tenant scope for a Prisma `where`.
@@ -47,6 +50,16 @@ export function billingAccountScopedWhere<W extends Record<string, unknown>>(
   scope: BillingAccountScope,
   where?: W,
 ): W & { billingAccountId: string; isDeleted: boolean } {
+  // Runtime brand check (#5217, MAJOR 2): the type system blocks a raw
+  // string here, but an `as`/`as unknown as BillingAccountScope` cast does
+  // not. Verifying the brand at runtime means such a cast still fails loudly
+  // instead of quietly forging a scope the caller never actually resolved.
+  if (!isBillingAccountScope(scope)) {
+    throw new Error(
+      'billingAccountScopedWhere: scope must come from resolveBillingAccountAccess',
+    );
+  }
+
   return {
     isDeleted: false,
     ...(where as W),

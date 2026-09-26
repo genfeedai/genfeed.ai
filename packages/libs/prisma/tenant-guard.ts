@@ -44,29 +44,40 @@ export class TenantIsolationError extends Error {
 }
 
 /**
- * Validates a query that carries a `billingAccountId` filter against the
- * `BillingAccountScope`s registered as active for the current tenant context
- * (#5217).
+ * The one place `billingAccountId` may substitute for `organizationId` as
+ * tenant proof (#5217) — reached **only** from inside the pre-existing
+ * "no organizationId anywhere in this query" branch below. This is
+ * deliberately narrow:
  *
- * Returns `true` when the query was authorized this way — the caller must
- * skip the organizationId check below, because a billing-account-shared row
- * legitimately has no organizationId, or one belonging to a different linked
- * organization. Returns `false` when the query carries no billingAccountId at
- * all, so the caller falls through to the unchanged organizationId check.
- * Throws when a billingAccountId is present but not an active scope — this
- * never falls through, so a spoofed or stale billingAccountId cannot be
- * rescued by an incidentally-matching organizationId.
+ * - It never runs when the query carries an organizationId anywhere (where,
+ *   data, create, AND, OR) — that query keeps going through the unchanged
+ *   organizationId check below, exactly as it did before #5217. A write that
+ *   merely *copies* an already-authorized `billingAccountId` into `data`
+ *   alongside an organization-scoped `where` (e.g. settling a reservation)
+ *   is therefore never required to have called `resolveBillingAccountAccess`
+ *   — the organizationId proof already governs it, unchanged.
+ * - When it does run, every `billingAccountId` found anywhere in the query
+ *   (including inside an `OR`) must be an active, registered scope — so an
+ *   `OR` cannot smuggle in an unregistered id next to a registered one.
+ *
+ * A single mixed `OR` branch that pairs an unregistered `billingAccountId`
+ * with the caller's *own* valid `organizationId` in a sibling branch is a
+ * pre-existing limitation of this flat, non-structural guard (the
+ * organizationId branch below has always had the same "OR arm without any
+ * scope key at all" gap for plain tenant models) — not something #5217
+ * introduces. Closing it needs a structural, per-branch evaluator like the
+ * static checker's `inspectDisjunction`, which is out of scope here. Nothing
+ * in application code builds such a mixed `OR` today (`scopedWhere` and
+ * `billingAccountScopedWhere` both write their key at the object's own
+ * level, never inside a caller-supplied `OR`), and `check:tenant-scope`
+ * would flag a hand-written one missing `isDeleted` per branch regardless.
  */
-function checkBillingAccountScope(
+function assertBillingAccountScope(
   model: string,
   operation: string,
   args: unknown,
-): boolean {
+): void {
   const billingAccountIds = collectFieldValues(args, 'billingAccountId');
-  if (billingAccountIds.size === 0) {
-    return false;
-  }
-
   const activeScopes = getActiveBillingAccountScopes();
 
   for (const billingAccountId of billingAccountIds) {
@@ -80,8 +91,6 @@ function checkBillingAccountScope(
       );
     }
   }
-
-  return true;
 }
 
 export function assertTenantScopedQuery(input: TenantGuardArgs): void {
@@ -94,22 +103,6 @@ export function assertTenantScopedQuery(input: TenantGuardArgs): void {
   }
 
   const model = input.model;
-
-  // A verified BillingAccountScope authorizes this exact query and
-  // deliberately bypasses the organizationId check below — billing-account
-  // rows are shared across the organizations linked to that account by
-  // design (#5217). This only ever adds a requirement: a query with no
-  // billingAccountId filter is completely unaffected and falls through to
-  // the pre-existing organizationId rule.
-  if (
-    model &&
-    TENANT_QUERY_OPERATION_SET.has(input.operation) &&
-    input.billingAccountModelNames?.has(model) &&
-    checkBillingAccountScope(model, input.operation, input.args)
-  ) {
-    return;
-  }
-
   if (!model || !input.tenantModelNames.has(model)) {
     return;
   }
@@ -118,12 +111,39 @@ export function assertTenantScopedQuery(input: TenantGuardArgs): void {
     return;
   }
 
+  // Unchanged from before #5217: collected across the whole query
+  // (where/data/create/AND/OR), so a write that reassigns organizationId, or
+  // an OR arm that names a different one, is still caught below exactly as
+  // it always was.
   const organizationIds = collectFieldValues(input.args, 'organizationId');
   const tenantContext = getTenantContext();
 
   if (organizationIds.size === 0) {
     if (!tenantContext) {
+      // No active tenant context: matches master exactly — background
+      // workers, cron, webhooks, and other system paths that never call
+      // runWithTenantContext are not enforced here (they establish their
+      // own trust). A BillingAccountScope is never "active" outside a
+      // tenant context either (see registerBillingAccountScope), so this
+      // return is also what keeps a no-context billing-account write
+      // (e.g. the BullMQ credit-deduction processor) from throwing.
       return;
+    }
+
+    // The query has no organizationId anywhere. Before #5217 this was
+    // always `missing-organization-id`. Now a billing-account-capable model
+    // may instead prove itself entirely through a registered
+    // BillingAccountScope (#5217) — this is strictly additive: it only
+    // fires in the branch that used to be an unconditional throw.
+    if (model && input.billingAccountModelNames?.has(model)) {
+      const billingAccountIds = collectFieldValues(
+        input.args,
+        'billingAccountId',
+      );
+      if (billingAccountIds.size > 0) {
+        assertBillingAccountScope(model, input.operation, input.args);
+        return;
+      }
     }
 
     throw new TenantIsolationError(
@@ -138,6 +158,10 @@ export function assertTenantScopedQuery(input: TenantGuardArgs): void {
     return;
   }
 
+  // Unchanged from before #5217, and — critically — never skipped because a
+  // billingAccountId elsewhere in the query happened to be a valid,
+  // registered scope. A billing-account match is never a substitute for
+  // organizationId consistency when organizationId is actually present.
   for (const organizationId of organizationIds) {
     if (organizationId !== tenantContext.organizationId) {
       throw new TenantIsolationError(

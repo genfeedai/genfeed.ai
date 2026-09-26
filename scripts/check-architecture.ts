@@ -117,6 +117,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-billing-account-scope-registration.ts',
+    ],
+    name: 'Billing-account scope registration ratchet',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-agent-decomposition-size.ts',
     ],
     name: 'Agent decomposition size ratchet',

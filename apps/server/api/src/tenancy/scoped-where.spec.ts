@@ -152,6 +152,16 @@ describe('billingAccountScopedWhere', () => {
 
     expect(where.billingAccountId).toBe('billing-1');
   });
+
+  it('rejects a forged scope that lacks the runtime brand (#5217, MAJOR 2)', () => {
+    const forged = {
+      billingAccountId: 'billing-1',
+    } as unknown as Parameters<typeof billingAccountScopedWhere>[0];
+
+    expect(() => billingAccountScopedWhere(forged, {})).toThrowError(
+      'billingAccountScopedWhere: scope must come from resolveBillingAccountAccess',
+    );
+  });
 });
 
 describe('brandScope', () => {
