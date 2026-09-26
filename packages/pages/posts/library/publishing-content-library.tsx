@@ -537,21 +537,6 @@ export default function PublishingContentLibrary({
         }
         openRowOverlay(item);
       }}
-      onKeyDown={(event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') {
-          return;
-        }
-        if (
-          event.target instanceof HTMLElement &&
-          event.target.closest('a,button')
-        ) {
-          return;
-        }
-        event.preventDefault();
-        openRowOverlay(item);
-      }}
-      role="button"
-      tabIndex={0}
     >
       <Card>
         <PublishingContentIdentity

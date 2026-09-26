@@ -137,12 +137,19 @@ export default function ModalPost({
         }
       }
 
+      // X carries no formatting, so its description is always plain text; the
+      // other platforms edit through a rich-text editor and keep their HTML.
+      const descriptionForSubmit =
+        targetPlatform === Platform.TWITTER
+          ? stripHtmlToPlainText(formData.description)
+          : formData.description;
+
       if (isEditMode && post?.id) {
         entity = post;
         const url = `PATCH /posts/${entity.id}`;
         const result = await postsService.patch(entity.id, {
           credentialId: formData.credentialId || undefined,
-          description: stripHtmlToPlainText(formData.description),
+          description: descriptionForSubmit,
           format: formData.format,
           label: formData.label?.trim() || '',
           ...(formData.scheduledDate
@@ -160,7 +167,7 @@ export default function ModalPost({
         const result = await postsService.post({
           brandId: brandId || undefined,
           credentialId: formData.credentialId || undefined,
-          description: stripHtmlToPlainText(formData.description),
+          description: descriptionForSubmit,
           format: formData.format,
           ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',

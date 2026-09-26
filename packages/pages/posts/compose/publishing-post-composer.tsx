@@ -100,7 +100,12 @@ export default function PublishingPostComposer() {
   );
 
   const onSubmit = form.handleSubmit(async (formData) => {
-    const caption = stripHtmlToPlainText(formData.description);
+    // X carries no formatting, so its description is always plain text; the
+    // other platforms edit through a rich-text editor and keep their HTML.
+    const caption =
+      formData.platform === Platform.TWITTER
+        ? stripHtmlToPlainText(formData.description)
+        : formData.description;
     try {
       const service = await getPostsService();
       const created = await service.post({
