@@ -1,0 +1,17 @@
+{
+  "id": "first-frame-fidelity",
+  "version": 1,
+  "medium": "video",
+  "isDraft": true,
+  "title": "First-frame fidelity",
+  "rationale": "The production path that matters most: art-direct a still, then animate it. Measures how much of the approved frame survives contact with the video model.",
+  "prompt": "Animate the supplied style frame. The subject breathes and shifts weight; a curtain moves in the background. Nothing else changes. The first frame of the output must match the supplied frame.",
+  "referenceRoles": ["style-frame"],
+  "outputSpec": { "aspectRatio": "9:16", "count": 1, "durationSeconds": 5 },
+  "rubric": [
+    "Does frame one match the supplied frame?",
+    "Is the composition still the approved composition at the end?",
+    "Is the added motion the motion requested and no more?",
+    "Does colour and grade drift across the clip"
+  ]
+}
