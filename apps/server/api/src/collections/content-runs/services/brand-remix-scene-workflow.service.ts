@@ -1,8 +1,9 @@
-import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { BrandRemixSceneAnalysisService } from '@api/collections/content-runs/services/brand-remix-scene-analysis.service';
-import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
 import { BrandRemixSceneAssemblyService } from '@api/collections/content-runs/services/brand-remix-scene-assembly.service';
+import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
 import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
+import { hasInFlightSceneGeneration } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -16,6 +17,7 @@ const jobSchema = z
     organizationId: z.string().min(1),
     runId: z.string().min(1),
     operationId: z.string().min(1),
+    sequence: z.number().int().nonnegative().optional(),
   })
   .strict();
 @Injectable()
@@ -72,7 +74,12 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
         actionType: STEP,
         canonicalId: STEP,
         inputValues: {
-          job: { organizationId, runId, operationId: operation.id },
+          job: {
+            organizationId,
+            runId,
+            operationId: operation.id,
+            sequence: operation.sequence,
+          },
         },
         organizationId,
         userId: operation.userId,
@@ -84,6 +91,19 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
   }
   private async step(job: z.infer<typeof jobSchema>) {
     const { organizationId, runId, operationId } = job;
+    const { config: initial } = await this.store.read(organizationId, runId);
+    const owner = initial.scenePipeline?.operation;
+    // A job from a superseded chain (resume or cancel advanced the sequence)
+    // exits so one operation never runs two concurrent step chains.
+    if (
+      owner?.id !== operationId ||
+      (job.sequence !== undefined && owner.sequence !== job.sequence)
+    )
+      return;
+    if (initial.scenePipeline?.state === 'cancelled') {
+      await this.reconcileCancelled(organizationId, runId, operationId);
+      return;
+    }
     try {
       const { config, brandId } = await this.store.fence(
         organizationId,
@@ -100,7 +120,7 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
         30 * 60_000
       )
         throw new Error(
-          'Scene operation stalled after 30 minutes. Reconcile accepted work before continuing.',
+          'Scene operation stalled after 30 minutes. Resume to reconcile accepted work.',
         );
       await this.source.prepare(organizationId, brandId, config);
       const complete =
@@ -109,30 +129,13 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
           : (await this.generation.step(organizationId, runId, operationId)) &&
             (await this.assembly.step(organizationId, runId, operationId));
       if (complete) return;
-      const current = await this.store.fence(
-        organizationId,
-        runId,
-        operationId,
-      );
-      const saved = current.config.scenePipeline;
-      if (!saved?.operation) return;
-      const operation = {
-        ...saved.operation,
-        sequence: saved.operation.sequence + 1,
-      };
-      await this.store.save(organizationId, runId, current.config, {
-        ...current.config,
-        scenePipeline: { ...saved, operation },
-      });
-      await this.enqueue(organizationId, runId, operation, 10_000);
+      await this.scheduleNext(organizationId, runId, operationId, false);
     } catch (error: unknown) {
       const current = await this.store.read(organizationId, runId);
       const pipeline = current.config.scenePipeline;
-      if (
-        pipeline?.operation?.id !== operationId ||
-        pipeline.state === 'cancelled'
-      )
-        return;
+      if (pipeline?.operation?.id !== operationId) return;
+      // Cancellation already started its own reconcile chain.
+      if (pipeline.state === 'cancelled') return;
       await this.store.save(organizationId, runId, current.config, {
         ...current.config,
         phase: 'prefilled',
@@ -141,10 +144,66 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
           state: 'partial_failure',
           error:
             error instanceof Error
-              ? error.message
+              ? error.message.slice(0, 4_000)
               : 'Scene processing failed; reconcile accepted work before retrying.',
         },
       });
     }
+  }
+  /**
+   * After cancellation, keep polling provider work that was already accepted
+   * so its output and cost are recorded, without claiming anything new.
+   */
+  private async reconcileCancelled(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+  ) {
+    const { config } = await this.store.read(organizationId, runId);
+    if (!hasInFlightSceneGeneration(config.scenePipeline)) return;
+    let isDrained = false;
+    let delayMs = 10_000;
+    try {
+      isDrained = await this.generation.step(
+        organizationId,
+        runId,
+        operationId,
+        { reconcileOnly: true },
+      );
+    } catch {
+      // A transient read, probe or compare-and-swap failure must not end
+      // the only chain that records accepted work; retry with backoff.
+      delayMs = 60_000;
+    }
+    if (!isDrained)
+      await this.scheduleNext(
+        organizationId,
+        runId,
+        operationId,
+        true,
+        delayMs,
+      );
+  }
+  private async scheduleNext(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    isCancelled: boolean,
+    delayMs = 10_000,
+  ) {
+    const current = await this.store.fence(organizationId, runId, operationId, {
+      allowCancelled: isCancelled,
+    });
+    const saved = current.config.scenePipeline;
+    if (!saved?.operation) return;
+    const operation = {
+      ...saved.operation,
+      sequence: saved.operation.sequence + 1,
+    };
+    await this.store.save(organizationId, runId, current.config, {
+      ...current.config,
+      scenePipeline: { ...saved, operation },
+    });
+    await this.enqueue(organizationId, runId, operation, delayMs);
   }
 }

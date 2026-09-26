@@ -238,16 +238,47 @@ describe('caption failure settlement recovery', () => {
     expect(planning.buildGenerationBrief).not.toHaveBeenCalled();
   });
 
-  it('does not redispatch an uncertain caption transcription', async () => {
+  it('does not rerun a caption transcription a live step still holds', async () => {
     const assembly = config.scenePipeline?.assembly;
     if (!assembly) throw new Error('missing assembly');
     assembly.transcription.state = 'claimed';
+    assembly.transcription.claimedAt = new Date().toISOString();
     await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
-      /uncertain/,
+      /still running/,
     );
     expect(whisper.transcribeUrl).not.toHaveBeenCalled();
     expect(billing.reserve).not.toHaveBeenCalled();
     expect(billing.settle).not.toHaveBeenCalled();
+  });
+
+  it('reruns an abandoned or uncertain caption transcription under its accepted line', async () => {
+    for (const stage of [
+      { state: 'claimed' as const, claimedAt: '2026-09-24T00:00:00.000Z' },
+      { state: 'uncertain' as const },
+    ]) {
+      vi.clearAllMocks();
+      config = fixture();
+      const assembly = config.scenePipeline?.assembly;
+      if (!assembly) throw new Error('missing assembly');
+      assembly.transcription = { attempt: 1, ...stage };
+      await expect(service.step('org', 'run', 'operation')).resolves.toBe(
+        false,
+      );
+      const line = expect.objectContaining({ stage: 'captions', attempt: 1 });
+      expect(billing.reserve).toHaveBeenCalledWith(
+        'org',
+        'run',
+        'operation',
+        line,
+      );
+      expect(billing.settle).toHaveBeenCalledWith(
+        'org',
+        'run',
+        'operation',
+        line,
+      );
+      expect(config.scenePipeline?.assembly?.transcription.state).toBe('ready');
+    }
   });
 
   it('marks provider acceptance uncertain without releasing a dispatched hold', async () => {
@@ -264,7 +295,7 @@ describe('caption failure settlement recovery', () => {
     );
   });
 
-  it('compensates an unusable caption transcript and allows a later resume', async () => {
+  it('compensates an unusable caption transcript and requires a new quote to retry', async () => {
     whisper.transcribeUrl.mockResolvedValueOnce({ srt: '   ' });
     await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
       /no captions/,
@@ -274,14 +305,12 @@ describe('caption failure settlement recovery', () => {
     expect(config.scenePipeline?.assembly?.transcription.state).toBe('failed');
     expect(queue.processVideo).not.toHaveBeenCalled();
 
-    whisper.transcribeUrl.mockResolvedValueOnce({
-      srt: '1\n00:00:00,000 --> 00:00:01,000\nHello\n',
-    });
-    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
-    expect(billing.settle).toHaveBeenCalledOnce();
-    expect(config.scenePipeline?.assembly?.srt).toContain('Hello');
-    expect(config.scenePipeline?.assembly?.transcription.state).toBe('ready');
-    expect(queue.processVideo).not.toHaveBeenCalled();
+    // The released hold cannot fund another Whisper call on resume.
+    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
+      /new generation quote/,
+    );
+    expect(whisper.transcribeUrl).toHaveBeenCalledOnce();
+    expect(billing.reserve).toHaveBeenCalledOnce();
   });
 
   it('settles accepted captions when cancellation arrives before rendering', async () => {

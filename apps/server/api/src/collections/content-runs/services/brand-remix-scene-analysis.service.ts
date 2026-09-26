@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { BrandRemixSceneBillingService } from '@api/collections/content-runs/services/brand-remix-scene-billing.service';
 import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
-import { assertOriginalNarration } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import {
+  assertOriginalNarration,
+  isRetryableSyncSceneStage,
+} from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { OpenRouterMessageContentPart } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -142,9 +145,13 @@ export class BrandRemixSceneAnalysisService {
     const stageName: AnalysisStageName =
       analysis.transcription.state === 'ready' ? 'rewrite' : 'transcription';
     const stage = analysis[stageName];
-    if (stage.state !== 'pending')
+    if (stage.state === 'failed')
       throw new ConflictException(
-        'Analysis acceptance is uncertain. Reconcile before a new paid attempt.',
+        'Scene analysis failed. Request a new analysis quote.',
+      );
+    if (!isRetryableSyncSceneStage(stage))
+      throw new ConflictException(
+        'Scene analysis is still running. Wait before resuming.',
       );
     const line = pipeline.quote.items.find(
       (item) =>
@@ -184,7 +191,10 @@ export class BrandRemixSceneAnalysisService {
       operationId,
       accepted.line,
     );
-    const current = await this.store.fence(organizationId, runId, operationId);
+    // A paid transcript is kept even when the operation was cancelled meanwhile.
+    const current = await this.store.fence(organizationId, runId, operationId, {
+      allowCancelled: true,
+    });
     const saved = current.config.scenePipeline;
     if (!saved?.analysis) throw new ConflictException('Analysis disappeared.');
     if (result.language !== 'en')
@@ -337,7 +347,11 @@ export class BrandRemixSceneAnalysisService {
     output: z.infer<typeof analysisOutput>,
     usage: { cost?: number; [key: string]: unknown } | undefined,
   ): Promise<void> {
-    const current = await this.store.fence(organizationId, runId, operationId);
+    // A paid storyboard is kept even when the operation was cancelled
+    // meanwhile; a revision change (an edit) still rejects it.
+    const current = await this.store.fence(organizationId, runId, operationId, {
+      allowCancelled: true,
+    });
     const saved = current.config.scenePipeline;
     if (!saved?.analysis) throw new ConflictException('Analysis disappeared.');
     const concept = {

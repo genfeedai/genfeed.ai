@@ -541,7 +541,7 @@
       "analyze": "Quote source analysis",
       "quote": "Quote complete ad",
       "cancel": "Cancel future stages",
-      "resume": "Reconcile and resume",
+      "resume": "Reconcile and resume accepted work",
       "total": "Accepted operation ceiling: {credits} credits",
       "expires": "Quote expires: {time}",
       "vendorCosts": "Application credits are shown per stage. Provider costs may be unknown; BYOK provider charges are separate.",
@@ -560,6 +560,7 @@
       "repairVideo": "Quote clip repair",
       "repairImage": "Quote still + clip repair",
       "progress": "Still: {image} · Clip: {video} · Planned: {planned}s · Actual: {actual}s",
+      "identityPairRequired": "Choose both an avatar and a saved voice for each scene override, or use the run identity.",
       "save": "Save storyboard (no generation)",
       "outputPreview": "Completed original captioned ad"
     },
