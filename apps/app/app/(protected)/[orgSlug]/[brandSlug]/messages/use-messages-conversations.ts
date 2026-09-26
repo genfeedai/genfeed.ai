@@ -22,6 +22,7 @@ export type { UseMessagesConversationsParams } from '@genfeedai/props/messages/m
 export function useMessagesConversations({
   getMessagesService,
   onClearSelectedConversationParam,
+  onUnreadStateChange,
   query,
   requestedConversationId,
   scopedOrganizationId,
@@ -218,6 +219,50 @@ export function useMessagesConversations({
         : null,
     [conversations, selectedId],
   );
+  const selectedUnreadCount = selectedConversation?.unreadCount ?? 0;
+
+  // Opening a thread reads it: zero its counter and let the bell and the
+  // Messages badge catch up.
+  useEffect(() => {
+    if (!selectedId || selectedUnreadCount <= 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+    getMessagesService()
+      .then((service) =>
+        service.markRead(selectedId, selectedUnreadCount, controller.signal),
+      )
+      .then((readConversation) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setConversations((current) =>
+          current.map((conversation) =>
+            conversation.id === readConversation.id
+              ? readConversation
+              : conversation,
+          ),
+        );
+        onUnreadStateChange?.();
+      })
+      .catch(() => {
+        // A failed read receipt must not blank the thread; reopening the
+        // thread retries it.
+      });
+
+    return () => controller.abort();
+  }, [
+    getMessagesService,
+    onUnreadStateChange,
+    selectedId,
+    selectedUnreadCount,
+  ]);
+
+  const handleRealtimeRefresh = useCallback(async () => {
+    await refreshSelectedThread();
+    onUnreadStateChange?.();
+  }, [onUnreadStateChange, refreshSelectedThread]);
 
   const organizationId =
     scopedOrganizationId ||
@@ -225,7 +270,7 @@ export function useMessagesConversations({
     conversations[0]?.organizationId;
 
   useMessagesRealtime({
-    onRefresh: refreshSelectedThread,
+    onRefresh: handleRealtimeRefresh,
     organizationId,
   });
 

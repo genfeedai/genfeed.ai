@@ -33,7 +33,11 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
       {} as never,
       {} as never,
       {} as never,
-      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
     );
   });
 
@@ -174,7 +178,11 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
       {} as never,
       {} as never,
       summaryService as never,
-      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
     );
   });
 
@@ -267,7 +275,11 @@ describe('BatchGenerationReviewService harness review feedback', () => {
       postLifecycleService as never,
       publishApprovalsService as never,
       summaryService as never,
-      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
       harnessReviewFeedbackService as never,
     );
   });
@@ -384,7 +396,11 @@ describe('BatchGenerationReviewService harness review feedback', () => {
       postLifecycleService as never,
       publishApprovalsService as never,
       summaryService as never,
-      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
     );
 
     await expect(
@@ -440,7 +456,11 @@ describe('BatchGenerationReviewService assignment', () => {
       {} as never,
       {} as never,
       summaryService as never,
-      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
     );
   });
 

@@ -1,13 +1,20 @@
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
+import { collectKnowledgeReceipts } from '@api/services/harness/harness-context-sources.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
-import { buildMediaPromptFromHarness } from '@genfeedai/harness';
+import type {
+  GenerationHarnessReceipt,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
+import {
+  buildMediaPromptFromHarness,
+  selectMediaKnowledgeSources,
+} from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -21,6 +28,18 @@ export interface MediaPromptEnhancementInput {
   contentType: 'image' | 'video';
   model?: string;
   harness?: boolean;
+  /** An explicit Knowledge pick; absent means automatic brand retrieval. */
+  knowledgeSelection?: KnowledgeSelection;
+}
+
+function hasKnowledgeSelection(
+  selection: KnowledgeSelection | undefined,
+): selection is KnowledgeSelection {
+  return Boolean(
+    selection?.sourceIds?.length ||
+      selection?.spaceIds?.length ||
+      selection?.purposes?.length,
+  );
 }
 
 @Injectable()
@@ -43,7 +62,19 @@ export class MediaPromptEnhancementService {
       input.organizationId,
       input.brandId,
     );
-    const source = input.harness === undefined ? preferences.source : 'request';
+    const knowledgeSelection = hasKnowledgeSelection(input.knowledgeSelection)
+      ? input.knowledgeSelection
+      : undefined;
+    // An explicit Knowledge pick only reaches the prompt through enhancement,
+    // so it turns enhancement on for this request unless the request itself
+    // turned it off.
+    const isEnabled =
+      input.harness ?? (preferences.isEnabled || Boolean(knowledgeSelection));
+    const source =
+      input.harness !== undefined ||
+      (knowledgeSelection && !preferences.isEnabled)
+        ? 'request'
+        : preferences.source;
     const receipt: GenerationHarnessReceipt = {
       originalPrompt: input.prompt,
       enhancedPrompt: input.prompt,
@@ -52,10 +83,10 @@ export class MediaPromptEnhancementService {
       source,
       appliedPacks: [],
     };
-    if (!(input.harness ?? preferences.isEnabled)) {
-      if (requestedSkillSlugs?.length)
+    if (!isEnabled) {
+      if (requestedSkillSlugs?.length || knowledgeSelection)
         throw new BadRequestException(
-          'Enable enhancement or remove selected skills before generating.',
+          'Enable enhancement or remove selected skills and Knowledge before generating.',
         );
       return receipt;
     }
@@ -67,6 +98,7 @@ export class MediaPromptEnhancementService {
         contentType: input.contentType,
         topic: input.prompt,
         includeContentMemory: true,
+        ...(knowledgeSelection ? { knowledgeSelection } : {}),
       });
       if (!brief) throw new Error('Harness brief is unavailable');
       stage = 'provider';
@@ -82,11 +114,15 @@ export class MediaPromptEnhancementService {
       });
       stage = 'response';
       const enhancedPrompt = buildMediaPromptFromHarness(result, brief);
+      const knowledgeReceipts = collectKnowledgeReceipts(
+        selectMediaKnowledgeSources(brief),
+      );
       stage = 'receipt';
       const loaded = await this.contentHarness.listLoadedPackVersions();
       return {
         ...receipt,
         enhancedPrompt,
+        ...(knowledgeReceipts.length > 0 ? { knowledgeReceipts } : {}),
         status: 'applied',
         appliedPacks: loaded.filter((pack) =>
           brief.appliedPacks.includes(pack.id),

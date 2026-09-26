@@ -65,6 +65,82 @@ describe('MediaPromptEnhancementService', () => {
     expect(promptEnhancement.enhance).not.toHaveBeenCalled();
     expect(harness.resolveBrief).not.toHaveBeenCalled();
   });
+  describe('Knowledge', () => {
+    const citation = {
+      kind: 'TEXT',
+      purpose: 'BRAND_TRUTH',
+      sourceId: 'source-1',
+      title: 'Brand facts',
+      version: 2,
+      versionId: 'version-2',
+    };
+
+    it('grounds an explicit pick even when brand enhancement is off, and records receipts', async () => {
+      const { service, harness } = setup(false);
+      harness.resolveBrief.mockResolvedValue({
+        appliedPacks: [],
+        systemDirectives: [],
+        styleDirectives: [],
+        guardrails: [],
+        sources: [
+          {
+            content: 'Our mascot is a teal heron named Pim.',
+            id: 'knowledge-1',
+            kind: 'brand_voice',
+            metadata: { citation, relevance: 0.55 },
+          },
+        ],
+        metadata: { contentType: 'image' },
+      });
+
+      const receipt = await service.enhance({
+        ...input,
+        knowledgeSelection: { sourceIds: ['source-1'] },
+      });
+
+      expect(harness.resolveBrief).toHaveBeenCalledWith(
+        expect.objectContaining({
+          knowledgeSelection: { sourceIds: ['source-1'] },
+        }),
+      );
+      expect(receipt.status).toBe('applied');
+      expect(receipt.source).toBe('request');
+      expect(receipt.enhancedPrompt).toContain(
+        'Our mascot is a teal heron named Pim.',
+      );
+      expect(receipt.knowledgeReceipts).toEqual([
+        expect.objectContaining({
+          excerpt: 'Our mascot is a teal heron named Pim.',
+          relevance: 0.55,
+          sourceId: 'source-1',
+          version: 2,
+          versionId: 'version-2',
+        }),
+      ]);
+    });
+
+    it('treats an empty pick as automatic retrieval', async () => {
+      const { service, harness } = setup();
+      await service.enhance({ ...input, knowledgeSelection: {} });
+
+      expect(harness.resolveBrief).toHaveBeenCalledWith(
+        expect.not.objectContaining({ knowledgeSelection: expect.anything() }),
+      );
+    });
+
+    it('rejects an explicit pick when the request turns enhancement off', async () => {
+      const { service, harness } = setup();
+      await expect(
+        service.enhance({
+          ...input,
+          harness: false,
+          knowledgeSelection: { sourceIds: ['source-1'] },
+        }),
+      ).rejects.toThrow('Enable enhancement');
+      expect(harness.resolveBrief).not.toHaveBeenCalled();
+    });
+  });
+
   it('forwards normalized selections and preserves actionable selection errors', async () => {
     const { service, promptEnhancement } = setup();
     const error = new BadRequestException('Remove unavailable selection');

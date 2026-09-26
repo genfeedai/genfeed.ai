@@ -124,6 +124,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [ADR-PLG-BOUNDARY-OSS-CLOUD](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
 - [ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player vs cloud governance
+- [media-validation-gates](decisions-media-validation-gates.md) — readiness / moderation / vision (+ text decisions) layers; tighten-only publish policy; unchecked media under `live` goes to review; unbound provider = off (#4877)
 - [ADR-PROMPT-MODERATION-STANCE](architecture/ADR-PROMPT-MODERATION-STANCE.md) — no first-party prompt-reading or conversation-review surface; enforce via scope/fence/rate-limit + provider checkers (#3012)
 - [VERSIONED-AGENT-ARTIFACTS](architecture/VERSIONED-AGENT-ARTIFACTS.md) — canonical refs, immutable pins, #1673 gate
 - [ADR-AGENT-NATIVE-REPO-PUBLIC](architecture/ADR-AGENT-NATIVE-REPO-PUBLIC.md) — `.agents/`, CLAUDE.md, AGENTS.md are public by design; unfit content never enters the tree

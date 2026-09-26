@@ -223,10 +223,17 @@ export function invalidateScenePipeline(
           (value): value is string => Boolean(value),
         ),
       );
-  if (pipeline.assembly?.assetId) replaced.push(pipeline.assembly.assetId);
+  for (const assetId of [
+    pipeline.assembly?.assetId,
+    pipeline.assembly?.mergedAssetId,
+  ])
+    if (assetId) replaced.push(assetId);
   return {
     ...pipeline,
-    state: 'storyboard',
+    state:
+      pipeline.analysis?.rewrite.state === 'ready'
+        ? 'storyboard'
+        : 'awaiting_analysis',
     quote: undefined,
     operation: undefined,
     assembly: undefined,
@@ -234,6 +241,61 @@ export function invalidateScenePipeline(
     scenes: retained,
     replacedAssetIds: [...new Set(replaced)],
   };
+}
+
+/**
+ * A claim older than this cannot belong to a live step and may be reconciled.
+ * It exceeds the longest synchronous platform call a step makes (sampled
+ * frames plus semantic analysis, or a transcription).
+ */
+export const STALE_SCENE_CLAIM_MS = 15 * 60_000;
+/** A run not written for this long has lost its step chain. */
+export const STALLED_SCENE_CHAIN_MS = 15 * 60_000;
+type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
+
+export function isStaleSceneClaim(stage: SceneStage, now = Date.now()) {
+  return (
+    stage.state === 'claimed' &&
+    (!stage.claimedAt ||
+      now - Date.parse(stage.claimedAt) > STALE_SCENE_CLAIM_MS)
+  );
+}
+
+/**
+ * Synchronous platform calls (Whisper, OpenRouter) have no upstream job to
+ * adopt. Their accepted attempt may run again under the same idempotent
+ * reservation key once no live step can still hold the claim.
+ */
+export function isRetryableSyncSceneStage(stage: SceneStage, now = Date.now()) {
+  return (
+    stage.state === 'pending' ||
+    stage.state === 'uncertain' ||
+    isStaleSceneClaim(stage, now)
+  );
+}
+
+export function hasInFlightSceneGeneration(
+  pipeline: BrandRemixScenePipeline | undefined,
+): boolean {
+  return Object.values(pipeline?.scenes ?? {}).some((scene) =>
+    [scene.image, scene.video].some((stage) =>
+      ['claimed', 'submitted'].includes(stage.state),
+    ),
+  );
+}
+
+export function canResumeScenePipeline(
+  pipeline: BrandRemixScenePipeline | undefined,
+  lastWrittenAt: Date,
+  now = Date.now(),
+): boolean {
+  if (!pipeline?.operation) return false;
+  const isChainStalled = now - lastWrittenAt.getTime() > STALLED_SCENE_CHAIN_MS;
+  if (pipeline.state === 'partial_failure') return true;
+  // A cancelled run with accepted provider work keeps a reconcile chain.
+  if (pipeline.state === 'cancelled')
+    return !hasInFlightSceneGeneration(pipeline) || isChainStalled;
+  return isSceneOperationActive(pipeline) && isChainStalled;
 }
 
 export function hasUnreconciledSceneWork(

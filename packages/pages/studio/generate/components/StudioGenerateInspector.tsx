@@ -17,6 +17,8 @@ import {
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
+import { ImagesService } from '@services/ingredients/images.service';
+import { VideosService } from '@services/ingredients/videos.service';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
@@ -61,6 +63,12 @@ export default function StudioGenerateInspector({
 
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
+  );
+  const getImagesService = useAuthedService((token: string) =>
+    ImagesService.getInstance(token),
+  );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
   );
 
   useEffect(() => {
@@ -116,10 +124,19 @@ export default function StudioGenerateInspector({
     const controller = new AbortController();
     setReceiptAsset(null);
     setReceiptError(false);
-    if (!ingredientId) return () => controller.abort();
+    // Only image and video generations carry a harness receipt, and the API
+    // reads a single asset through its category route; there is no generic
+    // single-ingredient read.
+    const getReceiptService =
+      job.type === 'image'
+        ? getImagesService
+        : job.type === 'video' || job.type === 'avatar'
+          ? getVideosService
+          : null;
+    if (!ingredientId || !getReceiptService) return () => controller.abort();
     void (async () => {
       try {
-        const service = await getIngredientsService();
+        const service = await getReceiptService();
         if (controller.signal.aborted) return;
         const asset = await service.findOne(
           ingredientId,
@@ -132,7 +149,7 @@ export default function StudioGenerateInspector({
       }
     })();
     return () => controller.abort();
-  }, [getIngredientsService, ingredientId]);
+  }, [getImagesService, getVideosService, ingredientId, job.type]);
 
   return (
     <aside

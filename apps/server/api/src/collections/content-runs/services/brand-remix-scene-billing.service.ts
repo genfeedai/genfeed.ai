@@ -1,5 +1,7 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import type { BrandRemixSceneQuote } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -16,6 +18,12 @@ export class BrandRemixSceneBillingService {
   ): string {
     return `remix-${runId}-${operationId}-${line.key}`;
   }
+  /**
+   * Hold the accepted amount for one stage immediately before dispatch.
+   * Retries of the same accepted attempt reuse its hold; a hold that was
+   * already released or expired is never reused, so released work cannot run
+   * again unbilled.
+   */
   async reserve(
     organizationId: string,
     runId: string,
@@ -23,26 +31,40 @@ export class BrandRemixSceneBillingService {
     line: BrandRemixSceneQuote['items'][number],
     imageReservationId?: string,
   ) {
-    const { config } = await this.store.fence(
-      organizationId,
-      runId,
-      operationId,
-    );
-    const pipeline = config.scenePipeline;
-    if (!pipeline?.operation) throw new ConflictException('Missing operation.');
     const key = this.key(runId, operationId, line);
-    if (!imageReservationId && line.credits > 0)
-      await this.credits.reserveCredits({
-        organizationId,
-        actorUserId: pipeline.operation.userId,
-        amount: line.credits,
-        idempotencyKey: key,
-        workloadType: 'brand-remix-scene',
-        workloadId: key,
-        expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60_000),
-      });
     const receiptKey = imageReservationId ? `generation:${key}` : key;
+    let reservationId = imageReservationId;
+    let isReusedSettlement = false;
     try {
+      const { config } = await this.store.fence(
+        organizationId,
+        runId,
+        operationId,
+      );
+      const pipeline = config.scenePipeline;
+      if (!pipeline?.operation)
+        throw new ConflictException('Missing operation.');
+      if (!imageReservationId && line.credits > 0) {
+        const reservation = await this.credits.reserveCredits({
+          organizationId,
+          actorUserId: pipeline.operation.userId,
+          amount: line.credits,
+          idempotencyKey: key,
+          workloadType: 'brand-remix-scene',
+          workloadId: key,
+          expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60_000),
+        });
+        if (
+          reservation.status === CreditReservationStatus.RELEASED ||
+          reservation.status === CreditReservationStatus.EXPIRED
+        )
+          throw new ConflictException(
+            'This accepted stage was already refunded. Request a new quote.',
+          );
+        isReusedSettlement =
+          reservation.status === CreditReservationStatus.SETTLED;
+        reservationId = reservation.id;
+      }
       await this.store.save(organizationId, runId, config, {
         ...config,
         scenePipeline: {
@@ -53,25 +75,33 @@ export class BrandRemixSceneBillingService {
             ),
             {
               key: receiptKey,
+              ...(reservationId ? { reservationId } : {}),
               operationId,
               actorUserId: pipeline.operation.userId,
               amount: line.credits,
               billingMode: line.billingMode,
-              state: 'reserved',
+              state: isReusedSettlement ? 'settled' : 'reserved',
             },
           ],
         },
       });
       await this.store.fence(organizationId, runId, operationId);
     } catch (error: unknown) {
-      if (line.credits > 0)
+      if (line.credits > 0 && !isReusedSettlement)
         await this.credits.releaseReservation({
           organizationId,
-          idempotencyKey: receiptKey,
+          ...(reservationId
+            ? { reservationId }
+            : { idempotencyKey: receiptKey }),
         });
       throw error;
     }
   }
+  /**
+   * Charge an accepted stage once its provider output is usable. Settlement is
+   * idempotent per key; a hold that expired or was released before the output
+   * arrived is recorded as released rather than charged again.
+   */
   async settle(
     organizationId: string,
     runId: string,
@@ -81,67 +111,91 @@ export class BrandRemixSceneBillingService {
   ) {
     const { config } = await this.store.read(organizationId, runId);
     const pipeline = config.scenePipeline;
-    const key = `${image ? 'generation:' : ''}${this.key(runId, operationId, line)}`;
+    const key = this.receiptKey(runId, operationId, line, image);
+    const receipt = pipeline?.receipts.find(
+      (candidate) =>
+        candidate.key === key && candidate.operationId === operationId,
+    );
+    if (receipt?.state === 'settled' || receipt?.state === 'released') return;
     const actorUserId =
-      pipeline?.receipts.find(
-        (receipt) => receipt.key === key && receipt.operationId === operationId,
-      )?.actorUserId ??
+      receipt?.actorUserId ??
       (pipeline?.operation?.id === operationId
         ? pipeline.operation.userId
         : undefined);
     if (!actorUserId)
       throw new ConflictException('Missing durable settlement actor.');
+    let state: 'settled' | 'released' = 'settled';
+    if (line.credits > 0) {
+      try {
+        await this.credits.settleReservation({
+          organizationId,
+          actorUserId,
+          ...(receipt?.reservationId
+            ? { reservationId: receipt.reservationId }
+            : { idempotencyKey: key }),
+          actualAmount: line.credits,
+          description: `Remix ${line.stage}`,
+        });
+      } catch (error: unknown) {
+        if (!(error instanceof UnsettleableReservationException)) throw error;
+        state = 'released';
+      }
+    }
+    await this.writeReceipt(organizationId, runId, key, state);
+  }
+  /**
+   * Return the hold of a stage whose provider output definitively failed or
+   * never reached a provider. Already settled stages stay charged.
+   */
+  async release(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    line: BrandRemixSceneQuote['items'][number],
+    image = false,
+  ) {
+    const key = this.receiptKey(runId, operationId, line, image);
+    const { config } = await this.store.read(organizationId, runId);
+    const receipt = config.scenePipeline?.receipts.find(
+      (candidate) => candidate.key === key && candidate.state === 'reserved',
+    );
+    if (!receipt) return;
     if (line.credits > 0)
-      await this.credits.settleReservation({
+      await this.credits.releaseReservation({
         organizationId,
-        actorUserId,
-        idempotencyKey: key,
-        actualAmount: line.credits,
-        description: `Remix ${line.stage}`,
+        ...(receipt.reservationId
+          ? { reservationId: receipt.reservationId }
+          : { idempotencyKey: key }),
       });
-    const current = await this.store.read(organizationId, runId);
-    if (!current.config.scenePipeline) return;
-    await this.store.save(organizationId, runId, current.config, {
-      ...current.config,
+    await this.writeReceipt(organizationId, runId, key, 'released');
+  }
+  private receiptKey(
+    runId: string,
+    operationId: string,
+    line: BrandRemixSceneQuote['items'][number],
+    image: boolean,
+  ) {
+    return `${image ? 'generation:' : ''}${this.key(runId, operationId, line)}`;
+  }
+  private async writeReceipt(
+    organizationId: string,
+    runId: string,
+    key: string,
+    state: 'settled' | 'released',
+  ) {
+    const { config } = await this.store.read(organizationId, runId);
+    if (!config.scenePipeline) return;
+    await this.store.save(organizationId, runId, config, {
+      ...config,
       scenePipeline: {
-        ...current.config.scenePipeline,
-        receipts: current.config.scenePipeline.receipts.map((receipt) =>
-          receipt.key === key ? { ...receipt, state: 'settled' } : receipt,
+        ...config.scenePipeline,
+        receipts: config.scenePipeline.receipts.map((receipt) =>
+          receipt.key === key ? { ...receipt, state } : receipt,
         ),
       },
     });
   }
   async releaseImageReservation(organizationId: string, reservationId: string) {
     await this.credits.releaseReservation({ organizationId, reservationId });
-  }
-  async release(
-    organizationId: string,
-    runId: string,
-    operationId: string,
-    line: BrandRemixSceneQuote['items'][number],
-  ) {
-    const key = this.key(runId, operationId, line);
-    const { config } = await this.store.read(organizationId, runId);
-    const pipeline = config.scenePipeline;
-    if (
-      !pipeline?.receipts.some(
-        (receipt) => receipt.key === key && receipt.state === 'reserved',
-      )
-    )
-      return;
-    if (line.credits > 0)
-      await this.credits.releaseReservation({
-        organizationId,
-        idempotencyKey: key,
-      });
-    await this.store.save(organizationId, runId, config, {
-      ...config,
-      scenePipeline: {
-        ...pipeline,
-        receipts: pipeline.receipts.map((receipt) =>
-          receipt.key === key ? { ...receipt, state: 'released' } : receipt,
-        ),
-      },
-    });
   }
 }

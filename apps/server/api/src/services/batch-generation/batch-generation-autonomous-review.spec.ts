@@ -104,6 +104,7 @@ function fixture() {
     }),
   };
   const policy = {
+    assessPostMediaReasons: vi.fn().mockResolvedValue([]),
     recordReviewDecision: vi.fn(),
     resolveForPost: vi.fn(async () => ({
       reviewTimeoutHours: 24,

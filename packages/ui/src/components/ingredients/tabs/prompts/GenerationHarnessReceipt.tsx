@@ -2,6 +2,7 @@
 
 import type { GenerationHarnessReceiptProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import Card from '@ui/card/Card';
+import KnowledgeReceiptList from '@ui/knowledge/KnowledgeReceiptList';
 import { useTranslations } from 'next-intl';
 
 export default function GenerationHarnessReceipt({
@@ -45,6 +46,9 @@ export default function GenerationHarnessReceipt({
             ))}
           </ul>
         </div>
+      ) : null}
+      {receipt.knowledgeReceipts?.length ? (
+        <KnowledgeReceiptList receipts={receipt.knowledgeReceipts} />
       ) : null}
     </Card>
   );

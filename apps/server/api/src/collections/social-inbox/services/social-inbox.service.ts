@@ -15,9 +15,12 @@ import type {
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
@@ -39,6 +42,7 @@ export class SocialInboxService {
     private readonly queryService: SocialInboxQueryService,
     private readonly ingestionService: SocialInboxIngestionService,
     private readonly actionService: SocialInboxActionService,
+    private readonly readStateService: SocialInboxReadStateService,
   ) {}
 
   listConversations(
@@ -48,11 +52,30 @@ export class SocialInboxService {
     return this.queryService.listConversations(scope, query);
   }
 
+  countUnreadConversations(
+    scope: SocialInboxScope,
+    query: SocialInboxUnreadCountQuery,
+  ): Promise<SocialInboxUnreadCount> {
+    return this.queryService.countUnreadConversations(scope, query);
+  }
+
   getConversation(
     scope: SocialInboxScope,
     conversationId: string,
   ): Promise<SocialConversationDocument> {
     return this.queryService.getConversation(scope, conversationId);
+  }
+
+  markConversationRead(
+    scope: SocialInboxScope,
+    conversationId: string,
+    unreadCountSeen?: number,
+  ): Promise<SocialConversationDocument> {
+    return this.readStateService.markConversationRead(
+      scope,
+      conversationId,
+      unreadCountSeen,
+    );
   }
 
   listMessages(
@@ -94,12 +117,18 @@ export class SocialInboxService {
     return this.actionService.createDraft(scope, conversationId, input);
   }
 
-  approveDraft(
+  async approveDraft(
     scope: SocialInboxScope,
     conversationId: string,
     messageId: string,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.approveDraft(scope, conversationId, messageId);
+    const sent = await this.actionService.approveDraft(
+      scope,
+      conversationId,
+      messageId,
+    );
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
   rejectDraft(
@@ -116,28 +145,47 @@ export class SocialInboxService {
     );
   }
 
-  postReply(
+  async postReply(
     scope: SocialInboxScope,
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.postReply(scope, conversationId, input);
+    const sent = await this.actionService.postReply(
+      scope,
+      conversationId,
+      input,
+    );
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
-  sendDm(
+  async sendDm(
     scope: SocialInboxScope,
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.sendDm(scope, conversationId, input);
+    const sent = await this.actionService.sendDm(scope, conversationId, input);
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
-  updateConversation(
+  async updateConversation(
     scope: SocialInboxScope,
     conversationId: string,
     patch: SocialConversationPatch,
   ): Promise<SocialConversationDocument> {
-    return this.actionService.updateConversation(scope, conversationId, patch);
+    const updated = await this.actionService.updateConversation(
+      scope,
+      conversationId,
+      patch,
+    );
+    if (patch.status === 'resolved' || patch.status === 'archived') {
+      await this.readStateService.clearReplyNotifications(
+        scope,
+        conversationId,
+      );
+    }
+    return updated;
   }
 
   ingestYoutubeComments(

@@ -129,6 +129,41 @@ describe('sql risk audit', () => {
     expect(bulkWriteFindings[0]?.snippet).toContain('where: { id: batchId }');
   });
 
+  it('recognizes canonical billingAccountScopedWhere bulk-write guards', () => {
+    writeFixture(
+      'apps/server/api/src/billing-accounts/billing-accounts.service.ts',
+      `
+      export class BillingAccountsService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        async merge(scope: BillingAccountScope, accountBalanceId: string) {
+          return this.prisma.creditBalance.updateMany({
+            data: { balance: { increment: 1 } },
+            where: billingAccountScopedWhere(scope, { id: accountBalanceId }),
+          });
+        }
+
+        async unsafe(accountBalanceId: string) {
+          return this.prisma.creditBalance.updateMany({
+            data: { balance: { increment: 1 } },
+            where: { id: accountBalanceId },
+          });
+        }
+      }
+      `,
+    );
+
+    const result = runSqlRiskAudit({ rootDir: testDir });
+    const bulkWriteFindings = result.findings.filter(
+      (finding) => finding.category === 'bulk-write-tenant-review',
+    );
+
+    expect(bulkWriteFindings).toHaveLength(1);
+    expect(bulkWriteFindings[0]?.snippet).toContain(
+      'where: { id: accountBalanceId }',
+    );
+  });
+
   it('allows reviewed raw SQL suppressions with local rationale', () => {
     writeFixture(
       'apps/server/api/src/analytics/analytics.service.ts',

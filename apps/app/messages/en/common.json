@@ -62,6 +62,7 @@
       "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} import {Imported existing posts from {articleSubject}} other {Generated {articleSubject}}}",
       "created": "{operation, select, train {Started {subject}} other {Created {articleSubject}}}",
       "disconnected": "{capitalizedSubject} disconnected",
+      "flagged": "{capitalizedSubject} flagged for review",
       "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} import {Failed to import existing posts from {articleSubject}} other {Failed to generate {subject}}}",
       "processing": "{operation, select, reframe {Reframing {articleSubject}...} upscale {Upscaling {articleSubject}...} enhance {Enhancing {articleSubject}...} remix {Remixing {articleSubject}...} train {Starting {subject}...} publish {Processing {articleSubject}...} other {Generating {articleSubject}...}}",
       "published": "Published {articleSubject}",
@@ -798,7 +799,8 @@
     "composer": {
       "dropPlaceholder": "drop it here?",
       "queueFull": "Follow-up queue is full. Remove a prompt or wait until one sends.",
-      "uploadInProgress": "Wait for attachments to finish uploading, then send again."
+      "uploadInProgress": "Wait for attachments to finish uploading, then send again.",
+      "knowledgeSelected": "Knowledge · {count} selected"
     },
     "composerFollowUpQueue": {
       "collapse": "Hide queued follow-ups",
@@ -1362,7 +1364,8 @@
         "unread": "Unread"
       }
     },
-    "title": "Messages"
+    "title": "Messages",
+    "unreadBadge": "{count, plural, one {# unread conversation} other {# unread conversations}}"
   },
   "modelProviderContract": {
     "discoveredAtLabel": "Discovered:",

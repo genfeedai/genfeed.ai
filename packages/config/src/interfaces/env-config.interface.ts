@@ -208,6 +208,18 @@ export interface IEnvConfig {
   UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow';
   UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
 
+  // === Media validation (#4877) ===
+  MEDIA_GATE_VISION_MODE?: 'off' | 'shadow' | 'live';
+  MEDIA_PERCEPTION_ENABLED?: 'true' | 'false';
+  MEDIA_TEXT_GATE_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  MEDIA_TEXT_GATE_MIN_CONFIDENCE?: number;
+  MEDIA_PERCEPTION_FRAME_COUNT?: number;
+  MEDIA_PERCEPTION_LOOKBACK_HOURS?: number;
+  MEDIA_PERCEPTION_VISION_MODEL?: string;
+  MODERATION_MODE?: 'off' | 'shadow' | 'live';
+  MODERATION_PROVIDER?: 'none' | 'openai';
+  MODERATION_THRESHOLDS?: string;
+
   // === Typed decision: model-discovery category (#4869) ===
   // Mirrors TypedDecisionMode in @genfeedai/contracts; spelled out here
   // because @genfeedai/config does not depend on contracts.

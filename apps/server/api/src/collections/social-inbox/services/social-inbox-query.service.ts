@@ -17,6 +17,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  SocialConversationStatus,
   SocialMessageDirection,
   SocialMessageType,
 } from '@genfeedai/contracts';
@@ -24,6 +25,8 @@ import type {
   SocialInboxAgentContextRecord,
   SocialInboxAgentMessageContext,
   SocialInboxReference,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -96,6 +99,42 @@ export class SocialInboxQueryService {
       page,
       limit,
     );
+  }
+
+  /**
+   * Conversations with unread inbound messages, brand-filtered and archived-
+   * excluded exactly like the Messages list's Unread view: both read this
+   * badge's definition through {@link SocialInboxQueryService.unreadFilter},
+   * so a change to what counts as "unread" can never make them disagree.
+   */
+  async countUnreadConversations(
+    scope: SocialInboxScope,
+    query: SocialInboxUnreadCountQuery,
+  ): Promise<SocialInboxUnreadCount> {
+    const brandId = this.resolveListBrandId(scope, query);
+    const unreadCount = await this.prisma.socialConversation.count({
+      where: scopedWhere(scope.organizationId, {
+        ...(brandId ? { OR: [{ brandId }, { brandId: null }] } : {}),
+        ...this.unreadFilter(),
+      }),
+    });
+
+    return { id: brandId ?? scope.organizationId, unreadCount };
+  }
+
+  /**
+   * The single definition of "unread" behind both the Messages badge
+   * ({@link countUnreadConversations}) and the Unread list view
+   * ({@link buildConversationWhere}): an unread inbound message on a thread
+   * that is not archived. Archiving zeroes a thread's counter (see
+   * {@link SocialInboxActionService.updateConversation}), so this exclusion
+   * is defense in depth against drift, not the primary mechanism.
+   */
+  private unreadFilter(): Prisma.SocialConversationWhereInput {
+    return {
+      status: { not: SocialConversationStatus.ARCHIVED },
+      unreadCount: { gt: 0 },
+    };
   }
 
   async getConversation(
@@ -282,7 +321,15 @@ export class SocialInboxQueryService {
     if (query.credentialId) where.credentialId = query.credentialId;
     if (query.assignedOwnerId) where.assignedOwnerId = query.assignedOwnerId;
     if (query.tag) where.tags = { has: query.tag };
-    if (query.unread) where.unreadCount = { gt: 0 };
+    if (query.unread) {
+      // Same definition the badge uses (unreadFilter): unread and not
+      // archived. An explicit status filter (e.g. "unread and archived")
+      // was already applied above and overrides this exclusion instead of
+      // being silently replaced by it.
+      const { status, ...unreadFilter } = this.unreadFilter();
+      Object.assign(where, unreadFilter);
+      if (where.status === undefined) where.status = status;
+    }
     if (typeof query.needsReview === 'boolean') {
       where.needsReview = query.needsReview;
     }

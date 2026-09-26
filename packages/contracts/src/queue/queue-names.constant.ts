@@ -39,6 +39,13 @@ export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
  * loading step never blocks the operator from entering the app. */
 export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
 
+// ---------- Media validation ----------
+/** Per-asset media perception (#4879): frames, OCR, transcript and scene
+ * description, persisted once per asset hash off the publish request path. */
+export const MEDIA_PERCEPTION_QUEUE = 'media-perception';
+/** Moderation classifier (#4880) over perceived frames, transcript and OCR. */
+export const MEDIA_MODERATION_QUEUE = 'media-moderation';
+
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -49,6 +56,8 @@ export const ALL_QUEUE_NAMES = [
   REPLICATE_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
+  MEDIA_PERCEPTION_QUEUE,
+  MEDIA_MODERATION_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

@@ -38,6 +38,7 @@ export function useMessagesActions({
   conversationType,
   getMessagesService,
   loadConversations,
+  onInboxReadStateChange,
   onLoadError,
   refreshSelectedThread,
   selectedConversation,
@@ -134,9 +135,11 @@ export function useMessagesActions({
           setNotice('Draft saved for review.');
         } else if (action === 'reply') {
           await service.postReply(selectedId, input);
+          onInboxReadStateChange?.();
           setNotice('Reply posted.');
         } else {
           await service.sendDm(selectedId, input);
+          onInboxReadStateChange?.();
           setNotice('DM sent.');
         }
 
@@ -155,7 +158,14 @@ export function useMessagesActions({
         setBusyAction(null);
       }
     },
-    [draft, getMessagesService, onLoadError, refreshAfterAction, selectedId],
+    [
+      draft,
+      getMessagesService,
+      onInboxReadStateChange,
+      onLoadError,
+      refreshAfterAction,
+      selectedId,
+    ],
   );
 
   const handleStatusChange = useCallback(
@@ -181,6 +191,9 @@ export function useMessagesActions({
       try {
         const service = await getMessagesService();
         await service.updateStatus(selectedId, nextStatus);
+        if (nextStatus === 'resolved' || nextStatus === 'archived') {
+          onInboxReadStateChange?.();
+        }
         setNotice(
           `Conversation marked ${STATUS_LABELS[nextStatus] ?? nextStatus}.`,
         );
@@ -196,7 +209,13 @@ export function useMessagesActions({
         setBusyAction(null);
       }
     },
-    [getMessagesService, loadConversations, onLoadError, selectedId],
+    [
+      getMessagesService,
+      loadConversations,
+      onInboxReadStateChange,
+      onLoadError,
+      selectedId,
+    ],
   );
 
   const handleSync = useCallback(async () => {
@@ -284,6 +303,7 @@ export function useMessagesActions({
       try {
         const service = await getMessagesService();
         await service.approveDraft(selectedId, messageId);
+        onInboxReadStateChange?.();
         setNotice('Draft approved and published.');
         await refreshAfterAction();
         captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
@@ -297,7 +317,13 @@ export function useMessagesActions({
         setBusyAction(null);
       }
     },
-    [getMessagesService, onLoadError, refreshAfterAction, selectedId],
+    [
+      getMessagesService,
+      onInboxReadStateChange,
+      onLoadError,
+      refreshAfterAction,
+      selectedId,
+    ],
   );
 
   const handleRejectDraft = useCallback(

@@ -1,8 +1,8 @@
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
-import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
-import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
+import { MediaAssessmentModule } from '@api/services/media-assessment/media-assessment.module';
+import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
@@ -10,7 +10,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [PublishApprovalsController],
   exports: [PublishApprovalsService],
-  imports: [MediaReadinessModule],
+  imports: [MediaAssessmentModule],
   providers: [
     AgentArtifactReferenceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
@@ -20,20 +20,20 @@ import { Module } from '@nestjs/common';
         PrismaService,
         AgentArtifactReferenceService,
         LoggerService,
-        MediaReadinessService,
+        MediaAssessmentService,
       ],
       provide: PublishApprovalsService,
       useFactory: (
         prisma: PrismaService,
         artifactReferenceService: AgentArtifactReferenceService,
         logger: LoggerService,
-        mediaReadinessService: MediaReadinessService,
+        mediaGate: MediaAssessmentService,
       ) =>
         new PublishApprovalsService(
           prisma,
           artifactReferenceService,
           logger,
-          mediaReadinessService,
+          mediaGate,
         ),
     },
   ],

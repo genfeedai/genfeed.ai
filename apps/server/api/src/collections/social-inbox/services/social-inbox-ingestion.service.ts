@@ -14,6 +14,7 @@ import {
   sanitizeBody,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
+  CreatedSocialMessageRef,
   InboundSocialMessageInput,
   SocialInboxScope,
   XPostRepliesIngestInput,
@@ -283,6 +284,17 @@ export class SocialInboxIngestionService {
         }),
       });
     }
+
+    // A new reply reopens an archived thread (common inbox behavior), which
+    // keeps unreadCount > 0 and status === 'archived' mutually exclusive —
+    // the invariant unreadFilter() and the bell's checks rely on.
+    await this.prisma.socialConversation.updateMany({
+      data: { status: 'open', updatedAt: new Date() },
+      where: scopedWhere(input.organizationId, {
+        id: conversation.id,
+        status: 'archived',
+      }),
+    });
 
     await this.queueCommentTrigger(input, message, conversation);
 
@@ -722,14 +734,14 @@ export class SocialInboxIngestionService {
     input: XPostRepliesIngestInput,
   ): Promise<XPostRepliesIngestResult> {
     const counts = { conversationsCreated: 0, messagesCreated: 0 };
-    const createdMessageIds: string[] = [];
+    const createdMessages: CreatedSocialMessageRef[] = [];
     const [credential] = await this.findConnectedCredentials(
       scope,
       PrismaCredentialPlatform.TWITTER,
       input.credentialId,
     );
     if (!credential?.brandId || input.replies.length === 0) {
-      return { ...counts, createdMessageIds };
+      return { ...counts, createdMessages };
     }
 
     await this.ingestBatch(
@@ -746,10 +758,10 @@ export class SocialInboxIngestionService {
       scope.organizationId,
       Platform.TWITTER,
       counts,
-      createdMessageIds,
+      createdMessages,
     );
 
-    return { ...counts, createdMessageIds };
+    return { ...counts, createdMessages };
   }
 
   async ingestXDms(
@@ -1066,25 +1078,21 @@ export class SocialInboxIngestionService {
     input: InboundSocialMessageInput,
     knownMessage: SocialMessageDocument | undefined,
     knownConversation: SocialConversationDocument | undefined,
-  ): Promise<void> {
+  ): Promise<string> {
     if (knownMessage && knownConversation) {
       await this.queueCommentTrigger(input, knownMessage, knownConversation);
-      return;
+      return knownConversation.id;
     }
 
-    await this.ingestInboundMessage(input);
+    return (await this.ingestInboundMessage(input)).conversationId;
   }
 
   private async ingestBatch(
-    items: Array<{
-      input: InboundSocialMessageInput;
-      messageId: string;
-      threadId: string;
-    }>,
+    items: SyncedItem[],
     organizationId: string,
     platform: string,
     counts: { conversationsCreated: number; messagesCreated: number },
-    createdMessageIds?: string[],
+    createdMessages?: CreatedSocialMessageRef[],
   ): Promise<void> {
     if (items.length === 0) {
       return;
@@ -1101,7 +1109,7 @@ export class SocialInboxIngestionService {
       const isNewConversation = !existing.conversationIds.has(item.threadId);
       const isNewMessage = !existing.messageIds.has(item.messageId);
 
-      await this.ingestSyncedMessage(
+      const conversationId = await this.ingestSyncedMessage(
         item.input,
         existing.messagesByExternalId.get(item.messageId),
         existing.conversationsByExternalId.get(item.threadId),
@@ -1110,7 +1118,10 @@ export class SocialInboxIngestionService {
       if (isNewMessage) {
         counts.messagesCreated++;
         existing.messageIds.add(item.messageId);
-        createdMessageIds?.push(item.messageId);
+        createdMessages?.push({
+          conversationId,
+          externalMessageId: item.messageId,
+        });
       }
       if (isNewConversation) {
         counts.conversationsCreated++;

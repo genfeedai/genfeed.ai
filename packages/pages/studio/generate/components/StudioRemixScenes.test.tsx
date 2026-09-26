@@ -24,7 +24,25 @@ vi.mock('@genfeedai/agent/components/ContentLibraryPicker', () => ({
 }));
 vi.mock(
   '@pages/studio/generate/components/StudioGenerateSettingsPopover',
-  () => ({ OptionSelect: () => null }),
+  () => ({
+    OptionSelect: ({
+      ariaLabel,
+      onChange,
+    }: {
+      ariaLabel: string;
+      onChange: (value: string) => void;
+    }) => (
+      <span
+        role="option"
+        tabIndex={0}
+        aria-selected={false}
+        onClick={() => onChange(`${ariaLabel}-1`)}
+        onKeyDown={() => onChange(`${ariaLabel}-1`)}
+      >
+        {ariaLabel}
+      </span>
+    ),
+  }),
 );
 vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: () => null,
@@ -125,20 +143,76 @@ describe('Studio scene explicit actions', () => {
     });
     expect(actions.executeScenes).not.toHaveBeenCalled();
   });
-  it('offers cancellation while paid work is processing', () => {
+  function withPipeline(
+    state: NonNullable<ReturnType<typeof fixture>['scenePipeline']>['state'],
+  ) {
     const run = fixture();
     run.scenePipeline = {
       version: 1,
       language: 'en',
-      state: 'generating',
+      state,
       cancellationGeneration: 0,
+      operation: {
+        id: 'op',
+        quoteId: 'quote',
+        revision: 1,
+        cancellationGeneration: 0,
+        startedAt: '2026-09-24T00:00:00.000Z',
+        userId: 'user',
+        sequence: 0,
+      },
       scenes: {},
       receipts: [],
       replacedAssetIds: [],
     };
-    render(<StudioRemixScenes run={run} actions={actions} isWorking={false} />);
+    return run;
+  }
+  it('offers cancellation but not a concurrent resume while paid work is processing', () => {
+    render(
+      <StudioRemixScenes
+        run={withPipeline('generating')}
+        actions={actions}
+        isWorking={false}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'cancel' }));
     expect(actions.cancelScenes).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: 'quote' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'resume' })).toBeNull();
+  });
+  it('offers resume once an accepted operation stopped', () => {
+    for (const state of ['partial_failure', 'cancelled'] as const) {
+      const { unmount } = render(
+        <StudioRemixScenes
+          run={withPipeline(state)}
+          actions={actions}
+          isWorking={false}
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'resume' }));
+      unmount();
+    }
+    expect(actions.resumeScenes).toHaveBeenCalledTimes(2);
+  });
+  it('blocks saving a scene override until both avatar and voice are chosen', () => {
+    render(
+      <StudioRemixScenes run={fixture()} actions={actions} isWorking={false} />,
+    );
+    fireEvent.click(screen.getAllByRole('option', { name: 'avatar' })[0]);
+    expect(screen.getByText('identityPairRequired')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled();
+    fireEvent.click(screen.getAllByRole('option', { name: 'voice' })[0]);
+    expect(screen.queryByText('identityPairRequired')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'save' }));
+    expect(actions.saveScenes).toHaveBeenCalledWith({
+      concept: {
+        storyboard: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'a',
+            identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+          }),
+        ]),
+      },
+    });
   });
 });

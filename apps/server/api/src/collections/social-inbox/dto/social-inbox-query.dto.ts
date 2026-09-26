@@ -89,3 +89,23 @@ export class SocialMessagesQueryDto extends BaseQueryDto {
   @IsString()
   cursor?: string;
 }
+
+export class SocialInboxUnreadCountQueryDto {
+  @ApiProperty({
+    description:
+      'Optional brand filter. When omitted, session brand scope still applies unless allBrands is true.',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  brandId?: string;
+
+  @ApiProperty({
+    description: 'Count every brand in the organization.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  allBrands?: boolean;
+}

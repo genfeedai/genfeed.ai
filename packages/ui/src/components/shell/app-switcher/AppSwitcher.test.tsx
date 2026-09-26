@@ -608,6 +608,41 @@ describe('AppSwitcher', () => {
     );
   });
 
+  it('badges the Messages tile with its unread count', () => {
+    render(
+      <AppSwitcher
+        orgSlug="acme"
+        brandSlug="my-brand"
+        badges={{ messages: { count: 120, label: '120 unread conversations' } }}
+      />,
+    );
+
+    expect(screen.getByTestId('app-switcher-badge-messages')).toHaveTextContent(
+      '99+',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Messages, 120 unread conversations' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('app-switcher-badge-studio'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the Messages badge at zero', () => {
+    render(
+      <AppSwitcher
+        orgSlug="acme"
+        brandSlug="my-brand"
+        badges={{ messages: { count: 0, label: '0 unread conversations' } }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId('app-switcher-badge-messages'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Messages' })).toBeInTheDocument();
+  });
+
   it('does not highlight a product app on settings routes', () => {
     render(
       <AppSwitcher orgSlug="acme" currentPath="/acme/~/settings/brands" />,
