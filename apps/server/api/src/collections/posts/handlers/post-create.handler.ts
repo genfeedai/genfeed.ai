@@ -145,15 +145,6 @@ export async function createPost({
       HttpStatus.BAD_REQUEST,
     );
   }
-  const textOnlyPlatforms = new Set([
-    CredentialPlatform.THREADS,
-    CredentialPlatform.TWITTER,
-    CredentialPlatform.LINKEDIN,
-  ]);
-  const isTextOnlyPlatform = domainPlatform
-    ? textOnlyPlatforms.has(domainPlatform)
-    : false;
-
   if (
     !domainPlatform ||
     !getSupportedPostVisibilities(domainPlatform).includes(requestedVisibility)
@@ -167,33 +158,12 @@ export async function createPost({
     );
   }
 
-  if (
-    requestedExecutionState === TargetExecutionState.SCHEDULED &&
-    createPostDto.category === PostCategory.TEXT &&
-    !isTextOnlyPlatform
-  ) {
-    throw new HttpException(
-      {
-        detail: `${domainPlatform} requires media when scheduling. Please add at least one image or video.`,
-        title: 'Text-only posts not supported',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  if (
-    requestedExecutionState === TargetExecutionState.SCHEDULED &&
-    !isTextOnlyPlatform &&
-    (!createPostDto.ingredients || createPostDto.ingredients.length === 0)
-  ) {
-    throw new HttpException(
-      {
-        detail: `${domainPlatform} requires at least one image or video when scheduling.`,
-        title: 'Media required when scheduling',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
+  // Media-kind and text-only-platform rules used to be a hardcoded platform
+  // set here (THREADS/TWITTER/LINKEDIN only — wrong for e.g. an image on
+  // YouTube, and drifted from the near-identical set in the thread-reply
+  // controller). `postsService.create()` now runs the same channel contract
+  // check every path that schedules a Post shares (#5193), so this only
+  // needs to resolve ingredients before calling it.
 
   let firstIngredient: IngredientDocument | null = null;
   let ingredientIds: string[] = [];
