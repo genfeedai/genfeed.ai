@@ -126,6 +126,30 @@ export class SkillRuntimeService {
       if (requested?.length) throw unavailableRequestedSkill();
       return '';
     }
+
+    if (!requested?.length) {
+      // No skill was explicitly selected: a transient resolver failure must
+      // not abort media enhancement. Only a configuration error (duplicate
+      // skill slugs) is surfaced; anything else is logged and tolerated.
+      try {
+        const skills = await this.resolveActiveSkills(
+          organizationId,
+          brandId,
+          undefined,
+          { ...context, requestedSkillSlugs: requested },
+        );
+        return this.buildSkillPromptSections(skills, requested);
+      } catch (error) {
+        if (error instanceof BadRequestException) throw error;
+        this.logger.error(
+          'Failed to resolve skill prompt sections with no skills selected; continuing without skill sections',
+          error,
+          'SkillRuntimeService',
+        );
+        return '';
+      }
+    }
+
     const skills = await this.resolveActiveSkills(
       organizationId,
       brandId,

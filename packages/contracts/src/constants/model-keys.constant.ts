@@ -93,6 +93,7 @@ export const MODEL_KEYS = {
   OPENROUTER_XAI_GROK_4_FAST: 'x-ai/grok-4-fast',
   OPENROUTER_XAI_GROK_4: 'x-ai/grok-4',
   OPENROUTER_XAI_GROK_4_1_FAST: 'x-ai/grok-4.1-fast',
+  OPENROUTER_GOOGLE_GEMINI_3_8_FLASH: 'google/gemini-3.8-flash',
   OPENROUTER_BAAI_BGE_LARGE_EN_V1_5: 'baai/bge-large-en-v1.5',
   KLINGAI_V2: 'klingai-v2',
   LEONARDOAI: 'leonardoai',
