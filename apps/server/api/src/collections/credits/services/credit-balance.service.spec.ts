@@ -49,7 +49,7 @@ describe('CreditBalanceService', () => {
       update: vi.fn(),
     },
   };
-  const logger = { warn: vi.fn() };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const service = new CreditBalanceService(
     prisma as unknown as PrismaService,
     logger as unknown as LoggerService,
