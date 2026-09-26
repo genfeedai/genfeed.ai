@@ -32,7 +32,7 @@ const CATEGORY_BY_LABEL: Readonly<Record<string, ModerationCategory>> = {
 };
 
 type OpenAiModerationResult = {
-  category_applied_input_types?: Record<string, readonly string[] | undefined>;
+  category_applied_input_types?: object;
   category_scores: object;
 };
 
@@ -48,12 +48,17 @@ export function toModerationScores(
   const scores: ModerationScores = {};
   for (const [label, rawScore] of Object.entries(result.category_scores)) {
     const category = CATEGORY_BY_LABEL[label];
-    const appliedTo = result.category_applied_input_types?.[label];
+    const appliedTo: unknown = result.category_applied_input_types
+      ? Object.getOwnPropertyDescriptor(
+          result.category_applied_input_types,
+          label,
+        )?.value
+      : undefined;
     if (
       !category ||
       typeof rawScore !== 'number' ||
       !Number.isFinite(rawScore) ||
-      (appliedTo && !appliedTo.includes(inputType))
+      (Array.isArray(appliedTo) && !appliedTo.includes(inputType))
     ) {
       continue;
     }
