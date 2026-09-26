@@ -5,7 +5,7 @@ Expert LinkedIn content strategist for professional growth. Creates posts, artic
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/linkedin-content-creator
+bunx skills add genfeedai/skills/linkedin-content-creator
 ```
 
 ## Usage
