@@ -52,7 +52,6 @@ describe('useAgentBrandCreate', () => {
     expect(mockPost.mock.calls[0][0]).toMatchObject({
       description: 'A brand',
       isDeleted: false,
-      isSelected: false,
       label: 'Acme',
       organizationId: 'org-1',
     });

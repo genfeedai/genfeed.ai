@@ -74,6 +74,26 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     await prisma.role.create({
       data: { id: 'owner', key: 'owner', label: 'Owner' },
     });
+    // currentBrandId is a required per-member invariant (#5219) — each org
+    // needs a brand for its members to point at.
+    await prisma.brand.createMany({
+      data: [
+        {
+          id: 'alpha-brand',
+          organizationId: 'alpha',
+          userId: 'alice',
+          slug: 'alpha-brand',
+          label: 'Alpha Brand',
+        },
+        {
+          id: 'bravo-brand',
+          organizationId: 'bravo',
+          userId: 'bob',
+          slug: 'bravo-brand',
+          label: 'Bravo Brand',
+        },
+      ],
+    });
     await prisma.member.createMany({
       data: [
         {
@@ -81,18 +101,21 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
           userId: 'alice',
           organizationId: 'alpha',
           roleId: 'owner',
+          currentBrandId: 'alpha-brand',
         },
         {
           id: 'bob-bravo',
           userId: 'bob',
           organizationId: 'bravo',
           roleId: 'owner',
+          currentBrandId: 'bravo-brand',
         },
         {
           id: 'bob-alpha',
           userId: 'bob',
           organizationId: 'alpha',
           roleId: 'owner',
+          currentBrandId: 'alpha-brand',
         },
       ],
     });

@@ -123,13 +123,13 @@ async function resolveLastUsedStudioBrandSlug(
     return null;
   }
 
-  const lastUsedBrand = bootstrap.brands.find(
+  const currentBrand = bootstrap.brands.find(
     (brand) =>
       getBrandEntityId(brand) === bootstrap.brandId &&
       getBrandOrganizationSlug(brand) === orgSlug,
   );
 
-  return lastUsedBrand?.slug ?? null;
+  return currentBrand?.slug ?? null;
 }
 
 // Async because the detail surface is an async server component: it has to be

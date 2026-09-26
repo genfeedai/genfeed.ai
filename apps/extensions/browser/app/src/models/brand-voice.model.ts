@@ -16,5 +16,4 @@ export interface BrandListItem {
   handle: string;
   description?: string;
   logoUrl?: string;
-  isSelected: boolean;
 }

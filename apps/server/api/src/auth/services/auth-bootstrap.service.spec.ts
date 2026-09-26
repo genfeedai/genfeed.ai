@@ -441,7 +441,7 @@ describe('AuthBootstrapService', () => {
     const organizationId = 'test-object-id';
 
     membersService.findOne.mockResolvedValue({
-      lastUsedBrandId: 'test-object-id',
+      currentBrandId: 'test-object-id',
     });
 
     await service.getBootstrap({

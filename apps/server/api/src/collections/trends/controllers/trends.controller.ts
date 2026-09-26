@@ -1,5 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-preferences.dto';
@@ -51,6 +54,8 @@ export class TrendsController {
     private readonly trendPreferencesService: TrendPreferencesService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
+    private readonly brandsService: BrandsService,
+    private readonly membersService: MembersService,
   ) {}
 
   @Get()
@@ -94,7 +99,23 @@ export class TrendsController {
     @Query() query: GenerateTrendIdeasDto,
   ) {
     const organizationId = user.organizationId;
-    const brandId = user.brandId;
+    // #5219: generation always has an explicit brand. query.brandId, else
+    // the route/thread context (user.brandId), else the acting member's
+    // currentBrandId — never an org-wide guess.
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: user.brandId,
+      explicitBrandId: query.brandId,
+      membersService: this.membersService,
+      organizationId,
+      userId: user.userId ?? user.id,
+    });
+    if (!brand?.id) {
+      throw new BadRequestException(
+        'brandId is required to generate trend ideas.',
+      );
+    }
+    const brandId = String(brand.id);
     await assertOrganizationCreditsAvailable(
       this.creditsUtilsService,
       organizationId,
@@ -116,6 +137,12 @@ export class TrendsController {
       query.limit || 10,
       (amount) => {
         billedCredits += amount;
+      },
+      {
+        description:
+          typeof brand.description === 'string' ? brand.description : undefined,
+        label: typeof brand.label === 'string' ? brand.label : 'Brand',
+        text: typeof brand.text === 'string' ? brand.text : undefined,
       },
     );
     finalizeDeferredTextCredits(req, billedCredits);

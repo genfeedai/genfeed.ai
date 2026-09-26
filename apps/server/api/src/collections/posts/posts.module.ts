@@ -5,10 +5,12 @@ store platform post IDs/URLs, and multi-platform publishing.
  */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
@@ -75,11 +77,13 @@ import { Module } from '@nestjs/common';
     ActivitiesModule,
     PostsCoreModule,
     BatchGenerationModule,
+    BrandsCoreModule,
     ByokModule,
     ContentIntelligenceModule,
     CredentialsCoreModule,
     CreditsModule,
     IngredientsModule,
+    MembersModule,
     ModelsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,

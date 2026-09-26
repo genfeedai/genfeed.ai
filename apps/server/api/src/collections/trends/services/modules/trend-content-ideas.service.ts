@@ -8,6 +8,13 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+/** Minimal brand voice context for trend-idea prompts (#5219). */
+export interface TrendIdeaBrandContext {
+  label: string;
+  description?: string;
+  text?: string;
+}
+
 @Injectable()
 export class TrendContentIdeasService {
   constructor(
@@ -23,6 +30,7 @@ export class TrendContentIdeasService {
     trends: TrendEntity[],
     limit: number = 10,
     onBilling?: (amount: number) => void,
+    brand?: TrendIdeaBrandContext,
   ): Promise<Map<string, TrendIdea[]>> {
     const ideasMap = new Map<string, TrendIdea[]>();
 
@@ -52,6 +60,7 @@ export class TrendContentIdeasService {
           topTrends,
           Math.ceil(limit / Object.keys(trendsByPlatform).length),
           onBilling,
+          brand,
         );
 
         ideasMap.set(platform, ideas);
@@ -183,6 +192,7 @@ export class TrendContentIdeasService {
     trends: TrendEntity[],
     count: number,
     onBilling?: (amount: number) => void,
+    brand?: TrendIdeaBrandContext,
   ): Promise<TrendIdea[]> {
     try {
       const trendTopics = trends.map((t) => t.topic).join(', ');
@@ -194,8 +204,17 @@ export class TrendContentIdeasService {
       const sanitizedTopics = this.sanitizeForPrompt(trendTopics);
       const sanitizedPlatform = this.sanitizeForPrompt(platform);
       const sanitizedCount = Math.min(Math.max(count, 1), 20); // Clamp to 1-20
+      // #5219: generation always runs in an explicit brand context. brand is
+      // untrusted (label/description/text) same as the trend topics above.
+      const brandContext = brand
+        ? `\n\nWrite these ideas as this brand: ${this.sanitizeForPrompt(brand.label)}.${
+            brand.description
+              ? ` ${this.sanitizeForPrompt(brand.description)}`
+              : ''
+          }${brand.text ? ` ${this.sanitizeForPrompt(brand.text)}` : ''}`
+        : '';
 
-      const prompt = `Generate ${sanitizedCount} creative content ideas for ${sanitizedPlatform} based on these trending topics: ${sanitizedTopics}. Average virality score: ${avgVirality}/100.
+      const prompt = `Generate ${sanitizedCount} creative content ideas for ${sanitizedPlatform} based on these trending topics: ${sanitizedTopics}. Average virality score: ${avgVirality}/100.${brandContext}
 
 For each idea, provide:
 1. A catchy title

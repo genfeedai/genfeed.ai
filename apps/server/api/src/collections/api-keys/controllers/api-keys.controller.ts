@@ -270,6 +270,13 @@ export class ApiKeysController {
       });
     }
 
+    if (updateApiKeyDto.defaultBrandId !== undefined) {
+      await this.apiKeysService.assertValidDefaultBrandId(
+        user.organizationId,
+        updateApiKeyDto.defaultBrandId,
+      );
+    }
+
     const updatedKey = await this.apiKeysService.patch(apiKeyId, {
       ...updateApiKeyDto,
       ...(updateApiKeyDto.metadata !== undefined

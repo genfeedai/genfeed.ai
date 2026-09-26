@@ -507,7 +507,7 @@ export function useBrandProviderState({
           return;
         }
 
-        await service.patchMeBrand(urlBrandId, { isSelected: true });
+        await service.patchMeBrand(urlBrandId);
         clearClientProtectedBootstrapCache();
       } catch (error) {
         lastSyncedUrlBrandIdRef.current = '';

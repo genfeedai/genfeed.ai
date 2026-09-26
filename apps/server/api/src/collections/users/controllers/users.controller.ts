@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { MembersService } from '@api/collections/members/services/members.service';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
@@ -65,7 +64,6 @@ export class UsersController {
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly filesClientService: FilesClientService,
-    private readonly membersService: MembersService,
     private readonly userAccessCacheService: UserAccessCacheService,
   ) {}
 
@@ -90,39 +88,17 @@ export class UsersController {
     selectedBrandId: string | null,
   ): Promise<void> {
     if (selectedBrandId === null) {
-      await this.brandsService.clearBrandSelectionForUser(
-        user.userId ?? user.id,
-        user.organizationId,
+      // currentBrandId is a required per-member invariant (#5219) — a member
+      // always has a current brand, so there is no "clear" operation anymore.
+      throw new BadRequestException(
+        'selectedBrandId cannot be cleared: choose another brand instead.',
       );
-
-      await this.membersService.setLastUsedBrand(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: user.organizationId,
-          userId: user.userId ?? user.id,
-        },
-        null,
-      );
-
-      await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);
-      return;
     }
 
-    const selectedBrand = await this.brandsService.selectBrandForUser(
+    await this.brandsService.selectBrandForUser(
       selectedBrandId,
       user.userId ?? user.id,
       user.organizationId,
-    );
-
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-      selectedBrand.id,
     );
 
     await this.userAccessCacheService.invalidateAll(user.userId ?? user.id);

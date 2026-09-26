@@ -2,6 +2,7 @@ import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.mo
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { PatternMatcherModule } from '@api/services/pattern-matcher/pattern-matcher.module';
@@ -16,6 +17,7 @@ import { Module } from '@nestjs/common';
     ContextsModule,
     PatternMatcherModule,
     CredentialsCoreModule,
+    MembersModule,
     OrganizationSettingsModule,
     LoggerModule,
   ],

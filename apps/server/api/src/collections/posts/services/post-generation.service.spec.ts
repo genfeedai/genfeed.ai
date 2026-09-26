@@ -3,7 +3,9 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 }));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -121,6 +123,12 @@ describe('PostGenerationService', () => {
           fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
       ),
   };
+  const mockBrandsService = {
+    findOne: vi.fn().mockResolvedValue({ id: brandId, label: 'Test Brand' }),
+  };
+  const mockMembersService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -166,6 +174,11 @@ Tweet 3: Tech innovation is changing the world.`,
       (_key?: string, fallbackKey?: string) =>
         fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
     );
+    mockBrandsService.findOne.mockResolvedValue({
+      id: brandId,
+      label: 'Test Brand',
+    });
+    mockMembersService.findOne.mockResolvedValue(null);
     mockContextAssemblyService.assembleContext.mockResolvedValue({
       brandId,
       brandName: 'Test Brand',
@@ -216,7 +229,9 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: AgentChatModelRegistryService,
           useValue: mockAgentChatModelRegistry,
         },
+        { provide: BrandsService, useValue: mockBrandsService },
         { provide: LoggerService, useValue: mockLoggerService },
+        { provide: MembersService, useValue: mockMembersService },
         {
           provide: PostThreadGenerationService,
           useValue: mockPostThreadGenerationService,

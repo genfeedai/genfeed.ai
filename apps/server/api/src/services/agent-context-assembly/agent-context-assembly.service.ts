@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SCOPED_CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import { scopedWhere } from '@api/index';
@@ -75,6 +76,7 @@ export class AgentContextAssemblyService {
     private readonly brandsService: BrandsService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly knowledgeContentRetrievalService: KnowledgeContentRetrievalService,
+    private readonly membersService: MembersService,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
@@ -127,26 +129,35 @@ export class AgentContextAssemblyService {
   ): Promise<{ brandId: string; context: AssembledBrandContext } | null> {
     const { organizationId } = params;
 
+    // #5219: Brand.isSelected (org-wide) is retired. When the caller has no
+    // explicit brand scope, fall back to the acting member's own
+    // currentBrandId -- a per-member invariant -- instead of an org-wide
+    // "selected" brand. No userId and no member match means no identity
+    // (return null below), never an implicit "any brand in this org" guess.
+    const effectiveBrandId =
+      params.brandId || (await this.resolveMemberCurrentBrandId(params));
+
+    if (!effectiveBrandId) {
+      return null;
+    }
+
     const brand = await this.cacheService.getOrSet(
+      // Keyed by the resolved brand id (not a shared 'selected' token):
+      // currentBrandId is per-member, so two members of the same org can
+      // resolve to different brands and must never share a cache entry.
       this.cacheService.generateKey(
         'brand-ctx',
         organizationId,
-        params.brandId || 'selected',
+        effectiveBrandId,
       ),
-      async () => {
-        const filter: Record<string, unknown> = {
+      async () =>
+        this.brandsService.findOne({
+          id: effectiveBrandId,
           isDeleted: false,
-          organizationId: organizationId,
-        };
-        if (params.brandId) {
-          filter.id = params.brandId;
-        } else {
-          filter.isSelected = true;
-        }
-        return this.brandsService.findOne(filter);
-      },
+          organizationId,
+        }),
       // The scoped tag lets brand-kit writes bust every brand-ctx variant for
-      // the org (per-brand + 'selected') without a keyspace SCAN.
+      // the org without a keyspace SCAN.
       {
         tags: [SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId)],
         ttl: CACHE_TTL_BRAND,
@@ -190,11 +201,32 @@ export class AgentContextAssemblyService {
   }
 
   /**
+   * #5219: resolves the acting member's own `currentBrandId` as the
+   * cosmetic-identity fallback when a caller has no explicit brand scope.
+   * Returns null (never an org-wide guess) when there is no userId or no
+   * resolvable member.
+   */
+  private async resolveMemberCurrentBrandId(
+    params: AssembleContextParams,
+  ): Promise<string | null> {
+    if (!params.userId) {
+      return null;
+    }
+    const member = await this.membersService.findOne({
+      organizationId: params.organizationId,
+      userId: params.userId,
+    });
+    return typeof member?.currentBrandId === 'string'
+      ? member.currentBrandId
+      : null;
+  }
+
+  /**
    * Layers 4-8. Every layer here but RAG reads brand-owned content (saved
    * memory, Knowledge, posts, performance history). `brandId` is the
    * *resolved* brand — when the caller passed no brandId,
-   * `resolveBrandIdentity` still resolves it to the organization's
-   * `isSelected` brand purely to render cosmetic identity (name, voice,
+   * `resolveBrandIdentity` still resolves it to the acting member's own
+   * `currentBrandId` purely to render cosmetic identity (name, voice,
    * persona). Gating these layers on `params.brandId` instead of `brandId`
    * means a thread with no explicit brand scope never pulls another brand's
    * saved memory, BRAND_TRUTH facts, recent posts or performance patterns

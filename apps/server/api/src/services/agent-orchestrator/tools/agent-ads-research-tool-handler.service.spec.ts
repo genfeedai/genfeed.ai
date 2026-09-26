@@ -41,9 +41,11 @@ function createAdsResearchService(overrides: Record<string, unknown> = {}) {
 function createHandler(overrides: Record<string, unknown> = {}) {
   const adsResearchService = createAdsResearchService(overrides);
   const brandsService = { findOne: vi.fn().mockResolvedValue(null) };
+  const membersService = { findOne: vi.fn().mockResolvedValue(null) };
   const handler = new AgentAdsResearchToolHandler(
     adsResearchService as never,
     brandsService as never,
+    membersService as never,
   );
 
   return { adsResearchService, handler };
@@ -176,9 +178,11 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
   });
 
   it('names a deploy gate when ads research is not registered', async () => {
-    const handler = new AgentAdsResearchToolHandler(undefined, {
-      findOne: vi.fn(),
-    } as never);
+    const handler = new AgentAdsResearchToolHandler(
+      undefined,
+      { findOne: vi.fn() } as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
+    );
     const result = await handler.listAdsResearch({}, CONTEXT);
     expect(result.success).toBe(false);
     expect(result.error).toContain('deploy-gated');
@@ -200,6 +204,7 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
     const moduleRef = { get: vi.fn().mockReturnValue({ listAds }) };
     const handler = new AgentAdsResearchToolHandler(
       undefined,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       moduleRef as never,
     );
