@@ -114,8 +114,8 @@ export class BrandRemixSceneGenerationService {
           throw new ConflictException('Missing accepted scene snapshot.');
         const stage = saved[stageName];
         if (stage.state === 'ready') continue;
-        isComplete = false;
         if (stage.state === 'failed') {
+          isComplete = false;
           failures.push(stage.error ?? 'Scene generation failed.');
           break;
         }
@@ -123,6 +123,7 @@ export class BrandRemixSceneGenerationService {
           stage.groupId ??
           this.group(runId, scene.id, stageName, stage.attempt);
         if (stage.state === 'pending') {
+          isComplete = false;
           if (reconcileOnly) break;
           await this.dispatchPendingStage(
             organizationId,
@@ -167,6 +168,7 @@ export class BrandRemixSceneGenerationService {
           { allowCancelled: reconcileOnly },
         ));
         if (outcome === 'ready') continue;
+        isComplete = false;
         if (outcome === 'failed') {
           const failed = config.scenePipeline?.scenes[scene.id]?.[stageName];
           failures.push(failed?.error ?? 'Scene generation failed.');

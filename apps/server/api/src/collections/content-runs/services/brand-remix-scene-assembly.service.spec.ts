@@ -238,16 +238,47 @@ describe('caption failure settlement recovery', () => {
     expect(planning.buildGenerationBrief).not.toHaveBeenCalled();
   });
 
-  it('does not redispatch an uncertain caption transcription', async () => {
+  it('does not rerun a caption transcription a live step still holds', async () => {
     const assembly = config.scenePipeline?.assembly;
     if (!assembly) throw new Error('missing assembly');
     assembly.transcription.state = 'claimed';
+    assembly.transcription.claimedAt = new Date().toISOString();
     await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
-      /uncertain/,
+      /still running/,
     );
     expect(whisper.transcribeUrl).not.toHaveBeenCalled();
     expect(billing.reserve).not.toHaveBeenCalled();
     expect(billing.settle).not.toHaveBeenCalled();
+  });
+
+  it('reruns an abandoned or uncertain caption transcription under its accepted line', async () => {
+    for (const stage of [
+      { state: 'claimed' as const, claimedAt: '2026-09-24T00:00:00.000Z' },
+      { state: 'uncertain' as const },
+    ]) {
+      vi.clearAllMocks();
+      config = fixture();
+      const assembly = config.scenePipeline?.assembly;
+      if (!assembly) throw new Error('missing assembly');
+      assembly.transcription = { attempt: 1, ...stage };
+      await expect(service.step('org', 'run', 'operation')).resolves.toBe(
+        false,
+      );
+      const line = expect.objectContaining({ stage: 'captions', attempt: 1 });
+      expect(billing.reserve).toHaveBeenCalledWith(
+        'org',
+        'run',
+        'operation',
+        line,
+      );
+      expect(billing.settle).toHaveBeenCalledWith(
+        'org',
+        'run',
+        'operation',
+        line,
+      );
+      expect(config.scenePipeline?.assembly?.transcription.state).toBe('ready');
+    }
   });
 
   it('marks provider acceptance uncertain without releasing a dispatched hold', async () => {

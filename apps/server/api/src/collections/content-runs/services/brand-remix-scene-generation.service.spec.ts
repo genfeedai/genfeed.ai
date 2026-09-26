@@ -399,7 +399,9 @@ describe('canonical generated still to avatar boundary', () => {
       attempt: 1,
       groupId: 'second-clip-group',
     };
-    pipeline.quote?.items.push({
+    if (!pipeline.quote) throw new Error('missing quote');
+    pipeline.quote.total += 1;
+    pipeline.quote.items.push({
       key: 'second-video-1',
       sceneId: 'second',
       stage: 'video',
