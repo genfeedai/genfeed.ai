@@ -730,7 +730,7 @@ export class SkillsService {
       if (existing) {
         if (String(existing.skill.id) !== String(skillDoc.id)) {
           throw new BadRequestException(
-            'Duplicate skill configuration is available for this generation. Resolve duplicate skill slugs before generating.',
+            'Duplicate skill configuration found. Resolve duplicate skill slugs before continuing.',
           );
         }
         continue;
