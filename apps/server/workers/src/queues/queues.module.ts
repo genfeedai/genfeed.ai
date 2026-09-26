@@ -127,9 +127,10 @@ import { ConfigService } from '@workers/config/config.service';
       },
       {
         defaultJobOptions: {
-          attempts: 1,
+          attempts: 3,
+          backoff: { delay: 60_000, type: 'exponential' },
           removeOnComplete: true,
-          removeOnFail: { age: 24 * 60 * 60 },
+          removeOnFail: { age: 30 * 60 },
         },
         name: MEDIA_PERCEPTION_QUEUE,
       },

@@ -58,8 +58,8 @@ export type MediaPerceptionRow = {
 
 /**
  * Validate a persisted row against the contract. A row that no longer parses
- * (a shape from an older schema version) reads as absent, so the sweep
- * perceives the asset again rather than a reader trusting stale JSON.
+ * reads as absent, so no reader trusts stale JSON. Rows from an older
+ * `schemaVersion` are also picked up again by the perception sweep.
  */
 export function toMediaPerception(
   row: MediaPerceptionRow,

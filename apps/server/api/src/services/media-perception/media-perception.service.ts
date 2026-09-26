@@ -14,6 +14,7 @@ import {
   MEDIA_INGREDIENT_CATEGORIES,
   resolveMediaKind,
 } from '@api/services/media-readiness/media-kind.util';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -23,6 +24,7 @@ import {
   type MediaPerceptionArtefactStatus,
   type MediaPerceptionArtefacts,
   type MediaPerceptionDiagnostic,
+  type MediaPerceptionFrame,
   type MediaPerceptionTranscript,
   type MediaReadinessKind,
   type MediaSceneDescription,
@@ -38,9 +40,10 @@ import {
   MEDIA_PERCEPTION_RETRY_BASE_DELAY_MS,
   type MediaPerceptionJobData,
 } from '@genfeedai/contracts/queue';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
@@ -70,6 +73,15 @@ type PendingResolution = {
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
+}
+
+/** Nullable Json columns take `Prisma.DbNull`; a plain `null` is rejected. */
+function toNullableJson(
+  value: unknown,
+): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  return value === null || value === undefined
+    ? Prisma.DbNull
+    : (value as Prisma.InputJsonValue);
 }
 
 function withDiagnostic(
@@ -111,6 +123,7 @@ export class MediaPerceptionService {
     private readonly whisperService: WhisperService,
     private readonly describer: MediaPerceptionDescriberService,
     private readonly costLedger: MediaVendorCostLedgerService,
+    private readonly mediaUrlService: MediaUrlService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
@@ -125,6 +138,7 @@ export class MediaPerceptionService {
       job.ingredientId,
     );
     if (!ingredient) {
+      await this.clearRetry(job);
       return 'skipped';
     }
 
@@ -147,6 +161,9 @@ export class MediaPerceptionService {
       return 'retried';
     }
     if (job.reason === 'retry') {
+      // A row that no longer parses, or predates the current schema, is
+      // re-perceived by the sweep — never retried in place.
+      await this.clearRetry(job);
       return 'skipped';
     }
 
@@ -155,10 +172,18 @@ export class MediaPerceptionService {
       ingredient.url,
     );
 
-    if (
-      await this.reuseIdenticalBytes(job.organizationId, ingredient, assetHash)
-    ) {
+    const reuse = await this.reuseIdenticalBytes(
+      job.organizationId,
+      ingredient,
+      assetHash,
+    );
+    if (reuse === 'reused') {
       return 'reused';
+    }
+    if (reuse === 'deferred') {
+      // Identical bytes are mid-perception elsewhere. No row is written, so
+      // the sweep offers this asset again once the source has settled.
+      return 'skipped';
     }
 
     const artefacts = await this.filesClientService.extractPerceptionArtefacts({
@@ -200,7 +225,10 @@ export class MediaPerceptionService {
     for (const row of rows) {
       const record = toMediaPerception(row);
       if (record) {
-        byIngredient.set(row.ingredientId, record);
+        byIngredient.set(row.ingredientId, {
+          ...record,
+          frames: record.frames.map((frame) => this.signFrame(frame)),
+        });
       }
     }
     return ids.map((assetId) => {
@@ -231,14 +259,28 @@ export class MediaPerceptionService {
     limit: number,
   ): Promise<IMediaPerceptionCandidate[]> {
     const rows = await this.prisma.ingredient.findMany({
-      orderBy: { createdAt: 'asc' },
+      // Newest first: an asset that keeps failing ages out of the window
+      // instead of holding the head of every batch.
+      orderBy: { createdAt: 'desc' },
       select: { id: true, organizationId: true },
       take: limit,
       where: {
         category: { in: MEDIA_INGREDIENT_CATEGORIES },
         createdAt: { gte: since },
         isDeleted: false,
-        mediaPerceptions: { none: { isDeleted: false } },
+        // A record from an older schema version counts as missing.
+        mediaPerceptions: {
+          none: {
+            isDeleted: false,
+            schemaVersion: MEDIA_PERCEPTION_SCHEMA_VERSION,
+          },
+        },
+        // Only assets whose media URL can be resolved: stored bytes, or
+        // external media with an absolute link on its metadata.
+        OR: [
+          { s3Key: { not: null } },
+          { metadata: { is: { result: { startsWith: 'http' } } } },
+        ],
         organizationId: { not: null },
         status: { in: PERCEIVABLE_STATUSES },
       },
@@ -260,7 +302,11 @@ export class MediaPerceptionService {
       orderBy: { nextAttemptAt: 'asc' },
       select: { ingredientId: true, organizationId: true },
       take: limit,
-      where: { isDeleted: false, nextAttemptAt: { lte: now } },
+      where: {
+        ingredient: { isDeleted: false },
+        isDeleted: false,
+        nextAttemptAt: { lte: now },
+      },
     });
   }
 
@@ -269,21 +315,28 @@ export class MediaPerceptionService {
     ingredientId: string,
   ): Promise<PerceivableIngredient | null> {
     const row = await this.prisma.ingredient.findFirst({
-      select: { brandId: true, category: true, cdnUrl: true, id: true },
+      select: {
+        brandId: true,
+        category: true,
+        cdnUrl: true,
+        id: true,
+        metadata: { select: { result: true } },
+      },
       where: scopedWhere(organizationId, { id: ingredientId }),
     });
     const kind = resolveMediaKind(row?.category);
-    if (!row || !kind || !row.cdnUrl) {
+    const url = readIngredientMediaUrlWithFallback(row);
+    if (!row || !kind || !url) {
       return null;
     }
-    return { brandId: row.brandId ?? null, id: row.id, kind, url: row.cdnUrl };
+    return { brandId: row.brandId ?? null, id: row.id, kind, url };
   }
 
   private async reuseIdenticalBytes(
     organizationId: string,
     ingredient: PerceivableIngredient,
     assetHash: string,
-  ): Promise<boolean> {
+  ): Promise<'deferred' | 'none' | 'reused'> {
     const source = await this.prisma.mediaPerception.findFirst({
       orderBy: { createdAt: 'asc' },
       select: MEDIA_PERCEPTION_SELECT,
@@ -293,15 +346,19 @@ export class MediaPerceptionService {
         schemaVersion: MEDIA_PERCEPTION_SCHEMA_VERSION,
       }),
     });
-    if (!source || !toMediaPerception(source)) {
-      return false;
+    const sourceRecord = source ? toMediaPerception(source) : null;
+    if (!source || !sourceRecord) {
+      return 'none';
+    }
+    if (hasPendingArtefacts(sourceRecord)) {
+      return 'deferred';
     }
 
     const copied = {
       assetHash,
       attempts: source.attempts,
       audioUrl: source.audioUrl,
-      description: toJson(source.description ?? null),
+      description: toNullableJson(source.description),
       descriptionModel: source.descriptionModel,
       descriptionStatus: source.descriptionStatus,
       diagnostics: toJson(source.diagnostics),
@@ -312,27 +369,29 @@ export class MediaPerceptionService {
       nextAttemptAt: null,
       ocr: toJson(source.ocr),
       ocrStatus: source.ocrStatus,
+      isDeleted: false,
       reusedFromId: source.id,
       schemaVersion: source.schemaVersion,
-      transcript: toJson(source.transcript ?? null),
+      transcript: toNullableJson(source.transcript),
       transcriptStatus: source.transcriptStatus,
     };
+    // tenant-scope-ignore: unique-key upsert; organizationId is part of the key, and a tombstoned row is revived (isDeleted reset) rather than colliding with it.
     await this.prisma.mediaPerception.upsert({
       create: { ...copied, ingredientId: ingredient.id, organizationId },
       update: copied,
-      where: scopedWhere(organizationId, {
+      where: {
         organizationId_ingredientId: {
           ingredientId: ingredient.id,
           organizationId,
         },
-      }),
+      },
     });
     this.logger.log(`${this.constructorName} reused perception`, {
       ingredientId: ingredient.id,
       organizationId,
       reusedFromId: source.id,
     });
-    return true;
+    return 'reused';
   }
 
   private async persistArtefacts(
@@ -358,7 +417,7 @@ export class MediaPerceptionService {
       assetHash: artefacts.assetHash,
       attempts: 0,
       audioUrl: artefacts.audioUrl,
-      description: toJson(null),
+      description: Prisma.DbNull,
       descriptionModel: null,
       descriptionStatus,
       diagnostics: toJson(artefacts.diagnostics),
@@ -368,22 +427,24 @@ export class MediaPerceptionService {
       kind: artefacts.kind,
       nextAttemptAt: null,
       ocr: toJson(artefacts.ocr),
+      isDeleted: false,
       ocrStatus: artefacts.ocrStatus,
       reusedFromId: null,
       schemaVersion: MEDIA_PERCEPTION_SCHEMA_VERSION,
-      transcript: toJson(null),
+      transcript: Prisma.DbNull,
       transcriptStatus,
     };
+    // tenant-scope-ignore: unique-key upsert; organizationId is part of the key, and a tombstoned row is revived (isDeleted reset) rather than colliding with it.
     return this.prisma.mediaPerception.upsert({
       create: { ...data, ingredientId: ingredient.id, organizationId },
       select: MEDIA_PERCEPTION_SELECT,
       update: data,
-      where: scopedWhere(organizationId, {
+      where: {
         organizationId_ingredientId: {
           ingredientId: ingredient.id,
           organizationId,
         },
-      }),
+      },
     });
   }
 
@@ -445,12 +506,12 @@ export class MediaPerceptionService {
     await this.prisma.mediaPerception.updateMany({
       data: {
         attempts,
-        description: toJson(resolution.description),
+        description: toNullableJson(resolution.description),
         descriptionModel: resolution.descriptionModel,
         descriptionStatus: resolution.descriptionStatus,
         diagnostics: toJson(resolution.diagnostics),
         nextAttemptAt,
-        transcript: toJson(resolution.transcript),
+        transcript: toNullableJson(resolution.transcript),
         transcriptStatus: resolution.transcriptStatus,
       },
       where: scopedWhere(row.organizationId, { id: row.id }),
@@ -468,7 +529,7 @@ export class MediaPerceptionService {
     }
     try {
       const result = await this.whisperService.transcribeUrl(
-        row.audioUrl,
+        this.mediaUrlService.buildUrlFromAbsolute(row.audioUrl),
         'auto',
       );
       resolution.transcript = {
@@ -511,7 +572,7 @@ export class MediaPerceptionService {
       resolution.description = await this.describer.describe({
         brandId: ingredient.brandId,
         durationSeconds: record.durationSeconds,
-        frames: record.frames,
+        frames: record.frames.map((frame) => this.signFrame(frame)),
         kind: record.kind,
         model,
         ocr: record.ocr,
@@ -531,6 +592,33 @@ export class MediaPerceptionService {
         message: 'The vision model was unavailable; will retry.',
       });
     }
+  }
+
+  /**
+   * Stored frame URLs are never handed out as-is: they are derived from the
+   * object key (signed when this deployment signs media), matching the rule
+   * that media URLs are derived per read, never persisted.
+   */
+  private signFrame(frame: MediaPerceptionFrame): MediaPerceptionFrame {
+    return {
+      ...frame,
+      url: frame.storageKey
+        ? this.mediaUrlService.buildUrl(frame.storageKey)
+        : this.mediaUrlService.buildUrlFromAbsolute(frame.url),
+    };
+  }
+
+  /** Stop a retry that cannot run from being re-queued every sweep. */
+  private async clearRetry(job: MediaPerceptionJobData): Promise<void> {
+    if (job.reason !== 'retry') {
+      return;
+    }
+    await this.prisma.mediaPerception.updateMany({
+      data: { nextAttemptAt: null },
+      where: scopedWhere(job.organizationId, {
+        ingredientId: job.ingredientId,
+      }),
+    });
   }
 
   /**

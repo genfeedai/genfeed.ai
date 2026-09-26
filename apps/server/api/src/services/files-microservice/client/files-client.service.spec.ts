@@ -215,6 +215,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/perception/fingerprint`,
         { url: 'https://cdn.test/clip.mp4' },
+        { timeout: 120_000 },
       );
     });
 
@@ -234,6 +235,7 @@ describe('FilesClientService', () => {
       expect(post).toHaveBeenCalledWith(
         `${BASE}/v1/files/perception/artefacts`,
         expect.objectContaining({ assetHash: HASH, frameCount: 6 }),
+        { timeout: 600_000 },
       );
     });
   });

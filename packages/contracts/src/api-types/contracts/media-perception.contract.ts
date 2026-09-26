@@ -111,7 +111,8 @@ export const mediaPerceptionFrameSchema = z.object({
   storageKey: z.string().min(1).nullable(),
   /** Offset into the source; `null` for a still image. */
   timestampSeconds: z.number().nonnegative().nullable(),
-  url: z.url(),
+  /** Absolute CDN URL, or a `/local/…` path on the self-hosted disk driver. */
+  url: z.string().min(1),
   width: z.number().int().positive().nullable(),
 });
 
@@ -160,7 +161,7 @@ export const mediaPerceptionFingerprintSchema = z.object({
 export const mediaPerceptionArtefactsSchema = z.object({
   assetHash: assetHashSchema,
   /** Extracted audio track to transcribe; `null` when the asset has none. */
-  audioUrl: z.url().nullable(),
+  audioUrl: z.string().min(1).nullable(),
   diagnostics: z.array(mediaPerceptionDiagnosticSchema),
   durationSeconds: z.number().nonnegative().nullable(),
   frames: z.array(mediaPerceptionFrameSchema),

@@ -1,6 +1,7 @@
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaPerceptionDescriberService } from '@api/services/media-perception/media-perception-describer.service';
+import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
 import { IngredientCategory } from '@genfeedai/contracts';
@@ -10,6 +11,7 @@ import {
   type MediaSceneDescription,
 } from '@genfeedai/contracts/api-types/contracts';
 import { MEDIA_PERCEPTION_MAX_ATTEMPTS } from '@genfeedai/contracts/queue';
+import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
@@ -111,6 +113,10 @@ function makeHarness(
   });
   const describe = vi.fn().mockResolvedValue(DESCRIPTION);
   const record = vi.fn().mockResolvedValue(undefined);
+  const mediaUrlService = {
+    buildUrl: vi.fn((key: string) => `https://signed.example.com/${key}`),
+    buildUrlFromAbsolute: vi.fn((url: string) => `${url}?signed=1`),
+  };
   const config: Record<string, unknown> = {
     MEDIA_PERCEPTION_FRAME_COUNT: 4,
     MEDIA_PERCEPTION_VISION_MODEL: 'openrouter/vision-test',
@@ -137,11 +143,13 @@ function makeHarness(
     { transcribeUrl } as unknown as WhisperService,
     { describe } as unknown as MediaPerceptionDescriberService,
     { record } as unknown as MediaVendorCostLedgerService,
+    mediaUrlService as unknown as MediaUrlService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
     logger as unknown as LoggerService,
   );
 
   return {
+    mediaUrlService,
     describe,
     extractPerceptionArtefacts,
     findMany,
@@ -194,10 +202,18 @@ describe('MediaPerceptionService.process', () => {
         }),
       }),
     );
-    expect(h.transcribeUrl).toHaveBeenCalledWith(ARTEFACTS.audioUrl, 'auto');
+    expect(h.transcribeUrl).toHaveBeenCalledWith(
+      `${ARTEFACTS.audioUrl}?signed=1`,
+      'auto',
+    );
     expect(h.describe).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
+        frames: [
+          expect.objectContaining({
+            url: 'https://signed.example.com/ingredients/images/perception/org-1/frame-0.jpg',
+          }),
+        ],
         model: 'openrouter/vision-test',
         organizationId: 'org-1',
         transcript: 'Welcome to launch day.',
@@ -403,6 +419,66 @@ describe('MediaPerceptionService.process', () => {
   });
 });
 
+describe('MediaPerceptionService review hardening', () => {
+  it('writes Prisma.DbNull, not null, to the nullable Json columns', async () => {
+    const h = makeHarness();
+
+    await h.service.process(JOB);
+
+    const { create } = h.upsert.mock.calls[0][0];
+    expect(create.description).toBe(Prisma.DbNull);
+    expect(create.transcript).toBe(Prisma.DbNull);
+    expect(create.isDeleted).toBe(false);
+  });
+
+  it('defers instead of copying identical bytes that are still pending', async () => {
+    const h = makeHarness({
+      reusable: perceptionRow({
+        id: 'perception-source',
+        ingredientId: 'asset-0',
+      }),
+    });
+
+    await expect(h.service.process(JOB)).resolves.toBe('skipped');
+    expect(h.upsert).not.toHaveBeenCalled();
+    expect(h.extractPerceptionArtefacts).not.toHaveBeenCalled();
+  });
+
+  it('clears the retry schedule when a retry cannot run', async () => {
+    const h = makeHarness();
+    h.ingredientFindFirst.mockResolvedValueOnce(null);
+
+    await expect(h.service.process({ ...JOB, reason: 'retry' })).resolves.toBe(
+      'skipped',
+    );
+    expect(h.updateMany).toHaveBeenCalledWith({
+      data: { nextAttemptAt: null },
+      where: {
+        ingredientId: 'asset-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('resolves keyless external media through its metadata link', async () => {
+    const h = makeHarness();
+    h.ingredientFindFirst.mockResolvedValueOnce({
+      brandId: null,
+      category: IngredientCategory.VIDEO,
+      cdnUrl: null,
+      id: 'asset-1',
+      metadata: { result: 'https://provider.example.com/clip.mp4' },
+    });
+
+    await h.service.process(JOB);
+
+    expect(h.fingerprintMedia).toHaveBeenCalledWith(
+      'https://provider.example.com/clip.mp4',
+    );
+  });
+});
+
 describe('MediaPerceptionService.getForAssets', () => {
   it('reports a missing or pending record as perception-pending without waiting', async () => {
     const h = makeHarness();
@@ -474,11 +550,17 @@ describe('MediaPerceptionService sweep discovery', () => {
     ]);
     expect(h.ingredientFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        orderBy: { createdAt: 'desc' },
         take: 10,
         where: expect.objectContaining({
           createdAt: { gte: since },
           isDeleted: false,
-          mediaPerceptions: { none: { isDeleted: false } },
+          mediaPerceptions: {
+            none: {
+              isDeleted: false,
+              schemaVersion: MEDIA_PERCEPTION_SCHEMA_VERSION,
+            },
+          },
         }),
       }),
     );

@@ -8,14 +8,19 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
-/** How long a failed job keeps its id, blocking re-enqueue of the same asset. */
-const FAILED_JOB_RETENTION_SECONDS = 24 * 60 * 60;
+/**
+ * How long a job that exhausted its attempts keeps its id. Short on purpose:
+ * once it expires the sweep offers the asset again while it is still inside
+ * the lookback window, so a transient outage never strands an asset.
+ */
+const FAILED_JOB_RETENTION_SECONDS = 30 * 60;
 
 /**
  * Producer for `MEDIA_PERCEPTION_QUEUE` (#4879). One live job per asset and
- * reason: the job id deduplicates a sweep that sees the same asset twice, and
- * a failed job is kept for a day so a permanently broken asset is not
- * re-fingerprinted on every sweep.
+ * reason: the job id deduplicates a sweep that sees the same asset twice.
+ * Transient failures retry with backoff inside the job; a job that still
+ * fails keeps its id for half an hour so a broken asset is not
+ * re-fingerprinted on every two-minute sweep.
  */
 @Injectable()
 export class MediaPerceptionQueueService {
@@ -36,7 +41,8 @@ export class MediaPerceptionQueueService {
         reason,
       },
       {
-        attempts: 1,
+        attempts: 3,
+        backoff: { delay: 60_000, type: 'exponential' },
         jobId: `media-perception-${reason}-${candidate.ingredientId}`,
         removeOnComplete: true,
         removeOnFail: { age: FAILED_JOB_RETENTION_SECONDS },

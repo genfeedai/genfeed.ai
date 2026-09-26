@@ -3,6 +3,7 @@ import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatch
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaPerceptionDescriberService } from '@api/services/media-perception/media-perception-describer.service';
 import { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { MEDIA_PERCEPTION_QUEUE } from '@genfeedai/contracts/queue';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     FilesClientModule,
     LlmDispatcherModule,
     LoggerModule,
+    MediaUrlsModule,
     MediaVendorCostModule,
     WhisperModule,
   ],

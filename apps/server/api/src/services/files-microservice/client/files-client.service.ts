@@ -30,6 +30,14 @@ import { firstValueFrom } from 'rxjs';
 
 const MULTIPART_MAX_BYTES = Number.POSITIVE_INFINITY;
 
+/**
+ * Perception downloads and hashes the whole asset, and extraction adds a seek,
+ * an OCR pass and an upload per frame plus an audio transcode — far past the
+ * module's 30s default for any real video.
+ */
+const PERCEPTION_FINGERPRINT_TIMEOUT_MS = 2 * 60 * 1000;
+const PERCEPTION_ARTEFACTS_TIMEOUT_MS = 10 * 60 * 1000;
+
 function filenameForUpload(contentType: string, filename = 'upload'): string {
   if (path.extname(filename)) {
     return filename;
@@ -196,6 +204,7 @@ export class FilesClientService {
       this.httpService.post<unknown>(
         `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
         { url },
+        { timeout: PERCEPTION_FINGERPRINT_TIMEOUT_MS },
       ),
     );
     return mediaPerceptionFingerprintSchema.parse(response.data);
@@ -212,6 +221,7 @@ export class FilesClientService {
       this.httpService.post<unknown>(
         `${this.filesServiceUrl}/v1/files/perception/artefacts`,
         request,
+        { timeout: PERCEPTION_ARTEFACTS_TIMEOUT_MS },
       ),
     );
     return mediaPerceptionArtefactsSchema.parse(response.data);

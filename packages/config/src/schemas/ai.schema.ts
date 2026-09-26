@@ -36,8 +36,8 @@ export const mediaValidationSchema = {
     .min(1)
     .max(24)
     .default(6),
-  // How far back the sweep looks for completed assets without a record. Older
-  // assets are perceived only when something reads them.
+  // How far back the sweep looks for completed assets without a record.
+  // Older assets are not perceived; readers report them as pending.
   MEDIA_PERCEPTION_LOOKBACK_HOURS: Joi.number()
     .integer()
     .min(1)
