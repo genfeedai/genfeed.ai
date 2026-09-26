@@ -40,6 +40,7 @@ export * from './media-assessment.contract';
 export * from './media-moderation.contract';
 export * from './media-perception.contract';
 export * from './media-readiness.contract';
+export * from './media-text-decisions.contract';
 export * from './outreach-capabilities.contract';
 export * from './posting-sets.contract';
 export * from './posts.contract';

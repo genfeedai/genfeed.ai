@@ -11,6 +11,10 @@ import {
 } from '@api/services/media-readiness/media-readiness.evaluator';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
+  captionSubjectKey,
+  resolveMediaTextGateSettings,
+} from '@api/services/media-text-decisions/media-text-decision.settings';
+import {
   MEDIA_MODERATION_SELECT,
   toMediaModeration,
 } from '@api/services/moderation/media-moderation.record';
@@ -19,21 +23,35 @@ import {
   applyModerationMode,
   evaluateModerationVerdict,
 } from '@api/services/moderation/moderation-verdict.util';
+import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   MediaAssessment,
   MediaAssessmentReason,
   MediaReadinessReport,
 } from '@genfeedai/contracts/api-types/contracts';
+import {
+  MEDIA_TEXT_ASSET_SUBJECT,
+  mediaTextDecisionRecordSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { AgentPublishMediaAssessment } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type {
   IEvaluationData,
+  IMediaAssessmentRequest,
+  IMediaPerception,
   IMediaPublishGate,
   IMediaReadinessRequest,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+
+function captionWarning(confidence: string, summary?: string): string {
+  const warning = `The caption may not match the media (${confidence}).`;
+  return summary?.trim()
+    ? `${warning} The media shows: ${summary.trim()}`
+    : warning;
+}
 
 const CHECKS_PENDING_MESSAGE =
   'Media checks are still running for this asset; it needs review until they finish.';
@@ -71,6 +89,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
     private readonly configService: ConfigService,
+    private readonly typedDecisionService: TypedDecisionService,
   ) {}
 
   evaluatePublishReadiness(
@@ -80,7 +99,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
   }
 
   async assessPublishMedia(
-    request: IMediaReadinessRequest,
+    request: IMediaAssessmentRequest,
   ): Promise<MediaAssessment> {
     const assetIds = Array.from(new Set(request.assetIds)).filter(
       (assetId) => assetId.length > 0,
@@ -126,16 +145,27 @@ export class MediaAssessmentService implements IMediaPublishGate {
       assetIds,
     );
     const unchecked = new Set<string>();
+    const perceptions = new Map<string, IMediaPerception>();
     const isPerceptionPending = await this.collectPerceptionAndVision(
       request.organizationId,
       mediaAssetIds,
       reasons,
       unchecked,
+      perceptions,
     );
     await this.collectModeration(
       request.organizationId,
       mediaAssetIds,
       reasons,
+      unchecked,
+    );
+    await this.collectTextDecisions(
+      request.organizationId,
+      mediaAssetIds,
+      request.caption,
+      perceptions,
+      reasons,
+      warnings,
       unchecked,
     );
     for (const assetId of unchecked) {
@@ -215,6 +245,109 @@ export class MediaAssessmentService implements IMediaPublishGate {
     }
   }
 
+  /**
+   * Text decisions on perception output (#4882). In `live`, a confident
+   * `false` on brand safety or on-brand forces review, and an asset without
+   * its asset-level decision yet is unchecked; a confident caption
+   * inconsistency is only ever a warning. A row over other bytes than the
+   * asset's current perception, or one that no longer parses, counts as no
+   * decision.
+   *
+   * With no typed-decision provider bound, missing decisions are not marked
+   * unchecked — nothing could ever decide them, so fail-closed would hold
+   * every asset forever — but persisted confident flags still apply, so a
+   * kill switch or a settings-read blip never loosens the gate.
+   */
+  private async collectTextDecisions(
+    organizationId: string,
+    assetIds: readonly string[],
+    caption: string | undefined,
+    perceptions: ReadonlyMap<string, IMediaPerception>,
+    reasons: MediaAssessmentReason[],
+    warnings: MediaAssessmentReason[],
+    unchecked: Set<string>,
+  ): Promise<void> {
+    const settings = resolveMediaTextGateSettings(this.configService);
+    if (settings.mode !== 'live') {
+      return;
+    }
+    const subjectKeys = [MEDIA_TEXT_ASSET_SUBJECT];
+    const captionKey = caption?.trim() ? captionSubjectKey(caption) : null;
+    if (captionKey) {
+      subjectKeys.push(captionKey);
+    }
+    const rows = await this.prisma.mediaTextDecision.findMany({
+      select: {
+        assetHash: true,
+        decisions: true,
+        ingredientId: true,
+        mode: true,
+        subjectKey: true,
+      },
+      where: scopedWhere(organizationId, {
+        ingredientId: { in: [...assetIds] },
+        subjectKey: { in: subjectKeys },
+      }),
+    });
+    const current = rows.flatMap((row) => {
+      const record = mediaTextDecisionRecordSchema.safeParse(row);
+      if (
+        !record.success ||
+        row.assetHash !== perceptions.get(row.ingredientId)?.assetHash
+      ) {
+        return [];
+      }
+      return [{ decisions: record.data.decisions, row }];
+    });
+    if (await this.typedDecisionService.isProviderBound()) {
+      const decidedAssets = new Set(
+        current
+          .filter(({ row }) => row.subjectKey === MEDIA_TEXT_ASSET_SUBJECT)
+          .map(({ row }) => row.ingredientId),
+      );
+      for (const assetId of assetIds) {
+        if (!decidedAssets.has(assetId)) {
+          unchecked.add(assetId);
+        }
+      }
+    }
+    for (const { decisions, row } of current) {
+      for (const decision of decisions) {
+        if (decision.value || decision.confidence < settings.minConfidence) {
+          continue;
+        }
+        const origin =
+          decision.source === 'transcript' ? 'transcript' : 'scene description';
+        const confidence = `${Math.round(decision.confidence * 100)}%`;
+        if (decision.name === 'isBrandSafe') {
+          reasons.push({
+            assetId: row.ingredientId,
+            code: 'text:not_brand_safe',
+            message: `The ${origin} was judged not brand-safe (${confidence}).`,
+            source: decision.source,
+          });
+        } else if (decision.name === 'isOnBrand') {
+          reasons.push({
+            assetId: row.ingredientId,
+            code: 'text:off_brand',
+            message: `The ${origin} was judged off-brand (${confidence}).`,
+            source: decision.source,
+          });
+        } else if (row.subjectKey === captionKey) {
+          warnings.push({
+            assetId: row.ingredientId,
+            code: 'text:caption_inconsistent',
+            message: captionWarning(
+              confidence,
+              perceptions.get(row.ingredientId)?.description?.summary,
+            ),
+            source: 'description',
+          });
+        }
+      }
+    }
+  }
+
   private async filterMediaAssets(
     organizationId: string,
     assetIds: readonly string[],
@@ -231,13 +364,15 @@ export class MediaAssessmentService implements IMediaPublishGate {
   /**
    * Returns whether any asset is still waiting on perception. While vision is
    * `live`, an asset without settled perception or without its evaluation is
-   * added to `unchecked`.
+   * added to `unchecked`. Parsed perceptions are handed back in `perceptions`
+   * for the text-decision reader.
    */
   private async collectPerceptionAndVision(
     organizationId: string,
     assetIds: readonly string[],
     reasons: MediaAssessmentReason[],
     unchecked: Set<string>,
+    perceptions: Map<string, IMediaPerception>,
   ): Promise<boolean> {
     const rows = await this.prisma.mediaPerception.findMany({
       select: { ...MEDIA_PERCEPTION_SELECT, visionEvaluationId: true },
@@ -250,6 +385,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
     const needsVision = new Set<string>();
     for (const row of rows) {
       const perception = toMediaPerception(row);
+      if (perception) {
+        perceptions.set(row.ingredientId, perception);
+      }
       if (perception && !hasPendingArtefacts(perception)) {
         settled.add(row.ingredientId);
       }

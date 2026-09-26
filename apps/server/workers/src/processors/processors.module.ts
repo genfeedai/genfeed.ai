@@ -47,6 +47,7 @@ import { TelegramDistributionModule } from '@api/services/distribution/telegram/
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
+import { MediaTextDecisionsModule } from '@api/services/media-text-decisions/media-text-decisions.module';
 import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
@@ -128,6 +129,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     MediaPerceptionModule,
     ModerationModule,
     MediaVisionEvaluationModule,
+    MediaTextDecisionsModule,
     forwardRef(() => NotificationsModule),
     forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),

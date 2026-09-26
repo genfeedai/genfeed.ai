@@ -47,6 +47,8 @@ export interface ResolveAutonomousTargetPolicyInput {
    * (#4881) can only tighten the decision to review-required.
    */
   assetIds?: readonly string[];
+  /** The post caption, for caption-consistency warnings (#4882). */
+  caption?: string;
 }
 export interface ResolvedAutonomousPostPolicy {
   autonomyMode: AgentAutonomyMode;
@@ -126,6 +128,7 @@ export class AutonomousPublishPolicyService {
             !post?.agentStrategyId ||
             input.strategyId === post.agentStrategyId),
         assetIds: attached.map((ingredient) => ingredient.id),
+        caption: post?.description,
       },
       transaction,
     );
@@ -235,6 +238,7 @@ export class AutonomousPublishPolicyService {
   private assessMedia(input: ResolveAutonomousTargetPolicyInput) {
     return this.assessMediaForPolicy({
       assetIds: input.assetIds ?? [],
+      caption: input.caption,
       organizationId: input.organizationId,
       platforms: [input.platform],
     });
@@ -248,6 +252,7 @@ export class AutonomousPublishPolicyService {
    */
   async assessMediaForPolicy(input: {
     assetIds: readonly string[];
+    caption?: string;
     organizationId: string;
     platforms: readonly string[];
   }): Promise<AgentPublishMediaAssessment | undefined> {
@@ -256,6 +261,7 @@ export class AutonomousPublishPolicyService {
     }
     const assessment = await this.mediaAssessmentService.assessPublishMedia({
       assetIds: input.assetIds,
+      caption: input.caption,
       organizationId: input.organizationId,
       platforms: input.platforms.flatMap((platform) => {
         const parsed = parsePlatform(platform);
@@ -274,7 +280,7 @@ export class AutonomousPublishPolicyService {
       return [];
     }
     const post = await this.prisma.post.findFirst({
-      select: { id: true },
+      select: { description: true },
       where: scopedWhere(organizationId, { id: postId }),
     });
     if (!post) {
@@ -288,6 +294,7 @@ export class AutonomousPublishPolicyService {
     });
     const assessment = await this.assessMediaForPolicy({
       assetIds: attached.map((ingredient) => ingredient.id),
+      caption: post.description,
       organizationId,
       platforms: [],
     });

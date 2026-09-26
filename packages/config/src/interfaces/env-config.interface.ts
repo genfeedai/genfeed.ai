@@ -211,6 +211,8 @@ export interface IEnvConfig {
   // === Media validation (#4877) ===
   MEDIA_GATE_VISION_MODE?: 'off' | 'shadow' | 'live';
   MEDIA_PERCEPTION_ENABLED?: 'true' | 'false';
+  MEDIA_TEXT_GATE_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  MEDIA_TEXT_GATE_MIN_CONFIDENCE?: number;
   MEDIA_PERCEPTION_FRAME_COUNT?: number;
   MEDIA_PERCEPTION_LOOKBACK_HOURS?: number;
   MEDIA_PERCEPTION_VISION_MODEL?: string;

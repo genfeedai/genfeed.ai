@@ -113,6 +113,7 @@ describe('AutonomousPublishPolicyService', () => {
 
     expect(assessPublishMedia).toHaveBeenCalledWith({
       assetIds: ['asset-1'],
+      caption: 'Generated caption',
       organizationId: 'org-1',
       platforms: ['instagram'],
     });

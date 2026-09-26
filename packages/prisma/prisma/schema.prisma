@@ -879,6 +879,7 @@ model Organization {
   mediaVendorCosts              MediaVendorCost[]
   mediaPerceptions              MediaPerception[]
   mediaModerations              MediaModeration[]
+  mediaTextDecisions            MediaTextDecision[]
   billingRevenueEvents          BillingRevenueEvent[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
@@ -2134,6 +2135,7 @@ model Ingredient {
   workflowNodeContinuations WorkflowNodeContinuation[]
   mediaPerceptions          MediaPerception[]
   mediaModerations          MediaModeration[]
+  mediaTextDecisions        MediaTextDecision[]
 
   @@index([groupId])
   @@index([scope])
@@ -3629,6 +3631,28 @@ model MediaPerception {
   @@index([organizationId, assetHash, isDeleted], map: "media_perceptions_org_hash_deleted_idx")
   @@index([isDeleted, nextAttemptAt], map: "media_perceptions_deleted_next_attempt_idx")
   @@map("media_perceptions")
+}
+
+/// Typed text decisions on perception output (#4882): brand safety and
+/// on-brand for the asset, caption consistency per posted caption. One row per
+/// (ingredient, subject); `subjectKey` is `asset` or `caption:<sha256>`.
+/// `decisions` is validated by `mediaTextDecisionRecordSchema` on every read.
+model MediaTextDecision {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  ingredientId   String
+  ingredient     Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  assetHash      String
+  subjectKey     String
+  mode           String
+  decisions      Json         @default("[]")
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, ingredientId, subjectKey], map: "media_text_decisions_org_ingredient_subject_key")
+  @@map("media_text_decisions")
 }
 
 /// Per-generation media vendor cost (companion to LlmVendorCost, #2361).

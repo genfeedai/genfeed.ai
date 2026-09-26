@@ -9,8 +9,15 @@ import type {
  * readiness gate plus the assessment every classifier source feeds.
  * Extends the readiness port so existing callers keep working unchanged.
  */
+export interface IMediaAssessmentRequest extends IMediaReadinessRequest {
+  /** The post caption, for caption-consistency warnings (#4882). */
+  caption?: string;
+}
+
 export interface IMediaPublishGate extends IMediaReadinessGate {
-  assessPublishMedia(request: IMediaReadinessRequest): Promise<MediaAssessment>;
+  assessPublishMedia(
+    request: IMediaAssessmentRequest,
+  ): Promise<MediaAssessment>;
 }
 
 export function isMediaPublishGate(
