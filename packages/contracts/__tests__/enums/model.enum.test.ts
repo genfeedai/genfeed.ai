@@ -68,9 +68,6 @@ describe('model.enum', () => {
         'ideogram-ai/ideogram-v3-turbo',
       );
       expect(MODEL_KEYS.REPLICATE_OPENAI_CLIP).toBe('openai/clip');
-      expect(MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5).toBe(
-        'nateraw/bge-large-en-v1.5',
-      );
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2).toBe('openai/gpt-5.2');
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5).toBe(
         'openai/gpt-image-1.5',
@@ -225,6 +222,9 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.OPENROUTER_XAI_GROK_4).toBe('x-ai/grok-4');
       expect(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST).toBe(
         'x-ai/grok-4.1-fast',
+      );
+      expect(MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5).toBe(
+        'baai/bge-large-en-v1.5',
       );
       expect(MODEL_KEYS.KLINGAI_V2).toBe('klingai-v2');
       expect(MODEL_KEYS.LEONARDOAI).toBe('leonardoai');

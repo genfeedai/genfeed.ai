@@ -592,7 +592,10 @@ export class VideoGenerationPreparationService {
         videoReferenceIds: params.createVideoDto.videoReferences,
         width: params.width,
       });
-      if (params.generationHarness.status === 'skipped') {
+      if (
+        params.generationHarness.status === 'skipped' ||
+        params.generationHarness.status === 'failed'
+      ) {
         compiled.evidence = {
           ...rawPromptBriefEvidence(compiled.evidence),
           actionVerb: compiled.evidence.actionVerb,

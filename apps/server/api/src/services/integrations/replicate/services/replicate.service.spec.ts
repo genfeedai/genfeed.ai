@@ -2,10 +2,7 @@ import type { OpenRouterService } from '@api/services/integrations/openrouter/se
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { isCloudDeployment } from '@genfeedai/config';
 import { AgentFailureReason } from '@genfeedai/contracts';
-import {
-  CONTEXT_EMBEDDING_DIMENSION,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import Replicate from 'replicate';
@@ -647,68 +644,6 @@ describe('ReplicateService', () => {
         expect.objectContaining({ model: 'anthropic/claude-sonnet-5' }),
         undefined,
       );
-    });
-  });
-
-  describe('generateEmbedding', () => {
-    const vector = Array.from(
-      { length: CONTEXT_EMBEDDING_DIMENSION },
-      () => 0.1,
-    );
-
-    it('sends the text as a JSON array and returns a flat vector', async () => {
-      const { service } = createHarness();
-      wait.mockResolvedValueOnce({ id: 'pred-1', output: vector });
-
-      await expect(
-        service.generateEmbedding('owner/embed', 'hello'),
-      ).resolves.toEqual(vector);
-
-      expect(predictionsCreate).toHaveBeenCalledWith({
-        input: { texts: JSON.stringify(['hello']) },
-        model: 'owner/embed',
-      });
-    });
-
-    it('unwraps a nested single-vector output', async () => {
-      const { service } = createHarness();
-      wait.mockResolvedValueOnce({ id: 'pred-1', output: [vector] });
-
-      await expect(
-        service.generateEmbedding('owner/embed', 'hello'),
-      ).resolves.toEqual(vector);
-    });
-
-    it('rejects a vector of the wrong width', async () => {
-      const { service } = createHarness();
-      wait.mockResolvedValueOnce({ id: 'pred-1', output: [1, 2, 3] });
-
-      await expect(
-        service.generateEmbedding('owner/embed', 'hello'),
-      ).rejects.toThrow(
-        `returned 3 dimensions; expected ${CONTEXT_EMBEDDING_DIMENSION}`,
-      );
-    });
-
-    it('rejects a non-numeric output', async () => {
-      const { service } = createHarness();
-      wait.mockResolvedValueOnce({ id: 'pred-1', output: 'not a vector' });
-
-      await expect(
-        service.generateEmbedding('owner/embed', 'hello'),
-      ).rejects.toThrow('returned 0 dimensions');
-    });
-
-    it('rejects a vector containing a non-finite component', async () => {
-      const { service } = createHarness();
-      wait.mockResolvedValueOnce({
-        id: 'pred-1',
-        output: [...vector.slice(1), Number.NaN],
-      });
-
-      await expect(
-        service.generateEmbedding('owner/embed', 'hello'),
-      ).rejects.toThrow('expected');
     });
   });
 

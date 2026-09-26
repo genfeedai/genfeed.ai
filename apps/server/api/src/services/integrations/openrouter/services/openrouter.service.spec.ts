@@ -294,6 +294,80 @@ describe('OpenRouterService', () => {
     });
   });
 
+  describe('embeddings', () => {
+    const embeddingResponse = {
+      data: [{ embedding: [0.1, 0.2, 0.3], index: 0 }],
+      model: 'baai/bge-large-en-v1.5',
+      usage: { prompt_tokens: 3, total_tokens: 3 },
+    };
+
+    it('posts to the OpenRouter embeddings endpoint and returns the raw response', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(embeddingResponse)),
+      );
+
+      const result = await service.embeddings({
+        input: 'hello world',
+        model: 'baai/bge-large-en-v1.5',
+      });
+
+      expect(result).toEqual(embeddingResponse);
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://openrouter.ai/api/v1/embeddings',
+        expect.objectContaining({
+          input: 'hello world',
+          model: 'baai/bge-large-en-v1.5',
+          provider: { data_collection: 'deny', zdr: true },
+        }),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-api-key',
+          }),
+        }),
+      );
+    });
+
+    it('sends the first-party ZDR/no-retention policy on every request', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(embeddingResponse)),
+      );
+
+      await service.embeddings({
+        input: 'hello',
+        model: 'baai/bge-large-en-v1.5',
+      });
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({ data_collection: 'deny', zdr: true });
+    });
+
+    it('uses apiKeyOverride instead of config key when provided', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(embeddingResponse)),
+      );
+
+      await service.embeddings(
+        { input: 'hello', model: 'baai/bge-large-en-v1.5' },
+        'override-key',
+      );
+
+      expect(configService.get).not.toHaveBeenCalled();
+    });
+
+    it('logs and rethrows on failure', async () => {
+      const error = new Error('boom');
+      httpService.post.mockReturnValue(throwError(() => error));
+
+      await expect(
+        service.embeddings({ input: 'hello', model: 'baai/bge-large-en-v1.5' }),
+      ).rejects.toThrow('boom');
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'OpenRouterService.embeddings failed',
+        expect.any(Object),
+      );
+    });
+  });
+
   describe('streamChatCompletion', () => {
     it('parses SSE tokens into a text ReadableStream', async () => {
       const fakeStream = Readable.from([
