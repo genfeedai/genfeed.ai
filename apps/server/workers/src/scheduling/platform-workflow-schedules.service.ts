@@ -36,6 +36,15 @@ const WORKFLOWS = {
   },
 } as const;
 
+/**
+ * Floor for how far back the in-flight check (below) looks before treating a
+ * PENDING/RUNNING row as gone-stale rather than genuinely in flight. Without
+ * a floor, a template with a short `interval` (e.g. `proactive-agent-strategies`
+ * at 60s) would treat anything not created in the last minute or two as
+ * stale, which is far too tight a window for a real in-progress run.
+ */
+const MIN_IN_FLIGHT_WINDOW_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class PlatformWorkflowSchedulesService {
   constructor(
@@ -61,6 +70,16 @@ export class PlatformWorkflowSchedulesService {
   ): Promise<void> {
     const { canonicalId, interval } = WORKFLOWS[templateId];
     const slot = Math.floor(timestamp / interval);
+    // #5252 review (final pass): the in-flight check below has no age bound,
+    // so a worker crash mid-run leaves a WorkflowExecution row RUNNING
+    // forever and that org's dispatch for this template silently stops for
+    // good — the row never ages out and nothing else reconciles a RUNNING
+    // row. Bound it to twice this template's own cadence (floored so a
+    // fast-cadence template like proactive-agent-strategies still gets a
+    // sane grace window for a genuinely in-progress run).
+    const inFlightSince = new Date(
+      timestamp - Math.max(2 * interval, MIN_IN_FLIGHT_WINDOW_MS),
+    );
     const failures: Error[] = [];
     let cursor: string | undefined;
     while (true) {
@@ -131,6 +150,7 @@ export class PlatformWorkflowSchedulesService {
                   PrismaWorkflowExecutionStatus.RUNNING,
                 ],
               },
+              createdAt: { gte: inFlightSince },
             },
             select: { id: true },
           });

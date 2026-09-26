@@ -40,6 +40,16 @@ function isRedisAvailable(): Promise<boolean> {
 
 const redisAvailable = await isRedisAvailable();
 
+// #5252 final review: `describe.skipIf` silently green-checks this suite if
+// CI's Redis service is ever misconfigured or drops — the exact failure mode
+// the CI workflow change in this PR is meant to close off. In CI, a missing
+// Redis is a broken pipeline, not an environment this suite should tolerate.
+if (!redisAvailable && process.env.CI) {
+  throw new Error(
+    `Redis is required for this integration spec in CI (checked ${redisUrl}) but was unreachable — the CI workflow's redis service is misconfigured or down.`,
+  );
+}
+
 function createMockLogger() {
   return {
     debug: vi.fn(),

@@ -113,6 +113,51 @@ describe('PlatformWorkflowSchedulesService', () => {
     expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
   });
 
+  it('does not let a stale (>2×interval-old) RUNNING row block dispatch forever (#5252 final review)', async () => {
+    // A worker crash mid-run leaves the row RUNNING with no further updates.
+    // Without an age bound, `inFlight` would match it on every future sweep
+    // and this org's analytics-sync would never dispatch again. Simulate the
+    // real Prisma filtering the where-clause's `createdAt.gte` bound would
+    // apply: the row only counts as in-flight while it is younger than the
+    // sweep's own in-flight window.
+    const staleRowCreatedAt = new Date(0);
+    prisma.workflowExecution.findFirst.mockImplementation(
+      async ({ where }: { where: { createdAt?: { gte: Date } } }) => {
+        const bound = where.createdAt?.gte;
+        return bound && staleRowCreatedAt < bound
+          ? null
+          : { id: 'stale-running-execution' };
+      },
+    );
+    const interval = 6 * 60 * 60 * 1000; // analytics-sync's own interval
+
+    // Still inside the 2×interval window: the row keeps blocking dispatch.
+    await service.sweep('analytics-sync', 2 * interval - 1);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+
+    // Past the window: the same never-updated row no longer blocks it.
+    await service.sweep('analytics-sync', 2 * interval + 1);
+    expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+  });
+
+  it('floors the in-flight window at 1h for a fast-cadence template (#5252 final review)', async () => {
+    // proactive-agent-strategies' own interval is 60s; without a floor,
+    // 2×interval (2 minutes) would treat almost any genuinely in-progress
+    // run as stale.
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'genuinely-in-progress-execution',
+    });
+    await service.sweep('proactive-agent-strategies', 59 * 60 * 1000); // 59 minutes in
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          createdAt: { gte: new Date(59 * 60 * 1000 - 60 * 60 * 1000) },
+        }),
+      }),
+    );
+  });
+
   it('does not dispatch proactive-agent-strategies for an org with no due active strategy (#4961 AC-1, #5162)', async () => {
     prisma.agentStrategy.findMany.mockResolvedValue([]);
     await service.sweep('proactive-agent-strategies', 120001);
