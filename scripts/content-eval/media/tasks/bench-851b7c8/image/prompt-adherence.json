@@ -1,0 +1,17 @@
+{
+  "id": "prompt-adherence",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Prompt adherence",
+  "rationale": "Counting, spatial relations and negation are the three instructions image models most reliably ignore. This task is deliberately unglamorous: a beautiful image that gets the brief wrong loses to a plainer one that gets it right.",
+  "prompt": "Exactly five green apples and one lemon on a wooden table. The lemon is to the left of every apple. No leaves, no basket, no knife, no text. Overhead view, soft diffused light.",
+  "referenceRoles": ["none"],
+  "outputSpec": { "aspectRatio": "3:2", "count": 1 },
+  "rubric": [
+    "Exactly five apples and exactly one lemon?",
+    "Is the lemon left of all five?",
+    "Are all four forbidden elements genuinely absent?",
+    "Craft, only after the four checks above"
+  ]
+}

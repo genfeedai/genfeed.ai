@@ -4,7 +4,7 @@ description: Rewrite naive image and video prompts with precise cinematography v
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Cinematic Prompting

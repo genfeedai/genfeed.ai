@@ -185,6 +185,8 @@ describe('CombinedAuthGuard', () => {
     ['empty bearer', 'Bearer'],
     ['blank bearer', 'Bearer   '],
     ['malformed', 'Token abc'],
+    ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
+    ['multiple surplus fields', 'Bearer session-token extra more'],
   ])(
     'rejects a presented %s Authorization header on optional auth',
     async (_label, authorization) => {
@@ -195,6 +197,79 @@ describe('CombinedAuthGuard', () => {
       );
       expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('never treats a gf_ key with surplus fields as a valid API key on a required-auth route', async () => {
+    // Before this fix, resolveBearerToken silently truncated
+    // `Bearer gf_<key> extra` down to `gf_<key>` and routed it to
+    // ApiKeyAuthGuard as if it were a well-formed key. A presented header
+    // that fails strict parsing is now rejected by the guard itself, before
+    // either downstream guard is ever consulted.
+    const mockRequest = {
+      headers: { authorization: 'Bearer gf_1234567890abcdef extra' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['surplus fields on a session token', 'Bearer session-token extra'],
+    ['single field', 'Bearer'],
+    ['blank bearer', 'Bearer   '],
+  ])(
+    // Only a header that attempts the Bearer scheme but fails strict
+    // parsing is rejected outright at the guard level — see the
+    // `isBearerScheme` tests below for headers presenting a different
+    // scheme entirely (e.g. an nginx reverse-proxy's Basic auth).
+    'rejects a %s Authorization header outright on required auth, without deferring to either guard',
+    async (_label, authorization) => {
+      const mockRequest = { headers: { authorization } };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['a foreign scheme (nginx Basic-auth proxy)', 'Basic dXNlcjpwYXNz'],
+    ['an unrecognized scheme', 'Token abc'],
+    ['an empty header (no scheme presented at all)', ''],
+  ])(
+    // A header that presents no Bearer credential at all — a different
+    // scheme, or nothing recognizable — carries no attempted Bearer token,
+    // so it is treated the same as an absent header and deferred to Better
+    // Auth, which still ends in 401 on a required-auth route.
+    'defers a %s Authorization header to Better Auth on required auth (which rejects it)',
+    async (_label, authorization) => {
+      const mockRequest = { headers: { authorization } };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+      betterAuthGuard.canActivate.mockRejectedValue(
+        new UnauthorizedException('Unauthorized'),
+      );
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(betterAuthGuard.canActivate).toHaveBeenCalledWith(
+        mockExecutionContext,
+      );
     },
   );
 
@@ -427,6 +502,30 @@ describe('CombinedAuthGuard', () => {
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
+  it('still routes a lowercase "bearer gf_..." scheme to API key authentication', async () => {
+    // RFC 7235: scheme names are case-insensitive. CombinedAuthGuard already
+    // recognized `bearer` case-insensitively here; the companion bug (fixed
+    // alongside this) was that ApiKeyAuthGuard's own parsing then rejected
+    // that same header because it compared the scheme case-sensitively.
+    const mockRequest = {
+      headers: {
+        authorization: 'bearer gf_1234567890abcdef',
+      },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    apiKeyAuthGuard.canActivate.mockResolvedValue(true);
+
+    const result = await guard.canActivate(mockExecutionContext);
+
+    expect(result).toBe(true);
+    expect(apiKeyAuthGuard.canActivate).toHaveBeenCalledWith(
+      mockExecutionContext,
+    );
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
   it('uses Better Auth for non-api-key bearer tokens', async () => {
     const mockRequest = {
       headers: {
@@ -556,4 +655,70 @@ describe('CombinedAuthGuard', () => {
     );
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
+    ['single field', 'Bearer'],
+    ['blank bearer', 'Bearer   '],
+  ])(
+    'rejects a %s Authorization header in hybrid mode instead of downgrading to local identity',
+    async (_label, authorization) => {
+      // A presented header that attempts the Bearer scheme but fails strict
+      // parsing must never be treated the same as an absent one: absent
+      // means "no credential attempted" (anonymous, local super-admin),
+      // while a malformed Bearer attempt must fail closed with 401.
+      guard = await instantiateGuard('hybrid');
+      const mockRequest: { user?: Record<string, unknown>; headers: object } = {
+        headers: { authorization },
+      };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockRequest.user).toBeUndefined();
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['a foreign scheme (nginx Basic-auth proxy)', 'Basic dXNlcjpwYXNz'],
+    ['an unrecognized scheme', 'Token abc'],
+    ['an empty header (no scheme presented at all)', ''],
+  ])(
+    // A header presenting no Bearer credential at all — some other scheme,
+    // or nothing recognizable — carries no attempted Bearer token, so
+    // HYBRID mode treats it exactly like an absent header: local identity,
+    // not a 401. This is the fix for a real deployment shape (an nginx
+    // reverse-proxy adding its own `Authorization: Basic ...` in front of a
+    // self-hosted instance), which must not be rejected as if it were a
+    // malformed Bearer credential.
+    'injects local identity for a %s Authorization header in hybrid mode (same as absent)',
+    async (_label, authorization) => {
+      guard = await instantiateGuard('hybrid');
+      const mockRequest: { user?: Record<string, unknown>; headers: object } = {
+        headers: { authorization },
+      };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+
+      const result = await guard.canActivate(mockExecutionContext);
+
+      expect(result).toBe(true);
+      expect(mockRequest.user).toEqual(
+        expect.objectContaining({
+          brandId: 'brand_1',
+          id: 'user_1',
+          organizationId: 'org_1',
+          userId: 'user_1',
+        }),
+      );
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
 });

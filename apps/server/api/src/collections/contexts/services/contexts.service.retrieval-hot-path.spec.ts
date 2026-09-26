@@ -6,6 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -54,24 +55,31 @@ describe('ContextsService retrieval hot path', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
 
+    const prismaService = {
+      $executeRaw: executeRaw,
+      $queryRaw: queryRaw,
+      $transaction: transaction,
+      contextBase,
+    } as unknown as PrismaService;
+
     const service = new ContextsService(
-      {
-        $executeRaw: executeRaw,
-        $queryRaw: queryRaw,
-        $transaction: transaction,
-        contextBase,
-      } as unknown as PrismaService,
+      prismaService,
       logger,
       { embeddings } as unknown as OpenRouterService,
       {
         getDefaultModel: vi.fn().mockResolvedValue('bge'),
       } as unknown as RouterService,
     );
+    const retrieval = new KnowledgeContentRetrievalService(
+      prismaService,
+      service,
+    );
 
     return {
       contextBase,
-      executeRaw,
       embeddings,
+      executeRaw,
+      retrieval,
       service,
       queryRaw,
       transaction,
@@ -183,7 +191,7 @@ describe('ContextsService retrieval hot path', () => {
   });
 
   it('retrieves brand memory plus organization Knowledge and returns citations', async () => {
-    const { service, queryRaw, contextBase } = buildService();
+    const { retrieval, queryRaw, contextBase } = buildService();
     contextBase.findMany.mockResolvedValue([
       { data: { label: 'Voice' }, id: 'ctx-brand', sourceBrandId: 'brand-1' },
       {
@@ -223,7 +231,7 @@ describe('ContextsService retrieval hot path', () => {
       },
     ]);
 
-    const hits = await service.retrieveBrandContentMemory({
+    const hits = await retrieval.retrieveBrandContentMemory({
       brandId: 'brand-1',
       knowledgePurposes: ['BRAND_TRUTH'] as never,
       knowledgeSourceIds: ['source-1'],

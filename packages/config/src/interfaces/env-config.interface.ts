@@ -198,6 +198,9 @@ export interface IEnvConfig {
   TASK_ROUTING_MIN_CONFIDENCE?: number;
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
+  // Eval-organization API key the content-eval media ladder (#4926) uses to
+  // generate through the product API. Never a customer key.
+  CONTENT_EVAL_GENFEED_API_KEY?: string;
   // Capped at shadow (release-blocker follow-up, epic #4863): the provider
   // answer is recorded but never acted on.
   PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow';

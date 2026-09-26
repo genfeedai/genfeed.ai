@@ -1,0 +1,17 @@
+{
+  "id": "motion-coherence",
+  "version": 1,
+  "medium": "video",
+  "isDraft": true,
+  "title": "Motion coherence",
+  "rationale": "Whether a subject survives its own movement. Limb count, ground contact and object permanence are where video models still fail in ways a still image never reveals.",
+  "prompt": "A courier carries a stack of four flat boxes across a busy pavement, turns side-on to pass a lamp post, and continues. Single continuous shot, handheld, daylight.",
+  "referenceRoles": ["none"],
+  "outputSpec": { "aspectRatio": "16:9", "count": 1, "durationSeconds": 5 },
+  "rubric": [
+    "Do the boxes stay the same four boxes?",
+    "Limbs and hands through the turn",
+    "Feet contact the ground without sliding",
+    "Does the background persist as the camera moves"
+  ]
+}

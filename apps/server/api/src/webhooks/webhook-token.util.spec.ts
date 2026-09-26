@@ -160,6 +160,22 @@ describe('assertWebhookToken', () => {
     ).toThrowError('Missing webhook token');
   });
 
+  it('rejects a bearer header with surplus fields even when opted in', () => {
+    // Regression coverage for #5206: `authorizationHeader.split(' ')`
+    // destructuring used to silently drop everything past the second field,
+    // so `Bearer super-secret extra` was accepted as `Bearer super-secret`.
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'Bearer super-secret extra' },
+        }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
   it('rejects an empty Authorization header when opted in', () => {
     expect(() =>
       assertWebhookToken({

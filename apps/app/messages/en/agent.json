@@ -306,7 +306,9 @@
     "generationFailed": "{kind} generation failed",
     "noPreview": "No preview is available for this asset.",
     "unlockCredits": "Unlock more with credits",
-    "creditAmount": "{count} credits"
+    "creditAmount": "{count} credits",
+    "knowledgeSources": "Knowledge sources",
+    "knowledgeVersion": "Version {version}"
   },
   "mutationApproval": {
     "approve": "Approve",
