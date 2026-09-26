@@ -36,3 +36,9 @@ export interface IMediaModeration extends MediaModerationRecord {
  * (provider off, perception not ready, already moderated).
  */
 export type MediaModerationOutcome = 'classified' | 'reused' | 'skipped';
+
+/** Moderation state for an asset a publish path is about to use. */
+export interface IMediaModerationLookup {
+  assetId: string;
+  moderation: IMediaModeration | null;
+}
