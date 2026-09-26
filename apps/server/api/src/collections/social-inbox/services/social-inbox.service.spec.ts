@@ -184,6 +184,9 @@ function matchesWhere<T extends Record<string, unknown>>(
       if ('gt' in operator) {
         return Number(item[key]) > Number(operator.gt);
       }
+      if ('gte' in operator) {
+        return Number(item[key]) >= Number(operator.gte);
+      }
       if ('lt' in operator) {
         return Number(item[key]) < Number(operator.lt);
       }
@@ -205,6 +208,21 @@ function matchesWhere<T extends Record<string, unknown>>(
 
     return item[key] === value;
   });
+}
+
+/** Mirrors Prisma's numeric field update operators for `unreadCount`. */
+function resolveUnreadCountUpdate(current: number, nextValue: unknown): number {
+  if (nextValue && typeof nextValue === 'object') {
+    const operator = nextValue as { decrement?: number; increment?: number };
+    if (typeof operator.increment === 'number') {
+      return current + operator.increment;
+    }
+    if (typeof operator.decrement === 'number') {
+      return current - operator.decrement;
+    }
+    return current;
+  }
+  return typeof nextValue === 'number' ? nextValue : current;
 }
 
 function createContext(): TestContext {
@@ -295,10 +313,10 @@ function createContext(): TestContext {
         }
         Object.assign(conversation, {
           ...data,
-          unreadCount:
-            typeof data.unreadCount === 'object' && data.unreadCount?.increment
-              ? conversation.unreadCount + data.unreadCount.increment
-              : (data.unreadCount ?? conversation.unreadCount),
+          unreadCount: resolveUnreadCountUpdate(
+            conversation.unreadCount,
+            data.unreadCount,
+          ),
         });
         return Promise.resolve(conversation);
       }),
@@ -309,11 +327,10 @@ function createContext(): TestContext {
         for (const conversation of matched) {
           Object.assign(conversation, {
             ...data,
-            unreadCount:
-              typeof data.unreadCount === 'object' &&
-              data.unreadCount?.increment
-                ? conversation.unreadCount + data.unreadCount.increment
-                : (data.unreadCount ?? conversation.unreadCount),
+            unreadCount: resolveUnreadCountUpdate(
+              conversation.unreadCount,
+              data.unreadCount,
+            ),
             updatedAt: new Date(),
           });
         }
@@ -735,6 +752,84 @@ describe('SocialInboxService', () => {
         context.socialReplyNotifications.markConversationRepliesRead,
       ).toHaveBeenCalledWith({
         conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team once a draft is approved', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-approve',
+        externalMessageId: 'comment-approve',
+        externalParentId: 'comment-approve',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+      const draft = await context.service.createDraft(
+        scope,
+        inbound.conversationId,
+        { text: 'Drafted answer' },
+      );
+
+      await context.service.approveDraft(
+        scope,
+        inbound.conversationId,
+        draft.id,
+      );
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team once a DM is sent', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'dm',
+        externalConversationId: 'thread-dm',
+        externalMessageId: 'message-dm',
+        organizationId: 'org-1',
+        participantExternalId: 'author-1',
+        platform: 'instagram',
+      });
+
+      await context.service.sendDm(scope, inbound.conversationId, {
+        idempotencyKey: 'dm-clears-bell',
+        recipientId: 'author-1',
+        text: 'Following up',
+      });
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team when a thread is archived', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'archived',
+      });
+
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
         organizationId: 'org-1',
       });
     });

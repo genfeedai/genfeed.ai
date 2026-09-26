@@ -83,18 +83,6 @@ export interface XPostRepliesIngestResult {
   messagesCreated: number;
 }
 
-/** Brand filter for the unread-conversation count behind the Messages badge. */
-export interface SocialInboxUnreadCountQuery {
-  allBrands?: boolean;
-  brandId?: string;
-}
-
-export interface SocialInboxUnreadCount {
-  id: string;
-  /** Conversations with at least one unread inbound message. */
-  unreadCount: number;
-}
-
 export interface SocialActionInput {
   text: string;
   idempotencyKey?: string;

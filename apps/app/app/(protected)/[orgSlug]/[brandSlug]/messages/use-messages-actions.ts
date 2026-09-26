@@ -139,6 +139,7 @@ export function useMessagesActions({
           setNotice('Reply posted.');
         } else {
           await service.sendDm(selectedId, input);
+          onInboxReadStateChange?.();
           setNotice('DM sent.');
         }
 
@@ -190,7 +191,7 @@ export function useMessagesActions({
       try {
         const service = await getMessagesService();
         await service.updateStatus(selectedId, nextStatus);
-        if (nextStatus === 'resolved') {
+        if (nextStatus === 'resolved' || nextStatus === 'archived') {
           onInboxReadStateChange?.();
         }
         setNotice(

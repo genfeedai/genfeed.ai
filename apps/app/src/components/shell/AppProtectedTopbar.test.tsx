@@ -7,8 +7,11 @@ const messagesUnread = vi.hoisted(() => ({
   spy: vi.fn(),
 }));
 vi.mock('@/components/shell/use-messages-unread-count', () => ({
-  useMessagesUnreadCount: (brandId?: string) => {
-    messagesUnread.spy(brandId);
+  useMessagesUnreadCount: (
+    brandId?: string,
+    isBrandScopeResolved?: boolean,
+  ) => {
+    messagesUnread.spy(brandId, isBrandScopeResolved);
     return messagesUnread.count;
   },
 }));
@@ -109,17 +112,25 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+const brandContextState = vi.hoisted(() => ({
+  brands: [
+    {
+      id: 'brand',
+      label: 'Acme Brand',
+      organization: { id: 'org', slug: 'acme' },
+      slug: 'brand',
+    },
+  ] as Array<{
+    id: string;
+    label: string;
+    organization: { id: string; slug: string };
+    slug: string;
+  }>,
+}));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand',
-    brands: [
-      {
-        id: 'brand',
-        label: 'Acme Brand',
-        organization: { id: 'org', slug: 'acme' },
-        slug: 'brand',
-      },
-    ],
+    brands: brandContextState.brands,
     selectedBrand: {
       id: 'brand',
       label: 'Acme Brand',
@@ -270,6 +281,14 @@ describe('AppProtectedTopbar', () => {
     brandSwitcherSpy.mockClear();
     messagesUnread.count = 0;
     messagesUnread.spy.mockClear();
+    brandContextState.brands = [
+      {
+        id: 'brand',
+        label: 'Acme Brand',
+        organization: { id: 'org', slug: 'acme' },
+        slug: 'brand',
+      },
+    ];
     mockPush.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -340,7 +359,7 @@ describe('AppProtectedTopbar', () => {
       />,
     );
 
-    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand');
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand', true);
     expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({
         badges: {
@@ -353,7 +372,22 @@ describe('AppProtectedTopbar', () => {
   it('counts every brand for the org-scoped Messages tile', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
 
-    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined);
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, true);
+  });
+
+  it('never falls back to the org-wide count while the routed brand has not loaded yet', () => {
+    brandContextState.brands = [];
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    // Unresolved: no brand id yet, and the hook must not fetch org-wide
+    // instead — that would flash the wrong count once brands load.
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, false);
   });
 
   it('does not inject the context brand into explicit org-scoped routes', () => {

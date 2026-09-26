@@ -6,6 +6,7 @@ import {
   defaultInAppNotificationPreference,
   SOCIAL_REPLY_NOTIFICATION_TOPIC,
 } from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -109,6 +110,21 @@ export class SocialReplyNotificationService {
       return null;
     }
 
+    const conversationIds = [
+      ...new Set(replies.map((reply) => reply.conversationId)),
+    ];
+    // Notify only runs after ingest already incremented these threads'
+    // unread counters, but a member can read one before this call fires —
+    // directly, or via the pending-cache retry path a failed notify leaves
+    // behind. A bell item created here would cover only already-read
+    // threads and nothing would ever mark it read (markConversationRepliesRead
+    // only fires on a future read/reply/resolve). Skip creating it instead.
+    if (
+      await this.everyConversationIsRead(input.organizationId, conversationIds)
+    ) {
+      return null;
+    }
+
     const recipientUserId = await this.resolveRecipient(
       input.organizationId,
       input.credentialId,
@@ -127,9 +143,6 @@ export class SocialReplyNotificationService {
     }
 
     const newestReplyId = newestReply.externalMessageId;
-    const conversationIds = [
-      ...new Set(replies.map((reply) => reply.conversationId)),
-    ];
     const accountHandle = input.accountHandle?.replace(/^@/, '') || null;
     const occurredAt = input.occurredAt ?? new Date();
     const deduplicationKey = `${SOCIAL_REPLY_EVENT_KEY}/${input.organizationId}/${input.credentialId}/${newestReplyId}`;
@@ -206,21 +219,10 @@ export class SocialReplyNotificationService {
     }
 
     try {
-      const items = await this.prisma.notificationInboxItem.findMany({
-        select: { event: { select: { payload: true } }, id: true },
-        where: scopedWhere(organizationId, {
-          event: {
-            isDeleted: false,
-            organizationId,
-            payload: {
-              array_contains: [conversationId],
-              path: ['conversationIds'],
-            },
-          },
-          readAt: null,
-          topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
-        }),
-      });
+      const items = await this.findUnreadInboxItemsCoveringConversation(
+        organizationId,
+        conversationId,
+      );
       const coverage = items.map((item) => ({
         conversationIds: readConversationIds(item.event.payload),
         id: item.id,
@@ -261,6 +263,12 @@ export class SocialReplyNotificationService {
       });
       return result.count;
     } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientValidationError) {
+        // An invalid query shape is a code bug, not the transient failure
+        // this catch exists for — swallowing it here would hide every read
+        // silently no-op-ing forever, indistinguishable from "already read".
+        throw error;
+      }
       this.logger.error('Social reply notification read sync failed', error, {
         ...this.context,
         conversationId,
@@ -268,6 +276,55 @@ export class SocialReplyNotificationService {
       });
       return 0;
     }
+  }
+
+  /**
+   * Every unread `social.reply` inbox item whose event payload covers the
+   * given conversation. Split out from {@link markConversationRepliesRead}
+   * so its `array_contains`/`path` JSON filter — the one part of that method
+   * a mocked Prisma delegate can never validate — has a query a Postgres-
+   * shape spec can call directly against the real Prisma client.
+   */
+  private findUnreadInboxItemsCoveringConversation(
+    organizationId: string,
+    conversationId: string,
+  ) {
+    return this.prisma.notificationInboxItem.findMany({
+      select: { event: { select: { payload: true } }, id: true },
+      where: scopedWhere(organizationId, {
+        event: {
+          isDeleted: false,
+          organizationId,
+          payload: {
+            array_contains: [conversationId],
+            path: ['conversationIds'],
+          },
+        },
+        readAt: null,
+        topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
+      }),
+    });
+  }
+
+  /**
+   * True when none of the given conversations has an unread message, so a
+   * notification covering only them would never clear.
+   */
+  private async everyConversationIsRead(
+    organizationId: string,
+    conversationIds: readonly string[],
+  ): Promise<boolean> {
+    if (conversationIds.length === 0) {
+      return true;
+    }
+    const stillUnread = await this.prisma.socialConversation.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        id: { in: [...conversationIds] },
+        unreadCount: { gt: 0 },
+      }),
+    });
+    return !stillUnread;
   }
 
   /**

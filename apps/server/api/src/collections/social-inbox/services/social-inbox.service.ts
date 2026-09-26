@@ -9,8 +9,6 @@ import type {
   SocialInboxListQuery,
   SocialInboxPage,
   SocialInboxScope,
-  SocialInboxUnreadCount,
-  SocialInboxUnreadCountQuery,
   XPostRepliesIngestInput,
   XPostRepliesIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
@@ -21,6 +19,8 @@ import { SocialInboxReadStateService } from '@api/collections/social-inbox/servi
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
@@ -154,12 +154,14 @@ export class SocialInboxService {
     return sent;
   }
 
-  sendDm(
+  async sendDm(
     scope: SocialInboxScope,
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    return this.actionService.sendDm(scope, conversationId, input);
+    const sent = await this.actionService.sendDm(scope, conversationId, input);
+    await this.readStateService.clearReplyNotifications(scope, conversationId);
+    return sent;
   }
 
   async updateConversation(
@@ -172,7 +174,7 @@ export class SocialInboxService {
       conversationId,
       patch,
     );
-    if (patch.status === 'resolved') {
+    if (patch.status === 'resolved' || patch.status === 'archived') {
       await this.readStateService.clearReplyNotifications(
         scope,
         conversationId,

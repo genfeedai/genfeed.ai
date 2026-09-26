@@ -293,15 +293,23 @@ export class SocialInboxActionService implements OnModuleInit {
     conversationId: string,
     patch: SocialConversationPatch,
   ): Promise<SocialConversationDocument> {
-    await this.queryService.getConversation(scope, conversationId);
+    const conversation = await this.queryService.getConversation(
+      scope,
+      conversationId,
+    );
 
     const data: Prisma.SocialConversationUpdateInput = {};
+    // Resolving or archiving closes the thread for everyone, so its unread
+    // counter clears too — but only what this call actually saw as unread.
+    // A reply landing in the same instant must not vanish from the badge, so
+    // the clear below is a conditional, atomic decrement, never a hard reset.
+    let seenUnreadCount = 0;
 
     if (patch.status !== undefined) {
       data.status = patch.status;
       data.needsReview = patch.status === 'needs_review';
-      if (patch.status === 'resolved') {
-        data.unreadCount = 0;
+      if (patch.status === 'resolved' || patch.status === 'archived') {
+        seenUnreadCount = conversation.unreadCount;
       }
     }
 
@@ -319,10 +327,28 @@ export class SocialInboxActionService implements OnModuleInit {
       throw new BadRequestException('No conversation fields to update');
     }
 
-    const updated = await this.prisma.socialConversation.update({
+    let updated = await this.prisma.socialConversation.update({
       data,
       where: { id: conversationId },
     });
+
+    if (seenUnreadCount > 0) {
+      const cleared = await this.prisma.socialConversation.updateMany({
+        data: { unreadCount: { decrement: seenUnreadCount } },
+        where: scopedWhere(scope.organizationId, {
+          id: conversationId,
+          unreadCount: { gte: seenUnreadCount },
+        }),
+      });
+      if (cleared.count > 0) {
+        updated = await findOrThrow(
+          this.prisma.socialConversation,
+          { where: { id: conversationId } },
+          'Social conversation',
+          conversationId,
+        );
+      }
+    }
 
     await this.realtimeService.emit(
       updated.organizationId,

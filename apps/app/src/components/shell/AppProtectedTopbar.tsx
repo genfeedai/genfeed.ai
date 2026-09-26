@@ -156,13 +156,22 @@ function AppProtectedTopbarContent({
   });
   const translateMessages = useTranslations('common.messages');
   // The Messages tile opens the brand in the URL, else the org-wide inbox:
-  // the badge counts the same scope.
-  const messagesBadgeBrandId = effectiveBrandSlug
-    ? getBrandEntityId(
-        brands.find((brand) => brand.slug === effectiveBrandSlug),
-      ) || undefined
+  // the badge counts the same scope. While the route names a brand but
+  // `brands` hasn't loaded it yet, the scope is unresolved — never fall back
+  // to the org-wide count in that gap, or the badge flashes the wrong number
+  // before swapping to the brand-scoped one once brands load.
+  const messagesBadgeBrand = effectiveBrandSlug
+    ? brands.find((brand) => brand.slug === effectiveBrandSlug)
     : undefined;
-  const messagesUnreadCount = useMessagesUnreadCount(messagesBadgeBrandId);
+  const isMessagesBadgeScopeResolved =
+    !effectiveBrandSlug || Boolean(messagesBadgeBrand);
+  const messagesBadgeBrandId = messagesBadgeBrand
+    ? getBrandEntityId(messagesBadgeBrand) || undefined
+    : undefined;
+  const messagesUnreadCount = useMessagesUnreadCount(
+    messagesBadgeBrandId,
+    isMessagesBadgeScopeResolved,
+  );
   const isOrganizationSettingsRoute =
     Boolean(effectiveOrgSlug) &&
     isOrganizationScopeRoute &&

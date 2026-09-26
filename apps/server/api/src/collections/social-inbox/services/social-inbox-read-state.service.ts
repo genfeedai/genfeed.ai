@@ -22,8 +22,14 @@ export class SocialInboxReadStateService {
   ) {}
 
   /**
-   * A member opened the thread: zero its unread counter and clear every
-   * member's reply notifications once every thread they cover is read.
+   * A member opened the thread: clear the unread counter down by exactly
+   * what this view saw, and clear every member's reply notifications once
+   * every thread they cover is read.
+   *
+   * The clear is a conditional, atomic decrement guarded by the counter this
+   * call read a moment ago — never a hard reset to zero. A reply landing in
+   * the instant between that read and this write must stay counted, or the
+   * badge would hide a message nobody has actually seen yet.
    */
   async markConversationRead(
     scope: SocialInboxScope,
@@ -35,16 +41,26 @@ export class SocialInboxReadStateService {
     );
 
     let updated = conversation;
-    if (conversation.unreadCount > 0) {
-      updated = await this.prisma.socialConversation.update({
-        data: { unreadCount: 0 },
-        where: scopedWhere(scope.organizationId, { id: conversation.id }),
+    const seenUnreadCount = conversation.unreadCount;
+    if (seenUnreadCount > 0) {
+      const cleared = await this.prisma.socialConversation.updateMany({
+        data: { unreadCount: { decrement: seenUnreadCount } },
+        where: scopedWhere(scope.organizationId, {
+          id: conversation.id,
+          unreadCount: { gte: seenUnreadCount },
+        }),
       });
-      await this.realtimeService.emit(
-        updated.organizationId,
-        updated.id,
-        'conversation-updated',
-      );
+      if (cleared.count > 0) {
+        updated = await this.queryService.getConversation(
+          scope,
+          conversationId,
+        );
+        await this.realtimeService.emit(
+          updated.organizationId,
+          updated.id,
+          'conversation-updated',
+        );
+      }
     }
 
     await this.clearReplyNotifications(scope, conversation.id);

@@ -58,6 +58,38 @@ describe('useMessagesUnreadCount', () => {
     expect(result.current).toBe(0);
   });
 
+  it('never fetches the org-wide count while a brand-scoped route has not resolved its brand yet', async () => {
+    const { result } = renderHook(
+      () => useMessagesUnreadCount(undefined, false),
+      { wrapper },
+    );
+
+    // Give any pending microtask a chance to fire before asserting nothing
+    // happened — the query being disabled must be immediate, not eventual.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mock.service.unreadCount).not.toHaveBeenCalled();
+    expect(result.current).toBe(0);
+  });
+
+  it('fetches once the brand scope resolves', async () => {
+    const { result, rerender } = renderHook(
+      ({ isResolved }: { isResolved: boolean }) =>
+        useMessagesUnreadCount('brand-1', isResolved),
+      { initialProps: { isResolved: false }, wrapper },
+    );
+    expect(mock.service.unreadCount).not.toHaveBeenCalled();
+
+    rerender({ isResolved: true });
+
+    await waitFor(() => expect(result.current).toBe(4));
+    expect(mock.service.unreadCount).toHaveBeenCalledWith(
+      { brandId: 'brand-1' },
+      expect.any(AbortSignal),
+    );
+  });
+
   it('refetches after the inbox indicators are refreshed', async () => {
     const { result } = renderHook(
       () => ({

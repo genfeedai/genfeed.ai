@@ -15,8 +15,16 @@ const MESSAGES_UNREAD_REFRESH_MS = 60_000;
  * Unread conversations for the Messages nav badge: the given brand, or every
  * brand in the organization when no brand is in scope. Polls on an interval;
  * the Messages page invalidates it as soon as a thread is read.
+ *
+ * `isBrandScopeResolved` (default `true`) must be `false` while a
+ * brand-scoped route hasn't resolved which brand it means yet — never fetch
+ * in that gap, or the badge fetches the org-wide count and then swaps to the
+ * brand count once it loads, flashing the wrong number.
  */
-export function useMessagesUnreadCount(brandId?: string) {
+export function useMessagesUnreadCount(
+  brandId?: string,
+  isBrandScopeResolved = true,
+) {
   const { organizationId, isReady } = useCollectionScope();
   const { userId, isSignedIn } = useAuthIdentity();
   const getService = useAuthedService((token: string) =>
@@ -29,7 +37,8 @@ export function useMessagesUnreadCount(brandId?: string) {
       organizationId,
       brandId ?? null,
     ],
-    enabled: isReady && isSignedIn && Boolean(organizationId),
+    enabled:
+      isBrandScopeResolved && isReady && isSignedIn && Boolean(organizationId),
     queryFn: async ({ signal }) =>
       (await getService()).unreadCount(
         brandId ? { brandId } : { allBrands: true },

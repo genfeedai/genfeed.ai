@@ -2,6 +2,7 @@ import {
   formatSocialReplySummary,
   SocialReplyNotificationService,
 } from '@api/services/notifications/social-reply-notifications/social-reply-notification.service';
+import { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function setup() {
@@ -28,7 +29,13 @@ function setup() {
     organization: {
       findFirst: vi.fn().mockResolvedValue({ userId: 'user-owner' }),
     },
-    socialConversation: { findMany: vi.fn().mockResolvedValue([]) },
+    socialConversation: {
+      // Defaults to "at least one covered thread is still unread" so every
+      // existing recordNewReplies test keeps creating a notification; tests
+      // for the skip path override this to an empty result.
+      findFirst: vi.fn().mockResolvedValue({ id: 'conversation-a' }),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const service = new SocialReplyNotificationService(
@@ -142,6 +149,40 @@ describe('SocialReplyNotificationService', () => {
         userId: 'user-credential',
       },
     });
+  });
+
+  it('skips creating a notification when every covered thread is already read', async () => {
+    context.prisma.socialConversation.findFirst.mockResolvedValue(null);
+
+    await expect(context.service.recordNewReplies(input)).resolves.toBeNull();
+
+    expect(context.prisma.socialConversation.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        // Newest reply first: conversation-b's reply sorts ahead of both of
+        // conversation-a's, so it is first into the deduplicated id set.
+        id: { in: ['conversation-b', 'conversation-a'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        unreadCount: { gt: 0 },
+      },
+    });
+    // A stuck bell item is worse than a missed one: nothing marks it read
+    // once every thread it covers is already read, so the run never even
+    // resolves a recipient or checks preferences for it.
+    expect(context.prisma.credential.findFirst).not.toHaveBeenCalled();
+    expect(context.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('still notifies when only some covered threads are already read', async () => {
+    context.prisma.socialConversation.findFirst.mockResolvedValue({
+      id: 'conversation-b',
+    });
+
+    await expect(context.service.recordNewReplies(input)).resolves.toBe(
+      'delivery-1',
+    );
+    expect(context.prisma.$transaction).toHaveBeenCalledOnce();
   });
 
   it('is idempotent when the same batch is recorded again', async () => {
@@ -300,6 +341,80 @@ describe('SocialReplyNotificationService', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it("never reads or clears another organization's inbox items", async () => {
+      // Two orgs happen to reference the same conversation id (ids are not
+      // globally unique across tenants). Each org's own item must be the
+      // only one read and the only one cleared for its own call.
+      const items = [
+        {
+          event: { payload: { conversationIds: ['conversation-a'] } },
+          id: 'org1-item',
+          organizationId: 'org-1',
+        },
+        {
+          event: { payload: { conversationIds: ['conversation-a'] } },
+          id: 'org2-item',
+          organizationId: 'org-2',
+        },
+      ];
+      context.prisma.notificationInboxItem.findMany.mockImplementation(
+        ({ where }: { where: { organizationId: string } }) =>
+          Promise.resolve(
+            items.filter(
+              (item) => item.organizationId === where.organizationId,
+            ),
+          ),
+      );
+      context.prisma.socialConversation.findMany.mockResolvedValue([]);
+      context.prisma.notificationInboxItem.updateMany.mockImplementation(
+        ({
+          where,
+        }: {
+          where: { id: { in: string[] }; organizationId: string };
+        }) =>
+          Promise.resolve({
+            count: items.filter(
+              (item) =>
+                item.organizationId === where.organizationId &&
+                where.id.in.includes(item.id),
+            ).length,
+          }),
+      );
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).resolves.toBe(1);
+
+      expect(
+        context.prisma.notificationInboxItem.updateMany,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['org1-item'] },
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+
+      await expect(
+        context.service.markConversationRepliesRead({
+          conversationId: 'conversation-a',
+          organizationId: 'org-2',
+        }),
+      ).resolves.toBe(1);
+
+      expect(
+        context.prisma.notificationInboxItem.updateMany,
+      ).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['org2-item'] },
+            organizationId: 'org-2',
+          }),
+        }),
+      );
+    });
+
     it('ignores payloads without conversation ids', async () => {
       context.prisma.notificationInboxItem.findMany.mockResolvedValue([
         { event: { payload: { kind: 'social_reply' } }, id: 'malformed' },
@@ -323,6 +438,25 @@ describe('SocialReplyNotificationService', () => {
         context.service.markConversationRepliesRead(readInput),
       ).resolves.toBe(0);
       expect(context.logger.error).toHaveBeenCalledOnce();
+    });
+
+    it('never swallows a broken query shape as a silent no-op', async () => {
+      // A PrismaClientValidationError means the `array_contains`/`path`
+      // filter (or any other argument shape here) is invalid — a code bug,
+      // not the transient failure this method's catch exists to absorb.
+      // Swallowing it would make every read look like "already read"
+      // forever, with nothing in the test suite or the logs to tell the
+      // two apart.
+      context.prisma.notificationInboxItem.findMany.mockRejectedValue(
+        new Prisma.PrismaClientValidationError('Unknown argument `path`', {
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(
+        context.service.markConversationRepliesRead(readInput),
+      ).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError);
+      expect(context.logger.error).not.toHaveBeenCalled();
     });
   });
 
