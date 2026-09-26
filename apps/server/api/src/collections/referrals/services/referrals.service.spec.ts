@@ -23,6 +23,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 type MockFn = ReturnType<typeof vi.fn>;
 
 type PrismaMock = {
+  billingAccount: { findFirst: MockFn };
   billingAccountOrganization: { findFirst: MockFn; findMany: MockFn };
   billingAccountMember: { findFirst: MockFn; findMany: MockFn };
   creditTransaction: { findFirst: MockFn };
@@ -104,6 +105,11 @@ describe('ReferralsService', () => {
   beforeEach(() => {
     configMock.organizationBilling = true;
     prisma = {
+      billingAccount: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ id: 'ba_referred', isDeleted: false }),
+      },
       billingAccountOrganization: {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi
