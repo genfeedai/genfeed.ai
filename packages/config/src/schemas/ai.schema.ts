@@ -50,12 +50,16 @@ export const mediaValidationSchema = {
   MODERATION_PROVIDER: Joi.string().valid('none', 'openai').default('none'),
   // `shadow` persists the result but never flags; `live` flags at threshold.
   // A live flip needs a benchmark run from the media-gate tooling (#4883).
-  MODERATION_MODE: Joi.string().valid('off', 'shadow', 'live').default('shadow'),
+  MODERATION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('shadow'),
   // Per-category overrides, `category=confidence` pairs, e.g.
   // `sexual=0.5,violence=0.7`. Unset categories keep the contract defaults
   // (DEFAULT_MODERATION_THRESHOLDS); lower is stricter.
   MODERATION_THRESHOLDS: Joi.string()
-    .pattern(/^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/)
+    .pattern(
+      /^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/,
+    )
     .optional()
     .allow(''),
 };
