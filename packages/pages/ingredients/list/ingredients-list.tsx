@@ -326,7 +326,7 @@ export default function IngredientsList({
                 handleRefresh(true);
               }}
               onPublishIngredient={(ingredient: IIngredient) =>
-                openIngredientModal(ModalEnum.POST, ingredient)
+                openIngredientModal(ModalEnum.POST_BATCH, ingredient)
               }
               onOpenIngredientModal={openIngredientModal}
               onOpenLightbox={openLightboxForIngredient}
