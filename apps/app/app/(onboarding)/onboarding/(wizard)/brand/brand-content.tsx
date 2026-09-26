@@ -3,7 +3,11 @@
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
+import {
+  BrandScrapeErrorCode,
+  LinkCategory,
+  type OrganizationCategory,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
@@ -26,8 +30,8 @@ import {
 import BrandAccountTypeSelector from './brand-account-type-selector';
 import BrandFormFields from './brand-form-fields';
 import {
-  extractBrandScrapeErrorCode,
   resolveBrandScrapeIssueCode,
+  resolveScrapeIssueCodeFromError,
 } from './brand-scrape-issue.util';
 import BrandStepHeader from './brand-step-header';
 
@@ -355,14 +359,23 @@ function BrandContentContent() {
       );
 
       if (brandUrl) {
-        // Brand rename above already persisted, so a scrape issue never
-        // loses onboarding progress — the user can fix the site/URL (or just
-        // leave it) and press Continue again, which retries this same call
-        // (#5080). We stop short of `handleStepComplete` here so the
-        // classified message is visible before the wizard navigates away.
-        let scrapeResult: Awaited<ReturnType<typeof brandsService.scrape>>;
+        // Only an invalid URL blocks: it is caught before any scrape or
+        // persistence work starts, so nothing has happened server-side yet
+        // and the user has something concrete to fix. Every other case must
+        // not block, even though the outcome behind it differs:
+        // - a classified `scrapeWarning` means setup fully succeeded with a
+        //   fallback brand profile (`BrandSetupService.scrapeBrandData`
+        //   never fails setup on a scrape issue) — advancing is exactly
+        //   right;
+        // - any other rejection (a genuine persistence failure, or a
+        //   client-side timeout on a slow-but-maybe-successful request)
+        //   means we cannot be sure setup finished, but blocking here would
+        //   loop the user on Continue forever against a site that always
+        //   fails the same way (#5080 review) — the user can review/edit
+        //   brand details after onboarding either way, so advancing is the
+        //   lesser risk. We still surface what happened before advancing.
         try {
-          scrapeResult = await brandsService.scrape(brandId, {
+          const scrapeResult = await brandsService.scrape(brandId, {
             brandName: effectiveBrandName,
             brandUrl,
             organizationName: effectiveOrganizationName,
@@ -373,23 +386,24 @@ function BrandContentContent() {
               ? { targetAudience: trimmedTargetAudience }
               : {}),
           });
+
+          if (scrapeResult.scrapeWarning) {
+            const code = resolveBrandScrapeIssueCode(
+              scrapeResult.scrapeWarning.code,
+            );
+            setErrorMessage(translate(`notices.scrapeIssue.codes.${code}`));
+          }
         } catch (scrapeError) {
           logger.error('Failed to scrape brand during onboarding', scrapeError);
-          const code = resolveBrandScrapeIssueCode(
-            extractBrandScrapeErrorCode(scrapeError),
-          );
-          setErrorMessage(translate(`errors.scrapeCodes.${code}`));
-          setSubmitting(false);
-          return;
-        }
+          const code = resolveScrapeIssueCodeFromError(scrapeError);
 
-        if (scrapeResult.scrapeWarning) {
-          const code = resolveBrandScrapeIssueCode(
-            scrapeResult.scrapeWarning.code,
-          );
-          setErrorMessage(translate(`errors.scrapeCodes.${code}`));
-          setSubmitting(false);
-          return;
+          if (code === BrandScrapeErrorCode.INVALID_URL) {
+            setErrorMessage(translate(`errors.scrapeCodes.${code}`));
+            setSubmitting(false);
+            return;
+          }
+
+          setErrorMessage(translate(`notices.scrapeIssue.codes.${code}`));
         }
       }
 

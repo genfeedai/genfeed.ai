@@ -37,3 +37,34 @@ export function resolveBrandScrapeIssueCode(
     ? (code as BrandScrapeErrorCode)
     : BrandScrapeErrorCode.UNKNOWN;
 }
+
+/**
+ * The HTTP interceptor (`packages/services/core/interceptor.service.ts`)
+ * rejects a client-side timeout (the fixed `HTTP_REQUEST_TIMEOUT_MS`, which
+ * a slow scrape + AI pipeline can exceed even though the server keeps
+ * working) with a plain `Error` carrying `isTimeout: true` — never a
+ * JSON:API body. Without this check that case falls through to `UNKNOWN`,
+ * which reads as a harder failure than "we just stopped waiting" (#5080
+ * review).
+ */
+function isClientTimeoutError(error: unknown): boolean {
+  return isRecord(error) && error.isTimeout === true;
+}
+
+/**
+ * Resolves a `BrandScrapeErrorCode` directly from a rejected
+ * `brandsService.scrape(...)` call: the server's JSON:API code first, then
+ * the client-side timeout case, then `UNKNOWN`.
+ */
+export function resolveScrapeIssueCodeFromError(
+  error: unknown,
+): BrandScrapeErrorCode {
+  const serverCode = extractBrandScrapeErrorCode(error);
+  if (serverCode) {
+    return resolveBrandScrapeIssueCode(serverCode);
+  }
+
+  return isClientTimeoutError(error)
+    ? BrandScrapeErrorCode.TIMEOUT
+    : BrandScrapeErrorCode.UNKNOWN;
+}

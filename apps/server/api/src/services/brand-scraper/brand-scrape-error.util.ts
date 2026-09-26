@@ -23,6 +23,21 @@ const BLOCKED_STATUS_CODES = new Set([401, 403, 429, 999]);
 const BLOCKED_MESSAGE_PATTERN =
   /forbidden|blocked|bot detection|captcha|access denied|cloudflare|are you a robot/i;
 
+/**
+ * `fetchOnce` in `brand-scraper.service.ts` gives up after
+ * `MAX_RETRY_ATTEMPTS` consecutive 429s and throws this message — the site
+ * itself is the one repeatedly rate-limiting us, so this is a block, not an
+ * unclassified failure (#5080 review).
+ */
+const MAX_RETRIES_MESSAGE_PATTERN = /max retries.*exceeded/i;
+
+/**
+ * `resolveSafeDestination` in `destination-guard.ts` throws this specific
+ * `DestinationGuardError` message on a DNS lookup failure — that is the site
+ * being unreachable, not this guard actively blocking it (#5080 review).
+ */
+const DESTINATION_DID_NOT_RESOLVE_PATTERN = /did not resolve/i;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -59,9 +74,17 @@ function readTransportCode(error: unknown): string | undefined {
     : undefined;
 }
 
-/** Extracts the HTTP status the scraper embedded in its own error message. */
+/**
+ * Extracts the HTTP status the scraper embedded in its own error message —
+ * always as `<prefix>: <status>[ <statusText>]` at the very end of the
+ * message (see the `Failed to fetch ...`, `Meta tag fallback failed ...`
+ * throws in `brand-scraper.service.ts`). Anchored to the end of the string
+ * so a 3-digit port in the URL portion of the message (e.g.
+ * `https://example.com:800/path: 404 Not Found`) can never match instead of
+ * the real trailing status (#5080 review).
+ */
 function readEmbeddedStatus(message: string): number | undefined {
-  const match = /:\s*(\d{3})\b/.exec(message);
+  const match = /:\s*(\d{3})(?:\s+\S.*)?$/.exec(message);
   const status = match ? Number(match[1]) : undefined;
   return status !== undefined && Number.isFinite(status) ? status : undefined;
 }
@@ -104,9 +127,26 @@ export function classifyBrandScrapeError(error: unknown): IBrandScrapeWarning {
   }
 
   if (isDestinationGuardError(error)) {
+    // A DNS lookup failure inside the SSRF guard means the site never
+    // resolved at all — unreachable, not blocked.
+    if (DESTINATION_DID_NOT_RESOLVE_PATTERN.test(message)) {
+      return {
+        code: BrandScrapeErrorCode.SITE_UNREACHABLE,
+        message: 'We could not reach that website.',
+      };
+    }
     return {
       code: BrandScrapeErrorCode.SITE_BLOCKED,
       message: 'That website could not be accessed for scraping.',
+    };
+  }
+
+  if (MAX_RETRIES_MESSAGE_PATTERN.test(message)) {
+    // Every attempt in `fetchOnce`'s retry loop was rate-limited (429) —
+    // the site itself is the one repeatedly refusing us.
+    return {
+      code: BrandScrapeErrorCode.SITE_BLOCKED,
+      message: 'That website blocked our request to read it.',
     };
   }
 

@@ -165,6 +165,13 @@ export class AllExceptionFilter implements ExceptionFilter {
         source: error.source ?? {
           pointer: error.pointer,
         },
+        // The HTTP status always goes on its own `status` member (per
+        // JSON:API) so a client never has to parse a semantic `code` (e.g.
+        // `BrandScrapeErrorCode`) to learn the status — `code` used to be
+        // the only place the status appeared, which broke every client
+        // helper that read it from there once `code` stopped being a status
+        // string (#5080 review).
+        status: error.status.toString(),
         title: error.title,
       }),
     );

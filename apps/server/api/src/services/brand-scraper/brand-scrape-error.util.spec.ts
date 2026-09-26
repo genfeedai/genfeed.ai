@@ -36,8 +36,15 @@ describe('classifyBrandScrapeError', () => {
     });
   });
 
-  it.each(['ENOTFOUND', 'ECONNREFUSED', 'ECONNRESET', 'EAI_AGAIN'])(
-    'classifies transport code %s as unreachable',
+  it.each([
+    'ENOTFOUND',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'EAI_AGAIN',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+  ])(
+    'classifies transport code %s nested under .cause as unreachable',
     (code) => {
       const error = new TypeError('fetch failed');
       (error as unknown as { cause: { code: string } }).cause = { code };
@@ -49,13 +56,46 @@ describe('classifyBrandScrapeError', () => {
     },
   );
 
-  it('classifies a DestinationGuardError as blocked', () => {
-    const error = new Error('Destination resolves to a private address');
+  it('classifies a directly-attached ENOTFOUND (no .cause wrapper) as unreachable', () => {
+    const error = new Error('getaddrinfo ENOTFOUND example.com');
+    (error as unknown as { code: string }).code = 'ENOTFOUND';
+
+    expect(classifyBrandScrapeError(error)).toEqual({
+      code: BrandScrapeErrorCode.SITE_UNREACHABLE,
+      message: 'We could not reach that website.',
+    });
+  });
+
+  it('classifies a DestinationGuardError private-address block as blocked', () => {
+    const error = new Error(
+      'Destination resolves to a private or reserved address: 10.0.0.1',
+    );
     error.name = 'DestinationGuardError';
 
     expect(classifyBrandScrapeError(error)).toEqual({
       code: BrandScrapeErrorCode.SITE_BLOCKED,
       message: 'That website could not be accessed for scraping.',
+    });
+  });
+
+  it('classifies a DestinationGuardError DNS failure as unreachable, not blocked', () => {
+    const error = new Error('Destination hostname did not resolve: acme.test');
+    error.name = 'DestinationGuardError';
+
+    expect(classifyBrandScrapeError(error)).toEqual({
+      code: BrandScrapeErrorCode.SITE_UNREACHABLE,
+      message: 'We could not reach that website.',
+    });
+  });
+
+  it('classifies exhausted 429 retries as blocked, not unknown', () => {
+    expect(
+      classifyBrandScrapeError(
+        new Error('Max retries (3) exceeded for https://example.com'),
+      ),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_BLOCKED,
+      message: 'That website blocked our request to read it.',
     });
   });
 
@@ -94,6 +134,28 @@ describe('classifyBrandScrapeError', () => {
     ).toEqual({
       code: BrandScrapeErrorCode.SITE_UNREACHABLE,
       message: 'We could not reach that website.',
+    });
+  });
+
+  it('reads the trailing status, not a 3-digit port in the URL (#5080 review)', () => {
+    expect(
+      classifyBrandScrapeError(
+        new Error(
+          'Failed to fetch https://example.com:800/path: 404 Not Found',
+        ),
+      ),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_UNREACHABLE,
+      message: 'We could not reach that website.',
+    });
+  });
+
+  it('reads the trailing status with no statusText (LinkedIn/X error shape)', () => {
+    expect(
+      classifyBrandScrapeError(new Error('Failed to fetch LinkedIn page: 403')),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_BLOCKED,
+      message: 'That website blocked our request to read it.',
     });
   });
 

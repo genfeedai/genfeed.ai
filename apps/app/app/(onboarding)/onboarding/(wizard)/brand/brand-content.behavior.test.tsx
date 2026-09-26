@@ -576,7 +576,7 @@ describe('BrandContent behavior', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('shows a classified, actionable message and retries after a scrape warning (#5080)', async () => {
+  it('advances past a scrape warning instead of blocking Continue (#5080)', async () => {
     scrapeMock.mockResolvedValueOnce({
       brandId: 'brand_1',
       scrapeWarning: {
@@ -594,25 +594,49 @@ describe('BrandContent behavior', () => {
     openVoice();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
+    // The server already persisted a fallback brand profile and completed
+    // onboarding for this response, so the wizard must advance — not loop
+    // the user on Continue against a site that will always fail this way.
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
+    expect(scrapeMock).toHaveBeenCalledTimes(1);
     expect(
-      await screen.findByText(
-        "We couldn't reach that website. Double-check the address, then press Continue to try again.",
+      screen.getByText(
+        "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
       ),
     ).toBeVisible();
-    // Onboarding progress is not lost: the wizard stays on this step instead
-    // of navigating away, and Continue is available to retry.
-    expect(handleStepCompleteMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
 
+  it('keeps advancing on every retry when the same site keeps producing the same warning (#5080)', async () => {
+    // A WAF-blocked or dead-DNS site produces the identical scrapeWarning on
+    // every attempt. Before this fix, a persistent scrapeWarning blocked
+    // Continue forever and re-ran the whole scrape/AI/persistence pipeline
+    // each click; the fix must advance on the very first attempt.
+    scrapeMock.mockResolvedValue({
+      brandId: 'brand_1',
+      scrapeWarning: {
+        code: 'BRAND_SCRAPE_SITE_BLOCKED',
+        message: 'That website blocked our request to read it.',
+      },
+      success: true,
+    });
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'always-blocked.example' },
+    });
+    openVoice();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
     });
-    expect(scrapeMock).toHaveBeenCalledTimes(2);
+    expect(scrapeMock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a classified, actionable message when the scrape request itself fails (#5080)', async () => {
+  it('advances past an unclassified rejected scrape request instead of blocking Continue (#5080)', async () => {
     scrapeMock.mockRejectedValueOnce({
       errors: [
         {
@@ -631,15 +655,48 @@ describe('BrandContent behavior', () => {
     openVoice();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
+    // BRAND_SCRAPE_UNKNOWN must not claim setup failed — it may well have
+    // succeeded server-side (e.g. the client just gave up waiting).
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
     expect(
-      await screen.findByText(
-        "We couldn't finish setting up your brand. Check your connection, then press Continue to try again.",
+      screen.getByText(
+        'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
       ),
     ).toBeVisible();
-    expect(handleStepCompleteMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to the generic scrape message for an unrecognized or missing error code', async () => {
+  it('advances past a client-side scrape timeout (no JSON:API body) instead of blocking Continue', async () => {
+    // The HTTP interceptor rejects a client-side timeout with a plain Error
+    // carrying isTimeout — never a { errors: [...] } body.
+    const timeoutError = Object.assign(
+      new Error(
+        'Request timed out. Please check your connection and try again.',
+      ),
+      { isTimeout: true },
+    );
+    scrapeMock.mockRejectedValueOnce(timeoutError);
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'slow-site.example' },
+    });
+    openVoice();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
+    expect(
+      screen.getByText(
+        'Your site took too long to respond, but your brand setup continued — you can add details anytime.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('falls back to the generic scrape notice for an unrecognized or missing error code, and still advances', async () => {
     scrapeMock.mockRejectedValueOnce(new Error('network down'));
     render(<BrandContent />);
 
@@ -650,12 +707,50 @@ describe('BrandContent behavior', () => {
     openVoice();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
+    expect(
+      screen.getByText(
+        'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('blocks only on an invalid URL, keeping the user on this step to fix it', async () => {
+    scrapeMock.mockRejectedValueOnce({
+      errors: [
+        {
+          code: 'BRAND_SCRAPE_INVALID_URL',
+          detail: 'Invalid domain',
+          title: 'Invalid URL',
+        },
+      ],
+    });
+    render(<BrandContent />);
+
+    await openBrandDetails();
+    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
+      target: { value: 'not a url' },
+    });
+    openVoice();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
     expect(
       await screen.findByText(
-        "We couldn't finish setting up your brand. Check your connection, then press Continue to try again.",
+        "That website address doesn't look valid. Go back and fix it, then press Continue.",
       ),
     ).toBeVisible();
     expect(handleStepCompleteMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+    scrapeMock.mockResolvedValueOnce({ brandId: 'brand_1', success: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    });
+    expect(scrapeMock).toHaveBeenCalledTimes(2);
   });
 
   it('shows an actionable error and allows retry when skipping fails', async () => {

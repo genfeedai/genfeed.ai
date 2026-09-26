@@ -5,10 +5,17 @@ import type { AxiosError } from 'axios';
 
 export interface IJsonApiError {
   errors: Array<{
-    /** HTTP status as number or string (`404` / `"404"`) depending on filter. */
+    /**
+     * A stable, non-generic code (e.g. `BrandScrapeErrorCode`), or the HTTP
+     * status as a fallback on older responses that never set `status`
+     * separately. Read `status` first — `code` is not guaranteed to be
+     * status-shaped (#5080 review).
+     */
     code: number | string;
     title: string;
     detail: string;
+    /** HTTP status as number or string (`404` / `"404"`). */
+    status?: number | string;
     source?: { pointer?: string; parameter?: string };
     meta?: Record<string, unknown>;
   }>;
@@ -99,9 +106,11 @@ export function getErrorStatus(error: unknown): number | undefined {
 
   if (Array.isArray(record.errors) && record.errors.length > 0) {
     const firstError = record.errors[0] as Record<string, unknown>;
+    // `status` first: `code` may be a stable, non-numeric identifier such as
+    // `BrandScrapeErrorCode` rather than the HTTP status (#5080 review).
     return (
-      parseHttpStatusCode(firstError.code) ??
-      parseHttpStatusCode(firstError.status)
+      parseHttpStatusCode(firstError.status) ??
+      parseHttpStatusCode(firstError.code)
     );
   }
 
@@ -156,7 +165,12 @@ export class ErrorHandler {
     }
 
     const firstError = jsonApiError.errors[0];
-    const status = parseHttpStatusCode(firstError.code) ?? 500;
+    // `status` first: `code` may be a stable, non-numeric identifier such as
+    // `BrandScrapeErrorCode` rather than the HTTP status (#5080 review).
+    const status =
+      parseHttpStatusCode(firstError.status) ??
+      parseHttpStatusCode(firstError.code) ??
+      500;
     return {
       code: ErrorHandler.mapStatusToErrorCode(status),
       detail: firstError.detail,

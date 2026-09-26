@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractBrandScrapeErrorCode,
   resolveBrandScrapeIssueCode,
+  resolveScrapeIssueCodeFromError,
 } from './brand-scrape-issue.util';
 
 describe('extractBrandScrapeErrorCode', () => {
@@ -38,6 +39,36 @@ describe('resolveBrandScrapeIssueCode', () => {
     'falls back to UNKNOWN for %p',
     (code) => {
       expect(resolveBrandScrapeIssueCode(code)).toBe(
+        BrandScrapeErrorCode.UNKNOWN,
+      );
+    },
+  );
+});
+
+describe('resolveScrapeIssueCodeFromError', () => {
+  it('prefers the server JSON:API code when present', () => {
+    expect(
+      resolveScrapeIssueCodeFromError({
+        errors: [
+          { code: 'BRAND_SCRAPE_SITE_BLOCKED', detail: 'x', title: 'x' },
+        ],
+      }),
+    ).toBe(BrandScrapeErrorCode.SITE_BLOCKED);
+  });
+
+  it('resolves a client-side interceptor timeout (no JSON:API body) to TIMEOUT', () => {
+    const timeoutError = Object.assign(new Error('Request timed out.'), {
+      isTimeout: true,
+    });
+    expect(resolveScrapeIssueCodeFromError(timeoutError)).toBe(
+      BrandScrapeErrorCode.TIMEOUT,
+    );
+  });
+
+  it.each([undefined, null, new Error('network down'), 'plain string'])(
+    'falls back to UNKNOWN for %p',
+    (error) => {
+      expect(resolveScrapeIssueCodeFromError(error)).toBe(
         BrandScrapeErrorCode.UNKNOWN,
       );
     },

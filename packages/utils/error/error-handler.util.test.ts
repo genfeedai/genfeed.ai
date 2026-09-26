@@ -118,6 +118,23 @@ describe('error-handler.util', () => {
         }),
       ).toBe(403);
     });
+
+    it('reads status ahead of a non-numeric, semantic code (#5080 review)', () => {
+      // HttpExceptionFilter now writes a stable BrandScrapeErrorCode-style
+      // `code` alongside a `status` string, not a status-shaped `code`.
+      expect(
+        getErrorStatus({
+          errors: [
+            {
+              code: 'BRAND_SCRAPE_UNKNOWN',
+              detail: 'Failed to setup brand',
+              status: '500',
+              title: 'Brand Setup Failed',
+            },
+          ],
+        }),
+      ).toBe(500);
+    });
   });
 
   describe('getErrorMessage', () => {
@@ -289,6 +306,49 @@ describe('error-handler.util', () => {
         expect(ErrorHandler.convertJsonApiError(error)?.code).toBe(
           'UNKNOWN_ERROR',
         );
+      });
+
+      it('resolves the correct status from a semantic, non-numeric code plus a status member (#5080 review)', () => {
+        // End-to-end shape a NestJS filter now writes for a classified
+        // failure: `code` is a stable identifier, not the HTTP status.
+        const error: IJsonApiError = {
+          errors: [
+            {
+              code: 'BRAND_SCRAPE_UNKNOWN',
+              detail: 'Failed to setup brand',
+              status: '500',
+              title: 'Brand Setup Failed',
+            },
+          ],
+        };
+        const result = ErrorHandler.convertJsonApiError(error);
+        expect(result?.status).toBe(500);
+        expect(result?.code).toBe('INTERNAL_ERROR');
+        expect(result?.detail).toBe('Failed to setup brand');
+      });
+
+      it('still resolves plan-limit/rate-limit/not-found style errors whose code is the status', () => {
+        const notFound: IJsonApiError = {
+          errors: [
+            {
+              code: '404',
+              detail: 'Brand not found',
+              status: '404',
+              title: 'Not Found',
+            },
+          ],
+        };
+        expect(ErrorHandler.convertJsonApiError(notFound)?.status).toBe(404);
+        expect(ErrorHandler.convertJsonApiError(notFound)?.code).toBe(
+          'NOT_FOUND',
+        );
+
+        const rateLimited: IJsonApiError = {
+          errors: [
+            { code: '429', detail: 'Slow down', status: '429', title: 'Limit' },
+          ],
+        };
+        expect(ErrorHandler.convertJsonApiError(rateLimited)?.status).toBe(429);
       });
     });
 

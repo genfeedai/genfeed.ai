@@ -115,6 +115,29 @@ describe('withOnboardingErrorHandling', () => {
     });
   });
 
+  it('keeps the original error reachable as .cause for Sentry linked errors (#5080)', async () => {
+    const rootCause = new Error(
+      'duplicate key value violates constraint secret_x',
+    );
+
+    let caught: unknown;
+    try {
+      await withOnboardingErrorHandling(
+        logger as never,
+        'scrapeBrand',
+        { detail: 'Failed to setup brand', title: 'Brand Setup Failed' },
+        async () => {
+          throw rootCause;
+        },
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(HttpException);
+    expect((caught as Error).cause).toBe(rootCause);
+  });
+
   it('omits the code member entirely when none is configured', async () => {
     await expect(
       withOnboardingErrorHandling(

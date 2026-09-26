@@ -68,6 +68,11 @@ export async function withOnboardingErrorHandling<T>(
         title: options.title,
       },
       HttpStatus.INTERNAL_SERVER_ERROR,
+      // Keep the original exception reachable as `.cause` so Sentry's
+      // linked-errors integration captures the real stack/message behind
+      // this generic wrapper — the exact gap the #5080 investigation hit
+      // (a stored event with no upstream error code or cause).
+      { cause: error },
     );
   }
 }
