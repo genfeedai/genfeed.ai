@@ -1,3 +1,4 @@
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -33,7 +34,6 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { PromptCategory, PromptStatus } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -93,6 +93,12 @@ describe('PromptsController', () => {
       controllers: [PromptsController],
       providers: [
         PromptEnhancementService,
+        {
+          provide: AgentChatModelRegistryService,
+          useValue: {
+            resolveModelKey: vi.fn().mockResolvedValue('admin/default-text'),
+          },
+        },
         {
           provide: PromptsService,
           useValue: mockPromptsService,
@@ -179,7 +185,7 @@ describe('PromptsController', () => {
       await vi.waitFor(() =>
         expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
           expect.objectContaining({
-            model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+            model: 'admin/default-text',
           }),
           undefined,
         ),
