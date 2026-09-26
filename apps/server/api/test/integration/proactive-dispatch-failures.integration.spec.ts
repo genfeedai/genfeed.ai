@@ -41,6 +41,9 @@ function setup() {
     label: 'Agent',
     isActive: true,
     isDeleted: false,
+    // #5136: recordProactiveRunCompletion selects this nested relation to
+    // build the strategy's report and source path.
+    organization: { slug: 'org' },
     config: {
       dailyCreditBudget: 100,
       weeklyCreditBudget: 500,
@@ -127,6 +130,11 @@ function setup() {
         };
         return thread;
       }),
+    },
+    // #5136: recordProactiveRunCompletion upserts a daily strategy report on
+    // the transaction as part of completing a proactive run.
+    agentStrategyReport: {
+      upsert: vi.fn().mockResolvedValue({}),
     },
   };
   const strategies = new AgentStrategiesService(

@@ -49,6 +49,7 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createTestUser } from '@api-test/e2e/e2e-test.utils';
 import {
   BRAND_CONTROLLER_E2E_MOCK_PROVIDERS,
@@ -146,7 +147,15 @@ describe('E2E fixture contracts', () => {
     });
     const moduleRef = await Test.createTestingModule({
       imports: [moduleConfig],
-    }).compile();
+    })
+      // This spec only proves the constructor graph resolves — it never
+      // issues a query — so PrismaService is overridden with an inert stub
+      // instead of constructing the real Postgres-backed client, which
+      // `test/setup-unit.ts`'s global mocks don't cover the same way the
+      // DB-backed `test/integration/**` suite does.
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
 
     try {
       expect(moduleRef.get(CredentialsService)).toBeInstanceOf(
@@ -159,6 +168,30 @@ describe('E2E fixture contracts', () => {
       const markerEvent = 'e2e-fixture.marker';
       eventEmitter.emit(markerEvent);
       expect(eventEmitter.emit).toHaveBeenCalledWith(markerEvent);
+    } finally {
+      await moduleRef.close();
+    }
+  });
+
+  it('compiles the real PostsService with its onboarding/publish collaborators (#5079)', async () => {
+    // Regression coverage for #4375: #5079 added OnboardingCreditGrantsService
+    // to PostsService's constructor without updating this fixture, and the
+    // break went undetected because the E2E suite that constructs a real
+    // PostsService doesn't run on PRs (test/integration/** is excluded from
+    // this config). Any future required PostsService collaborator that this
+    // fixture doesn't provide fails this compile, on every API PR.
+    const moduleConfig = await E2ETestModule.forRoot({
+      providers: [PostsService],
+    });
+    const moduleRef = await Test.createTestingModule({
+      imports: [moduleConfig],
+    })
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
+
+    try {
+      expect(moduleRef.get(PostsService)).toBeInstanceOf(PostsService);
     } finally {
       await moduleRef.close();
     }

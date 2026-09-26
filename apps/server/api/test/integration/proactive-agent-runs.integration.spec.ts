@@ -55,6 +55,11 @@ describe('proactive organization to strategy run and attributed draft integratio
             id: 'strategy',
             brandId: 'brand',
             goalId: null,
+            // #5136: recordProactiveRunCompletion reads these nested
+            // relations (via `select`) to build the strategy's report and
+            // source path.
+            brand: { slug: 'brand' },
+            organization: { slug: 'org' },
             ...data,
           };
           return strategy;
@@ -139,6 +144,16 @@ describe('proactive organization to strategy run and attributed draft integratio
       },
       batchItem: { upsert: vi.fn().mockResolvedValue({}) },
       credential: { findMany: vi.fn().mockResolvedValue([]) },
+      // #5136: buildSyntheticUserMessage looks up the strategy's brand for
+      // its agentConfig (voice/strategy defaults) before dispatching.
+      brand: {
+        findFirst: vi.fn(async () => ({ agentConfig: {} })),
+      },
+      // #5136: recordProactiveRunCompletion upserts a daily strategy report
+      // on the transaction as part of completing a proactive run.
+      agentStrategyReport: {
+        upsert: vi.fn().mockResolvedValue({}),
+      },
     };
     const strategies = new AgentStrategiesService(
       prisma as never,
