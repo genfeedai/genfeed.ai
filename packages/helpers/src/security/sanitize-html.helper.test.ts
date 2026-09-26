@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createMarkup, sanitizeHtml } from './sanitize-html.helper';
+import {
+  createMarkup,
+  sanitizeHtml,
+  stripHtmlToPlainText,
+} from './sanitize-html.helper';
 
 describe('sanitize-html', () => {
   describe('sanitizeHtml', () => {
@@ -230,6 +234,54 @@ describe('sanitize-html', () => {
     it('should handle empty string', () => {
       const result = createMarkup('');
       expect(result).toEqual({ __html: '' });
+    });
+  });
+
+  describe('stripHtmlToPlainText', () => {
+    it('unwraps a stored caption paragraph into the visible tweet text', () => {
+      expect(
+        stripHtmlToPlainText(
+          '<p>AI content is taking over! Manual content creation is a thing of the past.</p>',
+        ),
+      ).toBe(
+        'AI content is taking over! Manual content creation is a thing of the past.',
+      );
+    });
+
+    it('collapses leftover markup and whitespace', () => {
+      expect(stripHtmlToPlainText('<p>Hello <strong>world</strong></p>')).toBe(
+        'Hello world',
+      );
+    });
+
+    it('does not HTML-escape the returned text', () => {
+      expect(stripHtmlToPlainText('Q&A <3')).toBe('Q&A <3');
+      expect(stripHtmlToPlainText('<p>Q&A <3</p>')).toBe('Q&A <3');
+      expect(stripHtmlToPlainText('R&D "quoted" it\'s')).toBe(
+        'R&D "quoted" it\'s',
+      );
+    });
+
+    it('preserves line breaks instead of collapsing them into one line', () => {
+      expect(stripHtmlToPlainText('Line one\nLine two')).toBe(
+        'Line one\nLine two',
+      );
+      expect(stripHtmlToPlainText('Line1<br>Line2')).toBe('Line1\nLine2');
+    });
+
+    it('separates paragraphs with a blank line instead of gluing them together', () => {
+      expect(stripHtmlToPlainText('<p>Para1</p><p>Para2</p>')).toBe(
+        'Para1\n\nPara2',
+      );
+    });
+
+    it('still collapses horizontal whitespace and runs of blank lines', () => {
+      expect(stripHtmlToPlainText('Too    many     spaces')).toBe(
+        'Too many spaces',
+      );
+      expect(
+        stripHtmlToPlainText('<p>Para1</p><p></p><p></p><p>Para2</p>'),
+      ).toBe('Para1\n\nPara2');
     });
   });
 });

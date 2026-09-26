@@ -16,12 +16,17 @@ import type {
   TrendContentResponse,
   TrendCorpusFreshnessHealth,
   TrendDetailData,
+  TrendItem,
   TrendSourceItem,
   TrendsResponse,
 } from '@genfeedai/props/trends/trends-page.props';
 import { TrendSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
-import { deserializeCollection } from '@services/core/json-api';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 export class TrendsService extends BaseService<Trend> {
   constructor(token: string) {
@@ -185,8 +190,23 @@ export class TrendsService extends BaseService<Trend> {
   }
 
   async getTrendById(trendId: string): Promise<TrendDetailData> {
-    const response = await this.instance.get<TrendDetailData>(`/${trendId}`);
-    return response.data;
+    // The controller returns `trend` and `relatedTrends` as JSON:API
+    // documents (via serializeSingle/serializeCollection), matching every
+    // other single-resource endpoint's response shape. `analysis` is a
+    // plain object -- it never goes through a serializer.
+    const response = await this.instance.get<{
+      analysis: TrendDetailData['analysis'];
+      relatedTrends: JsonApiResponseDocument;
+      trend: JsonApiResponseDocument;
+    }>(`/${trendId}`);
+
+    return {
+      analysis: response.data.analysis,
+      relatedTrends: deserializeCollection<TrendItem>(
+        response.data.relatedTrends,
+      ),
+      trend: deserializeResource<TrendItem>(response.data.trend),
+    };
   }
 
   async getTrendContent(options?: {

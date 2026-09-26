@@ -9,6 +9,8 @@ const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 const openAgentComposerMock = vi.fn();
 const openModalMock = vi.fn();
+const pushMock = vi.fn();
+const hrefMock = vi.fn((path: string) => `/acme/main${path}`);
 
 const brandMock = vi.hoisted(() => ({
   label: 'Acme Creator',
@@ -48,6 +50,10 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => useSearchParamsMock(),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: hrefMock }),
+}));
+
 vi.mock('@/hooks/use-open-agent-composer', () => ({
   useOpenAgentComposer: () => openAgentComposerMock,
 }));
@@ -65,8 +71,10 @@ describe('PublishingLayoutContent', () => {
     brandMock.label = 'Acme Creator';
     openAgentComposerMock.mockReset();
     openModalMock.mockReset();
+    pushMock.mockReset();
+    hrefMock.mockClear();
     usePathnameMock.mockReturnValue('/publishing/posts');
-    useRouterMock.mockReturnValue({ refresh: vi.fn() });
+    useRouterMock.mockReturnValue({ push: pushMock, refresh: vi.fn() });
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams('platform=youtube'),
     );
@@ -131,7 +139,16 @@ describe('PublishingLayoutContent', () => {
     );
     await user.click(screen.getByRole('button', { name: /new post/i }));
     await user.click(screen.getByRole('menuitem', { name: /social post/i }));
-    expect(openModalMock).toHaveBeenCalledWith('modal-post-create');
+    expect(pushMock).toHaveBeenCalledWith('/acme/main/publishing/posts/new');
+    expect(openModalMock).not.toHaveBeenCalledWith('modal-post-create');
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('button', { name: /new post/i }));
+    await user.click(screen.getByRole('menuitem', { name: /x post/i }));
+    expect(pushMock).toHaveBeenCalledWith(
+      '/acme/main/publishing/posts/new?platform=twitter',
+    );
     await waitFor(() =>
       expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );

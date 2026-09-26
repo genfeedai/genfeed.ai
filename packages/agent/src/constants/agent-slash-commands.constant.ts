@@ -1,3 +1,4 @@
+import { SCHEDULE_TODAYS_TWEETS_PROMPT } from '@genfeedai/agent/constants/agent-quick-prompts.constant';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { PromptCommand } from '@genfeedai/props/prompt-bars/prompt-command.props';
 
@@ -90,5 +91,13 @@ export const AGENT_SLASH_COMMANDS: PromptCommand[] = [
     label: 'Batch Generate',
     name: 'batch',
     promptPrefix: 'Generate a batch of posts: ',
+  },
+  // Full prompt rather than a prefix: `/tweets-today` + Enter sends it as-is.
+  {
+    description: 'Schedule one X post per hour for the rest of today',
+    kind: 'prompt',
+    label: "Today's Tweets",
+    name: 'tweets-today',
+    promptPrefix: SCHEDULE_TODAYS_TWEETS_PROMPT,
   },
 ];

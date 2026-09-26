@@ -15,7 +15,12 @@ export interface UpdateGenerationHarnessSettings {
 export interface GenerationHarnessReceipt {
   originalPrompt: string;
   enhancedPrompt: string;
-  status: 'applied' | 'skipped';
+  /**
+   * `failed` means enhancement was enabled but a downstream dependency
+   * (embedding, harness brief, or the enhancement model) errored; the caller
+   * falls back to the original prompt instead of failing the generation.
+   */
+  status: 'applied' | 'skipped' | 'failed';
   source: 'default' | 'organization' | 'brand' | 'request';
   brandId: string;
   appliedPacks: Array<{ id: string; version: string }>;

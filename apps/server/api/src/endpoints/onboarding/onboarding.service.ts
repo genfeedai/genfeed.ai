@@ -1,9 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
+import { StarterAssetsDto } from '@api/endpoints/onboarding/dto/starter-assets.dto';
 import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
@@ -11,6 +13,8 @@ import type {
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
+import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/services/onboarding-starter-assets-queue.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -36,12 +40,14 @@ export class OnboardingService {
 
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly userSetupService: UserSetupService,
     private readonly onboardingPreviewService: OnboardingPreviewService,
     private readonly onboardingReadinessService: OnboardingReadinessService,
+    private readonly onboardingStarterAssetsQueueService: OnboardingStarterAssetsQueueService,
   ) {}
 
   private getEntityId(record: unknown): string {
@@ -221,6 +227,46 @@ export class OnboardingService {
       },
       HttpStatus.BAD_REQUEST,
     );
+  }
+
+  /**
+   * Queue the starter post + ad draft for the new brand. Generation runs in
+   * the workers app off `ONBOARDING_STARTER_ASSETS_QUEUE` — this only
+   * validates brand ownership and enqueues, so the domain loading step can
+   * return immediately instead of blocking on generation.
+   */
+  async enqueueStarterAssets(
+    dto: StarterAssetsDto,
+    user: User,
+  ): Promise<{ queued: boolean }> {
+    const organizationId = user.organizationId?.toString();
+    const userId = (user.userId ?? user.id)?.toString();
+    if (!organizationId || !userId) {
+      throw new HttpException(
+        {
+          detail: 'Missing organization or user context',
+          title: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const brand = await this.brandsService.findOne(
+      { id: dto.brandId, isDeleted: false, organizationId },
+      'none',
+    );
+    if (!brand) {
+      throw new NotFoundException('Brand', dto.brandId);
+    }
+
+    await this.onboardingStarterAssetsQueueService.enqueue({
+      brandId: dto.brandId,
+      organizationId,
+      userId,
+      ...(dto.websiteUrl ? { websiteUrl: dto.websiteUrl } : {}),
+    });
+
+    return { queued: true };
   }
 
   /**

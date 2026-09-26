@@ -7,7 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -45,7 +45,9 @@ describe('ContextsService retrieval hot path', () => {
     };
 
     const embeddingVector = new Array(1024).fill(0.1);
-    const generateEmbedding = vi.fn().mockResolvedValue(embeddingVector);
+    const embeddings = vi
+      .fn()
+      .mockResolvedValue({ data: [{ embedding: embeddingVector, index: 0 }] });
     const logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -63,7 +65,7 @@ describe('ContextsService retrieval hot path', () => {
     const service = new ContextsService(
       prismaService,
       logger,
-      { generateEmbedding } as unknown as ReplicateService,
+      { embeddings } as unknown as OpenRouterService,
       {
         getDefaultModel: vi.fn().mockResolvedValue('bge'),
       } as unknown as RouterService,
@@ -75,8 +77,8 @@ describe('ContextsService retrieval hot path', () => {
 
     return {
       contextBase,
+      embeddings,
       executeRaw,
-      generateEmbedding,
       retrieval,
       service,
       queryRaw,
@@ -113,17 +115,22 @@ describe('ContextsService retrieval hot path', () => {
   });
 
   it('persists embeddingFailedAt when the provider rejects a row', async () => {
-    const { service, generateEmbedding, queryRaw, executeRaw } = buildService();
+    const { service, embeddings, queryRaw, executeRaw } = buildService();
     queryRaw.mockResolvedValueOnce([
       { content: 'bad content', id: 'entry-broken' },
     ]);
-    generateEmbedding
-      .mockResolvedValueOnce(new Array(1024).fill(0.1))
+    embeddings
+      .mockResolvedValueOnce({
+        data: [{ embedding: new Array(1024).fill(0.1), index: 0 }],
+      })
       .mockRejectedValueOnce(new Error('provider rejected'));
 
     await queryContext(service);
 
-    expect(generateEmbedding).toHaveBeenCalledWith('bge', 'bad content');
+    expect(embeddings).toHaveBeenCalledWith({
+      input: 'bad content',
+      model: 'bge',
+    });
     const failWrite = executeRaw.mock.calls.find((call) => {
       const sql = (call[0] as MockSql).sql;
       return (

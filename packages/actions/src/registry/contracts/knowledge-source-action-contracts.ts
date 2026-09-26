@@ -50,7 +50,16 @@ const VERSION = closedObjectSchema(
 const STATE_PROPERTIES = {
   chunks: arraySchema(STRING_SCHEMA),
   extracted: closedObjectSchema(
-    { mimeType: STRING_SCHEMA, text: STRING_SCHEMA },
+    {
+      endMs: NUMBER_SCHEMA,
+      etag: STRING_SCHEMA,
+      lastModified: STRING_SCHEMA,
+      mediaUrl: STRING_SCHEMA,
+      mimeType: STRING_SCHEMA,
+      notModified: BOOLEAN_SCHEMA,
+      startMs: NUMBER_SCHEMA,
+      text: STRING_SCHEMA,
+    },
     ['text'],
   ),
   failure: STRING_SCHEMA,

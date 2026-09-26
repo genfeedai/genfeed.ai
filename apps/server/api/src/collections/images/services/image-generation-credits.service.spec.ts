@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
+import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -211,7 +212,7 @@ describe('ImageGenerationCreditsService', () => {
       deferred: false,
       modelKey: 'fal/model',
       pricingMetadata: {
-        marginMultiplier: 1,
+        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
         pricingType: null,
         providerCostUsd: null,
       },
@@ -379,7 +380,7 @@ describe('ImageGenerationCreditsService', () => {
 
     expect(request.creditsConfig).toMatchObject({
       pricingMetadata: {
-        marginMultiplier: 1,
+        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
         pricingType: 'flat',
         providerCostUsd: 0.15,
       },

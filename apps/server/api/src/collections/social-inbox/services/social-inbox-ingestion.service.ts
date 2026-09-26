@@ -16,6 +16,9 @@ import {
 import type {
   InboundSocialMessageInput,
   SocialInboxScope,
+  XPostRepliesIngestInput,
+  XPostRepliesIngestResult,
+  XReplyTargetPost,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
@@ -25,6 +28,7 @@ import { scopedWhere } from '@api/index';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import type { TwitterInboxTweet } from '@api/services/integrations/twitter/services/twitter-inbox.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -95,6 +99,48 @@ type WorkflowTriggerClaim = {
   attemptedAt: Date;
   jobId: string;
 };
+
+type SyncedItem = {
+  input: InboundSocialMessageInput;
+  messageId: string;
+  threadId: string;
+};
+
+function toXPostReplyItem(
+  credential: ConnectedCredentialAccount & { id: string },
+  scope: SocialInboxScope,
+  post: XReplyTargetPost,
+  reply: TwitterInboxTweet,
+): SyncedItem {
+  return {
+    input: {
+      ...accountFieldsFromCredential(credential, scope.userId),
+      body: reply.text,
+      brandId: post.brandId,
+      conversationType: SocialConversationType.COMMENT,
+      createdAt: reply.createdAt,
+      credentialId: credential.id,
+      externalConversationId: reply.conversationId,
+      externalMessageId: reply.tweetId,
+      externalParentId: reply.tweetId,
+      externalParentMessageId: reply.inReplyToId ?? undefined,
+      externalThreadId: reply.conversationId,
+      organizationId: scope.organizationId,
+      participantAvatarUrl: reply.authorAvatarUrl,
+      participantExternalId: reply.authorId,
+      participantHandle: reply.authorUsername,
+      participantName: reply.authorName ?? reply.authorUsername,
+      platform: Platform.TWITTER,
+      postId: post.id,
+      sourceContentId: String(post.externalId),
+      sourceContentTitle: post.label ?? post.description.slice(0, 120),
+      sourceContentType: 'tweet',
+      sourceContentUrl: post.url ?? `https://x.com/i/status/${post.externalId}`,
+    },
+    messageId: reply.tweetId,
+    threadId: reply.conversationId,
+  };
+}
 
 @Injectable()
 export class SocialInboxIngestionService {
@@ -652,35 +698,9 @@ export class SocialInboxIngestionService {
         );
 
         await this.ingestBatch(
-          replies.map((reply) => ({
-            input: {
-              ...accountFieldsFromCredential(credential, scope.userId),
-              body: reply.text,
-              brandId: post.brandId,
-              conversationType: SocialConversationType.COMMENT,
-              createdAt: reply.createdAt,
-              credentialId: credential.id,
-              externalConversationId: reply.conversationId,
-              externalMessageId: reply.tweetId,
-              externalParentId: reply.tweetId,
-              externalParentMessageId: reply.inReplyToId ?? undefined,
-              externalThreadId: reply.conversationId,
-              organizationId: scope.organizationId,
-              participantAvatarUrl: reply.authorAvatarUrl,
-              participantExternalId: reply.authorId,
-              participantHandle: reply.authorUsername,
-              participantName: reply.authorName ?? reply.authorUsername,
-              platform: Platform.TWITTER,
-              postId: post.id,
-              sourceContentId: String(post.externalId),
-              sourceContentTitle: post.label ?? post.description.slice(0, 120),
-              sourceContentType: 'tweet',
-              sourceContentUrl:
-                post.url ?? `https://x.com/i/status/${post.externalId}`,
-            },
-            messageId: reply.tweetId,
-            threadId: reply.conversationId,
-          })),
+          replies.map((reply) =>
+            toXPostReplyItem(credential, scope, post, reply),
+          ),
           scope.organizationId,
           Platform.TWITTER,
           counts,
@@ -689,6 +709,47 @@ export class SocialInboxIngestionService {
     }
 
     return counts;
+  }
+
+  /**
+   * Store X replies the caller already fetched and matched to one of the
+   * credential's own posts. No provider call happens here; the reply watch
+   * reads them from the account's mentions timeline. Each reply is grouped
+   * under its post's conversation, exactly like the per-post sync above.
+   */
+  async ingestXPostReplies(
+    scope: SocialInboxScope,
+    input: XPostRepliesIngestInput,
+  ): Promise<XPostRepliesIngestResult> {
+    const counts = { conversationsCreated: 0, messagesCreated: 0 };
+    const createdMessageIds: string[] = [];
+    const [credential] = await this.findConnectedCredentials(
+      scope,
+      PrismaCredentialPlatform.TWITTER,
+      input.credentialId,
+    );
+    if (!credential?.brandId || input.replies.length === 0) {
+      return { ...counts, createdMessageIds };
+    }
+
+    await this.ingestBatch(
+      input.replies.flatMap(({ post, reply }) =>
+        post.brandId === credential.brandId && post.externalId
+          ? [
+              toXPostReplyItem(credential, scope, post, {
+                ...reply,
+                conversationId: String(post.externalId),
+              }),
+            ]
+          : [],
+      ),
+      scope.organizationId,
+      Platform.TWITTER,
+      counts,
+      createdMessageIds,
+    );
+
+    return { ...counts, createdMessageIds };
   }
 
   async ingestXDms(
@@ -1023,6 +1084,7 @@ export class SocialInboxIngestionService {
     organizationId: string,
     platform: string,
     counts: { conversationsCreated: number; messagesCreated: number },
+    createdMessageIds?: string[],
   ): Promise<void> {
     if (items.length === 0) {
       return;
@@ -1048,6 +1110,7 @@ export class SocialInboxIngestionService {
       if (isNewMessage) {
         counts.messagesCreated++;
         existing.messageIds.add(item.messageId);
+        createdMessageIds?.push(item.messageId);
       }
       if (isNewConversation) {
         counts.conversationsCreated++;

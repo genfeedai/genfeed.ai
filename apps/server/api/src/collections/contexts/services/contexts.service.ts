@@ -35,7 +35,7 @@ import {
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -49,6 +49,7 @@ import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,7 +60,7 @@ export class ContextsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly replicateService: ReplicateService,
+    private readonly openRouterService: OpenRouterService,
     private readonly routerService: RouterService,
   ) {}
 
@@ -611,7 +612,17 @@ export class ContextsService {
     const model =
       modelIdentifier ??
       (await this.routerService.getDefaultModel(ModelCategory.EMBEDDING));
-    return this.replicateService.generateEmbedding(model, text);
+    const response = await this.openRouterService.embeddings({
+      input: text,
+      model,
+    });
+    const embedding = response.data[0]?.embedding;
+    if (!embedding || embedding.length !== CONTEXT_EMBEDDING_DIMENSION) {
+      throw new Error(
+        `Embedding model ${model} returned ${embedding?.length ?? 0} dimensions; expected ${CONTEXT_EMBEDDING_DIMENSION}`,
+      );
+    }
+    return embedding;
   }
 
   /** Active prompt-enhancement bases in the request brand's scope. */

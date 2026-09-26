@@ -36,6 +36,11 @@ describe('StripeWebhookSupportService', () => {
     creditTransaction: {
       findFirst: vi.fn(),
     },
+    lead: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
   };
   const activitiesService = { create: vi.fn() };
   const cacheService = {
@@ -761,6 +766,159 @@ describe('StripeWebhookSupportService', () => {
         { organizationId: 'org_1', tier: SubscriptionTier.PRO },
       );
       expect(organizationSettingsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('upsertSkillsProLead', () => {
+    it('creates a lead for a first-time buyer', async () => {
+      prisma.lead.findFirst.mockResolvedValue(null);
+      prisma.lead.create.mockResolvedValue({ id: 'lead_1' });
+
+      await service.upsertSkillsProLead({
+        email: 'buyer@example.com',
+        organizationId: 'org_1',
+        productType: 'bundle',
+        receiptId: 'sk_rcpt_1',
+        skillSlugs: ['image-gen-pro'],
+        userId: 'user_1',
+      });
+
+      expect(prisma.lead.findFirst).toHaveBeenCalledWith({
+        where: {
+          data: { equals: 'skills-pro', path: ['source'] },
+          isDeleted: false,
+          userId: 'user_1',
+        },
+      });
+      expect(prisma.lead.create).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            email: 'buyer@example.com',
+            productType: 'bundle',
+            receiptId: 'sk_rcpt_1',
+            skillSlugs: ['image-gen-pro'],
+            source: 'skills-pro',
+          }),
+          organizationId: 'org_1',
+          userId: 'user_1',
+        },
+      });
+      expect(prisma.lead.update).not.toHaveBeenCalled();
+    });
+
+    it('updates the existing lead for a repeat buyer instead of duplicating it', async () => {
+      prisma.lead.findFirst.mockResolvedValue({ id: 'lead_existing' });
+
+      await service.upsertSkillsProLead({
+        email: 'buyer@example.com',
+        organizationId: null,
+        productType: 'skill',
+        receiptId: 'sk_rcpt_2',
+        skillSlugs: [],
+        userId: 'user_1',
+      });
+
+      expect(prisma.lead.update).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({ receiptId: 'sk_rcpt_2' }),
+        },
+        where: { id: 'lead_existing' },
+      });
+      expect(prisma.lead.create).not.toHaveBeenCalled();
+    });
+
+    it('logs and swallows a failure instead of throwing', async () => {
+      prisma.lead.findFirst.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.upsertSkillsProLead({
+          email: 'buyer@example.com',
+          organizationId: 'org_1',
+          productType: 'bundle',
+          receiptId: 'sk_rcpt_3',
+          skillSlugs: [],
+          userId: 'user_1',
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to upsert skills-pro lead'),
+        expect.objectContaining({ receiptId: 'sk_rcpt_3', userId: 'user_1' }),
+      );
+    });
+  });
+
+  describe('upsertSubscriptionLead', () => {
+    it('creates a lead for a new Pro/Scale organization', async () => {
+      prisma.lead.findFirst.mockResolvedValue(null);
+      prisma.lead.create.mockResolvedValue({ id: 'lead_1' });
+
+      await service.upsertSubscriptionLead({
+        organizationId: 'org_1',
+        stripeSubscriptionId: 'sub_1',
+        tier: SubscriptionTier.PRO,
+        userId: 'user_1',
+      });
+
+      expect(prisma.lead.findFirst).toHaveBeenCalledWith({
+        where: {
+          data: { equals: 'subscription', path: ['source'] },
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+      });
+      expect(prisma.lead.create).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            source: 'subscription',
+            stripeSubscriptionId: 'sub_1',
+            tier: SubscriptionTier.PRO,
+          }),
+          organizationId: 'org_1',
+          userId: 'user_1',
+        },
+      });
+    });
+
+    it('updates the existing organization lead, scoped by organization', async () => {
+      prisma.lead.findFirst.mockResolvedValue({ id: 'lead_existing' });
+
+      await service.upsertSubscriptionLead({
+        organizationId: 'org_1',
+        stripeSubscriptionId: 'sub_1',
+        tier: SubscriptionTier.SCALE,
+        userId: 'user_1',
+      });
+
+      expect(prisma.lead.update).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({ tier: SubscriptionTier.SCALE }),
+        },
+        where: {
+          id: 'lead_existing',
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+      });
+      expect(prisma.lead.create).not.toHaveBeenCalled();
+    });
+
+    it('logs and swallows a failure instead of throwing', async () => {
+      prisma.lead.findFirst.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.upsertSubscriptionLead({
+          organizationId: 'org_1',
+          stripeSubscriptionId: 'sub_1',
+          tier: SubscriptionTier.PRO,
+          userId: 'user_1',
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to upsert subscription lead'),
+        expect.objectContaining({ organizationId: 'org_1' }),
+      );
     });
   });
 });

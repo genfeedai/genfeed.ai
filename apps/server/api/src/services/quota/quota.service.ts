@@ -101,7 +101,18 @@ export class QuotaService {
       );
     }
     const quotaField = PLATFORM_QUOTA_FIELDS[platform];
-    const dailyLimit = quotaField ? (settings[quotaField] as number) || 0 : 0;
+    const configuredLimit = quotaField ? settings[quotaField] : undefined;
+    const dailyLimit =
+      typeof configuredLimit === 'number' && configuredLimit > 0
+        ? configuredLimit
+        : 0;
+
+    // No quota field for this platform, or a limit of 0, means unmetered.
+    // Mirrors CredentialPublishingReadinessService, which treats
+    // `dailyLimit <= 0` as "no quota".
+    if (dailyLimit <= 0) {
+      return { allowed: true, currentCount: 0, dailyLimit: 0, platform };
+    }
 
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);

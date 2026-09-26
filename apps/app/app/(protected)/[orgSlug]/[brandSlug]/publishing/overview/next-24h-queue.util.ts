@@ -5,6 +5,7 @@ import type {
   Next24hQueueItem,
 } from '@genfeedai/props/publisher/publishing-overview.props';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
+import { releaseDisplayTitle } from '@pages/posts/rail/release-rail-row.helpers';
 import { resolveAccountLabel } from './account-label.util';
 
 export type {
@@ -60,7 +61,7 @@ export function buildNext24hQueue(
         releaseId: release.id,
         scheduledAt,
         targetId: target.id,
-        title: release.title,
+        title: releaseDisplayTitle(release),
       });
     }
   }

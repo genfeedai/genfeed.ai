@@ -1,3 +1,7 @@
+import {
+  SCHEDULE_TODAYS_TWEETS_LABEL,
+  SCHEDULE_TODAYS_TWEETS_PROMPT,
+} from '@genfeedai/agent/constants/agent-quick-prompts.constant';
 import { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { MemberRole } from '@genfeedai/contracts';
@@ -159,5 +163,54 @@ describe('useAgentPageContext', () => {
     const labels = result.current.suggestedActions.map((a) => a.label);
 
     expect(labels).toContain('Compare');
+  });
+
+  it('resolves the publishing calendar route to the calendar context', () => {
+    const { result } = renderAt(`/acme/main${APP_ROUTES.PUBLISHING.CALENDAR}`);
+
+    expect(result.current.placeholder).toBe('Ask about your calendar...');
+    expect(result.current.suggestedActions.map((a) => a.label)).toEqual([
+      SCHEDULE_TODAYS_TWEETS_LABEL,
+      'Fill gaps',
+      'Plan',
+    ]);
+  });
+
+  it.each([
+    ['the default context', '/acme/main/definitely-not-a-route'],
+    ['the agent page', `/acme/main${APP_ROUTES.AGENT.ROOT}`],
+    ['publishing', `/acme/main${APP_ROUTES.PUBLISHING.ROOT}`],
+    ['the post editor', `/acme/main${APP_ROUTES.PUBLISHING.POSTS}/post-1`],
+    ['the calendar', `/acme/main${APP_ROUTES.PUBLISHING.CALENDAR}`],
+  ])('offers the schedule-today chip on %s', (_surface, pathname) => {
+    const { result } = renderAt(pathname);
+
+    expect(result.current.suggestedActions).toContainEqual(
+      expect.objectContaining({
+        label: SCHEDULE_TODAYS_TWEETS_LABEL,
+        prompt: SCHEDULE_TODAYS_TWEETS_PROMPT,
+      }),
+    );
+  });
+
+  it('keeps the pinned schedule-today chip ahead of brand-personalized suggestions', () => {
+    brandRef.current = {
+      agentConfig: {
+        strategy: { topics: ['launch week', 'pricing'] },
+        voice: { audience: ['founders'], tone: 'direct' },
+      },
+    };
+
+    const { result } = renderAt(
+      `/acme/main${APP_ROUTES.PUBLISHING.POSTS}/post-1`,
+    );
+    const labels = result.current.suggestedActions.map((a) => a.label);
+
+    expect(labels).toHaveLength(3);
+    expect(labels[0]).toBe(SCHEDULE_TODAYS_TWEETS_LABEL);
+    expect(labels.slice(1)).toEqual([
+      'Review brand fit',
+      'Improve launch week',
+    ]);
   });
 });

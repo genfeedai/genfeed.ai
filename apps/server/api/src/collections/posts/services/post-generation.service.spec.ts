@@ -14,6 +14,7 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -112,6 +113,14 @@ describe('PostGenerationService', () => {
     assembleContext: vi.fn(),
     buildSystemPrompt: vi.fn(),
   };
+  const mockAgentChatModelRegistry = {
+    resolveModelKey: vi
+      .fn()
+      .mockImplementation(
+        (_key?: string, fallbackKey?: string) =>
+          fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
+      ),
+  };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -153,6 +162,10 @@ Tweet 3: Tech innovation is changing the world.`,
       brand: mockPublishingContext.brand,
       constraints: { ...mockPublishingContext.constraints },
     });
+    mockAgentChatModelRegistry.resolveModelKey.mockImplementation(
+      (_key?: string, fallbackKey?: string) =>
+        fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
+    );
     mockContextAssemblyService.assembleContext.mockResolvedValue({
       brandId,
       brandName: 'Test Brand',
@@ -199,6 +212,10 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: AgentContextAssemblyService,
           useValue: mockContextAssemblyService,
         },
+        {
+          provide: AgentChatModelRegistryService,
+          useValue: mockAgentChatModelRegistry,
+        },
         { provide: LoggerService, useValue: mockLoggerService },
         {
           provide: PostThreadGenerationService,
@@ -236,7 +253,10 @@ Tweet 3: Tech innovation is changing the world.`,
           },
           identity,
         ),
-      ).resolves.toEqual({ description: 'A new tweet' });
+      ).resolves.toEqual({
+        description: 'A new tweet',
+        model: DEFAULT_MINI_TEXT_MODEL,
+      });
       expect(
         mockAccountPublishingContextService.resolveDraft,
       ).toHaveBeenCalledWith({
@@ -278,11 +298,38 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(draftPrompt).not.toContain(brandId);
       expect(draftPrompt).not.toContain('Brand context:');
       expect(DEFAULT_MINI_TEXT_MODEL).toBe(
-        MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+        MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
       );
       expect(
         mockReplicateService.generateTextCompletionSync,
       ).toHaveBeenCalledWith(DEFAULT_MINI_TEXT_MODEL, expect.any(Object));
+    });
+    it('uses the Admin default TEXT model over the seed fallback', async () => {
+      const adminDefaultModel = 'anthropic/claude-sonnet-5';
+      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
+        adminDefaultModel,
+      );
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        'A new tweet',
+      );
+
+      await service.generateDraftText(
+        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
+        identity,
+      );
+
+      expect(mockAgentChatModelRegistry.resolveModelKey).toHaveBeenCalledWith(
+        undefined,
+        DEFAULT_MINI_TEXT_MODEL,
+      );
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        adminDefaultModel,
+        expect.any(Object),
+        organizationId,
+      );
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(adminDefaultModel, expect.any(Object));
     });
     it('rejects a blank prompt before calling the model', async () => {
       await expect(
@@ -329,7 +376,10 @@ Tweet 3: Tech innovation is changing the world.`,
           { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
           identity,
         ),
-      ).resolves.toEqual({ description: 'A short tweet' });
+      ).resolves.toEqual({
+        description: 'A short tweet',
+        model: DEFAULT_MINI_TEXT_MODEL,
+      });
       expect(
         mockReplicateService.generateTextCompletionSync,
       ).toHaveBeenCalledTimes(2);

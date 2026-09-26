@@ -355,6 +355,46 @@ describe('KnowledgeSourceIngestService', () => {
     });
   });
 
+  it('carries etag and lastModified from a web fetch through to finalize and persists them for re-sync', async () => {
+    const { service, prisma } = buildService(
+      versionRow({
+        payload: { referenceUrl: 'https://brand.example/pricing' },
+        source: {
+          ...versionRow().source,
+          kind: KnowledgeSourceKind.URL,
+        },
+      }),
+    );
+    vi.mocked(extractSourceText).mockResolvedValue({
+      etag: 'W/"abc123"',
+      lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
+      mimeType: 'text/html',
+      text: 'Fetched pricing',
+    });
+
+    const extracted = await service.extractSource(
+      await service.loadSource(request),
+    );
+    expect(extracted.extracted).toEqual({
+      etag: 'W/"abc123"',
+      lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
+      mimeType: 'text/html',
+      text: 'Fetched pricing',
+    });
+
+    const chunked = service.chunkSource(extracted);
+    await service.replaceChunks(chunked);
+    await service.finalizeSource(chunked);
+
+    expect(prisma.knowledgeSource.updateMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', isDeleted: false, id: 'source-1' },
+      data: {
+        etag: 'W/"abc123"',
+        lastModified: 'Wed, 24 Sep 2026 09:00:00 GMT',
+      },
+    });
+  });
+
   it('skips missing, historical and purged versions without touching state', async () => {
     const missing = buildService(null);
     await expect(missing.service.loadSource(request)).resolves.toMatchObject({

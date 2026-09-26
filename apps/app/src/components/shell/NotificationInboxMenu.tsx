@@ -8,7 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { Bell, Check, CircleAlert, CircleCheck } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  MessageCircleReply,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -165,20 +171,37 @@ export default function NotificationInboxMenu() {
             ) : null}
             <ol className="divide-y divide-border">
               {items.map((item) => {
+                const socialReply = item.socialReply ?? null;
                 const title =
                   item.failure?.title ??
-                  translate(
-                    item.outcome === 'completed' ? 'completed' : 'failed',
-                  );
+                  (socialReply
+                    ? socialReply.accountHandle
+                      ? translate('socialReply.titleWithHandle', {
+                          count: socialReply.replyCount,
+                          handle: socialReply.accountHandle,
+                        })
+                      : translate('socialReply.title', {
+                          count: socialReply.replyCount,
+                        })
+                    : translate(
+                        item.outcome === 'completed' ? 'completed' : 'failed',
+                      ));
                 const sourceCopy =
                   item.sourceLabel ??
                   (item.sourceHref
-                    ? translate('openSource')
+                    ? translate(
+                        socialReply ? 'socialReply.openSource' : 'openSource',
+                      )
                     : translate('unavailable'));
                 const body = (
                   <>
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-                      {item.outcome === 'completed' ? (
+                      {socialReply ? (
+                        <MessageCircleReply
+                          aria-hidden="true"
+                          className="size-4 text-info"
+                        />
+                      ) : item.outcome === 'completed' ? (
                         <CircleCheck
                           aria-hidden="true"
                           className="size-4 text-success"
