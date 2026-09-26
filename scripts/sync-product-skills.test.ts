@@ -245,4 +245,20 @@ describe('pinned catalog import', () => {
     const f = fixture();
     expect(() => validateCatalogLock(join(f.app, 'skills'))).toThrow();
   });
+  it('rejects hand-authored free skills that are neither pinned nor app procedures', () => {
+    const f = fixture();
+    f.write();
+    const unowned = join(f.app, 'skills', 'unowned-content-skill');
+    mkdirSync(unowned);
+    writeFileSync(
+      join(unowned, 'SKILL.md'),
+      '---\nname: unowned-content-skill\ndescription: Fixture\n---\n# Copy',
+    );
+    const before = inventory(join(f.app, 'skills'));
+    expect(f.write).toThrow('Unowned catalog skill: unowned-content-skill');
+    expect(() => syncProductSkills(f.app, {})).toThrow(
+      'Unowned catalog skill: unowned-content-skill',
+    );
+    expect(inventory(join(f.app, 'skills'))).toEqual(before);
+  });
 });
