@@ -14,8 +14,8 @@ import {
   calculateAgentProviderCostUsd,
 } from '@genfeedai/contracts/constants';
 import {
-  getRuntimeMarginMultiplier,
-  setRuntimeMarginMultiplier,
+  getRuntimeAgentChatMarginMultiplier,
+  setRuntimeAgentChatMarginMultiplier,
 } from '@genfeedai/pricing';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -86,10 +86,10 @@ const pricingOf = (key: string) => {
 };
 
 describe('runReservedAgentLlmRound exact-cost settlement', () => {
-  const initialMargin = getRuntimeMarginMultiplier();
+  const initialMargin = getRuntimeAgentChatMarginMultiplier();
 
   afterEach(() => {
-    setRuntimeMarginMultiplier(initialMargin);
+    setRuntimeAgentChatMarginMultiplier(initialMargin);
   });
 
   it('holds the maximum, then settles OpenRouter usage.cost × margin as fractional credits', async () => {
@@ -140,10 +140,10 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
     );
   });
 
-  it('applies the operator margin knob on top of the base margin', async () => {
+  it('applies the operator margin knob to provider cost', async () => {
     const registry = await createRegistry();
     const credits = createCredits();
-    setRuntimeMarginMultiplier(1.5);
+    setRuntimeAgentChatMarginMultiplier(1.5);
 
     const result = await runReservedAgentLlmRound({
       actorUserId: 'user-1',
@@ -162,7 +162,7 @@ describe('runReservedAgentLlmRound exact-cost settlement', () => {
     });
 
     expect(result.credits).toBe(calculateAgentExactCredits(0.01, 1.5));
-    expect(result.credits).toBeCloseTo(0.01 * 1.7 * 1.5 * 100, 6);
+    expect(result.credits).toBeCloseTo(0.01 * 1.5 * 100, 6);
   });
 
   it.each([

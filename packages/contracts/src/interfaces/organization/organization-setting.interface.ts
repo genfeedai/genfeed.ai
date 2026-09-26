@@ -72,6 +72,13 @@ export interface IOrganizationSetting extends IBaseEntity {
   timezone?: string;
   defaultLocale?: AppLocale;
 
+  // Daily cap on published posts per connected account, per UTC day.
+  // 0 = no cap. Enforced by the API QuotaService.
+  quotaYoutube?: number;
+  quotaTiktok?: number;
+  quotaTwitter?: number;
+  quotaInstagram?: number;
+
   enabledModelIds?: string[];
   subscriptionTier?: string;
 

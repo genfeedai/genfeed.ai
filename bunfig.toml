@@ -1,4 +1,8 @@
 [install]
+# Never auto-install at runtime. Without an installed tree, Bun would resolve bare
+# imports to the latest cached version (e.g. `typescript` 7, whose root export has
+# no compiler API) instead of the pinned one; fail with "Cannot find package" instead.
+auto = "disable"
 # Require npm package versions to be at least 3 hours old before Bun will resolve them.
 minimumReleaseAge = 10800
 minimumReleaseAgeExcludes = ["@types/bun", "bun-types", "typescript"]

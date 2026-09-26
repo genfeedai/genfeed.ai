@@ -2,18 +2,21 @@
 
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Globe, Mail, Share2 } from 'lucide-react';
+import Link from 'next/link';
 import { formatPublishingContentChannel } from './publishing-content-library.helpers';
 
 type PublishingContentIdentityProps = {
   channels: string[];
   title: string;
   summary?: string;
+  titleHref?: string;
 };
 
 export default function PublishingContentIdentity({
   channels,
   title,
   summary,
+  titleHref,
 }: PublishingContentIdentityProps) {
   const uniqueChannels = [...new Set(channels.length ? channels : ['social'])];
   return (
@@ -43,9 +46,19 @@ export default function PublishingContentIdentity({
         ) : null}
       </div>
       <div className="min-w-0 max-w-xl">
-        <p className="line-clamp-1 text-sm font-medium text-foreground">
-          {title}
-        </p>
+        {titleHref ? (
+          <Link
+            href={titleHref}
+            aria-label={`Open ${title}`}
+            className="line-clamp-1 text-sm font-medium text-foreground hover:underline"
+          >
+            {title}
+          </Link>
+        ) : (
+          <p className="line-clamp-1 text-sm font-medium text-foreground">
+            {title}
+          </p>
+        )}
         {summary ? (
           <p className="mt-1 line-clamp-1 text-sm text-foreground/55">
             {summary}

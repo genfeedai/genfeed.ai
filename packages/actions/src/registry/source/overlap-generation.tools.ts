@@ -92,7 +92,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         },
         dateRange: {
           description:
-            'Date range for scheduling (e.g., { start: "2026-02-10", end: "2026-02-17" })',
+            'Scheduling window: dates or ISO 8601 timestamps with UTC offset (e.g., { start: "2026-02-10", end: "2026-02-17" } or { start: "2026-02-10T15:00:00+01:00", end: "2026-02-10T23:00:00+01:00" }). Items are spaced evenly across it, both ends inclusive.',
           properties: {
             end: { type: 'string' },
             start: { type: 'string' },

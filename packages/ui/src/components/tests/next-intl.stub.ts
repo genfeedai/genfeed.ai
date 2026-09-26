@@ -253,6 +253,8 @@ const UI_TEST_MESSAGES = {
       platform: 'Channel',
       account: 'Publishing account',
       noAccount: 'Draft only — connect an account later',
+      postContent: 'Post content',
+      tweetPlaceholder: 'Write the tweet',
     },
     createThread: {
       addPost: 'Add comment / post',

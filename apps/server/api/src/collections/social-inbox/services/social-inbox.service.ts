@@ -9,6 +9,8 @@ import type {
   SocialInboxListQuery,
   SocialInboxPage,
   SocialInboxScope,
+  XPostRepliesIngestInput,
+  XPostRepliesIngestResult,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
@@ -26,6 +28,9 @@ export type {
   SocialInboxListQuery,
   SocialInboxPage,
   SocialInboxScope,
+  XPostRepliesIngestInput,
+  XPostRepliesIngestResult,
+  XReplyTargetPost,
 } from '@api/collections/social-inbox/services/social-inbox.types';
 
 @Injectable()
@@ -161,6 +166,13 @@ export class SocialInboxService {
     options: { credentialId?: string; limit?: number } = {},
   ): Promise<{ conversationsCreated: number; messagesCreated: number }> {
     return this.ingestionService.ingestXComments(scope, options);
+  }
+
+  ingestXPostReplies(
+    scope: SocialInboxScope,
+    input: XPostRepliesIngestInput,
+  ): Promise<XPostRepliesIngestResult> {
+    return this.ingestionService.ingestXPostReplies(scope, input);
   }
 
   ingestXDms(

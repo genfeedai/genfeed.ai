@@ -65,10 +65,9 @@ function buildPostMedia(post: IPost): IReleaseMediaReference[] {
  * Returns `null` when the post has no resolved platform — the editor has
  * nothing to preview against yet.
  *
- * As with the review adapter, most `IChannelTarget` fields below are never
- * read by a preview renderer (only `settings.caption`, `platform`, and
- * `attachments` are) — they carry inert defaults purely to satisfy the
- * shared contract's type.
+ * Caption lives on the release `baseContent`. X does not declare a `caption`
+ * setting, so stuffing the body into `settings.caption` marks the preview
+ * blocked even when the tweet itself is valid.
  */
 export function buildPostTargetPreview(
   post: IPost,
@@ -118,7 +117,7 @@ export function buildPostTargetPreview(
       platform: post.platform,
       releaseId: post.groupId ?? post.id,
       retryCount: 0,
-      settings: { caption },
+      settings: {},
       source: ReleaseTargetSource.MANUAL,
       timezone: 'UTC',
       updatedAt: post.updatedAt,

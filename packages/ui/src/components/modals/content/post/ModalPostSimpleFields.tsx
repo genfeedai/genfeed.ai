@@ -23,6 +23,7 @@ import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
 export default function ModalPostSimpleFields({
@@ -150,17 +151,32 @@ export default function ModalPostSimpleFields({
           </div>
         }
       >
-        <LazyRichTextEditor
-          value={form.watch('description') || ''}
-          onChange={(value) => {
-            form.setValue('description', value, {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-          }}
-          placeholder="Enter post caption"
-          minHeight={{ desktop: 300, mobile: 200 }}
-        />
+        {selectedPlatform === Platform.TWITTER ? (
+          <Textarea
+            name="description"
+            aria-label={translate('postContent')}
+            value={form.watch('description') || ''}
+            onChange={(event) => {
+              form.setValue('description', event.target.value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            placeholder={translate('tweetPlaceholder')}
+          />
+        ) : (
+          <LazyRichTextEditor
+            value={form.watch('description') || ''}
+            onChange={(value) => {
+              form.setValue('description', value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            placeholder="Enter post caption"
+            minHeight={{ desktop: 300, mobile: 200 }}
+          />
+        )}
       </FormControl>
 
       {form.watch('credentialId') &&

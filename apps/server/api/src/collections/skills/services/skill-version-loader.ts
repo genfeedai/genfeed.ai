@@ -30,6 +30,7 @@ interface VersionActor {
 }
 
 interface VersionedSkill {
+  allowsCatalogRead?: boolean;
   audience?: string | null;
   currentVersionId?: string | null;
   id?: string;
@@ -185,6 +186,7 @@ export async function loadAuthorizedSkillVersions(
     const versionId =
       purpose === 'read'
         ? chooseReadableVersionId({
+            allowsCatalogRead: skill.allowsCatalogRead === true,
             pointer,
             readGrantVersionId: grantVersion.get(skillId),
           })

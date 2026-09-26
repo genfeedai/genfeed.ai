@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { brandsCommand } from '@/commands/brands';
+import { insightsCommand } from '@/commands/insights';
+import { libraryCommand } from '@/commands/library';
+import { organizationsCommand } from '@/commands/organizations';
 
 const {
   mockGetActiveBrand,
@@ -109,8 +113,6 @@ describe('shared parent and subcommand options', () => {
   });
 
   it('honors asset list filters, limits, and JSON output', async () => {
-    const { libraryCommand } = await import('@/commands/library');
-
     await libraryCommand.parseAsync(['list', '--type', 'video', '--limit', '100', '--json'], {
       from: 'user',
     });
@@ -120,8 +122,6 @@ describe('shared parent and subcommand options', () => {
   });
 
   it('honors JSON output on a brand subcommand', async () => {
-    const { brandsCommand } = await import('@/commands/brands');
-
     await brandsCommand.parseAsync(['current', '--json'], { from: 'user' });
 
     expect(readJsonOutput()).toEqual({
@@ -130,8 +130,6 @@ describe('shared parent and subcommand options', () => {
   });
 
   it('honors JSON output on an insights subcommand', async () => {
-    const { insightsCommand } = await import('@/commands/insights');
-
     await insightsCommand.parseAsync(['forecast', '--topic', 'AI workflows', '--json'], {
       from: 'user',
     });
@@ -141,8 +139,6 @@ describe('shared parent and subcommand options', () => {
   });
 
   it('honors JSON output on an organization subcommand', async () => {
-    const { organizationsCommand } = await import('@/commands/organizations');
-
     await organizationsCommand.parseAsync(['current', '--json'], { from: 'user' });
 
     expect(readJsonOutput()).toEqual({

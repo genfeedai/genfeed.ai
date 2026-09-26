@@ -1,15 +1,23 @@
 'use client';
 
 import {
+  MARGIN_INPUT_MODE_LABELS,
+  MARGIN_INPUT_MODES,
+  MarginInputMode,
+  parseMarginInputMode,
+} from '@genfeedai/contracts';
+import {
   parseTypedDecisionProvider,
   TYPED_DECISION_PROVIDER_LABELS,
   TYPED_DECISION_PROVIDER_NAMES,
 } from '@genfeedai/contracts/constants';
 import type { TypedDecisionProviderName } from '@genfeedai/contracts/interfaces';
 import {
-  BASE_MARGIN_PERCENT,
-  BASE_PROVIDER_COST_FRACTION,
-  MAX_MARGIN_MULTIPLIER,
+  DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  multiplierToPercent,
+  percentToMultiplier,
+  sellPriceForOneDollar,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
@@ -34,18 +42,108 @@ import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
-/** Effective margin percentage the configured multiplier resolves to. */
-function effectiveMarginPercent(multiplier: number): number {
-  if (!Number.isFinite(multiplier) || multiplier <= 0) {
-    return BASE_MARGIN_PERCENT;
+/** Percent an operator would type for a multiplier, in the given input mode. */
+function percentInputFor(multiplier: number, mode: MarginInputMode): string {
+  return String(multiplierToPercent(multiplier, mode));
+}
+
+/**
+ * True when the field's text is not simply the current committed multiplier
+ * redisplayed in the current mode — i.e. the operator actually typed
+ * something. Untouched fields are never re-parsed, so toggling the mode
+ * selector (or saving without editing a field) can never round-trip a
+ * multiplier through integer percent and drift it (e.g. 3.33 → "70%" →
+ * 3.3333…). See issue #5172's "round-trips without silently changing the
+ * stored multiplier" requirement.
+ */
+function isFieldDirty(
+  text: string,
+  committedMultiplier: number,
+  mode: MarginInputMode,
+): boolean {
+  return text !== percentInputFor(committedMultiplier, mode);
+}
+
+/** Validate an operator-entered percent for the given mode, returning the resolved multiplier or an error. */
+function resolvePercentInput(
+  rawValue: string,
+  mode: MarginInputMode,
+): { error: string } | { multiplier: number } {
+  const parsed = Number.parseFloat(rawValue);
+  if (!Number.isFinite(parsed)) {
+    return { error: 'Enter a number' };
   }
-  return Math.round(
-    Math.max(0, 1 - BASE_PROVIDER_COST_FRACTION / multiplier) * 100,
-  );
+  if (mode === 'MARGIN' && parsed >= 100) {
+    return { error: 'Margin percent must be less than 100' };
+  }
+  if (mode === 'MARKUP' && parsed <= -100) {
+    return { error: 'Markup percent must be greater than -100' };
+  }
+  return { multiplier: percentToMultiplier(parsed, mode) };
+}
+
+/**
+ * Resolve a field to the multiplier it should submit as. An untouched field
+ * (see `isFieldDirty`) always resolves to its committed multiplier verbatim,
+ * never a re-parsed value — that is what makes an uninvolved field immune to
+ * percent-rounding drift.
+ */
+function resolveFieldMultiplier(
+  text: string,
+  mode: MarginInputMode,
+  committedMultiplier: number,
+): { error: string } | { multiplier: number } {
+  if (!isFieldDirty(text, committedMultiplier, mode)) {
+    return { multiplier: committedMultiplier };
+  }
+  return resolvePercentInput(text, mode);
+}
+
+/** Live multiplier for the readout below a field: the edited value while typing, else the committed one. */
+function liveMultiplierFor(
+  text: string,
+  mode: MarginInputMode,
+  committedMultiplier: number,
+): number {
+  const resolved = resolveFieldMultiplier(text, mode, committedMultiplier);
+  return 'multiplier' in resolved ? resolved.multiplier : committedMultiplier;
+}
+
+/**
+ * Live readout under a margin field, e.g.
+ * "$1.00 provider → $3.33 sell · 70% margin · 233% markup". Shows both
+ * framings regardless of the selected input mode, so switching modes never
+ * hides where the other number came from.
+ */
+function marginReadout(multiplier: number): string {
+  const sellPrice = sellPriceForOneDollar(multiplier);
+  const markupPercent = multiplierToPercent(multiplier, 'MARKUP');
+  const marginPercent = multiplierToPercent(multiplier, 'MARGIN');
+  return `$1.00 provider → $${sellPrice.toFixed(2)} sell · ${marginPercent}% margin · ${markupPercent}% markup`;
 }
 
 export default function PlatformSettingsPage() {
-  const [marginInput, setMarginInput] = useState('1');
+  const [marginInputMode, setMarginInputMode] = useState<MarginInputMode>(
+    MarginInputMode.MARGIN,
+  );
+  const [generationMultiplier, setGenerationMultiplier] = useState(
+    DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+  );
+  const [agentChatMultiplier, setAgentChatMultiplier] = useState(
+    DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+  );
+  const [generationPercentInput, setGenerationPercentInput] = useState(() =>
+    percentInputFor(
+      DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+      MarginInputMode.MARGIN,
+    ),
+  );
+  const [agentChatPercentInput, setAgentChatPercentInput] = useState(() =>
+    percentInputFor(
+      DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
+      MarginInputMode.MARGIN,
+    ),
+  );
   const [typedDecisionProvider, setTypedDecisionProvider] =
     useState<TypedDecisionProviderName>(parseTypedDecisionProvider(undefined));
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +162,16 @@ export default function PlatformSettingsPage() {
         const data = await service.getSettings(signal);
 
         if (!signal.aborted) {
-          setMarginInput(String(data.marginMultiplier));
+          const mode = parseMarginInputMode(data.marginInputMode);
+          setMarginInputMode(mode);
+          setGenerationMultiplier(data.marginMultiplierGeneration);
+          setAgentChatMultiplier(data.marginMultiplierAgentChat);
+          setGenerationPercentInput(
+            percentInputFor(data.marginMultiplierGeneration, mode),
+          );
+          setAgentChatPercentInput(
+            percentInputFor(data.marginMultiplierAgentChat, mode),
+          );
           setTypedDecisionProvider(
             parseTypedDecisionProvider(data.typedDecisionProvider),
           );
@@ -90,22 +197,57 @@ export default function PlatformSettingsPage() {
     return () => controller.abort();
   }, [loadSettings]);
 
+  /**
+   * A field the operator never touched keeps its exact committed multiplier
+   * across a mode switch — only a field with a genuine edit gets re-parsed
+   * (and, in the new mode, redisplayed from that freshly resolved value).
+   */
+  function handleModeChange(nextMode: string): void {
+    const mode = parseMarginInputMode(nextMode);
+
+    const nextGenerationMultiplier = liveMultiplierFor(
+      generationPercentInput,
+      marginInputMode,
+      generationMultiplier,
+    );
+    const nextAgentChatMultiplier = liveMultiplierFor(
+      agentChatPercentInput,
+      marginInputMode,
+      agentChatMultiplier,
+    );
+
+    setGenerationMultiplier(nextGenerationMultiplier);
+    setAgentChatMultiplier(nextAgentChatMultiplier);
+    setGenerationPercentInput(percentInputFor(nextGenerationMultiplier, mode));
+    setAgentChatPercentInput(percentInputFor(nextAgentChatMultiplier, mode));
+    setMarginInputMode(mode);
+  }
+
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
 
-    const parsed = Number.parseFloat(marginInput);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    const generationResolved = resolveFieldMultiplier(
+      generationPercentInput,
+      marginInputMode,
+      generationMultiplier,
+    );
+    if ('error' in generationResolved) {
       notificationsService.warning(
-        'Margin multiplier must be a positive number',
+        `Generation margin: ${generationResolved.error}`,
       );
       return;
     }
 
-    if (parsed > MAX_MARGIN_MULTIPLIER) {
+    const agentChatResolved = resolveFieldMultiplier(
+      agentChatPercentInput,
+      marginInputMode,
+      agentChatMultiplier,
+    );
+    if ('error' in agentChatResolved) {
       notificationsService.warning(
-        `Margin multiplier cannot exceed ${MAX_MARGIN_MULTIPLIER}`,
+        `Agent chat margin: ${agentChatResolved.error}`,
       );
       return;
     }
@@ -115,10 +257,21 @@ export default function PlatformSettingsPage() {
     try {
       const service = await getPlatformSettingsService();
       const updated = await service.updateSettings({
-        marginMultiplier: parsed,
+        marginInputMode,
+        marginMultiplierAgentChat: agentChatResolved.multiplier,
+        marginMultiplierGeneration: generationResolved.multiplier,
         typedDecisionProvider,
       });
-      setMarginInput(String(updated.marginMultiplier));
+      const mode = parseMarginInputMode(updated.marginInputMode);
+      setMarginInputMode(mode);
+      setGenerationMultiplier(updated.marginMultiplierGeneration);
+      setAgentChatMultiplier(updated.marginMultiplierAgentChat);
+      setGenerationPercentInput(
+        percentInputFor(updated.marginMultiplierGeneration, mode),
+      );
+      setAgentChatPercentInput(
+        percentInputFor(updated.marginMultiplierAgentChat, mode),
+      );
       setTypedDecisionProvider(
         parseTypedDecisionProvider(updated.typedDecisionProvider),
       );
@@ -135,13 +288,21 @@ export default function PlatformSettingsPage() {
     }
   }
 
-  const parsedMargin = Number.parseFloat(marginInput);
-  const hasValidMargin = Number.isFinite(parsedMargin) && parsedMargin > 0;
-  const helpText = hasValidMargin
-    ? `1.0 = base 70% margin. Current setting ≈ ${effectiveMarginPercent(
-        parsedMargin,
-      )}% effective margin on provider cost.`
-    : '1.0 = base 70% margin. Enter a positive multiplier.';
+  const modeUnit = marginInputMode === 'MARKUP' ? 'markup' : 'margin';
+  const generationReadout = marginReadout(
+    liveMultiplierFor(
+      generationPercentInput,
+      marginInputMode,
+      generationMultiplier,
+    ),
+  );
+  const agentChatReadout = marginReadout(
+    liveMultiplierFor(
+      agentChatPercentInput,
+      marginInputMode,
+      agentChatMultiplier,
+    ),
+  );
 
   return (
     <Container
@@ -159,18 +320,56 @@ export default function PlatformSettingsPage() {
           noValidate
         >
           <Field
-            label="Model-cost margin multiplier"
-            htmlFor="platform-margin-multiplier"
-            helpText={helpText}
+            label="Margin input mode"
+            htmlFor="platform-margin-input-mode"
+            helpText="Changes how the two margin fields below are typed and read. Billing always stores and applies the multiplier — this never changes a price."
+          >
+            <Select
+              value={marginInputMode}
+              onValueChange={handleModeChange}
+              disabled={isSaving}
+            >
+              <SelectTrigger id="platform-margin-input-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MARGIN_INPUT_MODES.map((mode) => (
+                  <SelectItem key={mode} value={mode}>
+                    {MARGIN_INPUT_MODE_LABELS[mode]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field
+            label={`Generation ${modeUnit} (%)`}
+            htmlFor="platform-margin-multiplier-generation"
+            helpText={generationReadout}
           >
             <Input
-              id="platform-margin-multiplier"
+              id="platform-margin-multiplier-generation"
               type="number"
-              min="0.01"
-              max={MAX_MARGIN_MULTIPLIER}
-              step="0.05"
-              value={marginInput}
-              onChange={(event) => setMarginInput(event.target.value)}
+              step="1"
+              value={generationPercentInput}
+              onChange={(event) =>
+                setGenerationPercentInput(event.target.value)
+              }
+              disabled={isSaving}
+            />
+          </Field>
+
+          <Field
+            label={`Agent chat ${modeUnit} (%)`}
+            htmlFor="platform-margin-multiplier-agent-chat"
+            helpText={agentChatReadout}
+          >
+            <Input
+              id="platform-margin-multiplier-agent-chat"
+              type="number"
+              step="1"
+              value={agentChatPercentInput}
+              onChange={(event) => setAgentChatPercentInput(event.target.value)}
               disabled={isSaving}
             />
           </Field>

@@ -24,6 +24,7 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
+import { ByokProvider } from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
@@ -92,6 +93,19 @@ describe('OrganizationsSettingsController', () => {
     sendTestDelivery: vi.fn(),
   };
 
+  const organizationA = testId('org-a');
+  const organizationB = testId('org-b');
+
+  const memberRequest = (activeOrganizationId: string): Request =>
+    ({
+      context: { isSuperAdmin: false, organizationId: activeOrganizationId },
+    }) as Request;
+
+  const superAdminRequest = (activeOrganizationId: string): Request =>
+    ({
+      context: { isSuperAdmin: true, organizationId: activeOrganizationId },
+    }) as Request;
+
   beforeEach(async () => {
     mockReq = {} as Request;
 
@@ -154,24 +168,28 @@ describe('OrganizationsSettingsController', () => {
   describe('getSettings', () => {
     const organizationId = testId('org');
 
-    it('prefers the repaired request context organization id when the path is stale', async () => {
+    it('rejects a member addressing an organization other than their active one', async () => {
+      await expect(
+        controller.getSettings(memberRequest(organizationA), organizationB),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('reads the URL organization for a superadmin active in another org', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
 
-      const result = await controller.getSettings(
-        {
-          context: {
-            organizationId: 'org_current',
-          },
-        } as Request,
-        'org_legacy',
+      await controller.getSettings(
+        superAdminRequest(organizationA),
+        organizationB,
       );
 
       expect(
         organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalledWith('org_current');
-      expect(result).toBeDefined();
+      ).toHaveBeenCalledWith(organizationB);
     });
 
     it('serializes the setting returned by the canonical get-or-create policy', async () => {
@@ -235,6 +253,121 @@ describe('OrganizationsSettingsController', () => {
       });
     });
 
+    describe('billing-controlled fields', () => {
+      const billingPatches = [
+        { subscriptionTier: 'enterprise' },
+        { seatsLimit: 999 },
+        { brandsLimit: 999 },
+      ];
+
+      it.each(billingPatches)(
+        'rejects an org owner setting %o',
+        async (billingPatch) => {
+          await expect(
+            controller.updateSettings(
+              memberRequest(organizationA),
+              organizationA,
+              { isWhitelabelEnabled: true, ...billingPatch },
+            ),
+          ).rejects.toMatchObject({ status: 400 });
+          expect(
+            mockOrganizationSettingsService.ensureForOrganization,
+          ).not.toHaveBeenCalled();
+          expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each(billingPatches)(
+        'lets a superadmin set %o',
+        async (billingPatch) => {
+          mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+            mockOrganizationSettings,
+          );
+          mockOrganizationSettingsService.patch.mockResolvedValue({
+            ...mockOrganizationSettings,
+            ...billingPatch,
+          });
+
+          await controller.updateSettings(
+            superAdminRequest(organizationA),
+            organizationA,
+            billingPatch,
+          );
+
+          expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+            mockOrganizationSettings.id,
+            billingPatch,
+          );
+        },
+      );
+    });
+
+    describe('target organization', () => {
+      it('writes the URL organization when a superadmin is active in another org', async () => {
+        const organizationBSettings = {
+          ...mockOrganizationSettings,
+          id: testId('setting-b'),
+          organizationId: organizationB,
+        };
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          organizationBSettings,
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue(
+          organizationBSettings,
+        );
+
+        await controller.updateSettings(
+          superAdminRequest(organizationA),
+          organizationB,
+          { seatsLimit: 10 },
+        );
+
+        expect(
+          organizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledWith(organizationB);
+        expect(
+          organizationSettingsService.ensureForOrganization,
+        ).not.toHaveBeenCalledWith(organizationA);
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          organizationBSettings.id,
+          { seatsLimit: 10 },
+        );
+      });
+
+      it('rejects a member of org A patching org B', async () => {
+        await expect(
+          controller.updateSettings(
+            memberRequest(organizationA),
+            organizationB,
+            updateDto,
+          ),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization,
+        ).not.toHaveBeenCalled();
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('patches the active organization for a member addressing it', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          updateDto,
+        );
+
+        expect(
+          organizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledWith(organizationA);
+      });
+    });
+
     it('rejects invalid avatar defaults before creating missing settings', async () => {
       mockIngredientsService.findAvatarImageById.mockResolvedValue(null);
 
@@ -285,18 +418,14 @@ describe('OrganizationsSettingsController', () => {
       });
 
       const result = await controller.testWebhookDelivery(
-        {
-          context: {
-            organizationId: 'org_current',
-          },
-        } as Request,
+        memberRequest(organizationId),
         organizationId,
         { event: 'target.published' },
       );
 
       expect(mockWebhookDispatchService.sendTestDelivery).toHaveBeenCalledWith({
         event: 'target.published',
-        organizationId: 'org_current',
+        organizationId,
       });
       expect(result).toEqual({
         data: {
@@ -319,11 +448,7 @@ describe('OrganizationsSettingsController', () => {
         });
 
         const result = await controller.testWebhookDelivery(
-          {
-            context: {
-              organizationId: 'org_current',
-            },
-          } as Request,
+          memberRequest(organizationId),
           organizationId,
           { event },
         );
@@ -332,11 +457,52 @@ describe('OrganizationsSettingsController', () => {
           mockWebhookDispatchService.sendTestDelivery,
         ).toHaveBeenCalledWith({
           event,
-          organizationId: 'org_current',
+          organizationId,
         });
         expect(result.data.event).toBe(event);
       },
     );
+
+    it('rejects a test delivery for an organization other than the active one', async () => {
+      await expect(
+        controller.testWebhookDelivery(
+          memberRequest(organizationA),
+          organizationB,
+          { event: 'target.published' },
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(
+        mockWebhookDispatchService.sendTestDelivery,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('BYOK routes', () => {
+    it("rejects a member reading another organization's BYOK status", async () => {
+      await expect(
+        controller.getByokAllProviders(
+          memberRequest(organizationA),
+          organizationB,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockByokService.getStatus).not.toHaveBeenCalled();
+    });
+
+    it('saves a superadmin BYOK key on the URL organization', async () => {
+      await controller.saveByokProviderKey(
+        superAdminRequest(organizationA),
+        organizationB,
+        ByokProvider.OPENAI,
+        { apiKey: ' sk-test ' },
+      );
+
+      expect(mockByokService.saveKey).toHaveBeenCalledWith(
+        organizationB,
+        ByokProvider.OPENAI,
+        'sk-test',
+        undefined,
+      );
+    });
   });
 
   describe('findOneSubscription', () => {
@@ -394,39 +560,15 @@ describe('OrganizationsSettingsController', () => {
       });
     });
 
-    it('uses the repaired request context organization id for brand lookups', async () => {
-      mockBrandsService.findOne.mockResolvedValue({
-        id: brandId,
-        isFleetEnabled: false,
-      });
-
-      const result = await controller.getFleetCapabilities(
-        {
-          context: {
-            organizationId: 'org_current',
-          },
-        } as Request,
-        'org_legacy',
-        brandId,
-      );
-
-      expect(mockBrandsService.findOne).toHaveBeenCalledWith(
-        {
-          id: brandId,
-          organizationId: 'org_current',
-        },
-        'none',
-      );
-      expect(result).toMatchObject({
-        brandEnabled: false,
-        fleet: {
-          images: false,
-          llm: false,
-          videos: false,
-          voices: false,
-        },
-        organizationId: 'org_current',
-      });
+    it('rejects brand lookups outside the active organization', async () => {
+      await expect(
+        controller.getFleetCapabilities(
+          memberRequest(organizationA),
+          organizationB,
+          brandId,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(mockBrandsService.findOne).not.toHaveBeenCalled();
     });
   });
 });

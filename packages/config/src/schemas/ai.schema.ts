@@ -47,26 +47,26 @@ export const generalAiSchema = {
     .valid('true', 'false')
     .default('false'),
   MAX_TOKENS: Joi.number().default(4000),
-  // Pattern analyzer typed decisions (#4868). `off` keeps the rule-based
-  // labels, `shadow` records provider/rule agreement, `live` persists a
-  // provider label once it clears PATTERN_ANALYZER_MIN_CONFIDENCE.
+  // Pattern analyzer typed decisions (#4868). Capped at shadow
+  // (release-blocker follow-up, epic #4863): `off` keeps the rule-based
+  // labels, `shadow` records provider/rule agreement, but a provider label is
+  // never persisted — `live` is not a valid value here any more.
   PATTERN_ANALYZER_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off'),
+    .valid('off', 'shadow')
+    .default('shadow'),
   PATTERN_ANALYZER_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // OpenRouter is the primary text-model gateway for agent chat. Must stay on
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
-  // Agent auto-routing decision (#4865). `off` keeps the OpenRouter
-  // auto-router plugin exactly as it is today, `shadow` calls the decision
-  // provider and logs what it would have done, `live` dispatches the tier's
-  // concrete registry key above AGENT_AUTO_ROUTING_MIN_CONFIDENCE.
+  // Agent auto-routing (#4865). No typed-decision provider is involved any
+  // more (release-blocker follow-up, epic #4863): the candidate is a
+  // deterministic read of the Admin-configured model registry. `off` keeps
+  // the OpenRouter auto-router plugin exactly as it is today, `shadow` logs
+  // the candidate it would dispatch, `live` dispatches it.
   AGENT_AUTO_ROUTING_DECISION_MODE: Joi.string()
     .valid('off', 'shadow', 'live')
     .default('off'),
-  // Calibrated 0..1. Below it the turn falls back to the gateway auto-router.
-  AGENT_AUTO_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Reply-bot intent (#4866). `off` keeps the regex classifier, `shadow` calls
   // the provider and records agreement while the regex still acts, `live` acts
   // on the decided intent above REPLY_BOT_INTENT_MIN_CONFIDENCE.
@@ -79,12 +79,13 @@ export const generalAiSchema = {
   // Typed decisions (#4864). Which provider is bound is an operator setting on
   // the platform-settings singleton (#4908), not an env var — the key here is
   // only the credential that makes a hosted provider available at all.
-  // Task-routing output type (#4867). `off` keeps the keyword table, `shadow`
-  // calls the provider and records the disagreement, `live` routes on the
-  // decided output type at or above TASK_ROUTING_MIN_CONFIDENCE.
+  // Task-routing output type (#4867). Capped at shadow (release-blocker
+  // follow-up, epic #4863): `off` keeps the keyword table, `shadow` calls the
+  // provider and records the disagreement, but the decided output type is
+  // never acted on — `live` is not a valid value here any more.
   TASK_ROUTING_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off'),
+    .valid('off', 'shadow')
+    .default('shadow'),
   TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.

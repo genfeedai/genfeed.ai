@@ -41,6 +41,8 @@ export interface AgentPageContext {
   route?: string;
   selectedText?: string;
   socialReferences?: SocialInboxReference[];
+  /** Viewer's IANA timezone (untrusted); validated before it reaches the prompt. */
+  timezone?: string;
   url?: string;
 }
 

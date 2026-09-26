@@ -40,6 +40,10 @@ vi.mock('./organization-generation-defaults-card', () => ({
   default: () => <div>Organization Generation Defaults</div>,
 }));
 
+vi.mock('./organization-publishing-caps-card', () => ({
+  default: () => <div>Organization Publishing Caps</div>,
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(() => ({
     data: null,

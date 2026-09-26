@@ -66,6 +66,13 @@ export interface QueueSystemWorkflowOptions {
   priorExecution?: NonNullable<
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
   >;
+  /**
+   * @deprecated `queueSystemWorkflow` now always reserves a fresh id (removing
+   * a stale/terminal job under the same deterministic jobId before adding) —
+   * see #5162. Every call site already set this to `true`; it is kept as a
+   * no-op so existing callers don't need a mechanical edit, but new callers
+   * don't need to set it.
+   */
   replaceTerminalJob?: boolean;
 }
 
@@ -105,6 +112,15 @@ export interface WorkflowSchedulerSyncRow {
 export function workflowSchedulerId(workflowId: string): string {
   return `workflow-schedule:${workflowId}`;
 }
+
+/**
+ * States a freshly enqueued `system-run` job may legitimately be in right
+ * after `add()` returns: still waiting for a worker, scheduled for a delayed
+ * retry, or already picked up by a worker within this same call. Anything
+ * else (most importantly `completed`/`failed`) means `add()` silently handed
+ * back a stale job instead of creating new work — see #5162.
+ */
+const CLAIMABLE_JOB_STATES = new Set<string>(['waiting', 'delayed', 'active']);
 
 function requireQueueJobId(
   jobId: string | undefined,
@@ -176,20 +192,29 @@ export class WorkflowExecutionQueueService {
     jobId: string,
     options: QueueSystemWorkflowOptions = {},
   ): Promise<string> {
-    if (options.replaceTerminalJob) {
-      const reservation = await reserveIdempotentJob(
-        this.executionQueue,
+    // BullMQ's `add(name, data, { jobId })` silently no-ops when a job with
+    // that id already exists in Redis, in ANY state — waiting/active/delayed
+    // AND terminal completed/failed. It returns the existing job without
+    // enqueueing new work and without throwing (#5162). `execution.id` (the
+    // source of this jobId, `system-workflow-${execution.id}`) can be reused
+    // across calls through WorkflowExecutionsService.createExecution's
+    // idempotency-key upsert: a retried acceptance call with the same
+    // idempotencyKey resolves to the SAME execution row, and therefore the
+    // SAME jobId. If a prior BullMQ job under that id is still sitting in
+    // Redis, the caller here previously got a false "queued" success while no
+    // worker would ever pick the job up — the run stayed stuck with no error.
+    // Always reserve the id first so a stale/terminal job is removed and a
+    // fresh one can be added; an in-flight job under the same id is left
+    // alone and reported back rather than silently swallowed.
+    const reservation = await reserveIdempotentJob(this.executionQueue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.log(`${this.logContext} system workflow already queued`, {
+        canonicalId: input.canonicalId,
         jobId,
-      );
-      if (reservation.alreadyQueued) {
-        this.logger.log(`${this.logContext} system workflow already queued`, {
-          canonicalId: input.canonicalId,
-          jobId,
-          organizationId: input.organizationId,
-          state: reservation.state,
-        });
-        return jobId;
-      }
+        organizationId: input.organizationId,
+        state: reservation.state,
+      });
+      return jobId;
     }
     const job = await this.executionQueue.add(
       'system-run',
@@ -215,14 +240,43 @@ export class WorkflowExecutionQueueService {
         removeOnFail: 100,
       },
     );
+    const queuedJobId = requireQueueJobId(job.id, 'queueing a system workflow');
+
+    // Fail loudly instead of silently: the reservation above should have
+    // guaranteed a fresh add, so the resulting job must be claimable
+    // (waiting/delayed, or already active if a worker grabbed it within this
+    // same call). Any other state means `add` still silently reused an
+    // existing job and this run will never be picked up — surface that
+    // immediately rather than letting the caller log a false "queued" success.
+    const resultingState = await job.getState().catch((error: unknown) => {
+      this.logger.warn(
+        `${this.logContext} could not verify system workflow job state after enqueue`,
+        { canonicalId: input.canonicalId, error, jobId: queuedJobId },
+      );
+      return undefined;
+    });
+    if (resultingState && !CLAIMABLE_JOB_STATES.has(resultingState)) {
+      this.logger.error(
+        `${this.logContext} system workflow job was not queued for pickup after enqueue — a worker will never claim it`,
+        {
+          canonicalId: input.canonicalId,
+          jobId: queuedJobId,
+          organizationId: input.organizationId,
+          resultingState,
+        },
+      );
+      throw new Error(
+        `System workflow ${input.canonicalId} job ${queuedJobId} landed in unclaimable state "${resultingState}" after enqueue`,
+      );
+    }
 
     this.logger.log(`${this.logContext} queued system workflow`, {
       canonicalId: input.canonicalId,
-      jobId: job.id,
+      jobId: queuedJobId,
       organizationId: input.organizationId,
     });
 
-    return requireQueueJobId(job.id, 'queueing a system workflow');
+    return queuedJobId;
   }
 
   /**

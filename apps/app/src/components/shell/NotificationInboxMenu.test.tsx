@@ -149,6 +149,24 @@ describe('NotificationInboxMenu', () => {
       screen.queryByRole('button', { name: 'Mark read' }),
     ).toBeInTheDocument();
   });
+  it('links a social reply notification to Messages', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'social.reply',
+        outcome: 'completed',
+        sourceHref: '/acme/brand/messages',
+        sourceLabel: null,
+        failure: null,
+        socialReply: { accountHandle: 'acme', replyCount: 3 },
+      },
+    ];
+    await open();
+    expect(screen.getByText('3 new replies on @acme')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Reply in Messages/ }),
+    ).toHaveAttribute('href', '/acme/brand/messages');
+  });
   it('keeps existing rows and failed read action retryable', async () => {
     current.read.isError = true;
     const user = await open();

@@ -135,17 +135,101 @@ describe('QuotaService', () => {
     expect(result.dailyLimit).toBe(3);
   });
 
-  it('should default dailyLimit to 0 for unsupported platforms', async () => {
-    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({});
-    mockPostsService.count.mockResolvedValueOnce(0);
+  it.each([
+    CredentialPlatform.LINKEDIN,
+    CredentialPlatform.THREADS,
+    CredentialPlatform.FACEBOOK,
+  ])(
+    'treats unmapped platform %s as unmetered without counting posts',
+    async (platform) => {
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        quotaTwitter: 5,
+      });
+
+      const result = await service.checkQuota(
+        makeCredential(platform),
+        makeOrganization(),
+      );
+
+      expect(result).toEqual({
+        allowed: true,
+        currentCount: 0,
+        dailyLimit: 0,
+        platform,
+      });
+      expect(mockPostsService.count).not.toHaveBeenCalled();
+    },
+  );
+
+  it('treats a configured limit of 0 as unmetered without counting posts', async () => {
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 0,
+    });
 
     const result = await service.checkQuota(
-      makeCredential(CredentialPlatform.LINKEDIN),
+      makeCredential(CredentialPlatform.TWITTER),
       makeOrganization(),
     );
 
+    expect(result).toEqual({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 0,
+      platform: CredentialPlatform.TWITTER,
+    });
+    expect(mockPostsService.count).not.toHaveBeenCalled();
+  });
+
+  it('treats a missing limit on a mapped platform as unmetered', async () => {
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({});
+
+    const result = await service.checkQuota(
+      makeCredential(CredentialPlatform.YOUTUBE),
+      makeOrganization(),
+    );
+
+    expect(result.allowed).toBe(true);
     expect(result.dailyLimit).toBe(0);
-    expect(result.allowed).toBe(false);
+    expect(mockPostsService.count).not.toHaveBeenCalled();
+  });
+
+  it('enforces a raised X cap (48/day)', async () => {
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 48,
+    });
+    mockPostsService.count.mockResolvedValueOnce(47);
+
+    const allowedResult = await service.checkQuota(
+      makeCredential('TWITTER'),
+      makeOrganization(),
+    );
+    expect(allowedResult.allowed).toBe(true);
+    expect(allowedResult.dailyLimit).toBe(48);
+
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 48,
+    });
+    mockPostsService.count.mockResolvedValueOnce(48);
+
+    const blockedResult = await service.checkQuota(
+      makeCredential('TWITTER'),
+      makeOrganization(),
+    );
+    expect(blockedResult.allowed).toBe(false);
+    expect(blockedResult.currentCount).toBe(48);
+  });
+
+  it('should not block publishing on unmapped platforms in verifyQuota', async () => {
+    const org = makeOrganization();
+    mockOrganizationsService.findOne.mockResolvedValueOnce(org);
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({});
+
+    await expect(
+      service.verifyQuota(
+        makeCredential(CredentialPlatform.LINKEDIN),
+        org.id.toString(),
+      ),
+    ).resolves.toBeUndefined();
   });
 
   it('should map each platform to its settings field', async () => {

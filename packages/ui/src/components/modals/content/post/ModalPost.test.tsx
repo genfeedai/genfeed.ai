@@ -141,4 +141,30 @@ describe('ModalPost', () => {
     );
     expect(mocks.post).not.toHaveBeenCalled();
   });
+  it('keeps rich-text formatting when editing a non-Twitter draft', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalPost
+        credentials={[]}
+        post={
+          {
+            id: 'existing-post',
+            description: '<p>Original</p>',
+            platform: 'instagram',
+          } as IPost
+        }
+      />,
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Post content' }),
+      ' edited',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save', exact: true }));
+    await waitFor(() =>
+      expect(mocks.patch).toHaveBeenCalledWith(
+        'existing-post',
+        expect.objectContaining({ description: '<p>Original</p> edited' }),
+      ),
+    );
+  });
 });

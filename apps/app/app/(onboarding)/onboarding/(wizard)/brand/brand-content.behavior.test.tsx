@@ -4,40 +4,46 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import BrandContent from './brand-content';
 
 const {
   currentUserState,
-  getTokenMock,
   findMeBrandsMock,
   findMeOrganizationsMock,
+  getTokenMock,
   handleStepCompleteMock,
-  notifyWarningMock,
   patchMeMock,
   patchSettingsMock,
   pushMock,
+  queueStarterAssetsMock,
   renameWithOrganizationSyncMock,
   resolveAuthTokenMock,
   scrapeMock,
   searchParamsMock,
   setOnboardingAccountTypeMock,
+  toastErrorMock,
+  toastWarningMock,
   updateAccountTypeMock,
 } = vi.hoisted(() => ({
-  currentUserState: { currentUser: { email: '' } },
-  getTokenMock: vi.fn(),
+  currentUserState: {
+    currentUser: { email: '' } as { email: string; name?: string },
+    isLoading: false,
+  },
   findMeBrandsMock: vi.fn(),
   findMeOrganizationsMock: vi.fn(),
+  getTokenMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
-  notifyWarningMock: vi.fn(),
   patchMeMock: vi.fn(),
   patchSettingsMock: vi.fn(),
   pushMock: vi.fn(),
+  queueStarterAssetsMock: vi.fn(),
   renameWithOrganizationSyncMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
   scrapeMock: vi.fn(),
   searchParamsMock: new URLSearchParams(),
   setOnboardingAccountTypeMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+  toastWarningMock: vi.fn(),
   updateAccountTypeMock: vi.fn(),
 }));
 
@@ -70,21 +76,16 @@ vi.mock('next-intl', async () => {
   };
 });
 
-vi.mock('@hooks/ui/use-gsap-entrance', () => ({
-  useGsapTimeline: () => vi.fn(),
+vi.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => toastErrorMock(...args),
+    warning: (...args: unknown[]) => toastWarningMock(...args),
+  },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
-  },
-}));
-
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      warning: notifyWarningMock,
-    })),
   },
 }));
 
@@ -112,6 +113,14 @@ vi.mock('@services/organization/users.service', () => ({
       findMeBrands: findMeBrandsMock,
       findMeOrganizations: findMeOrganizationsMock,
       patchMe: patchMeMock,
+    })),
+  },
+}));
+
+vi.mock('@services/onboarding/onboarding.service', () => ({
+  OnboardingService: {
+    getInstance: vi.fn(() => ({
+      queueStarterAssets: queueStarterAssetsMock,
     })),
   },
 }));
@@ -159,6 +168,10 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
+vi.mock('@ui/feedback/alert/Alert', () => ({
+  default: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({
@@ -167,707 +180,174 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsMock,
 }));
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+// Real-time waits: the component holds the loading step visible for
+// MIN_LOADING_DISPLAY_MS (1.6s) regardless of how fast setup work resolves.
+// Fake timers do not mix safely with RTL's own polling-based `waitFor` /
+// `findBy*`, so these tests wait on the real clock instead.
+const LOADING_STEP_WAIT_OPTIONS = { timeout: 5000 };
 
-  return {
-    clear: () => {
-      store = {};
-    },
-    getItem: (key: string) => store[key] ?? null,
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-  };
-})();
+// The default per-test timeout (5s) leaves no room for a 1.6s real-time wait
+// plus setup; give this suite headroom instead of racing the clock.
+vi.setConfig({ testTimeout: 10000 });
 
-async function openBrandDetails() {
-  fireEvent.click(screen.getByRole('button', { name: /^Business/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  await screen.findByPlaceholderText('Your name or brand');
-}
-
-function openVoice() {
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByText('Give it your voice.')).toBeVisible();
-}
-
-describe('BrandContent behavior', () => {
+describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
   beforeEach(() => {
-    currentUserState.currentUser.email = '';
-    findMeBrandsMock.mockReset();
-    findMeOrganizationsMock.mockReset();
-    handleStepCompleteMock.mockReset();
-    notifyWarningMock.mockReset();
-    patchMeMock.mockReset();
-    patchSettingsMock.mockReset();
-    pushMock.mockReset();
-    renameWithOrganizationSyncMock.mockReset();
-    resolveAuthTokenMock.mockReset();
-    scrapeMock.mockReset();
-    updateAccountTypeMock.mockReset();
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    searchParamsMock.forEach((_value, key) => {
+      searchParamsMock.delete(key);
+    });
+    currentUserState.currentUser = { email: '' };
+    currentUserState.isLoading = false;
+
+    getTokenMock.mockResolvedValue('token');
+    resolveAuthTokenMock.mockImplementation(async (getToken: () => unknown) =>
+      typeof getToken === 'function' ? await getToken() : 'token',
+    );
+    findMeBrandsMock.mockResolvedValue([{ id: 'brand-1' }]);
+    findMeOrganizationsMock.mockResolvedValue([{ id: 'org-1' }]);
     updateAccountTypeMock.mockResolvedValue(undefined);
-    setOnboardingAccountTypeMock.mockReset();
-    searchParamsMock.delete('auto');
-    searchParamsMock.delete('accountType');
-    localStorageMock.clear();
-
-    resolveAuthTokenMock.mockResolvedValue('api-token');
-    // A default brand + org exist by the brand step for a normal signup, so the
-    // resource routes can resolve their target ids (REST audit #1354).
-    findMeBrandsMock.mockResolvedValue([{ id: 'brand_1' }]);
-    findMeOrganizationsMock.mockResolvedValue([
-      { id: 'org_1', label: 'Default Organization' },
-    ]);
-    handleStepCompleteMock.mockResolvedValue(undefined);
-    patchMeMock.mockResolvedValue(undefined);
+    renameWithOrganizationSyncMock.mockResolvedValue(undefined);
+    scrapeMock.mockResolvedValue(undefined);
+    queueStarterAssetsMock.mockResolvedValue({ queued: true });
     patchSettingsMock.mockResolvedValue(undefined);
-    scrapeMock.mockResolvedValue({ brandId: 'brand_1', success: true });
-    renameWithOrganizationSyncMock.mockResolvedValue({ id: 'brand_1' });
-
-    Object.defineProperty(globalThis, 'localStorage', {
-      configurable: true,
-      value: localStorageMock,
-    });
+    patchMeMock.mockResolvedValue(undefined);
   });
 
-  it('shows only the current questions and preserves answers going back', async () => {
-    render(<BrandContent />);
-    expect(screen.getByText('What do you create for?')).toBeVisible();
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Founders' }),
-    ).not.toBeInTheDocument();
-    await openBrandDetails();
-    expect(screen.getAllByRole('textbox')).toHaveLength(2);
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'first-brand.com' },
-    });
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'First Brand',
-    );
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'second-brand.io' },
-    });
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'Second Brand',
-    );
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'My Own Name' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'third-brand.io' },
-    });
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'My Own Name',
-    );
-    openVoice();
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Founders' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'My Own Name',
-    );
-    expect(screen.getByPlaceholderText('https://yoursite.com')).toHaveValue(
-      'third-brand.io',
-    );
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() =>
-      expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
-        'brand_1',
-        'My Own Name',
-        expect.objectContaining({
-          organizationLabel: 'My Own Name',
-          agentConfig: { voice: { audience: ['Founders'] } },
-        }),
-      ),
-    );
-  });
-
-  it('keeps a name supplied before this visit when the website changes', async () => {
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandName, 'Chosen Brand');
-    render(<BrandContent />);
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'different.com' },
-    });
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'Chosen Brand',
-    );
-  });
-
-  it('does not insert an unseen email suggestion after website confirmation', async () => {
-    const view = render(<BrandContent />);
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'No Website' },
-    });
-    openVoice();
-    currentUserState.currentUser.email = 'owner@company.com';
-    view.rerender(<BrandContent />);
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() =>
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand'),
-    );
-    expect(scrapeMock).not.toHaveBeenCalled();
-  });
-
-  it('preserves a signup profile when skipping instead of completing the steps', async () => {
-    searchParamsMock.set('accountType', 'EXPERT');
-    render(<BrandContent />);
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled(),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Skip Onboarding' }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/'));
-    expect(updateAccountTypeMock).toHaveBeenCalledWith('org_1', 'EXPERT');
-    expect(setOnboardingAccountTypeMock).toHaveBeenCalledWith('EXPERT');
-  });
-
-  it('keeps skip available when saving the optional profile fails', async () => {
-    render(<BrandContent />);
-    fireEvent.click(screen.getByRole('button', { name: /^Business/ }));
-    updateAccountTypeMock.mockRejectedValueOnce(new Error('unavailable'));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip Onboarding' }));
-    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/'));
-    expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
-  });
-
-  it('suggests a work-email website without scraping before confirmation', async () => {
-    currentUserState.currentUser.email = 'owner@acme-studio.com';
-    render(<BrandContent />);
-    await openBrandDetails();
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText('https://yoursite.com')).toHaveValue(
-        'https://acme-studio.com',
-      ),
-    );
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'Acme Studio',
-    );
-    expect(scrapeMock).not.toHaveBeenCalled();
-    expect(renameWithOrganizationSyncMock).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: '' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() =>
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand'),
-    );
-    expect(scrapeMock).not.toHaveBeenCalled();
-  });
-
-  it.each(['user@gmail.com', 'user@outlook.com', 'user@proton.me'])(
-    'does not suggest a website from personal email %s',
-    async (email) => {
-      currentUserState.currentUser.email = email;
-      render(<BrandContent />);
-      await openBrandDetails();
-      expect(screen.getByPlaceholderText('https://yoursite.com')).toHaveValue(
-        '',
-      );
-      expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    },
-  );
-
-  it('preserves manual clearing and naming when prefill arrives late', async () => {
-    let finishPrefill: (
-      brands: Array<{
-        id: string;
-        label: string;
-        links: Array<{ category: string; url: string }>;
-      }>,
-    ) => void = () => {};
-    findMeBrandsMock.mockReturnValue(
-      new Promise((resolve) => {
-        finishPrefill = resolve;
-      }),
-    );
-    currentUserState.currentUser.email = 'owner@company.com';
-    render(<BrandContent />);
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'mine.com' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: '' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'My Name' },
-    });
-    finishPrefill([
-      {
-        id: 'brand_1',
-        label: 'Server Name',
-        links: [{ category: 'WEBSITE', url: 'https://server.com' }],
-      },
-    ]);
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-        'My Name',
-      ),
-    );
-    expect(screen.getByPlaceholderText('https://yoursite.com')).toHaveValue('');
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() =>
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand'),
-    );
-    expect(scrapeMock).not.toHaveBeenCalled();
-  });
-
-  it('keeps an existing website ahead of the email suggestion', async () => {
-    currentUserState.currentUser.email = 'owner@acme.com';
-    findMeBrandsMock.mockResolvedValue([
-      {
-        id: 'brand_1',
-        label: 'Client Brand',
-        links: [{ category: 'WEBSITE', url: 'https://client.com' }],
-      },
-    ]);
-    render(<BrandContent />);
-    await openBrandDetails();
-    expect(screen.getByPlaceholderText('https://yoursite.com')).toHaveValue(
-      'https://client.com',
-    );
-    expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-      'Client Brand',
-    );
-  });
-
-  it('prefills auto cloud handoff context and continues after confirmation', async () => {
-    searchParamsMock.set('auto', 'true');
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandName, 'Acme');
+  it('skips straight to the loading step for a work email and enriches from the domain', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
 
     render(<BrandContent />);
 
-    expect(scrapeMock).not.toHaveBeenCalled();
-
-    await openBrandDetails();
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Founders' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Bold' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    // No account type / name / audience / tone form ever renders.
+    expect(screen.queryByPlaceholderText(/website/i)).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
-        'brand_1',
-        'Acme',
-        {
-          agentConfig: {
-            voice: {
-              audience: ['Founders'],
-              tone: 'Bold',
-            },
-          },
-          description: [
-            'Brand: Acme.',
-            'Organization: Acme.',
-            'Audience: Founders.',
-            'Tone: Bold.',
-          ].join('\n'),
-          organizationLabel: 'Acme',
-          text: [
-            'Brand: Acme.',
-            'Organization: Acme.',
-            'Audience: Founders.',
-            'Tone: Bold.',
-          ].join('\n'),
-        },
-      );
-    });
-
-    expect(scrapeMock).toHaveBeenCalledWith('brand_1', {
-      additionalNotes: 'Preferred tone: Bold',
-      brandName: 'Acme',
-      brandUrl: 'https://acme.co',
-      organizationName: 'Acme',
-      targetAudience: 'Founders',
-    });
-    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain)).toBe(
-      'acme.co',
-    );
-    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName)).toBe(
+      expect(updateAccountTypeMock).toHaveBeenCalledWith('org-1', 'CREATOR');
+    }, LOADING_STEP_WAIT_OPTIONS);
+    expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
+      'brand-1',
       'Acme',
+      { organizationLabel: 'Acme' },
     );
-    expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    expect(pushMock).not.toHaveBeenCalledWith('/onboarding/providers');
-  });
-
-  it('infers a brand name from the stored domain when cloud handoff has no brand name', async () => {
-    searchParamsMock.set('auto', 'true');
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'studio.acme.io');
-
-    render(<BrandContent />);
-    await openBrandDetails();
+    expect(scrapeMock).toHaveBeenCalledWith(
+      'brand-1',
+      expect.objectContaining({ brandUrl: 'https://acme.com' }),
+    );
+    expect(queueStarterAssetsMock).toHaveBeenCalledWith(
+      'brand-1',
+      'https://acme.com',
+    );
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Your name or brand')).toHaveValue(
-        'Studio Acme',
-      );
-    });
-
-    expect(
-      screen.queryByPlaceholderText('Your organization'),
-    ).not.toBeInTheDocument();
-    expect(scrapeMock).not.toHaveBeenCalled();
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
-  it('continues a freshly provisioned account through its scoped brand and organization', async () => {
+  it('asks a personal inbox for a website before loading', async () => {
+    currentUserState.currentUser = { email: 'vincent@gmail.com' };
+
     render(<BrandContent />);
 
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'Fresh Brand' },
+    const websiteInput = await screen.findByPlaceholderText(
+      'https://yoursite.com',
+    );
+    fireEvent.change(websiteInput, {
+      target: { value: 'https://shipshit.dev' },
     });
-    openVoice();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
-      expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
-        'brand_1',
-        'Fresh Brand',
-        expect.objectContaining({
-          organizationLabel: 'Fresh Brand',
-        }),
+      expect(scrapeMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({ brandUrl: 'https://shipshit.dev' }),
       );
-    });
-    expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    }, LOADING_STEP_WAIT_OPTIONS);
+    expect(queueStarterAssetsMock).toHaveBeenCalledWith(
+      'brand-1',
+      'https://shipshit.dev',
+    );
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
-  it('skips onboarding for the freshly provisioned organization and completes the gate', async () => {
+  it('skipping the website prompt completes the onboarding gate without a website', async () => {
+    currentUserState.currentUser = { email: 'vincent@gmail.com' };
+
     render(<BrandContent />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Skip Onboarding' }));
+    await screen.findByPlaceholderText('https://yoursite.com');
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
 
     await waitFor(() => {
-      expect(patchSettingsMock).toHaveBeenCalledWith('org_1', {
+      expect(patchSettingsMock).toHaveBeenCalledWith('org-1', {
         isFirstLogin: false,
       });
     });
-    expect(patchMeMock).toHaveBeenCalledWith({
-      isOnboardingCompleted: true,
-    });
+    expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     expect(pushMock).toHaveBeenCalledWith('/');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(scrapeMock).not.toHaveBeenCalled();
   });
 
-  it('shows an actionable error and allows retry when continuing fails', async () => {
-    renameWithOrganizationSyncMock
-      .mockRejectedValueOnce(new Error('forbidden'))
-      .mockResolvedValueOnce({ id: 'brand_1' });
+  it('surfaces a starter-assets queue failure without blocking onboarding', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    queueStarterAssetsMock.mockRejectedValue(new Error('queue unavailable'));
+
     render(<BrandContent />);
 
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'Fresh Brand' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(
-      await screen.findByText(
-        "We couldn't save your workspace. Check your connection and try again.",
-      ),
-    ).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
     await waitFor(() => {
-      expect(renameWithOrganizationSyncMock).toHaveBeenCalledTimes(2);
-    });
-    expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(toastErrorMock).toHaveBeenCalled();
+    }, LOADING_STEP_WAIT_OPTIONS);
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
-  it('advances past a scrape warning instead of blocking Continue (#5080)', async () => {
-    scrapeMock.mockResolvedValueOnce({
-      brandId: 'brand_1',
+  it('surfaces a classified scrape warning as a toast without blocking onboarding (#5080)', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    scrapeMock.mockResolvedValue({
+      brandId: 'brand-1',
       scrapeWarning: {
         code: 'BRAND_SCRAPE_SITE_UNREACHABLE',
         message: 'We could not reach that website.',
       },
       success: true,
     });
+
     render(<BrandContent />);
 
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'unreachable-site.example' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    // The server already persisted a fallback brand profile and completed
-    // onboarding for this response, so the wizard must advance — not loop
-    // the user on Continue against a site that will always fail this way.
+    await waitFor(() => {
+      expect(toastWarningMock).toHaveBeenCalledWith(
+        "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
+      );
+    }, LOADING_STEP_WAIT_OPTIONS);
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(scrapeMock).toHaveBeenCalledTimes(1);
-    // The notice is a toast, not the step's inline error Alert: this step
-    // navigates away immediately (handleStepComplete), so an inline notice
-    // would never be seen. AppToaster is mounted in the root layout, not
-    // per-route, so a toast fired here survives that navigation (#5080
-    // review).
-    expect(notifyWarningMock).toHaveBeenCalledWith(
-      "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
-    );
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
-  it('keeps advancing on every retry when the same site keeps producing the same warning (#5080)', async () => {
-    // A WAF-blocked or dead-DNS site produces the identical scrapeWarning on
-    // every attempt. Before this fix, a persistent scrapeWarning blocked
-    // Continue forever and re-ran the whole scrape/AI/persistence pipeline
-    // each click; the fix must advance on the very first attempt.
-    scrapeMock.mockResolvedValue({
-      brandId: 'brand_1',
-      scrapeWarning: {
-        code: 'BRAND_SCRAPE_SITE_BLOCKED',
-        message: 'That website blocked our request to read it.',
-      },
-      success: true,
-    });
-    render(<BrandContent />);
-
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'always-blocked.example' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await waitFor(() => {
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(scrapeMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('advances past an unclassified rejected scrape request instead of blocking Continue (#5080)', async () => {
-    scrapeMock.mockRejectedValueOnce({
+  it('surfaces a classified scrape rejection as a toast without blocking onboarding (#5080)', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    scrapeMock.mockRejectedValue({
       errors: [
         {
-          code: 'BRAND_SCRAPE_UNKNOWN',
+          code: 'BRAND_SCRAPE_SITE_BLOCKED',
           detail: 'Failed to setup brand',
           title: 'Brand Setup Failed',
         },
       ],
     });
+
     render(<BrandContent />);
 
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'flaky-site.example' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    // BRAND_SCRAPE_UNKNOWN must not claim setup failed — it may well have
-    // succeeded server-side (e.g. the client just gave up waiting).
+    await waitFor(() => {
+      expect(toastWarningMock).toHaveBeenCalledWith(
+        'Your site blocked our request to read it, but your brand setup continued — you can add details anytime.',
+      );
+    }, LOADING_STEP_WAIT_OPTIONS);
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(notifyWarningMock).toHaveBeenCalledWith(
-      'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
-    );
-  });
-
-  it('advances past a client-side scrape timeout (no JSON:API body) instead of blocking Continue', async () => {
-    // The HTTP interceptor rejects a client-side timeout with a plain Error
-    // carrying isTimeout — never a { errors: [...] } body.
-    const timeoutError = Object.assign(
-      new Error(
-        'Request timed out. Please check your connection and try again.',
-      ),
-      { isTimeout: true },
-    );
-    scrapeMock.mockRejectedValueOnce(timeoutError);
-    render(<BrandContent />);
-
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'slow-site.example' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await waitFor(() => {
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(notifyWarningMock).toHaveBeenCalledWith(
-      'Your site took too long to respond, but your brand setup continued — you can add details anytime.',
-    );
-  });
-
-  it('falls back to the generic scrape notice for an unrecognized or missing error code, and still advances', async () => {
-    scrapeMock.mockRejectedValueOnce(new Error('network down'));
-    render(<BrandContent />);
-
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'flaky-site.example' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await waitFor(() => {
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(notifyWarningMock).toHaveBeenCalledWith(
-      'We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.',
-    );
-  });
-
-  it('blocks only on an invalid URL, keeping the user on this step to fix it', async () => {
-    scrapeMock.mockRejectedValueOnce({
-      errors: [
-        {
-          code: 'BRAND_SCRAPE_INVALID_URL',
-          detail: 'Invalid domain',
-          title: 'Invalid URL',
-        },
-      ],
-    });
-    render(<BrandContent />);
-
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('https://yoursite.com'), {
-      target: { value: 'not a url' },
-    });
-    openVoice();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(
-      await screen.findByText(
-        "That website address doesn't look valid. Go back and fix it, then press Continue.",
-      ),
-    ).toBeVisible();
-    expect(handleStepCompleteMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
-
-    scrapeMock.mockResolvedValueOnce({ brandId: 'brand_1', success: true });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    await waitFor(() => {
-      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
-    expect(scrapeMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('shows an actionable error and allows retry when skipping fails', async () => {
-    patchSettingsMock
-      .mockRejectedValueOnce(new Error('forbidden'))
-      .mockResolvedValueOnce(undefined);
-    render(<BrandContent />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skip Onboarding' }));
-
-    expect(
-      await screen.findByText(
-        "We couldn't skip onboarding. Check your connection and try again.",
-      ),
-    ).toBeVisible();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skip Onboarding' }));
-
-    await waitFor(() => {
-      expect(patchSettingsMock).toHaveBeenCalledTimes(2);
-    });
-    expect(patchMeMock).toHaveBeenCalledWith({
-      isOnboardingCompleted: true,
-    });
-    expect(pushMock).toHaveBeenCalledWith('/');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  });
-
-  it('shows an actionable error when account type persistence fails', async () => {
-    updateAccountTypeMock.mockRejectedValueOnce(new Error('forbidden'));
-    render(<BrandContent />);
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /^CreatorIndividual content creator or influencer$/,
-      }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(
-      await screen.findByText(
-        "We couldn't save your account type. Try selecting it again.",
-      ),
-    ).toBeVisible();
-  });
-
-  it('does not leave Continue loading when authentication is unavailable', async () => {
-    render(<BrandContent />);
-    await waitFor(() => {
-      expect(findMeBrandsMock).toHaveBeenCalled();
-    });
-
-    await openBrandDetails();
-    fireEvent.change(screen.getByPlaceholderText('Your name or brand'), {
-      target: { value: 'Fresh Brand' },
-    });
-    openVoice();
-    resolveAuthTokenMock.mockResolvedValueOnce(null);
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(
-      await screen.findByText(
-        "We couldn't save your workspace. Check your connection and try again.",
-      ),
-    ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
-  });
-
-  it('surfaces onboarding initialization failures without disabling the form', async () => {
-    findMeBrandsMock.mockRejectedValueOnce(new Error('forbidden'));
-    render(<BrandContent />);
-
-    expect(
-      await screen.findByText(
-        "We couldn't load your workspace details. You can retry Continue or Skip Onboarding.",
-      ),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Skip Onboarding' }),
-    ).toBeEnabled();
-  });
-
-  it('survives rapid remount while brand prefill is in flight', async () => {
-    let resolveBrands: (value: Array<{ id: string; label: string }>) => void =
-      () => {
-        /* assigned when the pending prefill starts */
-      };
-    findMeBrandsMock.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveBrands = resolve;
-        }),
-    );
-
-    const first = render(<BrandContent />);
-    await waitFor(() => expect(findMeBrandsMock).toHaveBeenCalledTimes(1));
-    first.unmount();
-    render(<BrandContent />);
-    await waitFor(() => expect(findMeBrandsMock).toHaveBeenCalledTimes(2));
-
-    expect(
-      screen.queryByPlaceholderText('Your name or brand'),
-    ).not.toBeInTheDocument();
-
-    resolveBrands([{ id: 'brand_1', label: 'Acme' }]);
-
-    await waitFor(() => expect(findMeBrandsMock).toHaveBeenCalledTimes(2));
-    await openBrandDetails();
-    expect(screen.getByDisplayValue('Acme')).toBeVisible();
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 });

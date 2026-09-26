@@ -12,8 +12,8 @@ import { MODEL_KEYS } from './model-keys.constant';
  *
  * **Bill-time path (preferred):** store raw provider USD in `providerCostUsd`.
  * Credits guard multiplies by units and runs `applyMargin`, which reads the
- * live admin `PlatformSetting.marginMultiplier`. Change margin → next generate
- * re-prices without rewriting model rows.
+ * live admin `PlatformSetting.marginMultiplierGeneration`. Change margin →
+ * next generate re-prices without rewriting model rows.
  *
  * **providerCostUsd unit** follows `pricingType`:
  * - FLAT → USD per run/image
@@ -95,7 +95,7 @@ export const SELF_HOSTED_MODELS = [
    * Cloud default. H3 costs $0.08/s at 768P and $0.13/s at 2K. Seed the
    * conservative 2K rate; the shared resolution quote/reservation discounts
    * the published 768P draft band when selected.
-   * 5s → applyMargin(0.65) ≈ 217 credits at margin 1.0.
+   * 5s → $0.65 provider cost; live credits come from applyMargin.
    */
   {
     category: ModelCategory.VIDEO,
@@ -139,7 +139,7 @@ export const SELF_HOSTED_MODELS = [
   },
   /**
    * Realtime Director route. Fal list price is $0.08/s with a 60-second
-   * session minimum ($1.20 → applyMargin(1.20) = 400) and 1080p at 2×.
+   * session minimum ($1.20 provider cost) and 1080p at 2×.
    * The reserved quantity is the user-declared ceiling, not a plan tier.
    */
   {
@@ -162,7 +162,7 @@ export const SELF_HOSTED_MODELS = [
   },
   /**
    * Premium long-form video. providerCostUsd is **per second**
-   * (720p-safe ~$0.24/s). 5s → applyMargin(1.20) ≈ 400 credits.
+   * (720p-safe ~$0.24/s). 5s → $1.20 provider cost; live credits from applyMargin.
    */
   {
     category: ModelCategory.VIDEO,
@@ -184,7 +184,7 @@ export const SELF_HOSTED_MODELS = [
   /**
    * fal partner endpoint. The public contract bills reference/input video at
    * $0.13/s; seed that conservative band for text and image-reference modes.
-   * 8s -> applyMargin(1.04) ~= 347 credits at margin 1.0.
+   * 8s → $1.04 provider cost; live credits come from applyMargin.
    */
   {
     category: ModelCategory.VIDEO,
@@ -207,7 +207,7 @@ export const SELF_HOSTED_MODELS = [
   /**
    * Cheapest T2V already wired in the Replicate video builder.
    * providerCostUsd is **per second** at 720p draft-off ($0.02/s).
-   * 5s → applyMargin(0.10) ≈ 35 credits at margin 1.0.
+   * 5s → $0.10 provider cost; live credits come from applyMargin.
    * Cloud keeps MiniMax H3 as `isDefault`; local/e2e promote this row.
    */
   {

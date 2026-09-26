@@ -1,10 +1,9 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
@@ -55,6 +54,7 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   collectMediaGateAssetIds,
   type PlannedThreadChild,
@@ -97,11 +97,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly postFailureService: ScheduledPostFailureService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly organizationsService: OrganizationsService,
-    private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,
     @Inject(SERVER_TOKENS.publisherFactory)
     private readonly publisherFactory: ServerPublisherFactory,
@@ -415,24 +414,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       postId: post.id,
     });
 
-    await this.persistPublishState(
-      post,
-      {
-        error: createChannelTargetError(
-          'quota_exceeded',
-          'Quota exceeded',
-          false,
-        ),
-        executionState: TargetExecutionState.FAILED,
-      },
-      'Quota exceeded',
-    );
     const platform = this.toDomainPlatform(credential.platform);
-    await this.activitiesService.create(
+    return this.failChannel(
+      post,
+      platform,
+      'quota_exceeded',
+      'Quota exceeded',
+      false,
       createQuotaExceededActivity(post, quotaCheck, platform),
     );
-    this.emitPublishFailedWebhook(post, 'Quota exceeded', platform);
-    return createFailedPublishResult(platform, 'Quota exceeded');
   }
 
   private async preparePublisherAndContext(
@@ -841,7 +831,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           postId: post.id.toString(),
         },
       );
-      await this.failChildren(post, errorMessage);
+      await this.postFailureService.failChildren(
+        post,
+        getPublishErrorCode(error),
+        errorMessage,
+      );
     }
   }
 
@@ -869,14 +863,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return false;
   }
 
+  /**
+   * Terminal pre-provider failure. The owner is told through the same
+   * POST_FAILED activity as an exhausted provider retry (#5187); only the
+   * transition that actually moved the target to FAILED notifies.
+   */
   private async failChannel(
     post: PostEntity,
     platform: string,
     code: string,
     message: string,
     isRetryable: boolean,
+    activity: ActivityEntity = createPublishFailedActivity(post, message),
   ): Promise<PublishResult> {
-    await this.persistPublishState(
+    const persisted = await this.persistPublishState(
       post,
       {
         error: createChannelTargetError(code, message, isRetryable),
@@ -884,7 +884,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       },
       message,
     );
-    this.emitPublishFailedWebhook(post, message, platform || undefined);
+    if (persisted) {
+      await this.postFailureService.failChildren(
+        post,
+        'parent_failed',
+        'Parent post failed',
+      );
+      await this.postFailureService.notifyPublishFailed(post, activity);
+      this.emitPublishFailedWebhook(post, message, platform || undefined);
+    }
     return createFailedPublishResult(platform, message);
   }
 
@@ -952,8 +960,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (!persisted) {
       return undefined;
     }
-    await this.failChildren(post, 'Parent post failed');
-    await this.activitiesService.create(
+    await this.postFailureService.failChildren(
+      post,
+      'parent_failed',
+      'Parent post failed',
+    );
+    await this.postFailureService.notifyPublishFailed(
+      post,
       createPublishFailedActivity(post, errorMessage),
     );
 
@@ -1197,35 +1210,5 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       success: result.success === true,
       url: typeof result.url === 'string' ? result.url : '',
     };
-  }
-
-  private async failChildren(post: PostEntity, reason: string): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const children = (post.children || []) as unknown as PostDocument[];
-
-    if (children.length === 0) {
-      return;
-    }
-
-    this.logger.log(`${url} failing ${children.length} children`, {
-      childrenCount: children.length,
-      parentPostId: post.id.toString(),
-      reason,
-    });
-
-    for (const child of children) {
-      try {
-        await this.postsService.patch(child.id.toString(), {});
-      } catch (error: unknown) {
-        this.logger.error(`${url} failed to mark child as failed`, {
-          childPostId: child.id.toString(),
-          error: getErrorMessage(error, {
-            fallback: () => undefined,
-            messageSource: 'error-instance',
-          }),
-          parentPostId: post.id.toString(),
-        });
-      }
-    }
   }
 }

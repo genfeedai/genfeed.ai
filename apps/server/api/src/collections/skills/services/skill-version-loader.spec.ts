@@ -407,6 +407,7 @@ describe('loadAuthorizedSkillVersions', () => {
   it('reads the system catalog version while a use-only grant still selects execution', async () => {
     const skill = [
       {
+        allowsCatalogRead: true,
         audience: 'private',
         currentVersionId: 'version-catalog',
         id: 'skill-1',
