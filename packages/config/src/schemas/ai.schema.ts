@@ -22,6 +22,73 @@ export const modelDiscoveryDecisionSchema = {
 };
 
 /**
+ * Media validation (#4877). Perception (#4879) turns each completed image,
+ * video or audio asset into persisted text artefacts off the publish path.
+ */
+export const mediaValidationSchema = {
+  // Costs one vision call per asset.
+  MEDIA_GATE_VISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off')
+    .description(
+      'Vision-evaluation flags (#4881). `shadow` records flags without gating; `live` forces review on a flagged asset and on media not yet evaluated. Flags are rubric enums, not confidences: severe_artifacts and not_brand_ready (critical) and weak_composition (warning) gate; minor_artifacts and needs_brand_polish (info) never do. A live flip cites a `bench:typed-decisions --mode=media` run (docs/operations/media-gates.md)',
+    ),
+  // Frames, OCR and transcript need no model; the scene description calls the
+  // vision model below. `false` stops the workers sweep from enqueuing assets.
+  MEDIA_PERCEPTION_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  // Evenly spaced stills sampled per video. Each costs one OCR pass and one
+  // image in the vision prompt, so keep it small.
+  MEDIA_PERCEPTION_FRAME_COUNT: Joi.number()
+    .integer()
+    .min(1)
+    .max(24)
+    .default(6),
+  // How far back the sweep looks for completed assets without a record.
+  // Older assets are not perceived; readers report them as pending.
+  MEDIA_PERCEPTION_LOOKBACK_HOURS: Joi.number()
+    .integer()
+    .min(1)
+    .max(720)
+    .default(24),
+  // Vision model for the scene description; empty uses LLM_DEFAULTS.fastText.
+  MEDIA_PERCEPTION_VISION_MODEL: Joi.string().optional().allow(''),
+  MODERATION_PROVIDER: Joi.string()
+    .valid('none', 'openai')
+    .default('none')
+    .description(
+      'Moderation classifier (#4880). `none` sends nothing off the host and persists no new verdict; while the mode is `live`, verdicts stored from an earlier provider still apply. `openai` uses omni-moderation (images and text)',
+    ),
+  MODERATION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('shadow')
+    .description(
+      '`shadow` persists scores and logs what would flag; `live` forces review at threshold and on media not yet moderated. A live flip cites a `bench:typed-decisions --mode=media` run with per-category precision and recall (docs/operations/media-gates.md)',
+    ),
+  MEDIA_TEXT_GATE_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off')
+    .description(
+      'Text decisions on perception output (#4882): brand safety and on-brand over transcript and scene description, caption consistency per post. In `live`, a confident `false` on brand safety or on-brand forces review, as does media not yet decided; caption inconsistency only warns. No typed-decision provider bound in /admin = off',
+    ),
+  MEDIA_TEXT_GATE_MIN_CONFIDENCE: Joi.number()
+    .min(0)
+    .max(1)
+    .default(0.85)
+    .description(
+      'Minimum confidence for a `false` text decision to count. Policy: over `false` answers only, the lowest confidence-decile floor from which every non-empty decile at or above has at least 95% of labels also false, with at least 20 such labels; the higher of the isBrandSafe and isOnBrand suggestions printed by `bench:typed-decisions --mode=media`',
+    ),
+  MODERATION_THRESHOLDS: Joi.string()
+    .pattern(
+      /^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/,
+    )
+    .optional()
+    .allow('')
+    .description(
+      'Per-category moderation thresholds as `category=confidence` pairs (e.g. `sexual=0.5,violence=0.7`); unset categories keep DEFAULT_MODERATION_THRESHOLDS and lower is stricter. Policy: each threshold is the lowest score-decile floor from which every non-empty decile at or above has a positive-label rate of at least 95%, with at least 20 labelled positives at or above it (printed as `suggested` by `bench:typed-decisions --mode=media`); sexual_minors (0.2) and self_harm (0.4) are recall-biased and may only go lower without a written decision; spam (0.9) is precision-biased',
+    ),
+};
+
+/**
  * General AI config
  */
 export const generalAiSchema = {
@@ -93,6 +160,7 @@ export const generalAiSchema = {
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
   CONTENT_EVAL_GENFEED_API_KEY: Joi.string().optional().allow(''),
   ...modelDiscoveryDecisionSchema,
+  ...mediaValidationSchema,
   // Live activation is closed pending reviewed provider and real-traffic evidence (#4944).
   // Shadow records flags without withholding tool results.
   UNTRUSTED_CONTENT_DECISION_MODE: Joi.string()

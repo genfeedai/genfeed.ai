@@ -261,4 +261,55 @@ describe('pinned catalog import', () => {
     );
     expect(inventory(join(f.app, 'skills'))).toEqual(before);
   });
+  it('rejects an application procedure that is also published upstream before mutation', () => {
+    const f = fixture();
+    f.write();
+    mkdirSync(join(f.source, 'workflow-creator'));
+    writeFileSync(
+      join(f.source, 'workflow-creator', 'SKILL.md'),
+      '---\nname: workflow-creator\ndescription: Copy\n---\n# Copy',
+    );
+    const sha = f.commit();
+    const before = inventory(join(f.app, 'skills'));
+    expect(() =>
+      syncProductSkills(f.app, {
+        sourceDir: f.source,
+        commit: sha,
+        write: true,
+      }),
+    ).toThrow('Application procedures also published');
+    expect(inventory(join(f.app, 'skills'))).toEqual(before);
+  });
+  it('rejects a lock whose recorded source inventory lists an application procedure', () => {
+    const f = fixture();
+    f.write();
+    const path = join(f.app, 'skills', 'catalog.lock.json');
+    const lock = JSON.parse(readFileSync(path, 'utf8'));
+    lock.sourceSkillSlugs = [...lock.sourceSkillSlugs, 'model-selector'].sort();
+    writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+    expect(() => syncProductSkills(f.app, {})).toThrow(
+      'Application procedures also published',
+    );
+  });
+  it('rejects a recorded source inventory that differs from the pinned source', () => {
+    const f = fixture();
+    mkdirSync(join(f.source, 'public-only-skill'));
+    writeFileSync(
+      join(f.source, 'public-only-skill', 'SKILL.md'),
+      '---\nname: public-only-skill\ndescription: Public\n---\n# Public',
+    );
+    const sha = f.commit();
+    syncProductSkills(f.app, { sourceDir: f.source, commit: sha, write: true });
+    const path = join(f.app, 'skills', 'catalog.lock.json');
+    const lock = JSON.parse(readFileSync(path, 'utf8'));
+    expect(lock.sourceSkillSlugs).toContain('public-only-skill');
+    lock.sourceSkillSlugs = lock.sourceSkillSlugs.filter(
+      (slug: string) => slug !== 'public-only-skill',
+    );
+    writeFileSync(path, `${JSON.stringify(lock, null, 2)}\n`);
+    syncProductSkills(f.app, {});
+    expect(() =>
+      syncProductSkills(f.app, { sourceDir: f.source, checkSource: true }),
+    ).toThrow('Source skill inventory mismatch');
+  });
 });

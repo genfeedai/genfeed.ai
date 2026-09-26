@@ -2,9 +2,14 @@ import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
-import type {
-  MediaProbe,
-  MediaReadinessKind,
+import {
+  type MediaPerceptionArtefacts,
+  type MediaPerceptionArtefactsRequest,
+  type MediaPerceptionFingerprint,
+  type MediaProbe,
+  type MediaReadinessKind,
+  mediaPerceptionArtefactsSchema,
+  mediaPerceptionFingerprintSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   IApiUploadSource,
@@ -24,6 +29,14 @@ import FormData from 'form-data';
 import { firstValueFrom } from 'rxjs';
 
 const MULTIPART_MAX_BYTES = Number.POSITIVE_INFINITY;
+
+/**
+ * Perception downloads and hashes the whole asset, and extraction adds a seek,
+ * an OCR pass and an upload per frame plus an audio transcode — far past the
+ * module's 30s default for any real video.
+ */
+const PERCEPTION_FINGERPRINT_TIMEOUT_MS = 2 * 60 * 1000;
+const PERCEPTION_ARTEFACTS_TIMEOUT_MS = 10 * 60 * 1000;
 
 function filenameForUpload(contentType: string, filename = 'upload'): string {
   if (path.extname(filename)) {
@@ -183,6 +196,35 @@ export class FilesClientService {
       ),
     );
     return this.toMediaProbe(response.data, kind);
+  }
+
+  /** SHA-256 and size of the bytes behind an asset URL (#4879). */
+  async fingerprintMedia(url: string): Promise<MediaPerceptionFingerprint> {
+    const response = await firstValueFrom(
+      this.httpService.post<unknown>(
+        `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
+        { url },
+        { timeout: PERCEPTION_FINGERPRINT_TIMEOUT_MS },
+      ),
+    );
+    return mediaPerceptionFingerprintSchema.parse(response.data);
+  }
+
+  /**
+   * Model-free perception artefacts (#4879): sampled frames, OCR text and the
+   * extracted audio track. The response is validated before it is trusted.
+   */
+  async extractPerceptionArtefacts(
+    request: MediaPerceptionArtefactsRequest,
+  ): Promise<MediaPerceptionArtefacts> {
+    const response = await firstValueFrom(
+      this.httpService.post<unknown>(
+        `${this.filesServiceUrl}/v1/files/perception/artefacts`,
+        request,
+        { timeout: PERCEPTION_ARTEFACTS_TIMEOUT_MS },
+      ),
+    );
+    return mediaPerceptionArtefactsSchema.parse(response.data);
   }
 
   private toMediaProbe(

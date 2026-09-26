@@ -275,14 +275,16 @@ RUN node -r tsconfig-paths/register \
 # ==================================================
 FROM node:24-slim AS production
 
-# Install system dependencies for Bun, FFmpeg, and the pinned Remotion
-# Chrome Headless Shell downloaded in the dependency layer.
+# Install system dependencies for Bun, FFmpeg, the tesseract OCR engine used by
+# media perception (#4879), and the pinned Remotion Chrome Headless Shell
+# downloaded in the dependency layer.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     bash \
     unzip \
     ffmpeg \
+    tesseract-ocr \
     libnss3 \
     libdbus-1-3 \
     libatk1.0-0 \

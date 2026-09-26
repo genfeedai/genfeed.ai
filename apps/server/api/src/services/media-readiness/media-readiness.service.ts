@@ -1,10 +1,10 @@
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { resolveMediaKind } from '@api/services/media-readiness/media-kind.util';
 import {
   evaluateMediaReadiness,
   hasPlatformMediaSpecs,
 } from '@api/services/media-readiness/media-readiness.evaluator';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { IngredientCategory } from '@genfeedai/contracts';
 import {
   type MediaProbe,
   type MediaReadinessKind,
@@ -37,24 +37,6 @@ import { Injectable } from '@nestjs/common';
  * the upload path. The result is persisted on that first evaluation, so every
  * later publish of the same asset reads it back for free.
  */
-
-/**
- * Which readiness kind each ingredient category is measured as. Categories
- * absent here carry no media the specs can constrain (text, source, …).
- */
-const MEDIA_KIND_BY_CATEGORY: Partial<
-  Record<IngredientCategory, MediaReadinessKind>
-> = {
-  [IngredientCategory.AUDIO]: 'audio',
-  [IngredientCategory.AVATAR]: 'video',
-  [IngredientCategory.GIF]: 'image',
-  [IngredientCategory.IMAGE]: 'image',
-  [IngredientCategory.IMAGE_EDIT]: 'image',
-  [IngredientCategory.MUSIC]: 'audio',
-  [IngredientCategory.VIDEO]: 'video',
-  [IngredientCategory.VIDEO_EDIT]: 'video',
-  [IngredientCategory.VOICE]: 'audio',
-};
 
 type LoadedAssets = {
   candidates: ProbeableAsset[];
@@ -135,7 +117,7 @@ export class MediaReadinessService implements IMediaReadinessGate {
     // conflated, or a text attachment would block its own publish.
     const resolvedIds = new Set(rows.map((row) => row.id));
     const candidates = rows.flatMap((row) => {
-      const kind = MEDIA_KIND_BY_CATEGORY[row.category as IngredientCategory];
+      const kind = resolveMediaKind(row.category);
       if (!kind) {
         return [];
       }

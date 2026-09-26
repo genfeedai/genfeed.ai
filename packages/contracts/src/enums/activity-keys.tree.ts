@@ -28,6 +28,11 @@ export const ActivityKeys = {
     removeAll: ActivityKey.CREDITS_REMOVE_ALL,
     reset: ActivityKey.CREDITS_RESET,
   },
+  media: {
+    moderate: {
+      flagged: ActivityKey.MEDIA_MODERATION_FLAGGED,
+    },
+  },
   image: {
     generate: {
       completed: ActivityKey.IMAGE_GENERATED,
