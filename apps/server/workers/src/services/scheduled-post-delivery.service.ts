@@ -1,10 +1,10 @@
+import type { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
@@ -101,7 +101,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly organizationsService: OrganizationsService,
-    private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,
     @Inject(SERVER_TOKENS.publisherFactory)
     private readonly publisherFactory: ServerPublisherFactory,
@@ -415,24 +414,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       postId: post.id,
     });
 
-    await this.persistPublishState(
-      post,
-      {
-        error: createChannelTargetError(
-          'quota_exceeded',
-          'Quota exceeded',
-          false,
-        ),
-        executionState: TargetExecutionState.FAILED,
-      },
-      'Quota exceeded',
-    );
     const platform = this.toDomainPlatform(credential.platform);
-    await this.activitiesService.create(
+    return this.failChannel(
+      post,
+      platform,
+      'quota_exceeded',
+      'Quota exceeded',
+      false,
       createQuotaExceededActivity(post, quotaCheck, platform),
     );
-    this.emitPublishFailedWebhook(post, 'Quota exceeded', platform);
-    return createFailedPublishResult(platform, 'Quota exceeded');
   }
 
   private async preparePublisherAndContext(
@@ -841,7 +831,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           postId: post.id.toString(),
         },
       );
-      await this.failChildren(post, errorMessage);
+      await this.failChildren(post, getPublishErrorCode(error), errorMessage);
     }
   }
 
@@ -869,14 +859,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return false;
   }
 
+  /**
+   * Terminal pre-provider failure. The owner is told through the same
+   * POST_FAILED activity as an exhausted provider retry (#5187); only the
+   * transition that actually moved the target to FAILED notifies.
+   */
   private async failChannel(
     post: PostEntity,
     platform: string,
     code: string,
     message: string,
     isRetryable: boolean,
+    activity: ActivityEntity = createPublishFailedActivity(post, message),
   ): Promise<PublishResult> {
-    await this.persistPublishState(
+    const persisted = await this.persistPublishState(
       post,
       {
         error: createChannelTargetError(code, message, isRetryable),
@@ -884,8 +880,37 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       },
       message,
     );
-    this.emitPublishFailedWebhook(post, message, platform || undefined);
+    if (persisted) {
+      await this.failChildren(post, 'parent_failed', 'Parent post failed');
+      await this.notifyPublishFailed(post, activity);
+      this.emitPublishFailedWebhook(post, message, platform || undefined);
+    }
     return createFailedPublishResult(platform, message);
+  }
+
+  /**
+   * The target is already FAILED when this runs, so a notification error is
+   * logged instead of thrown: rethrowing would reach `handlePublishError`,
+   * whose retry path moves the target back to SCHEDULED.
+   */
+  private async notifyPublishFailed(
+    post: PostEntity,
+    activity: ActivityEntity,
+  ): Promise<void> {
+    try {
+      await this.activitiesService.create(activity);
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} failed to record publish failure activity`,
+        {
+          error: getErrorMessage(error, {
+            fallback: () => undefined,
+            messageSource: 'error-instance',
+          }),
+          postId: post.id.toString(),
+        },
+      );
+    }
   }
 
   private async attemptRetry(
@@ -952,8 +977,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (!persisted) {
       return undefined;
     }
-    await this.failChildren(post, 'Parent post failed');
-    await this.activitiesService.create(
+    await this.failChildren(post, 'parent_failed', 'Parent post failed');
+    await this.notifyPublishFailed(
+      post,
       createPublishFailedActivity(post, errorMessage),
     );
 
@@ -1199,7 +1225,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     };
   }
 
-  private async failChildren(post: PostEntity, reason: string): Promise<void> {
+  /**
+   * Moves still-pending thread children to FAILED. The prior-state guard
+   * leaves a child the provider already delivered untouched.
+   */
+  private async failChildren(
+    post: PostEntity,
+    code: string,
+    reason: string,
+  ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const children = (post.children || []) as unknown as PostDocument[];
 
@@ -1215,7 +1249,24 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     for (const child of children) {
       try {
-        await this.postsService.patch(child.id.toString(), {});
+        await this.schedulerPublishStateService.transitionPost(
+          {
+            groupId: child.groupId,
+            id: child.id,
+            organizationId: post.organizationId,
+          },
+          {
+            error: createChannelTargetError(code, reason, false),
+            executionState: TargetExecutionState.FAILED,
+          },
+          reason,
+          {
+            priorExecutionStates: [
+              TargetExecutionState.SCHEDULED,
+              TargetExecutionState.PUBLISHING,
+            ],
+          },
+        );
       } catch (error: unknown) {
         this.logger.error(`${url} failed to mark child as failed`, {
           childPostId: child.id.toString(),
