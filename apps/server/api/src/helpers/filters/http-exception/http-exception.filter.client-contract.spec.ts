@@ -2,19 +2,25 @@
  * End-to-end contract between `HttpExceptionFilter`'s real JSON:API output
  * (the real `jsonapi-serializer`, not a pass-through mock — a mock cannot
  * catch a real serializer dropping or renaming a field) and the client-side
- * error helpers in `@genfeedai/utils`. Exercises the exact shapes two real,
+ * status helpers in `@genfeedai/utils`. Exercises the exact shapes two real,
  * already-shipping exception factories throw — `ErrorResponse.notFound`
  * (coded `NOT_FOUND`) and the rate-limit guard (coded `RATE_LIMIT_EXCEEDED`)
  * — plus the new `BrandScrapeErrorCode` shape, because these coded 4xx/5xx
  * cases are the actual regression `writeJsonApiError` introduced by putting
  * a semantic `code` where the HTTP status used to be the only thing there
  * (#5080 review).
+ *
+ * Imports only `json-api-status.util` — the dependency-free module — and
+ * never `error-handler.util.ts`, which pulls in frontend-only
+ * `@genfeedai/services` modules (logger/notifications) that
+ * apps/server/api's typecheck program cannot resolve (TS2307 — #5199 CI).
  */
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
-  ErrorHandler,
   getErrorStatus,
-} from '@genfeedai/utils/error/error-handler.util';
+  getJsonApiErrorStatus,
+  type IJsonApiError,
+} from '@genfeedai/utils/error/json-api-status.util';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
 vi.mock('@sentry/nestjs', () => ({
@@ -92,13 +98,10 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
     expect(exception).toBeInstanceOf(HttpException);
     filter.catch(exception, mockArgumentsHost);
 
-    const body = mockResponse.json.mock.calls[0][0];
+    const body = mockResponse.json.mock.calls[0][0] as IJsonApiError;
     expect(getErrorStatus(body)).toBe(HttpStatus.NOT_FOUND);
-    const apiError = ErrorHandler.convertJsonApiError(
-      body as Parameters<typeof ErrorHandler.convertJsonApiError>[0],
-    );
-    expect(apiError?.status).toBe(HttpStatus.NOT_FOUND);
-    expect(apiError?.code).toBe('NOT_FOUND');
+    expect(getJsonApiErrorStatus(body)).toBe(HttpStatus.NOT_FOUND);
+    expect(body.errors[0]?.code).toBe('NOT_FOUND');
   });
 
   it('resolves a coded 429 matching the real rate-limit guard shape to a 429, not 500', () => {
@@ -115,13 +118,10 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
 
     filter.catch(exception, mockArgumentsHost);
 
-    const body = mockResponse.json.mock.calls[0][0];
+    const body = mockResponse.json.mock.calls[0][0] as IJsonApiError;
     expect(getErrorStatus(body)).toBe(HttpStatus.TOO_MANY_REQUESTS);
-    const apiError = ErrorHandler.convertJsonApiError(
-      body as Parameters<typeof ErrorHandler.convertJsonApiError>[0],
-    );
-    expect(apiError?.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
-    expect(apiError?.code).toBe('RATE_LIMIT_EXCEEDED');
+    expect(getJsonApiErrorStatus(body)).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    expect(body.errors[0]?.code).toBe('RATE_LIMIT_EXCEEDED');
   });
 
   it('resolves a classified brand-scrape 500 (BrandScrapeErrorCode.UNKNOWN) to a 500, keeping the raw code in the body', () => {
@@ -136,20 +136,14 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
 
     filter.catch(exception, mockArgumentsHost);
 
-    const body = mockResponse.json.mock.calls[0][0] as Parameters<
-      typeof ErrorHandler.convertJsonApiError
-    >[0];
+    const body = mockResponse.json.mock.calls[0][0] as IJsonApiError;
     expect(getErrorStatus(body)).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    // `convertJsonApiError` deliberately re-derives a coarse code from the
-    // status through its own small ErrorCode map — it was never a carrier
-    // for an arbitrary semantic code like `BrandScrapeErrorCode`, and that
-    // is unrelated to this regression. What matters here is that the
-    // status still resolves correctly, and that the raw code survives in
-    // the body itself for a caller that reads it directly (e.g.
-    // `extractBrandScrapeErrorCode` in the onboarding app).
-    const apiError = ErrorHandler.convertJsonApiError(body);
-    expect(apiError?.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    expect(apiError?.code).toBe('INTERNAL_ERROR');
+    expect(getJsonApiErrorStatus(body)).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+    // The raw code survives in the body itself for a caller that reads it
+    // directly (e.g. `extractBrandScrapeErrorCode` in the onboarding app) —
+    // `ErrorHandler.convertJsonApiError` (frontend-only, not imported here)
+    // separately re-derives its own coarse `ErrorCode` from the status, which
+    // is unrelated to this regression.
     expect(body.errors[0]?.code).toBe('BRAND_SCRAPE_UNKNOWN');
   });
 
@@ -161,12 +155,8 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
 
     filter.catch(exception, mockArgumentsHost);
 
-    const body = mockResponse.json.mock.calls[0][0];
+    const body = mockResponse.json.mock.calls[0][0] as IJsonApiError;
     expect(getErrorStatus(body)).toBe(HttpStatus.BAD_REQUEST);
-    expect(
-      ErrorHandler.convertJsonApiError(
-        body as Parameters<typeof ErrorHandler.convertJsonApiError>[0],
-      )?.status,
-    ).toBe(HttpStatus.BAD_REQUEST);
+    expect(getJsonApiErrorStatus(body)).toBe(HttpStatus.BAD_REQUEST);
   });
 });
