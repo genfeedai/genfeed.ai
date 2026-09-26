@@ -5,7 +5,7 @@ Expert X/Twitter account warmup guide - evidence-backed engagement plans, source
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/x-warmup
+bunx skills add genfeedai/skills/x-warmup
 ```
 
 ## Usage

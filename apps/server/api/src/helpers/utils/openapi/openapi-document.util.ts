@@ -89,6 +89,11 @@ const JSON_API_ERROR_SCHEMAS: Record<string, SchemaObject> = {
       code: { type: 'string' },
       detail: { type: 'string' },
       source: { $ref: '#/components/schemas/JsonApiErrorSource' },
+      // The HTTP status as its own JSON:API member, distinct from `code`
+      // (which may be a stable, non-numeric identifier such as
+      // `BrandScrapeErrorCode` rather than the status) — see
+      // `AllExceptionFilter.writeJsonApiError` (#5080 review).
+      status: { type: 'string' },
       title: { type: 'string' },
     },
     required: ['code', 'title', 'detail'],

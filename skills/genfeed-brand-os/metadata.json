@@ -20,12 +20,5 @@
     "brand_showcase_prompt": "references/brand-showcase-prompt.md"
   },
   "outputs": ["text"],
-  "tags": [
-    "genfeed",
-    "brand-os",
-    "product-copy",
-    "website",
-    "launch",
-    "prompts"
-  ]
+  "tags": ["genfeed", "brand-os", "product-copy", "website", "launch", "prompts"]
 }

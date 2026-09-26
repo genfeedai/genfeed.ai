@@ -258,7 +258,6 @@ describe('HttpExceptionFilter', () => {
 
     it('should handle custom error objects with proper status codes', () => {
       const customError = {
-        code: 'INVALID_EMAIL',
         detail: 'Email format is invalid',
         source: { pointer: '/data/attributes/email' },
         title: 'Validation Error',
@@ -280,6 +279,50 @@ describe('HttpExceptionFilter', () => {
               code: HttpStatus.UNPROCESSABLE_ENTITY.toString(),
               detail: 'Email format is invalid',
               title: 'Validation Error',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('preserves a stable, non-generic code an exception attaches to its own response body (#5080)', () => {
+      const exception = new HttpException(
+        {
+          code: 'BRAND_SCRAPE_INVALID_URL',
+          detail: 'That is not a valid URL',
+          title: 'Invalid URL',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              code: 'BRAND_SCRAPE_INVALID_URL',
+              detail: 'That is not a valid URL',
+              title: 'Invalid URL',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('falls back to the HTTP status string when no code is attached', () => {
+      const exception = new HttpException(
+        { detail: 'Something went wrong', title: 'Error' },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              code: HttpStatus.BAD_REQUEST.toString(),
             }),
           ]),
         }),
