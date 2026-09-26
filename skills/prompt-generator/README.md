@@ -5,7 +5,7 @@ Generate optimized prompts for AI image and video generation.
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/prompt-generator
+bunx skills add genfeedai/skills/prompt-generator
 ```
 
 ## Usage

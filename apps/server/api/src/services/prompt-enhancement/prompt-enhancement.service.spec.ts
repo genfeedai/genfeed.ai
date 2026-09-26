@@ -1,8 +1,6 @@
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import {
-  PROMPT_ENHANCEMENT_MODEL,
-  PromptEnhancementService,
-} from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { PromptStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -25,13 +23,17 @@ function setup() {
     resolveGenerationSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
   const prompts = { findOne: vi.fn().mockResolvedValue(null) };
+  const modelRegistry = {
+    resolveModelKey: vi.fn().mockResolvedValue('admin/default-text'),
+  };
   const service = new PromptEnhancementService(
     openRouter as never,
     prompts as never,
+    modelRegistry as never,
     templates as never,
     skills as never,
   );
-  return { service, openRouter, templates, skills, prompts };
+  return { service, openRouter, templates, skills, prompts, modelRegistry };
 }
 
 describe('PromptEnhancementService', () => {
@@ -123,7 +125,8 @@ describe('PromptEnhancementService', () => {
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
       {
-        model: PROMPT_ENHANCEMENT_MODEL,
+        model: 'admin/default-text',
+        reasoning: { enabled: false },
         max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
         temperature: 0.8,
         messages: [
@@ -219,5 +222,26 @@ describe('PromptEnhancementService', () => {
     const { service, openRouter } = setup();
     openRouter.chatCompletion.mockRejectedValue(new Error('Provider failed'));
     await expect(service.enhance(input)).rejects.toThrow('Provider failed');
+  });
+
+  it('enhances with the Admin default TEXT model, seeded by the product text default', async () => {
+    const { service, openRouter, modelRegistry } = setup();
+
+    await service.enhance(input);
+
+    expect(modelRegistry.resolveModelKey).toHaveBeenCalledWith(
+      undefined,
+      DEFAULT_TEXT_MODEL,
+    );
+    expect(openRouter.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'admin/default-text',
+        reasoning: { enabled: false },
+      }),
+      undefined,
+    );
+    expect(JSON.stringify(openRouter.chatCompletion.mock.calls)).not.toContain(
+      ':free',
+    );
   });
 });

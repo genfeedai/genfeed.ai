@@ -2057,14 +2057,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 8,
-      "file": "apps/server/api/src/helpers/guards/api-key/api-key.guard.spec.ts",
-      "fingerprint": "5a84c0c8f92335981e04",
-      "message": "Argument of type '{ _id: string; allowedIps: string[]; createdAt: Date; id: string; isRevoked: boolean; key: string; name: string; organization: string; organizationId: string; rateLimit: number; scopes: string[]; updatedAt: Date; usageCount: number; user: string; userId: string; }' is not assignable to parameter of type '{ id: string; description: string | null; organizationId: string; userId: string; label: string; key: string; createdAt: Date; updatedAt: Date; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }'.   Type '{ _id: string; allowedIps: string[]; createdAt: Date; id: string; isRevoked: boolean; key: string; name: string; organization: string; organizationId: string; rateLimit: number; scopes: string[]; updatedAt: Date; usageCount: number; user: string; userId: string; }' is missing the following properties from type '{ id: string; description: string | null; organizationId: string; userId: string; label: string; key: string; createdAt: Date; updatedAt: Date; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }': description, label, category, metadata, and 5 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/api/src/helpers/guards/combined-auth/combined-auth.guard.spec.ts",

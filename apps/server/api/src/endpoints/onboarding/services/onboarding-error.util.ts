@@ -3,6 +3,13 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export interface OnboardingErrorOptions {
+  /**
+   * Stable, non-generic code attached to the wrapped 500's response body
+   * (e.g. `BrandScrapeErrorCode.UNKNOWN`). Lets an unexpected failure still
+   * carry a safe, machine-checkable identity instead of collapsing into an
+   * opaque exception the app cannot distinguish from any other 500 (#5080).
+   */
+  code?: string;
   /** Fallback error detail used when the caught error is wrapped. */
   detail: string;
   /** Rethrow HttpException as-is instead of wrapping it in a 500. */
@@ -13,7 +20,12 @@ export interface OnboardingErrorOptions {
    * instead of a generic 500.
    */
   hasPrismaPassthrough?: boolean;
-  /** Prefer the caught error's message over the fallback detail. */
+  /**
+   * Prefer the caught error's message over the fallback detail. Only safe
+   * for callers that never surface arbitrary internal exceptions here — an
+   * unclassified failure's raw `.message` is not a safe public string
+   * (#5080). New callers should classify first and pass a safe `detail`.
+   */
   isErrorMessageUsed?: boolean;
   title: string;
 }
@@ -50,8 +62,17 @@ export async function withOnboardingErrorHandling<T>(
       : options.detail;
 
     throw new HttpException(
-      { detail, title: options.title },
+      {
+        detail,
+        ...(options.code ? { code: options.code } : {}),
+        title: options.title,
+      },
       HttpStatus.INTERNAL_SERVER_ERROR,
+      // Keep the original exception reachable as `.cause` so Sentry's
+      // linked-errors integration captures the real stack/message behind
+      // this generic wrapper — the exact gap the #5080 investigation hit
+      // (a stored event with no upstream error code or cause).
+      { cause: error },
     );
   }
 }

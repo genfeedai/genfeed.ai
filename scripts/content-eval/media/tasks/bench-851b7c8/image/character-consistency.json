@@ -1,0 +1,17 @@
+{
+  "id": "character-consistency",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Character consistency",
+  "rationale": "Serialised content needs the same face across a week of posts. This is where reference-conditioned models and edit models pull decisively ahead of pure text-to-image, and where a compile step can either help or destroy likeness.",
+  "prompt": "Using the supplied character sheet, produce three frames of the same person: (1) waiting at a bus stop in the rain, (2) laughing at a kitchen table, (3) walking away from camera down a corridor. Same person, same age, same hair, three genuinely different situations.",
+  "referenceRoles": ["character-sheet"],
+  "outputSpec": { "aspectRatio": "4:5", "count": 3 },
+  "rubric": [
+    "Is it recognisably the same person in all three frames?",
+    "Did identity survive without freezing pose and expression?",
+    "Are the three situations actually different?",
+    "Craft of each frame independently"
+  ]
+}

@@ -48,3 +48,16 @@ export enum WorkflowExecutionTrigger {
   EVENT = 'event',
   API = 'api',
 }
+
+/**
+ * Auth mode for a workflow's public inbound webhook trigger
+ * (`POST /v1/webhooks/:webhookId`). Persisted as a plain string inside the
+ * workflow's JSON `config` blob (not a Prisma enum column), so the trigger
+ * endpoint must still validate a stored value against this enum at read
+ * time and reject anything else — see genfeedai/genfeed.ai#5248.
+ */
+export enum WorkflowWebhookAuthType {
+  NONE = 'none',
+  SECRET = 'secret',
+  BEARER = 'bearer',
+}

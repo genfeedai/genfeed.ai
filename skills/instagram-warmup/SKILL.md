@@ -4,7 +4,7 @@ description: Guide Instagram account warmup with engagement plans, Stories strat
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Instagram Warmup Skill
@@ -125,6 +125,7 @@ Do NOT follow:
 Begin leaving comments on Days 4-5. Start with 2-3 per day and build to 5-6 by Days 6-7.
 
 Comments must be:
+
 - Specific to the content you are responding to
 - Under 150 characters — long comments on new accounts can flag spam detection
 - Not repeated verbatim on multiple posts — even slight variations count
