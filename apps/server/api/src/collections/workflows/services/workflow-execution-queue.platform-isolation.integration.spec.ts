@@ -1,5 +1,13 @@
 import net from 'node:net';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  buildHiddenSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+} from '@api/collections/workflows/system-workflow.contract';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { Queue, Worker } from 'bullmq';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,10 +19,12 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
  *    was dropped, but a state BullMQ itself can still put a job into) must be
  *    recognized as claimable, not stale. Verified against `getState()` on a
  *    job actually added with `priority: 1` to a real queue, not a mock.
- * 2. `usePlatformQueue: true` really lands a job on a *different* Redis queue
- *    — proven by running one real BullMQ `Worker` per queue and showing an
- *    interactive-queue job completes promptly while the platform queue's
- *    worker is fully occupied processing a backlog.
+ * 2. `SystemWorkflowRunnerService.enqueueWorkflow`'s actual routing decision
+ *    (`isPlatformOriginatedSource`, `isPlatformSweepWorkflow`) — not
+ *    `usePlatformQueue` set by hand — lands a job on a genuinely different
+ *    Redis queue, proven by running one real BullMQ `Worker` per queue and
+ *    showing an interactive-queue job completes promptly while the platform
+ *    queue's worker is fully occupied processing a backlog.
  *
  * Requires a reachable Redis (localhost:6379 or REDIS_URL). Skipped when
  * unavailable (e.g. unit-test CI runners without a Redis service).
@@ -54,8 +64,35 @@ function createMockLogger() {
   };
 }
 
+const definition: SystemWorkflowGraphDefinition = {
+  canonicalId: 'clip-hook-review',
+  definition: {
+    edges: [],
+    nodes: [
+      createGenfeedActionNode({
+        actionId: 'youtube.resolve-source',
+        id: 'review-hook',
+      }),
+    ],
+  },
+  description: 'Review one generated hook clip.',
+  label: 'Clip Hook Review',
+  resultNodeId: 'review-hook',
+};
+
+type RunnerInternals = {
+  ensureHiddenSystemWorkflowMirror: (
+    def: SystemWorkflowGraphDefinition,
+  ) => Promise<{
+    currentVersion: { id: string };
+    id: string;
+    label: string;
+  }>;
+  resolveUserId: (organizationId: string, userId?: string) => Promise<string>;
+};
+
 describe.skipIf(!redisAvailable)(
-  'platform/interactive queue isolation (BullMQ + Redis, #5252 review)',
+  'platform/interactive queue isolation via SystemWorkflowRunnerService.enqueueWorkflow (BullMQ + Redis, #5252 review)',
   () => {
     const runId = `${process.pid}-${Date.now()}`;
     const interactiveQueueName = `workflow-execution-isolation-test-${runId}`;
@@ -63,10 +100,20 @@ describe.skipIf(!redisAvailable)(
     const queues: Queue[] = [];
     const workers: Worker[] = [];
 
-    function createService(): {
+    /**
+     * A real `SystemWorkflowRunnerService` wired to a real
+     * `WorkflowExecutionQueueService` (real Redis queues), with only the
+     * Postgres-backed pieces that don't matter for routing stubbed out —
+     * `ensureHiddenSystemWorkflowMirror`/`resolveUserId` (mirrors the
+     * existing unit-spec harness in system-workflow-runner.service.spec.ts)
+     * and a fake `createExecution`. `enqueueWorkflow`'s own
+     * `isPlatformOriginatedSource` check, and `executeForEach`'s
+     * `isPlatformSweepWorkflow` lookup, both run for real.
+     */
+    function createRunner(prismaOverrides: Record<string, unknown> = {}): {
       interactiveQueue: Queue;
       platformQueue: Queue;
-      service: WorkflowExecutionQueueService;
+      runner: SystemWorkflowRunnerService;
     } {
       const interactiveQueue = new Queue(interactiveQueueName, {
         connection: { url: redisUrl },
@@ -76,13 +123,48 @@ describe.skipIf(!redisAvailable)(
       });
       queues.push(interactiveQueue, platformQueue);
 
-      const service = new (
+      const queueService = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
       )(interactiveQueue, platformQueue, createMockLogger());
 
-      return { interactiveQueue, platformQueue, service };
+      const workflowExecutions = {
+        createExecution: vi.fn().mockImplementation(async () => ({
+          id: `execution-${Math.random().toString(36).slice(2)}`,
+          status: 'PENDING',
+        })),
+      };
+
+      const prisma = {
+        workflow: { findFirst: vi.fn().mockResolvedValue(null) },
+        ...prismaOverrides,
+      };
+
+      const moduleRef = {
+        get: (token: unknown) => {
+          const name = (token as { name?: string })?.name;
+          if (name === 'WorkflowExecutionQueueService') return queueService;
+          if (name === 'WorkflowExecutionsService') return workflowExecutions;
+          return {};
+        },
+      };
+
+      const runner = new SystemWorkflowRunnerService(
+        prisma as never,
+        moduleRef as never,
+      );
+      const internals = runner as unknown as RunnerInternals;
+      vi.spyOn(internals, 'resolveUserId').mockResolvedValue('user-1');
+      vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue(
+        {
+          currentVersion: { id: 'version-1' },
+          id: 'workflow-1',
+          label: 'Workflow',
+        },
+      );
+
+      return { interactiveQueue, platformQueue, runner };
     }
 
     // Fresh Redis state per test: every test in this file shares the same
@@ -112,7 +194,7 @@ describe.skipIf(!redisAvailable)(
     });
 
     it('treats a job in BullMQ\'s "prioritized" state as claimable, not stale (#5252 blocker)', async () => {
-      const { interactiveQueue, service } = createService();
+      const { interactiveQueue, runner } = createRunner();
       const jobId = 'system-workflow-prioritized-job';
 
       // Any producer adding a job with `priority > 0` puts it in BullMQ's
@@ -127,58 +209,93 @@ describe.skipIf(!redisAvailable)(
       const job = await interactiveQueue.getJob(jobId);
       await expect(job?.getState()).resolves.toBe('prioritized');
 
-      await expect(service.hasClaimableSystemWorkflowJob(jobId)).resolves.toBe(
-        true,
+      const internals = runner as unknown as {
+        getWorkflowQueue: () => WorkflowExecutionQueueService;
+      };
+      await expect(
+        internals.getWorkflowQueue().hasClaimableSystemWorkflowJob(jobId),
+      ).resolves.toBe(true);
+    });
+
+    it('enqueueWorkflow routes a platform-sweep dispatch to the platform queue by its own source check', async () => {
+      const { interactiveQueue, platformQueue, runner } = createRunner();
+      runner.registerWorkflow({ ...definition, canonicalId: 'analytics-sync' });
+
+      await runner.enqueueWorkflow({
+        actionType: 'analytics-sync',
+        canonicalId: 'analytics-sync',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      });
+
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        1,
+      );
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
+
+    it('enqueueWorkflow routes a proactive agent-strategy turn to the platform queue by its own source check', async () => {
+      const { interactiveQueue, platformQueue, runner } = createRunner();
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'agent.turn.execute',
+      });
+
+      await runner.enqueueWorkflow({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'proactive',
+        userId: 'user-1',
+      });
+
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        1,
+      );
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
+
+    it('enqueueWorkflow keeps a real interactive agent turn on the interactive queue', async () => {
+      const { interactiveQueue, platformQueue, runner } = createRunner();
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'agent.turn.execute',
+      });
+
+      await runner.enqueueWorkflow({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'AgentTurnAcceptanceService.accept',
+        userId: 'user-1',
+      });
+
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(1);
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        0,
       );
     });
 
-    it('routes usePlatformQueue jobs onto a different real Redis queue than interactive jobs', async () => {
-      const { interactiveQueue, platformQueue, service } = createService();
-
-      await service.queueSystemWorkflow(
-        {
-          actionType: 'agent.turn.execute',
-          canonicalId: 'agent.turn.execute',
-          organizationId: 'org-1',
-          source: 'agent',
-          userId: 'user-1',
-        },
-        'system-workflow-interactive-1',
-      );
-      await service.queueSystemWorkflow(
-        {
-          actionType: 'agent.autopilot.proactive',
-          canonicalId: 'agent.autopilot.proactive',
-          organizationId: 'org-1',
-          source: 'PlatformWorkflowSchedulesService',
-          userId: 'user-1',
-        },
-        'system-workflow-platform-1',
-        { usePlatformQueue: true },
-      );
-
-      await expect(
-        interactiveQueue.getJob('system-workflow-interactive-1'),
-      ).resolves.toBeDefined();
-      await expect(
-        interactiveQueue.getJob('system-workflow-platform-1'),
-      ).resolves.toBeUndefined();
-      await expect(
-        platformQueue.getJob('system-workflow-platform-1'),
-      ).resolves.toBeDefined();
-      await expect(
-        platformQueue.getJob('system-workflow-interactive-1'),
-      ).resolves.toBeUndefined();
-    });
-
-    it('processes an interactive turn promptly while the platform queue is saturated with backlog', async () => {
-      const { interactiveQueue, service } = createService();
+    it('processes an interactive turn promptly while the platform queue is saturated with a real routed backlog', async () => {
+      const { interactiveQueue, runner } = createRunner();
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'agent.autopilot.proactive',
+      });
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'agent.turn.execute',
+      });
       const platformJobStarted: string[] = [];
       const interactiveJobCompleted: string[] = [];
 
-      // Saturate the platform queue: concurrency 1, every job hangs until the
-      // test releases it, simulating a burst the platform queue must absorb
-      // without affecting the interactive queue at all.
       let releasePlatformJobs: () => void = () => {};
       const platformJobsUnblocked = new Promise<void>((resolve) => {
         releasePlatformJobs = resolve;
@@ -196,12 +313,10 @@ describe.skipIf(!redisAvailable)(
       const interactiveWorker = new Worker(
         interactiveQueueName,
         async (job) => {
-          // A real system-run job takes real work (executor calls, DB
-          // writes) between add() and completion; a few ms here keeps this
-          // stub realistic enough that queueSystemWorkflow's own post-add
-          // claimability check (job.getState() right after add()) still
-          // observes the job before it finishes, instead of racing a stub
-          // that resolves synchronously.
+          // A real system-run job takes real work between add() and
+          // completion; a few ms here keeps this stub realistic enough that
+          // queueSystemWorkflow's own post-add claimability check still
+          // observes the job before it finishes.
           await new Promise((resolve) => setTimeout(resolve, 50));
           interactiveJobCompleted.push(job.id ?? '');
         },
@@ -209,20 +324,16 @@ describe.skipIf(!redisAvailable)(
       );
       workers.push(interactiveWorker);
 
-      // Back up the platform queue with more jobs than its concurrency can
-      // run at once — the kind of burst #5162 was about.
+      // Back up the platform queue via the real sweep-dispatch path — the
+      // kind of burst #5162 was about.
       for (let index = 0; index < 5; index += 1) {
-        await service.queueSystemWorkflow(
-          {
-            actionType: 'agent.autopilot.proactive',
-            canonicalId: 'agent.autopilot.proactive',
-            organizationId: 'org-1',
-            source: 'PlatformWorkflowSchedulesService',
-            userId: 'user-1',
-          },
-          `system-workflow-platform-backlog-${index}`,
-          { usePlatformQueue: true },
-        );
+        await runner.enqueueWorkflow({
+          actionType: 'agent.autopilot.proactive',
+          canonicalId: 'agent.autopilot.proactive',
+          organizationId: 'org-1',
+          source: 'PlatformWorkflowSchedulesService',
+          userId: 'user-1',
+        });
       }
 
       await vi.waitFor(
@@ -230,26 +341,27 @@ describe.skipIf(!redisAvailable)(
         { timeout: 5000 },
       );
 
-      // The platform queue is now busy (worker occupied, 4 more waiting).
-      // An interactive turn enqueued *after* the backlog must still complete
-      // quickly — it never has to wait behind the platform queue's backlog
-      // because it is a physically separate queue with its own worker.
-      await service.queueSystemWorkflow(
-        {
-          actionType: 'agent.turn.execute',
-          canonicalId: 'agent.turn.execute',
-          organizationId: 'org-1',
-          source: 'agent',
-          userId: 'user-1',
-        },
-        'system-workflow-interactive-during-backlog',
-      );
+      // The platform queue is now busy. A real interactive turn enqueued via
+      // the real routing path *after* the backlog must still complete
+      // quickly — it is on a physically separate queue with its own worker.
+      await runner.enqueueWorkflow({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'AgentTurnAcceptanceService.accept',
+        userId: 'user-1',
+      });
+
+      const interactiveJobs = await interactiveQueue.getJobs([
+        'waiting',
+        'delayed',
+        'active',
+      ]);
+      const interactiveJobId = interactiveJobs[0]?.id;
+      expect(interactiveJobId).toBeDefined();
 
       await vi.waitFor(
-        () =>
-          expect(interactiveJobCompleted).toContain(
-            'system-workflow-interactive-during-backlog',
-          ),
+        () => expect(interactiveJobCompleted).toContain(interactiveJobId),
         { timeout: 5000 },
       );
 
@@ -267,5 +379,58 @@ describe.skipIf(!redisAvailable)(
         waiting: 0,
       });
     }, 15000);
+
+    it('executeForEach routes scheduled children to the platform queue when the parent is a platform-sweep workflow (isPlatformSweepWorkflow)', async () => {
+      const { interactiveQueue, platformQueue, runner } = createRunner({
+        workflow: {
+          findFirst: vi.fn().mockResolvedValue({
+            metadata: {
+              sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+              [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata(
+                { canonicalId: 'analytics-sync' },
+              ),
+            },
+          }),
+        },
+      });
+      runner.onModuleInit();
+      runner.registerWorkflow(definition);
+
+      // Call the private `executeForEach` directly: it only needs
+      // `request.provenance.workflowId` (to resolve `isPlatformSweepWorkflow`
+      // via the real `prisma.workflow.findFirst` mock above) and
+      // `request.input` — standing up the full engine adapter just to reach
+      // it through a registered node executor would add scaffolding without
+      // exercising anything this test doesn't already cover.
+      type ExecuteForEach = (request: {
+        context: { organizationId: string; userId: string };
+        input: Record<string, unknown>;
+        provenance: { executionId: string; workflowId: string };
+      }) => Promise<unknown>;
+      const executeForEach = (
+        runner as unknown as { executeForEach: ExecuteForEach }
+      ).executeForEach.bind(runner);
+
+      await executeForEach({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: {
+          childWorkflowId: definition.canonicalId,
+          items: ['a'],
+          itemInputKey: 'item',
+          mode: 'scheduled',
+        },
+        provenance: {
+          executionId: 'parent-execution',
+          workflowId: 'platform-sweep-workflow-1',
+        },
+      });
+
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        1,
+      );
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
   },
 );

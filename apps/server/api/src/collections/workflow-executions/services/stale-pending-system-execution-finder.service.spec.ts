@@ -31,7 +31,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
     );
   });
 
-  it('excludes a row older than createdAfter — never resurrects ancient PENDING rows', async () => {
+  it('excludes a row older than createdAfter from findMany — that cohort goes through findManyAncient instead', async () => {
     // The where clause itself does the filtering in production; this test
     // pins the exact bounds passed to Prisma so the lower bound can't
     // silently regress back to unbounded.
@@ -62,5 +62,51 @@ describe('StalePendingSystemExecutionFinderService', () => {
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 50 }),
     );
+  });
+
+  describe('findManyAncient (#5252 review)', () => {
+    it('queries PENDING system-workflow rows older than createdBefore, with no lower bound', async () => {
+      const findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 'execution-old', organizationId: 'org-1' }]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+      const createdBefore = new Date('2026-09-25T11:55:00.000Z');
+
+      const result = await service.findManyAncient(createdBefore);
+
+      expect(result).toEqual([
+        { id: 'execution-old', organizationId: 'org-1' },
+      ]);
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: { lt: createdBefore },
+            isDeleted: false,
+            result: {
+              path: ['metadata', 'isSystemAction'],
+              equals: true,
+            },
+            status: 'PENDING',
+          }),
+        }),
+      );
+    });
+
+    it('applies the caller-provided limit', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+
+      await service.findManyAncient(new Date(), 25);
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 25 }),
+      );
+    });
   });
 });

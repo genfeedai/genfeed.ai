@@ -79,6 +79,7 @@ describe.skipIf(!redisAvailable)(
         findMany: vi
           .fn()
           .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
+        findManyAncient: vi.fn().mockResolvedValue([]),
       };
       const logger = createMockLogger();
       const service = new PendingWorkflowExecutionReconcileService(
@@ -104,6 +105,7 @@ describe.skipIf(!redisAvailable)(
         findMany: vi
           .fn()
           .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
+        findManyAncient: vi.fn().mockResolvedValue([]),
       };
       const logger = createMockLogger();
       const service = new PendingWorkflowExecutionReconcileService(
@@ -119,6 +121,36 @@ describe.skipIf(!redisAvailable)(
         executionId,
         expect.stringContaining('no worker ever picked it up'),
       );
+    });
+
+    it('silently cancels an ancient (>24h) stale-pending execution — no loud failure', async () => {
+      const executionId = 'execution-ancient-never-queued';
+      // Deliberately no job added under `system-workflow-${executionId}`.
+
+      const workflowExecutions = {
+        cancelExecution: vi.fn().mockResolvedValue({ status: 'CANCELLED' }),
+        completeExecution: vi.fn(),
+      };
+      const staleExecutionFinder = {
+        findMany: vi.fn().mockResolvedValue([]),
+        findManyAncient: vi
+          .fn()
+          .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
+      };
+      const logger = createMockLogger();
+      const service = new PendingWorkflowExecutionReconcileService(
+        workflowExecutions as never,
+        staleExecutionFinder as never,
+        queueService,
+        logger as never,
+      );
+
+      await service.reconcile();
+
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        executionId,
+      );
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
     });
   },
 );

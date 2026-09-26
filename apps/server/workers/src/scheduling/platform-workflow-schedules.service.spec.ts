@@ -6,6 +6,7 @@ describe('PlatformWorkflowSchedulesService', () => {
     agentStrategy: { findMany: vi.fn() },
     organization: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
+    workflowExecution: { findFirst: vi.fn() },
   };
   const runner = { enqueueWorkflow: vi.fn() };
   const logger = { error: vi.fn() };
@@ -24,6 +25,7 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'org-1', userId: 'owner-1' },
     ]);
     prisma.workflow.findFirst.mockResolvedValue(null);
+    prisma.workflowExecution.findFirst.mockResolvedValue(null);
     // Due by default (empty config: no failures, no manual-reactivation gate,
     // no future nextRunAt) so existing proactive-agent-strategies assertions
     // below keep exercising the installed-workflow branch they target.
@@ -84,6 +86,32 @@ describe('PlatformWorkflowSchedulesService', () => {
       ).not.toHaveProperty('isDeleted');
     },
   );
+
+  it.each(['analytics-sync', 'content-loop-autopilot'] as const)(
+    'does not enqueue a second dispatch for %s while the previous one is still PENDING/RUNNING (#5252 minor)',
+    async (template) => {
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        id: 'still-queued-execution',
+      });
+      await service.sweep(template, 0);
+      expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+      expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org-1',
+            isDeleted: false,
+            status: { in: ['PENDING', 'RUNNING'] },
+          }),
+        }),
+      );
+    },
+  );
+
+  it('still dispatches once the previous run has left PENDING/RUNNING', async () => {
+    prisma.workflowExecution.findFirst.mockResolvedValue(null);
+    await service.sweep('analytics-sync', 0);
+    expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
+  });
 
   it('does not dispatch proactive-agent-strategies for an org with no due active strategy (#4961 AC-1, #5162)', async () => {
     prisma.agentStrategy.findMany.mockResolvedValue([]);

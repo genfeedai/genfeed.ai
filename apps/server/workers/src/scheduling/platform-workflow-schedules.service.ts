@@ -7,6 +7,7 @@ import type { SystemWorkflowRunnerService } from '@api/collections/workflows/sys
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
@@ -111,6 +112,29 @@ export class PlatformWorkflowSchedulesService {
             select: { id: true },
           });
           if (installed) continue;
+          // #5252 minor: the idempotency key is slotted by `interval`, so it
+          // changes on the next tick regardless of whether the *previous*
+          // dispatch was ever claimed. Without this check, a worker backlog
+          // compounds a fresh dispatch on top of the still-queued one every
+          // single tick instead of just once.
+          const inFlight = await this.prisma.workflowExecution.findFirst({
+            where: {
+              isDeleted: false,
+              organizationId: organization.id,
+              result: {
+                path: ['metadata', 'canonicalId'],
+                equals: canonicalId,
+              },
+              status: {
+                in: [
+                  PrismaWorkflowExecutionStatus.PENDING,
+                  PrismaWorkflowExecutionStatus.RUNNING,
+                ],
+              },
+            },
+            select: { id: true },
+          });
+          if (inFlight) continue;
           await this.runner.enqueueWorkflow({
             actionType: canonicalId,
             canonicalId,

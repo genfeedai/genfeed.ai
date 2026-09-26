@@ -601,6 +601,20 @@ jobs:
     name: Test Server Services
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # #5252 review: the real-Redis pending-execution-reconciler integration
+    # spec (apps/server/workers) otherwise skips silently in CI.
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -875,8 +889,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # #5252 review: the real-Redis integration specs (queue isolation,
+      # pending-execution reconciler) otherwise skip silently in CI.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -981,8 +1007,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # #5252 review: the real-Redis integration specs (queue isolation,
+      # pending-execution reconciler) otherwise skip silently in CI.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
     needs: [trust, test-scope]
     # Full sharded suite is explicit: release/deploy QA or a planner escalation
     # for validation machinery and root dependency changes.
