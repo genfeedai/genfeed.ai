@@ -4,13 +4,13 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BillingAccountOrganizationStatus } from '@genfeedai/contracts';
 import type {
   IApplyCreditDeltaInput,
   ICreditWalletSnapshot,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -66,20 +66,13 @@ export class CreditBalanceService {
 
     const client = tx ?? this.prisma;
     if (billingAccountId) {
-      // tenant-scope-ignore: a BillingAccount can link multiple organizations
-      // (BillingAccountOrganization join table in schema.prisma), so its
-      // shared CreditBalance row's organizationId legitimately differs from,
-      // or is unset relative to, the requesting org (see the "finds a shared
-      // billing-account wallet owned by another organization" case in
-      // credit-balance.service.spec.ts). billingAccountId is the tenant
-      // boundary for this lookup, not organizationId. This mirrors the
-      // reviewed crossOrgUnsafe hatch already used in
-      // trend-analysis.service.ts for the equivalent global-corpus read.
-      const shared = await crossOrgUnsafe(() =>
-        client.creditBalance.findFirst({
-          where: { billingAccountId, isDeleted: false },
-        }),
-      );
+      const shared = await client.creditBalance.findFirst({
+        where: {
+          ...this.walletAccessWhere(organizationId),
+          billingAccountId,
+          isDeleted: false,
+        },
+      });
       if (shared) {
         return shared;
       }
@@ -109,6 +102,46 @@ export class CreditBalanceService {
     }
 
     return balance;
+  }
+
+  /**
+   * A shared BillingAccount wallet may be owned by another organization, or by
+   * none, so it cannot be filtered by the requesting organizationId alone. The
+   * requesting organization may use a wallet it owns, or one whose billing
+   * account it is actively attached to (direct `billingAccountId` or a LINKED,
+   * non-deleted BillingAccountOrganization row — the same two paths
+   * BillingAccountsService.resolveForOrganization accepts). The database
+   * enforces the link, and the tenant guard still sees organizationId.
+   */
+  private walletAccessWhere(
+    organizationId: string,
+  ): Prisma.CreditBalanceWhereInput {
+    return {
+      OR: [
+        { organizationId },
+        {
+          billingAccount: {
+            isDeleted: false,
+            OR: [
+              {
+                organizations: {
+                  some: { id: organizationId, isDeleted: false },
+                },
+              },
+              {
+                organizationLinks: {
+                  some: {
+                    isDeleted: false,
+                    organizationId,
+                    status: BillingAccountOrganizationStatus.LINKED,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
   }
 
   toSnapshot(balance: CreditBalanceDocument): ICreditWalletSnapshot {
@@ -175,19 +208,13 @@ export class CreditBalanceService {
       );
     }
 
-    // tenant-scope-ignore: re-reading the row we just mutated by its own id.
-    // balance.organizationId can legitimately be null/another org's id for a
-    // shared BillingAccount wallet (see getOrCreateBalance above); the id
-    // filter already pins this to the exact row the raw UPDATE just touched.
-    const next = await crossOrgUnsafe(() =>
-      client.creditBalance.findFirst({
-        where: {
-          id: balance.id,
-          isDeleted: false,
-          organizationId: balance.organizationId,
-        },
-      }),
-    );
+    const next = await client.creditBalance.findFirst({
+      where: {
+        ...this.walletAccessWhere(organizationId),
+        id: balance.id,
+        isDeleted: false,
+      },
+    });
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
@@ -217,18 +244,13 @@ export class CreditBalanceService {
       },
       tx,
     );
-    // tenant-scope-ignore: same as applyDelta's re-read above — id already
-    // pins the row; current.organizationId may be null/another org's id for
-    // a shared BillingAccount wallet.
-    const next = await crossOrgUnsafe(() =>
-      (tx ?? this.prisma).creditBalance.findFirst({
-        where: {
-          id: snapshot.id,
-          isDeleted: false,
-          organizationId: current.organizationId,
-        },
-      }),
-    );
+    const next = await (tx ?? this.prisma).creditBalance.findFirst({
+      where: {
+        ...this.walletAccessWhere(organizationId),
+        id: snapshot.id,
+        isDeleted: false,
+      },
+    });
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
