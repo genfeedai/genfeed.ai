@@ -285,18 +285,52 @@ export class ResearchCollectionRunner {
       : job.leaseExpiresAt
         ? job.leaseExpiresAt.getTime() - RESEARCH_COLLECTION_LEASE_MS
         : undefined;
-    const sawRun =
-      startedAt !== undefined &&
-      runs.some((run) => {
+    if (startedAt === undefined) {
+      // A legacy row has no start bound recorded, so any listed run at
+      // this actor might still be ours; only an empty list clears it below.
+      if (runs.length > 0) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+    } else {
+      // Bound the match to the window our own start could plausibly have
+      // landed in: from just before we attempted it through the lease that
+      // covered it. A run outside that window belongs to some other
+      // request against the same actor and must not keep this recovery
+      // pending forever.
+      const latestStart = job.leaseExpiresAt
+        ? job.leaseExpiresAt.getTime()
+        : startedAt + RESEARCH_COLLECTION_LEASE_MS;
+      const sawRun = runs.some((run) => {
         const started = Date.parse(run.startedAt);
-        return Number.isFinite(started) && started >= startedAt - 2_000;
+        return (
+          Number.isFinite(started) &&
+          started >= startedAt - 2_000 &&
+          started <= latestStart
+        );
       });
-    // A listed run we did not record may still be this start. A legacy row
-    // has no start bound, so any listed run might be it.
-    if (sawRun || (startedAt === undefined && runs.length > 0)) {
-      throw new ServiceUnavailableException(
-        'research_collection_recovery_pending',
-      );
+      if (sawRun) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+      if (runs.length > 0) {
+        // Unrelated runs from this actor are not evidence our start is
+        // still pending. Once the bound has elapsed without a match, stop
+        // waiting: reconcile as unreconciled (not failed, since we cannot
+        // confirm the provider rejected the start) and release the hold.
+        const reconciled = await this.jobs.finishUnreconciledStart(job, now);
+        if (!reconciled) {
+          throw new ServiceUnavailableException(
+            'research_collection_recovery_pending',
+          );
+        }
+        await this.releaseReservation(this.reservationFrom(job), 0);
+        throw new ServiceUnavailableException(
+          'research_collection_start_unreconciled',
+        );
+      }
     }
     const released = await this.jobs.finishExpiredUnrecorded(job, now);
     if (!released) {

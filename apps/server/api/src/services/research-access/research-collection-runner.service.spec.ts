@@ -42,6 +42,7 @@ describe('ResearchCollectionRunner', () => {
     claim: vi.fn(),
     finish: vi.fn(),
     finishExpiredUnrecorded: vi.fn(),
+    finishUnreconciledStart: vi.fn(),
     markAmbiguous: vi.fn(),
     markStarting: vi.fn().mockResolvedValue(true),
   };
@@ -270,6 +271,91 @@ describe('ResearchCollectionRunner', () => {
       expect.objectContaining({ reservationKey: 'reservation-1' }),
       0,
     );
+    vi.useRealTimers();
+  });
+
+  it('does not keep recovery pending on an unrelated run far outside the lease window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      leaseExpiresAt: new Date('2026-09-24T12:15:00.000Z'),
+      startAttemptedAt: new Date('2026-09-24T12:00:00.000Z'),
+      status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+      upstreamRunId: null,
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    http.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            items: [
+              {
+                id: 'run-unrelated',
+                startedAt: '2026-09-24T13:00:00.000Z',
+                status: 'RUNNING',
+              },
+            ],
+          },
+        },
+      }),
+    );
+    jobs.finishUnreconciledStart.mockResolvedValue(true);
+
+    await expect(
+      runner.run('org-1', job.actorId, { query: 'acme' }),
+    ).rejects.toThrow('research_collection_start_unreconciled');
+    expect(http.post).not.toHaveBeenCalled();
+    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
+    expect(budget.reconcileRun).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
+    vi.useRealTimers();
+  });
+
+  it('keeps recovery pending when the unreconciled transition loses the race', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      leaseExpiresAt: new Date('2026-09-24T12:15:00.000Z'),
+      startAttemptedAt: new Date('2026-09-24T12:00:00.000Z'),
+      status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+      upstreamRunId: null,
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    http.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            items: [
+              {
+                id: 'run-unrelated',
+                startedAt: '2026-09-24T13:00:00.000Z',
+                status: 'RUNNING',
+              },
+            ],
+          },
+        },
+      }),
+    );
+    jobs.finishUnreconciledStart.mockResolvedValue(false);
+
+    await expect(
+      runner.run('org-1', job.actorId, { query: 'acme' }),
+    ).rejects.toThrow('research_collection_recovery_pending');
+    expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
+    expect(budget.reconcileRun).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
