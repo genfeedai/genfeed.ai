@@ -231,6 +231,9 @@ export interface ModalPostProps extends ModalVisibilityProps {
   onViewDetails?: () => void;
 }
 
+/** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
+export type ModalPostBatchProps = Omit<ModalPostProps, 'modalId'>;
+
 export interface PostMetadataOverlayProps {
   post: IPost | null;
   onConfirm?: () => void;

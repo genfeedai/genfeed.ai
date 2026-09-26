@@ -12,3 +12,5 @@ The ingredient publish flow (`openIngredientModal` in
 an internal sentinel to trigger `openPostBatchModal`; it now routes on
 `ModalEnum.POST_BATCH`, the batch modal's real id, which is what was actually
 being opened.
+
+`@genfeedai/props` adds `ModalPostBatchProps` (`ModalPostProps` without `modalId`) for the batch publish modal, which always renders as `ModalEnum.POST_BATCH`.
