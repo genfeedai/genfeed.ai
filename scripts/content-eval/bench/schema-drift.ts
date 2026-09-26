@@ -45,7 +45,10 @@ export function readBenchFileAtRevision(
   }
 }
 
-/** Formatter-proof comparison: whitespace carries no meaning in the schema. */
+/**
+ * Formatter-proof comparison: line wrapping and the trailing commas a
+ * formatter adds when it wraps carry no meaning in the schema.
+ */
 export function normalizeSource(source: string): string {
-  return source.replace(/\s+/g, '');
+  return source.replace(/\s+/g, '').replace(/,(?=[)\]}])/g, '');
 }
