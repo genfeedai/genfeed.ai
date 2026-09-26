@@ -203,14 +203,18 @@ export class AgentChatModelRegistryService
   }
 
   /**
-   * Platform default for cloud chat. Prefers `isDefault` on an active,
+   * Platform default for cloud chat and other product text (drafts, prompt
+   * enhancement, article generation). Prefers `isDefault` on an active,
    * non-Retired row (matching {@link listSelectable}'s eligibility), then
-   * cheapest active selectable row, then seed key only if the registry is
-   * empty. An `isDefault` row that has since been Retired follows its
-   * `succeededBy` chain rather than being returned directly or silently
-   * falling through to an unrelated cheapest row.
+   * cheapest active selectable row, then `fallbackKey` (a caller's own seed
+   * constant, e.g. `DEFAULT_MINI_TEXT_MODEL`) only if the registry is empty.
+   * An `isDefault` row that has since been Retired follows its `succeededBy`
+   * chain rather than being returned directly or silently falling through to
+   * an unrelated cheapest row.
    */
-  async getDefaultModelKey(): Promise<string> {
+  async getDefaultModelKey(
+    fallbackKey: string = DEFAULT_AGENT_CHAT_MODEL_KEY,
+  ): Promise<string> {
     await this.ensureFresh();
     const selectable = [...this.byKey.values()].filter(
       (row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED,
@@ -245,9 +249,9 @@ export class AgentChatModelRegistryService
     }
     this.logger.warn(
       'No active agent-chat model in registry; using seed default key',
-      { ...this.context, fallback: DEFAULT_AGENT_CHAT_MODEL_KEY },
+      { ...this.context, fallback: fallbackKey },
     );
-    return DEFAULT_AGENT_CHAT_MODEL_KEY;
+    return fallbackKey;
   }
 
   /** Self-hosted fleet default when subscription prefers local inference. */
@@ -272,13 +276,19 @@ export class AgentChatModelRegistryService
 
   /**
    * Map persisted/request keys forward via registry `succeededBy` (legacy rows).
-   * Empty → platform default.
+   * Empty → platform default. `fallbackKey` is forwarded to
+   * {@link getDefaultModelKey} for callers outside agent chat (drafts, prompt
+   * enhancement, long product text) that want their own seed constant instead
+   * of the agent-chat seed when the registry itself is empty.
    */
-  async resolveModelKey(key?: string | null): Promise<string> {
+  async resolveModelKey(
+    key?: string | null,
+    fallbackKey?: string,
+  ): Promise<string> {
     await this.ensureFresh();
     const trimmed = key?.trim();
     if (!trimmed) {
-      return this.getDefaultModelKey();
+      return this.getDefaultModelKey(fallbackKey);
     }
 
     const seen = new Set<string>();
@@ -295,7 +305,7 @@ export class AgentChatModelRegistryService
       }
       return current;
     }
-    return this.getDefaultModelKey();
+    return this.getDefaultModelKey(fallbackKey);
   }
 
   /**

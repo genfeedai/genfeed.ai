@@ -5,7 +5,10 @@ import { PromptsTransformationsController } from '@api/collections/prompts/contr
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -82,10 +85,24 @@ describe('Prompts split controllers', () => {
         SubscriptionGuard,
         CreditsGuard,
       ]);
+
+      if (methodName === 'createRemix') {
+        expect(Reflect.getMetadata(CREDITS_KEY, handler)).toMatchObject({
+          modelKey: DEFAULT_MINI_TEXT_MODEL,
+          source,
+        });
+        return;
+      }
+
+      // enhanceExisting (#5161) resolves its model through the Admin
+      // default TEXT registry at call time, so credits are deferred until
+      // the resolved model is known instead of pinned to a static modelKey.
       expect(Reflect.getMetadata(CREDITS_KEY, handler)).toMatchObject({
-        modelKey: DEFAULT_MINI_TEXT_MODEL,
         source,
       });
+      expect(
+        Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
+      ).toBe(true);
     },
   );
 

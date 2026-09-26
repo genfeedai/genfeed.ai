@@ -11,6 +11,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
+  releaseContentPreview,
+  releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
   targetTone,
@@ -211,6 +213,38 @@ describe('release-rail-row.helpers', () => {
 
     it('treats a missing targets array as empty', () => {
       expect(visibleTargets(undefined)).toEqual({ overflow: 0, visible: [] });
+    });
+  });
+
+  describe('releaseDisplayTitle', () => {
+    it('strips stored HTML out of the title', () => {
+      const release = buildRelease({
+        title: '<p>AI content is taking over! Manual content...</p>',
+      });
+      expect(releaseDisplayTitle(release)).toBe(
+        'AI content is taking over! Manual content...',
+      );
+    });
+
+    it('returns an empty string when the title is missing', () => {
+      expect(releaseDisplayTitle(buildRelease({ title: undefined }))).toBe('');
+    });
+  });
+
+  describe('releaseContentPreview', () => {
+    it('returns the first plain-text line of HTML content', () => {
+      const release = buildRelease({
+        baseContent:
+          '<p>AI content is <strong>taking over</strong>!</p><p>Second paragraph</p>',
+      });
+      expect(releaseContentPreview(release)).toBe('AI content is taking over!');
+    });
+
+    it('returns the first line of plain-text content', () => {
+      const release = buildRelease({
+        baseContent: 'First line of copy\nSecond line',
+      });
+      expect(releaseContentPreview(release)).toBe('First line of copy');
     });
   });
 });

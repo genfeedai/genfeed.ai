@@ -235,6 +235,46 @@ describe('AgentChatModelRegistryService', () => {
 
     await expect(service.getDefaultModelKey()).resolves.toBe('recommended');
   });
+
+  it('uses a caller-supplied fallback key only when no active row is available', async () => {
+    const prisma = { model: { findMany: vi.fn().mockResolvedValue([]) } };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(
+      service.getDefaultModelKey('google/gemini-3.8-flash'),
+    ).resolves.toBe('google/gemini-3.8-flash');
+    await expect(
+      service.resolveModelKey(undefined, 'google/gemini-3.8-flash'),
+    ).resolves.toBe('google/gemini-3.8-flash');
+  });
+
+  it('prefers the Admin isDefault row over a caller-supplied fallback key', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 1,
+            isDefault: true,
+            key: 'google/gemini-2.5-flash-lite',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(
+      service.resolveModelKey(undefined, 'google/gemini-3.8-flash'),
+    ).resolves.toBe('google/gemini-2.5-flash-lite');
+  });
 });
 
 describe('AgentChatModelRegistryService round pricing', () => {

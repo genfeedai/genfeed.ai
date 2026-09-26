@@ -14,6 +14,8 @@ import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.help
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
+  releaseContentPreview,
+  releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
   targetTone,
@@ -91,10 +93,10 @@ export default function ReleaseRailRow({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">
-          {release.title || translate('open')}
+          {releaseDisplayTitle(release) || translate('open')}
         </p>
         <p className="truncate text-xs text-foreground/55">
-          {release.baseContent?.split('\n')[0] || ''}
+          {releaseContentPreview(release)}
         </p>
       </div>
 
