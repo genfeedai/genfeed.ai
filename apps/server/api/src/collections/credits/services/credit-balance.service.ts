@@ -9,11 +9,33 @@ import type {
   IApplyCreditDeltaInput,
   ICreditWalletSnapshot,
 } from '@genfeedai/contracts/interfaces/billing';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, type PrismaClient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type WalletLookupFilter = { billingAccountId?: string; id?: string };
+
+/**
+ * The minimal Prisma delegate surface the four wallet-lookup path methods
+ * below actually call — nothing more. `PrismaService` and
+ * `PrismaTransactionClient` both satisfy this structurally (they carry these
+ * delegates unchanged from the generated `PrismaClient` they extend/omit
+ * from), so every production call site is unaffected. Narrowing the
+ * parameter to this shape — rather than `PrismaService | PrismaTransactionClient`,
+ * which additionally requires the NestJS lifecycle hooks
+ * `onModuleInit`/`onModuleDestroy` that only `PrismaService` declares — is
+ * also what lets a test construct a real, bare generated `PrismaClient` (no
+ * Nest wiring, no lifecycle hooks) and pass it in directly, so the argument
+ * shapes below can be validated against the real Prisma client rather than a
+ * mock — without an `as never`/`as any` cast to paper over the mismatch.
+ */
+type WalletLookupClient = Pick<
+  PrismaClient,
+  | 'billingAccountOrganization'
+  | 'creditBalance'
+  | 'creditReservation'
+  | 'organization'
+>;
 
 /**
  * The nested `CreditBalance[]` read shared by every relation-based wallet
@@ -162,7 +184,7 @@ export class CreditBalanceService {
   private async findAccessibleWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
     reservationId?: string,
   ): Promise<CreditBalanceDocument | null> {
     const own = await this.findOwnWallet(organizationId, filter, client);
@@ -196,7 +218,7 @@ export class CreditBalanceService {
   private async findOwnWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     return client.creditBalance.findFirst({
       where: scopedWhere(organizationId, { ...filter }),
@@ -211,7 +233,7 @@ export class CreditBalanceService {
   private async findDirectWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     const direct = await client.organization.findFirst({
       select: {
@@ -241,7 +263,7 @@ export class CreditBalanceService {
   private async findLinkedWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     const linked = await client.billingAccountOrganization.findFirst({
       select: {
@@ -285,7 +307,7 @@ export class CreditBalanceService {
     organizationId: string,
     reservationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     if (!filter.billingAccountId) {
       return null;

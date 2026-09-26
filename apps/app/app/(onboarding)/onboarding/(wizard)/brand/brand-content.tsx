@@ -25,6 +25,10 @@ import {
   parseOnboardingAccountType,
 } from '@/lib/onboarding/onboarding-access.util';
 import BrandLoadingState from './brand-loading-state';
+import {
+  resolveBrandScrapeIssueCode,
+  resolveScrapeIssueCodeFromError,
+} from './brand-scrape-issue.util';
 import BrandWebsitePrompt from './brand-website-prompt';
 
 /** The loading step stays on screen at least this long — long enough to read,
@@ -203,7 +207,11 @@ function BrandContentContent() {
 
           if (effectiveWebsiteUrl) {
             try {
-              await Promise.race([
+              // `undefined` here means the timeout branch of the race won —
+              // the scrape may still be running or may have already
+              // succeeded server-side, so there is nothing classified to
+              // report (#5080).
+              const scrapeResult = await Promise.race([
                 BrandsService.getInstance(token).scrape(brandId, {
                   brandName,
                   brandUrl: effectiveWebsiteUrl,
@@ -211,8 +219,17 @@ function BrandContentContent() {
                 }),
                 delay(SCRAPE_TIMEOUT_MS),
               ]);
+
+              if (scrapeResult?.scrapeWarning) {
+                const code = resolveBrandScrapeIssueCode(
+                  scrapeResult.scrapeWarning.code,
+                );
+                toast.warning(translate(`notices.scrapeIssue.codes.${code}`));
+              }
             } catch (error) {
               logger.error('Brand enrichment failed during onboarding', error);
+              const code = resolveScrapeIssueCodeFromError(error);
+              toast.warning(translate(`notices.scrapeIssue.codes.${code}`));
             }
           }
 

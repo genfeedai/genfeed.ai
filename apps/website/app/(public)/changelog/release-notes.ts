@@ -1,6 +1,3 @@
-const LINKED_VERSION_TITLE =
-  /^\s*##\s+\[[^\]]+\]\([^)\s]+\)\s+-\s+\d{4}-\d{2}-\d{2}\s*/;
-
 const RELEASE_DATE: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'long',
@@ -19,12 +16,21 @@ export function formatReleaseDate(publishedAt: string): string {
 /** Drop the version heading the page already shows in the release row. */
 export function releaseNotes(body: string, tag: string): string {
   const version = tag.replace(/^v/i, '');
+  const escapedVersion = escapeRegExp(version);
+  // Only a linked heading whose link text is this release's own version
+  // (e.g. `## [0.1.76](...) - 2026-09-25`) is the duplicate row title. A
+  // dated linked heading for something else, such as a migration guide,
+  // must be kept.
+  const linkedVersionTitle = new RegExp(
+    `^\\s*##\\s+\\[v?${escapedVersion}\\]\\([^)\\s]+\\)\\s+-\\s+\\d{4}-\\d{2}-\\d{2}\\s*(?:\\n|$)`,
+    'i',
+  );
   const plainVersionTitle = new RegExp(
-    `^\\s*##\\s+v?${escapeRegExp(version)}\\s*(?:\\n|$)`,
+    `^\\s*##\\s+v?${escapedVersion}\\s*(?:\\n|$)`,
     'i',
   );
   return body
-    .replace(LINKED_VERSION_TITLE, '')
+    .replace(linkedVersionTitle, '')
     .replace(plainVersionTitle, '')
     .trim();
 }

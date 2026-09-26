@@ -5,7 +5,7 @@ import type {
   IEditorProjectSettings,
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
-import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
+import { getErrorStatus } from '@genfeedai/utils/error/json-api-status.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

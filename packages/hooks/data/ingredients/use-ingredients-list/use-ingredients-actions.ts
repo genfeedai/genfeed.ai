@@ -237,7 +237,7 @@ export function useIngredientsActions({
     onConvertToVideo,
     onDeleteIngredient: handleDeleteIngredient,
     onPublishIngredient: (ingredient: IIngredient) =>
-      openIngredientModal(ModalEnum.POST, ingredient),
+      openIngredientModal(ModalEnum.POST_BATCH, ingredient),
     onRefresh: () => findAllIngredientsByCategory(true),
     onReprompt: handleRepromptIngredient,
     onSeeDetails: (ingredient: IIngredient) => {
@@ -511,7 +511,7 @@ export function useIngredientsActions({
         return openGlobalIngredientOverlay(ingredient, handleClose);
       }
 
-      if (modalId === ModalEnum.POST && ingredient) {
+      if (modalId === ModalEnum.POST_BATCH && ingredient) {
         return openPostBatchModal(ingredient);
       }
 
