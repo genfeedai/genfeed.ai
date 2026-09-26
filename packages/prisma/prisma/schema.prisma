@@ -3551,10 +3551,6 @@ model BillingRevenueEvent {
   @@map("billing_revenue_events")
 }
 
-/// Per-generation media vendor cost (companion to LlmVendorCost, #2361).
-/// Micro-USD integers derived from Model.providerCostUsd × realized output
-/// units (seconds / megapixels / runs). BYOK rows store units with
-/// vendorCostMicros = 0. Never stores prompt content.
 /// Media perception artefacts for one asset (#4879): sampled frames, OCR text,
 /// transcript and a schema-enforced scene description. One live row per
 /// ingredient; `assetHash` is the SHA-256 of the asset bytes, and a second
@@ -3598,6 +3594,10 @@ model MediaPerception {
   @@map("media_perceptions")
 }
 
+/// Per-generation media vendor cost (companion to LlmVendorCost, #2361).
+/// Micro-USD integers derived from Model.providerCostUsd × realized output
+/// units (seconds / megapixels / runs). BYOK rows store units with
+/// vendorCostMicros = 0. Never stores prompt content.
 model MediaVendorCost {
   pricingSnapshot Json?
   costEvidence String?
