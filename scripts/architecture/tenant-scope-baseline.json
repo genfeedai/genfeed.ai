@@ -1018,8 +1018,8 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "9af0abbeb72bcb93c766",
+      "file": "apps/server/api/src/collections/posts/services/post-patch-write.util.ts",
+      "fingerprint": "4b95740a24f15605c19c",
       "method": "findFirst",
       "model": "Post",
       "reason": "missing-organization-id"

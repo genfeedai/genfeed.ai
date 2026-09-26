@@ -1,9 +1,12 @@
+import { InvalidChannelTargetScheduleException } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   canTransitionPostLifecycle,
   POST_LIFECYCLE_TRANSITIONS,
   PostLifecycleService,
 } from '@api/post-lifecycle/post-lifecycle.service';
 import {
+  CredentialPlatform,
+  PostCategory,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -392,5 +395,137 @@ describe('PostLifecycleService', () => {
       'Ignored stale Post lifecycle transition',
       expect.objectContaining({ reason: 'workflow_execution_mismatch' }),
     );
+  });
+
+  describe('channel target validation choke point (#5193)', () => {
+    const schedulableTarget = {
+      ...target,
+      category: PostCategory.TEXT,
+      credentialId: 'credential-1',
+      description: 'A caption',
+      platform: CredentialPlatform.YOUTUBE,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      targetSettings: {},
+      visibility: null,
+    };
+
+    function createSchedulingTransaction(
+      current: typeof schedulableTarget,
+      ingredients: readonly { id: string }[] = [],
+    ) {
+      const findFirst = vi
+        .fn()
+        .mockResolvedValueOnce(current)
+        .mockResolvedValueOnce({ ingredients })
+        .mockResolvedValue({
+          ...current,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        });
+      return {
+        activity: { create: vi.fn().mockResolvedValue({ id: 'audit-1' }) },
+        post: {
+          findFirst,
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+      };
+    }
+
+    it('rejects scheduling a target whose content fails the channel contract', async () => {
+      // YouTube requires video media; this target has none.
+      const transaction = createSchedulingTransaction(schedulableTarget, []);
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      await expect(
+        service.transition(
+          {
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId: 'org-1',
+            postId: 'post-1',
+          },
+          transaction as never,
+        ),
+      ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
+      expect(transaction.post.updateMany).not.toHaveBeenCalled();
+      expect(transaction.activity.create).not.toHaveBeenCalled();
+    });
+
+    it('schedules a target whose content satisfies the channel contract', async () => {
+      const transaction = createSchedulingTransaction(
+        { ...schedulableTarget, category: PostCategory.VIDEO },
+        [{ id: 'ingredient-1' }],
+      );
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      const result = await service.transition(
+        {
+          nextState: TargetExecutionState.SCHEDULED,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        },
+        transaction as never,
+      );
+
+      expect(result.kind).toBe('transitioned');
+      expect(transaction.post.updateMany).toHaveBeenCalled();
+    });
+
+    it('re-validates an already-scheduled target when the credential swaps and its media no longer resolves', async () => {
+      // Already SCHEDULED on YouTube; the mutation swaps the credential, and
+      // the freshly-loaded ingredients row (a separate fetch, since ingredient
+      // changes aren't part of the mutation) comes back empty — the same
+      // shape a credential swap that drops the account's media would take.
+      const alreadyScheduled = {
+        ...schedulableTarget,
+        category: PostCategory.VIDEO,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      };
+      const transaction = createSchedulingTransaction(alreadyScheduled, []);
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      await expect(
+        service.transition(
+          {
+            mutation: { credentialId: 'credential-2' },
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId: 'org-1',
+            postId: 'post-1',
+          },
+          transaction as never,
+        ),
+      ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
+      expect(transaction.post.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not validate a target that has no platform assigned yet', async () => {
+      const draftTarget = { ...target };
+      const transaction = createTransaction({ current: draftTarget });
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      const result = await service.transition(
+        {
+          nextState: TargetExecutionState.SCHEDULED,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        },
+        transaction as never,
+      );
+
+      // `target` fixture is already SCHEDULED with no platform: idempotent,
+      // and — critically — no second `findFirst` call for ingredients.
+      expect(result.kind).toBe('idempotent');
+      expect(transaction.post.findFirst).toHaveBeenCalledTimes(1);
+    });
   });
 });

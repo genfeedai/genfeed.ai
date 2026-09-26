@@ -600,7 +600,7 @@ describe('useIngredientsActions', () => {
     );
 
     act(() => {
-      result.current.openIngredientModal(ModalEnum.POST, ingredient);
+      result.current.openIngredientModal(ModalEnum.POST_BATCH, ingredient);
     });
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(ingredient);
 
