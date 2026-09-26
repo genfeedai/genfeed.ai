@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -65,9 +66,20 @@ export class CreditBalanceService {
 
     const client = tx ?? this.prisma;
     if (billingAccountId) {
-      const shared = await client.creditBalance.findFirst({
-        where: { billingAccountId, isDeleted: false },
-      });
+      // tenant-scope-ignore: a BillingAccount can link multiple organizations
+      // (BillingAccountOrganization join table in schema.prisma), so its
+      // shared CreditBalance row's organizationId legitimately differs from,
+      // or is unset relative to, the requesting org (see the "finds a shared
+      // billing-account wallet owned by another organization" case in
+      // credit-balance.service.spec.ts). billingAccountId is the tenant
+      // boundary for this lookup, not organizationId. This mirrors the
+      // reviewed crossOrgUnsafe hatch already used in
+      // trend-analysis.service.ts for the equivalent global-corpus read.
+      const shared = await crossOrgUnsafe(() =>
+        client.creditBalance.findFirst({
+          where: { billingAccountId, isDeleted: false },
+        }),
+      );
       if (shared) {
         return shared;
       }
@@ -163,13 +175,19 @@ export class CreditBalanceService {
       );
     }
 
-    const next = await client.creditBalance.findFirst({
-      where: {
-        id: balance.id,
-        isDeleted: false,
-        organizationId: balance.organizationId,
-      },
-    });
+    // tenant-scope-ignore: re-reading the row we just mutated by its own id.
+    // balance.organizationId can legitimately be null/another org's id for a
+    // shared BillingAccount wallet (see getOrCreateBalance above); the id
+    // filter already pins this to the exact row the raw UPDATE just touched.
+    const next = await crossOrgUnsafe(() =>
+      client.creditBalance.findFirst({
+        where: {
+          id: balance.id,
+          isDeleted: false,
+          organizationId: balance.organizationId,
+        },
+      }),
+    );
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
@@ -199,13 +217,18 @@ export class CreditBalanceService {
       },
       tx,
     );
-    const next = await (tx ?? this.prisma).creditBalance.findFirst({
-      where: {
-        id: snapshot.id,
-        isDeleted: false,
-        organizationId: current.organizationId,
-      },
-    });
+    // tenant-scope-ignore: same as applyDelta's re-read above — id already
+    // pins the row; current.organizationId may be null/another org's id for
+    // a shared BillingAccount wallet.
+    const next = await crossOrgUnsafe(() =>
+      (tx ?? this.prisma).creditBalance.findFirst({
+        where: {
+          id: snapshot.id,
+          isDeleted: false,
+          organizationId: current.organizationId,
+        },
+      }),
+    );
     if (!next) {
       throw new BusinessLogicException(
         'Credit balance disappeared during mutation',
