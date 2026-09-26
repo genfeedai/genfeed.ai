@@ -1,6 +1,7 @@
+import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ActionOrigin } from '@genfeedai/contracts';
+import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
@@ -23,21 +24,26 @@ describe('ApiKeyAuthGuard', () => {
   const mockApiKeyOrgId = testId('org');
   const mockApiKeyUserId = testId('user');
 
-  const mockApiKey = {
-    _id: mockApiKeyId,
+  const mockApiKey: ApiKeyDocument = {
     allowedIps: ['192.168.1.1'],
+    category: ApiKeyCategory.GENFEEDAI,
     createdAt: new Date(),
+    description: null,
+    expiresAt: null,
     id: mockApiKeyId,
     isRevoked: false,
     key: 'hashed_key_value',
-    name: 'Test API Key',
-    organization: mockApiKeyOrgId,
+    keyFingerprint: null,
+    label: 'Test API Key',
+    lastUsedAt: null,
+    lastUsedIp: null,
+    metadata: null,
     organizationId: mockApiKeyOrgId,
     rateLimit: 60,
+    revokedAt: null,
     scopes: ['videos:create', 'videos:read'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: mockApiKeyUserId,
     userId: mockApiKeyUserId,
   };
 
