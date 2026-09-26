@@ -48,7 +48,7 @@ export default function Container({
   bodyClassName,
   fullWidth = true,
   className = '',
-  forceModuleChrome = false,
+  moduleChrome,
 }: ContainerProps) {
   const isNested = useContext(ContainerInsetContext);
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
@@ -85,29 +85,27 @@ export default function Container({
   const isTitleChromeSuppressed =
     titleVisibility === 'sr-only' || Boolean(label && hasCanonicalBreadcrumb);
   const hasVisibleTitle = Boolean(label && !isTitleChromeSuppressed);
-  // When SectionTopbar owns the chrome title, skip a second sr-only h1 here.
-  const needsStandaloneScreenReaderTitle =
-    Boolean(label && isTitleChromeSuppressed) &&
-    !(
-      hasHeaderTabs ||
+
+  // One pattern: SectionTopbar for any local nav and/or chrome-only tools.
+  // `moduleChrome`, when a page declares it, decides this outright instead
+  // of the heuristic below — see its doc comment on ContainerProps for why:
+  // inferring the mode from whichever of these happen to be truthy on THIS
+  // render makes a page's structure flip as loading/error/loaded states
+  // populate them differently.
+  const usesModuleLocalChrome =
+    moduleChrome ??
+    (hasHeaderTabs ||
       shouldPromoteBodyTabs ||
       shouldLiftBodyTabsAlone ||
       hasLeading ||
-      (!hasVisibleTitle && hasHeaderRight) ||
-      forceModuleChrome
-    );
+      (!hasVisibleTitle && hasHeaderRight));
+
+  // When SectionTopbar owns the chrome title, skip a second sr-only h1 here.
+  const needsStandaloneScreenReaderTitle =
+    Boolean(label && isTitleChromeSuppressed) && !usesModuleLocalChrome;
 
   const insetClassName = fullWidth && !isNested ? 'px-5 sm:px-6' : '';
   const bodyInsetClassName = fullWidth ? insetClassName : '';
-
-  // One pattern: SectionTopbar for any local nav and/or chrome-only tools.
-  const usesModuleLocalChrome =
-    hasHeaderTabs ||
-    shouldPromoteBodyTabs ||
-    shouldLiftBodyTabsAlone ||
-    hasLeading ||
-    (!hasVisibleTitle && hasHeaderRight) ||
-    forceModuleChrome;
 
   // Visible title + primary actions only (e.g. admin "Invite") — padded row.
   const usesTitleActionToolbar =
@@ -197,6 +195,7 @@ export default function Container({
             }
             help={resolvedHelp}
             tabs={moduleTabsNode ?? undefined}
+            forceVisible={moduleChrome === true}
           />
         ) : null}
 

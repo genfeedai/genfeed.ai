@@ -29,6 +29,7 @@ export default function SectionTopbar({
   tabs,
   titleVisibility = 'auto',
   help,
+  forceVisible = false,
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
@@ -45,8 +46,17 @@ export default function SectionTopbar({
   const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
   const hasActions = Boolean(actions) || Boolean(helpTrigger);
 
-  // Chrome-only title with no tools: do not paint an empty border-b strip.
-  if (!hasVisibleTitle && !hasLeading && !hasTabs && !hasActions) {
+  // Chrome-only title with no tools: do not paint an empty border-b strip,
+  // unless the page has declared (via Container's `moduleChrome`) that this
+  // bar is always present — then keep the shell mounted so it doesn't pop in
+  // once content (tabs, actions, a resolved title) arrives.
+  if (
+    !forceVisible &&
+    !hasVisibleTitle &&
+    !hasLeading &&
+    !hasTabs &&
+    !hasActions
+  ) {
     return (
       <h1 className="sr-only" data-testid="section-topbar">
         {title}

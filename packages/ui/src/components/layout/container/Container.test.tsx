@@ -297,23 +297,27 @@ describe('Container', () => {
     expect(container.className).not.toMatch(/\bsm:pt-4\b/);
   });
 
-  it('keeps SectionTopbar mounted via forceModuleChrome when there is no right content', () => {
+  it('lets a page declare moduleChrome so an empty SectionTopbar still mounts', () => {
     render(
-      <Container label="Clips" titleVisibility="sr-only" forceModuleChrome>
+      <Container label="Clips" titleVisibility="sr-only" moduleChrome>
         content
       </Container>,
     );
 
-    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
+    // Declared intent renders the bar shell, not the sr-only-h1 collapse —
+    // otherwise it would be pixel-identical to the classic layout it exists
+    // to avoid flipping to/from.
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar.tagName).not.toBe('H1');
     expect(screen.getByTestId('container')).toHaveAttribute(
       'data-module-chrome',
       'section-topbar',
     );
   });
 
-  it('keeps the same module chrome across a forceModuleChrome page as right content appears and disappears', () => {
+  it('keeps the same module chrome across a moduleChrome page as right content appears and disappears', () => {
     const { rerender } = render(
-      <Container label="Clips" titleVisibility="sr-only" forceModuleChrome>
+      <Container label="Clips" titleVisibility="sr-only" moduleChrome>
         content
       </Container>,
     );
@@ -327,7 +331,7 @@ describe('Container', () => {
       <Container
         label="Clips"
         titleVisibility="sr-only"
-        forceModuleChrome
+        moduleChrome
         right={<button type="button">All projects</button>}
       >
         content
@@ -341,6 +345,24 @@ describe('Container', () => {
     expect(
       screen.getByRole('button', { name: 'All projects' }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps classic layout when a page declares moduleChrome={false}, even with tools that would otherwise promote it', () => {
+    render(
+      <Container
+        label="Reports"
+        moduleChrome={false}
+        leading={<span>Range</span>}
+      >
+        content
+      </Container>,
+    );
+
+    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'classic',
+    );
   });
 
   it('lifts body-only tabs into SectionTopbar (no orphan strip)', () => {

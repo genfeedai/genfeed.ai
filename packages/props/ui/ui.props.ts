@@ -83,13 +83,21 @@ export interface ContainerProps {
   /** Explicit help popover; `null` hides the route-level help for this page. */
   help?: PageHelpContent | null;
   /**
-   * Keep module-local chrome (`SectionTopbar`) rendered even when there are
-   * no `headerTabs` / body `tabs` / `leading` / `right` to show. Use this
-   * when a page's chrome would otherwise flip between the classic layout and
-   * `SectionTopbar` as transient state (loading, empty list) toggles whether
-   * `right` is defined.
+   * Declare, once per page, whether this route always uses module-local
+   * chrome (`SectionTopbar`) — independent of whether `right` / `tabs` /
+   * `headerTabs` / `leading` happen to be populated on a given render.
+   *
+   * Without this, Container infers its layout from those props, which flips
+   * structure (and reflows the page) whenever a page's loading, error, and
+   * loaded states populate them differently — e.g. a detail shell that only
+   * adds `headerTabs` once data has loaded. Pages with that shape should
+   * pass the same `moduleChrome` value on every branch/render instead of
+   * relying on the heuristic.
+   *
+   * Leave unset to keep the default heuristic, which is correct for pages
+   * whose header content is naturally stable across their lifecycle.
    */
-  forceModuleChrome?: boolean;
+  moduleChrome?: boolean;
 }
 
 export interface LinkProps {
