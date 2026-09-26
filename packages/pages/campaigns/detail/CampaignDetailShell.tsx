@@ -64,7 +64,16 @@ export default function CampaignDetailShell({
 
   if (isLoading || !campaign) {
     return (
-      <Container label={translate('title')} titleVisibility="sr-only">
+      // The loaded shell below always uses `headerTabs` (section nav), so it
+      // always renders as module-local chrome. Declare that explicitly here
+      // too — otherwise, whenever no `right`/`tabs`/help happen to apply
+      // during loading, Container would fall back to the classic layout and
+      // the SectionTopbar would pop in once data resolves.
+      <Container
+        label={translate('title')}
+        titleVisibility="sr-only"
+        moduleChrome
+      >
         <LoadingState isFullSize />
       </Container>
     );
@@ -249,6 +258,7 @@ export default function CampaignDetailShell({
       icon={Flag}
       label={resolvedCampaign.name}
       titleVisibility="visible"
+      moduleChrome
     >
       <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border py-4">
         <Badge status={resolvedCampaign.status}>

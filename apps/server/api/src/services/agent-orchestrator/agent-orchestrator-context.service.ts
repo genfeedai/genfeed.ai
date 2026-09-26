@@ -268,6 +268,7 @@ export class AgentOrchestratorContextService {
       organizationId: context.organizationId,
       platform: policy.platform,
       query: request.content,
+      userId: context.userId,
     });
   }
 

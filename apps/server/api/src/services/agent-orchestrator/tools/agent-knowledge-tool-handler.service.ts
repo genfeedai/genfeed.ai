@@ -1,5 +1,5 @@
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -139,7 +139,7 @@ export class AgentKnowledgeToolHandler {
     private readonly loggerService: LoggerService,
     private readonly records: KnowledgeRecordsService,
     private readonly capture: KnowledgeCaptureService,
-    private readonly contextsService: ContextsService,
+    private readonly knowledgeContentRetrievalService: KnowledgeContentRetrievalService,
   ) {}
 
   /** Single dispatch entry so the executor's route table stays flat. */
@@ -199,19 +199,20 @@ export class AgentKnowledgeToolHandler {
     if (sourceIds && ctx.isWorkflowScoped) {
       await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
     }
-    const hits = await this.contextsService.retrieveBrandContentMemory({
-      brandId,
-      knowledgePurposes: readPurposes(params.purposes),
-      knowledgeSourceIds: sourceIds,
-      limit: readBoundedInt(
-        params.limit,
-        SEARCH_DEFAULT_LIMIT,
-        SEARCH_MAX_LIMIT,
-      ),
-      minRelevance: 0.6,
-      organizationId: ctx.organizationId,
-      query,
-    });
+    const hits =
+      await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
+        brandId,
+        knowledgePurposes: readPurposes(params.purposes),
+        knowledgeSourceIds: sourceIds,
+        limit: readBoundedInt(
+          params.limit,
+          SEARCH_DEFAULT_LIMIT,
+          SEARCH_MAX_LIMIT,
+        ),
+        minRelevance: 0.6,
+        organizationId: ctx.organizationId,
+        query,
+      });
     const passages = hits
       .filter((hit) => hit.citation)
       .map((hit) => ({
