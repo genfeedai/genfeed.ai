@@ -87,6 +87,7 @@ export * from './metadata.enum';
 export * from './mix-mode.enum';
 export * from './modal.enum';
 export * from './model.enum';
+export * from './moderation-category.enum';
 export * from './oauth.enum';
 export * from './onboarding.enum';
 export * from './organization.enum';

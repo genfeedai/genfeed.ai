@@ -4,6 +4,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  MEDIA_MODERATION_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   REPLICATE_POLL_QUEUE,
@@ -21,6 +22,7 @@ describe('queue-names.constant', () => {
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(MEDIA_PERCEPTION_QUEUE).toBe('media-perception');
+    expect(MEDIA_MODERATION_QUEUE).toBe('media-moderation');
   });
 
   it('lists every queue exactly once', () => {
