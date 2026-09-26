@@ -136,8 +136,19 @@ describe.skipIf(!connectionString)(
             userId,
           },
         });
+        // currentBrandId is a required per-member invariant (#5219) — every
+        // org needs at least one brand for its member row to reference.
+        const brand = await db.brand.create({
+          data: {
+            label: organizationId,
+            organizationId,
+            slug: organizationId,
+            userId,
+          },
+        });
         await db.member.create({
           data: {
+            currentBrandId: brand.id,
             isActive: true,
             organizationId,
             roleId: actorMemberRoleId,
@@ -178,6 +189,9 @@ describe.skipIf(!connectionString)(
         where: { organizationId: { in: organizationIds } },
       });
       await db.member.deleteMany({
+        where: { organizationId: { in: organizationIds } },
+      });
+      await db.brand.deleteMany({
         where: { organizationId: { in: organizationIds } },
       });
       await db.organization.deleteMany({
