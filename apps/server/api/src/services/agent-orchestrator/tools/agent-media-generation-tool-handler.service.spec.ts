@@ -205,6 +205,45 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
   });
 
+  it('grounds social drafts in the thread brand and shows their receipts', async () => {
+    const { contentGeneratorService, handler } = createHandler();
+    const receipt = {
+      excerpt: 'We ship every Thursday.',
+      kind: 'TEXT',
+      purpose: 'INSPIRATION',
+      relevance: 0.55,
+      sourceId: 'source-1',
+      title: 'Brand facts',
+      version: 1,
+      versionId: 'version-1',
+    };
+    contentGeneratorService.generateContent.mockResolvedValue([
+      {
+        content: 'Thursday is ship day.',
+        hashtags: [],
+        knowledgeReceipts: [receipt],
+        patternUsed: 'announcement',
+      },
+    ]);
+
+    const result = await handler.generateContent(
+      { platform: 'twitter', topic: 'ship day', type: 'post' },
+      { ...context, knowledgeSelection: { sourceIds: ['source-1'] } },
+    );
+
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
+      'organization-1',
+      expect.objectContaining({
+        brandId: 'brand-1',
+        knowledge: { sourceIds: ['source-1'] },
+      }),
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      knowledgeReceipts: [receipt],
+      type: 'content_preview_card',
+    });
+  });
+
   it('preserves generated thread segments as one structured preview', async () => {
     const { contentGeneratorService, handler } = createHandler();
     contentGeneratorService.generateContent.mockResolvedValue([

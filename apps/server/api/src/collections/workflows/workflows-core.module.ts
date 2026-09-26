@@ -2,7 +2,10 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
@@ -24,15 +27,26 @@ import { Module } from '@nestjs/common';
     WorkflowsService,
   ],
   imports: [
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 5000, type: 'exponential' },
-        removeOnComplete: 200,
-        removeOnFail: 100,
+    BullModule.registerQueue(
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: WORKFLOW_EXECUTION_QUEUE,
       },
-      name: WORKFLOW_EXECUTION_QUEUE,
-    }),
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+      },
+    ),
   ],
   providers: [
     SystemWorkflowRunnerService,

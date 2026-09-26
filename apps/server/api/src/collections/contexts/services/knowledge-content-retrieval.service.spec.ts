@@ -128,6 +128,20 @@ describe('KnowledgeContentRetrievalService', () => {
       expect(contextBase.findMany).not.toHaveBeenCalled();
     });
 
+    it('returns nothing for an explicit selection that resolved to no sources', async () => {
+      const { contextBase, service } = buildService();
+
+      const hits = await service.retrieveBrandContentMemory({
+        brandId: BRAND_A,
+        knowledgeSourceIds: [],
+        organizationId: 'org-1',
+        query: 'pricing',
+      });
+
+      expect(hits).toEqual([]);
+      expect(contextBase.findMany).not.toHaveBeenCalled();
+    });
+
     it('drops bases owned by another brand and restricts Knowledge to the brand', async () => {
       const { contextBase, queryRaw, service } = buildService();
       contextBase.findMany.mockResolvedValue([

@@ -3,7 +3,6 @@ import { GenerationHarnessSettingsService } from '@api/services/harness/generati
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
-  PROMPT_ENHANCEMENT_MODEL,
   PromptEnhancementResponseError,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
@@ -96,15 +95,20 @@ export class MediaPromptEnhancementService {
     } catch (error: unknown) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof PromptEnhancementResponseError) stage = 'response';
-      this.logger.warn(
-        'Media prompt enhancement failed; generating with original prompt',
-        {
-          contentType: input.contentType === 'video' ? 'video' : 'image',
-          model: PROMPT_ENHANCEMENT_MODEL,
-          stage,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
+      const failure = {
+        contentType: input.contentType === 'video' ? 'video' : 'image',
+        model: await this.promptEnhancement
+          .resolveModel()
+          .catch(() => 'unresolved'),
+        stage,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      const message =
+        'Media prompt enhancement failed; generating with original prompt';
+      // A provider failure means the configured text model is unreachable:
+      // an operator configuration problem, not a per-request hiccup.
+      if (stage === 'provider') this.logger.error(message, undefined, failure);
+      else this.logger.warn(message, failure);
       return { ...receipt, status: 'failed' };
     }
   }

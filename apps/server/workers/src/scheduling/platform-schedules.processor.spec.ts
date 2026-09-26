@@ -54,6 +54,7 @@ describe('PlatformSchedulesProcessor', () => {
   const workflowSchedules = {
     sweep: handler(),
     reconcileContinuations: handler(),
+    reconcilePendingExecutions: handler(),
   };
   const logger = { debug: vi.fn() };
 
@@ -124,6 +125,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION,
         patterns.computeDailyPatterns,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE,
+        workflowSchedules.reconcilePendingExecutions,
       ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
       [

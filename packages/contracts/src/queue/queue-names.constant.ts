@@ -8,6 +8,22 @@ export const DEFAULT_QUEUE = 'default';
 
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
+/**
+ * Platform-originated system-workflow work: platform-cron sweep dispatches
+ * (`PlatformWorkflowSchedulesService`: proactive-agent-strategies,
+ * analytics-sync, content-loop-autopilot), the proactive agent-strategy turns
+ * they trigger, and `workflow.for-each` children spawned from one of those
+ * workflows. Split from `WORKFLOW_EXECUTION_QUEUE` in #5162: that queue's
+ * rate limiter is checked before job priority is ever consulted, and an
+ * already-active job is never evicted from a concurrency slot for a
+ * higher-priority one that arrives later — so priority on a shared queue
+ * only makes starvation *less likely*, never impossible, and (per #5252
+ * review) actively inverts intent once most producers on that queue carry no
+ * priority at all. A dedicated queue, with its own concurrency and limiter,
+ * is what makes platform-originated work structurally unable to consume the
+ * budget an interactive agent turn depends on.
+ */
+export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -26,6 +42,7 @@ export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,

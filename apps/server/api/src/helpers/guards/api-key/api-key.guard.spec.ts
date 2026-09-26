@@ -1,6 +1,7 @@
+import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ActionOrigin } from '@genfeedai/contracts';
+import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
@@ -24,31 +25,28 @@ describe('ApiKeyAuthGuard', () => {
   const mockApiKeyUserId = testId('user');
   const mockFallbackBrandId = testId('brand');
 
-  const mockApiKey = {
-    _id: mockApiKeyId,
+  const mockApiKey: ApiKeyDocument = {
     allowedIps: ['192.168.1.1'],
-    category: 'GENFEEDAI' as const,
+    category: ApiKeyCategory.GENFEEDAI,
     createdAt: new Date(),
-    defaultBrandId: null as string | null,
-    description: null as string | null,
-    expiresAt: null as Date | null,
+    // #5219: optional MCP default-brand pointer, unset by default here.
+    defaultBrandId: null,
+    description: null,
+    expiresAt: null,
     id: mockApiKeyId,
     isRevoked: false,
     key: 'hashed_key_value',
-    keyFingerprint: null as string | null,
+    keyFingerprint: null,
     label: 'Test API Key',
-    lastUsedAt: null as Date | null,
-    lastUsedIp: null as string | null,
+    lastUsedAt: null,
+    lastUsedIp: null,
     metadata: null,
-    name: 'Test API Key',
-    organization: mockApiKeyOrgId,
     organizationId: mockApiKeyOrgId,
     rateLimit: 60,
-    revokedAt: null as Date | null,
+    revokedAt: null,
     scopes: ['videos:create', 'videos:read'],
     updatedAt: new Date(),
     usageCount: 0,
-    user: mockApiKeyUserId,
     userId: mockApiKeyUserId,
   };
 
@@ -124,6 +122,59 @@ describe('ApiKeyAuthGuard', () => {
         new UnauthorizedException('Invalid authorization format'),
       );
     });
+
+    it.each([
+      ['Bearer', 'Bearer gf_test_abc123 extra'],
+      ['ApiKey', 'ApiKey gf_test_abc123 extra'],
+    ])(
+      'should throw UnauthorizedException for a %s header with surplus fields',
+      async (_scheme, authorization) => {
+        request = buildMockRequest({
+          ...request,
+          headers: { authorization },
+        });
+        mockContext = createMockExecutionContext({ request });
+
+        await expect(guard.canActivate(mockContext)).rejects.toThrow(
+          new UnauthorizedException('Invalid authorization format'),
+        );
+        expect(apiKeysService.findByKey).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      ['bearer', 'bearer gf_test_abc123'],
+      ['BEARER', 'BEARER gf_test_abc123'],
+      ['apikey', 'apikey gf_test_abc123'],
+      ['ApiKEY', 'ApiKEY gf_test_abc123'],
+    ])(
+      // Regression coverage for #5206 follow-up: RFC 7235 scheme names are
+      // case-insensitive. CombinedAuthGuard already recognizes a
+      // case-varied `bearer` scheme and routes `gf_` tokens here — this
+      // guard's own comparison must accept the same casing instead of
+      // 401ing a request CombinedAuthGuard already decided was a bearer
+      // token.
+      'accepts a %s scheme (case-insensitive per RFC 7235)',
+      async (_label, authorization) => {
+        request = buildMockRequest({
+          ...request,
+          headers: { authorization },
+        });
+        mockContext = createMockExecutionContext({ request });
+        vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+        vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+        vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+          allowed: true,
+          limit: 60,
+          retryAfterSeconds: 0,
+        });
+
+        const result = await guard.canActivate(mockContext);
+
+        expect(result).toBe(true);
+        expect(apiKeysService.findByKey).toHaveBeenCalledWith('gf_test_abc123');
+      },
+    );
 
     it('should return true for non-API key tokens', async () => {
       request = buildMockRequest({
