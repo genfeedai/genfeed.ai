@@ -171,7 +171,7 @@ describe('SignUpForm', () => {
         method: 'magic_link',
       },
     );
-    expect(screen.getByText('Check your email')).toBeInTheDocument();
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
   });
 
   it('defaults sign-up magic links to post-signup with handoff params', async () => {

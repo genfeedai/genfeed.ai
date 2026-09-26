@@ -87,7 +87,7 @@ describe('ForgotPasswordContent', () => {
         redirectTo: `${window.location.origin}/reset-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321`,
       });
     });
-    expect(screen.getByText('Check your email')).toBeInTheDocument();
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
   });
 
   it('shows request errors without leaving the form', async () => {
