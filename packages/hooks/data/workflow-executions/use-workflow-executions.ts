@@ -25,9 +25,10 @@ export interface UseWorkflowExecutionsReturn {
   isLoading: boolean;
   isError: boolean;
   isRefreshing: boolean;
-  /** True when the last statistics request failed or returned garbage and
-   * `stats` is a fallback (previous cache, or zeros with a derived `active`)
-   * rather than a fresh summary. */
+  /** True when the last statistics request failed, or resolved with
+   * something that is not a summary object, and `stats` is a fallback
+   * (the previously cached summary, or zeros if there is none yet — either
+   * way with a recomputed `active`) rather than a fresh response. */
   isStatsDegraded: boolean;
   refresh: () => Promise<void>;
   stats: WorkflowExecutionStats;
@@ -56,10 +57,15 @@ function readStat(value: object, field: string): number {
   return typeof amount === 'number' && Number.isFinite(amount) ? amount : 0;
 }
 
-/** Collection responses are not summaries. Keep history mounted with zeros. */
-function coerceExecutionStats(value: unknown): WorkflowExecutionStats {
+/**
+ * A statistics summary is a plain object, not a collection. Returns `null`
+ * (rather than zeroing every counter) when the response is `null`, an
+ * array, or otherwise not a summary, so the caller can fall back to the
+ * previously cached stats instead of discarding a known-good count.
+ */
+function parseExecutionStats(value: unknown): WorkflowExecutionStats | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return EMPTY_STATS;
+    return null;
   }
   return {
     active: readStat(value, 'active'),
@@ -72,9 +78,10 @@ function coerceExecutionStats(value: unknown): WorkflowExecutionStats {
   };
 }
 
-/** Ground truth for `stats.active` when the statistics summary is unavailable:
- * count the currently-fetched execution list directly, so a degraded stats
- * response never freezes `refetchInterval` while a run is still in flight. */
+/** Count PENDING/RUNNING rows on the currently-fetched page. This is a lower
+ * bound, not ground truth: callers page and sort this list (e.g. a bounded
+ * `limit` sorted `-createdAt`), so an active run that has aged off the top
+ * of that page would be invisible here. */
 function countActiveExecutions(executions: IWorkflowExecution[]): number {
   return executions.reduce(
     (count, execution) =>
@@ -84,6 +91,22 @@ function countActiveExecutions(executions: IWorkflowExecution[]): number {
         : count,
     0,
   );
+}
+
+/**
+ * `stats.active` when the statistics summary is degraded (rejected or not a
+ * summary). Neither source is trustworthy alone: the last known summary can
+ * be stale by the time a run finishes, and the current page can miss a run
+ * that scrolled past `RUNS_PAGE_LIMIT`. Taking the larger of the two never
+ * drops a real active run to 0 and so never wrongly freezes
+ * `refetchInterval`; the cost is at most one extra harmless poll after the
+ * run in question actually finishes.
+ */
+function resolveDegradedActive(
+  cachedActive: number,
+  pageActive: number,
+): number {
+  return Math.max(cachedActive, pageActive);
 }
 
 export function useWorkflowExecutions(
@@ -134,24 +157,32 @@ export function useWorkflowExecutions(
         throw executionsResult.reason;
       }
       const executions = executionsResult.value;
-      if (statsResult.status === 'fulfilled') {
-        return {
-          executions,
-          isStatsDegraded: false,
-          stats: coerceExecutionStats(statsResult.value),
-        };
+      const parsedStats =
+        statsResult.status === 'fulfilled'
+          ? parseExecutionStats(statsResult.value)
+          : null;
+      if (parsedStats) {
+        return { executions, isStatsDegraded: false, stats: parsedStats };
       }
-      // A rejected stats call must not reset `active` to 0: that stops
+      // The stats call either rejected or resolved with something that is
+      // not a summary (`null`, a collection, etc.) — both are degraded in
+      // the same way and must not reset `active` to 0, which would stop
       // `refetchInterval` below from ever polling again while a run is
-      // still PENDING/RUNNING. Fall back to the previously cached summary
-      // (if any) and always recompute `active` from the execution list
-      // that was just fetched successfully, since it is ground truth.
-      logger.warn(
-        'Workflow execution stats request failed; keeping executions with degraded stats',
-        {
-          error: statsResult.reason,
-        },
-      );
+      // still PENDING/RUNNING. Keep the previously cached summary for the
+      // other counters (only EMPTY_STATS when there is no cache yet), and
+      // take the larger of the cached `active` and the current page's
+      // derived `active`, since neither alone is ground truth.
+      if (statsResult.status === 'rejected') {
+        logger.warn(
+          'Workflow execution stats request failed; keeping executions with degraded stats',
+          { error: statsResult.reason },
+        );
+      } else {
+        logger.warn(
+          'Workflow execution stats response was not a summary; keeping executions with degraded stats',
+          { value: statsResult.value },
+        );
+      }
       const previous =
         queryClient.getQueryData<WorkflowExecutionsQueryData>(queryKey);
       const fallbackStats = previous?.stats ?? EMPTY_STATS;
@@ -160,7 +191,10 @@ export function useWorkflowExecutions(
         isStatsDegraded: true,
         stats: {
           ...fallbackStats,
-          active: countActiveExecutions(executions),
+          active: resolveDegradedActive(
+            fallbackStats.active,
+            countActiveExecutions(executions),
+          ),
         },
       };
     },

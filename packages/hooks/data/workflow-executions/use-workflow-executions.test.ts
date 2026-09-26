@@ -123,8 +123,9 @@ describe('useWorkflowExecutions summary', () => {
     });
   });
 
-  it('keeps executions when the statistics payload is not a summary', async () => {
+  it('keeps executions and treats a non-summary statistics payload as degraded', async () => {
     listMock.mockReset();
+    mockLoggerWarn.mockClear();
     listMock.mockResolvedValue([
       { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
     ]);
@@ -136,6 +137,9 @@ describe('useWorkflowExecutions summary', () => {
       expect(result.current.executions[0]?.id).toBe('exec-1'),
     );
     expect(result.current.isError).toBe(false);
+    // A resolved-but-malformed response is degraded exactly like a
+    // rejection: it must not be cached as a trustworthy zeroed summary.
+    expect(result.current.isStatsDegraded).toBe(true);
     expect(result.current.stats).toEqual({
       active: 0,
       completed: 0,
@@ -145,6 +149,10 @@ describe('useWorkflowExecutions summary', () => {
       total: 0,
       totalCredits: 0,
     });
+    expect(mockLoggerWarn).toHaveBeenCalledWith(
+      expect.stringContaining('not a summary'),
+      expect.objectContaining({ value: [] }),
+    );
   });
 
   it('keeps executions and reports empty stats when getStats rejects', async () => {
@@ -235,7 +243,7 @@ describe('useWorkflowExecutions summary', () => {
     expect(result.current.stats.totalCredits).toBe(180);
   });
 
-  it('keeps executions and coerces stats when getStats resolves with null data', async () => {
+  it('keeps executions and treats a null statistics payload as degraded', async () => {
     listMock.mockReset();
     listMock.mockResolvedValue([
       { creditsUsed: 0, id: 'exec-null-stats', status: 'COMPLETED' },
@@ -248,6 +256,7 @@ describe('useWorkflowExecutions summary', () => {
       expect(result.current.executions[0]?.id).toBe('exec-null-stats'),
     );
     expect(result.current.isError).toBe(false);
+    expect(result.current.isStatsDegraded).toBe(true);
     expect(result.current.stats).toEqual({
       active: 0,
       completed: 0,
@@ -257,6 +266,45 @@ describe('useWorkflowExecutions summary', () => {
       total: 0,
       totalCredits: 0,
     });
+  });
+
+  it('keeps the larger of the cached active count and the page-derived count when a later stats call is degraded', async () => {
+    // The runs list is a bounded, sorted page: an active run seen on an
+    // earlier successful summary can scroll past that page while stats
+    // stay degraded across polls. The cached `active` must win so it is
+    // never silently dropped to whatever the current page happens to show.
+    listMock.mockReset();
+    listMock.mockResolvedValueOnce([
+      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
+    ]);
+    statsMock.mockResolvedValueOnce({
+      active: 3,
+      completed: 10,
+      completedToday: 0,
+      failed: 0,
+      failedToday: 0,
+      total: 13,
+      totalCredits: 180,
+    });
+    const { result } = renderHook(() => useWorkflowExecutions(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.stats.active).toBe(3));
+
+    // The next page no longer shows any of those 3 active runs, but the
+    // stats call also fails this time.
+    listMock.mockResolvedValueOnce([
+      { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
+    ]);
+    statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => expect(result.current.isStatsDegraded).toBe(true));
+    // Cached active (3) beats the page-derived count (0): polling must not
+    // stop just because this page no longer shows those runs.
+    expect(result.current.stats.active).toBe(3);
   });
 
   it('does not throw from refetchInterval when stats are null and keeps polling paused', async () => {

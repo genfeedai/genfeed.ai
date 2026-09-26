@@ -40,22 +40,26 @@ export default function RunStatsStrip({
           value: formatStat(stats.total),
         },
         {
-          description: degradedDescription,
+          // Not marked degraded: `active` is always recomputed from the
+          // execution list just fetched, never a stale fallback.
           icon: Activity,
           label: translate('statsActive'),
           value: formatStat(stats.active),
         },
         {
+          description: degradedDescription,
           icon: CheckCircle2,
           label: translate('statsCompleted'),
           value: formatStat(stats.completed),
         },
         {
+          description: degradedDescription,
           icon: CircleAlert,
           label: translate('statsFailed'),
           value: formatStat(stats.failed),
         },
         {
+          description: degradedDescription,
           icon: Coins,
           label: translate('statsCredits'),
           value: formatStat(stats.totalCredits),
