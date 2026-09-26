@@ -7,6 +7,7 @@ import {
 import { buildWorkflowVersionDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { WORKFLOW_EXECUTOR } from '@api/collections/workflows/workflows.tokens';
 import { createGenfeedActionNode } from '@genfeedai/actions';
+import { WORKFLOW_JOB_PRIORITY } from '@genfeedai/contracts/queue';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -351,6 +352,86 @@ describe('SystemWorkflowRunnerService definitions', () => {
     } else {
       expect(options.attempts).toBe(1);
     }
+  });
+
+  it.each([
+    ['agent.turn.execute', 'agent', WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION],
+    [
+      'agent.thread.ui-action',
+      'agent',
+      WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
+    ],
+    [
+      'agent.thread.input-response',
+      'agent',
+      WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
+    ],
+    ['clip-hook-review', 'agent', WORKFLOW_JOB_PRIORITY.DEFAULT],
+  ])(
+    'gives %s from source %s BullMQ priority %i and keeps it off the platform-sweep queue (#5162)',
+    async (canonicalId, source, expectedPriority) => {
+      const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+      const createExecution = vi
+        .fn()
+        .mockResolvedValue({ id: 'execution-1', status: 'PENDING' });
+      const { runner } = createRunner(
+        { queueSystemWorkflow },
+        {},
+        {},
+        { createExecution },
+      );
+      runner.registerWorkflow({ ...definition, canonicalId });
+      const internals = runner as unknown as RunnerInternals;
+      vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+      vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue(
+        {
+          currentVersion: { id: 'version-1' },
+          id: 'workflow-1',
+          label: 'Workflow',
+        },
+      );
+      await runner.enqueueWorkflow({
+        actionType: canonicalId,
+        canonicalId,
+        organizationId: 'org-1',
+        source,
+        userId: 'tenant-user',
+      });
+      const options = queueSystemWorkflow.mock.calls[0][2];
+      expect(options.priority).toBe(expectedPriority);
+      expect(options.usePlatformQueue).toBeUndefined();
+    },
+  );
+
+  it('gives a PlatformWorkflowSchedulesService dispatch the lowest priority and routes it to the platform queue (#5162)', async () => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+    const createExecution = vi
+      .fn()
+      .mockResolvedValue({ id: 'execution-1', status: 'PENDING' });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+    );
+    runner.registerWorkflow({ ...definition, canonicalId: 'analytics-sync' });
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'version-1' },
+      id: 'workflow-1',
+      label: 'Workflow',
+    });
+    await runner.enqueueWorkflow({
+      actionType: 'analytics-sync',
+      canonicalId: 'analytics-sync',
+      organizationId: 'org-1',
+      source: 'PlatformWorkflowSchedulesService',
+      userId: 'tenant-user',
+    });
+    const options = queueSystemWorkflow.mock.calls[0][2];
+    expect(options.priority).toBe(WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP);
+    expect(options.usePlatformQueue).toBe(true);
   });
 
   it('marks a precreated parent failed when queueing fails', async () => {

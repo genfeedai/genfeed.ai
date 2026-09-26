@@ -17,7 +17,10 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interfaces';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -66,6 +69,23 @@ export interface QueueSystemWorkflowOptions {
   priorExecution?: NonNullable<
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
   >;
+  /**
+   * BullMQ job priority — lower number runs first (see `WORKFLOW_JOB_PRIORITY`
+   * in `@genfeedai/contracts/queue`). Omit for unprioritized FIFO. #5162: a
+   * platform sweep and an interactive agent turn previously carried the same
+   * (absent) priority on the shared queue.
+   */
+  priority?: number;
+  /**
+   * Route this job to `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of
+   * `WORKFLOW_EXECUTION_QUEUE`. Set only by platform-cron sweep dispatches
+   * (`PlatformWorkflowSchedulesService`) — see #5162: BullMQ's rate limiter is
+   * queue-global and its concurrency slots are not preemptible by priority,
+   * so keeping these on a separate queue is what makes it structurally
+   * impossible for a sweep burst to starve an interactive agent turn, rather
+   * than merely less likely.
+   */
+  usePlatformQueue?: boolean;
   /**
    * @deprecated `queueSystemWorkflow` now always reserves a fresh id (removing
    * a stale/terminal job under the same deterministic jobId before adding) —
@@ -119,8 +139,16 @@ export function workflowSchedulerId(workflowId: string): string {
  * retry, or already picked up by a worker within this same call. Anything
  * else (most importantly `completed`/`failed`) means `add()` silently handed
  * back a stale job instead of creating new work — see #5162.
+ *
+ * Also used by `hasClaimableSystemWorkflowJob` to answer the same question
+ * later, for a `WorkflowExecution` that has been sitting `PENDING` — see
+ * `PendingWorkflowExecutionReconcileService`.
  */
-const CLAIMABLE_JOB_STATES = new Set<string>(['waiting', 'delayed', 'active']);
+export const CLAIMABLE_JOB_STATES = new Set<string>([
+  'waiting',
+  'delayed',
+  'active',
+]);
 
 function requireQueueJobId(
   jobId: string | undefined,
@@ -152,6 +180,10 @@ export class WorkflowExecutionQueueService {
   constructor(
     @InjectQueue(WORKFLOW_EXECUTION_QUEUE)
     private readonly executionQueue: Queue<WorkflowExecutionJobData>,
+    // Platform-cron sweep dispatches only — see `usePlatformQueue` on
+    // `QueueSystemWorkflowOptions` and #5162.
+    @InjectQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+    private readonly platformSystemWorkflowQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -206,7 +238,14 @@ export class WorkflowExecutionQueueService {
     // Always reserve the id first so a stale/terminal job is removed and a
     // fresh one can be added; an in-flight job under the same id is left
     // alone and reported back rather than silently swallowed.
-    const reservation = await reserveIdempotentJob(this.executionQueue, jobId);
+    //
+    // Platform-cron sweep dispatches (`usePlatformQueue`) reserve and add on
+    // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of the shared
+    // `WORKFLOW_EXECUTION_QUEUE` — see #5162 and `QueueSystemWorkflowOptions`.
+    const targetQueue = options.usePlatformQueue
+      ? this.platformSystemWorkflowQueue
+      : this.executionQueue;
+    const reservation = await reserveIdempotentJob(targetQueue, jobId);
     if (reservation.alreadyQueued) {
       this.logger.log(`${this.logContext} system workflow already queued`, {
         canonicalId: input.canonicalId,
@@ -216,7 +255,7 @@ export class WorkflowExecutionQueueService {
       });
       return jobId;
     }
-    const job = await this.executionQueue.add(
+    const job = await targetQueue.add(
       'system-run',
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
@@ -235,6 +274,9 @@ export class WorkflowExecutionQueueService {
         attempts: options.attempts ?? 3,
         backoff: { delay: 5000, type: 'exponential' },
         ...(options.delayMs !== undefined ? { delay: options.delayMs } : {}),
+        ...(options.priority !== undefined
+          ? { priority: options.priority }
+          : {}),
         jobId,
         removeOnComplete: 200,
         removeOnFail: 100,
@@ -432,5 +474,29 @@ export class WorkflowExecutionQueueService {
       .flatMap((job) =>
         job.id ? [{ delay: job.delay, id: job.id, type: job.data.type }] : [],
       );
+  }
+
+  /**
+   * Whether `jobId` (the deterministic `system-workflow-${executionId}` id a
+   * `system-run` job is queued under) is still claimable by a worker on
+   * either queue a system workflow may have been routed to. Used by
+   * `PendingWorkflowExecutionReconcileService` (#5162) to tell a merely slow
+   * run from one that was queued but will never be picked up — no job at
+   * all, or one sitting in a terminal `completed`/`failed` state while its
+   * `WorkflowExecution` row is still `PENDING`.
+   */
+  async hasClaimableSystemWorkflowJob(jobId: string): Promise<boolean> {
+    for (const queue of [
+      this.executionQueue,
+      this.platformSystemWorkflowQueue,
+    ]) {
+      const job = await queue.getJob(jobId);
+      if (!job) continue;
+      const state = await job.getState();
+      if (CLAIMABLE_JOB_STATES.has(state)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

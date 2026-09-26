@@ -3,17 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PlatformWorkflowSchedulesService', () => {
   const prisma = {
+    agentStrategy: { findMany: vi.fn() },
     organization: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
   };
   const runner = { enqueueWorkflow: vi.fn() };
   const logger = { error: vi.fn() };
   const continuations = { reconcile: vi.fn() };
+  const pendingExecutions = { reconcile: vi.fn() };
   const service = new PlatformWorkflowSchedulesService(
     prisma as never,
     runner as never,
     logger as never,
     continuations as never,
+    pendingExecutions as never,
   );
   beforeEach(() => {
     vi.resetAllMocks();
@@ -21,7 +24,18 @@ describe('PlatformWorkflowSchedulesService', () => {
       { id: 'org-1', userId: 'owner-1' },
     ]);
     prisma.workflow.findFirst.mockResolvedValue(null);
+    // Due by default (empty config: no failures, no manual-reactivation gate,
+    // no future nextRunAt) so existing proactive-agent-strategies assertions
+    // below keep exercising the installed-workflow branch they target.
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      { organizationId: 'org-1', config: {} },
+    ]);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
+  });
+
+  it('delegates pending-execution reconciliation to its existing owner', async () => {
+    await service.reconcilePendingExecutions();
+    expect(pendingExecutions.reconcile).toHaveBeenCalledOnce();
   });
 
   it('delegates continuation reconciliation to its existing owner', async () => {
@@ -68,6 +82,55 @@ describe('PlatformWorkflowSchedulesService', () => {
       expect(
         prisma.workflow.findFirst.mock.calls[0][0].where,
       ).not.toHaveProperty('isDeleted');
+    },
+  );
+
+  it('does not dispatch proactive-agent-strategies for an org with no due active strategy (#4961 AC-1, #5162)', async () => {
+    prisma.agentStrategy.findMany.mockResolvedValue([]);
+    await service.sweep('proactive-agent-strategies', 120001);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+    // The whole point of the gate: skip before the installed-workflow lookup
+    // too, so a strategy-less org costs one query per sweep, not two.
+    expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+    expect(prisma.agentStrategy.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: { in: ['org-1'] },
+          isActive: true,
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+
+  it('does not dispatch proactive-agent-strategies for a strategy paused past its consecutive-failure limit', async () => {
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      { organizationId: 'org-1', config: { consecutiveFailures: 5 } },
+    ]);
+    await service.sweep('proactive-agent-strategies', 120001);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('does not dispatch proactive-agent-strategies for a strategy whose nextRunAt is in the future', async () => {
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      {
+        organizationId: 'org-1',
+        config: {
+          nextRunAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        },
+      },
+    ]);
+    await service.sweep('proactive-agent-strategies', 120001);
+    expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+
+  it.each(['analytics-sync', 'content-loop-autopilot'] as const)(
+    'never gates %s on agent-strategy due state (AC-5: own catalog cadence)',
+    async (template) => {
+      prisma.agentStrategy.findMany.mockResolvedValue([]);
+      await service.sweep(template, 0);
+      expect(prisma.agentStrategy.findMany).not.toHaveBeenCalled();
+      expect(runner.enqueueWorkflow).toHaveBeenCalledOnce();
     },
   );
 

@@ -13,6 +13,7 @@ import {
   WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/contracts';
+import { WORKFLOW_JOB_PRIORITY } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -69,17 +70,19 @@ describe('workflowSchedulerId', () => {
 describe('WorkflowExecutionQueueService', () => {
   let service: WorkflowExecutionQueueService;
   let mockQueue: ReturnType<typeof createMockQueue>;
+  let mockPlatformQueue: ReturnType<typeof createMockQueue>;
   let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     mockQueue = createMockQueue();
+    mockPlatformQueue = createMockQueue();
     mockLogger = createMockLogger();
 
     service = new (
       WorkflowExecutionQueueService as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionQueueService
-    )(mockQueue, mockLogger);
+    )(mockQueue, mockPlatformQueue, mockLogger);
   });
 
   describe('queueTriggerEvent', () => {
@@ -297,6 +300,89 @@ describe('WorkflowExecutionQueueService', () => {
       );
     });
 
+    it('passes BullMQ priority through to add()', async () => {
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-4', {
+        priority: WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({
+          priority: WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
+        }),
+      );
+    });
+
+    it('omits priority entirely when unset, rather than sending an undefined value', async () => {
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-5');
+
+      const opts = mockQueue.add.mock.calls[0][2];
+      expect(opts).not.toHaveProperty('priority');
+    });
+
+    it('routes a platform-sweep dispatch to the platform queue instead of the interactive one (#5162)', async () => {
+      const input = {
+        actionType: 'agent.autopilot.proactive',
+        canonicalId: 'agent.autopilot.proactive',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-6', {
+        priority: WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP,
+        usePlatformQueue: true,
+      });
+
+      expect(mockPlatformQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({
+          priority: WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP,
+        }),
+      );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('reserves the jobId on the platform queue too, not just the interactive one', async () => {
+      const staleJob = {
+        getState: vi.fn().mockResolvedValue('completed'),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      mockPlatformQueue.getJob.mockResolvedValueOnce(staleJob);
+      const input = {
+        actionType: 'agent.autopilot.proactive',
+        canonicalId: 'agent.autopilot.proactive',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-7', {
+        usePlatformQueue: true,
+      });
+
+      expect(mockQueue.getJob).not.toHaveBeenCalled();
+      expect(staleJob.remove).toHaveBeenCalled();
+    });
+
     it('fails loudly instead of silently when the enqueued job lands unclaimable (#5162)', async () => {
       mockQueue.add.mockResolvedValueOnce({
         getState: vi.fn().mockResolvedValue('completed'),
@@ -399,12 +485,12 @@ describe('WorkflowExecutionQueueService', () => {
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockLogger());
+      )(mockQueue, createMockQueue(), createMockLogger());
       const replicaB = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockLogger());
+      )(mockQueue, createMockQueue(), createMockLogger());
 
       await replicaA.upsertWorkflowScheduler({
         cronExpression: '*/5 * * * *',
@@ -552,6 +638,53 @@ describe('WorkflowExecutionQueueService', () => {
         'delayed',
         'active',
       ]);
+    });
+  });
+
+  describe('hasClaimableSystemWorkflowJob', () => {
+    it('returns false when neither queue has the job (#5162)', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+      mockPlatformQueue.getJob.mockResolvedValue(undefined);
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-8'),
+      ).resolves.toBe(false);
+    });
+
+    it('returns true when the interactive queue has a claimable job', async () => {
+      mockQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('waiting'),
+      });
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-9'),
+      ).resolves.toBe(true);
+      // Already found on the first queue — no need to check the second.
+      expect(mockPlatformQueue.getJob).not.toHaveBeenCalled();
+    });
+
+    it('returns true when the platform-sweep queue has a claimable job', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+      mockPlatformQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('active'),
+      });
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-10'),
+      ).resolves.toBe(true);
+    });
+
+    it('returns false when a job exists but is sitting in a terminal state (#5162)', async () => {
+      // A stuck PENDING execution whose job already finished (or failed and
+      // was cleaned up by removeOnFail) is exactly the case the bounded-
+      // failure reconcile needs to catch — a job "existing" is not enough.
+      mockQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('completed'),
+      });
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-11'),
+      ).resolves.toBe(false);
     });
   });
 });

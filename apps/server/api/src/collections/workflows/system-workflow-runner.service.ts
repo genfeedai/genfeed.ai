@@ -15,6 +15,7 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
 import {
+  PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   type RunSystemWorkflowInput,
   type SystemWorkflowGraphDefinition,
 } from '@api/collections/workflows/system-workflow-definition';
@@ -44,6 +45,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/contracts';
+import { WORKFLOW_JOB_PRIORITY } from '@genfeedai/contracts/queue';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   buildActionExecutionInput,
@@ -298,14 +300,26 @@ export class SystemWorkflowRunnerService
     );
 
     try {
+      const isPlatformSweep =
+        input.source === PLATFORM_WORKFLOW_SCHEDULE_SOURCE;
+      const isAgentConversation = AGENT_CONVERSATION_WORKFLOW_IDS.includes(
+        input.canonicalId,
+      );
       await this.getWorkflowQueue().queueSystemWorkflow(
         { ...input, trigger, userId },
         `system-workflow-${execution.id}`,
         {
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
-          ...(AGENT_CONVERSATION_WORKFLOW_IDS.includes(input.canonicalId)
-            ? { attempts: 1 }
-            : {}),
+          ...(isAgentConversation ? { attempts: 1 } : {}),
+          // #5162: interactive agent turns must never wait behind a platform
+          // sweep's dispatches on the shared queue; platform sweeps get their
+          // own low-priority lane on their own queue instead.
+          priority: isAgentConversation
+            ? WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION
+            : isPlatformSweep
+              ? WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP
+              : WORKFLOW_JOB_PRIORITY.DEFAULT,
+          ...(isPlatformSweep ? { usePlatformQueue: true } : {}),
           priorExecution: {
             executionId: execution.id,
             status: WorkflowExecutionStatus.PENDING,

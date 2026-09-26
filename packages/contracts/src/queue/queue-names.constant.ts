@@ -8,6 +8,17 @@ export const DEFAULT_QUEUE = 'default';
 
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
+/**
+ * Platform-cron sweep dispatches only (`PlatformWorkflowSchedulesService`:
+ * proactive-agent-strategies, analytics-sync, content-loop-autopilot).
+ * Split from `WORKFLOW_EXECUTION_QUEUE` in #5162: BullMQ's rate limiter is
+ * queue-global and its concurrency slots are not preemptible by job
+ * priority, so a shared queue only made platform sweeps *less likely* to
+ * starve interactive agent turns, not incapable of it. Keeping platform
+ * sweep dispatches on their own queue, with their own concurrency and
+ * limiter, makes that starvation structurally impossible instead.
+ */
+export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -26,6 +37,7 @@ export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -78,3 +90,23 @@ export function hasQueueConsumer(queueName: string): boolean {
 }
 
 export const LLM_COST_SETTLEMENT_QUEUE = 'llm-cost-settlement';
+
+/**
+ * BullMQ job `priority` for `WORKFLOW_EXECUTION_QUEUE` and
+ * `PLATFORM_SYSTEM_WORKFLOW_QUEUE` jobs. Lower number = higher priority
+ * (BullMQ convention; unset means unprioritized FIFO, which sorts behind any
+ * prioritized job). #5162: interactive agent turns previously carried no
+ * priority at all, so they queued FIFO behind whatever a platform sweep had
+ * already enqueued.
+ */
+export const WORKFLOW_JOB_PRIORITY = {
+  /** Interactive agent conversation turns (AGENT_CONVERSATION_WORKFLOW_IDS). */
+  AGENT_CONVERSATION: 1,
+  /** Manual/user-triggered workflow runs and other system workflow starts. */
+  DEFAULT: 10,
+  /** Platform-cron sweep dispatches (PlatformWorkflowSchedulesService). */
+  PLATFORM_SWEEP: 20,
+} as const;
+
+export type WorkflowJobPriority =
+  (typeof WORKFLOW_JOB_PRIORITY)[keyof typeof WORKFLOW_JOB_PRIORITY];

@@ -3,6 +3,10 @@ import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-g
 import { lockAgentStrategy } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import {
+  AGENT_STRATEGY_MAX_CONSECUTIVE_FAILURES,
+  isAgentStrategyDue,
+} from '@api/collections/agent-strategies/services/agent-strategy-due.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
@@ -92,7 +96,6 @@ export interface AgentWorkflowHandoffContext {
   workflowRunId?: string;
 }
 
-const MAX_CONSECUTIVE_FAILURES = 5;
 const MAX_STRATEGIES_PER_CYCLE = 20;
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
@@ -288,17 +291,7 @@ export class AgentAutopilotWorkflowService {
   }
 
   private isDueStrategy(strategy: AgentStrategySnapshot, now: Date): boolean {
-    const config = this.readConfig(strategy);
-    const consecutiveFailures = config.consecutiveFailures ?? 0;
-    const requiresManualReactivation =
-      config.requiresManualReactivation ?? false;
-    const nextRunAt = this.parseDate(config.nextRunAt);
-
-    return (
-      consecutiveFailures < MAX_CONSECUTIVE_FAILURES &&
-      !requiresManualReactivation &&
-      (!nextRunAt || nextRunAt <= now)
-    );
+    return isAgentStrategyDue(this.readConfig(strategy), now);
   }
 
   private async executeStrategy(
@@ -480,7 +473,7 @@ export class AgentAutopilotWorkflowService {
           config: toPrismaJson({
             ...latest,
             consecutiveFailures: newFailureCount,
-            ...(newFailureCount >= MAX_CONSECUTIVE_FAILURES
+            ...(newFailureCount >= AGENT_STRATEGY_MAX_CONSECUTIVE_FAILURES
               ? { requiresManualReactivation: true }
               : {}),
           }),
