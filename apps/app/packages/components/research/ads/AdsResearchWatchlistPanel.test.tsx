@@ -180,6 +180,23 @@ describe('AdsResearchWatchlistPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('tells the operator an unconfirmed collection start is safe to retry (#5212)', () => {
+    renderPanel({
+      advertisers: advertisers.map((advertiser) =>
+        advertiser.id === 'watched-2'
+          ? {
+              ...advertiser,
+              lastIngestionErrorCode: 'research_collection_start_unreconciled',
+            }
+          : advertiser,
+      ),
+    });
+
+    expect(
+      screen.getByText(/couldn't confirm whether this collection started/),
+    ).toBeInTheDocument();
+  });
+
   it('uses the singular label for one captured creative (#3537)', () => {
     renderPanel({
       advertisers: advertisers.map((advertiser) =>

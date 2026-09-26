@@ -22,6 +22,7 @@ const {
   searchParamsMock,
   setOnboardingAccountTypeMock,
   toastErrorMock,
+  toastWarningMock,
   updateAccountTypeMock,
 } = vi.hoisted(() => ({
   currentUserState: {
@@ -42,6 +43,7 @@ const {
   searchParamsMock: new URLSearchParams(),
   setOnboardingAccountTypeMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  toastWarningMock: vi.fn(),
   updateAccountTypeMock: vi.fn(),
 }));
 
@@ -77,6 +79,7 @@ vi.mock('next-intl', async () => {
 vi.mock('sonner', () => ({
   toast: {
     error: (...args: unknown[]) => toastErrorMock(...args),
+    warning: (...args: unknown[]) => toastWarningMock(...args),
   },
 }));
 
@@ -295,6 +298,53 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalled();
+    }, LOADING_STEP_WAIT_OPTIONS);
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    }, LOADING_STEP_WAIT_OPTIONS);
+  });
+
+  it('surfaces a classified scrape warning as a toast without blocking onboarding (#5080)', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    scrapeMock.mockResolvedValue({
+      brandId: 'brand-1',
+      scrapeWarning: {
+        code: 'BRAND_SCRAPE_SITE_UNREACHABLE',
+        message: 'We could not reach that website.',
+      },
+      success: true,
+    });
+
+    render(<BrandContent />);
+
+    await waitFor(() => {
+      expect(toastWarningMock).toHaveBeenCalledWith(
+        "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
+      );
+    }, LOADING_STEP_WAIT_OPTIONS);
+    await waitFor(() => {
+      expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
+    }, LOADING_STEP_WAIT_OPTIONS);
+  });
+
+  it('surfaces a classified scrape rejection as a toast without blocking onboarding (#5080)', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    scrapeMock.mockRejectedValue({
+      errors: [
+        {
+          code: 'BRAND_SCRAPE_SITE_BLOCKED',
+          detail: 'Failed to setup brand',
+          title: 'Brand Setup Failed',
+        },
+      ],
+    });
+
+    render(<BrandContent />);
+
+    await waitFor(() => {
+      expect(toastWarningMock).toHaveBeenCalledWith(
+        'Your site blocked our request to read it, but your brand setup continued — you can add details anytime.',
+      );
     }, LOADING_STEP_WAIT_OPTIONS);
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');

@@ -4,7 +4,7 @@ description: Create LinkedIn content including posts, articles, carousels, and n
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # LinkedIn Content Creator

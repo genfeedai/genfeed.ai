@@ -1,18 +1,11 @@
 import { ErrorCode } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import type { AxiosError } from 'axios';
-
-export interface IJsonApiError {
-  errors: Array<{
-    /** HTTP status as number or string (`404` / `"404"`) depending on filter. */
-    code: number | string;
-    title: string;
-    detail: string;
-    source?: { pointer?: string; parameter?: string };
-    meta?: Record<string, unknown>;
-  }>;
-}
+import {
+  getJsonApiErrorStatus,
+  type IJsonApiError,
+  isAxiosError,
+} from './json-api-status.util';
 
 export interface IApiError {
   status: number;
@@ -26,86 +19,11 @@ export interface IApiError {
   validationErrors?: Array<{ field: string; message: string; code?: string }>;
 }
 
-export interface IApiErrorResponse {
-  message?: string;
-  detail?: string;
-  error?: string;
-  statusCode?: number;
-  errors?: Array<{ field: string; message: string }>;
-  [key: string]: unknown;
-}
-
 export interface IAxiosLikeError {
   response?: { data?: unknown; status?: number };
   message?: string;
   name?: string;
   code?: string;
-}
-
-export function isAxiosError(
-  error: unknown,
-): error is AxiosError<IApiErrorResponse> {
-  return (
-    error !== null &&
-    typeof error === 'object' &&
-    'isAxiosError' in error &&
-    (error as AxiosError).isAxiosError === true
-  );
-}
-
-function parseHttpStatusCode(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && /^\d{3}$/.test(value.trim())) {
-    return Number.parseInt(value, 10);
-  }
-
-  return undefined;
-}
-
-/**
- * Resolve an HTTP status from the shapes this monorepo actually throws:
- * - Axios errors (`response.status`)
- * - Sanitized interceptor Errors with `.status`
- * - Raw JSON:API documents the interceptor re-throws in development
- *   (`{ errors: [{ code: '404' | 404 }] }`)
- *
- * Without the JSON:API branch, expected 404s (e.g. missing editor projects)
- * fall through as unhandled errors → `logger.error` → Next.js dev overlay.
- */
-export function getErrorStatus(error: unknown): number | undefined {
-  if (isAxiosError(error)) {
-    return error.response?.status;
-  }
-
-  if (!error || typeof error !== 'object') {
-    return undefined;
-  }
-
-  const record = error as Record<string, unknown>;
-
-  const directStatus = parseHttpStatusCode(record.status);
-  if (directStatus !== undefined) {
-    return directStatus;
-  }
-
-  const response = record.response as { status?: unknown } | undefined;
-  const nestedStatus = parseHttpStatusCode(response?.status);
-  if (nestedStatus !== undefined) {
-    return nestedStatus;
-  }
-
-  if (Array.isArray(record.errors) && record.errors.length > 0) {
-    const firstError = record.errors[0] as Record<string, unknown>;
-    return (
-      parseHttpStatusCode(firstError.code) ??
-      parseHttpStatusCode(firstError.status)
-    );
-  }
-
-  return undefined;
 }
 
 export function getErrorMessage(error: unknown, fallback: string): string {
@@ -156,7 +74,7 @@ export class ErrorHandler {
     }
 
     const firstError = jsonApiError.errors[0];
-    const status = parseHttpStatusCode(firstError.code) ?? 500;
+    const status = getJsonApiErrorStatus(jsonApiError) ?? 500;
     return {
       code: ErrorHandler.mapStatusToErrorCode(status),
       detail: firstError.detail,

@@ -10,6 +10,21 @@
 import { ActivityKey, ActivitySource } from './activity.enum';
 import { CreditTransactionCategory } from './credit.enum';
 
+/**
+ * ICU `select` selectors must be valid identifiers — FormatJS rejects hyphens
+ * (`EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT`). `CreditTransactionCategory.BYOK_USAGE`
+ * stays `byok-usage` on the wire (Postgres / Prisma); this maps only the
+ * message-facing selector consumed by `apps/app/messages/*` and the
+ * `formatActivityMessage` fallback below.
+ */
+const BYOK_USAGE_SELECTOR = 'byok_usage';
+
+function toIcuSafeCreditCategory(category: string): string {
+  return category === CreditTransactionCategory.BYOK_USAGE
+    ? BYOK_USAGE_SELECTOR
+    : category;
+}
+
 /** Lifecycle phase of an activity event (template axis). */
 export type ActivityLifecycle =
   | 'processing'
@@ -534,7 +549,7 @@ export function getCreditActivityMessageDescriptor(
           ? 'none'
           : count.toLocaleString('en-US', { maximumFractionDigits: 20 }),
       count,
-      creditCategory: category,
+      creditCategory: toIcuSafeCreditCategory(category),
       source:
         parsed.description ?? getCreditActivitySourceLabel(source) ?? 'none',
     },
@@ -686,8 +701,7 @@ export function formatActivityMessage(
         maximumFractionDigits: 20,
       });
       const units = count === 1 ? 'credit' : 'credits';
-      if (creditCategory === CreditTransactionCategory.BYOK_USAGE)
-        return 'No credits charged';
+      if (creditCategory === BYOK_USAGE_SELECTOR) return 'No credits charged';
       if (creditCategory === CreditTransactionCategory.RESET)
         return `Balance set to ${amount} ${units}`;
       const isAddition = [
@@ -717,7 +731,7 @@ export function formatActivityMessage(
           return reason
             ? `Credit balance reset: ${reason}`
             : 'Credit balance reset';
-        case CreditTransactionCategory.BYOK_USAGE:
+        case BYOK_USAGE_SELECTOR:
           return `${reason ?? 'AI usage'} (your API key)`;
         default:
           if (reason) return reason;

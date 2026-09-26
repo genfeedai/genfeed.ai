@@ -78,6 +78,7 @@ export default function BatchHistoryList({
             <Button
               key={execution.id}
               variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={() => void onOpenRecentExecution(execution.id)}
               className="w-full py-4 text-left transition hover:bg-foreground/[0.03]"
             >
