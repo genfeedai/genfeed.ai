@@ -520,8 +520,11 @@ function AgentWorkspaceLayoutClientContent({
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
+  // Onboarding is exempt — it is the org-scoped surface (see the resume and
+  // auto-navigate effects above), and a thread created there can legitimately
+  // carry a `brandId` without the URL ever adopting that brand's slug.
   useEffect(() => {
-    if (!orgSlug || !organizationId) {
+    if (!orgSlug || !organizationId || isOnboarding) {
       return;
     }
 
@@ -564,6 +567,7 @@ function AgentWorkspaceLayoutClientContent({
     activeThreadId,
     brandId,
     brands,
+    isOnboarding,
     orgSlug,
     organizationId,
     pathname,
