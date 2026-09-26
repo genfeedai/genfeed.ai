@@ -6,12 +6,30 @@ import type {
   IChannelTarget,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import type {
   ReleaseRailOutcomeSummary,
   ReleaseRailTargetTone,
 } from '@props/publisher/release-rail.props';
 
 const DEFAULT_VISIBLE_TARGET_CAP = 6;
+
+/**
+ * The release title as plain text. Titles can be stored as rich-text HTML,
+ * so the markup is stripped before it reaches a text surface. Returns an
+ * empty string when there is no title so callers can supply their own
+ * fallback label.
+ */
+export function releaseDisplayTitle(release: IReleaseGroup): string {
+  return stripHtmlToPlainText(release.title);
+}
+
+/**
+ * The first line of the release body as plain text, for one-line previews.
+ */
+export function releaseContentPreview(release: IReleaseGroup): string {
+  return stripHtmlToPlainText(release.baseContent).split('\n')[0] ?? '';
+}
 
 /**
  * The release's next meaningful instant: the earliest still-upcoming

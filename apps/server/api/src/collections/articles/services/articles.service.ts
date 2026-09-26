@@ -73,6 +73,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { scopedWhere } from '@api/index';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -150,6 +151,8 @@ export class ArticlesService
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly agentChatModelRegistry?: AgentChatModelRegistryService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
   }
@@ -900,18 +903,14 @@ export class ArticlesService
     organizationId: string,
     generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
-    if (!this.organizationSettingsService) {
-      return {
-        generationModel: resolveGenerationDefaultModel<string>({
-          explicit: generationModelOverride,
-          systemDefault: DEFAULT_TEXT_MODEL,
-        }),
-        reviewModel: DEFAULT_MINI_TEXT_MODEL,
-        updateModel: DEFAULT_MINI_TEXT_MODEL,
-      };
-    }
-
-    const settings = await this.organizationSettingsService.findOne(
+    // The Admin default TEXT model (#5161) replaces the seed constant as the
+    // system default; explicit and org-configured models still win.
+    const systemDefault =
+      (await this.agentChatModelRegistry?.resolveModelKey(
+        undefined,
+        DEFAULT_TEXT_MODEL,
+      )) ?? DEFAULT_TEXT_MODEL;
+    const settings = await this.organizationSettingsService?.findOne(
       scopedWhere(organizationId, {}),
     );
 
@@ -919,7 +918,7 @@ export class ArticlesService
       generationModel: resolveGenerationDefaultModel<string>({
         explicit: generationModelOverride,
         organizationDefault: settings?.defaultModel,
-        systemDefault: DEFAULT_TEXT_MODEL,
+        systemDefault,
       }),
       reviewModel: settings?.defaultModelReview || DEFAULT_MINI_TEXT_MODEL,
       updateModel: settings?.defaultModelUpdate || DEFAULT_MINI_TEXT_MODEL,

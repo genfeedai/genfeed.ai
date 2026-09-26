@@ -192,13 +192,28 @@ export class PostGroupContractService {
   }
 
   validateTargetUpdate(
+    group: SchedulerPostGroup,
     existing: SchedulerPostTarget,
     input: UpdateChannelTargetInput,
   ): ChannelTargetValidationResult | undefined {
+    // Settings/visibility are this endpoint's own validation trigger (an
+    // unrelated field edit — order, externalProviderId, retryCount — isn't
+    // asserting the content is still valid, so it doesn't re-run this). But
+    // the check itself used to validate settings/visibility in isolation,
+    // with caption and media always blank — passing every time regardless
+    // of whether the target's real content actually fits the channel
+    // (#5193). Loading them from the release now closes that gap; the
+    // `executionState`-changing path (calendar retry) is additionally
+    // covered by `PostLifecycleService`'s own choke point.
     const validation =
       input.settings !== undefined || input.visibility !== undefined
         ? validateChannelTargetSettings({
+            caption: this.readTargetCaption(
+              existing.description,
+              group.baseContent,
+            ),
             credentialId: existing.credentialId,
+            media: this.toValidationMedia(this.asMedia(group.media)),
             platform: existing.platform,
             publishMode:
               existing.targetExecutionState === TargetExecutionState.DRAFT
@@ -206,7 +221,7 @@ export class PostGroupContractService {
                 : existing.scheduledDate
                   ? 'scheduled'
                   : undefined,
-            settings: input.settings,
+            settings: input.settings ?? this.asRecord(existing.targetSettings),
             visibility: input.visibility ?? existing.visibility ?? undefined,
           })
         : undefined;
