@@ -17,6 +17,8 @@ import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
+import Card from '@ui/card/Card';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import AdvancedRoutingCard from './advanced-routing-card';
@@ -179,9 +181,21 @@ function buildAgentPolicyPayload(
   };
 }
 
+/** Loading placeholder for a card whose fields are not yet safe to render or edit. */
+function SettingsCardSkeleton() {
+  return (
+    <Card bodyClassName="gap-3 p-4">
+      <div className="space-y-3">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+    </Card>
+  );
+}
+
 export default function SettingsAgentsPage() {
   const { organizationId } = useBrand();
-  const { refresh, settings } = useOrganization();
+  const { isLoading: isSettingsLoading, refresh, settings } = useOrganization();
   const [state, dispatch] = useReducer(
     policyFormReducer,
     initialPolicyFormState,
@@ -191,6 +205,13 @@ export default function SettingsAgentsPage() {
   const creditSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  // Flips true only once INIT_FROM_SETTINGS has actually run against loaded
+  // settings. Saving before that would build a payload from
+  // initialPolicyFormState's empty defaults — see persistPolicy's guard.
+  const hasInitializedRef = useRef(false);
+  // Serializes saves so a slower earlier PATCH can never land after (and
+  // overwrite) a faster later one — see enqueuePersist.
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const {
     agentDailyCreditCap,
@@ -215,6 +236,7 @@ export default function SettingsAgentsPage() {
 
   const {
     data: catalogModels = EMPTY_CATALOG_MODELS,
+    isPending: isCatalogPending,
     isSuccess: isCatalogLoaded,
   } = useQuery({
     enabled: Boolean(organizationId),
@@ -226,6 +248,13 @@ export default function SettingsAgentsPage() {
   });
 
   useEffect(() => {
+    // Wait for the real settings — initialPolicyFormState's empty defaults
+    // (allowAdvancedOverrides: false, blank caps) are a placeholder, never a
+    // value to initialize the form from. Dispatching them here would let an
+    // early control change persist a blank policy over whatever is stored.
+    if (isSettingsLoading) {
+      return;
+    }
     const agentPolicy = settings?.agentPolicy;
     dispatch({
       payload: {
@@ -245,7 +274,8 @@ export default function SettingsAgentsPage() {
       },
       type: 'INIT_FROM_SETTINGS',
     });
-  }, [settings?.agentPolicy]);
+    hasInitializedRef.current = true;
+  }, [isSettingsLoading, settings?.agentPolicy]);
 
   useEffect(() => {
     return () => {
@@ -297,7 +327,11 @@ export default function SettingsAgentsPage() {
       next: PolicyFormState,
       changedFields: ReadonlySet<keyof PolicyFormState>,
     ) => {
-      if (!organizationId) {
+      // Belt-and-suspenders: the controls that call this are gated (disabled
+      // and skeletoned) until settings load, but this is the one place that
+      // actually sends a PATCH, so it refuses on its own too rather than
+      // trusting the UI gate alone.
+      if (!organizationId || !hasInitializedRef.current) {
         return;
       }
 
@@ -328,20 +362,47 @@ export default function SettingsAgentsPage() {
     ],
   );
 
-  const updateAndPersist = useCallback(
-    (patch: Partial<PolicyFormState>) => {
-      const next = { ...stateRef.current, ...patch, isSaving: false };
-      dispatch({ payload: next, type: 'MERGE' });
-      void persistPolicy(
-        next,
-        new Set(Object.keys(patch) as Array<keyof PolicyFormState>),
-      );
+  /**
+   * Runs saves strictly one after another. Two quick edits are two separate
+   * PATCHes; without this, their responses can arrive out of order and the
+   * slower, earlier request would land last and overwrite the newer change.
+   * Queuing (rather than de-duping) guarantees whichever save was enqueued
+   * last also *completes* last, so it always wins — matching
+   * useAgentModePersistence's queue for the same race.
+   */
+  const enqueuePersist = useCallback(
+    (
+      next: PolicyFormState,
+      changedFields: ReadonlySet<keyof PolicyFormState>,
+    ) => {
+      const run = () => persistPolicy(next, changedFields);
+      const queued = saveQueueRef.current.then(run, run);
+      saveQueueRef.current = queued;
+      return queued;
     },
     [persistPolicy],
   );
 
+  const updateAndPersist = useCallback(
+    (patch: Partial<PolicyFormState>) => {
+      if (!hasInitializedRef.current) {
+        return;
+      }
+      const next = { ...stateRef.current, ...patch, isSaving: false };
+      dispatch({ payload: next, type: 'MERGE' });
+      void enqueuePersist(
+        next,
+        new Set(Object.keys(patch) as Array<keyof PolicyFormState>),
+      );
+    },
+    [enqueuePersist],
+  );
+
   const updateCreditField = useCallback(
     (patch: Partial<PolicyFormState>) => {
+      if (!hasInitializedRef.current) {
+        return;
+      }
       const next = { ...stateRef.current, ...patch, isSaving: false };
       dispatch({ payload: next, type: 'MERGE' });
 
@@ -353,13 +414,13 @@ export default function SettingsAgentsPage() {
       );
       // Debounce number fields so mid-typing does not spam PATCH.
       creditSaveTimeoutRef.current = setTimeout(() => {
-        void persistPolicy(
+        void enqueuePersist(
           { ...stateRef.current, ...patch, isSaving: false },
           changedFields,
         );
       }, 400);
     },
-    [persistPolicy],
+    [enqueuePersist],
   );
 
   const thinkingModelOptions = useMemo(
@@ -390,35 +451,49 @@ export default function SettingsAgentsPage() {
     [catalogModels, enabledModelIds],
   );
 
-  // Only meaningful once the catalog has loaded — before that, "no match"
-  // just means nothing to match against yet, not an unresolved override.
+  // Meaningful once the catalog has settled either way — loaded (a stored
+  // value that no longer matches an enabled model) or failed (nothing to
+  // validate against, maybe permanently). While it is still pending, "no
+  // match" only means nothing has arrived to match against yet — that is a
+  // loading state, not an unresolved override (see isModelCatalogLoading
+  // below, which gates the picker itself while pending).
   const generationOverrideUnresolvedKey = useMemo(
     () =>
-      isCatalogLoaded
-        ? getUnresolvedOverrideKey(
+      isCatalogPending
+        ? null
+        : getUnresolvedOverrideKey(
             generationModelOverride,
             generationCategoryModels,
-          )
-        : null,
-    [generationCategoryModels, generationModelOverride, isCatalogLoaded],
+          ),
+    [generationCategoryModels, generationModelOverride, isCatalogPending],
   );
   const reviewOverrideUnresolvedKey = useMemo(
     () =>
-      isCatalogLoaded
-        ? getUnresolvedOverrideKey(reviewModelOverride, reviewCategoryModels)
-        : null,
-    [isCatalogLoaded, reviewCategoryModels, reviewModelOverride],
+      isCatalogPending
+        ? null
+        : getUnresolvedOverrideKey(reviewModelOverride, reviewCategoryModels),
+    [isCatalogPending, reviewCategoryModels, reviewModelOverride],
   );
   const thinkingOverrideUnresolvedKey = useMemo(
     () =>
-      isCatalogLoaded
-        ? getUnresolvedOverrideKey(
+      isCatalogPending
+        ? null
+        : getUnresolvedOverrideKey(
             thinkingModelOverride,
             thinkingCategoryModels,
-          )
-        : null,
-    [isCatalogLoaded, thinkingCategoryModels, thinkingModelOverride],
+          ),
+    [isCatalogPending, thinkingCategoryModels, thinkingModelOverride],
   );
+
+  if (isSettingsLoading) {
+    return (
+      <div className="space-y-4">
+        <SettingsCardSkeleton />
+        <SettingsCardSkeleton />
+        <SettingsCardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -455,6 +530,7 @@ export default function SettingsAgentsPage() {
           generationCategoryModels,
         )}
         generationModelOverrideUnresolvedKey={generationOverrideUnresolvedKey}
+        isModelCatalogLoading={isCatalogPending}
         modelCostEstimates={modelCosts}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>

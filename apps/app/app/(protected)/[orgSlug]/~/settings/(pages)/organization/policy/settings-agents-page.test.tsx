@@ -11,6 +11,7 @@ import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
   findAllPages: vi.fn(),
+  isSettingsLoading: false,
   modelAccess: null as {
     isLocked: boolean;
     lockedModelKey: string | null;
@@ -52,6 +53,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
+    isLoading: mocks.isSettingsLoading,
     refresh: mocks.refresh,
     settings: mocks.settings,
   }),
@@ -180,6 +182,7 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mocks.organizationId = 'org-1';
+    mocks.isSettingsLoading = false;
     mocks.modelAccess = null;
     mocks.modelCosts = {};
     mocks.settings = {
@@ -243,6 +246,114 @@ describe('SettingsAgentsPage', () => {
       </NextIntlClientProvider>,
     );
   }
+
+  it('gates every control behind a loading skeleton until settings load, and initializes from the real policy once they do', async () => {
+    mocks.isSettingsLoading = true;
+    const { rerender } = renderPage();
+
+    // Nothing interactive exists yet — initialPolicyFormState's blank
+    // defaults (allowAdvancedOverrides: false, empty caps) are a
+    // placeholder, never a value an early click could persist over the
+    // stored policy (#5228).
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0);
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.queryByText('Autonomous Agent Policy')).toBeNull();
+
+    mocks.isSettingsLoading = false;
+    rerender(
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          <SettingsAgentsPage />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Autonomous Agent Policy')).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            // From the real, loaded settings — not initialPolicyFormState's
+            // false/blank defaults that would have applied had the gate not
+            // waited for settings to load.
+            allowAdvancedOverrides: true,
+            autonomyDefault: AgentAutonomyMode.AUTO_PUBLISH,
+            creditGovernance: expect.objectContaining({
+              agentDailyCreditCap: 250,
+              brandDailyCreditCap: 1000,
+            }),
+            qualityTierDefault: 'budget',
+          }),
+        }),
+      );
+    });
+  });
+
+  it('serializes overlapping saves so a slower earlier request can never overwrite a later one', async () => {
+    const callOrder: string[] = [];
+    let releaseFirstSave: (() => void) | null = null;
+    mocks.patchSettings.mockImplementation(
+      (
+        _organizationId: string,
+        payload: { agentPolicy: { qualityTierDefault?: string } },
+      ) => {
+        const label = payload.agentPolicy.qualityTierDefault;
+        if (label === 'budget') {
+          callOrder.push('start:budget');
+          return new Promise((resolve) => {
+            releaseFirstSave = () => {
+              callOrder.push('end:budget');
+              resolve({});
+            };
+          });
+        }
+        callOrder.push(`start:${label}`);
+        callOrder.push(`end:${label}`);
+        return Promise.resolve({});
+      },
+    );
+    renderPage();
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+    fireEvent.change(selects[0], { target: { value: 'high_quality' } });
+
+    // The second save is queued behind the first — it must not start (and
+    // therefore cannot complete, and cannot overwrite the first's eventual
+    // write) until the first request settles.
+    await waitFor(() => {
+      expect(callOrder).toEqual(['start:budget']);
+    });
+    expect(mocks.patchSettings).toHaveBeenCalledTimes(1);
+
+    releaseFirstSave?.();
+
+    await waitFor(() => {
+      expect(callOrder).toEqual([
+        'start:budget',
+        'end:budget',
+        'start:high_quality',
+        'end:high_quality',
+      ]);
+    });
+    expect(mocks.patchSettings).toHaveBeenCalledTimes(2);
+    // The last call — high_quality — is also the last write, so it wins.
+    expect(mocks.patchSettings.mock.calls.at(-1)?.[1]).toMatchObject({
+      agentPolicy: { qualityTierDefault: 'high_quality' },
+    });
+  });
 
   it('loads existing policy settings and patches on each control change', async () => {
     renderPage();
@@ -588,7 +699,12 @@ describe('SettingsAgentsPage', () => {
       'href',
       '/acme/settings/subscription',
     );
-    // Generation + review overrides stay; the thinking picker is gone.
-    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    // Generation + review overrides stay; the thinking picker is gone. The
+    // model catalog is a separate, independently-loading query — wait for it
+    // rather than asserting on whatever tick the lock notice happened to
+    // settle on.
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    });
   });
 });

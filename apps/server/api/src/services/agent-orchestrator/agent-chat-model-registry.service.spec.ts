@@ -455,6 +455,123 @@ describe('AgentChatModelRegistryService', () => {
   });
 });
 
+describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
+  const buildService = (rows: ReturnType<typeof row>[]) => {
+    const prisma = {
+      model: { findMany: vi.fn().mockResolvedValue(rows) },
+    };
+    return new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+  };
+
+  it('resolves a known override key normally', async () => {
+    const service = buildService([
+      row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+    ]);
+
+    await expect(service.resolveOverrideModelKey('recommended')).resolves.toBe(
+      'recommended',
+    );
+  });
+
+  it('follows succeededBy for a Retired override key', async () => {
+    const service = buildService([
+      row({
+        key: 'legacy',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'recommended',
+      }),
+      row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+    ]);
+
+    await expect(service.resolveOverrideModelKey('legacy')).resolves.toBe(
+      'recommended',
+    );
+  });
+
+  it('falls back to the platform default and warns on an override the registry does not know', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('stale-cuid-no-longer-in-catalog'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({
+        overrideKey: 'stale-cuid-no-longer-in-catalog',
+      }),
+    );
+  });
+
+  it('falls back to the platform default and warns when a Retired chain dead-ends on an unknown key', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            key: 'legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'removed-from-catalog',
+          }),
+          row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(service.resolveOverrideModelKey('legacy')).resolves.toBe(
+      'recommended',
+    );
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'legacy' }),
+    );
+  });
+
+  it('returns the platform default for an empty or missing override, without warning', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              key: 'recommended',
+              lifecycle: ModelLifecycle.RECOMMENDED,
+            }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(service.resolveOverrideModelKey(null)).resolves.toBe(
+      'recommended',
+    );
+    await expect(service.resolveOverrideModelKey(undefined)).resolves.toBe(
+      'recommended',
+    );
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('AgentChatModelRegistryService round pricing', () => {
   const catalogRows = () =>
     AGENT_CHAT_MODELS.map((model) =>

@@ -367,6 +367,38 @@ export class AgentChatModelRegistryService
   }
 
   /**
+   * Resolves an admin-configured agent-policy override, but never trusts one
+   * the registry doesn't recognize. Unlike {@link resolveModelKey} (used for
+   * request/response keys that may legitimately be a provider slug outside
+   * the curated catalog), an override is meant to pin a specific catalog
+   * model — the settings API validates it at save time (#5207), but a
+   * pre-existing stored value can still go stale (a model retired or removed
+   * from the org's allowlist after it was saved). An override that does not
+   * resolve to a known row — including one whose `succeededBy` chain dead-
+   * ends on an unknown key — falls back to the platform default rather than
+   * dispatching a chat turn on an unknown key, with a warning so it is
+   * visible in ops instead of failing silently at the provider.
+   */
+  async resolveOverrideModelKey(overrideKey?: string | null): Promise<string> {
+    await this.ensureFresh();
+    const trimmed = overrideKey?.trim();
+    if (!trimmed) {
+      return this.getDefaultModelKey();
+    }
+
+    const resolved = this.followSucceededByChain(trimmed);
+    if (resolved && this.byKey.has(resolved)) {
+      return resolved;
+    }
+
+    this.logger.warn(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      { ...this.context, overrideKey: trimmed },
+    );
+    return this.getDefaultModelKey();
+  }
+
+  /**
    * Credits for one LLM round on `key`. A key the registry does not know bills
    * at {@link getFallbackRoundCredits} — never below a catalogued model.
    */

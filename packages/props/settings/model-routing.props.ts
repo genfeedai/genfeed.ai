@@ -20,6 +20,12 @@ export type AdvancedRoutingCardProps = {
    */
   generationModelOverrideUnresolvedKey: string | null;
   isSaving: boolean;
+  /**
+   * The model catalog itself hasn't settled yet (still fetching). Each
+   * picker shows a loading placeholder instead of Auto or its options —
+   * with no catalog, a stored override can't yet be told apart from unset.
+   */
+  isModelCatalogLoading: boolean;
   /** Estimated credits for an average agent message, keyed by model key. */
   modelCostEstimates: Record<string, number>;
   onAllowAdvancedOverridesChange: (checked: boolean) => void;
@@ -37,4 +43,17 @@ export type AdvancedRoutingCardProps = {
 export type AgentModelLockNoticeProps = {
   className?: string;
   lockedModelLabel: string;
+};
+
+/** One override selector's props for AdvancedRoutingCard's shared picker. */
+export type ModelOverridePickerProps = {
+  autoOptionLabel: string;
+  isModelCatalogLoading: boolean;
+  onOverrideChange: (value: string) => void;
+  options: EnabledModelOption[];
+  override: string;
+  renderOptionLabel?: (option: EnabledModelOption) => string;
+  unresolvedKey: string | null;
+  unresolvedNotice: string;
+  unresolvedOptionLabel: string;
 };

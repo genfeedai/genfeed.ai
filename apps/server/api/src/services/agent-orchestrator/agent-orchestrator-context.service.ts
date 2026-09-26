@@ -220,10 +220,16 @@ export class AgentOrchestratorContextService {
     // Agent-type defaultModel is a seed fallback inside the registry, not a
     // pin that can hide the operator-owned catalog default.
     // A retired key still maps forward to its registry successor so the model
-    // we call is always one the biller has a real price for.
-    const model = await this.agentChatModelRegistry.resolveModelKey(
-      strategyModel || policy.thinkingModelOverride || undefined,
-    );
+    // we call is always one the biller has a real price for. The org-level
+    // override specifically goes through resolveOverrideModelKey rather than
+    // resolveModelKey: a stale override (its model retired and removed from
+    // the catalog after it was saved) falls back to the platform default
+    // with a warning instead of dispatching a chat turn on an unknown key.
+    const model = strategyModel
+      ? await this.agentChatModelRegistry.resolveModelKey(strategyModel)
+      : await this.agentChatModelRegistry.resolveOverrideModelKey(
+          policy.thinkingModelOverride,
+        );
 
     return {
       brandContext,

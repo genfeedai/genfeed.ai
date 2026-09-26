@@ -457,7 +457,7 @@
         "reviewModelLabel": "Review Model",
         "thinkingModelDescription": "Chat and planner LLM. Auto uses the Admin text default.",
         "thinkingModelLabel": "Thinking Model",
-        "unresolvedModelNotice": "Saved model \"{model}\" is no longer enabled. Choose a replacement, or Auto to clear it.",
+        "unresolvedModelNotice": "Saved model \"{model}\" isn't showing in the list right now. Choose a replacement, or Auto to clear it.",
         "unresolvedModelOption": "Unavailable model ({model})"
       }
     },

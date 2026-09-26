@@ -1,20 +1,21 @@
-import { ModelCategory } from '@genfeedai/contracts';
+import {
+  AGENT_GENERATION_OVERRIDE_CATEGORIES,
+  AGENT_REVIEW_OVERRIDE_CATEGORIES,
+  AGENT_THINKING_OVERRIDE_CATEGORIES,
+} from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { EnabledModelOption } from '@props/settings/model-routing.props';
 
 export type { EnabledModelOption } from '@props/settings/model-routing.props';
 
-const TEXT_ROUTING_CATEGORIES: readonly ModelCategory[] = [ModelCategory.TEXT];
-const MEDIA_ROUTING_CATEGORIES: readonly ModelCategory[] = [
-  ModelCategory.IMAGE,
-  ModelCategory.IMAGE_EDIT,
-  ModelCategory.VIDEO,
-  ModelCategory.VIDEO_EDIT,
-];
-
-export const AGENT_THINKING_MODEL_CATEGORIES = TEXT_ROUTING_CATEGORIES;
-export const AGENT_REVIEW_MODEL_CATEGORIES = TEXT_ROUTING_CATEGORIES;
-export const AGENT_GENERATION_MODEL_CATEGORIES = MEDIA_ROUTING_CATEGORIES;
+// Re-exported under this page's existing names; the categories themselves
+// are shared with the server-side override validation — see
+// packages/contracts/src/constants/agent-policy-override-categories.constant.ts.
+export const AGENT_THINKING_MODEL_CATEGORIES =
+  AGENT_THINKING_OVERRIDE_CATEGORIES;
+export const AGENT_REVIEW_MODEL_CATEGORIES = AGENT_REVIEW_OVERRIDE_CATEGORIES;
+export const AGENT_GENERATION_MODEL_CATEGORIES =
+  AGENT_GENERATION_OVERRIDE_CATEGORIES;
 
 /**
  * Catalog rows enabled for a policy selector: matches the org allowlist (ids

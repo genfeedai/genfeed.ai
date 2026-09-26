@@ -1,5 +1,8 @@
 import { formatCreditCostEstimate } from '@genfeedai/contracts/constants';
-import type { AdvancedRoutingCardProps } from '@props/settings/model-routing.props';
+import type {
+  AdvancedRoutingCardProps,
+  ModelOverridePickerProps,
+} from '@props/settings/model-routing.props';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -8,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { Switch } from '@ui/primitives/switch';
 import AgentModelLockNotice from '@ui/settings/agent-model-lock-notice/AgentModelLockNotice';
 import { useTranslations } from 'next-intl';
@@ -28,12 +32,76 @@ function toSelectValue(
     : AUTO_MODEL_SELECT_VALUE;
 }
 
+/**
+ * One override selector: the catalog-loading skeleton, the free-tier lock
+ * notice (thinking only), the real `Select`, or the unresolved-override
+ * notice — never a bare "Auto" for a field that actually has a stored value
+ * this picker just can't validate yet.
+ */
+function ModelOverridePicker({
+  autoOptionLabel,
+  isModelCatalogLoading,
+  onOverrideChange,
+  options,
+  override,
+  renderOptionLabel,
+  unresolvedKey,
+  unresolvedNotice,
+  unresolvedOptionLabel,
+}: ModelOverridePickerProps) {
+  if (isModelCatalogLoading) {
+    return <Skeleton className="mt-2 h-9 w-full rounded" />;
+  }
+
+  // The unresolved-marker option is disabled and never emitted by
+  // onValueChange from a real Select, but the handler guards it too so
+  // picking it can never be mistaken for an explicit Auto/clear action.
+  function handleValueChange(value: string): void {
+    if (value === UNRESOLVED_MODEL_SELECT_VALUE) {
+      return;
+    }
+    onOverrideChange(value === AUTO_MODEL_SELECT_VALUE ? '' : value);
+  }
+
+  return (
+    <>
+      <Select
+        value={toSelectValue(override, unresolvedKey)}
+        onValueChange={handleValueChange}
+      >
+        <SelectTrigger className="w-full mt-2 rounded">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
+            {autoOptionLabel}
+          </SelectItem>
+          {unresolvedKey ? (
+            <SelectItem disabled value={UNRESOLVED_MODEL_SELECT_VALUE}>
+              {unresolvedOptionLabel}
+            </SelectItem>
+          ) : null}
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {renderOptionLabel ? renderOptionLabel(option) : option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {unresolvedKey ? (
+        <p className="mt-1 text-xs text-warning">{unresolvedNotice}</p>
+      ) : null}
+    </>
+  );
+}
+
 export default function AdvancedRoutingCard({
   agentModelAccess,
   allowAdvancedOverrides,
   generationModelOptions,
   generationModelOverride,
   generationModelOverrideUnresolvedKey,
+  isModelCatalogLoading,
   isSaving,
   modelCostEstimates,
   onAllowAdvancedOverridesChange,
@@ -51,20 +119,7 @@ export default function AdvancedRoutingCard({
   const lockedModelLabel = agentModelAccess?.isLocked
     ? (agentModelAccess.lockedModelLabel ?? agentModelAccess.lockedModelKey)
     : null;
-
-  // The unresolved-marker option is disabled and never emitted by
-  // onValueChange from a real Select, but the change handlers guard it too
-  // so picking it can never be mistaken for an explicit Auto/clear action.
-  function handleModelOverrideChange(
-    onChange: (value: string) => void,
-  ): (value: string) => void {
-    return (value) => {
-      if (value === UNRESOLVED_MODEL_SELECT_VALUE) {
-        return;
-      }
-      onChange(value === AUTO_MODEL_SELECT_VALUE ? '' : value);
-    };
-  }
+  const autoOption = translate('autoOption');
 
   return (
     <Card label={translate('cardLabel')} bodyClassName="gap-3 p-4">
@@ -94,56 +149,26 @@ export default function AdvancedRoutingCard({
                   lockedModelLabel={lockedModelLabel}
                 />
               ) : (
-                <>
-                  <Select
-                    value={toSelectValue(
-                      thinkingModelOverride,
-                      thinkingModelOverrideUnresolvedKey,
-                    )}
-                    onValueChange={handleModelOverrideChange(
-                      onThinkingModelOverrideChange,
-                    )}
-                  >
-                    <SelectTrigger className="w-full mt-2 rounded">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                        {translate('autoOption')}
-                      </SelectItem>
-                      {thinkingModelOverrideUnresolvedKey ? (
-                        <SelectItem
-                          disabled
-                          value={UNRESOLVED_MODEL_SELECT_VALUE}
-                        >
-                          {translate('unresolvedModelOption', {
-                            model: thinkingModelOverrideUnresolvedKey,
-                          })}
-                        </SelectItem>
-                      ) : null}
-                      {thinkingModelOptions.map((model) => {
-                        const estimate = modelCostEstimates[model.value];
-                        return (
-                          <SelectItem key={model.value} value={model.value}>
-                            {estimate === undefined
-                              ? model.label
-                              : `${model.label} · ${formatCreditCostEstimate(
-                                  estimate,
-                                  { unit: 'credits / message' },
-                                )}`}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  {thinkingModelOverrideUnresolvedKey ? (
-                    <p className="mt-1 text-xs text-warning">
-                      {translate('unresolvedModelNotice', {
-                        model: thinkingModelOverrideUnresolvedKey,
-                      })}
-                    </p>
-                  ) : null}
-                </>
+                <ModelOverridePicker
+                  autoOptionLabel={autoOption}
+                  isModelCatalogLoading={isModelCatalogLoading}
+                  onOverrideChange={onThinkingModelOverrideChange}
+                  options={thinkingModelOptions}
+                  override={thinkingModelOverride}
+                  renderOptionLabel={(option) => {
+                    const estimate = modelCostEstimates[option.value];
+                    return estimate === undefined
+                      ? option.label
+                      : `${option.label} · ${formatCreditCostEstimate(estimate, { unit: 'credits / message' })}`;
+                  }}
+                  unresolvedKey={thinkingModelOverrideUnresolvedKey}
+                  unresolvedNotice={translate('unresolvedModelNotice', {
+                    model: thinkingModelOverrideUnresolvedKey ?? '',
+                  })}
+                  unresolvedOptionLabel={translate('unresolvedModelOption', {
+                    model: thinkingModelOverrideUnresolvedKey ?? '',
+                  })}
+                />
               )}
             </div>
 
@@ -154,43 +179,20 @@ export default function AdvancedRoutingCard({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {translate('generationModelDescription')}
               </p>
-              <Select
-                value={toSelectValue(
-                  generationModelOverride,
-                  generationModelOverrideUnresolvedKey,
-                )}
-                onValueChange={handleModelOverrideChange(
-                  onGenerationModelOverrideChange,
-                )}
-              >
-                <SelectTrigger className="w-full mt-2 rounded">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                    {translate('autoOption')}
-                  </SelectItem>
-                  {generationModelOverrideUnresolvedKey ? (
-                    <SelectItem disabled value={UNRESOLVED_MODEL_SELECT_VALUE}>
-                      {translate('unresolvedModelOption', {
-                        model: generationModelOverrideUnresolvedKey,
-                      })}
-                    </SelectItem>
-                  ) : null}
-                  {generationModelOptions.map((model) => (
-                    <SelectItem key={model.value} value={model.value}>
-                      {model.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {generationModelOverrideUnresolvedKey ? (
-                <p className="mt-1 text-xs text-warning">
-                  {translate('unresolvedModelNotice', {
-                    model: generationModelOverrideUnresolvedKey,
-                  })}
-                </p>
-              ) : null}
+              <ModelOverridePicker
+                autoOptionLabel={autoOption}
+                isModelCatalogLoading={isModelCatalogLoading}
+                onOverrideChange={onGenerationModelOverrideChange}
+                options={generationModelOptions}
+                override={generationModelOverride}
+                unresolvedKey={generationModelOverrideUnresolvedKey}
+                unresolvedNotice={translate('unresolvedModelNotice', {
+                  model: generationModelOverrideUnresolvedKey ?? '',
+                })}
+                unresolvedOptionLabel={translate('unresolvedModelOption', {
+                  model: generationModelOverrideUnresolvedKey ?? '',
+                })}
+              />
             </div>
 
             <div>
@@ -200,43 +202,20 @@ export default function AdvancedRoutingCard({
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {translate('reviewModelDescription')}
               </p>
-              <Select
-                value={toSelectValue(
-                  reviewModelOverride,
-                  reviewModelOverrideUnresolvedKey,
-                )}
-                onValueChange={handleModelOverrideChange(
-                  onReviewModelOverrideChange,
-                )}
-              >
-                <SelectTrigger className="w-full mt-2 rounded">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                    {translate('autoOption')}
-                  </SelectItem>
-                  {reviewModelOverrideUnresolvedKey ? (
-                    <SelectItem disabled value={UNRESOLVED_MODEL_SELECT_VALUE}>
-                      {translate('unresolvedModelOption', {
-                        model: reviewModelOverrideUnresolvedKey,
-                      })}
-                    </SelectItem>
-                  ) : null}
-                  {reviewModelOptions.map((model) => (
-                    <SelectItem key={model.value} value={model.value}>
-                      {model.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {reviewModelOverrideUnresolvedKey ? (
-                <p className="mt-1 text-xs text-warning">
-                  {translate('unresolvedModelNotice', {
-                    model: reviewModelOverrideUnresolvedKey,
-                  })}
-                </p>
-              ) : null}
+              <ModelOverridePicker
+                autoOptionLabel={autoOption}
+                isModelCatalogLoading={isModelCatalogLoading}
+                onOverrideChange={onReviewModelOverrideChange}
+                options={reviewModelOptions}
+                override={reviewModelOverride}
+                unresolvedKey={reviewModelOverrideUnresolvedKey}
+                unresolvedNotice={translate('unresolvedModelNotice', {
+                  model: reviewModelOverrideUnresolvedKey ?? '',
+                })}
+                unresolvedOptionLabel={translate('unresolvedModelOption', {
+                  model: reviewModelOverrideUnresolvedKey ?? '',
+                })}
+              />
             </div>
           </div>
         ) : (
