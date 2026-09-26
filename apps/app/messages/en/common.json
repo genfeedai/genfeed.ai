@@ -456,7 +456,9 @@
         "reviewModelDescription": "Text review pass for generated copy.",
         "reviewModelLabel": "Review Model",
         "thinkingModelDescription": "Chat and planner LLM. Auto uses the Admin text default.",
-        "thinkingModelLabel": "Thinking Model"
+        "thinkingModelLabel": "Thinking Model",
+        "unresolvedModelNotice": "Saved model \"{model}\" is no longer enabled. Choose a replacement, or Auto to clear it.",
+        "unresolvedModelOption": "Unavailable model ({model})"
       }
     },
     "publishingCaps": {

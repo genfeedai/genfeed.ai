@@ -11,6 +11,14 @@ export type AdvancedRoutingCardProps = {
   allowAdvancedOverrides: boolean;
   generationModelOptions: EnabledModelOption[];
   generationModelOverride: string;
+  /**
+   * The stored override when it no longer matches an enabled model for this
+   * selector (removed from the allowlist, a stale CUID) — `null` when it
+   * resolves normally or is unset. Shown as an unresolved option instead of
+   * silently falling back to Auto, so the admin corrects or clears it
+   * explicitly rather than an unrelated save doing it silently.
+   */
+  generationModelOverrideUnresolvedKey: string | null;
   isSaving: boolean;
   /** Estimated credits for an average agent message, keyed by model key. */
   modelCostEstimates: Record<string, number>;
@@ -20,8 +28,10 @@ export type AdvancedRoutingCardProps = {
   onThinkingModelOverrideChange: (value: string) => void;
   reviewModelOptions: EnabledModelOption[];
   reviewModelOverride: string;
+  reviewModelOverrideUnresolvedKey: string | null;
   thinkingModelOptions: EnabledModelOption[];
   thinkingModelOverride: string;
+  thinkingModelOverrideUnresolvedKey: string | null;
 };
 
 export type AgentModelLockNoticeProps = {

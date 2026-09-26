@@ -205,12 +205,13 @@ export class AgentChatModelRegistryService
   /**
    * Platform default for cloud chat and other product text (drafts, prompt
    * enhancement, article generation). Prefers `isDefault` on an active,
-   * non-Retired row (matching {@link listSelectable}'s eligibility), then
-   * cheapest active selectable row, then `fallbackKey` (a caller's own seed
-   * constant, e.g. `DEFAULT_MINI_TEXT_MODEL`) only if the registry is empty.
-   * An `isDefault` row that has since been Retired follows its `succeededBy`
-   * chain rather than being returned directly or silently falling through to
-   * an unrelated cheapest row.
+   * non-Retired row (matching {@link listSelectable}'s eligibility; several
+   * simultaneous `isDefault` rows break the tie deterministically — cheapest,
+   * then key), then the active `isDefault` row's full `succeededBy` chain
+   * (several Retired hops, cycle-guarded — also tie-broken deterministically
+   * when more than one Retired row is marked default), then cheapest active
+   * selectable row, then `fallbackKey` (a caller's own seed constant, e.g.
+   * `DEFAULT_MINI_TEXT_MODEL`) only if nothing in the registry is usable.
    */
   async getDefaultModelKey(
     fallbackKey: string = DEFAULT_AGENT_CHAT_MODEL_KEY,
@@ -219,20 +220,23 @@ export class AgentChatModelRegistryService
     const selectable = [...this.byKey.values()].filter(
       (row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED,
     );
-    const marked = selectable.find((row) => row.isDefault);
+    const marked = this.pickDeterministicDefault(
+      selectable.filter((row) => row.isDefault),
+    );
     if (marked) {
       return marked.key;
     }
 
-    const retiredDefault = [...this.byKey.values()].find(
-      (row) =>
-        row.isActive &&
-        row.isDefault &&
-        row.lifecycle === ModelLifecycle.RETIRED,
+    const retiredDefault = this.pickDeterministicDefault(
+      [...this.byKey.values()].filter(
+        (row) =>
+          row.isActive &&
+          row.isDefault &&
+          row.lifecycle === ModelLifecycle.RETIRED,
+      ),
     );
-    const successorKey = retiredDefault?.succeededBy?.trim();
-    const successor = successorKey
-      ? selectable.find((row) => row.key === successorKey)
+    const successor = retiredDefault
+      ? this.resolveActiveSuccessor(retiredDefault.key, selectable)
       : undefined;
     if (successor) {
       return successor.key;
@@ -241,17 +245,84 @@ export class AgentChatModelRegistryService
     const recommended = selectable.filter(
       (row) => row.lifecycle === ModelLifecycle.RECOMMENDED,
     );
-    const cheapest = [
-      ...(recommended.length > 0 ? recommended : selectable),
-    ].sort((left, right) => left.cost - right.cost)[0];
+    const cheapest = this.pickDeterministicDefault(
+      recommended.length > 0 ? recommended : selectable,
+    );
     if (cheapest) {
       return cheapest.key;
     }
-    this.logger.warn(
-      'No active agent-chat model in registry; using seed default key',
-      { ...this.context, fallback: fallbackKey },
-    );
+
+    if (this.byKey.size === 0) {
+      this.logger.warn(
+        'Agent chat model registry is empty; using seed default key',
+        { ...this.context, fallback: fallbackKey },
+      );
+    } else {
+      this.logger.warn(
+        'No active, non-Retired agent-chat model in registry; using seed default key',
+        { ...this.context, fallback: fallbackKey },
+      );
+    }
     return fallbackKey;
+  }
+
+  /** Deterministic tie-break — cheapest first, then key — for candidate rows. */
+  private pickDeterministicDefault<
+    T extends Pick<AgentChatRegistryRow, 'cost' | 'key'>,
+  >(rows: T[]): T | undefined {
+    if (rows.length === 0) {
+      return undefined;
+    }
+    return [...rows].sort((left, right) => {
+      if (left.cost !== right.cost) {
+        return left.cost - right.cost;
+      }
+      return left.key.localeCompare(right.key);
+    })[0];
+  }
+
+  /**
+   * Follows `succeededBy` from `startKey` for as many Retired hops as the
+   * registry has (cycle-guarded), landing on the first row that is active
+   * and not Retired. Returns `undefined` when the chain dead-ends (unknown
+   * key, an inactive/Retired terminus, or a cycle) so the caller can fall
+   * through to its own next choice instead of returning an unusable key.
+   */
+  private resolveActiveSuccessor(
+    startKey: string,
+    selectable: AgentChatRegistryRow[],
+  ): AgentChatRegistryRow | undefined {
+    const resolvedKey = this.followSucceededByChain(startKey);
+    if (!resolvedKey) {
+      return undefined;
+    }
+    return selectable.find((row) => row.key === resolvedKey);
+  }
+
+  /**
+   * Shared `succeededBy` chain walk for both {@link resolveModelKey} and
+   * {@link resolveActiveSuccessor}: follows the chain while each hop is
+   * Retired, stopping at the first row that either is not Retired or does
+   * not exist in the registry (an unmapped key is returned as-is — it may be
+   * a caller-supplied key the catalog doesn't know about). A cycle guard
+   * returns `null` rather than looping forever on bad seed data.
+   */
+  private followSucceededByChain(startKey: string): string | null {
+    const seen = new Set<string>();
+    let current = startKey;
+    while (!seen.has(current)) {
+      seen.add(current);
+      const row = this.byKey.get(current);
+      if (!row) {
+        return current;
+      }
+      if (row.lifecycle === ModelLifecycle.RETIRED && row.succeededBy?.trim()) {
+        current = row.succeededBy.trim();
+        continue;
+      }
+      return current;
+    }
+    return null;
   }
 
   /** Self-hosted fleet default when subscription prefers local inference. */
@@ -291,21 +362,8 @@ export class AgentChatModelRegistryService
       return this.getDefaultModelKey(fallbackKey);
     }
 
-    const seen = new Set<string>();
-    let current = trimmed;
-    while (!seen.has(current)) {
-      seen.add(current);
-      const row = this.byKey.get(current);
-      if (!row) {
-        return current;
-      }
-      if (row.lifecycle === ModelLifecycle.RETIRED && row.succeededBy?.trim()) {
-        current = row.succeededBy.trim();
-        continue;
-      }
-      return current;
-    }
-    return this.getDefaultModelKey(fallbackKey);
+    const resolved = this.followSucceededByChain(trimmed);
+    return resolved ?? this.getDefaultModelKey(fallbackKey);
   }
 
   /**

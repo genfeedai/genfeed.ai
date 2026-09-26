@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_GENERATION_MODEL_CATEGORIES,
   AGENT_THINKING_MODEL_CATEGORIES,
+  getUnresolvedOverrideKey,
   resolveEnabledModelOptions,
   resolveEnabledModelsForCategory,
   resolveStoredAgentModelKey,
@@ -154,6 +155,30 @@ describe('resolveEnabledModelOptions', () => {
     expect(
       resolveStoredAgentModelKey('google/nano-banana-2', scopedForThinking),
     ).toBe('');
+  });
+});
+
+describe('getUnresolvedOverrideKey', () => {
+  it('returns null for an empty value', () => {
+    expect(getUnresolvedOverrideKey('', [])).toBeNull();
+    expect(getUnresolvedOverrideKey(undefined, [])).toBeNull();
+    expect(getUnresolvedOverrideKey(null, [])).toBeNull();
+  });
+
+  it('returns null when the value resolves against the scoped models', () => {
+    expect(
+      getUnresolvedOverrideKey(modelId, [
+        { id: modelId, key: 'deepseek/deepseek-v4-flash-0731' },
+      ]),
+    ).toBeNull();
+  });
+
+  it('returns the raw value when it does not resolve, instead of clearing it', () => {
+    expect(
+      getUnresolvedOverrideKey('stale-cuid-no-longer-in-catalog', [
+        { id: modelId, key: 'deepseek/deepseek-v4-flash-0731' },
+      ]),
+    ).toBe('stale-cuid-no-longer-in-catalog');
   });
 });
 

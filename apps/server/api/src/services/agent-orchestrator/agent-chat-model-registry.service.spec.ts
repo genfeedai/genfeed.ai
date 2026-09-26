@@ -275,6 +275,184 @@ describe('AgentChatModelRegistryService', () => {
       service.resolveModelKey(undefined, 'google/gemini-3.8-flash'),
     ).resolves.toBe('google/gemini-2.5-flash-lite');
   });
+
+  it('walks multiple Retired succeededBy hops to find the active default', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-v1',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-v2',
+          }),
+          row({
+            cost: 30,
+            isDefault: false,
+            key: 'anthropic/claude-legacy-v2',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+    await expect(
+      service.resolveModelKey('anthropic/claude-legacy-v1'),
+    ).resolves.toBe('anthropic/claude-sonnet-5');
+  });
+
+  it('falls back to the cheapest selectable row instead of looping on a succeededBy cycle', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-a',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-b',
+          }),
+          row({
+            cost: 41,
+            isActive: true,
+            isDefault: false,
+            key: 'anthropic/claude-legacy-b',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-a',
+          }),
+          row({
+            cost: 2,
+            isDefault: false,
+            key: 'recommended',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe('recommended');
+    await expect(
+      service.resolveModelKey('anthropic/claude-legacy-a'),
+    ).resolves.toBe('recommended');
+  });
+
+  it('picks the cheapest, then lowest-key, Retired isDefault row when several are marked default', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-expensive',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 5,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-cheap',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'google/gemini-2.5-flash-lite',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+          row({
+            cost: 1,
+            isDefault: false,
+            key: 'google/gemini-2.5-flash-lite',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    // Deterministic across repeated calls: the cheaper Retired default
+    // (`anthropic/claude-legacy-cheap`) wins the tie, every time.
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'google/gemini-2.5-flash-lite',
+    );
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'google/gemini-2.5-flash-lite',
+    );
+  });
+
+  it('warns that the registry is empty (seed the catalog) when there are no rows at all', async () => {
+    const warn = vi.fn();
+    const prisma = { model: { findMany: vi.fn().mockResolvedValue([]) } };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await service.getDefaultModelKey('google/gemini-3.8-flash');
+
+    expect(warn).toHaveBeenCalledWith(
+      'Agent chat model registry is empty; using seed default key',
+      expect.objectContaining({ fallback: 'google/gemini-3.8-flash' }),
+    );
+  });
+
+  it('warns that no active, non-Retired row exists when every seeded row is Retired', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            isActive: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: null,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await service.getDefaultModelKey('google/gemini-3.8-flash');
+
+    expect(warn).toHaveBeenCalledWith(
+      'No active, non-Retired agent-chat model in registry; using seed default key',
+      expect.objectContaining({ fallback: 'google/gemini-3.8-flash' }),
+    );
+  });
 });
 
 describe('AgentChatModelRegistryService round pricing', () => {

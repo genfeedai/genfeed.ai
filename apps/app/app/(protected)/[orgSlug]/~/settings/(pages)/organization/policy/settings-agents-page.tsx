@@ -26,10 +26,16 @@ import {
   AGENT_GENERATION_MODEL_CATEGORIES,
   AGENT_REVIEW_MODEL_CATEGORIES,
   AGENT_THINKING_MODEL_CATEGORIES,
+  getUnresolvedOverrideKey,
   resolveEnabledModelOptions,
   resolveEnabledModelsForCategory,
   resolveStoredAgentModelKey,
 } from './resolve-enabled-model-options';
+
+type OverrideField =
+  | 'generationModelOverride'
+  | 'reviewModelOverride'
+  | 'thinkingModelOverride';
 
 const EMPTY_CATALOG_MODELS: IModel[] = [];
 
@@ -93,47 +99,72 @@ function policyFormReducer(
 }
 
 /**
- * Model override keys are only ever safe to persist once the catalog has
- * loaded successfully — without it there is nothing to validate a stored
- * key against, so overrides are deferred (omitted from the payload) rather
- * than resolved against an empty or stale list. Each override is then
- * validated against its own selector's category-and-enabled model list, not
- * the full catalog, so a key enabled only for another selector can't slip
- * through.
+ * Resolves one override field's value for the save payload.
+ *
+ * `agentPolicy` is a JSON column the API replaces wholesale on every patch
+ * (there is no server-side merge of nested JSON) — so every save must send
+ * a complete, correct value for all three override fields, not just the one
+ * the admin may have touched. That means an untouched field can never be
+ * derived by re-validating against a catalog that may not have loaded yet,
+ * or may no longer list a model the org previously chose: either would
+ * silently erase a stored override on a save that has nothing to do with it.
+ *
+ * - `wasExplicitlyChanged`: the picker itself only ever emits `''`
+ *   (Auto/clear) or an already-scoped, already-resolved catalog key, so an
+ *   explicit change or clear is trusted directly.
+ * - Catalog not loaded (pending or failed) and untouched: nothing to
+ *   validate against yet — preserve the stored value verbatim.
+ * - Catalog loaded and untouched: canonicalize a matching id to its key; a
+ *   value that no longer matches (removed from the enabled list, a stale
+ *   CUID) is kept as-is rather than cleared. The admin corrects or clears it
+ *   explicitly through the picker — see {@link getUnresolvedOverrideKey} for
+ *   how that state is surfaced there.
  */
+function resolveOverrideForSave(
+  raw: string,
+  models: Array<Pick<IModel, 'id' | 'key'>>,
+  isCatalogLoaded: boolean,
+  wasExplicitlyChanged: boolean,
+): string | null {
+  const trimmed = raw.trim();
+  if (wasExplicitlyChanged || !isCatalogLoaded) {
+    return trimmed || null;
+  }
+  return resolveStoredAgentModelKey(trimmed, models) || trimmed || null;
+}
+
 function buildAgentPolicyPayload(
   form: PolicyFormState,
   categoryModels: OverrideCategoryModels,
   isCatalogLoaded: boolean,
+  changedFields: ReadonlySet<keyof PolicyFormState>,
 ): AgentPolicyState {
-  const overrides: Pick<
-    AgentPolicyState,
-    'generationModelOverride' | 'reviewModelOverride' | 'thinkingModelOverride'
-  > = {};
+  const overrides: Pick<AgentPolicyState, OverrideField> = {};
 
   if (!form.allowAdvancedOverrides) {
     overrides.generationModelOverride = null;
     overrides.reviewModelOverride = null;
     overrides.thinkingModelOverride = null;
-  } else if (isCatalogLoaded) {
-    overrides.generationModelOverride =
-      resolveStoredAgentModelKey(
-        form.generationModelOverride,
-        categoryModels.generation,
-      ) || null;
-    overrides.reviewModelOverride =
-      resolveStoredAgentModelKey(
-        form.reviewModelOverride,
-        categoryModels.review,
-      ) || null;
-    overrides.thinkingModelOverride =
-      resolveStoredAgentModelKey(
-        form.thinkingModelOverride,
-        categoryModels.thinking,
-      ) || null;
+  } else {
+    overrides.generationModelOverride = resolveOverrideForSave(
+      form.generationModelOverride,
+      categoryModels.generation,
+      isCatalogLoaded,
+      changedFields.has('generationModelOverride'),
+    );
+    overrides.reviewModelOverride = resolveOverrideForSave(
+      form.reviewModelOverride,
+      categoryModels.review,
+      isCatalogLoaded,
+      changedFields.has('reviewModelOverride'),
+    );
+    overrides.thinkingModelOverride = resolveOverrideForSave(
+      form.thinkingModelOverride,
+      categoryModels.thinking,
+      isCatalogLoaded,
+      changedFields.has('thinkingModelOverride'),
+    );
   }
-  // else: catalog has not loaded (or failed to load) — defer by omitting the
-  // override keys entirely so a save never persists an unvalidated value.
 
   return {
     allowAdvancedOverrides: form.allowAdvancedOverrides,
@@ -262,7 +293,10 @@ export default function SettingsAgentsPage() {
   );
 
   const persistPolicy = useCallback(
-    async (next: PolicyFormState) => {
+    async (
+      next: PolicyFormState,
+      changedFields: ReadonlySet<keyof PolicyFormState>,
+    ) => {
       if (!organizationId) {
         return;
       }
@@ -275,6 +309,7 @@ export default function SettingsAgentsPage() {
             next,
             categoryModels,
             isCatalogLoaded,
+            changedFields,
           ),
         });
         await refresh();
@@ -297,7 +332,10 @@ export default function SettingsAgentsPage() {
     (patch: Partial<PolicyFormState>) => {
       const next = { ...stateRef.current, ...patch, isSaving: false };
       dispatch({ payload: next, type: 'MERGE' });
-      void persistPolicy(next);
+      void persistPolicy(
+        next,
+        new Set(Object.keys(patch) as Array<keyof PolicyFormState>),
+      );
     },
     [persistPolicy],
   );
@@ -310,9 +348,15 @@ export default function SettingsAgentsPage() {
       if (creditSaveTimeoutRef.current) {
         clearTimeout(creditSaveTimeoutRef.current);
       }
+      const changedFields = new Set(
+        Object.keys(patch) as Array<keyof PolicyFormState>,
+      );
       // Debounce number fields so mid-typing does not spam PATCH.
       creditSaveTimeoutRef.current = setTimeout(() => {
-        void persistPolicy({ ...stateRef.current, ...patch, isSaving: false });
+        void persistPolicy(
+          { ...stateRef.current, ...patch, isSaving: false },
+          changedFields,
+        );
       }, 400);
     },
     [persistPolicy],
@@ -344,6 +388,36 @@ export default function SettingsAgentsPage() {
         AGENT_REVIEW_MODEL_CATEGORIES,
       ),
     [catalogModels, enabledModelIds],
+  );
+
+  // Only meaningful once the catalog has loaded — before that, "no match"
+  // just means nothing to match against yet, not an unresolved override.
+  const generationOverrideUnresolvedKey = useMemo(
+    () =>
+      isCatalogLoaded
+        ? getUnresolvedOverrideKey(
+            generationModelOverride,
+            generationCategoryModels,
+          )
+        : null,
+    [generationCategoryModels, generationModelOverride, isCatalogLoaded],
+  );
+  const reviewOverrideUnresolvedKey = useMemo(
+    () =>
+      isCatalogLoaded
+        ? getUnresolvedOverrideKey(reviewModelOverride, reviewCategoryModels)
+        : null,
+    [isCatalogLoaded, reviewCategoryModels, reviewModelOverride],
+  );
+  const thinkingOverrideUnresolvedKey = useMemo(
+    () =>
+      isCatalogLoaded
+        ? getUnresolvedOverrideKey(
+            thinkingModelOverride,
+            thinkingCategoryModels,
+          )
+        : null,
+    [isCatalogLoaded, thinkingCategoryModels, thinkingModelOverride],
   );
 
   return (
@@ -380,6 +454,7 @@ export default function SettingsAgentsPage() {
           generationModelOverride,
           generationCategoryModels,
         )}
+        generationModelOverrideUnresolvedKey={generationOverrideUnresolvedKey}
         modelCostEstimates={modelCosts}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
@@ -399,11 +474,13 @@ export default function SettingsAgentsPage() {
           reviewModelOverride,
           reviewCategoryModels,
         )}
+        reviewModelOverrideUnresolvedKey={reviewOverrideUnresolvedKey}
         thinkingModelOptions={thinkingModelOptions}
         thinkingModelOverride={resolveStoredAgentModelKey(
           thinkingModelOverride,
           thinkingCategoryModels,
         )}
+        thinkingModelOverrideUnresolvedKey={thinkingOverrideUnresolvedKey}
       />
     </div>
   );

@@ -439,7 +439,7 @@ describe('SettingsAgentsPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('defers model overrides until the catalog loads, and omits them from the PATCH payload while it is loading', async () => {
+  it('preserves stored model overrides on an unrelated save while the catalog is loading, then validates them once it loads', async () => {
     let resolveCatalog: (models: unknown[]) => void = () => {};
     mocks.findAllPages.mockImplementation(
       () =>
@@ -459,13 +459,14 @@ describe('SettingsAgentsPage', () => {
       string,
       { agentPolicy: Record<string, unknown> },
     ];
-    expect(firstPayload.agentPolicy).not.toHaveProperty(
-      'generationModelOverride',
-    );
-    expect(firstPayload.agentPolicy).not.toHaveProperty('reviewModelOverride');
-    expect(firstPayload.agentPolicy).not.toHaveProperty(
-      'thinkingModelOverride',
-    );
+    // `agentPolicy` is a JSON column replaced wholesale on every save — an
+    // unrelated field change (quality tier here) must never omit or clear
+    // an override it did not touch.
+    expect(firstPayload.agentPolicy).toMatchObject({
+      generationModelOverride: 'google/nano-banana-2',
+      reviewModelOverride: 'gpt-5.4-mini',
+      thinkingModelOverride: 'gpt-5.5',
+    });
 
     resolveCatalog([
       {
@@ -496,7 +497,7 @@ describe('SettingsAgentsPage', () => {
     });
   });
 
-  it('shows a stored override with no catalog match as unresolved and does not re-save the raw value', async () => {
+  it('keeps an unresolved stored override on an unrelated save, and only clears it when the admin explicitly picks Auto', async () => {
     mocks.settings.agentPolicy = {
       ...(mocks.settings.agentPolicy as Record<string, unknown>),
       thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
@@ -504,12 +505,29 @@ describe('SettingsAgentsPage', () => {
     renderPage();
 
     await waitFor(() => {
-      // Falls back to the "Auto" placeholder value instead of the raw CUID.
-      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__auto__');
+      // Shown as an explicit "unresolved" state, distinct from Auto, so the
+      // admin can see the stored value did not silently vanish.
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__unresolved__');
     });
 
     fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'budget' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+          }),
+        }),
+      );
+    });
+
+    mocks.patchSettings.mockClear();
+    fireEvent.change(screen.getAllByRole('combobox')[2], {
+      target: { value: '__auto__' },
     });
 
     await waitFor(() => {
@@ -524,17 +542,17 @@ describe('SettingsAgentsPage', () => {
     });
   });
 
-  it('does not resolve an override key that is only enabled for a different selector category', async () => {
+  it('preserves an override key that is only enabled for a different selector category, on an unrelated save', async () => {
     mocks.settings.agentPolicy = {
       ...(mocks.settings.agentPolicy as Record<string, unknown>),
       // A valid catalog key, but it belongs to the generation (media)
-      // category — the thinking selector must not accept it.
+      // category — the thinking selector must not show or accept it.
       thinkingModelOverride: 'google/nano-banana-2',
     };
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__auto__');
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__unresolved__');
     });
 
     fireEvent.change(screen.getAllByRole('combobox')[0], {
@@ -546,7 +564,7 @@ describe('SettingsAgentsPage', () => {
         'org-1',
         expect.objectContaining({
           agentPolicy: expect.objectContaining({
-            thinkingModelOverride: null,
+            thinkingModelOverride: 'google/nano-banana-2',
           }),
         }),
       );

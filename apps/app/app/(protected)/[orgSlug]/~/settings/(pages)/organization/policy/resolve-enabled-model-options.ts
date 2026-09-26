@@ -106,3 +106,22 @@ export function resolveStoredAgentModelKey(
   );
   return match?.key?.trim() || '';
 }
+
+/**
+ * The raw stored override value when it does not resolve against the
+ * selector's scoped, enabled models — a model removed from the org's
+ * allowlist, or a stale CUID. Used to show an "unresolved model" state in
+ * the picker instead of silently falling back to Auto, so the value can be
+ * preserved on save rather than cleared by an unrelated policy change.
+ * `null` when the value is empty or already resolves.
+ */
+export function getUnresolvedOverrideKey(
+  value: string | null | undefined,
+  models: Array<Pick<IModel, 'id' | 'key'>>,
+): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return resolveStoredAgentModelKey(trimmed, models) ? null : trimmed;
+}
