@@ -29,6 +29,35 @@ export interface ServiceLandingPageProps {
   slug: string;
 }
 
+const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
+
+// Every landing page offers both paths: run it yourself on Genfeed, or have us
+// run it. Self-serve leads because it is the lower-friction first step.
+function LandingActions(): React.ReactElement {
+  return (
+    <>
+      <Button size={ButtonSize.PUBLIC} asChild>
+        <Link href={SIGN_UP_HREF} target="_blank" rel="noopener noreferrer">
+          Start free
+        </Link>
+      </Button>
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.PUBLIC}
+        asChild
+      >
+        <Link
+          href={EnvironmentService.calendly}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Book a Call
+        </Link>
+      </Button>
+    </>
+  );
+}
+
 export default function ServiceLandingPage({
   slug,
 }: ServiceLandingPageProps): React.ReactElement {
@@ -47,6 +76,7 @@ export default function ServiceLandingPage({
           </>
         }
         description={config.heroDescription}
+        heroActions={<LandingActions />}
         showFooter={false}
       >
         <WebSection maxWidth="md" className="pt-0">
@@ -57,6 +87,9 @@ export default function ServiceLandingPage({
               </p>
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
+                <span className="border border-edge/10 px-3 py-2 text-surface/70">
+                  Self-serve: start free
+                </span>
                 <span className="border border-edge/10 px-3 py-2 text-surface/70">
                   {config.priceLabel ?? 'Custom, scoped on a call'}
                 </span>
@@ -192,22 +225,7 @@ export default function ServiceLandingPage({
           title={config.closingTitle}
           description={config.closingDescription}
         >
-          <Button size={ButtonSize.PUBLIC} asChild>
-            <Link
-              href={EnvironmentService.calendly}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Book a Call
-            </Link>
-          </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.PUBLIC}
-            asChild
-          >
-            <Link href="/">Back to Genfeed.ai</Link>
-          </Button>
+          <LandingActions />
         </CtaSection>
       </PageLayout>
 

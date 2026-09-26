@@ -14,7 +14,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Retainer',
     closingDescription:
-      'If content is a revenue channel but you do not want to build a team to run it, the next step is a call.',
+      'If content is a revenue channel but you do not want to build a team to run it, book a call. Prefer to run it yourself? Start free on Genfeed.',
     closingTitle: 'A Content Operation, Not Another Freelancer',
     deliverableBuckets: [
       {
@@ -160,7 +160,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Done-For-You',
     closingDescription:
-      'If you want content handled without stepping up to a full retainer, book a call and we will scope a lighter engagement.',
+      'Book a call and we will scope a lighter engagement, or start free and run it yourself on Genfeed.',
     closingTitle: 'Done-For-You, Right-Sized',
     deliverableBuckets: [
       {
@@ -305,7 +305,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
   {
     badge: 'Fleet',
     closingDescription:
-      'If you need owned models and AI influencers running at scale, book a call and we will design the fleet.',
+      'If you need owned models and AI influencers running at scale, book a call and we will design the fleet, or start free on Genfeed to try the workflow first.',
     closingTitle: 'Your Own Models. Your Own AI Influencers.',
     deliverableBuckets: [
       {
