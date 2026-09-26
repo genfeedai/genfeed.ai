@@ -17,6 +17,7 @@ import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     PromptEnhancementModule,
     PromptsCoreModule,
     ActivitiesModule,
+    AgentChatModelRegistryModule,
     BrandsCoreModule,
     ByokModule,
     CreditsModule,

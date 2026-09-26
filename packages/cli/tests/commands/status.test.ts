@@ -1,5 +1,6 @@
 import { IngredientStatus, PersistedArticleStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createStatusCommand } from '@/commands/status';
 
 const { mockGetArticle, mockGetImage, mockPrint, mockRequireAuth } = vi.hoisted(() => ({
   mockGetArticle: vi.fn(),
@@ -36,7 +37,6 @@ describe('status command', () => {
       label: 'Draft article',
       status: PersistedArticleStatus.DRAFT,
     });
-    const { createStatusCommand } = await import('@/commands/status');
 
     await createStatusCommand().parseAsync(['article-1', '--type', 'article'], { from: 'user' });
 
@@ -52,7 +52,6 @@ describe('status command', () => {
       model: 'flux-schnell',
       status: IngredientStatus.DRAFT,
     });
-    const { createStatusCommand } = await import('@/commands/status');
 
     await createStatusCommand().parseAsync(['image-1'], { from: 'user' });
 

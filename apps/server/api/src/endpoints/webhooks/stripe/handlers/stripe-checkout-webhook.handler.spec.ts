@@ -78,6 +78,7 @@ describe('StripeCheckoutWebhookHandler', () => {
     recordCreditsActivity: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveCheckoutCredits: vi.fn().mockReturnValue(100),
+    upsertSkillsProLead: vi.fn(),
     withCheckoutSessionProcessing: vi.fn(),
   };
   const attributionTracker = {
@@ -568,6 +569,12 @@ describe('StripeCheckoutWebhookHandler', () => {
       payment_intent: 'pi_1',
     } as unknown as StripeCheckoutSession;
 
+    beforeEach(() => {
+      usersService.findOne.mockResolvedValue({ id: 'user_skills_1' });
+      organizationsService.findOne.mockResolvedValue({ id: 'org_skills_1' });
+      supportService.upsertSkillsProLead.mockResolvedValue(undefined);
+    });
+
     it('creates a skill receipt from the session', async () => {
       prisma.skillReceipt.create.mockResolvedValue({});
 
@@ -626,6 +633,43 @@ describe('StripeCheckoutWebhookHandler', () => {
             `npx @genfeedai/skills-pro install ${createdReceiptId}`,
           ),
           to: 'buyer@example.com',
+        }),
+      );
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith({
+        email: 'buyer@example.com',
+        organizationId: 'org_skills_1',
+        productType: 'bundle',
+        receiptId: createdReceiptId,
+        skillSlugs: [],
+        userId: 'user_skills_1',
+      });
+    });
+
+    it('finds or creates the buyer by email and links the receipt to that user', async () => {
+      prisma.skillReceipt.create.mockResolvedValue({});
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
+      organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        email: 'buyer@example.com',
+      });
+      expect(usersService.create).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        BETTER_AUTH_USER_CREATED_EVENT,
+        { email: 'buyer@example.com', userId: 'user_skills_new' },
+      );
+      expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          data: expect.objectContaining({ userId: 'user_skills_new' }),
+        }),
+      });
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: null,
+          userId: 'user_skills_new',
         }),
       );
     });
@@ -719,6 +763,12 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('skills-pro receipt already exists'),
         expect.objectContaining({ sessionId: 'cs_skills_1' }),
+      );
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
+        expect.objectContaining({
+          receiptId: 'sk_rcpt_existing',
+          userId: 'user_skills_1',
+        }),
       );
     });
 

@@ -7,8 +7,10 @@ import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.sch
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -288,7 +290,8 @@ describe('PromptTransformationService', () => {
   it('adds cinematic guidance when enhancing an image prompt', async () => {
     const result = await service.enhanceExisting(promptId, user);
 
-    expect(result).toBe(sourcePrompt);
+    expect(result.prompt).toBe(sourcePrompt);
+    expect(result.model).toEqual(expect.any(String));
     expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -354,5 +357,51 @@ describe('PromptTransformationService', () => {
     await service.enhanceExisting(promptId, user);
 
     expect(keySpy).toHaveBeenCalledWith(PromptCategory.MODELS_PROMPT_IMAGE);
+  });
+
+  it('falls back to DEFAULT_MINI_TEXT_MODEL when no registry is wired', async () => {
+    const result = await service.enhanceExisting(promptId, user);
+
+    expect(result.model).toBe(DEFAULT_MINI_TEXT_MODEL);
+    expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      DEFAULT_MINI_TEXT_MODEL,
+      expect.anything(),
+      organizationId,
+    );
+    expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+      DEFAULT_MINI_TEXT_MODEL,
+      expect.anything(),
+    );
+  });
+
+  it('uses the Admin default TEXT model over the seed fallback when a registry is wired', async () => {
+    const adminDefaultModel = 'anthropic/claude-sonnet-5';
+    const resolveModelKey = vi.fn().mockResolvedValue(adminDefaultModel);
+    const serviceWithRegistry = new PromptTransformationService(
+      activitiesService as unknown as ActivitiesService,
+      {} as ConfigService,
+      brandsService as unknown as BrandsService,
+      creditsUtilsService as unknown as CreditsUtilsService,
+      loggerService as unknown as LoggerService,
+      replicateService as unknown as ReplicateService,
+      promptBuilderService as unknown as PromptBuilderService,
+      promptsService as unknown as PromptsService,
+      websocketService as unknown as NotificationsPublisherService,
+      templatesService as unknown as TemplatesService,
+      { resolveModelKey } as unknown as AgentChatModelRegistryService,
+    );
+
+    const result = await serviceWithRegistry.enhanceExisting(promptId, user);
+
+    expect(resolveModelKey).toHaveBeenCalledWith(
+      undefined,
+      DEFAULT_MINI_TEXT_MODEL,
+    );
+    expect(result.model).toBe(adminDefaultModel);
+    expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      adminDefaultModel,
+      expect.anything(),
+      organizationId,
+    );
   });
 });

@@ -38,7 +38,6 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalGallery: () => null,
   LazyModalGenerateIllustration: () => null,
   LazyModalMetadata: () => null,
-  LazyModalPost: () => null,
   LazyModalPostBatch: () => null,
   LazyModalPostRemix: () => null,
   LazyModalPrompt: () => null,

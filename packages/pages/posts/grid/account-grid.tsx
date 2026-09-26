@@ -20,6 +20,7 @@ import {
   buildAccountGridLanes,
   isTargetPublished,
 } from '@pages/posts/grid/account-grid.helpers';
+import { releaseDisplayTitle } from '@pages/posts/rail/release-rail-row.helpers';
 import type {
   AccountGridLaneColumnProps,
   AccountGridProps,
@@ -85,7 +86,7 @@ function AccountGridTile({
 
   const { release, target } = item;
   const tone = tileTone(target);
-  const title = release.title || translate('untitled');
+  const title = releaseDisplayTitle(release) || translate('untitled');
   const when = target.scheduledAt ?? target.publishedAt ?? release.scheduledAt;
   const thumbnail = mediaUrl(release);
 
