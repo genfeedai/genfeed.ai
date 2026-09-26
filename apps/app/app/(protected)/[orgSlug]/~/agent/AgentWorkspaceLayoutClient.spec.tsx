@@ -797,7 +797,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-new',
+        '/acme-org/~/agent/onboarding/thread-new',
       );
     });
   });
@@ -861,7 +861,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+        '/acme-org/~/agent/onboarding/thread-onboarding-latest',
       );
     });
     expect(getThreads).toHaveBeenCalledWith(
@@ -907,7 +907,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+        '/acme-org/~/agent/onboarding/thread-onboarding-latest',
       );
     });
     expect(getThreads).toHaveBeenCalledWith(
