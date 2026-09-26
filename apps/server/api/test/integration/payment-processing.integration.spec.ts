@@ -132,7 +132,6 @@ integrationDescribe('Payment Processing Integration Tests (Stripe)', () => {
             attachPaymentMethod: vi.fn(),
             cancelSubscription: vi.fn(),
             confirmPayment: vi.fn(),
-            createCheckoutSession: vi.fn(),
             createCustomer: vi.fn(),
             createInvoice: vi.fn(),
             createPaymentIntent: vi.fn(),
@@ -539,89 +538,6 @@ integrationDescribe('Payment Processing Integration Tests (Stripe)', () => {
       expect(result.id).toBe('re_test123');
       expect(result.amount).toBe(amount);
       expect(result.status).toBe('succeeded');
-    });
-  });
-
-  describe('Checkout Sessions', () => {
-    it('should create a checkout session for subscription', async () => {
-      const priceId = 'price_test123';
-      const customerId = 'cus_test123';
-
-      const checkoutSession = {
-        cancel_url: 'https://example.com/cancel',
-        customer: customerId,
-        id: 'cs_test123',
-        line_items: {
-          data: [
-            {
-              price: priceId,
-              quantity: 1,
-            },
-          ],
-        },
-        mode: 'subscription',
-        success_url: 'https://example.com/success',
-        url: 'https://checkout.stripe.com/pay/cs_test123',
-      };
-
-      mockStripe.checkout.sessions.create.mockResolvedValue(checkoutSession);
-      (stripeService.createCheckoutSession as vi.Mock).mockResolvedValue(
-        checkoutSession,
-      );
-
-      const session = await stripeService.createCheckoutSession({
-        cancel_url: 'https://example.com/cancel',
-        customer: customerId,
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: 'https://example.com/success',
-      });
-
-      expect(session.id).toBe('cs_test123');
-      expect(session.url).toContain('checkout.stripe.com');
-      expect(session.mode).toBe('subscription');
-    });
-
-    it('should create a checkout session for one-time payment', async () => {
-      const checkoutSession = {
-        amount_total: 9999,
-        currency: 'usd',
-        id: 'cs_payment123',
-        mode: 'payment',
-        payment_status: 'unpaid',
-      };
-
-      mockStripe.checkout.sessions.create.mockResolvedValue(checkoutSession);
-      (stripeService.createCheckoutSession as vi.Mock).mockResolvedValue(
-        checkoutSession,
-      );
-
-      const session = await stripeService.createCheckoutSession({
-        cancel_url: 'https://example.com/cancel',
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                description: 'Purchase 1000 credits for video generation',
-                name: '1000 Credits',
-              },
-              unit_amount: 9999,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: 'https://example.com/success',
-      });
-
-      expect(session.mode).toBe('payment');
-      expect(session.amount_total).toBe(9999);
     });
   });
 
