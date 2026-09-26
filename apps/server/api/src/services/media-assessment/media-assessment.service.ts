@@ -11,18 +11,19 @@ import {
 } from '@api/services/media-readiness/media-readiness.evaluator';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
-  MEDIA_MODERATION_SELECT,
-  toMediaModeration,
-} from '@api/services/moderation/media-moderation.record';
-import {
   captionSubjectKey,
   resolveMediaTextGateSettings,
 } from '@api/services/media-text-decisions/media-text-decision.settings';
+import {
+  MEDIA_MODERATION_SELECT,
+  toMediaModeration,
+} from '@api/services/moderation/media-moderation.record';
 import { resolveModerationSettings } from '@api/services/moderation/moderation.settings';
 import {
   applyModerationMode,
   evaluateModerationVerdict,
 } from '@api/services/moderation/moderation-verdict.util';
+import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   MediaAssessment,
@@ -80,6 +81,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
     private readonly configService: ConfigService,
+    private readonly typedDecisionService: TypedDecisionService,
   ) {}
 
   evaluatePublishReadiness(
@@ -236,7 +238,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
    * Text decisions on perception output (#4882). In `live`, a confident
    * `false` on brand safety or on-brand forces review, and an asset without
    * its asset-level decision yet is unchecked; a confident caption
-   * inconsistency is only ever a warning.
+   * inconsistency is only ever a warning. With no typed-decision provider
+   * bound the gate behaves as `off`, matching the workers side — nothing
+   * can ever be decided, so fail-closed would hold every asset forever.
    */
   private async collectTextDecisions(
     organizationId: string,
@@ -247,7 +251,10 @@ export class MediaAssessmentService implements IMediaPublishGate {
     unchecked: Set<string>,
   ): Promise<void> {
     const settings = resolveMediaTextGateSettings(this.configService);
-    if (settings.mode !== 'live') {
+    if (
+      settings.mode !== 'live' ||
+      !(await this.typedDecisionService.isProviderBound())
+    ) {
       return;
     }
     const subjectKeys = [MEDIA_TEXT_ASSET_SUBJECT];

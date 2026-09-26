@@ -1,6 +1,7 @@
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
+import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -67,6 +68,7 @@ function makeHarness(options: {
   textDecisions?: Record<string, unknown>[];
   config?: Record<string, unknown>;
   evaluations?: Record<string, unknown>[];
+  isDecisionProviderBound?: boolean;
   moderations?: Record<string, unknown>[];
   perceptions?: Record<string, unknown>[];
   readinessDiagnostics?: Record<string, unknown>[];
@@ -86,6 +88,9 @@ function makeHarness(options: {
     .fn()
     .mockResolvedValue(options.evaluations ?? []);
   const categories = options.categories ?? {};
+  const isProviderBound = vi
+    .fn()
+    .mockResolvedValue(options.isDecisionProviderBound ?? true);
   const service = new MediaAssessmentService(
     {
       evaluation: { findMany: evaluationFindMany },
@@ -110,6 +115,7 @@ function makeHarness(options: {
     } as unknown as PrismaService,
     { evaluatePublishReadiness } as unknown as MediaReadinessService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
+    { isProviderBound } as unknown as TypedDecisionService,
   );
   return { evaluatePublishReadiness, evaluationFindMany, service };
 }
@@ -373,6 +379,19 @@ describe('MediaAssessmentService', () => {
     await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
       isBlocking: true,
       reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
+    });
+  });
+
+  it('treats a live text gate as off while no decision provider is bound', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      isDecisionProviderBound: false,
+      perceptions: [perceptionRow('asset-1')],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: false,
+      reasons: [],
     });
   });
 
