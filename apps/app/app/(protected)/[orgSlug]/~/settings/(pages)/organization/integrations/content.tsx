@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { hasByokAccess } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   IntegrationsAction,
@@ -10,6 +15,11 @@ import type {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
+import { Lock } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
 
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
@@ -83,8 +93,14 @@ function integrationsReducer(
 
 /** Provider BYOK keys — OpenAI, Replicate, etc. (not Genfeed product API keys). */
 export default function SettingsIntegrationsPage() {
-  const { organizationId, isReady } = useBrand();
+  const translate = useTranslations('common.settings.integrations');
+  const { organizationId, isReady, settings } = useBrand();
+  const { orgHref } = useOrgUrl();
   const desktop = useIsDesktopClient();
+  // Cosmetic mirror of the server gate in ByokService: billed deployments
+  // include BYOK from Pro upward; self-hosted and desktop are never gated.
+  const canAddKey =
+    !hasOrganizationBillingHint() || hasByokAccess(settings?.subscriptionTier);
   const [state, dispatch] = useReducer(integrationsReducer, initialState);
   const {
     providerStatuses,
@@ -227,12 +243,34 @@ export default function SettingsIntegrationsPage() {
         </div>
       ) : null}
 
+      {isReady && !canAddKey ? (
+        <Alert>
+          <Lock className="size-4" aria-hidden="true" />
+          <AlertTitle>{translate('byokUpgrade.title')}</AlertTitle>
+          <AlertDescription>
+            <p>{translate('byokUpgrade.description')}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                asChild
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              >
+                <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+                  {translate('byokUpgrade.action')}
+                </Link>
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {isReady && !isLoading ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {providerStatuses.map((providerStatus) => (
             <ByokProviderCard
               key={providerStatus.provider}
               providerStatus={providerStatus}
+              canAddKey={canAddKey}
               cardState={{
                 isExpanded: expandedProvider === providerStatus.provider,
                 isRemoving: removingProvider === providerStatus.provider,

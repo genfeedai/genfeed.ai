@@ -8,8 +8,8 @@ import {
 /**
  * The canonical server-side "does this organization pay us" decision. Reads
  * only the persisted subscription rows and the organization's tier — never
- * session flags, API keys, or BYOK settings. Research collection access and
- * the agent free-tier model lock both decide through it.
+ * session flags, API keys, or BYOK settings. Research collection access, the
+ * agent free-tier model lock, and BYOK entitlement all decide through it.
  */
 export interface PaidSubscriptionSnapshot {
   cancelAtPeriodEnd: boolean;
@@ -47,20 +47,16 @@ function periodIsOpen(
 }
 
 /**
- * A paid plan on the subscription row is enough. A paid tier is enough only
- * when the org is not BYOK-only. BYOK and free tiers never grant access on
- * their own, and a trial never does, even when its period end is still ahead.
+ * A paid plan on the subscription row or a paid tier on the organization is
+ * enough. The free tier never grants access on its own, and a trial never
+ * does, even when its period end is still ahead.
  */
 function isPaidProduct(
   subscription: PaidSubscriptionSnapshot,
   subscriptionTier: string | null,
 ): boolean {
-  const tier = normalize(subscriptionTier);
   if (PAID_PLANS.has(normalize(subscription.plan))) return true;
-  if (tier === SubscriptionTier.BYOK || tier === SubscriptionTier.FREE) {
-    return false;
-  }
-  return PAID_TIERS.has(tier);
+  return PAID_TIERS.has(normalize(subscriptionTier));
 }
 
 /** Grant carried by one subscription row, or null when it grants nothing. */

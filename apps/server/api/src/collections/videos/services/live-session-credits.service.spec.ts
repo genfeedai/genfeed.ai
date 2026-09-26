@@ -83,7 +83,6 @@ describe('LiveSessionCreditsService', () => {
   };
   const byokService = {
     isByokActiveForProvider: vi.fn(),
-    isByokBillingInGoodStanding: vi.fn(),
   };
 
   let service: LiveSessionCreditsService;
@@ -92,7 +91,6 @@ describe('LiveSessionCreditsService', () => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue(directorPricing);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
-    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );

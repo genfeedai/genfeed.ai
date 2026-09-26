@@ -403,6 +403,13 @@
         "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
       }
     },
+    "integrations": {
+      "byokUpgrade": {
+        "action": "Upgrade to Pro",
+        "description": "Upgrade to Pro to run generations on your own provider keys with no credit charge and no usage fee.",
+        "title": "Bring your own keys is included with Pro"
+      }
+    },
     "memory": {
       "actions": {
         "archive": "Archive",

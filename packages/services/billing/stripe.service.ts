@@ -39,16 +39,6 @@ export class StripeService extends HTTPBaseService {
   }
 
   /**
-   * Create a Stripe Checkout session in setup mode to save a payment method.
-   * Returns a URL to redirect the user to Stripe's hosted page.
-   */
-  public async createSetupCheckout(): Promise<ICheckoutSessionResponse> {
-    return await this.instance
-      .post<JsonApiResponseDocument>('/setup-intent')
-      .then((res) => deserializeResource<ICheckoutSessionResponse>(res.data));
-  }
-
-  /**
    * Get Stripe billing portal URL for organization.
    *
    * `returnPath` is the app-relative path Stripe returns the customer to

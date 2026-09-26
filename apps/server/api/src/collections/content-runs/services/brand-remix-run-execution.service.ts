@@ -51,8 +51,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import {
   ConflictException,
-  HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   type OnModuleInit,
@@ -675,19 +673,6 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         organizationId,
         ByokProvider.HEYGEN,
       ));
-    if (
-      avatarByokBypass &&
-      !(await this.byokService.isByokBillingInGoodStanding(organizationId))
-    ) {
-      throw new HttpException(
-        {
-          detail:
-            'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
-          title: 'BYOK billing past due',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
     if (avatarByokBypass) {
       const creditsRequest = request as RemixCreditsRequest;
       creditsRequest.creditsConfig = {

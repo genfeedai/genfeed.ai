@@ -13,9 +13,7 @@ import {
 } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
-  ActivitySource,
   BillingRevenueSource,
-  ByokBillingStatus,
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
@@ -68,12 +66,6 @@ export class StripeInvoiceWebhookHandler {
 
   async handleInvoicePaid(invoice: StripeInvoice, url: string): Promise<void> {
     try {
-      // Handle BYOK platform fee invoices
-      if (invoice.metadata?.type === 'byok_platform_fee') {
-        await this.handleByokInvoicePaid(invoice, url);
-        return;
-      }
-
       const billingReason = invoice.billing_reason;
       if (!isSubscriptionInvoiceBillingReason(billingReason)) {
         return;
@@ -231,12 +223,6 @@ export class StripeInvoiceWebhookHandler {
     url: string,
   ): Promise<void> {
     try {
-      // Handle BYOK platform fee payment failure
-      if (invoice.metadata?.type === 'byok_platform_fee') {
-        await this.handleByokInvoicePaymentFailed(invoice, url);
-        return;
-      }
-
       const stripeSubscriptionId = extractInvoiceSubscriptionId(invoice);
 
       if (!stripeSubscriptionId) {
@@ -273,97 +259,6 @@ export class StripeInvoiceWebhookHandler {
         { category: 'reconciliation_failed' },
       );
       throw error;
-    }
-  }
-
-  private async handleByokInvoicePaid(
-    invoice: StripeInvoice,
-    url: string,
-  ): Promise<void> {
-    try {
-      const organizationId = invoice.metadata?.organizationId;
-
-      if (!organizationId) {
-        this.loggerService.warn(`${url} BYOK invoice missing organizationId`, {
-          invoiceId: invoice.id,
-        });
-        return;
-      }
-
-      // Reset byokBillingStatus to 'active'
-      await this.supportService.setByokBillingStatus(
-        organizationId,
-        ByokBillingStatus.ACTIVE,
-        invoice.id,
-        url,
-        'failed to reset byokBillingStatus after payment',
-      );
-
-      if (invoice.id) {
-        await this.supportService.recordRevenueEvent({
-          amountMinor: netInvoiceAmountMinor(invoice),
-          currency: invoice.currency,
-          occurredAt: invoicePaidAt(invoice),
-          organizationId,
-          source: BillingRevenueSource.BYOK_PLATFORM_FEE,
-          stripeObjectId: invoice.id,
-        });
-      }
-
-      // Log activity
-      await this.supportService.recordCreditsActivity({
-        brandId: organizationId,
-        organizationId,
-        source: ActivitySource.SUBSCRIPTION,
-        value: `BYOK platform fee paid: $${((invoice.amount_paid || 0) / 100).toFixed(2)}`,
-      });
-
-      this.loggerService.log(`${url} BYOK invoice paid`, {
-        amountPaid: invoice.amount_paid,
-        invoiceId: invoice.id,
-        organizationId,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle BYOK invoice paid`,
-        error,
-      );
-    }
-  }
-
-  private async handleByokInvoicePaymentFailed(
-    invoice: StripeInvoice,
-    url: string,
-  ): Promise<void> {
-    try {
-      const organizationId = invoice.metadata?.organizationId;
-
-      if (!organizationId) {
-        this.loggerService.warn(
-          `${url} BYOK invoice failure missing organizationId`,
-          { invoiceId: invoice.id },
-        );
-        return;
-      }
-
-      // Set byokBillingStatus to 'past_due'
-      await this.supportService.setByokBillingStatus(
-        organizationId,
-        ByokBillingStatus.PAST_DUE,
-        invoice.id,
-        url,
-        'failed to set past_due status after payment failure',
-      );
-
-      this.loggerService.log(`${url} BYOK invoice payment failed`, {
-        invoiceId: invoice.id,
-        organizationId,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle BYOK invoice payment failed`,
-        error,
-      );
     }
   }
 }

@@ -1,11 +1,7 @@
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
-import type { ByokService } from '@api/services/byok/byok.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  ByokProvider,
-  SubscriptionPlan,
-  SubscriptionStatus,
-} from '@genfeedai/contracts';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_MODEL_KEYS,
   LLM_DEFAULTS,
@@ -33,7 +29,6 @@ function activeSubscription() {
 }
 
 function createService(options: {
-  byokProviders?: ByokProvider[];
   subscriptionTier?: string | null;
   subscriptions?: ReturnType<typeof activeSubscription>[];
   subscriptionReadFails?: boolean;
@@ -50,18 +45,13 @@ function createService(options: {
         : vi.fn().mockResolvedValue(options.subscriptions ?? []),
     },
   };
-  const byokService = {
-    isByokActiveForProvider: vi.fn(
-      async (_organizationId: string, provider: ByokProvider) =>
-        (options.byokProviders ?? []).includes(provider),
-    ),
-  };
   const service = new AgentModelAccessService(
-    prisma as unknown as PrismaService,
-    byokService as unknown as ByokService,
-    { warn: vi.fn() } as unknown as LoggerService,
+    new OrganizationPaidAccessService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    ),
   );
-  return { byokService, prisma, service };
+  return { prisma, service };
 }
 
 describe('AgentModelAccessService free-tier lock', () => {
@@ -144,30 +134,6 @@ describe('AgentModelAccessService free-tier lock', () => {
       expect.objectContaining({ isLocked: false }),
     );
     expect(prisma.subscription.findMany).not.toHaveBeenCalled();
-  });
-
-  it('never locks a route the org BYOK key pays for', async () => {
-    const native = createService({ byokProviders: [ByokProvider.ANTHROPIC] });
-    await expect(
-      native.service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5);
-
-    const openRouter = createService({
-      byokProviders: [ByokProvider.OPENROUTER],
-    });
-    await expect(
-      openRouter.service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.GROK_4_6),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.GROK_4_6);
-  });
-
-  it('still locks a route the org BYOK key does not cover', async () => {
-    const { service } = createService({
-      byokProviders: [ByokProvider.ANTHROPIC],
-    });
-
-    await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL),
-    ).resolves.toBe(LLM_DEFAULTS.agentChat);
   });
 
   it('fails closed onto the free model when the subscription read fails', async () => {

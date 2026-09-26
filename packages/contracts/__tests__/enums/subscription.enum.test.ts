@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ByokBillingStatus,
   SubscriptionCategory,
   SubscriptionPlan,
   SubscriptionStatus,
@@ -35,28 +34,15 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionTier', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(SubscriptionTier)).toHaveLength(5);
+    it('should have 4 members', () => {
+      expect(Object.values(SubscriptionTier)).toHaveLength(4);
     });
 
     it('should have correct values', () => {
       expect(SubscriptionTier.FREE).toBe('free');
-      expect(SubscriptionTier.BYOK).toBe('byok');
       expect(SubscriptionTier.PRO).toBe('pro');
       expect(SubscriptionTier.SCALE).toBe('scale');
       expect(SubscriptionTier.ENTERPRISE).toBe('enterprise');
-    });
-  });
-
-  describe('ByokBillingStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(ByokBillingStatus)).toHaveLength(3);
-    });
-
-    it('should have correct values', () => {
-      expect(ByokBillingStatus.ACTIVE).toBe('ACTIVE');
-      expect(ByokBillingStatus.PAST_DUE).toBe('PAST_DUE');
-      expect(ByokBillingStatus.SUSPENDED).toBe('SUSPENDED');
     });
   });
 

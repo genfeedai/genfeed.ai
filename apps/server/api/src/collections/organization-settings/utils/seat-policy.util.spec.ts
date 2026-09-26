@@ -17,9 +17,8 @@ describe('seat-policy.util', () => {
       expect(isUnlimitedSeatTier(SubscriptionTier.ENTERPRISE)).toBe(true);
     });
 
-    it('is false for free/byok tiers (solo workspace)', () => {
+    it('is false for the free tier (solo workspace)', () => {
       expect(isUnlimitedSeatTier(SubscriptionTier.FREE)).toBe(false);
-      expect(isUnlimitedSeatTier(SubscriptionTier.BYOK)).toBe(false);
     });
 
     it('is false for undefined/null/unknown tiers', () => {
@@ -54,9 +53,8 @@ describe('seat-policy.util', () => {
       ).toBeNull();
     });
 
-    it('honors the stored fair-use limit for finite tiers (FREE/BYOK)', () => {
+    it('honors the stored fair-use limit for the finite FREE tier', () => {
       expect(resolveEffectiveSeatsLimit(SubscriptionTier.FREE, 1)).toBe(1);
-      expect(resolveEffectiveSeatsLimit(SubscriptionTier.BYOK, 1)).toBe(1);
       // Admin-raised override is preserved.
       expect(resolveEffectiveSeatsLimit(SubscriptionTier.FREE, 25)).toBe(25);
     });

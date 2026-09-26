@@ -7,10 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/pricing', () => ({
   AVATAR_CREDIT_COSTS: {},
-  BYOK_CREDIT_VALUE_DOLLARS: 0.01,
-  BYOK_FEE_PERCENTAGE: 0,
-  BYOK_FEE_PER_CREDIT: 0,
-  BYOK_FREE_THRESHOLD_CREDITS: 0,
+  CREDIT_VALUE_DOLLARS: 0.01,
   INTERNAL_CREDIT_COSTS: {},
   PAYG_CREDIT_PACKS: [],
   PLAN_COPY: {},

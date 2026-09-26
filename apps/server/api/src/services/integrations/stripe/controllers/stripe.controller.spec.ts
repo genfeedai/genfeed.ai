@@ -31,10 +31,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
-import {
-  BillingAccountResolutionError,
-  OrganizationBillingAccountService,
-} from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
@@ -56,7 +53,6 @@ describe('StripeController', () => {
   let stripeService: {
     createOrganizationCustomer: ReturnType<typeof vi.fn>;
     createPaymentSession: ReturnType<typeof vi.fn>;
-    createSetupCheckoutSession: ReturnType<typeof vi.fn>;
     getBillingPortalUrl: ReturnType<typeof vi.fn>;
     findOrganizationCustomers: ReturnType<typeof vi.fn>;
     retrieveCustomer: ReturnType<typeof vi.fn>;
@@ -117,9 +113,6 @@ describe('StripeController', () => {
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
       }),
-      createSetupCheckoutSession: vi
-        .fn()
-        .mockResolvedValue({ url: 'https://checkout.stripe.com/setup' }),
       getBillingPortalUrl: vi
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com/portal' }),
@@ -480,53 +473,6 @@ describe('StripeController', () => {
       ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
 
       expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('createSetupCheckout', () => {
-    it('blocks a conflicting organization customer projection', async () => {
-      billingAccountService.resolveOrProvision.mockRejectedValueOnce(
-        new BillingAccountResolutionError(
-          'billing_customer_conflict',
-          'identity_conflict',
-        ),
-      );
-
-      await expect(
-        controller.createSetupCheckout(mockUser, mockRequest),
-      ).rejects.toThrow(HttpException);
-      expect(stripeService.createSetupCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('should create a setup checkout session', async () => {
-      const result = await controller.createSetupCheckout(
-        mockUser,
-        mockRequest,
-      );
-      expect(result).toEqual({ url: 'https://checkout.stripe.com/setup' });
-      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
-        {
-          label: 'Test Org',
-          organizationId: orgId,
-          userId,
-        },
-      );
-    });
-
-    it('should throw BAD_REQUEST when origin missing', async () => {
-      await expect(
-        controller.createSetupCheckout(mockUser, mockRequestNoOrigin),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should throw BAD_REQUEST when user email missing', async () => {
-      const noEmailUser = {
-        ...mockUser,
-        emailAddresses: [],
-      } as unknown as User;
-      await expect(
-        controller.createSetupCheckout(noEmailUser, mockRequest),
-      ).rejects.toThrow(HttpException);
     });
   });
 

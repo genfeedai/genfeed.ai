@@ -31,7 +31,7 @@ export default function ProvidersActionBar({
 }: ProvidersActionBarProps) {
   const guidance =
     surface === 'saas'
-      ? 'Use Genfeed Cloud for hosted generation, or add your own provider keys if you want BYOK.'
+      ? 'Use Genfeed Cloud for hosted generation, or add your own provider keys with a Pro plan.'
       : surface === 'desktop-local'
         ? 'Local agent CLIs are detected on this Mac. Continue to pick a workspace folder when you are ready.'
         : 'Keep the default server access, open Organization API Keys if you want BYOK, or switch to Genfeed Cloud now if you want a managed setup with brand handoff.';

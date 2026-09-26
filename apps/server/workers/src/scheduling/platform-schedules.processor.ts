@@ -5,7 +5,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
-import { CronByokBillingService } from '@workers/crons/byok-billing/cron.byok-billing.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
@@ -54,7 +53,6 @@ export class PlatformSchedulesProcessor extends WorkerHost {
   constructor(
     private readonly configService: ConfigService,
     private readonly batchGeneration: CronBatchGenerationReconcileService,
-    private readonly byokBilling: CronByokBillingService,
     private readonly credentials: CronCredentialsService,
     private readonly engagementTriggers: CronEngagementTriggersService,
     private readonly falModelWatcher: CronFalModelWatcherService,
@@ -102,8 +100,6 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.batchGeneration.reconcileSettlementShortfalls(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: () =>
         this.batchGeneration.resumeStrandedBatches(),
-      [PLATFORM_SCHEDULED_TASKS.BYOK_MONTHLY_BILLING]: () =>
-        this.byokBilling.processMonthlyByokBilling(),
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>

@@ -1,7 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -19,7 +18,6 @@ import {
   ActivityKey,
   type ActivitySource,
   type BillingRevenueSource,
-  type ByokBillingStatus,
   CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
@@ -114,7 +112,6 @@ export class StripeWebhookSupportService {
     private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly organizationsService: OrganizationsService,
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly usersService: UsersService,
@@ -451,7 +448,6 @@ export class StripeWebhookSupportService {
   async markOnboardingCompleteFromSession(
     session: StripeCheckoutSession,
     url: string,
-    subscriptionTier?: SubscriptionTier,
   ): Promise<void> {
     // Try finding user via subscription
     const subscription = await this.subscriptionsService.findByStripeCustomerId(
@@ -483,34 +479,6 @@ export class StripeWebhookSupportService {
       return;
     }
 
-    // Persist the subscription tier to the org settings (epic #735, Phase C —
-    // OrganizationSetting.subscriptionTier replaces the legacy auth provider metadata write;
-    // updateOrganizationTierAndModels is the canonical tier writer).
-    if (subscriptionTier) {
-      const organizationId = subscription?.organizationId
-        ? subscription.organizationId
-        : String(
-            (
-              await this.organizationsService.findOne({
-                userId: String(dbUser.id),
-              })
-            )?.id ?? '',
-          );
-      if (organizationId) {
-        await this.updateOrganizationTierAndModels(
-          organizationId,
-          subscriptionTier,
-          url,
-        );
-      } else {
-        // The tier is now DB-canonical (no legacy auth provider fallback), so surface a failure
-        // to resolve the org rather than silently dropping the tier write.
-        this.loggerService.warn(
-          `${url} could not resolve organization to persist subscription tier`,
-          { sessionId: session.id, subscriptionTier, userId: dbUser.id },
-        );
-      }
-    }
     await this.markOnboardingComplete(dbUser);
     await this.invalidateUserCaches(String(dbUser.id));
 
@@ -546,39 +514,6 @@ export class StripeWebhookSupportService {
       this.loggerService.warn(`${url} failed to set hasEverHadCredits flag`, {
         error: (error as Error)?.message,
         organizationId,
-      });
-    }
-  }
-
-  /**
-   * Patch the org's BYOK billing status. Patch failures are logged with the
-   * caller-provided message, never thrown.
-   */
-  async setByokBillingStatus(
-    organizationId: string,
-    status: ByokBillingStatus,
-    invoiceId: string,
-    url: string,
-    failureLogMessage: string,
-  ): Promise<void> {
-    const orgSetting = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (!orgSetting) {
-      return;
-    }
-
-    try {
-      await this.organizationSettingsService.patch(orgSetting.id.toString(), {
-        byokBillingStatus: status,
-      });
-      await this.invalidateOrganizationCaches(organizationId);
-    } catch (patchError: unknown) {
-      this.loggerService.error(`${url} ${failureLogMessage}`, {
-        invoiceId,
-        organizationId,
-        patchError,
       });
     }
   }

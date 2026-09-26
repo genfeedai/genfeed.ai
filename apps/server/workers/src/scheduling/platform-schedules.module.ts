@@ -10,7 +10,6 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
-import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
@@ -59,7 +58,6 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
       name: PLATFORM_SCHEDULE_QUEUE,
     }),
     CronBatchGenerationModule,
-    CronByokBillingModule,
     CronCredentialsModule,
     CronEngagementModule,
     CronFalModelWatcherModule,

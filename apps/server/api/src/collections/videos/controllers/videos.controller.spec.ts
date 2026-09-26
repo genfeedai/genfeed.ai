@@ -262,7 +262,6 @@ describe('VideosController', () => {
           provide: ByokService,
           useValue: {
             isByokActiveForProvider: vi.fn().mockResolvedValue(false),
-            isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
           },
         },
         {

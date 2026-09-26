@@ -6,7 +6,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import PricingContent from '@public/pricing/pricing-content';
 
 // Seats are not a Scale-only entitlement, and reviews keep reading them that
-// way. @genfeedai/pricing is the contract: FREE/BYOK is one seat, every paid
+// way. @genfeedai/pricing is the contract: FREE is one seat, every paid
 // tier (Pro, Scale, Enterprise) has unlimited seats, and what Scale adds is
 // multi-organization workflows. page.spec.tsx pins this wording — and its
 // length: the previous 205-character version was truncated in search results

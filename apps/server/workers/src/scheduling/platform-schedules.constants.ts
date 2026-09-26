@@ -22,7 +22,6 @@ export const PLATFORM_SCHEDULED_TASKS = {
   CONTENT_LOOP_AUTOPILOT: 'content-loop-autopilot',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile',
-  BYOK_MONTHLY_BILLING: 'byok-monthly-billing',
   CREDENTIAL_TOKEN_REFRESH: 'credential-token-refresh',
   EDITOR_RENDER_RECONCILE: 'editor-render-reconcile',
   ENGAGEMENT_TRIGGERS: 'engagement-triggers',
@@ -86,10 +85,6 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: {
     pattern: '*/5 * * * *',
-    timezone: 'UTC',
-  },
-  [PLATFORM_SCHEDULED_TASKS.BYOK_MONTHLY_BILLING]: {
-    pattern: '0 2 1 * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: {

@@ -4,9 +4,7 @@ import {
   AVATAR_CREDIT_COSTS,
   applyMargin,
   BASE_PROVIDER_COST_FRACTION,
-  BYOK_CREDIT_VALUE_DOLLARS,
-  BYOK_FEE_PER_CREDIT,
-  BYOK_FEE_PERCENTAGE,
+  CREDIT_VALUE_DOLLARS,
   creditPackPrice,
   creditPackTotalCredits,
   creditsToOutputEstimate,
@@ -131,8 +129,7 @@ describe('plan price formatting', () => {
       expect(price).toBeTypeOf('number');
 
       const bonus =
-        (Number(includedCredits) * BYOK_CREDIT_VALUE_DOLLARS) / Number(price) -
-        1;
+        (Number(includedCredits) * CREDIT_VALUE_DOLLARS) / Number(price) - 1;
       const margin = 1 - BASE_PROVIDER_COST_FRACTION * (1 + bonus);
 
       expect(bonus).toBeGreaterThanOrEqual(0.18);
@@ -305,12 +302,6 @@ describe('pricing constants', () => {
     expect(VIDEO_CREDIT_COSTS.video15s).toBe(1125);
     expect(AVATAR_CREDIT_COSTS.avatar8s).toBe(
       INTERNAL_CREDIT_COSTS.avatarPerSecond * 8,
-    );
-  });
-
-  it('derives the BYOK fee per credit from the fee percentage', () => {
-    expect(BYOK_FEE_PER_CREDIT).toBeCloseTo(
-      BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100),
     );
   });
 
