@@ -3,6 +3,7 @@ import { type ContentPatternDocument } from '@api/collections/content-intelligen
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { toGenerationWorkflowDto } from '@api/collections/content-intelligence/utils/generation-workflow-input.util';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   type SystemWorkflowGraphDefinition,
@@ -97,8 +98,9 @@ function contentGenerationDefinition(
           targetHandle: 'condition',
         },
         {
-          id: 'plan-freeform',
-          source: 'plan-generation',
+          // Freeform generation reads the loaded context, not the plan.
+          id: 'context-freeform',
+          source: 'load-context',
           target: 'generate-freeform',
           targetHandle: 'state',
         },
@@ -167,10 +169,12 @@ function contentGenerationDefinition(
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.FREEFORM,
           id: 'generate-freeform',
+          inputVariableKeys: ['dto'],
         }),
         createGenfeedActionNode({
           actionId: CONTENT_GENERATION_ACTION_IDS.FINALIZE,
           id: 'finalize-generation',
+          inputVariableKeys: ['dto'],
         }),
       ],
     },
@@ -392,7 +396,7 @@ export class ContentGeneratorService implements OnModuleInit {
     >({
       actionType: actionId,
       canonicalId: workflowId,
-      inputValues: { dto },
+      inputValues: { dto: toGenerationWorkflowDto(dto) },
       metadata: { brandId: dto.brandId, origin: 'api' },
       organizationId,
       source: 'ContentGeneratorService.generateContentWorkflow',
