@@ -1204,7 +1204,6 @@ async function handleGetBrands(sendResponse: SendResponse): Promise<void> {
         description: item.attributes.description,
         handle: item.attributes.handle,
         id: item.id,
-        isSelected: item.attributes.isSelected,
         label: item.attributes.label,
         logoUrl: item.attributes.logoUrl,
       }));
