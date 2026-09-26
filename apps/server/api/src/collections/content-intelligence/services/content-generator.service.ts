@@ -3,6 +3,7 @@ import { type ContentPatternDocument } from '@api/collections/content-intelligen
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { toGenerationWorkflowDto } from '@api/collections/content-intelligence/utils/generation-workflow-input.util';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   type SystemWorkflowGraphDefinition,
@@ -391,7 +392,7 @@ export class ContentGeneratorService implements OnModuleInit {
     >({
       actionType: actionId,
       canonicalId: workflowId,
-      inputValues: { dto },
+      inputValues: { dto: toGenerationWorkflowDto(dto) },
       metadata: { brandId: dto.brandId, origin: 'api' },
       organizationId,
       source: 'ContentGeneratorService.generateContentWorkflow',
