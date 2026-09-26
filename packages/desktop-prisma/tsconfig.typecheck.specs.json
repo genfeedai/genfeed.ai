@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "prisma/**/*.prisma", "__tests__/**/*"]
+}

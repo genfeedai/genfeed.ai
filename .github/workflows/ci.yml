@@ -328,19 +328,24 @@ jobs:
       - name: Run UI guards
         run: bun run check:ui-guards
 
-  # The Typecheck job above cannot see spec files: every backend workspace's
-  # tsconfig.typecheck.json excludes them, and no vitest config enables
-  # `typecheck`. #2369 shipped a spec calling a deleted method straight through
-  # that hole. This job typechecks them against the same compiler options via
-  # tsconfig.typecheck.specs.json and ratchets the pre-existing debt.
+  # The Typecheck job above cannot see spec/test files: every backend
+  # workspace's tsconfig.typecheck.json excludes them, and every frontend or
+  # package workspace's own tsconfig.json does the same for `.spec.ts(x)` /
+  # `.test.ts(x)`. No vitest config enables `typecheck` either. #2369 shipped a
+  # spec calling a deleted method straight through that hole, and #5244 found
+  # the same gap in apps/app and packages/*. This job typechecks them against
+  # the same compiler options via each workspace's tsconfig.typecheck.specs.json
+  # and ratchets the pre-existing debt. Workspaces are discovered under
+  # apps/server, apps (currently only apps/app has opted in), and packages —
+  # enrolling one is purely a matter of adding that file, nothing here.
   #
   # On change runs (PR / merge queue) the scope step below narrows the ratchet
-  # to the server workspaces the diff can actually affect, and skips the whole
-  # tail (Bun setup, package build, loop) when nothing server-related changed —
-  # the common frontend-only PR. Anything shared (packages/**, root configs,
-  # apps/server files outside a single workspace, this workflow) escalates to
-  # every workspace, as does a heavy run, the full-suite label, or a missing
-  # diff base. Heavy full-suite runs on master push always cover all
+  # to the workspaces the diff can actually affect, and skips the whole tail
+  # (Bun setup, package build, loop) when nothing relevant changed — the common
+  # single-app PR. Anything shared (packages/**, root configs, apps/server
+  # files outside a single workspace, this workflow) escalates to every
+  # workspace, as does a heavy run, the full-suite label, or a missing diff
+  # base. Heavy full-suite runs on master push always cover all
   # workspaces, so any cross-workspace drift a scoped PR run misses lands at
   # most one merge behind. Each workspace is still checked in a fresh Bun
   # process so TypeScript can release the previous program's memory before
@@ -349,7 +354,15 @@ jobs:
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # #5244 added apps/app and 24 packages/* workspaces. A scoped PR run still
+    # checks only what changed, but a full run (heavy tier, master push,
+    # release) walks every workspace sequentially, and several of the new
+    # ones pull most of the monorepo's type graph in transitively through
+    # source-pointing path aliases (see the rootDir comment in
+    # scripts/architecture/check-spec-typecheck.ts) — apps/app alone took
+    # ~9 minutes standalone during #5244's own baseline generation. 45 minutes
+    # was sized for the original 8 backend-only workspaces.
+    timeout-minutes: 90
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -362,11 +375,19 @@ jobs:
           RUN_HEAVY: ${{ needs.trust.outputs.heavy-tier == 'true' }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           all_workspaces=()
-          for config in apps/server/*/tsconfig.typecheck.specs.json; do
-            workspace="${config#apps/server/}"
-            all_workspaces+=("${workspace%%/*}")
+          # apps/server/<workspace> and packages/<workspace> each hold many
+          # ratchet workspaces one directory deep; apps/<app> holds several
+          # frontend/desktop apps but today only apps/app has opted in — the
+          # glob simply finds nothing for the others.
+          for config in apps/server/*/tsconfig.typecheck.specs.json \
+            apps/*/tsconfig.typecheck.specs.json \
+            packages/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            all_workspaces+=("${workspace##*/}")
           done
+          shopt -u nullglob
 
           emit() {
             echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
@@ -414,14 +435,31 @@ jobs:
                 emit "${all_workspaces[*]}" "full: shared server config ${file}"
                 exit 0
                 ;;
+              apps/*/*)
+                # Any other app (apps/app, apps/desktop, ...) owns its own
+                # files the same way a backend workspace owns its own — but
+                # unlike apps/server, not every app is enrolled in the
+                # ratchet, so a missing config here means "not part of this
+                # guard" (skip) rather than "escalate": apps/desktop churning
+                # cannot affect apps/app's spec program.
+                workspace="${file#apps/}"
+                workspace="${workspace%%/*}"
+                if [ -f "apps/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                fi
+                ;;
               docs/*|.agents/*|*.md)
                 ;;
               apps/*)
-                # Frontend/desktop apps never feed server spec programs.
+                # Shallow files directly under apps/ (rare) feed no program.
                 ;;
               *)
                 # packages/**, root tsconfigs, scripts, lockfile, workflows —
                 # anything outside apps/ can reshape every program: escalate.
+                # This also covers a package's own spec-typecheck workspace,
+                # since packages routinely import each other and a source
+                # change in one can break a type another package's test file
+                # depends on.
                 emit "${all_workspaces[*]}" "full: shared surface ${file}"
                 exit 0
                 ;;

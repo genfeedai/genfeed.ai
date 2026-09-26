@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": "../.."
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "./tsconfig.json",
+  "include": ["*.ts", "./vitest-globals.d.ts"]
+}
