@@ -27,7 +27,7 @@ import {
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
   REASONING_FEATURE,
 } from '@genfeedai/contracts/constants';
-import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
+import { getRuntimeAgentChatMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -315,21 +315,21 @@ export class AgentChatModelRegistryService
     return calculateAgentProviderCostUsd(pricing, input);
   }
 
-  /** Exact fractional credits: provider USD × base margin × operator knob. */
+  /** Exact fractional credits: provider USD × the agent-chat operator margin knob. */
   toRoundCredits(providerCostUsd: number): number {
     return calculateAgentExactCredits(
       providerCostUsd,
-      getRuntimeMarginMultiplier(),
+      getRuntimeAgentChatMarginMultiplier(),
     );
   }
 
   /**
    * "≈ credits per message" for every selectable model, from the average
-   * message token footprint at the live margin. Display only.
+   * message token footprint at the live agent-chat margin. Display only.
    */
   async getMessageCostEstimatesMap(): Promise<Record<string, number>> {
     const selectable = await this.listSelectable();
-    const marginMultiplier = getRuntimeMarginMultiplier();
+    const marginMultiplier = getRuntimeAgentChatMarginMultiplier();
     return Object.fromEntries(
       selectable.map((row) => {
         const pricing = row.isFree ? null : this.pricingForRow(row);

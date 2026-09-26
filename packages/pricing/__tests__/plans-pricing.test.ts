@@ -10,6 +10,7 @@ import {
   creditPackPrice,
   creditPackTotalCredits,
   creditsToOutputEstimate,
+  DEFAULT_GENERATION_MARGIN_MULTIPLIER,
   formatOutputs,
   formatPlanIncludedCredits,
   formatPlanLaunchPriceLabel,
@@ -162,19 +163,20 @@ describe('formatOutputs', () => {
   });
 });
 
-describe('applyMargin and runtime margin multiplier', () => {
+describe('applyMargin and runtime margin multiplier (generation)', () => {
   afterEach(() => {
-    setRuntimeMarginMultiplier(1);
+    setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
   });
 
-  it('applies the configured provider markup and converts to credits', () => {
+  it('applies the default 3.33× multiplier (70% margin) and converts to credits', () => {
     expect(applyMargin(0.15)).toBe(50);
     expect(applyMargin(0.5)).toBe(167);
     expect(applyMargin(0.04)).toBe(14);
   });
 
   it('scales by an explicit margin multiplier', () => {
-    expect(applyMargin(0.15, 1.2)).toBe(60);
+    expect(applyMargin(0.15, 1.2)).toBe(18);
+    expect(applyMargin(0.15, 1)).toBe(15);
   });
 
   it('enforces the 2-credit floor', () => {
@@ -182,7 +184,7 @@ describe('applyMargin and runtime margin multiplier', () => {
     expect(applyMargin(0.0001)).toBe(2);
   });
 
-  it('falls back to 1.0 for invalid multipliers', () => {
+  it('falls back to the 3.33 default for invalid multipliers', () => {
     expect(applyMargin(0.15, 0)).toBe(50);
     expect(applyMargin(0.15, -3)).toBe(50);
     expect(applyMargin(0.15, Number.NaN)).toBe(50);
@@ -196,20 +198,26 @@ describe('applyMargin and runtime margin multiplier', () => {
   });
 
   it('uses the process-scoped runtime multiplier by default', () => {
-    expect(getRuntimeMarginMultiplier()).toBe(1);
+    expect(getRuntimeMarginMultiplier()).toBe(
+      DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+    );
 
     setRuntimeMarginMultiplier(2);
 
     expect(getRuntimeMarginMultiplier()).toBe(2);
-    expect(applyMargin(0.15)).toBe(100);
+    expect(applyMargin(0.15)).toBe(30);
   });
 
-  it('normalizes invalid runtime multipliers back to 1.0', () => {
+  it('normalizes invalid runtime multipliers back to the 3.33 default', () => {
     setRuntimeMarginMultiplier(-1);
-    expect(getRuntimeMarginMultiplier()).toBe(1);
+    expect(getRuntimeMarginMultiplier()).toBe(
+      DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+    );
 
     setRuntimeMarginMultiplier(Number.NaN);
-    expect(getRuntimeMarginMultiplier()).toBe(1);
+    expect(getRuntimeMarginMultiplier()).toBe(
+      DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+    );
 
     setRuntimeMarginMultiplier(MAX_MARGIN_MULTIPLIER * 2);
     expect(getRuntimeMarginMultiplier()).toBe(MAX_MARGIN_MULTIPLIER);

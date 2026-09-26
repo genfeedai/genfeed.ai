@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
+import {
+  type ButtonHTMLAttributes,
+  Children,
+  type InputHTMLAttributes,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlatformSettingsPage from './platform-settings-page';
@@ -122,50 +125,74 @@ vi.mock('@ui/primitives/input', () => ({
 }));
 
 /**
- * A native select stands in for the Radix one: this suite is about the page's
+ * Native selects stand in for the Radix ones: this suite is about the page's
  * load/save wiring, and Radix's portalled listbox needs a pointer environment
- * jsdom does not provide.
+ * jsdom does not provide. The page renders two Selects (margin input mode,
+ * typed-decision provider), so the mock reads each one's `data-testid` off
+ * its `SelectTrigger`'s `id` instead of hardcoding a single shared test id.
  */
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    disabled,
-    onValueChange,
-    value,
-  }: {
-    children: ReactNode;
-    disabled?: boolean;
-    onValueChange: (value: string) => void;
-    value: string;
-  }) => (
-    <select
-      data-testid="typed-decision-provider"
-      disabled={disabled}
-      onChange={(event) => onValueChange(event.target.value)}
-      value={value}
-    >
-      {children}
-    </select>
-  ),
-  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <option value={value}>{children}</option>
-  ),
-  SelectTrigger: () => null,
-  SelectValue: () => null,
-}));
+vi.mock('@ui/primitives/select', () => {
+  const SelectTrigger = () => null;
+
+  function testIdFromChildren(children: ReactNode): string | undefined {
+    let testId: string | undefined;
+    Children.forEach(children, (child) => {
+      if (isValidElement(child) && child.type === SelectTrigger) {
+        testId = (child as ReactElement<{ id?: string }>).props.id;
+      }
+    });
+    return testId;
+  }
+
+  return {
+    Select: ({
+      children,
+      disabled,
+      onValueChange,
+      value,
+    }: {
+      children: ReactNode;
+      disabled?: boolean;
+      onValueChange: (value: string) => void;
+      value: string;
+    }) => (
+      <select
+        data-testid={testIdFromChildren(children)}
+        disabled={disabled}
+        onChange={(event) => onValueChange(event.target.value)}
+        value={value}
+      >
+        {children}
+      </select>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+    SelectItem: ({
+      children,
+      value,
+    }: {
+      children: ReactNode;
+      value: string;
+    }) => <option value={value}>{children}</option>,
+    SelectTrigger,
+    SelectValue: () => null,
+  };
+});
 
 describe('PlatformSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSettings.mockResolvedValue({
       id: 'platform-settings',
-      marginMultiplier: 1.25,
+      marginInputMode: 'MARGIN',
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 3.33,
       typedDecisionProvider: 'jev',
     });
     mocks.updateSettings.mockResolvedValue({
       id: 'platform-settings',
-      marginMultiplier: 1.5,
+      marginInputMode: 'MARGIN',
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 4,
       typedDecisionProvider: 'none',
     });
   });
@@ -177,33 +204,75 @@ describe('PlatformSettingsPage', () => {
       expect(mocks.getSettings).toHaveBeenCalledWith(expect.any(AbortSignal));
     });
 
-    expect(screen.getByLabelText('Model-cost margin multiplier')).toHaveValue(
-      1.25,
+    expect(screen.getByLabelText('Generation margin (%)')).toHaveValue(70);
+    expect(screen.getByLabelText('Agent chat margin (%)')).toHaveValue(41);
+    expect(
+      screen.getByText(
+        '$1.00 provider → $3.33 sell · 70% margin · 233% markup',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('$1.00 provider → $1.70 sell · 41% margin · 70% markup'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('platform-margin-input-mode')).toHaveValue(
+      'MARGIN',
     );
-    expect(screen.getByTestId('typed-decision-provider')).toHaveValue('jev');
+    expect(screen.getByTestId('platform-typed-decision-provider')).toHaveValue(
+      'jev',
+    );
   });
 
-  it('submits a valid multiplier and refreshes the input value', async () => {
+  it('submits an edited generation multiplier and refreshes the input values', async () => {
     render(<PlatformSettingsPage />);
 
-    const input = await screen.findByLabelText('Model-cost margin multiplier');
-    fireEvent.change(input, { target: { value: '1.5' } });
+    const input = await screen.findByLabelText('Generation margin (%)');
+    fireEvent.change(input, { target: { value: '75' } });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
       expect(mocks.success).toHaveBeenCalledWith('Platform settings saved');
     });
+    // 75% margin => multiplier 1 / (1 - 0.75) = 4; the untouched agent-chat
+    // field submits its committed multiplier verbatim, not a re-parsed one.
     expect(mocks.updateSettings).toHaveBeenCalledWith({
-      marginMultiplier: 1.5,
+      marginInputMode: 'MARGIN',
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 4,
       typedDecisionProvider: 'jev',
     });
-    expect(input).toHaveValue(1.5);
+    // Refreshed from the mocked server response (marginMultiplierGeneration:
+    // 4 => 75% margin), not the stale value from before the save.
+    expect(screen.getByLabelText('Generation margin (%)')).toHaveValue(75);
+  });
+
+  it('switches input mode without changing an untouched stored multiplier', async () => {
+    render(<PlatformSettingsPage />);
+
+    await screen.findByLabelText('Generation margin (%)');
+    const modeSelect = screen.getByTestId('platform-margin-input-mode');
+    fireEvent.change(modeSelect, { target: { value: 'MARKUP' } });
+
+    expect(screen.getByLabelText('Generation markup (%)')).toHaveValue(233);
+    expect(screen.getByLabelText('Agent chat markup (%)')).toHaveValue(70);
+
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        marginInputMode: 'MARKUP',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+        typedDecisionProvider: 'jev',
+      });
+    });
   });
 
   it('saves the typed-decision provider an operator selected', async () => {
     render(<PlatformSettingsPage />);
 
-    const select = await screen.findByTestId('typed-decision-provider');
+    const select = await screen.findByTestId(
+      'platform-typed-decision-provider',
+    );
     fireEvent.change(select, { target: { value: 'none' } });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
@@ -211,7 +280,9 @@ describe('PlatformSettingsPage', () => {
       expect(mocks.success).toHaveBeenCalledWith('Platform settings saved');
     });
     expect(mocks.updateSettings).toHaveBeenCalledWith({
-      marginMultiplier: 1.25,
+      marginInputMode: 'MARGIN',
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 3.33,
       typedDecisionProvider: 'none',
     });
     expect(select).toHaveValue('none');
@@ -233,7 +304,7 @@ describe('PlatformSettingsPage', () => {
     });
     render(<PlatformSettingsPage />);
 
-    await screen.findByTestId('typed-decision-provider');
+    await screen.findByTestId('platform-typed-decision-provider');
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
     await waitFor(() => {
@@ -243,21 +314,21 @@ describe('PlatformSettingsPage', () => {
     });
   });
 
-  it('blocks invalid and excessive multipliers before saving', async () => {
+  it('blocks an invalid margin percent before saving', async () => {
     render(<PlatformSettingsPage />);
 
-    const input = await screen.findByLabelText('Model-cost margin multiplier');
+    const input = await screen.findByLabelText('Generation margin (%)');
 
-    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.change(input, { target: { value: 'not-a-number' } });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
     expect(mocks.warning).toHaveBeenCalledWith(
-      'Margin multiplier must be a positive number',
+      'Generation margin: Enter a number',
     );
 
-    fireEvent.change(input, { target: { value: '11' } });
+    fireEvent.change(input, { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
     expect(mocks.warning).toHaveBeenCalledWith(
-      'Margin multiplier cannot exceed 10',
+      'Generation margin: Margin percent must be less than 100',
     );
     expect(mocks.updateSettings).not.toHaveBeenCalled();
   });

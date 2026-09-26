@@ -24,7 +24,8 @@ function build(env: Record<string, string> = TYPESAFE_KEY_ENV) {
 function settingsRow(typedDecisionProvider: string) {
   return {
     id: 'platform-settings',
-    marginMultiplier: 1,
+    marginMultiplierAgentChat: 1.7,
+    marginMultiplierGeneration: 3.33,
     typedDecisionProvider,
   };
 }

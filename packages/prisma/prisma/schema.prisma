@@ -346,6 +346,15 @@ enum TrendNotificationFrequency {
   WEEKLY
 }
 
+// Platform-wide operator toggle (#5172) for how the two PlatformSetting
+// margin multipliers are typed and read in /admin: a markup percent on
+// provider cost, or a margin percent on sell price. Never changes what is
+// stored or billed — billing always applies cost × multiplier.
+enum MarginInputMode {
+  MARKUP
+  MARGIN
+}
+
 enum TrainingStage {
   PENDING
   UPLOADING
@@ -1642,12 +1651,20 @@ model OrganizationSetting {
 // Cross-client business/infra knobs configured from the top-level /admin
 // operator area — distinct from per-user Setting and per-org
 // OrganizationSetting. A single canonical row is enforced via the unique
-// `key` sentinel. First knob: marginMultiplier, applied on top of the base
-// provider-cost markup when computing customer-facing model credit costs.
+// `key` sentinel.
+//
+// Margin knobs (#5172): generation and agent chat bill from two independent
+// sell/cost multipliers, each applied as `cost × multiplier` with no hidden
+// base — see `applyMargin` / `calculateAgentExactCredits`. marginInputMode is
+// purely how an operator types and reads those two numbers in /admin (markup%
+// on cost vs margin% on sell price); it never changes what is stored or
+// billed.
 model PlatformSetting {
-  id               String   @id @default(cuid())
-  key              String   @unique @default("platform")
-  marginMultiplier Float    @default(1.0)
+  id                         String          @id @default(cuid())
+  key                        String          @unique @default("platform")
+  marginMultiplierGeneration Float           @default(3.33)
+  marginMultiplierAgentChat  Float           @default(1.7)
+  marginInputMode            MarginInputMode @default(MARGIN)
   // Typed-decision provider (#4908): "none" | "jev". A plain string rather
   // than a Prisma enum so adding a provider is a contract change, not a
   // migration on the operator's critical path.
