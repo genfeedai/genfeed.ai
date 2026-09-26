@@ -333,8 +333,63 @@ describe('HarnessGenerationService#resolveBrief', () => {
           knowledgePurposes: ['BRAND_TRUTH'],
           knowledgeSourceIds: ['source-1'],
           limit: 8,
+          minRelevance: 0,
           query: 'pricing',
         }),
+      );
+    });
+
+    it('keeps weakly similar passages of explicitly selected sources', async () => {
+      const resolve = vi
+        .fn()
+        .mockResolvedValue({ knowledgeSourceIds: ['source-1'] });
+      const contextsService = {
+        retrieveBrandContentMemory: vi.fn().mockResolvedValue([
+          {
+            citation: {
+              kind: 'TEXT',
+              purpose: 'INSPIRATION',
+              sourceId: 'source-1',
+              title: 'Brand facts',
+              version: 1,
+              versionId: 'version-1',
+            },
+            content: 'We ship every Thursday.',
+            relevance: 0.55,
+          },
+        ]),
+      };
+      const contentHarnessService = {
+        composeBrief: vi.fn().mockResolvedValue(EMPTY_BRIEF),
+      };
+      const service = new HarnessGenerationService(
+        contentHarnessService as never,
+        { warn: vi.fn() } as never,
+        { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
+        {
+          resolveContributionForBrand: vi.fn().mockResolvedValue(null),
+        } as never,
+        contextsService as never,
+        {
+          get: vi.fn((token: unknown) =>
+            token === KnowledgeSelectionService ? { resolve } : undefined,
+          ),
+        } as never,
+      );
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        knowledgeSelection: { sourceIds: ['source-1'] },
+        organizationId: 'org-1',
+        topic: 'ship day',
+      });
+
+      const [{ sources }] = contentHarnessService.composeBrief.mock.calls[0];
+      expect(sources).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ content: 'We ship every Thursday.' }),
+        ]),
       );
     });
   });
