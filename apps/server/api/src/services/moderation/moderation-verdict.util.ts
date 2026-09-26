@@ -1,10 +1,10 @@
+import type { ModerationCategory } from '@genfeedai/contracts';
 import type {
   MediaGateMode,
   ModerationInputResult,
   ModerationTrigger,
   ModerationVerdict,
 } from '@genfeedai/contracts/api-types/contracts';
-import type { ModerationCategory } from '@genfeedai/contracts';
 
 /**
  * The verdict the thresholds produce: a category is flagged when any input

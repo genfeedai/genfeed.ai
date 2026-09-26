@@ -122,7 +122,9 @@ export class OpenAiModerationProvider implements IModerationProvider {
     const results = await this.create(
       chunks.map((chunk) => ({ text: chunk, type: 'text' as const })),
     );
-    return mergeMax(results.map((result) => toModerationScores(result, 'text')));
+    return mergeMax(
+      results.map((result) => toModerationScores(result, 'text')),
+    );
   }
 
   private async create(

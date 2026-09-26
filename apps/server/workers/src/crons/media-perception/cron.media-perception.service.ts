@@ -1,5 +1,7 @@
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
+import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
+import { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
@@ -8,6 +10,7 @@ import { MEDIA_PERCEPTION_SWEEP_BATCH_SIZE } from '@workers/crons/media-percepti
 const MS_PER_HOUR = 60 * 60 * 1000;
 
 export type MediaPerceptionSweepTotals = {
+  queuedModerations: number;
   queuedPerceptions: number;
   queuedRetries: number;
 };
@@ -28,6 +31,8 @@ export class CronMediaPerceptionService {
   constructor(
     private readonly mediaPerceptionService: MediaPerceptionService,
     private readonly queueService: MediaPerceptionQueueService,
+    private readonly mediaModerationService: MediaModerationService,
+    private readonly moderationQueueService: MediaModerationQueueService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -35,6 +40,7 @@ export class CronMediaPerceptionService {
     now = new Date(),
   ): Promise<MediaPerceptionSweepTotals> {
     const totals: MediaPerceptionSweepTotals = {
+      queuedModerations: 0,
       queuedPerceptions: 0,
       queuedRetries: 0,
     };
@@ -76,7 +82,27 @@ export class CronMediaPerceptionService {
       }
     }
 
-    if (totals.queuedPerceptions > 0 || totals.queuedRetries > 0) {
+    // Moderation (#4880) follows perception: assets whose artefacts settled
+    // without a moderation record. Empty when no provider is active.
+    const unmoderated = await this.mediaModerationService.findUnmoderatedAssets(
+      since,
+      MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
+    );
+    for (const candidate of unmoderated) {
+      if (
+        await this.tryEnqueue(() =>
+          this.moderationQueueService.enqueue(candidate),
+        )
+      ) {
+        totals.queuedModerations += 1;
+      }
+    }
+
+    if (
+      totals.queuedPerceptions > 0 ||
+      totals.queuedRetries > 0 ||
+      totals.queuedModerations > 0
+    ) {
       this.logger.log('CronMediaPerceptionService queued work', {
         ...totals,
         context: this.context,

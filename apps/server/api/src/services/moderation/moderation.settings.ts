@@ -1,8 +1,8 @@
+import { ModerationCategory } from '@genfeedai/contracts';
 import {
   DEFAULT_MODERATION_THRESHOLDS,
   type MediaGateMode,
 } from '@genfeedai/contracts/api-types/contracts';
-import { ModerationCategory } from '@genfeedai/contracts';
 import type { ModerationProviderName } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 

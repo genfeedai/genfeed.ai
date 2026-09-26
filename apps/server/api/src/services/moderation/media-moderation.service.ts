@@ -286,6 +286,7 @@ export class MediaModerationService {
       candidateVerdict: toJson(result.candidateVerdict),
       flaggedCategories: result.verdict.flaggedCategories,
       inputs: toJson(result.inputs),
+      isDeleted: false,
       isFlagged: result.verdict.isFlagged,
       maxConfidence: result.verdict.maxConfidence,
       mode: result.settings.mode,
@@ -294,6 +295,7 @@ export class MediaModerationService {
       thresholds: toJson(result.settings.thresholds),
       verdict: toJson(result.verdict),
     };
+    // tenant-scope-ignore: unique-key upsert; organizationId is part of the key, and a tombstoned row is revived (isDeleted reset) rather than colliding with it.
     return this.prisma.mediaModeration.upsert({
       create: {
         ...data,
@@ -302,12 +304,12 @@ export class MediaModerationService {
       },
       select: MEDIA_MODERATION_SELECT,
       update: data,
-      where: scopedWhere(job.organizationId, {
+      where: {
         organizationId_ingredientId: {
           ingredientId: job.ingredientId,
           organizationId: job.organizationId,
         },
-      }),
+      },
     });
   }
 

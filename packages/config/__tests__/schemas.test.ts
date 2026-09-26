@@ -1271,3 +1271,30 @@ describe('media perception configuration', () => {
     expect(Joi.object(generalAiSchema).validate(value).error).toBeDefined();
   });
 });
+
+describe('moderation configuration', () => {
+  it('keeps media on the host by default', () => {
+    const result = Joi.object(generalAiSchema).validate({});
+    expect(result.value).toMatchObject({
+      MODERATION_MODE: 'shadow',
+      MODERATION_PROVIDER: 'none',
+    });
+  });
+
+  it('accepts category threshold overrides', () => {
+    expect(
+      Joi.object(generalAiSchema).validate({
+        MODERATION_THRESHOLDS: 'sexual=0.5, violence=0.75,hate=1',
+      }).error,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    { MODERATION_PROVIDER: 'acme' },
+    { MODERATION_MODE: 'loud' },
+    { MODERATION_THRESHOLDS: 'sexual=1.5' },
+    { MODERATION_THRESHOLDS: 'sexual' },
+  ])('rejects %o', (value) => {
+    expect(Joi.object(generalAiSchema).validate(value).error).toBeDefined();
+  });
+});
