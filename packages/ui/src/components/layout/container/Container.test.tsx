@@ -297,6 +297,52 @@ describe('Container', () => {
     expect(container.className).not.toMatch(/\bsm:pt-4\b/);
   });
 
+  it('keeps SectionTopbar mounted via forceModuleChrome when there is no right content', () => {
+    render(
+      <Container label="Clips" titleVisibility="sr-only" forceModuleChrome>
+        content
+      </Container>,
+    );
+
+    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
+  });
+
+  it('keeps the same module chrome across a forceModuleChrome page as right content appears and disappears', () => {
+    const { rerender } = render(
+      <Container label="Clips" titleVisibility="sr-only" forceModuleChrome>
+        content
+      </Container>,
+    );
+
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
+
+    rerender(
+      <Container
+        label="Clips"
+        titleVisibility="sr-only"
+        forceModuleChrome
+        right={<button type="button">All projects</button>}
+      >
+        content
+      </Container>,
+    );
+
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
+    expect(
+      screen.getByRole('button', { name: 'All projects' }),
+    ).toBeInTheDocument();
+  });
+
   it('lifts body-only tabs into SectionTopbar (no orphan strip)', () => {
     render(
       <Container

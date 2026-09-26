@@ -82,6 +82,14 @@ export interface ContainerProps {
   right?: ReactNode;
   /** Explicit help popover; `null` hides the route-level help for this page. */
   help?: PageHelpContent | null;
+  /**
+   * Keep module-local chrome (`SectionTopbar`) rendered even when there are
+   * no `headerTabs` / body `tabs` / `leading` / `right` to show. Use this
+   * when a page's chrome would otherwise flip between the classic layout and
+   * `SectionTopbar` as transient state (loading, empty list) toggles whether
+   * `right` is defined.
+   */
+  forceModuleChrome?: boolean;
 }
 
 export interface LinkProps {

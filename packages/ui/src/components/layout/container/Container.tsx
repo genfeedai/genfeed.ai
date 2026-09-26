@@ -48,6 +48,7 @@ export default function Container({
   bodyClassName,
   fullWidth = true,
   className = '',
+  forceModuleChrome = false,
 }: ContainerProps) {
   const isNested = useContext(ContainerInsetContext);
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
@@ -92,7 +93,8 @@ export default function Container({
       shouldPromoteBodyTabs ||
       shouldLiftBodyTabsAlone ||
       hasLeading ||
-      (!hasVisibleTitle && hasHeaderRight)
+      (!hasVisibleTitle && hasHeaderRight) ||
+      forceModuleChrome
     );
 
   const insetClassName = fullWidth && !isNested ? 'px-5 sm:px-6' : '';
@@ -104,7 +106,8 @@ export default function Container({
     shouldPromoteBodyTabs ||
     shouldLiftBodyTabsAlone ||
     hasLeading ||
-    (!hasVisibleTitle && hasHeaderRight);
+    (!hasVisibleTitle && hasHeaderRight) ||
+    forceModuleChrome;
 
   // Visible title + primary actions only (e.g. admin "Invite") — padded row.
   const usesTitleActionToolbar =
