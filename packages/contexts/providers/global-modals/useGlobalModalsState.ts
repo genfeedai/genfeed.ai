@@ -348,9 +348,7 @@ export function useGlobalModalsState() {
       if (createdBrandId) {
         try {
           const service = await getUsersService();
-          await service.patchMeBrand(createdBrandId, {
-            isSelected: true,
-          });
+          await service.patchMeBrand(createdBrandId);
 
           logger.info(`Selected newly created brand: ${createdBrandId}`);
 

@@ -78,29 +78,15 @@ describe('UsersService', () => {
     expect(result[0]).toBeInstanceOf(Organization);
   });
 
-  it('patchMeBrand PATCHes the brand under me/brands', async () => {
+  it('patchMeBrand PATCHes the brand under me/brands with no body', async () => {
     http.patch.mockResolvedValue(
-      axiosResponse(resourceDocument({ label: 'Renamed' }, { id: 'brand_1' })),
+      axiosResponse(resourceDocument({ label: 'Selected' }, { id: 'brand_1' })),
     );
 
-    const result = await service.patchMeBrand('brand_1', {
-      label: 'Renamed',
-    });
+    const result = await service.patchMeBrand('brand_1');
 
-    expect(http.patch).toHaveBeenCalledWith('me/brands/brand_1', {
-      label: 'Renamed',
-    });
+    expect(http.patch).toHaveBeenCalledWith('me/brands/brand_1', {});
     expect(result).toBeInstanceOf(Brand);
-  });
-
-  it('clearMeBrandSelection PATCHes a null selectedBrandId', async () => {
-    http.patch.mockResolvedValue(
-      axiosResponse(resourceDocument({ email: 'a@b.c' }, { id: 'user_1' })),
-    );
-
-    await service.clearMeBrandSelection();
-
-    expect(http.patch).toHaveBeenCalledWith('me', { selectedBrandId: null });
   });
 
   it('patchSettings serializes and PATCHes user settings', async () => {

@@ -28,7 +28,7 @@ export function useBrandSwitchHandler(
         });
 
         const service = await getUsersService();
-        await service.patchMeBrand(newBrandId, { isSelected: true });
+        await service.patchMeBrand(newBrandId);
         await user.reload();
 
         onBrandChange?.(newBrandId);

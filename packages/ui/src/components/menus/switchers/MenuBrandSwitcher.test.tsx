@@ -2,12 +2,11 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
-const mockClearMeBrandSelection = vi.hoisted(() => vi.fn());
 const mockPatchMeBrand = vi.hoisted(() => vi.fn());
 const mockReloadUser = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
@@ -55,7 +54,6 @@ vi.mock(
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () =>
     vi.fn(async () => ({
-      clearMeBrandSelection: mockClearMeBrandSelection,
       patchMeBrand: mockPatchMeBrand,
     })),
 }));
@@ -63,7 +61,6 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: () => ({
-      clearMeBrandSelection: mockClearMeBrandSelection,
       patchMeBrand: mockPatchMeBrand,
     }),
   },
@@ -115,8 +112,6 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
-    mockClearMeBrandSelection.mockReset();
-    mockClearMeBrandSelection.mockResolvedValue({});
     mockPatchMeBrand.mockReset();
     mockPatchMeBrand.mockResolvedValue({});
     mockReloadUser.mockReset();
@@ -215,7 +210,7 @@ describe('MenuBrandSwitcher', () => {
     expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
   });
 
-  it('renders a clear-selection control without adding a synthetic scope row', async () => {
+  it('renders a clear-selection control without adding a synthetic scope row', () => {
     const onClearSelection = vi.fn();
 
     render(
@@ -245,9 +240,6 @@ describe('MenuBrandSwitcher', () => {
       screen.getByRole('button', { name: 'Clear brand selection' }),
     );
 
-    await waitFor(() => {
-      expect(mockClearMeBrandSelection).toHaveBeenCalledTimes(1);
-    });
     expect(onClearSelection).toHaveBeenCalledTimes(1);
     expect(mockPatchMeBrand).not.toHaveBeenCalled();
   });
