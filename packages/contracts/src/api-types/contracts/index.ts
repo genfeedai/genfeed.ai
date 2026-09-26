@@ -36,6 +36,7 @@ export * from './grok-trend-extraction.contract';
 export * from './ingredients.contract';
 export * from './instagram-authorized-signals.contract';
 export * from './linkedin-authorized-signals.contract';
+export * from './media-assessment.contract';
 export * from './media-moderation.contract';
 export * from './media-perception.contract';
 export * from './media-readiness.contract';

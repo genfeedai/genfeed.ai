@@ -137,7 +137,11 @@ describe('BatchGenerationService approval version pins', () => {
         BatchGenerationReviewService,
         {
           provide: AutonomousPublishPolicyService,
-          useValue: { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() },
+          useValue: {
+            assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+            recordReviewDecision: vi.fn(),
+            resolveForPost: vi.fn(),
+          },
         },
         { provide: PostLifecycleService, useValue: postLifecycleService },
         BatchGenerationService,

@@ -26,6 +26,12 @@ export const modelDiscoveryDecisionSchema = {
  * video or audio asset into persisted text artefacts off the publish path.
  */
 export const mediaValidationSchema = {
+  // Vision-evaluation flags (#4881): the scorer's typed rubric over perceived
+  // frames. `shadow` records flags on the evaluation without gating; `live`
+  // forces review on a flagged asset. Costs one vision call per asset.
+  MEDIA_GATE_VISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
   // Frames, OCR and transcript need no model; the scene description calls the
   // vision model below. `false` stops the workers sweep from enqueuing assets.
   MEDIA_PERCEPTION_ENABLED: Joi.string().valid('true', 'false').default('true'),

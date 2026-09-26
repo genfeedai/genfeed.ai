@@ -1,3 +1,4 @@
+import { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
@@ -33,6 +34,7 @@ export class CronMediaPerceptionService {
     private readonly queueService: MediaPerceptionQueueService,
     private readonly mediaModerationService: MediaModerationService,
     private readonly moderationQueueService: MediaModerationQueueService,
+    private readonly mediaVisionEvaluationService: MediaVisionEvaluationService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -84,11 +86,19 @@ export class CronMediaPerceptionService {
 
     // Moderation (#4880) follows perception: assets whose artefacts settled
     // without a moderation record. Empty when no provider is active.
-    const unmoderated = await this.mediaModerationService.findUnmoderatedAssets(
-      since,
-      MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
-    );
-    for (const candidate of unmoderated) {
+    // Vision flags (#4881) run in the same gates job; the shared job id
+    // dedupes an asset that needs both.
+    const [unmoderated, unevaluated] = await Promise.all([
+      this.mediaModerationService.findUnmoderatedAssets(
+        since,
+        MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
+      ),
+      this.mediaVisionEvaluationService.findUnevaluatedAssets(
+        since,
+        MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
+      ),
+    ]);
+    for (const candidate of [...unmoderated, ...unevaluated]) {
       if (
         await this.tryEnqueue(() =>
           this.moderationQueueService.enqueue(candidate),
