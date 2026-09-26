@@ -1,3 +1,19 @@
+/**
+ * DI-resolution smoke test for `E2ETestModule` (#4375).
+ *
+ * Deliberately lives at `test/` root, NOT `test/integration/`: this file
+ * never touches Postgres (`setup-unit.ts` mocks `@genfeedai/prisma`), so it
+ * runs under `vitest.config.ts` on every API PR via `test-api-changed` /
+ * `test-api`. `test/integration/**` is excluded from that config and only
+ * runs in the nightly/dispatch-only `e2e.yml` suite (see #4375) — moving a
+ * fixture-contract spec back under `test/integration/` silently removes it
+ * from PR coverage. When #5079 added a PostsService constructor dependency
+ * and #5136 changed AgentAutopilotWorkflowService's collaborators, neither
+ * broke a PR because the E2E-only integration suite that would have caught
+ * it doesn't run there. Keep this file's DI-graph assertions (and any new
+ * ones for future collaborator additions) here so a broken constructor graph
+ * fails fast on the PR that breaks it.
+ */
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
@@ -11,6 +27,7 @@ import { CredentialCryptoService } from '@api/collections/credentials/services/c
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
@@ -88,6 +105,7 @@ describe('E2E fixture contracts', () => {
     const expectedCollectionTokens = [
       BillingAccountsService,
       CreditReservationService,
+      OnboardingCreditGrantsService,
       CredentialCryptoService,
       ProviderAccountPurgeService,
       StreaksService,

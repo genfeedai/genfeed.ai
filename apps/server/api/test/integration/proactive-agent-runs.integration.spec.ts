@@ -74,6 +74,28 @@ describe('proactive organization to strategy run and attributed draft integratio
         }),
       },
       workflowExecution: {
+        findFirst: vi.fn(async ({ where }: { where: Row }) => {
+          const resultFilter = where.result as
+            | { path?: string[]; equals?: unknown }
+            | undefined;
+          const dispatchId =
+            resultFilter?.path?.[1] === 'dispatchId'
+              ? resultFilter.equals
+              : undefined;
+          if (!dispatchId) return null;
+          for (const row of executions.values()) {
+            const metadata = (row.result as Row | undefined)?.metadata as
+              | Row
+              | undefined;
+            if (
+              row.organizationId === where.organizationId &&
+              metadata?.dispatchId === dispatchId
+            ) {
+              return { id: row.id };
+            }
+          }
+          return null;
+        }),
         findUnique: vi.fn(
           async ({ where }) => executions.get(where.id) ?? null,
         ),
@@ -89,6 +111,13 @@ describe('proactive organization to strategy run and attributed draft integratio
           Object.assign(row ?? {}, data);
           return row;
         }),
+      },
+      agentThread: {
+        findFirst: vi.fn(async () => null),
+        create: vi.fn(async ({ data }: { data: Row }) => ({
+          id: 'thread',
+          ...data,
+        })),
       },
       creditTransaction: {
         findMany: vi.fn(async () => [
@@ -157,7 +186,22 @@ describe('proactive organization to strategy run and attributed draft integratio
     };
     const autopilot = new AgentAutopilotWorkflowService(
       prisma as never,
-      { create: vi.fn().mockResolvedValue({ id: 'thread' }) } as never,
+      {
+        getPerformanceSnapshot: vi.fn().mockResolvedValue({
+          bestPlatformFormatPairs: [],
+          bestPostingWindows: [],
+          clicks: 0,
+          costPerVisit: null,
+          creditsSpent: 0,
+          ctr: 0,
+          generatedCount: 0,
+          impressions: 0,
+          publishedCount: 0,
+          topHooks: [],
+          topTopics: [],
+          visits: null,
+        }),
+      } as never,
       runner as never,
       {
         getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),

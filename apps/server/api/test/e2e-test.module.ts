@@ -20,6 +20,7 @@ import { CredentialCryptoService } from '@api/collections/credentials/services/c
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -331,6 +332,13 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
       release: () => Promise.resolve(null),
       reserve: () => Promise.resolve(null),
       settle: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: OnboardingCreditGrantsService,
+    useValue: {
+      completeMissions: () => Promise.resolve([]),
+      grantSignupGift: () => Promise.resolve(),
     },
   },
   {
