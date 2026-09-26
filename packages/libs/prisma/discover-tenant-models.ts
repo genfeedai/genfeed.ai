@@ -2,6 +2,14 @@
  * Shared tenant-model inventory for the compile-time tenant-scope ratchet and
  * the runtime Prisma query guard. A model is tenant-scoped when it carries
  * both `organizationId` and `isDeleted`.
+ *
+ * A tenant model that also carries `billingAccountId` is "billing-account
+ * capable" (#5217): its rows may be shared across the organizations linked to
+ * one billing account, so `organizationId` is not always the right proof of
+ * access. `discoverBillingAccountModelNames` / `billingAccountModelNamesFromMetadata`
+ * identify that subset so the static checker and the runtime guard can accept
+ * `billingAccountScopedWhere` as an alternative proof, without touching the
+ * organization-scope rule for every other tenant model.
  */
 
 export type TenantModel = {
@@ -42,8 +50,25 @@ export function isTenantScopedFieldSet(fieldNames: readonly string[]): boolean {
   );
 }
 
-export function discoverTenantModels(schema: string): TenantModel[] {
-  const tenantModels: TenantModel[] = [];
+/**
+ * A model is "billing-account capable" when it carries `billingAccountId` at
+ * all. Whether it is also a tenant model (has `organizationId`) is decided
+ * separately — the checker and the runtime guard only grant the
+ * `billingAccountScopedWhere` alternative to models that are both.
+ */
+export function isBillingAccountScopedFieldSet(
+  fieldNames: readonly string[],
+): boolean {
+  return fieldNames.includes('billingAccountId');
+}
+
+type SchemaModelFields = {
+  fieldNames: string[];
+  model: string;
+};
+
+function parseSchemaModelFields(schema: string): SchemaModelFields[] {
+  const models: SchemaModelFields[] = [];
   const modelPattern =
     /^[ \t]*model\s+([A-Za-z_]\w*)\s+\{([\s\S]*?)^[ \t]*\}/gmu;
 
@@ -58,6 +83,16 @@ export function discoverTenantModels(schema: string): TenantModel[] {
       (fieldMatch) => fieldMatch[1] ?? '',
     );
 
+    models.push({ fieldNames, model });
+  }
+
+  return models;
+}
+
+export function discoverTenantModels(schema: string): TenantModel[] {
+  const tenantModels: TenantModel[] = [];
+
+  for (const { fieldNames, model } of parseSchemaModelFields(schema)) {
     if (!isTenantScopedFieldSet(fieldNames)) {
       continue;
     }
@@ -69,6 +104,26 @@ export function discoverTenantModels(schema: string): TenantModel[] {
   }
 
   return sortTenantModels(tenantModels);
+}
+
+/**
+ * Model names (schema `model X` casing) that carry `billingAccountId`,
+ * regardless of whether they are also tenant models. Callers that need the
+ * "billing-account capable tenant model" set intersect this with
+ * `discoverTenantModels`'s output.
+ */
+export function discoverBillingAccountModelNames(
+  schema: string,
+): ReadonlySet<string> {
+  const modelNames = new Set<string>();
+
+  for (const { fieldNames, model } of parseSchemaModelFields(schema)) {
+    if (isBillingAccountScopedFieldSet(fieldNames)) {
+      modelNames.add(model);
+    }
+  }
+
+  return modelNames;
 }
 
 export function tenantModelsFromMetadata(
@@ -88,6 +143,21 @@ export function tenantModelsFromMetadata(
   }
 
   return sortTenantModels(tenantModels);
+}
+
+/** Metadata-driven counterpart of `discoverBillingAccountModelNames`. */
+export function billingAccountModelNamesFromMetadata(
+  metadata: Readonly<Record<string, TenantModelFieldInventory>>,
+): ReadonlySet<string> {
+  const modelNames = new Set<string>();
+
+  for (const [model, inventory] of Object.entries(metadata)) {
+    if (isBillingAccountScopedFieldSet(inventory.allFields)) {
+      modelNames.add(model);
+    }
+  }
+
+  return modelNames;
 }
 
 function lowerFirst(value: string): string {
