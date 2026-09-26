@@ -34,6 +34,40 @@ describe('GenerationHarnessReceipt', () => {
     expect(screen.getByText('Prompt enhanced')).toBeInTheDocument();
     expect(screen.getByText('brand-fidelity · 1.0')).toBeInTheDocument();
   });
+  it('lists the exact Knowledge versions folded into the prompt', () => {
+    render(
+      <GenerationHarnessReceipt
+        receipt={{
+          originalPrompt: 'Mascot poster',
+          enhancedPrompt: 'Mascot poster with a teal heron.',
+          status: 'applied',
+          source: 'request',
+          brandId: 'brand-1',
+          appliedPacks: [],
+          knowledgeReceipts: [
+            {
+              excerpt: 'Our mascot is a teal heron named Pim.',
+              kind: 'TEXT',
+              purpose: 'BRAND_TRUTH',
+              relevance: 0.55,
+              sourceId: 'source-1',
+              title: 'Brand facts',
+              version: 2,
+              versionId: 'version-2',
+            } as never,
+          ],
+        }}
+      />,
+      { wrapper: EnglishMessages },
+    );
+
+    const receipts = screen.getByRole('region', { name: 'Knowledge sources' });
+    expect(receipts).toHaveTextContent('Brand facts');
+    expect(receipts).toHaveTextContent('Brand Truth');
+    expect(receipts).toHaveTextContent('Version 2');
+    expect(receipts).toHaveTextContent('Our mascot is a teal heron named Pim.');
+  });
+
   it('distinguishes skipped enhancement from an applied rewrite', () => {
     render(
       <GenerationHarnessReceipt

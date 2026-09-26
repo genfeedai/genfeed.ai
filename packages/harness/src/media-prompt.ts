@@ -1,4 +1,8 @@
-import type { ContentHarnessBrief, ContentKind } from './types';
+import type {
+  ContentHarnessBrief,
+  ContentKind,
+  HarnessSourceRecord,
+} from './types';
 
 const VISUAL_KINDS = new Set<ContentKind>([
   'ad-creative',
@@ -6,6 +10,37 @@ const VISUAL_KINDS = new Set<ContentKind>([
   'ugc',
   'video',
 ]);
+
+const MEDIA_KNOWLEDGE_SOURCE_LIMIT = 4;
+const MEDIA_KNOWLEDGE_SOURCE_CHARS = 300;
+
+function truncate(content: string, maxChars: number): string {
+  return content.length > maxChars
+    ? `${content.slice(0, maxChars - 1).trimEnd()}…`
+    : content;
+}
+
+function isCitedKnowledgeSource(source: HarnessSourceRecord): boolean {
+  const citation = source.metadata?.citation;
+  return typeof citation === 'object' && citation !== null;
+}
+
+/**
+ * The cited Knowledge passages a media prompt folds in, bounded and trimmed
+ * exactly as they appear in the prompt, so receipts built from this list name
+ * only what the generation actually saw.
+ */
+export function selectMediaKnowledgeSources(
+  brief: ContentHarnessBrief | null | undefined,
+): HarnessSourceRecord[] {
+  return (brief?.sources ?? [])
+    .filter(isCitedKnowledgeSource)
+    .slice(0, MEDIA_KNOWLEDGE_SOURCE_LIMIT)
+    .map((source) => ({
+      ...source,
+      content: truncate(source.content, MEDIA_KNOWLEDGE_SOURCE_CHARS),
+    }));
+}
 
 /**
  * Fold a harness brief into a media/generation prompt.
@@ -46,23 +81,30 @@ export function buildMediaPromptFromHarness(
     );
   }
 
+  const knowledgeSources = selectMediaKnowledgeSources(brief);
+  if (knowledgeSources.length > 0) {
+    lines.push('Brand knowledge:');
+    for (const source of knowledgeSources) {
+      lines.push(`- ${source.content}`);
+    }
+  }
+
   const exampleSources = brief.sources
     .filter(
       (source) =>
-        source.kind === 'brand_example' ||
-        source.kind === 'anti_example' ||
-        source.kind === 'performance_winner',
+        !isCitedKnowledgeSource(source) &&
+        (source.kind === 'brand_example' ||
+          source.kind === 'anti_example' ||
+          source.kind === 'performance_winner'),
     )
     .slice(0, maxSources);
 
   if (exampleSources.length > 0) {
     lines.push('Brand reference signals:');
     for (const source of exampleSources) {
-      const content =
-        source.content.length > maxSourceChars
-          ? `${source.content.slice(0, maxSourceChars - 1).trimEnd()}…`
-          : source.content;
-      lines.push(`- [${source.kind}] ${content}`);
+      lines.push(
+        `- [${source.kind}] ${truncate(source.content, maxSourceChars)}`,
+      );
     }
   }
 

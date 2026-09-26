@@ -75,3 +75,14 @@ export const ingredientAttributes = createEntityAttributes([
   'fileSize',
   'mimeType',
 ]);
+
+/**
+ * Request-only fields a Studio image or video generation sends. They are not
+ * stored on the ingredient, so only generation request serializers carry them;
+ * without them the JSON:API serializer silently drops the fields.
+ */
+export const generationRequestAttributes = createEntityAttributes([
+  'harness',
+  'knowledge',
+  'requestedSkillSlugs',
+]);

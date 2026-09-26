@@ -1,3 +1,5 @@
+import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';
+
 export interface GenerationHarnessSettings {
   organizationEnabled: boolean | null;
   brandEnabled: boolean | null;
@@ -24,4 +26,6 @@ export interface GenerationHarnessReceipt {
   source: 'default' | 'organization' | 'brand' | 'request';
   brandId: string;
   appliedPacks: Array<{ id: string; version: string }>;
+  /** Exact Knowledge source versions folded into the enhanced prompt. */
+  knowledgeReceipts?: KnowledgeReceipt[];
 }
