@@ -24,12 +24,6 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 238,
-    "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-    "metric": "method-lines",
-    "symbol": "BillingAccountsService.linkOrganization"
-  },
-  {
     "actual": 182,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",

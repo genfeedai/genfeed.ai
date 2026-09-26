@@ -31,6 +31,7 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   crossOrgUnsafe,
@@ -243,236 +244,7 @@ export class BillingAccountsService {
     // really proven.
     const linkedAccount = await withBillingAccountScopeRollback(() =>
       this.prisma.$transaction(
-        async (tx) => {
-          const currentAccount = await tx.billingAccount.findFirst({
-            where: { id: account.id, isDeleted: false },
-          });
-          if (!currentAccount) {
-            throw new NotFoundException('BillingAccount');
-          }
-
-          const organization = await tx.organization.findFirst({
-            select: { billingAccountId: true, id: true },
-            where: { id: input.organizationId, isDeleted: false },
-          });
-          if (!organization) {
-            throw new NotFoundException('Organization');
-          }
-          const targetMembership = await tx.member.findFirst({
-            select: { role: { select: { key: true } }, roleKey: true },
-            where: {
-              isActive: true,
-              isDeleted: false,
-              organizationId: input.organizationId,
-              userId: input.actorUserId,
-            },
-          });
-          const targetRole =
-            targetMembership?.roleKey ?? targetMembership?.role.key;
-          if (
-            targetRole !== MemberRole.OWNER &&
-            targetRole !== MemberRole.ADMIN
-          ) {
-            throw new ForbiddenException(
-              'Organization administration permission required',
-            );
-          }
-          if (
-            organization.billingAccountId &&
-            organization.billingAccountId !== currentAccount.id
-          ) {
-            throw new ConflictException(
-              'Organization already belongs to another billing account',
-            );
-          }
-
-          const conflictingLink = await tx.billingAccountOrganization.findFirst(
-            {
-              where: {
-                billingAccountId: { not: currentAccount.id },
-                isDeleted: false,
-                organizationId: input.organizationId,
-                status: BillingAccountOrganizationStatus.LINKED,
-              },
-            },
-          );
-          if (conflictingLink) {
-            throw new ConflictException(
-              'Organization already belongs to another billing account',
-            );
-          }
-
-          const alreadyLinked = await tx.billingAccountOrganization.findFirst({
-            where: {
-              billingAccountId: currentAccount.id,
-              isDeleted: false,
-              organizationId: input.organizationId,
-              status: BillingAccountOrganizationStatus.LINKED,
-            },
-          });
-          if (!alreadyLinked) {
-            // The plan-limit count runs before this organization is linked
-            // (that's what the rest of this transaction is about to do), so
-            // there is no organizationId-based proof to resolve yet — this
-            // is authorized instead by the actor's BillingAccountMember role
-            // on currentAccount.id, already verified above by requireRole.
-            const linkedCount = await crossOrgUnsafe(
-              async () =>
-                // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
-                await tx.billingAccountOrganization.count({
-                  where: {
-                    billingAccountId: currentAccount.id,
-                    isDeleted: false,
-                    status: BillingAccountOrganizationStatus.LINKED,
-                  },
-                }),
-            );
-            const limit = this.organizationLimitForTier(
-              currentAccount.planTier,
-            );
-            if (limit !== null && linkedCount >= limit) {
-              throw new PlanLimitExceededException({
-                currentCount: linkedCount,
-                limit,
-                resource: 'organizations',
-                upgradeTier: getUpgradeTierForLimit(
-                  'organizations',
-                  this.parseTier(currentAccount.planTier),
-                ),
-              });
-            }
-
-            await tx.billingAccountOrganization.create({
-              data: {
-                billingAccountId: currentAccount.id,
-                organizationId: input.organizationId,
-                status: BillingAccountOrganizationStatus.LINKED,
-              },
-            });
-          }
-
-          await tx.organization.update({
-            data: { billingAccountId: currentAccount.id },
-            where: { id: input.organizationId },
-          });
-
-          // The update above is what makes this organization-scoped proof
-          // (#5217) succeed: resolveBillingAccountAccess re-reads the
-          // organization it just wrote and follows its now-current
-          // billingAccountId, inside the same transaction.
-          const scope = await resolveBillingAccountAccess(
-            input.organizationId,
-            tx,
-          );
-
-          const orgBalance = await tx.creditBalance.findFirst({
-            where: { isDeleted: false, organizationId: input.organizationId },
-          });
-          const accountBalance = await tx.creditBalance.findFirst({
-            where: billingAccountScopedWhere(scope, {}),
-          });
-
-          if (
-            orgBalance?.billingAccountId &&
-            orgBalance.billingAccountId !== currentAccount.id
-          ) {
-            throw new ConflictException(
-              'Organization credit balance belongs to another billing account',
-            );
-          }
-
-          if (
-            orgBalance &&
-            accountBalance &&
-            orgBalance.id !== accountBalance.id
-          ) {
-            const mergedBalance = await tx.creditBalance.updateMany({
-              data: {
-                balance: { increment: orgBalance.balance },
-                heldAmount: { increment: orgBalance.heldAmount },
-                version: { increment: 1 },
-              },
-              where: billingAccountScopedWhere(scope, {
-                id: accountBalance.id,
-              }),
-            });
-            if (mergedBalance.count !== 1) {
-              throw new ConflictException(
-                'Billing account credit balance changed during organization link',
-              );
-            }
-
-            const retiredBalance = await tx.creditBalance.updateMany({
-              data: { isDeleted: true },
-              where: {
-                id: orgBalance.id,
-                isDeleted: false,
-                organizationId: input.organizationId,
-                OR: [
-                  { billingAccountId: null },
-                  { billingAccountId: currentAccount.id },
-                ],
-              },
-            });
-            if (retiredBalance.count !== 1) {
-              throw new ConflictException(
-                'Organization credit balance changed during billing account link',
-              );
-            }
-          } else if (orgBalance && !orgBalance.billingAccountId) {
-            const attachedBalance = await tx.creditBalance.updateMany({
-              data: { billingAccountId: currentAccount.id },
-              where: {
-                billingAccountId: null,
-                id: orgBalance.id,
-                isDeleted: false,
-                organizationId: input.organizationId,
-              },
-            });
-            if (attachedBalance.count !== 1) {
-              throw new ConflictException(
-                'Organization credit balance changed during billing account link',
-              );
-            }
-          } else if (!orgBalance && !accountBalance) {
-            await tx.creditBalance.create({
-              data: {
-                balance: 0,
-                billingAccountId: currentAccount.id,
-                heldAmount: 0,
-                organizationId: input.organizationId,
-                version: 0,
-              },
-            });
-          }
-
-          await tx.customer.updateMany({
-            data: { billingAccountId: currentAccount.id },
-            where: { isDeleted: false, organizationId: input.organizationId },
-          });
-          await tx.subscription.updateMany({
-            data: { billingAccountId: currentAccount.id },
-            where: { isDeleted: false, organizationId: input.organizationId },
-          });
-          await tx.creditTransaction.updateMany({
-            data: { billingAccountId: currentAccount.id },
-            where: {
-              billingAccountId: null,
-              isDeleted: false,
-              organizationId: input.organizationId,
-            },
-          });
-          await tx.creditReservation.updateMany({
-            data: { billingAccountId: currentAccount.id },
-            where: {
-              isDeleted: false,
-              organizationId: input.organizationId,
-              status: CreditReservationStatus.RESERVED,
-            },
-          });
-
-          return currentAccount;
-        },
+        (tx) => this.runLinkOrganizationTransaction(tx, input, account.id),
         { isolationLevel: 'Serializable' },
       ),
     );
@@ -483,6 +255,313 @@ export class BillingAccountsService {
     });
 
     return linkedAccount;
+  }
+
+  /**
+   * The transactional body of `linkOrganization` (#5217) — split out purely
+   * to keep the orchestrating method and each phase under the runtime
+   * complexity ratchet. Order matters: eligibility must be proven before the
+   * link is created, the link must exist before `organization.billingAccountId`
+   * is rewritten, and that rewrite must land before `resolveBillingAccountAccess`
+   * re-reads it to mint the scope the credit-balance and cascade phases need.
+   */
+  private async runLinkOrganizationTransaction(
+    tx: Prisma.TransactionClient,
+    input: {
+      billingAccountId: string;
+      organizationId: string;
+      actorUserId: string;
+    },
+    billingAccountId: string,
+  ) {
+    const currentAccount = await tx.billingAccount.findFirst({
+      where: { id: billingAccountId, isDeleted: false },
+    });
+    if (!currentAccount) {
+      throw new NotFoundException('BillingAccount');
+    }
+
+    await this.assertOrganizationLinkable(
+      tx,
+      input.organizationId,
+      input.actorUserId,
+      currentAccount.id,
+    );
+    await this.ensureBillingAccountOrganizationLink(
+      tx,
+      currentAccount,
+      input.organizationId,
+    );
+
+    await tx.organization.update({
+      data: { billingAccountId: currentAccount.id },
+      where: { id: input.organizationId },
+    });
+
+    // The update above is what makes this organization-scoped proof
+    // (#5217) succeed: resolveBillingAccountAccess re-reads the
+    // organization it just wrote and follows its now-current
+    // billingAccountId, inside the same transaction.
+    const scope = await resolveBillingAccountAccess(input.organizationId, tx);
+
+    await this.reconcileCreditBalanceForLink(
+      tx,
+      scope,
+      currentAccount,
+      input.organizationId,
+    );
+    await this.cascadeBillingOwnershipToRelatedRecords(
+      tx,
+      currentAccount.id,
+      input.organizationId,
+    );
+
+    return currentAccount;
+  }
+
+  /**
+   * Validates that `organizationId` may be linked to `currentAccountId`:
+   * the organization exists, the actor holds org-admin permission on it,
+   * and it isn't already tied — by FK or by an active
+   * BillingAccountOrganization row — to a different billing account.
+   */
+  private async assertOrganizationLinkable(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    actorUserId: string,
+    currentAccountId: string,
+  ): Promise<void> {
+    const organization = await tx.organization.findFirst({
+      select: { billingAccountId: true, id: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    if (!organization) {
+      throw new NotFoundException('Organization');
+    }
+    const targetMembership = await tx.member.findFirst({
+      select: { role: { select: { key: true } }, roleKey: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+        userId: actorUserId,
+      },
+    });
+    const targetRole = targetMembership?.roleKey ?? targetMembership?.role.key;
+    if (targetRole !== MemberRole.OWNER && targetRole !== MemberRole.ADMIN) {
+      throw new ForbiddenException(
+        'Organization administration permission required',
+      );
+    }
+    if (
+      organization.billingAccountId &&
+      organization.billingAccountId !== currentAccountId
+    ) {
+      throw new ConflictException(
+        'Organization already belongs to another billing account',
+      );
+    }
+
+    const conflictingLink = await tx.billingAccountOrganization.findFirst({
+      where: {
+        billingAccountId: { not: currentAccountId },
+        isDeleted: false,
+        organizationId,
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+    if (conflictingLink) {
+      throw new ConflictException(
+        'Organization already belongs to another billing account',
+      );
+    }
+  }
+
+  /**
+   * Creates the LINKED `BillingAccountOrganization` row for `organizationId`
+   * if one doesn't already exist, enforcing the plan's linked-organization
+   * limit first. No-ops when the link is already there (idempotent re-link).
+   */
+  private async ensureBillingAccountOrganizationLink(
+    tx: Prisma.TransactionClient,
+    currentAccount: { id: string; planTier: string | null },
+    organizationId: string,
+  ): Promise<void> {
+    const alreadyLinked = await tx.billingAccountOrganization.findFirst({
+      where: {
+        billingAccountId: currentAccount.id,
+        isDeleted: false,
+        organizationId,
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+    if (alreadyLinked) {
+      return;
+    }
+
+    // The plan-limit count runs before this organization is linked
+    // (that's what the rest of this transaction is about to do), so
+    // there is no organizationId-based proof to resolve yet — this
+    // is authorized instead by the actor's BillingAccountMember role
+    // on currentAccount.id, already verified by requireRole in
+    // linkOrganization before this transaction opened.
+    const linkedCount = await crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
+        await tx.billingAccountOrganization.count({
+          where: {
+            billingAccountId: currentAccount.id,
+            isDeleted: false,
+            status: BillingAccountOrganizationStatus.LINKED,
+          },
+        }),
+    );
+    const limit = this.organizationLimitForTier(currentAccount.planTier);
+    if (limit !== null && linkedCount >= limit) {
+      throw new PlanLimitExceededException({
+        currentCount: linkedCount,
+        limit,
+        resource: 'organizations',
+        upgradeTier: getUpgradeTierForLimit(
+          'organizations',
+          this.parseTier(currentAccount.planTier),
+        ),
+      });
+    }
+
+    await tx.billingAccountOrganization.create({
+      data: {
+        billingAccountId: currentAccount.id,
+        organizationId,
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+  }
+
+  /**
+   * Merges, attaches, or creates the billing account's shared CreditBalance
+   * for `organizationId`, depending on whether the organization already had
+   * its own wallet and whether the billing account already has one from a
+   * previously linked organization.
+   */
+  private async reconcileCreditBalanceForLink(
+    tx: Prisma.TransactionClient,
+    scope: BillingAccountScope,
+    currentAccount: { id: string },
+    organizationId: string,
+  ): Promise<void> {
+    const orgBalance = await tx.creditBalance.findFirst({
+      where: { isDeleted: false, organizationId },
+    });
+    const accountBalance = await tx.creditBalance.findFirst({
+      where: billingAccountScopedWhere(scope, {}),
+    });
+
+    if (
+      orgBalance?.billingAccountId &&
+      orgBalance.billingAccountId !== currentAccount.id
+    ) {
+      throw new ConflictException(
+        'Organization credit balance belongs to another billing account',
+      );
+    }
+
+    if (orgBalance && accountBalance && orgBalance.id !== accountBalance.id) {
+      const mergedBalance = await tx.creditBalance.updateMany({
+        data: {
+          balance: { increment: orgBalance.balance },
+          heldAmount: { increment: orgBalance.heldAmount },
+          version: { increment: 1 },
+        },
+        where: billingAccountScopedWhere(scope, {
+          id: accountBalance.id,
+        }),
+      });
+      if (mergedBalance.count !== 1) {
+        throw new ConflictException(
+          'Billing account credit balance changed during organization link',
+        );
+      }
+
+      const retiredBalance = await tx.creditBalance.updateMany({
+        data: { isDeleted: true },
+        where: {
+          id: orgBalance.id,
+          isDeleted: false,
+          organizationId,
+          OR: [
+            { billingAccountId: null },
+            { billingAccountId: currentAccount.id },
+          ],
+        },
+      });
+      if (retiredBalance.count !== 1) {
+        throw new ConflictException(
+          'Organization credit balance changed during billing account link',
+        );
+      }
+    } else if (orgBalance && !orgBalance.billingAccountId) {
+      const attachedBalance = await tx.creditBalance.updateMany({
+        data: { billingAccountId: currentAccount.id },
+        where: {
+          billingAccountId: null,
+          id: orgBalance.id,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      if (attachedBalance.count !== 1) {
+        throw new ConflictException(
+          'Organization credit balance changed during billing account link',
+        );
+      }
+    } else if (!orgBalance && !accountBalance) {
+      await tx.creditBalance.create({
+        data: {
+          balance: 0,
+          billingAccountId: currentAccount.id,
+          heldAmount: 0,
+          organizationId,
+          version: 0,
+        },
+      });
+    }
+  }
+
+  /**
+   * Repoints the organization's remaining billing-owned records — customer,
+   * subscription, unattributed credit transactions, and open reservations —
+   * to the newly linked billing account.
+   */
+  private async cascadeBillingOwnershipToRelatedRecords(
+    tx: Prisma.TransactionClient,
+    billingAccountId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await tx.customer.updateMany({
+      data: { billingAccountId },
+      where: { isDeleted: false, organizationId },
+    });
+    await tx.subscription.updateMany({
+      data: { billingAccountId },
+      where: { isDeleted: false, organizationId },
+    });
+    await tx.creditTransaction.updateMany({
+      data: { billingAccountId },
+      where: {
+        billingAccountId: null,
+        isDeleted: false,
+        organizationId,
+      },
+    });
+    await tx.creditReservation.updateMany({
+      data: { billingAccountId },
+      where: {
+        isDeleted: false,
+        organizationId,
+        status: CreditReservationStatus.RESERVED,
+      },
+    });
   }
 
   async detachOrganization(input: {
