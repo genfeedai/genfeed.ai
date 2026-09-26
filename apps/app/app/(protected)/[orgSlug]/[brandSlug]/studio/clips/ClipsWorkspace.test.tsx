@@ -187,7 +187,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       'section-topbar',
     );
     expect(
-      screen.getByRole('link', { name: 'All projects' }),
+      screen.getByRole('button', { name: 'New project' }),
     ).toBeInTheDocument();
   });
 });
