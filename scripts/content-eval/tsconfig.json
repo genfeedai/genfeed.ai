@@ -47,6 +47,7 @@
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/integrations": ["../../packages/integrations/src/index.ts"],
+      "@genfeedai/integrations/*": ["../../packages/integrations/src/*"],
       "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],
       "@genfeedai/pricing/*": ["../../packages/pricing/src/*"],
       "@genfeedai/prisma": ["../../packages/prisma/src/index.ts"],
