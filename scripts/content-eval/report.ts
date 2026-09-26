@@ -21,7 +21,9 @@ export function buildReport(
   input: ReportInput,
   analyzers: ReportAnalyzer[],
 ): ContentEvalReport {
-  const { config, fixture, outcome, revision } = input;
+  const { config, fixture, revision } = input;
+  // Suite-specific sections live at the top level, not inside `outcome`.
+  const { benchMatches, media, ...outcome } = input.outcome;
   const fixtureRowsById = new Map(fixture.rows.map((row) => [row.id, row]));
   const sections: Record<string, unknown> = {};
   for (const analyzer of analyzers) {
@@ -41,6 +43,7 @@ export function buildReport(
   return contentEvalReportSchema.parse({
     aborted: input.aborted,
     abortMessage: input.abortMessage,
+    ...(benchMatches === undefined ? {} : { benchMatches }),
     calls: input.spend.calls,
     config,
     dispatcher: config.dispatcher,
@@ -52,6 +55,7 @@ export function buildReport(
       rowCount: fixture.rows.length,
     },
     generatedAt: input.generatedAt,
+    ...(media === undefined ? {} : { media }),
     modelQualityAssessed: config.dispatcher === 'live',
     outcome,
     ...sections,

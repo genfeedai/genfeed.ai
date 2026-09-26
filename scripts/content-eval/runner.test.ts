@@ -237,3 +237,58 @@ describe('buildContestants', () => {
     ).rejects.toThrow('reserved but not implemented');
   });
 });
+
+describe('suite-owned preparation', () => {
+  it('lets a per-match suite skip the run-wide family rule and lifts media sections', async () => {
+    const { SUITE_RUNNERS } = await import('./suites');
+    const { loadFixture } = await import('./fixtures');
+    const previous = SUITE_RUNNERS['media-ladder'];
+    SUITE_RUNNERS['media-ladder'] = {
+      async prepare() {
+        return {
+          contestants: [
+            {
+              guidanceArm: 'raw',
+              id: 'google/imagen-4',
+              isCompiled: false,
+              registryKey: 'google/imagen-4',
+            },
+          ],
+          crossFamily: 'per-match',
+          fixture: loadFixture(LADDER_FIXTURE),
+        };
+      },
+      async run() {
+        return {
+          benchMatches: [],
+          contestants: [],
+          judges: [],
+          media: { note: 'media section' },
+          pairs: [],
+          positionBiasRate: null,
+          rows: [],
+          thresholdChecks: [],
+        };
+      },
+      suite: 'media-ladder',
+    };
+
+    try {
+      const { report } = await runContentEval(
+        options({
+          // Same family as the contestant: allowed because the suite owns it.
+          judgeRegistryKeys: ['google/gemini-3.6-flash'],
+          models: [],
+          suite: 'media-ladder',
+        }),
+      );
+
+      expect(report.benchMatches).toEqual([]);
+      expect(report.media).toEqual({ note: 'media section' });
+      expect(report.outcome).not.toHaveProperty('media');
+      expect(report.outcome).not.toHaveProperty('benchMatches');
+    } finally {
+      SUITE_RUNNERS['media-ladder'] = previous;
+    }
+  });
+});

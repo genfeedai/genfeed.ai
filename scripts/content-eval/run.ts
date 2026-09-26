@@ -41,9 +41,11 @@ async function createDispatcher(kind: DispatcherKind): Promise<EvalDispatcher> {
 }
 
 async function main(): Promise<number> {
-  const { out, ...args } = parseCliArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  const { out, ...args } = parseCliArgs(argv);
   const { exitCode, report } = await runContentEval({
     ...args,
+    argv,
     createDispatcher,
   });
 

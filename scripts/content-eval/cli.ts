@@ -17,7 +17,8 @@ export class UsageError extends Error {
   }
 }
 
-function readFlag(argv: string[], name: string): string | undefined {
+/** Suite-specific flags (e.g. the media ladder's) are read with this too. */
+export function readFlag(argv: string[], name: string): string | undefined {
   const prefix = `--${name}=`;
   return argv
     .find((argument) => argument.startsWith(prefix))

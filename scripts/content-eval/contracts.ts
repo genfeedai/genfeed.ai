@@ -210,10 +210,16 @@ export interface EvalDispatcher {
 
 // ─── Provenance ─────────────────────────────────────────────────────────────
 
-export const callSettingsSchema = z.object({
+export const llmCallSettingsSchema = z.object({
   maxTokens: z.number().int().positive(),
   temperature: z.number(),
 });
+
+/** LLM calls carry token settings; media generations carry the request knobs. */
+export const callSettingsSchema = z.union([
+  llmCallSettingsSchema,
+  z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+]);
 
 export const callProvenanceSchema = z.object({
   /** Media answers: generation-brief capability profile version. */
@@ -223,8 +229,12 @@ export const callProvenanceSchema = z.object({
   compilerVersion: z.string().nullable().default(null),
   completionTokens: z.number().int().nonnegative(),
   costUsd: z.number().nonnegative(),
-  /** Whether `costUsd` was reported by the provider or priced by the harness. */
-  costEvidence: z.enum(['reported', 'catalogue']),
+  /**
+   * `reported`: provider charge; `catalogue`: priced by the harness from the
+   * model catalogue; `retail-credits`: product credits charged for a media
+   * generation, which include margin and so overstate vendor cost.
+   */
+  costEvidence: z.enum(['reported', 'catalogue', 'retail-credits']),
   credits: z.number().nonnegative(),
   family: z.string().min(1),
   kind: z.enum(CALL_ROLES),
@@ -394,6 +404,10 @@ export const suiteOutcomeSchema = z.object({
   positionBiasRate: z.number().min(0).max(1).nullable(),
   rows: z.array(scoredRowSchema),
   thresholdChecks: z.array(thresholdCheckSchema),
+  /** Media ladder match records; lifted to `report.benchMatches`. */
+  benchMatches: z.array(matchSchema).optional(),
+  /** Media-only section (#4926); lifted to `report.media`. */
+  media: z.unknown().optional(),
 });
 export type SuiteOutcome = z.infer<typeof suiteOutcomeSchema>;
 
@@ -428,6 +442,8 @@ export const contentEvalReportSchema = z.object({
   /** Stub runs never measure model quality; only live runs can. */
   modelQualityAssessed: z.boolean(),
   outcome: suiteOutcomeSchema,
+  /** Owned by #4926; narrowed by `media/` when it lands. */
+  media: z.unknown().optional(),
   /** Owned by #5234; narrowed to its section schema when it lands. */
   outliers: z.unknown().optional(),
   passed: z.boolean(),
@@ -460,7 +476,27 @@ export interface SuiteContext {
   runId: string;
 }
 
+export const CROSS_FAMILY_SCOPES = ['run', 'per-match'] as const;
+export type CrossFamilyScope = (typeof CROSS_FAMILY_SCOPES)[number];
+
+/** What a suite runs on, resolved before any dispatcher exists. */
+export interface SuitePreparation {
+  contestants: Contestant[];
+  /**
+   * `run`: the runner rejects any judge sharing a family with any contestant.
+   * `per-match`: the suite excludes judges per match itself (bench rule) and
+   * must throw before its first provider call when a match cannot be seated.
+   */
+  crossFamily: CrossFamilyScope;
+  fixture: LoadedFixture;
+}
+
 export interface SuiteRunner {
+  /**
+   * Suite-owned fixture and contestant resolution. Suites without it use the
+   * text-suite default (JSONL rows, `--models`, run-wide cross-family rule).
+   */
+  prepare?(options: ContentEvalRunOptions): Promise<SuitePreparation>;
   /**
    * Returns what the suite has scored so far. On a spend abort the runner
    * catches `SpendCapExceededError` and still writes a partial report, so a
@@ -640,6 +676,8 @@ export interface ReportInput {
 }
 
 export interface ContentEvalRunOptions {
+  /** Raw CLI arguments, for suite-specific flags read in `prepare`. */
+  argv?: string[];
   createDispatcher: (kind: DispatcherKind) => Promise<EvalDispatcher>;
   dispatcherKind: DispatcherKind;
   fixturePath: string;

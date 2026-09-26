@@ -14,6 +14,7 @@ import type {
   Contestant,
   SuiteConfig,
   SuiteOutcome,
+  SuitePreparation,
 } from './contracts';
 import { suiteConfigSchema } from './contracts';
 import { assertCrossFamily } from './families';
@@ -81,11 +82,32 @@ export function buildContestants(
   }));
 }
 
+/** Default preparation for the text suites. */
+export function prepareTextSuite(
+  options: ContentEvalRunOptions,
+): SuitePreparation {
+  const fixture = loadFixture(options.fixturePath);
+  for (const row of fixture.rows) {
+    resolvePointwiseRubric(row.rubricVersion);
+  }
+
+  return {
+    contestants: buildContestants(options.suite, options.models),
+    crossFamily: 'run',
+    fixture,
+  };
+}
+
 export async function runContentEval(
   options: ContentEvalRunOptions,
 ): Promise<ContentEvalRunResult> {
+  const runner = resolveSuiteRunner(options.suite);
+  const preparation = runner.prepare
+    ? await runner.prepare(options)
+    : prepareTextSuite(options);
+  const { fixture } = preparation;
   const config = suiteConfigSchema.parse({
-    contestants: buildContestants(options.suite, options.models),
+    contestants: preparation.contestants,
     dispatcher: options.dispatcherKind,
     fixturePath: options.fixturePath,
     judgeRegistryKeys: options.judgeRegistryKeys,
@@ -95,17 +117,14 @@ export async function runContentEval(
     suite: options.suite,
     tieBand: options.tieBand,
   });
-  const runner = resolveSuiteRunner(config.suite);
-  const fixture = loadFixture(config.fixturePath);
-  for (const row of fixture.rows) {
-    resolvePointwiseRubric(row.rubricVersion);
+  if (preparation.crossFamily === 'run') {
+    assertCrossFamily({
+      generatorRegistryKeys: config.contestants.map(
+        (contestant) => contestant.registryKey,
+      ),
+      judgeRegistryKeys: config.judgeRegistryKeys,
+    });
   }
-  assertCrossFamily({
-    generatorRegistryKeys: config.contestants.map(
-      (contestant) => contestant.registryKey,
-    ),
-    judgeRegistryKeys: config.judgeRegistryKeys,
-  });
 
   const revision = readSourceRevision();
   const generatedAt = (options.now ?? new Date()).toISOString();
