@@ -5,6 +5,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { isAbsolute, relative, resolve } from 'node:path';
 import type {
   EvalStructuredRequest,
   MeteredCallContext,
@@ -38,6 +39,23 @@ export function canonicalJson(value: unknown): string {
 
     return entry;
   });
+}
+
+export function readRepoRoot(): string {
+  return execFileSync('git', ['rev-parse', '--show-toplevel'], {
+    encoding: 'utf8',
+  }).trim();
+}
+
+/** CLI paths are repo-root-relative, whatever directory the run starts in. */
+export function resolveRepoPath(path: string): string {
+  return isAbsolute(path) ? path : resolve(readRepoRoot(), path);
+}
+
+/** Paths written into a report never carry a machine's home directory. */
+export function toRepoRelativePath(path: string): string {
+  const relativePath = relative(readRepoRoot(), resolveRepoPath(path));
+  return relativePath.startsWith('..') ? path : relativePath;
 }
 
 export function readSourceRevision(): SourceRevision {

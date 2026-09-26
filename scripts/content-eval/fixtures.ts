@@ -6,7 +6,11 @@
 import { readFileSync } from 'node:fs';
 import type { FixtureRow, LoadedFixture } from './contracts';
 import { fixtureRowSchema } from './contracts';
-import { sha256Digest } from './provenance';
+import {
+  resolveRepoPath,
+  sha256Digest,
+  toRepoRelativePath,
+} from './provenance';
 
 export function parseFixture(contents: string, path: string): FixtureRow[] {
   const rows = contents
@@ -41,12 +45,14 @@ export function parseFixture(contents: string, path: string): FixtureRow[] {
   return rows;
 }
 
+/** Loads a repo-root-relative (or absolute) fixture; reports keep it relative. */
 export function loadFixture(path: string): LoadedFixture {
-  const contents = readFileSync(path, 'utf8');
+  const contents = readFileSync(resolveRepoPath(path), 'utf8');
+  const reportedPath = toRepoRelativePath(path);
 
   return {
     digest: sha256Digest(contents),
-    path,
-    rows: parseFixture(contents, path),
+    path: reportedPath,
+    rows: parseFixture(contents, reportedPath),
   };
 }

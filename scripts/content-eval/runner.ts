@@ -109,7 +109,7 @@ export async function runContentEval(
   const config = suiteConfigSchema.parse({
     contestants: preparation.contestants,
     dispatcher: options.dispatcherKind,
-    fixturePath: options.fixturePath,
+    fixturePath: fixture.path,
     judgeRegistryKeys: options.judgeRegistryKeys,
     maxCredits: options.maxCredits,
     outlierThresholds: options.outlierThresholds,

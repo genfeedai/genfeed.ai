@@ -1,7 +1,7 @@
 /**
  * Content-eval CLI (#4922).
  *
- * Usage (from the repo root):
+ * Usage (from the repo root; paths are repo-root-relative):
  *   bun run eval:content -- --suite=ladder \
  *     --fixture=apps/server/api/test/fixtures/content-evals/ladder/social-post.synthetic.jsonl \
  *     --models=google/gemini-2.5-flash-lite,deepseek/deepseek-v4-flash-0731 \
@@ -20,7 +20,11 @@
  *   --out=<report.json>               write the report here instead of stdout
  *
  * Exit codes: 0 pass · 1 threshold failure, spend abort or run error · 2 usage.
- * The npm script passes `--tsconfig-override` so Bun applies the path aliases.
+ *
+ * The npm script runs from `apps/server`, the directory the API's
+ * ConfigService reads `api/.env*` from and whose tsconfig turns on the legacy
+ * decorators Nest needs; Bun resolves each file's path aliases from its
+ * nearest tsconfig, so this directory's own tsconfig covers the harness.
  */
 
 import process from 'node:process';
@@ -28,6 +32,7 @@ import { REPORT_ANALYZERS } from './analyzers';
 import { parseCliArgs, UsageError } from './cli';
 import type { DispatcherKind, EvalDispatcher } from './contracts';
 import { createStubDispatcher } from './dispatchers/stub';
+import { resolveRepoPath } from './provenance';
 import { renderSummary, writeReport } from './report';
 import { runContentEval } from './runner';
 
@@ -50,7 +55,7 @@ async function main(): Promise<number> {
   });
 
   if (out) {
-    writeReport(out, report);
+    writeReport(resolveRepoPath(out), report);
   } else {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   }

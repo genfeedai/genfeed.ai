@@ -4,7 +4,9 @@
  * provider routing, BYOK resolution, the OpenRouter zero-data-retention
  * policy, completion telemetry and the vendor cost ledger all apply exactly
  * as they do for background scoring. Needs the API environment (provider
- * keys, Redis, database). Imported lazily so stub runs never load the API.
+ * keys, Redis, database) and built workspace packages
+ * (`bunx turbo run build --filter="@genfeedai/api^..."`), exactly like the
+ * API in local dev. Imported lazily so stub runs never load the API.
  */
 
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
@@ -13,6 +15,17 @@ import type {
   OpenRouterChatCompletionResponse,
   OpenRouterMessage,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
+import { ConfigModule } from '@libs/config/config.module';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerModule } from '@libs/logger/logger.module';
+import {
+  buildBullMQConnection,
+  parseRedisConnectionForWorkload,
+  RedisWorkload,
+} from '@libs/redis/redis-connection.utils';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type {
   EvalDispatcher,
@@ -52,10 +65,37 @@ function servedProvider(
     : 'openrouter';
 }
 
+/**
+ * The globals `AppModule` gives the dispatcher (config, logger, Prisma for
+ * BYOK and the cost ledger, the BullMQ root for cost settlement) and nothing
+ * else — no HTTP surface, no schedulers.
+ */
+@Module({
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    PrismaModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: buildBullMQConnection(
+          parseRedisConnectionForWorkload(configService, RedisWorkload.QUEUE),
+        ),
+      }),
+    }),
+    LlmDispatcherModule,
+  ],
+})
+class ContentEvalLiveModule {}
+
 export async function createLiveDispatcher(): Promise<EvalDispatcher> {
-  const app = await NestFactory.createApplicationContext(LlmDispatcherModule, {
-    logger: ['error', 'warn'],
-  });
+  const app = await NestFactory.createApplicationContext(
+    ContentEvalLiveModule,
+    {
+      logger: ['error', 'warn'],
+    },
+  );
   const service = app.get(LlmDispatcherService);
 
   return {

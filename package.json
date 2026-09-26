@@ -178,7 +178,7 @@
     "bench:typed-decisions": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/benchmark.ts",
     "build:typed-decision-fixture:model-discovery": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/build-model-discovery-category-fixture.ts",
     "eval:agent": "cd scripts/agent-eval && bun run run.ts",
-    "eval:content": "bun --tsconfig-override=scripts/content-eval/tsconfig.json scripts/content-eval/run.ts",
+    "eval:content": "cd apps/server && bun ../../scripts/content-eval/run.ts",
     "test:content-eval": "vitest run --config scripts/content-eval/vitest.config.ts",
     "test:agent-eval": "vitest run --config scripts/agent-eval/vitest.config.ts",
     "verify:agent-smoke-evidence": "bun run scripts/agent-eval/verify-live-evidence.ts"
