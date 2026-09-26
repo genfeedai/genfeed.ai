@@ -1201,7 +1201,23 @@ describe('useAgentChatStream', () => {
     ).toHaveLength(0);
   });
 
-  async function markThreadRunningNotificationCount(): Promise<number> {
+  async function markThreadRunningNotificationCount(
+    seedCacheEntry: boolean,
+  ): Promise<number> {
+    useAgentChatStore.setState({
+      threads: [
+        {
+          id: 'thread-a',
+          contextVersion: 1,
+          status: AgentThreadStatus.ACTIVE,
+          createdAt: '2026-09-08T10:00:00Z',
+          updatedAt: '2026-09-08T10:00:00Z',
+          attentionState: null,
+          pendingInputCount: 0,
+          runStatus: 'running',
+        },
+      ],
+    });
     const apiService = createApiService({
       chatStream: vi.fn(async () => ({
         brandId: null,
@@ -1216,6 +1232,25 @@ describe('useAgentChatStream', () => {
       await result.current.sendMessage('Hello');
     });
 
+    // Seed the cache only after the send settles: sendMessage's own
+    // markThreadRunning call would otherwise evict it before the assertion.
+    useAgentChatStore.setState({
+      conversationCacheByThread: seedCacheEntry
+        ? {
+            'thread-a': {
+              cachedAt: Date.now(),
+              error: null,
+              latestProposedPlan: null,
+              hasMoreMessages: false,
+              messages: [],
+              messagesCursor: null,
+              pendingInputRequest: null,
+              workEvents: [],
+            },
+          }
+        : {},
+    });
+
     const listener = vi.fn();
     const unsubscribe = useAgentChatStore.subscribe(listener);
     act(() => {
@@ -1228,54 +1263,12 @@ describe('useAgentChatStream', () => {
   }
 
   it('skips the cache-eviction store notification when no conversation is cached for the thread', async () => {
-    useAgentChatStore.setState({
-      conversationCacheByThread: {},
-      threads: [
-        {
-          id: 'thread-a',
-          contextVersion: 1,
-          status: AgentThreadStatus.ACTIVE,
-          createdAt: '2026-09-08T10:00:00Z',
-          updatedAt: '2026-09-08T10:00:00Z',
-          attentionState: null,
-          pendingInputCount: 0,
-          runStatus: 'running',
-        },
-      ],
-    });
-
-    const withoutCacheEntry = await markThreadRunningNotificationCount();
+    const withoutCacheEntry = await markThreadRunningNotificationCount(false);
 
     resetAgentStreamRuntime();
     socketHandlers.clear();
-    useAgentChatStore.setState({
-      conversationCacheByThread: {
-        'thread-a': {
-          cachedAt: Date.now(),
-          error: null,
-          latestProposedPlan: null,
-          hasMoreMessages: false,
-          messages: [],
-          messagesCursor: null,
-          pendingInputRequest: null,
-          workEvents: [],
-        },
-      },
-      threads: [
-        {
-          id: 'thread-a',
-          contextVersion: 1,
-          status: AgentThreadStatus.ACTIVE,
-          createdAt: '2026-09-08T10:00:00Z',
-          updatedAt: '2026-09-08T10:00:00Z',
-          attentionState: null,
-          pendingInputCount: 0,
-          runStatus: 'running',
-        },
-      ],
-    });
 
-    const withCacheEntry = await markThreadRunningNotificationCount();
+    const withCacheEntry = await markThreadRunningNotificationCount(true);
 
     // Evicting an existing cache entry is a real state change and must still
     // notify; skipping the eviction when nothing is cached must not.
