@@ -141,12 +141,21 @@ describe.skipIf(!redisAvailable)(
         ...prismaOverrides,
       };
 
+      // Minimal but functioning stand-in for the engine adapter (mirrors the
+      // harness in system-workflow-runner.service.spec.ts's `createRunner`):
+      // `onModuleInit()` calls `registerExecutor` for every registered graph
+      // action, so a bare `{}` fallback throws before any test in this file
+      // can register a workflow and run it through the real runner.
+      const adapter = {
+        getRegisteredActionIds: vi.fn(() => []),
+        registerExecutor: vi.fn(),
+      };
       const moduleRef = {
         get: (token: unknown) => {
           const name = (token as { name?: string })?.name;
           if (name === 'WorkflowExecutionQueueService') return queueService;
           if (name === 'WorkflowExecutionsService') return workflowExecutions;
-          return {};
+          return adapter;
         },
       };
 
@@ -378,6 +387,12 @@ describe.skipIf(!redisAvailable)(
         active: 0,
         waiting: 0,
       });
+
+      // Close these two workers now rather than leaving them for `afterAll`:
+      // both queue *names* are reused by later tests in this file, and a
+      // worker left running here would immediately claim a job a later test
+      // adds to the same queue before that test can observe it waiting.
+      await Promise.all([platformWorker.close(), interactiveWorker.close()]);
     }, 15000);
 
     it('executeForEach routes scheduled children to the platform queue when the parent is a platform-sweep workflow (isPlatformSweepWorkflow)', async () => {

@@ -93,12 +93,22 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
    */
   async drainStalePlatformSourcedJobs(): Promise<void> {
     try {
-      const client = await this.workflowExecutionQueue.client;
-      const claimed = await client.set(
-        DRAIN_MARKER_KEY,
-        new Date().toISOString(),
-        'NX',
-      );
+      const client = await this.workflowExecutionQueue.getBackend().client;
+      // bullmq's cross-backend `IRedisClient.set()` only types the `{ PX?;
+      // EX? }` options object — a conditional write (`NX`) has no portable
+      // meaning across every possible backend (e.g. its Postgres backend).
+      // `RedisQueueBackend.client` is already documented as a "Redis-specific
+      // escape hatch" (not part of `IQueueBackend`), which is exactly why
+      // it's reached for here: the ioredis adapter this repo runs on forwards
+      // a string third argument straight through to `ioredis.set(key, value,
+      // 'NX')` (see bullmq's `ioredis-client.ts` `overrides.set`) — the
+      // capability exists at runtime, it's just outside the declared
+      // cross-backend type.
+      const claimed = await (
+        client as unknown as {
+          set(key: string, value: string, mode: 'NX'): Promise<string | null>;
+        }
+      ).set(DRAIN_MARKER_KEY, new Date().toISOString(), 'NX');
       if (claimed !== 'OK') {
         return;
       }

@@ -21,7 +21,7 @@ describe('PlatformScheduleRegistryService', () => {
   };
   const redisClient = { set: vi.fn().mockResolvedValue('OK') };
   const workflowExecutionQueue = {
-    client: Promise.resolve(redisClient),
+    getBackend: vi.fn(() => ({ client: Promise.resolve(redisClient) })),
     getJobs: vi.fn().mockResolvedValue([]),
   };
   const workflowExecutions = {
@@ -36,7 +36,9 @@ describe('PlatformScheduleRegistryService', () => {
     vi.clearAllMocks();
     queue.getJobSchedulers.mockResolvedValue([]);
     workflowExecutionQueue.getJobs.mockResolvedValue([]);
-    workflowExecutionQueue.client = Promise.resolve(redisClient);
+    workflowExecutionQueue.getBackend.mockReturnValue({
+      client: Promise.resolve(redisClient),
+    });
     redisClient.set.mockResolvedValue('OK');
     workflowExecutions.cancelExecution.mockResolvedValue({
       status: 'CANCELLED',
@@ -295,10 +297,9 @@ describe('PlatformScheduleRegistryService', () => {
     });
 
     it('never fails worker boot when the drain itself throws', async () => {
-      workflowExecutionQueue.client = Promise.reject(
-        new Error('redis unreachable'),
-      );
-      workflowExecutionQueue.client.catch(() => {});
+      const rejected = Promise.reject(new Error('redis unreachable'));
+      rejected.catch(() => {});
+      workflowExecutionQueue.getBackend.mockReturnValue({ client: rejected });
 
       await expect(
         service.drainStalePlatformSourcedJobs(),
