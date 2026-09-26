@@ -42,7 +42,7 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 1131,
+    "actual": 1116,
     "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts"
@@ -228,12 +228,6 @@
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts"
   },
   {
-    "actual": 253,
-    "file": "apps/server/api/src/services/byok-billing/byok-billing.service.ts",
-    "metric": "method-lines",
-    "symbol": "ByokBillingService.createByokInvoice"
-  },
-  {
     "actual": 1279,
     "file": "apps/server/api/src/services/content-optimization/content-optimization.service.ts",
     "metric": "file-lines",
@@ -252,7 +246,7 @@
     "symbol": "PublisherFactoryService.constructor"
   },
   {
-    "actual": 1161,
+    "actual": 1134,
     "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/stripe/services/stripe.service.ts"
@@ -354,7 +348,7 @@
     "symbol": "CronTiktokStatusService.checkPostStatus"
   },
   {
-    "actual": 33,
+    "actual": 32,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
     "symbol": "PlatformSchedulesProcessor.constructor"

@@ -101,6 +101,7 @@ import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -124,7 +125,6 @@ import { BatchGenerationStreamService } from '@api/services/batch-generation/bat
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
-import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
@@ -271,7 +271,6 @@ const WORKER_DOMAIN_SERVICES = [
   BeehiivPublisherService,
   BotActionExecutorService,
   BrandMemorySyncService,
-  ByokBillingService,
   ByokProviderFactoryService,
   ByokService,
   CampaignDiscoveryService,
@@ -339,6 +338,7 @@ const WORKER_DOMAIN_SERVICES = [
   NotificationPreferenceService,
   NotificationsService,
   OptimizationCycleService,
+  OrganizationPaidAccessService,
   OrganizationSettingsService,
   OrganizationsService,
   OutreachCampaignsService,

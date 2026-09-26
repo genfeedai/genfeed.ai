@@ -1,5 +1,4 @@
 export * from '@serializers/configs/billing/billing-account.config';
-export * from '@serializers/configs/billing/byok-usage-summary.config';
 export * from '@serializers/configs/billing/cost-report-entry.config';
 export * from '@serializers/configs/billing/cost-report-summary.config';
 export * from '@serializers/configs/billing/credit-transaction.config';

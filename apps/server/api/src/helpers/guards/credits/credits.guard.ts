@@ -518,31 +518,6 @@ export class CreditsGuard implements CanActivate {
         );
 
         if (isByokActive) {
-          // Check BYOK billing status — block if past_due or suspended
-          const isBillingOk =
-            await this.byokService.isByokBillingInGoodStanding(
-              user.organizationId,
-            );
-
-          if (!isBillingOk) {
-            this.loggerService.warn(
-              'Credits guard: BYOK billing not in good standing',
-              {
-                byokProvider,
-                organizationId: user.organizationId,
-              },
-            );
-
-            throw new HttpException(
-              {
-                detail:
-                  'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
-                title: 'BYOK billing past due',
-              },
-              HttpStatus.FORBIDDEN,
-            );
-          }
-
           this.loggerService.debug('Credits guard: BYOK bypass active', {
             byokProvider,
             organizationId: user.organizationId,

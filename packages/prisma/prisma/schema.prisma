@@ -298,12 +298,6 @@ enum AgentReplyStyle {
   PROFESSIONAL
 }
 
-enum ByokBillingStatus {
-  ACTIVE
-  PAST_DUE
-  SUSPENDED
-}
-
 enum LinkCategory {
   FACEBOOK
   INSTAGRAM
@@ -1625,9 +1619,6 @@ model OrganizationSetting {
   isAdvancedMode                 Boolean           @default(false)
   agentReplyStyle                AgentReplyStyle   @default(CONCISE)
   byokOpenrouterApiKey           String?
-  byokBillingRollover            Float             @default(0)
-  byokBillingStatus              ByokBillingStatus @default(ACTIVE)
-  byokFreeThresholdOverride      Float?
   defaultAvatarPhotoUrl          String?
   defaultAvatarIngredientId      String?
   defaultVoiceId                 String?
@@ -3532,8 +3523,8 @@ model LlmVendorCost {
   @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "llm_vendor_costs_workflow_accounting_idx")
 }
 
-/// Customer payment received through Stripe: a subscription invoice, a credit
-/// pack purchase, or a BYOK platform fee. Minor currency units, net of tax.
+/// Customer payment received through Stripe: a subscription invoice or a credit
+/// pack purchase. Minor currency units, net of tax.
 /// One row per Stripe object so webhook replays stay idempotent. Source of
 /// revenue for platform-admin unit economics.
 model BillingRevenueEvent {

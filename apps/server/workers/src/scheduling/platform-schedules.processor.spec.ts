@@ -17,7 +17,6 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileSettlementShortfalls: handler(),
     resumeStrandedBatches: handler(),
   };
-  const byokBilling = { processMonthlyByokBilling: handler() };
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
   const falModels = { discoverNewModels: handler() };
@@ -77,10 +76,6 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE,
         batchGeneration.resumeStrandedBatches,
-      ],
-      [
-        PLATFORM_SCHEDULED_TASKS.BYOK_MONTHLY_BILLING,
-        byokBilling.processMonthlyByokBilling,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH,
@@ -205,7 +200,6 @@ describe('PlatformSchedulesProcessor', () => {
     processor = new PlatformSchedulesProcessor(
       config as never,
       batchGeneration as never,
-      byokBilling as never,
       credentials as never,
       engagement as never,
       falModels as never,

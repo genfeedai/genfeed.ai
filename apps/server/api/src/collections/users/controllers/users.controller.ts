@@ -16,7 +16,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
-  getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -28,7 +27,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -177,7 +176,6 @@ export class UsersController {
       getIsSuperAdmin(user, request) ||
       subscriptionStatus === SubscriptionStatus.ACTIVE ||
       subscriptionStatus === SubscriptionStatus.TRIALING ||
-      getSubscriptionTier(user, request) === SubscriptionTier.BYOK ||
       hasActiveDbSubscription;
 
     let data = await this.usersService.findOne({

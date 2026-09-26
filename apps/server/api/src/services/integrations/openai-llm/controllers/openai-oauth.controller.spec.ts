@@ -5,7 +5,7 @@ import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/servic
 import { ByokProvider } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +17,7 @@ describe('OpenAiOAuthController', () => {
     generateAuthUrl: ReturnType<typeof vi.fn>;
   };
   let byokService: {
+    assertByokEntitled: ReturnType<typeof vi.fn>;
     saveOAuthKey: ReturnType<typeof vi.fn>;
   };
 
@@ -66,6 +67,7 @@ describe('OpenAiOAuthController', () => {
         {
           provide: ByokService,
           useValue: {
+            assertByokEntitled: vi.fn().mockResolvedValue(undefined),
             saveOAuthKey: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -96,6 +98,18 @@ describe('OpenAiOAuthController', () => {
       expect(result).toEqual({
         data: { url: 'https://platform.openai.com/oauth/authorize?...' },
       });
+    });
+
+    it('does not start the OAuth flow without a BYOK entitlement', async () => {
+      byokService.assertByokEntitled.mockRejectedValueOnce(
+        new ForbiddenException('BYOK requires a Pro subscription'),
+      );
+
+      await expect(controller.connect(mockUser)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(byokService.assertByokEntitled).toHaveBeenCalledWith(orgId);
+      expect(openAiOAuthService.generateAuthUrl).not.toHaveBeenCalled();
     });
 
     it('should propagate errors from generateAuthUrl', async () => {

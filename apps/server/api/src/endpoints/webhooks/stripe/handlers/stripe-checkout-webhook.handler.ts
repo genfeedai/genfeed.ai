@@ -34,7 +34,6 @@ import {
   ApiKeyCategory,
   BillingRevenueSource,
   OrganizationCategory,
-  SubscriptionTier,
 } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
@@ -135,8 +134,6 @@ export class StripeCheckoutWebhookHandler {
       // Organization-level payment handling below
       if (session.mode === 'subscription') {
         await this.handleSubscriptionModeCheckout(session, url);
-      } else if (session.mode === 'setup') {
-        await this.handleSetupModeCheckout(session, url);
       } else if (session.mode === 'payment') {
         await this.handlePaymentModeCheckout(session, url);
       }
@@ -182,27 +179,6 @@ export class StripeCheckoutWebhookHandler {
 
     // Mark onboarding complete for subscription users
     await this.supportService.markOnboardingCompleteFromSession(session, url);
-  }
-
-  /**
-   * Setup-only checkout (BYOK) — Stripe automatically attaches the payment
-   * method to the customer, so no further action is needed.
-   */
-  private async handleSetupModeCheckout(
-    session: StripeCheckoutSession,
-    url: string,
-  ): Promise<void> {
-    this.loggerService.log(`${url} setup checkout completed (BYOK)`, {
-      customerId: session.customer,
-      sessionId: session.id,
-    });
-
-    // Mark onboarding complete for BYOK users (tier persisted to org settings)
-    await this.supportService.markOnboardingCompleteFromSession(
-      session,
-      url,
-      SubscriptionTier.BYOK,
-    );
   }
 
   /** One-time payment (pay-as-you-go credits). */

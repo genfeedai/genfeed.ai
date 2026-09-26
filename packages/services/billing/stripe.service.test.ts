@@ -38,7 +38,6 @@ describe('StripeService', () => {
 
   it('has checkout and portal methods', () => {
     expect(typeof service.createCheckoutSession).toBe('function');
-    expect(typeof service.createSetupCheckout).toBe('function');
     expect(typeof service.getPortalUrl).toBe('function');
   });
 

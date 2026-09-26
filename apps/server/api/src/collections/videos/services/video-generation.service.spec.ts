@@ -267,7 +267,6 @@ describe('VideoGenerationService', () => {
       modelsService as never,
       {
         isByokActiveForProvider: vi.fn().mockResolvedValue(false),
-        isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
       } as never,
     );
     const executionService = new VideoGenerationExecutionService(

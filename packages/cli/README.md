@@ -412,7 +412,7 @@ genfeed schedule calendar
 genfeed insights
 genfeed insights times --platform twitter
 genfeed performance weekly
-genfeed credits summary
+genfeed credits usage
 genfeed posts list --platform twitter --status published
 ```
 

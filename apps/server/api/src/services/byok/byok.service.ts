@@ -1,4 +1,5 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import {
   HIGGSFIELD_API_BASE,
@@ -6,7 +7,7 @@ import {
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ByokBillingStatus, ByokProvider } from '@genfeedai/contracts';
+import { ByokProvider } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type {
   IByokKeyEntry,
@@ -20,7 +21,11 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -163,10 +168,18 @@ const BYOK_PROVIDER_LABELS: Record<
   },
 };
 
+/**
+ * Organization-owned provider keys (BYOK). On deployments with organization
+ * billing, BYOK is a paid-subscription feature: keys can only be saved, and a
+ * stored key only resolves, while the organization holds a paid grant. Every
+ * credit bypass and provider factory resolves keys here, so an unpaid
+ * organization falls back to Genfeed-hosted generation billed in credits.
+ */
 @Injectable()
 export class ByokService {
   constructor(
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly organizationPaidAccessService: OrganizationPaidAccessService,
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
@@ -174,7 +187,8 @@ export class ByokService {
 
   /**
    * Resolve the API key for a given provider from the organization's BYOK settings.
-   * Returns decrypted apiKey (and apiSecret if present), or undefined if not found.
+   * Returns decrypted apiKey (and apiSecret if present), or undefined when no
+   * enabled key exists or the organization is not entitled to BYOK.
    */
   async resolveApiKey(
     orgId: string,
@@ -193,6 +207,10 @@ export class ByokService {
       const entry = byokKeys[provider];
 
       if (!entry?.isEnabled || !entry.apiKey) {
+        return undefined;
+      }
+
+      if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
         return undefined;
       }
 
@@ -223,21 +241,16 @@ export class ByokService {
     return !!result;
   }
 
-  async isByokBillingInGoodStanding(orgId: string): Promise<boolean> {
-    const orgSettings = await this.organizationSettingsService.findOne({
-      organizationId: orgId,
-    });
-
-    if (!orgSettings) {
-      return true;
+  /**
+   * Reject BYOK key storage for an organization without a paid subscription on
+   * a billed deployment.
+   */
+  async assertByokEntitled(orgId: string): Promise<void> {
+    if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
+      throw new ForbiddenException(
+        'Bring-your-own-key requires a Pro subscription. Upgrade your plan to connect provider keys.',
+      );
     }
-
-    const status = orgSettings.byokBillingStatus;
-    if (!status) {
-      return true;
-    }
-    const normalized = String(status).toUpperCase().replace(/-/g, '_');
-    return normalized === ByokBillingStatus.ACTIVE;
   }
 
   /**
@@ -250,6 +263,8 @@ export class ByokService {
     apiKey: string,
     apiSecret?: string,
   ): Promise<void> {
+    await this.assertByokEntitled(orgId);
+
     try {
       const encryptedEntry: IByokKeyEntry = {
         apiKey: EncryptionUtil.encrypt(apiKey),
@@ -276,6 +291,8 @@ export class ByokService {
     provider: ByokProvider,
     entry: IByokKeyEntry,
   ): Promise<void> {
+    await this.assertByokEntitled(orgId);
+
     try {
       await this.updateByokKey(orgId, provider, entry, true);
 

@@ -4,7 +4,7 @@ import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
 /**
  * Seat policy resolution.
  *
- * Seats are never a meter — credits are the only meter. FREE/BYOK is a solo
+ * Seats are never a meter — credits are the only meter. FREE is a solo
  * workspace (1 seat, no member invites); the first teammate is the upgrade
  * moment. Every paid tier (Pro, Scale, Enterprise) includes unlimited seats
  * with no billing gate at all — account-sharing can't dodge a usage meter,
@@ -14,7 +14,7 @@ import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
  */
 
 /**
- * Free seats for tiers that do NOT include unlimited seats (FREE/BYOK — the
+ * Free seats for tiers that do NOT include unlimited seats (FREE — the
  * solo workspace). Mirrors the Prisma `OrganizationSetting.seatsLimit`
  * default applied at org-creation call sites.
  */
@@ -42,7 +42,7 @@ export const UNLIMITED_SEATS_FAIR_USE_CEILING = 1000;
  * - SCALE → $499/mo
  * - ENTERPRISE → custom
  *
- * All paid tiers are unlimited-seat; only FREE/BYOK stays solo.
+ * All paid tiers are unlimited-seat; only FREE stays solo.
  */
 const UNLIMITED_SEAT_TIERS: ReadonlySet<string> = new Set([
   SubscriptionTier.PRO,

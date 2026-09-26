@@ -221,7 +221,7 @@ describe('shell/agent-shell', () => {
       expect(output).toContain('UI Actions');
       expect(output).toContain('Try: gf workflow show wf-1');
       expect(output).toContain('Try: gf chat --thread thread-2');
-      expect(output).toContain('Try: gf credits summary');
+      expect(output).toContain('Try: gf credits usage');
       expect(output).toContain('Run completed.');
       expect(output).toContain('Goodbye!');
     });

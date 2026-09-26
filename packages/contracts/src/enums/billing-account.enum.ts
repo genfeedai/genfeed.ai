@@ -115,7 +115,6 @@ export function billingAccountRoleSatisfies(
  * values are the stored labels.
  */
 export enum BillingRevenueSource {
-  BYOK_PLATFORM_FEE = 'byok_platform_fee',
   CREDIT_PURCHASE = 'credit_purchase',
   SUBSCRIPTION_INVOICE = 'subscription_invoice',
 }

@@ -357,7 +357,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       });
       expect(
         supportService.updateOrganizationTierAndModels,
-      ).toHaveBeenCalledWith('org_1', SubscriptionTier.BYOK, 'test');
+      ).toHaveBeenCalledWith('org_1', SubscriptionTier.FREE, 'test');
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
       });

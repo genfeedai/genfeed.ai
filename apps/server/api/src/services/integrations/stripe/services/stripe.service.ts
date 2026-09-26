@@ -595,33 +595,6 @@ export class StripeService {
     }
   }
 
-  public async createSetupCheckoutSession(
-    customerId: string,
-    successUrl: string,
-    cancelUrl: string,
-  ): Promise<StripeCheckoutSession> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const session = await this.stripe.checkout.sessions.create({
-        cancel_url: cancelUrl,
-        customer: customerId,
-        mode: 'setup',
-        payment_method_types: ['card'],
-        success_url: successUrl,
-      });
-
-      this.loggerService.log(`${url} success`, {
-        customerId,
-        sessionId: session.id,
-      });
-      return session;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
-  }
-
   public async retrieveCustomer(
     customerId: string,
   ): Promise<StripeCustomer | null> {

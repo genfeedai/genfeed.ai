@@ -25,12 +25,7 @@ import {
   buildPricingAuditStamp,
   calculateImageGenerationCredits,
 } from '@genfeedai/pricing';
-import {
-  ConflictException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ImageGenerationCreditsService {
@@ -217,16 +212,6 @@ export class ImageGenerationCreditsService {
       ))
     ) {
       return undefined;
-    }
-    if (!(await this.byokService.isByokBillingInGoodStanding(organizationId))) {
-      throw new HttpException(
-        {
-          detail:
-            'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
-          title: 'BYOK billing past due',
-        },
-        HttpStatus.FORBIDDEN,
-      );
     }
     return provider;
   }

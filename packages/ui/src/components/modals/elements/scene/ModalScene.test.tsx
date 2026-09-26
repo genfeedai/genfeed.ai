@@ -40,7 +40,6 @@ vi.mock(
       accessState: null,
       canAccessApp: true,
       hasPaygCredits: false,
-      isByok: false,
       isLoading: false,
       isSubscribed: false,
       isSuperAdmin: false,

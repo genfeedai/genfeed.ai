@@ -12,6 +12,7 @@ import {
   getUpgradeTierForLimit,
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
+  hasByokAccess,
   hasCleanExportAccess,
   hasTrainingAccess,
   PLAN_LIMIT_UNLIMITED,
@@ -58,7 +59,6 @@ describe('getPlanEntitlementForTier', () => {
 describe('API entitlements', () => {
   it('denies API access to free tiers', () => {
     expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasApiAccess(SubscriptionTier.BYOK)).toBe(false);
     expect(hasApiAccess(null)).toBe(false);
   });
 
@@ -97,7 +97,6 @@ describe('product limits', () => {
 
   it('caps seats on free tiers and lifts the cap from Pro upward', () => {
     expect(getSeatLimitForTier(SubscriptionTier.FREE)).toBe(FREE_SEAT_LIMIT);
-    expect(getSeatLimitForTier(SubscriptionTier.BYOK)).toBe(FREE_SEAT_LIMIT);
     expect(getSeatLimitForTier(SubscriptionTier.PRO)).toBe(
       PLAN_LIMIT_UNLIMITED,
     );
@@ -122,7 +121,6 @@ describe('product limits', () => {
 describe('hasTrainingAccess', () => {
   it('is denied on free tiers and unknown tiers', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasTrainingAccess(SubscriptionTier.BYOK)).toBe(false);
     expect(hasTrainingAccess('unknown')).toBe(false);
   });
 
@@ -133,10 +131,24 @@ describe('hasTrainingAccess', () => {
   });
 });
 
+describe('hasByokAccess', () => {
+  it('is denied on the free tier, unknown tiers, and the retired byok tier', () => {
+    expect(hasByokAccess(SubscriptionTier.FREE)).toBe(false);
+    expect(hasByokAccess('byok')).toBe(false);
+    expect(hasByokAccess('unknown')).toBe(false);
+    expect(hasByokAccess(null)).toBe(false);
+  });
+
+  it('is granted from Pro upward', () => {
+    expect(hasByokAccess(SubscriptionTier.PRO)).toBe(true);
+    expect(hasByokAccess(SubscriptionTier.SCALE)).toBe(true);
+    expect(hasByokAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
+  });
+});
+
 describe('hasCleanExportAccess', () => {
   it('is denied on free tiers and unknown tiers', () => {
     expect(hasCleanExportAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasCleanExportAccess(SubscriptionTier.BYOK)).toBe(false);
     expect(hasCleanExportAccess('unknown')).toBe(false);
     expect(hasCleanExportAccess(null)).toBe(false);
     expect(hasCleanExportAccess(undefined)).toBe(false);
@@ -152,9 +164,6 @@ describe('hasCleanExportAccess', () => {
 describe('getUpgradeTierForLimit', () => {
   it('suggests Pro when seats are capped', () => {
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.FREE)).toBe(
-      SubscriptionTier.PRO,
-    );
-    expect(getUpgradeTierForLimit('seats', SubscriptionTier.BYOK)).toBe(
       SubscriptionTier.PRO,
     );
     expect(getUpgradeTierForLimit('seats', null)).toBe(SubscriptionTier.PRO);

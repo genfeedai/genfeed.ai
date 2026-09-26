@@ -9,7 +9,6 @@ import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe
 import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import {
   BillingRevenueSource,
-  ByokBillingStatus,
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
@@ -50,7 +49,6 @@ describe('StripeInvoiceWebhookHandler', () => {
     recordCreditsActivity: vi.fn(),
     recordRevenueEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
-    setByokBillingStatus: vi.fn(),
     setHasEverHadCredits: vi.fn(),
     upsertSubscriptionLead: vi.fn(),
   };
@@ -695,31 +693,6 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(loggerService.error).not.toHaveBeenCalled();
       expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
     });
-
-    it('routes BYOK platform fee invoices to the BYOK path', async () => {
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          amount_paid: 12_50,
-          metadata: { organizationId: 'org_1', type: 'byok_platform_fee' },
-        }),
-        'test',
-      );
-
-      expect(supportService.setByokBillingStatus).toHaveBeenCalledWith(
-        'org_1',
-        ByokBillingStatus.ACTIVE,
-        'in_123',
-        'test',
-        'failed to reset byokBillingStatus after payment',
-      );
-      expect(supportService.recordCreditsActivity).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId: 'org_1',
-          value: expect.stringContaining('BYOK platform fee paid'),
-        }),
-      );
-      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
-    });
   });
 
   describe('handleInvoicePaymentFailed', () => {
@@ -745,24 +718,6 @@ describe('StripeInvoiceWebhookHandler', () => {
     it('does not query subscriptions when the invoice carries no subscription id', async () => {
       await handler.handleInvoicePaymentFailed(invoiceWith({}), 'test');
 
-      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('sets the BYOK billing status to past_due for BYOK fee failures', async () => {
-      await handler.handleInvoicePaymentFailed(
-        invoiceWith({
-          metadata: { organizationId: 'org_1', type: 'byok_platform_fee' },
-        }),
-        'test',
-      );
-
-      expect(supportService.setByokBillingStatus).toHaveBeenCalledWith(
-        'org_1',
-        ByokBillingStatus.PAST_DUE,
-        'in_123',
-        'test',
-        'failed to set past_due status after payment failure',
-      );
       expect(subscriptionsService.findOne).not.toHaveBeenCalled();
     });
   });

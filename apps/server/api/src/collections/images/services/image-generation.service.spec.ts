@@ -301,7 +301,6 @@ const createService = () => {
     providerRegistry,
     {
       isByokActiveForProvider: vi.fn().mockResolvedValue(false),
-      isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
     } as never,
   );
   const admissionService = new ImageGenerationAdmissionService(

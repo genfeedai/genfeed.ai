@@ -10,6 +10,8 @@ export type ByokProviderCardState = {
 export type Props = {
   providerStatus: IByokProviderStatus;
   cardState: ByokProviderCardState;
+  /** False when the organization's plan does not include BYOK; removal stays available. */
+  canAddKey: boolean;
   apiKeyValue: string;
   apiSecretValue: string;
   onToggleExpand: () => void;

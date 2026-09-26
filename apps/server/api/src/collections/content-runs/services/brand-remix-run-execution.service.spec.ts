@@ -41,7 +41,6 @@ describe('BrandRemixRunExecutionService', () => {
   };
   const byokService = {
     isByokActiveForProvider: vi.fn(),
-    isByokBillingInGoodStanding: vi.fn(),
   };
   const runtime = {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
@@ -89,7 +88,6 @@ describe('BrandRemixRunExecutionService', () => {
       prisma.ingredient.updateMany as ReturnType<typeof vi.fn>
     ).mockResolvedValue({ count: 1 });
     byokService.isByokActiveForProvider.mockResolvedValue(false);
-    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: {} as never,
       avatarVideoGenerationService: {} as never,

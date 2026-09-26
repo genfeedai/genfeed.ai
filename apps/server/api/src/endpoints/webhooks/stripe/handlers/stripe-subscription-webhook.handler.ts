@@ -324,11 +324,11 @@ export class StripeSubscriptionWebhookHandler {
         'canceled',
       );
 
-      // Clear organization tier (BYOK = free tier after subscription canceled)
+      // Drop the organization back to the free tier
       if (organizationId) {
         await this.supportService.updateOrganizationTierAndModels(
           organizationId,
-          SubscriptionTier.BYOK,
+          SubscriptionTier.FREE,
           url,
         );
       }

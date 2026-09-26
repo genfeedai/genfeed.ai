@@ -164,11 +164,6 @@ export class BrandRemixSceneQuoteService {
       organizationId,
       ByokProvider.HEYGEN,
     );
-    if (
-      (imageByok || videoByok) &&
-      !(await this.byok.isByokBillingInGoodStanding(organizationId))
-    )
-      throw new ConflictException('BYOK billing must be in good standing.');
     const scenes = config.concept?.storyboard ?? [];
     if (
       input.operation === 'repair' &&

@@ -32,6 +32,8 @@ export class OpenAiOAuthController {
   @Post('connect')
   async connect(@CurrentUser() user: User) {
     try {
+      await this.byokService.assertByokEntitled(user.organizationId);
+
       const url = this.openAiOAuthService.generateAuthUrl(
         user.organizationId,
         user.userId ?? user.id,

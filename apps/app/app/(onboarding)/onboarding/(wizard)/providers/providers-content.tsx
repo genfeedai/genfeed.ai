@@ -320,7 +320,7 @@ export default function ProvidersContent() {
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-muted-foreground">
         {accessSurface === 'saas'
-          ? 'Use Genfeed Cloud for hosted generation, or bring your own provider keys if you want BYOK.'
+          ? 'Use Genfeed Cloud for hosted generation, or bring your own provider keys with a Pro plan.'
           : accessSurface === 'desktop-local'
             ? 'Genfeed looks for Claude, Codex, and Grok CLIs on this Mac. Detected tools can run locally without a cloud session.'
             : 'Genfeed uses the server-configured providers by default. Add your own provider API keys only if you want to override hosted access, or switch to Genfeed Cloud if you want the managed path instead.'}

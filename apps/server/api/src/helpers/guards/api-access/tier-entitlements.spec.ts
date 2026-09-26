@@ -33,22 +33,16 @@ describe('tier API entitlements', () => {
     }
   });
 
-  it('denies API access to free tiers (PAYG, BYOK)', () => {
+  it('denies API access to the free tier', () => {
     expect(TIER_API_ENTITLEMENTS[SubscriptionTier.FREE]).toEqual({
       apiAccess: false,
       apiRateLimit: 0,
     });
-    expect(TIER_API_ENTITLEMENTS[SubscriptionTier.BYOK]).toEqual({
-      apiAccess: false,
-      apiRateLimit: 0,
-    });
     expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasApiAccess(SubscriptionTier.BYOK)).toBe(false);
   });
 
   it('denies training access to free tiers and grants Pro+', () => {
     expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasTrainingAccess(SubscriptionTier.BYOK)).toBe(false);
     expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
@@ -56,7 +50,6 @@ describe('tier API entitlements', () => {
 
   it('denies clean-export access to free tiers and grants Pro+ (SaaS gate for #4498)', () => {
     expect(hasCleanExportAccess(SubscriptionTier.FREE)).toBe(false);
-    expect(hasCleanExportAccess(SubscriptionTier.BYOK)).toBe(false);
     expect(hasCleanExportAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasCleanExportAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasCleanExportAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
@@ -100,8 +93,8 @@ describe('tier API entitlements', () => {
     }
   });
 
-  it('resolves PAYG/BYOK product limits from the pricing package', () => {
-    for (const tier of [SubscriptionTier.FREE, SubscriptionTier.BYOK]) {
+  it('resolves PAYG product limits from the pricing package', () => {
+    for (const tier of [SubscriptionTier.FREE]) {
       expect(getBrandLimitForTier(tier)).toBeNull();
       expect(getChannelLimitForTier(tier)).toBeNull();
       expect(getOrganizationLimitForTier(tier)).toBe(SINGLE_ORGANIZATION_LIMIT);
@@ -138,7 +131,7 @@ describe('tier API entitlements', () => {
 
   it('names the next tier only for finite product limits', () => {
     expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBe(null);
-    expect(getUpgradeTierForLimit('seats', SubscriptionTier.BYOK)).toBe(
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.FREE)).toBe(
       SubscriptionTier.PRO,
     );
     expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
@@ -161,7 +154,6 @@ describe('tier API entitlements', () => {
 
   it('exposes per-tier rate limits via getApiRateLimitForTier', () => {
     expect(getApiRateLimitForTier(SubscriptionTier.FREE)).toBe(0);
-    expect(getApiRateLimitForTier(SubscriptionTier.BYOK)).toBe(0);
     expect(getApiRateLimitForTier(SubscriptionTier.PRO)).toBe(300);
     expect(getApiRateLimitForTier(SubscriptionTier.SCALE)).toBe(600);
     expect(getApiRateLimitForTier(SubscriptionTier.ENTERPRISE)).toBeNull();

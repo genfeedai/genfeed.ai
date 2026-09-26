@@ -174,15 +174,13 @@ describe('SubscriptionGuard', () => {
     expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('allows users with BYOK tier regardless of subscription status', () => {
+  it('rejects a cancelled subscription left on the retired byok tier', () => {
     vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.CANCELLED,
     );
-    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
-      SubscriptionTier.BYOK,
-    );
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue('byok');
     const ctx = buildContext(buildUser());
-    expect(guard.canActivate(ctx)).toBe(true);
+    expect(() => guard.canActivate(ctx)).toThrow(HttpException);
   });
 
   it('throws 403 when subscription is inactive', () => {

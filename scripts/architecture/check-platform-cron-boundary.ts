@@ -123,13 +123,6 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform OAuth token lifecycle maintenance. Not user automation: tenants cannot meaningfully inspect, duplicate, or disable it - disabling breaks their own connected integrations. Re-justified in #1092.',
   },
   {
-    file: 'apps/server/workers/src/crons/byok-billing/cron.byok-billing.service.ts',
-    id: 'byok-billing',
-    methodName: 'processMonthlyByokBilling',
-    reason:
-      'Platform billing invoicing (Stripe). Must never be tenant-mutable or duplicable, and workflow retry semantics risk double invoicing. Re-justified in #1092.',
-  },
-  {
     file: 'apps/server/workers/src/crons/model-deprecation/cron.model-deprecation.service.ts',
     id: 'model-deprecation',
     methodName: 'deprecateSupersededModels',

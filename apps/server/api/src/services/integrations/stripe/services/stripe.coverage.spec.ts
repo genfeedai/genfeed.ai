@@ -680,46 +680,6 @@ describe('StripeService — coverage spec', () => {
   });
 
   // -----------------------------------------------------------------------
-  // createSetupCheckoutSession
-  // -----------------------------------------------------------------------
-
-  describe('createSetupCheckoutSession', () => {
-    it('creates a setup-mode checkout session', async () => {
-      const mockSession = makeMockSession('sess_setup');
-      const createSpy = vi
-        .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue(mockSession);
-
-      const result = await service.createSetupCheckoutSession(
-        'cus_1',
-        'https://app/success',
-        'https://app/cancel',
-      );
-
-      expect(createSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          cancel_url: 'https://app/cancel',
-          customer: 'cus_1',
-          mode: 'setup',
-          success_url: 'https://app/success',
-        }),
-      );
-      expect(result).toBe(mockSession);
-    });
-
-    it('re-throws and logs on Stripe error', async () => {
-      vi.spyOn(service.stripe.checkout.sessions, 'create').mockRejectedValue(
-        new Error('setup session error'),
-      );
-
-      await expect(
-        service.createSetupCheckoutSession('cus_x', 'https://a', 'https://b'),
-      ).rejects.toThrow('setup session error');
-      expect(loggerMock.error).toHaveBeenCalled();
-    });
-  });
-
-  // -----------------------------------------------------------------------
   // retrieveCustomer
   // -----------------------------------------------------------------------
 

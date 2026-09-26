@@ -37,20 +37,9 @@ export function parseSubscriptionPlan(
  */
 export enum SubscriptionTier {
   FREE = 'free',
-  BYOK = 'byok', // Bring Your Own Key — free tier
   PRO = 'pro',
   SCALE = 'scale',
   ENTERPRISE = 'enterprise', // custom terms, contact sales
-}
-
-/**
- * BYOK billing state. Values match Prisma `ByokBillingStatus`.
- * @see packages/prisma/prisma/schema.prisma `enum ByokBillingStatus`
- */
-export enum ByokBillingStatus {
-  ACTIVE = 'ACTIVE',
-  PAST_DUE = 'PAST_DUE',
-  SUSPENDED = 'SUSPENDED',
 }
 
 /**
