@@ -116,7 +116,14 @@ describe('ReferralsService', () => {
       },
       creditTransaction: { findFirst: vi.fn().mockResolvedValue(null) },
       organization: {
-        findFirst: vi.fn(),
+        // Default: ACTOR's organization is directly attached to
+        // ba_referred, matching the mocked BillingAccountsService below —
+        // resolveBillingAccountAccess (#5217) reads this independently of
+        // that mock. Tests unrelated to claim() override this per case.
+        findFirst: vi.fn().mockResolvedValue({
+          billingAccountId: 'ba_referred',
+          id: ACTOR.organizationId,
+        }),
         findMany: vi.fn().mockResolvedValue([{ id: ACTOR.organizationId }]),
       },
       referral: {
