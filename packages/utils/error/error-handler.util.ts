@@ -2,15 +2,10 @@ import { ErrorCode } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import {
-  getErrorStatus,
   getJsonApiErrorStatus,
-  type IApiErrorResponse,
   type IJsonApiError,
   isAxiosError,
 } from './json-api-status.util';
-
-export type { IApiErrorResponse, IJsonApiError };
-export { getErrorStatus, isAxiosError };
 
 export interface IApiError {
   status: number;

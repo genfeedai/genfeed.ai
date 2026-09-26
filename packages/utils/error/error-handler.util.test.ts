@@ -36,12 +36,14 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 import {
   ErrorHandler,
   getErrorMessage,
-  getErrorStatus,
   hasErrorDetail,
   type IApiError,
+} from '@utils/error/error-handler.util';
+import {
+  getErrorStatus,
   type IJsonApiError,
   isAxiosError,
-} from '@utils/error/error-handler.util';
+} from '@utils/error/json-api-status.util';
 
 describe('error-handler.util', () => {
   describe('isAxiosError', () => {
