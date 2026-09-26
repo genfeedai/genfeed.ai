@@ -748,6 +748,7 @@ describe('SocialInboxService', () => {
       // conditional decrement runs, so the `gte` guard no longer matches —
       // nothing here changes the row.
       context.conversations[0].unreadCount = 0;
+      context.notificationsPublisher.emit.mockClear();
 
       const read = await context.service.markConversationRead(
         scope,
@@ -760,6 +761,7 @@ describe('SocialInboxService', () => {
       // true state (0), not the stale value from before the attempt.
       expect(read.unreadCount).toBe(0);
       expect(context.conversations[0].unreadCount).toBe(0);
+      // No update actually happened, so no realtime event for this call.
       expect(context.notificationsPublisher.emit).not.toHaveBeenCalled();
     });
 
