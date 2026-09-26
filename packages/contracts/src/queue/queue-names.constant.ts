@@ -9,14 +9,19 @@ export const DEFAULT_QUEUE = 'default';
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 /**
- * Platform-cron sweep dispatches only (`PlatformWorkflowSchedulesService`:
- * proactive-agent-strategies, analytics-sync, content-loop-autopilot).
- * Split from `WORKFLOW_EXECUTION_QUEUE` in #5162: BullMQ's rate limiter is
- * queue-global and its concurrency slots are not preemptible by job
- * priority, so a shared queue only made platform sweeps *less likely* to
- * starve interactive agent turns, not incapable of it. Keeping platform
- * sweep dispatches on their own queue, with their own concurrency and
- * limiter, makes that starvation structurally impossible instead.
+ * Platform-originated system-workflow work: platform-cron sweep dispatches
+ * (`PlatformWorkflowSchedulesService`: proactive-agent-strategies,
+ * analytics-sync, content-loop-autopilot), the proactive agent-strategy turns
+ * they trigger, and `workflow.for-each` children spawned from one of those
+ * workflows. Split from `WORKFLOW_EXECUTION_QUEUE` in #5162: that queue's
+ * rate limiter is checked before job priority is ever consulted, and an
+ * already-active job is never evicted from a concurrency slot for a
+ * higher-priority one that arrives later — so priority on a shared queue
+ * only makes starvation *less likely*, never impossible, and (per #5252
+ * review) actively inverts intent once most producers on that queue carry no
+ * priority at all. A dedicated queue, with its own concurrency and limiter,
+ * is what makes platform-originated work structurally unable to consume the
+ * budget an interactive agent turn depends on.
  */
 export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
 
@@ -90,23 +95,3 @@ export function hasQueueConsumer(queueName: string): boolean {
 }
 
 export const LLM_COST_SETTLEMENT_QUEUE = 'llm-cost-settlement';
-
-/**
- * BullMQ job `priority` for `WORKFLOW_EXECUTION_QUEUE` and
- * `PLATFORM_SYSTEM_WORKFLOW_QUEUE` jobs. Lower number = higher priority
- * (BullMQ convention; unset means unprioritized FIFO, which sorts behind any
- * prioritized job). #5162: interactive agent turns previously carried no
- * priority at all, so they queued FIFO behind whatever a platform sweep had
- * already enqueued.
- */
-export const WORKFLOW_JOB_PRIORITY = {
-  /** Interactive agent conversation turns (AGENT_CONVERSATION_WORKFLOW_IDS). */
-  AGENT_CONVERSATION: 1,
-  /** Manual/user-triggered workflow runs and other system workflow starts. */
-  DEFAULT: 10,
-  /** Platform-cron sweep dispatches (PlatformWorkflowSchedulesService). */
-  PLATFORM_SWEEP: 20,
-} as const;
-
-export type WorkflowJobPriority =
-  (typeof WORKFLOW_JOB_PRIORITY)[keyof typeof WORKFLOW_JOB_PRIORITY];

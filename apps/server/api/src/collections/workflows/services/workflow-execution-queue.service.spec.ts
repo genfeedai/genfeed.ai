@@ -13,7 +13,6 @@ import {
   WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/contracts';
-import { WORKFLOW_JOB_PRIORITY } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -300,43 +299,6 @@ describe('WorkflowExecutionQueueService', () => {
       );
     });
 
-    it('passes BullMQ priority through to add()', async () => {
-      const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        organizationId: 'org-1',
-        source: 'agent',
-        userId: 'user-1',
-      };
-
-      await service.queueSystemWorkflow(input, 'system-workflow-exec-4', {
-        priority: WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
-      });
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'system-run',
-        expect.anything(),
-        expect.objectContaining({
-          priority: WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION,
-        }),
-      );
-    });
-
-    it('omits priority entirely when unset, rather than sending an undefined value', async () => {
-      const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        organizationId: 'org-1',
-        source: 'agent',
-        userId: 'user-1',
-      };
-
-      await service.queueSystemWorkflow(input, 'system-workflow-exec-5');
-
-      const opts = mockQueue.add.mock.calls[0][2];
-      expect(opts).not.toHaveProperty('priority');
-    });
-
     it('routes a platform-sweep dispatch to the platform queue instead of the interactive one (#5162)', async () => {
       const input = {
         actionType: 'agent.autopilot.proactive',
@@ -347,16 +309,13 @@ describe('WorkflowExecutionQueueService', () => {
       };
 
       await service.queueSystemWorkflow(input, 'system-workflow-exec-6', {
-        priority: WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP,
         usePlatformQueue: true,
       });
 
       expect(mockPlatformQueue.add).toHaveBeenCalledWith(
         'system-run',
         expect.anything(),
-        expect.objectContaining({
-          priority: WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP,
-        }),
+        expect.anything(),
       );
       expect(mockQueue.add).not.toHaveBeenCalled();
     });

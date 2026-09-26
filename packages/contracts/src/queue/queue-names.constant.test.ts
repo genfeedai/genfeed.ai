@@ -8,7 +8,6 @@ import {
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-  WORKFLOW_JOB_PRIORITY,
 } from './queue-names.constant';
 
 describe('queue-names.constant', () => {
@@ -22,15 +21,6 @@ describe('queue-names.constant', () => {
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(PLATFORM_SYSTEM_WORKFLOW_QUEUE).toBe('platform-system-workflow');
-  });
-
-  it('orders workflow job priority so lower numbers run first', () => {
-    expect(WORKFLOW_JOB_PRIORITY.AGENT_CONVERSATION).toBeLessThan(
-      WORKFLOW_JOB_PRIORITY.DEFAULT,
-    );
-    expect(WORKFLOW_JOB_PRIORITY.DEFAULT).toBeLessThan(
-      WORKFLOW_JOB_PRIORITY.PLATFORM_SWEEP,
-    );
   });
 
   it('lists every queue exactly once', () => {

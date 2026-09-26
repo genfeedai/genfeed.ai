@@ -46,6 +46,13 @@ import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/
   }),
 )
 export class PlatformSystemWorkflowProcessor extends WorkflowExecutionProcessor {
+  // Shadows the base class's `protected logContext` field so log lines from
+  // jobs processed by this worker are attributable to it, not to
+  // `WorkflowExecutionProcessor` (#5252 review). Field initializers run
+  // after `super()` in a derived class, so this is the value every inherited
+  // method sees on `this.logContext`.
+  protected readonly logContext = 'PlatformSystemWorkflowProcessor';
+
   constructor(
     logger: LoggerService,
     executorService: WorkflowExecutorService,

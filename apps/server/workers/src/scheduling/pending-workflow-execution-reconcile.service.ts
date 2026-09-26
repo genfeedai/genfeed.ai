@@ -10,6 +10,12 @@ import { Injectable } from '@nestjs/common';
  */
 const STALE_PENDING_THRESHOLD_MS = 5 * 60 * 1000;
 
+/**
+ * A `PENDING` row older than this is left alone entirely — see
+ * `StalePendingSystemExecutionFinderService.findMany` (#5252 review).
+ */
+const RECONCILE_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
 const NEVER_CLAIMED_ERROR_MESSAGE =
   'This run was queued but no worker ever picked it up. Send a new message to retry.';
 
@@ -41,8 +47,13 @@ export class PendingWorkflowExecutionReconcileService {
   ) {}
 
   async reconcile(): Promise<void> {
-    const staleBefore = new Date(Date.now() - STALE_PENDING_THRESHOLD_MS);
-    const candidates = await this.staleExecutionFinder.findMany(staleBefore);
+    const now = Date.now();
+    const staleBefore = new Date(now - STALE_PENDING_THRESHOLD_MS);
+    const createdAfter = new Date(now - RECONCILE_LOOKBACK_MS);
+    const candidates = await this.staleExecutionFinder.findMany(
+      staleBefore,
+      createdAfter,
+    );
 
     for (const candidate of candidates) {
       try {

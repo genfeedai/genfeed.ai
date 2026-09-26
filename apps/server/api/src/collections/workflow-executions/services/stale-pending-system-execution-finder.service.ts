@@ -18,8 +18,17 @@ import { Injectable } from '@nestjs/common';
 export class StalePendingSystemExecutionFinderService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * `createdAfter` bounds the scan to recent rows only (#5252 review). A
+   * `PENDING` row from before this bound is left alone rather than failed —
+   * it either predates every deploy this reconcile has run in, or is
+   * genuinely ancient for reasons unrelated to #5162, and blindly failing it
+   * would fire a fresh failure notification/webhook for something the user
+   * has long since stopped waiting on.
+   */
   async findMany(
     staleBefore: Date,
+    createdAfter: Date,
     limit = 200,
   ): Promise<Array<{ id: string; organizationId: string }>> {
     // tenant-scope-ignore: this reconcile runs once per platform sweep tick across every organization, mirroring the other global reconcile jobs in apps/server/workers/src/scheduling
@@ -27,7 +36,7 @@ export class StalePendingSystemExecutionFinderService {
       select: { id: true, organizationId: true },
       take: limit,
       where: {
-        createdAt: { lt: staleBefore },
+        createdAt: { gte: createdAfter, lt: staleBefore },
         isDeleted: false,
         result: { path: ['metadata', 'isSystemAction'], equals: true },
         status: PrismaWorkflowExecutionStatus.PENDING,

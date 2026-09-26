@@ -70,20 +70,24 @@ export interface QueueSystemWorkflowOptions {
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
   >;
   /**
-   * BullMQ job priority — lower number runs first (see `WORKFLOW_JOB_PRIORITY`
-   * in `@genfeedai/contracts/queue`). Omit for unprioritized FIFO. #5162: a
-   * platform sweep and an interactive agent turn previously carried the same
-   * (absent) priority on the shared queue.
-   */
-  priority?: number;
-  /**
    * Route this job to `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of
-   * `WORKFLOW_EXECUTION_QUEUE`. Set only by platform-cron sweep dispatches
-   * (`PlatformWorkflowSchedulesService`) — see #5162: BullMQ's rate limiter is
-   * queue-global and its concurrency slots are not preemptible by priority,
-   * so keeping these on a separate queue is what makes it structurally
-   * impossible for a sweep burst to starve an interactive agent turn, rather
-   * than merely less likely.
+   * `WORKFLOW_EXECUTION_QUEUE`. Set for platform-cron sweep dispatches
+   * (`PlatformWorkflowSchedulesService`), proactive agent-strategy turns, and
+   * `workflow.for-each` children spawned from a platform-sweep workflow —
+   * see #5162.
+   *
+   * BullMQ `priority` was considered and dropped (#5252 review): its rate
+   * limiter is checked before priority is ever consulted, and an
+   * already-active job is never evicted from a concurrency slot for a
+   * higher-priority one that arrives later — so priority on a shared queue
+   * only makes starvation *less likely*, and only for the producers that set
+   * it. This queue was the one shared by ~40 unprioritized producers (worker
+   * crons, batch generation, the clip factory, `workflow.for-each` fan-out);
+   * `fetchNextJob.lua` pops the plain wait list before the `prioritized` set,
+   * so giving only agent turns a priority would have made every one of those
+   * other producers run *ahead* of them — the opposite of the intent. A
+   * dedicated queue is the only fix that is correct for every producer
+   * without auditing and annotating all of them.
    */
   usePlatformQueue?: boolean;
   /**
@@ -136,9 +140,12 @@ export function workflowSchedulerId(workflowId: string): string {
 /**
  * States a freshly enqueued `system-run` job may legitimately be in right
  * after `add()` returns: still waiting for a worker, scheduled for a delayed
- * retry, or already picked up by a worker within this same call. Anything
- * else (most importantly `completed`/`failed`) means `add()` silently handed
- * back a stale job instead of creating new work — see #5162.
+ * retry, already picked up by a worker within this same call, or — for a job
+ * added with `priority > 0` — sitting in BullMQ's separate `prioritized` ZSET
+ * (`getState` reads that set before the plain wait list; see
+ * includes/getState.lua in the installed bullmq package). Anything else
+ * (most importantly `completed`/`failed`) means `add()` silently handed back
+ * a stale job instead of creating new work — see #5162.
  *
  * Also used by `hasClaimableSystemWorkflowJob` to answer the same question
  * later, for a `WorkflowExecution` that has been sitting `PENDING` — see
@@ -148,6 +155,7 @@ export const CLAIMABLE_JOB_STATES = new Set<string>([
   'waiting',
   'delayed',
   'active',
+  'prioritized',
 ]);
 
 function requireQueueJobId(
@@ -274,9 +282,6 @@ export class WorkflowExecutionQueueService {
         attempts: options.attempts ?? 3,
         backoff: { delay: 5000, type: 'exponential' },
         ...(options.delayMs !== undefined ? { delay: options.delayMs } : {}),
-        ...(options.priority !== undefined
-          ? { priority: options.priority }
-          : {}),
         jobId,
         removeOnComplete: 200,
         removeOnFail: 100,

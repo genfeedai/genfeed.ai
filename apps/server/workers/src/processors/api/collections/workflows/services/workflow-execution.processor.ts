@@ -38,7 +38,9 @@ import { Job } from 'bullmq';
   }),
 )
 export class WorkflowExecutionProcessor extends WorkerHost {
-  private readonly logContext = 'WorkflowExecutionProcessor';
+  // protected so PlatformSystemWorkflowProcessor can shadow it with its own
+  // value — every inherited method here logs through `this.logContext`.
+  protected readonly logContext = 'WorkflowExecutionProcessor';
 
   constructor(
     private readonly logger: LoggerService,
