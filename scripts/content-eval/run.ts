@@ -18,6 +18,8 @@
  *   --seed=<n>                        default 1, recorded on every call
  *   --tie-band=<0..1>                 pointwise tie band (default in contracts.ts)
  *   --out=<report.json>               write the report here instead of stdout
+ *   --outlier-thresholds=<path.json>  outlier cut (#5234); defaults in
+ *                                     outliers/contracts.ts, recorded per run
  *
  * Exit codes: 0 pass · 1 threshold failure, spend abort or run error · 2 usage.
  *
@@ -27,11 +29,13 @@
  * nearest tsconfig, so this directory's own tsconfig covers the harness.
  */
 
+import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { REPORT_ANALYZERS } from './analyzers';
-import { parseCliArgs, UsageError } from './cli';
+import { parseCliArgs, readFlag, UsageError } from './cli';
 import type { DispatcherKind, EvalDispatcher } from './contracts';
 import { createStubDispatcher } from './dispatchers/stub';
+import { outlierThresholdsSchema } from './outliers';
 import { resolveRepoPath } from './provenance';
 import { renderSummary, writeReport } from './report';
 import { runContentEval } from './runner';
@@ -45,6 +49,37 @@ async function createDispatcher(kind: DispatcherKind): Promise<EvalDispatcher> {
   return createLiveDispatcher();
 }
 
+/** Read and validated before the run starts, so a bad file is a usage error. */
+function readOutlierThresholds(argv: string[]): unknown {
+  const path = readFlag(argv, 'outlier-thresholds');
+  if (path === undefined) {
+    return undefined;
+  }
+  if (path.trim() === '') {
+    throw new UsageError('--outlier-thresholds needs a path to a JSON file');
+  }
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(resolveRepoPath(path), 'utf8'));
+  } catch (error: unknown) {
+    throw new UsageError(
+      `--outlier-thresholds=${path} is not a readable JSON file: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const parsed = outlierThresholdsSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new UsageError(
+      `--outlier-thresholds=${path} is invalid: ${parsed.error.issues
+        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+        .join('; ')}`,
+    );
+  }
+
+  return parsed.data;
+}
+
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const { out, ...args } = parseCliArgs(argv);
@@ -52,6 +87,7 @@ async function main(): Promise<number> {
     ...args,
     argv,
     createDispatcher,
+    outlierThresholds: readOutlierThresholds(argv),
   });
 
   if (out) {
