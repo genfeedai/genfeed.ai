@@ -181,6 +181,7 @@ export class CreditReservationService {
           heldDelta: -reservation.amount,
         },
         tx,
+        reservation.id,
       );
 
       await this.creditTransactionsService.createTransactionEntry(
@@ -261,6 +262,7 @@ export class CreditReservationService {
           heldDelta: -reservation.amount,
         },
         tx,
+        reservation.id,
       );
       return snapshot;
     });
@@ -432,7 +434,11 @@ export class CreditReservationService {
   }
 
   private async walletSnapshot(
-    reservation: { billingAccountId: string; organizationId: string },
+    reservation: {
+      billingAccountId: string;
+      id: string;
+      organizationId: string;
+    },
     tx: PrismaTransactionClient,
   ): Promise<ICreditWalletSnapshot> {
     return this.creditBalanceService.toSnapshot(
@@ -440,6 +446,7 @@ export class CreditReservationService {
         reservation.organizationId,
         tx,
         reservation.billingAccountId,
+        reservation.id,
       ),
     );
   }

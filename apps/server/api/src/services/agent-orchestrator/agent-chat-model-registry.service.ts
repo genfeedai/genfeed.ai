@@ -203,10 +203,14 @@ export class AgentChatModelRegistryService
   }
 
   /**
-   * Platform default for cloud chat. Prefers `isDefault` on an active row,
-   * then cheapest active, then seed key only if the registry is empty.
+   * Platform default for cloud chat and other product text (drafts, prompt
+   * enhancement, article generation). Prefers `isDefault` on an active row,
+   * then cheapest active, then `fallbackKey` (a caller's own seed constant,
+   * e.g. `DEFAULT_MINI_TEXT_MODEL`) only if the registry is empty.
    */
-  async getDefaultModelKey(): Promise<string> {
+  async getDefaultModelKey(
+    fallbackKey: string = DEFAULT_AGENT_CHAT_MODEL_KEY,
+  ): Promise<string> {
     await this.ensureFresh();
     const active = [...this.byKey.values()].filter((row) => row.isActive);
     const marked = active.find((row) => row.isDefault);
@@ -224,9 +228,9 @@ export class AgentChatModelRegistryService
     }
     this.logger.warn(
       'No active agent-chat model in registry; using seed default key',
-      { ...this.context, fallback: DEFAULT_AGENT_CHAT_MODEL_KEY },
+      { ...this.context, fallback: fallbackKey },
     );
-    return DEFAULT_AGENT_CHAT_MODEL_KEY;
+    return fallbackKey;
   }
 
   /** Self-hosted fleet default when subscription prefers local inference. */
@@ -251,13 +255,19 @@ export class AgentChatModelRegistryService
 
   /**
    * Map persisted/request keys forward via registry `succeededBy` (legacy rows).
-   * Empty → platform default.
+   * Empty → platform default. `fallbackKey` is forwarded to
+   * {@link getDefaultModelKey} for callers outside agent chat (drafts, prompt
+   * enhancement, long product text) that want their own seed constant instead
+   * of the agent-chat seed when the registry itself is empty.
    */
-  async resolveModelKey(key?: string | null): Promise<string> {
+  async resolveModelKey(
+    key?: string | null,
+    fallbackKey?: string,
+  ): Promise<string> {
     await this.ensureFresh();
     const trimmed = key?.trim();
     if (!trimmed) {
-      return this.getDefaultModelKey();
+      return this.getDefaultModelKey(fallbackKey);
     }
 
     const seen = new Set<string>();
@@ -274,7 +284,7 @@ export class AgentChatModelRegistryService
       }
       return current;
     }
-    return this.getDefaultModelKey();
+    return this.getDefaultModelKey(fallbackKey);
   }
 
   /**

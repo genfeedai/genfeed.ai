@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { connectCommand } from '@/commands/connect';
 
 const {
   mockExecuteAgentTool,
@@ -56,8 +57,6 @@ describe('connect command', () => {
   });
 
   it('opens the browser authorization URL without creating a second generation', async () => {
-    const { connectCommand } = await import('@/commands/connect');
-
     await connectCommand.parseAsync(['twitter', '--no-wait'], { from: 'user' });
 
     expect(mockExecuteAgentTool).toHaveBeenCalledWith(
