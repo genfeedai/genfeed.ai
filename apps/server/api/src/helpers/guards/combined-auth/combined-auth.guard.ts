@@ -295,6 +295,15 @@ export class CombinedAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     const token = this.resolveBearerToken(authHeader);
 
+    // A presented Authorization header that fails strict parsing (wrong
+    // scheme, blank token, or surplus whitespace-separated fields) is a
+    // malformed credential, not an absent one — it must never be downgraded
+    // to anonymous/local-admin access in HYBRID mode, nor silently deferred
+    // to a downstream guard in CLOUD mode.
+    if (authHeader !== undefined && !token) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
     // 4. HYBRID mode: opportunistic auth
     if (isSelfHostedDeployment() && isBetterAuthEnabled()) {
       // @RequiresCloudAuth() routes must have a valid token

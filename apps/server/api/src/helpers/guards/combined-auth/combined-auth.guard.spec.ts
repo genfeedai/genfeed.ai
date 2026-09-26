@@ -203,47 +203,41 @@ describe('CombinedAuthGuard', () => {
   it('never treats a gf_ key with surplus fields as a valid API key on a required-auth route', async () => {
     // Before this fix, resolveBearerToken silently truncated
     // `Bearer gf_<key> extra` down to `gf_<key>` and routed it to
-    // ApiKeyAuthGuard as if it were a well-formed key. It must now be
-    // treated as unparseable so it falls through to Better Auth (which
-    // rejects it as an invalid session token) instead of being validated
-    // as an API key.
+    // ApiKeyAuthGuard as if it were a well-formed key. A presented header
+    // that fails strict parsing is now rejected by the guard itself, before
+    // either downstream guard is ever consulted.
     const mockRequest = {
       headers: { authorization: 'Bearer gf_1234567890abcdef extra' },
     };
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
       mockRequest,
     );
-    betterAuthGuard.canActivate.mockRejectedValue(
-      new UnauthorizedException('Unauthorized'),
-    );
 
     await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
       UnauthorizedException,
     );
     expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
-    expect(betterAuthGuard.canActivate).toHaveBeenCalledWith(
-      mockExecutionContext,
-    );
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
   it.each([
     ['surplus fields on a session token', 'Bearer session-token extra'],
     ['malformed scheme', 'Token abc'],
+    ['single field', 'Bearer'],
+    ['empty header', ''],
   ])(
-    'passes a %s Authorization header through to Better Auth (which rejects it) on required auth',
+    'rejects a %s Authorization header outright on required auth, without deferring to either guard',
     async (_label, authorization) => {
       const mockRequest = { headers: { authorization } };
       (
         mockExecutionContext.switchToHttp().getRequest as vi.Mock
       ).mockReturnValue(mockRequest);
-      betterAuthGuard.canActivate.mockRejectedValue(
-        new UnauthorizedException('Unauthorized'),
-      );
 
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
     },
   );
 
@@ -605,4 +599,33 @@ describe('CombinedAuthGuard', () => {
     );
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['surplus fields', 'Bearer gf_1234567890abcdef extra'],
+    ['wrong scheme', 'Basic abc'],
+    ['single field', 'Bearer'],
+    ['empty', ''],
+  ])(
+    'rejects a %s Authorization header in hybrid mode instead of downgrading to local identity',
+    async (_label, authorization) => {
+      // A presented-but-malformed header must never be treated the same as
+      // an absent one: absent means "no credential attempted" (anonymous,
+      // local super-admin), while malformed means "an invalid credential
+      // was attempted" and must fail closed with 401.
+      guard = await instantiateGuard('hybrid');
+      const mockRequest: { user?: Record<string, unknown>; headers: object } = {
+        headers: { authorization },
+      };
+      (
+        mockExecutionContext.switchToHttp().getRequest as vi.Mock
+      ).mockReturnValue(mockRequest);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockRequest.user).toBeUndefined();
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
 });

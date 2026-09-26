@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
@@ -33,19 +34,19 @@ export function isBearerTokenValid(
 
 /**
  * Extracts a bearer token from an `Authorization: Bearer <token>` header
- * using `startsWith`/`slice` parsing (case-sensitive scheme, no whitespace
- * tolerance around the scheme). Returns `''` when the header is missing or
- * does not use the `Bearer ` scheme.
+ * via the shared strict parser (exactly one scheme and one token; a header
+ * with zero, one, or three-or-more whitespace-separated fields is rejected).
+ * Returns `''` when the header is missing, unparseable, or does not use the
+ * `Bearer` scheme.
  *
- * This matches the parsing used by the clips/images internal API key guards.
- * `AdminApiKeyGuard` intentionally uses different (split-based) parsing and
- * does NOT use this helper — see admin-api-key.guard.ts.
+ * Used by the clips/images internal API key guards. `AdminApiKeyGuard` also
+ * uses the same shared parser — see admin-api-key.guard.ts.
  */
 export function extractBearerTokenStrict(
   authHeader: string | undefined,
 ): string {
-  const header = authHeader ?? '';
-  return header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
+  const parsed = parseAuthorizationHeader(authHeader);
+  return parsed?.scheme === 'Bearer' ? parsed.token : '';
 }
 
 export interface IInternalApiKeyGuardOptions {

@@ -3,6 +3,7 @@ import {
   hasExplicitApiKeyAdminScope,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
 } from '@genfeedai/contracts';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -192,9 +193,10 @@ export class AuthService {
   }
 
   extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader?.startsWith('Bearer ')) {
+    const parsed = parseAuthorizationHeader(authHeader);
+    if (parsed?.scheme !== 'Bearer') {
       return null;
     }
-    return authHeader.substring(7);
+    return parsed.token;
   }
 }

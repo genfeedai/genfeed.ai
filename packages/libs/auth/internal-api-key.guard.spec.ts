@@ -60,6 +60,22 @@ describe('InternalApiKeyGuard (shared @libs/auth core)', () => {
     ).toThrow(UnauthorizedException);
   });
 
+  it('rejects a bearer token with surplus fields', () => {
+    // Regression coverage for #5206: a naive `startsWith`/`slice` parse kept
+    // everything after "Bearer ", including surplus fields, as one opaque
+    // token that failed the timing-safe compare rather than being rejected
+    // outright as a malformed header.
+    const guard = buildGuard('secret-token', false);
+
+    expect(() =>
+      guard.canActivate(
+        createContext({
+          headers: { authorization: 'Bearer secret-token extra' },
+        }),
+      ),
+    ).toThrow(UnauthorizedException);
+  });
+
   it('rejects invalid bearer tokens (timing-safe mismatch)', () => {
     const guard = buildGuard('secret-token', false);
 

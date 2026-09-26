@@ -116,6 +116,40 @@ describe('TerminalGateway', () => {
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['surplus fields', 'Bearer session-token extra'],
+    ['wrong scheme', 'Basic session-token'],
+    ['single field', 'Bearer'],
+  ])(
+    // Regression coverage for #5206: the header-based fallback (used when a
+    // socket presents its token via the Authorization header rather than
+    // `handshake.auth.token`) must reject a malformed header rather than
+    // treating it as absent and falling through to the cookie-mint path.
+    'rejects a %s Authorization header instead of falling back to the session cookie',
+    async (_label, authorization) => {
+      const terminalService = createTerminalService();
+      const gateway = new TerminalGateway(terminalService as never);
+      const socket = {
+        disconnect: vi.fn(),
+        emit: vi.fn(),
+        handshake: {
+          address: '127.0.0.1',
+          auth: {},
+          headers: { authorization, origin: 'http://localhost:3000' },
+        },
+        id: 'socket-1',
+      } as unknown as Socket;
+
+      await gateway.handleConnection(socket);
+
+      expect(verifyMock).not.toHaveBeenCalled();
+      expect(socket.emit).toHaveBeenCalledWith('terminal:error', {
+        message: 'Local terminal requires an authenticated session.',
+      });
+      expect(socket.disconnect).toHaveBeenCalledWith(true);
+    },
+  );
+
   it('accepts localhost origins by minting a token from the Better Auth session cookie', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
