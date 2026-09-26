@@ -1,5 +1,6 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
 import type { BrandRemixSceneQuote } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -72,6 +73,11 @@ export class BrandRemixSceneBillingService {
       throw error;
     }
   }
+  /**
+   * Charge an accepted stage once its provider output is usable. Settlement is
+   * idempotent per key; a hold that expired or was released before the output
+   * arrived is recorded as released rather than charged again.
+   */
   async settle(
     organizationId: string,
     runId: string,
@@ -81,50 +87,51 @@ export class BrandRemixSceneBillingService {
   ) {
     const { config } = await this.store.read(organizationId, runId);
     const pipeline = config.scenePipeline;
-    const key = `${image ? 'generation:' : ''}${this.key(runId, operationId, line)}`;
+    const key = this.receiptKey(runId, operationId, line, image);
+    const receipt = pipeline?.receipts.find(
+      (candidate) =>
+        candidate.key === key && candidate.operationId === operationId,
+    );
+    if (receipt?.state === 'settled' || receipt?.state === 'released') return;
     const actorUserId =
-      pipeline?.receipts.find(
-        (receipt) => receipt.key === key && receipt.operationId === operationId,
-      )?.actorUserId ??
+      receipt?.actorUserId ??
       (pipeline?.operation?.id === operationId
         ? pipeline.operation.userId
         : undefined);
     if (!actorUserId)
       throw new ConflictException('Missing durable settlement actor.');
-    if (line.credits > 0)
-      await this.credits.settleReservation({
-        organizationId,
-        actorUserId,
-        idempotencyKey: key,
-        actualAmount: line.credits,
-        description: `Remix ${line.stage}`,
-      });
-    const current = await this.store.read(organizationId, runId);
-    if (!current.config.scenePipeline) return;
-    await this.store.save(organizationId, runId, current.config, {
-      ...current.config,
-      scenePipeline: {
-        ...current.config.scenePipeline,
-        receipts: current.config.scenePipeline.receipts.map((receipt) =>
-          receipt.key === key ? { ...receipt, state: 'settled' } : receipt,
-        ),
-      },
-    });
+    let state: 'settled' | 'released' = 'settled';
+    if (line.credits > 0) {
+      try {
+        await this.credits.settleReservation({
+          organizationId,
+          actorUserId,
+          idempotencyKey: key,
+          actualAmount: line.credits,
+          description: `Remix ${line.stage}`,
+        });
+      } catch (error: unknown) {
+        if (!(error instanceof UnsettleableReservationException)) throw error;
+        state = 'released';
+      }
+    }
+    await this.writeReceipt(organizationId, runId, key, state);
   }
-  async releaseImageReservation(organizationId: string, reservationId: string) {
-    await this.credits.releaseReservation({ organizationId, reservationId });
-  }
+  /**
+   * Return the hold of a stage whose provider output definitively failed or
+   * never reached a provider. Already settled stages stay charged.
+   */
   async release(
     organizationId: string,
     runId: string,
     operationId: string,
     line: BrandRemixSceneQuote['items'][number],
+    image = false,
   ) {
-    const key = this.key(runId, operationId, line);
+    const key = this.receiptKey(runId, operationId, line, image);
     const { config } = await this.store.read(organizationId, runId);
-    const pipeline = config.scenePipeline;
     if (
-      !pipeline?.receipts.some(
+      !config.scenePipeline?.receipts.some(
         (receipt) => receipt.key === key && receipt.state === 'reserved',
       )
     )
@@ -134,14 +141,35 @@ export class BrandRemixSceneBillingService {
         organizationId,
         idempotencyKey: key,
       });
+    await this.writeReceipt(organizationId, runId, key, 'released');
+  }
+  private receiptKey(
+    runId: string,
+    operationId: string,
+    line: BrandRemixSceneQuote['items'][number],
+    image: boolean,
+  ) {
+    return `${image ? 'generation:' : ''}${this.key(runId, operationId, line)}`;
+  }
+  private async writeReceipt(
+    organizationId: string,
+    runId: string,
+    key: string,
+    state: 'settled' | 'released',
+  ) {
+    const { config } = await this.store.read(organizationId, runId);
+    if (!config.scenePipeline) return;
     await this.store.save(organizationId, runId, config, {
       ...config,
       scenePipeline: {
-        ...pipeline,
-        receipts: pipeline.receipts.map((receipt) =>
-          receipt.key === key ? { ...receipt, state: 'released' } : receipt,
+        ...config.scenePipeline,
+        receipts: config.scenePipeline.receipts.map((receipt) =>
+          receipt.key === key ? { ...receipt, state } : receipt,
         ),
       },
     });
+  }
+  async releaseImageReservation(organizationId: string, reservationId: string) {
+    await this.credits.releaseReservation({ organizationId, reservationId });
   }
 }

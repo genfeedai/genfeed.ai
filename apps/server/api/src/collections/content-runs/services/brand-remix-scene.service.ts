@@ -5,8 +5,12 @@ import { BrandRemixSceneSourceService } from '@api/collections/content-runs/serv
 import {
   assertSceneQuote,
   assertSupportedSceneFidelity,
+  canResumeScenePipeline,
+  hasInFlightSceneGeneration,
+  hasUnreconciledSceneWork,
   initialScenePipeline,
   isSceneOperationActive,
+  isStaleSceneClaim,
   stableSceneConcept,
 } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
@@ -19,6 +23,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import {
   attachBrandRemixAnalysisSourceSchema,
+  type BrandRemixScenePipeline,
   brandRemixSceneIdentitySchema,
   controlBrandRemixScenesSchema,
   executeBrandRemixScenesSchema,
@@ -26,6 +31,8 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConflictException, Injectable } from '@nestjs/common';
+
+type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
 
 @Injectable()
 export class BrandRemixSceneService {
@@ -147,6 +154,10 @@ export class BrandRemixSceneService {
     );
     this.editable(config);
     assertSupportedSceneFidelity(config);
+    if (hasUnreconciledSceneWork(config.scenePipeline))
+      throw new ConflictException(
+        'Resume or cancel the accepted scene work before requesting another quote.',
+      );
     const next = {
       ...config,
       ...(config.concept
@@ -326,19 +337,96 @@ export class BrandRemixSceneService {
       ].includes(config.phase)
     )
       throw new ConflictException('Reviewed remix output is immutable.');
-    if (!pipeline) throw new ConflictException('No scene pipeline exists.');
+    if (
+      !pipeline?.operation ||
+      !(
+        isSceneOperationActive(pipeline) || pipeline.state === 'partial_failure'
+      )
+    )
+      throw new ConflictException('No scene operation is running.');
+    const operation = {
+      ...pipeline.operation,
+      sequence: pipeline.operation.sequence + 1,
+    };
+    const released = await this.abandonSyncStages(
+      organizationId,
+      runId,
+      pipeline,
+    );
     await this.store.save(organizationId, runId, config, {
       ...config,
-      phase: 'prefilled',
+      phase: config.phase === 'generating' ? 'prefilled' : config.phase,
       scenePipeline: {
-        ...pipeline,
+        ...released,
+        operation,
         state: 'cancelled',
         cancellationGeneration: pipeline.cancellationGeneration + 1,
         error:
-          'Future dispatch is cancelled. Already accepted provider work may still finish.',
+          'Future dispatch is cancelled. Already accepted provider work may still finish and is recorded.',
       },
     });
+    // Provider work accepted before cancellation keeps being reconciled so
+    // its output and cost are recorded and the storyboard becomes editable.
+    if (hasInFlightSceneGeneration(pipeline))
+      await this.workflow.enqueue(organizationId, runId, operation, 10_000);
     return this.store.view(organizationId, runId);
+  }
+  /**
+   * Synchronous platform stages that errored or were abandoned by a crashed
+   * step have no upstream job to reconcile. Cancelling releases their holds
+   * and marks them failed so the run can be edited or quoted again.
+   */
+  private async abandonSyncStages(
+    organizationId: string,
+    runId: string,
+    pipeline: BrandRemixScenePipeline,
+  ): Promise<BrandRemixScenePipeline> {
+    const operationId = pipeline.operation?.id;
+    const keys: string[] = [];
+    const abandon = (
+      stage: SceneStage,
+      quoteStage: 'transcription' | 'analysis' | 'captions',
+    ): SceneStage => {
+      const isAbandoned =
+        stage.state === 'uncertain' || isStaleSceneClaim(stage);
+      if (!isAbandoned) return stage;
+      const line = pipeline.quote?.items.find(
+        (item) => item.stage === quoteStage && item.attempt === stage.attempt,
+      );
+      if (line && operationId)
+        keys.push(`remix-${runId}-${operationId}-${line.key}`);
+      return {
+        ...stage,
+        state: 'failed',
+        error: 'Cancelled before this platform step completed.',
+      };
+    };
+    const next = structuredClone(pipeline);
+    if (next.analysis) {
+      next.analysis.transcription = abandon(
+        next.analysis.transcription,
+        'transcription',
+      );
+      next.analysis.rewrite = abandon(next.analysis.rewrite, 'analysis');
+    }
+    if (next.assembly)
+      next.assembly.transcription = abandon(
+        next.assembly.transcription,
+        'captions',
+      );
+    for (const key of keys) {
+      const receipt = next.receipts.find(
+        (candidate) => candidate.key === key && candidate.state === 'reserved',
+      );
+      if (!receipt) continue;
+      if (receipt.amount > 0)
+        await this.credits.releaseReservation({
+          organizationId,
+          idempotencyKey: key,
+        });
+      receipt.state = 'released';
+    }
+    return next;
   }
   async resume(
     organizationId: string,
@@ -347,19 +435,23 @@ export class BrandRemixSceneService {
     body: unknown,
   ): Promise<BrandRemixRunView> {
     const input = controlBrandRemixScenesSchema.parse(body);
-    const { config } = await this.store.read(
+    const { run, config } = await this.store.read(
       organizationId,
       runId,
       input.expectedRevision,
     );
     const pipeline = config.scenePipeline;
     assertSupportedSceneFidelity(config);
+    if (config.review || config.reviewClaim)
+      throw new ConflictException('Reviewed remix output is immutable.');
     if (!pipeline?.operation || !pipeline.quote)
       throw new ConflictException(
         'No accepted operation is available to resume.',
       );
-    if (config.review || config.reviewClaim)
-      throw new ConflictException('Reviewed remix output is immutable.');
+    if (!canResumeScenePipeline(pipeline, run.updatedAt))
+      throw new ConflictException(
+        'The scene operation is still running. Cancel it or wait for it to stop.',
+      );
     const operation = {
       ...pipeline.operation,
       resumedAt: new Date().toISOString(),

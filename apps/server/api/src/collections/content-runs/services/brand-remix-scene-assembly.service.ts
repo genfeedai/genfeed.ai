@@ -5,6 +5,7 @@ import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/
 import {
   assertSceneBriefFidelity,
   assertSupportedSceneFidelity,
+  isRetryableSyncSceneStage,
 } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { scopedWhere } from '@api/index';
@@ -218,6 +219,7 @@ export class BrandRemixSceneAssemblyService {
     await this.store.fence(organizationId, runId, operationId);
     await this.persistAsset(organizationId, brandId, assetId, result.s3Key);
     const current = await this.store.fence(organizationId, runId, operationId);
+    const currentPipeline = current.config.scenePipeline ?? pipeline;
     assertSupportedSceneFidelity(current.config);
     const context = await this.planning.resolveBrandContext(
       organizationId,
@@ -245,7 +247,7 @@ export class BrandRemixSceneAssemblyService {
         ],
       },
       scenePipeline: {
-        ...pipeline,
+        ...currentPipeline,
         state: 'ready',
         assembly: { ...assembly, finalStorageKey: result.s3Key },
         operation: undefined,
@@ -357,9 +359,15 @@ export class BrandRemixSceneAssemblyService {
     assembly: NonNullable<BrandRemixScenePipeline['assembly']>,
   ) {
     const stage = assembly.transcription;
-    if (['claimed', 'submitted', 'uncertain'].includes(stage.state))
+    if (stage.state === 'failed')
       throw new ConflictException(
-        'Caption transcription acceptance is uncertain. Reconcile before retrying.',
+        'Caption transcription failed. Request a new generation quote.',
+      );
+    // Whisper is synchronous: an uncertain or abandoned attempt reruns under
+    // the same idempotent reservation instead of blocking the run forever.
+    if (stage.state !== 'ready' && !isRetryableSyncSceneStage(stage))
+      throw new ConflictException(
+        'Caption transcription is still running. Wait before resuming.',
       );
     if (stage.state === 'ready')
       throw new ConflictException(

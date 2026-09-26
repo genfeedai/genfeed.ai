@@ -6,8 +6,10 @@ import {
   assertScenePlan,
   assertSceneQuote,
   assertSupportedSceneFidelity,
+  canResumeScenePipeline,
   initialScenePipeline,
   invalidateScenePipeline,
+  isRetryableSyncSceneStage,
   sceneInputHash,
 } from './brand-remix-scene-state';
 
@@ -193,5 +195,67 @@ describe('scene contract invariants', () => {
       /Strict fidelity/,
     );
     expect(() => assertSceneBriefFidelity('strict')).toThrow(/Strict fidelity/);
+  });
+  it('keeps an unanalyzed pipeline awaiting analysis after an edit', () => {
+    const before = config();
+    const pipeline = before.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    pipeline.analysis = undefined;
+    pipeline.state = 'awaiting_analysis';
+    const next = structuredClone(before);
+    conceptOf(next).storyboard[0].narration = 'A new original line';
+    expect(invalidateScenePipeline(before, next)?.state).toBe(
+      'awaiting_analysis',
+    );
+  });
+  it('retries synchronous platform stages only once no live step can hold them', () => {
+    const now = Date.parse('2026-09-24T01:00:00.000Z');
+    expect(
+      isRetryableSyncSceneStage({ attempt: 1, state: 'uncertain' }, now),
+    ).toBe(true);
+    expect(
+      isRetryableSyncSceneStage(
+        { attempt: 1, state: 'claimed', claimedAt: '2026-09-24T00:59:30.000Z' },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isRetryableSyncSceneStage(
+        { attempt: 1, state: 'claimed', claimedAt: '2026-09-24T00:50:00.000Z' },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isRetryableSyncSceneStage({ attempt: 1, state: 'failed' }, now),
+    ).toBe(false);
+  });
+  it('resumes stopped operations and only stalled active chains', () => {
+    const now = Date.parse('2026-09-24T01:00:00.000Z');
+    const pipeline = {
+      ...initialScenePipeline(),
+      operation: {
+        id: 'op',
+        quoteId: 'quote',
+        revision: 1,
+        cancellationGeneration: 0,
+        startedAt: '2026-09-24T00:00:00.000Z',
+        userId: 'user',
+        sequence: 0,
+      },
+    };
+    const fresh = new Date(now - 30_000);
+    const stale = new Date(now - 10 * 60_000);
+    expect(
+      canResumeScenePipeline({ ...pipeline, state: 'generating' }, fresh, now),
+    ).toBe(false);
+    expect(
+      canResumeScenePipeline({ ...pipeline, state: 'generating' }, stale, now),
+    ).toBe(true);
+    expect(
+      canResumeScenePipeline({ ...pipeline, state: 'cancelled' }, fresh, now),
+    ).toBe(true);
+    expect(
+      canResumeScenePipeline({ ...pipeline, state: 'ready' }, stale, now),
+    ).toBe(false);
   });
 });

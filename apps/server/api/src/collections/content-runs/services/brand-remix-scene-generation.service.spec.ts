@@ -143,9 +143,9 @@ function fixture() {
 describe('canonical generated still to avatar boundary', () => {
   let config = fixture();
   const store = { fence: vi.fn(), save: vi.fn() };
-  const billing = { reserve: vi.fn(), settle: vi.fn() };
+  const billing = { reserve: vi.fn(), settle: vi.fn(), release: vi.fn() };
   const planning = { assertDraftAssetsAuthorized: vi.fn() };
-  const prisma = { ingredient: { findFirst: vi.fn() } };
+  const prisma = { ingredient: { findFirst: vi.fn(), updateMany: vi.fn() } };
   const files = { probeMediaFromUrl: vi.fn() };
   const images = { generateImage: vi.fn() };
   const avatars = { generateAvatarVideo: vi.fn() };
@@ -209,7 +209,10 @@ describe('canonical generated still to avatar boundary', () => {
       expect.anything(),
     );
     expect(config.scenePipeline?.scenes.scene.video.assetId).toBe('clip');
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('submitted');
     expect(billing.reserve).toHaveBeenCalledOnce();
+    // Accepted work is charged only once the provider output is usable.
+    expect(billing.settle).not.toHaveBeenCalled();
   });
   it('rejects a deleted/foreign still or source-copy still before paid avatar dispatch', async () => {
     for (const asset of [
@@ -236,15 +239,178 @@ describe('canonical generated still to avatar boundary', () => {
     expect(images.generateImage).not.toHaveBeenCalled();
     expect(billing.reserve).not.toHaveBeenCalled();
   });
-  it('does not redispatch an uncertain accepted clip without a reconciled placeholder', async () => {
+  it('waits on a live claim without a placeholder instead of redispatching', async () => {
     const claimed = config.scenePipeline;
     if (!claimed) throw new Error('missing pipeline');
-    claimed.scenes.scene.video.state = 'claimed';
+    claimed.scenes.scene.video = {
+      ...claimed.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: new Date().toISOString(),
+    };
     prisma.ingredient.findFirst.mockResolvedValueOnce(null);
-    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
-      'uncertain',
-    );
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('claimed');
     expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
+  });
+  it('returns an abandoned claim that never created a placeholder to its same accepted attempt', async () => {
+    const claimed = config.scenePipeline;
+    if (!claimed) throw new Error('missing pipeline');
+    claimed.scenes.scene.video = {
+      ...claimed.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: '2026-09-24T00:00:00.000Z',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce(null);
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+    expect(config.scenePipeline?.scenes.scene.video).toMatchObject({
+      attempt: 1,
+      state: 'pending',
+      groupId: 'clip-group',
+    });
+    expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
+    expect(billing.release).not.toHaveBeenCalled();
+  });
+  it('fails and requeues an abandoned placeholder that never reached a provider', async () => {
+    const claimed = config.scenePipeline;
+    if (!claimed) throw new Error('missing pipeline');
+    claimed.scenes.scene.video = {
+      ...claimed.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: '2026-09-24T00:00:00.000Z',
+      assetId: 'orphan',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      id: 'orphan',
+      status: 'PROCESSING',
+      metadata: {},
+    });
+    await service.step('org', 'run', 'operation');
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        id: 'orphan',
+        organizationId: 'org',
+        isDeleted: false,
+        status: 'PROCESSING',
+      }),
+      data: { status: 'FAILED' },
+    });
+    const video = config.scenePipeline?.scenes.scene.video;
+    expect(video?.state).toBe('pending');
+    expect(video?.assetId).toBeUndefined();
+    expect(config.scenePipeline?.scenes.scene.replacedAssetIds).toContain(
+      'orphan',
+    );
+  });
+  it('keeps waiting on a placeholder a provider already accepted', async () => {
+    const claimed = config.scenePipeline;
+    if (!claimed) throw new Error('missing pipeline');
+    claimed.scenes.scene.video = {
+      ...claimed.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: '2026-09-24T00:00:00.000Z',
+      assetId: 'clip',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      id: 'clip',
+      status: 'PROCESSING',
+      metadata: { externalProvider: 'heygen' },
+    });
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('claimed');
+  });
+  it('settles a completed clip once it has speech and supported duration', async () => {
+    const submitted = config.scenePipeline;
+    if (!submitted) throw new Error('missing pipeline');
+    submitted.scenes.scene.video = {
+      attempt: 1,
+      state: 'submitted',
+      assetId: 'clip',
+      groupId: 'clip-group',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce({
+      id: 'clip',
+      status: 'GENERATED',
+      s3Key: 'ingredients/avatars/clip.mp4',
+      metadata: {},
+    });
+    files.probeMediaFromUrl.mockResolvedValueOnce({
+      durationSeconds: 6,
+      width: 1080,
+      height: 1920,
+      audioCodec: 'aac',
+    });
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(true);
+    expect(billing.settle).toHaveBeenCalledWith(
+      'org',
+      'run',
+      'operation',
+      expect.objectContaining({ key: 'scene-video-1' }),
+      false,
+    );
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('ready');
+    expect(config.scenePipeline?.scenes.scene.actualDurationSeconds).toBe(6);
+  });
+  it('marks a dispatch that failed before any placeholder as a repairable failure', async () => {
+    avatars.generateAvatarVideo.mockRejectedValueOnce(
+      new Error('Saved voice is unavailable.'),
+    );
+    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
+      'Saved voice is unavailable.',
+    );
+    expect(config.scenePipeline?.scenes.scene.video).toMatchObject({
+      state: 'failed',
+      error: 'Saved voice is unavailable.',
+    });
+  });
+  it('never claims or dispatches while reconciling a cancelled operation', async () => {
+    const cancelled = config.scenePipeline;
+    if (!cancelled) throw new Error('missing pipeline');
+    cancelled.state = 'cancelled';
+    await expect(
+      service.step('org', 'run', 'operation', { reconcileOnly: true }),
+    ).resolves.toBe(true);
+    expect(store.fence).toHaveBeenCalledWith('org', 'run', 'operation', {
+      allowCancelled: true,
+    });
+    expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
+    expect(billing.reserve).not.toHaveBeenCalled();
+  });
+  it('dispatches every ready scene in one step instead of one scene at a time', async () => {
+    const pipeline = config.scenePipeline;
+    const concept = config.concept;
+    if (!pipeline || !concept) throw new Error('missing pipeline');
+    concept.storyboard.push({
+      id: 'second',
+      ordinal: 2,
+      narration: 'Another original line',
+      durationSeconds: 5,
+      visualIntent: 'Brand close-up',
+    });
+    pipeline.scenes.second = structuredClone(pipeline.scenes.scene);
+    pipeline.scenes.second.image = {
+      state: 'ready',
+      attempt: 1,
+      assetId: 'still',
+      groupId: 'still-group',
+    };
+    pipeline.scenes.second.video = {
+      state: 'pending',
+      attempt: 1,
+      groupId: 'second-clip-group',
+    };
+    pipeline.quote?.items.push({
+      key: 'second-video-1',
+      sceneId: 'second',
+      stage: 'video',
+      model: 'heygen',
+      credits: 1,
+      billingMode: 'platform',
+      attempt: 1,
+    });
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+    expect(avatars.generateAvatarVideo).toHaveBeenCalledTimes(2);
+    expect(billing.reserve).toHaveBeenCalledTimes(2);
   });
   it('records definitive provider failure so a repair quote can preserve the still', async () => {
     const submitted = config.scenePipeline;
@@ -260,12 +426,21 @@ describe('canonical generated still to avatar boundary', () => {
       status: 'FAILED',
     });
     await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
-      'failed',
+      'need repair',
     );
     const saved = config.scenePipeline;
     if (!saved) throw new Error('missing pipeline');
     expect(saved.scenes.scene.video.state).toBe('failed');
     expect(saved.scenes.scene.image.assetId).toBe('still');
     expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
+    // A definitive provider failure returns its hold instead of charging.
+    expect(billing.release).toHaveBeenCalledWith(
+      'org',
+      'run',
+      'operation',
+      expect.objectContaining({ key: 'scene-video-1' }),
+      false,
+    );
+    expect(billing.settle).not.toHaveBeenCalled();
   });
 });

@@ -58,19 +58,24 @@ function fixture() {
 }
 describe('scene façade spending and persistence boundaries', () => {
   let config = fixture();
+  let runUpdatedAt = new Date();
   const store = { read: vi.fn(), save: vi.fn(), view: vi.fn() };
   const quotes = { build: vi.fn() };
   const source = { prepare: vi.fn(), libraryAsset: vi.fn() };
   const workflow = { enqueue: vi.fn() };
-  const credits = { checkOrganizationCreditsAvailable: vi.fn() };
+  const credits = {
+    checkOrganizationCreditsAvailable: vi.fn(),
+    releaseReservation: vi.fn(),
+  };
   let service: BrandRemixSceneService;
   beforeEach(() => {
     vi.clearAllMocks();
     config = fixture();
+    runUpdatedAt = new Date();
     store.read.mockImplementation(async (_org, _run, revision) => {
       if (revision !== undefined && revision !== config.revision)
         throw new Error('stale');
-      return { config, brandId: 'brand' };
+      return { config, brandId: 'brand', run: { updatedAt: runUpdatedAt } };
     });
     store.save.mockImplementation(async (_org, _run, _old, next) => {
       config = brandRemixRunConfigSchema.parse(next);
@@ -238,6 +243,117 @@ describe('scene façade spending and persistence boundaries', () => {
     expect(quotes.build).not.toHaveBeenCalled();
     expect(workflow.enqueue).not.toHaveBeenCalled();
     expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
+  });
+  it('refuses to resume a live step chain but recovers one that stopped writing', async () => {
+    await service.quote('org', 'run', user, {
+      expectedRevision: 1,
+      operation: 'analysis',
+    });
+    await service.execute('org', 'run', user, {} as RequestWithContext, {
+      expectedRevision: 1,
+      quoteId: 'quote',
+    });
+    await expect(
+      service.resume('org', 'run', user, { expectedRevision: 1 }),
+    ).rejects.toThrow('still running');
+    expect(workflow.enqueue).toHaveBeenCalledTimes(1);
+    runUpdatedAt = new Date(Date.now() - 10 * 60_000);
+    await service.resume('org', 'run', user, { expectedRevision: 1 });
+    expect(workflow.enqueue).toHaveBeenCalledTimes(2);
+    expect(config.scenePipeline?.operation?.sequence).toBe(1);
+  });
+  it('rejects cancelling when no scene operation is running', async () => {
+    await expect(
+      service.cancel('org', 'run', { expectedRevision: 1 }),
+    ).rejects.toThrow('No scene operation');
+    expect(store.save).not.toHaveBeenCalled();
+  });
+  it('blocks another quote while accepted scene work is unreconciled', async () => {
+    const pipeline = config.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    pipeline.state = 'cancelled';
+    pipeline.scenes.scene = {
+      identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+      referenceAssetIds: [],
+      image: { attempt: 1, state: 'submitted', assetId: 'still' },
+      video: { attempt: 1, state: 'pending' },
+      replacedAssetIds: [],
+    };
+    await expect(
+      service.quote('org', 'run', user, {
+        expectedRevision: 1,
+        operation: 'generate',
+      }),
+    ).rejects.toThrow('Resume or cancel');
+    expect(quotes.build).not.toHaveBeenCalled();
+  });
+  it('cancels by reconciling accepted provider work and releasing abandoned platform holds', async () => {
+    const pipeline = config.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    config.phase = 'generating';
+    pipeline.state = 'assembling';
+    pipeline.operation = {
+      id: 'op',
+      quoteId: 'quote',
+      revision: 1,
+      cancellationGeneration: 0,
+      startedAt: new Date().toISOString(),
+      userId: 'user',
+      sequence: 3,
+    };
+    pipeline.quote = {
+      id: 'quote',
+      revision: 1,
+      operation: 'generate',
+      inputHash: 'hash',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      total: 1,
+      items: [
+        {
+          key: 'run-captions-1',
+          stage: 'captions',
+          model: 'whisper',
+          credits: 1,
+          billingMode: 'platform',
+          attempt: 1,
+        },
+      ],
+    };
+    pipeline.scenes.scene = {
+      identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+      referenceAssetIds: [],
+      image: { attempt: 1, state: 'ready', assetId: 'still' },
+      video: { attempt: 1, state: 'submitted', assetId: 'clip' },
+      replacedAssetIds: [],
+    };
+    pipeline.assembly = {
+      orderedAssetIds: [],
+      transcription: { attempt: 1, state: 'uncertain' },
+    };
+    pipeline.receipts.push({
+      key: 'remix-run-op-run-captions-1',
+      operationId: 'op',
+      actorUserId: 'user',
+      amount: 1,
+      billingMode: 'platform',
+      state: 'reserved',
+    });
+    await service.cancel('org', 'run', { expectedRevision: 1 });
+    expect(config.phase).toBe('prefilled');
+    expect(config.scenePipeline?.state).toBe('cancelled');
+    expect(config.scenePipeline?.assembly?.transcription.state).toBe('failed');
+    expect(config.scenePipeline?.receipts[0].state).toBe('released');
+    expect(credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org',
+      idempotencyKey: 'remix-run-op-run-captions-1',
+    });
+    expect(workflow.enqueue).toHaveBeenCalledWith(
+      'org',
+      'run',
+      expect.objectContaining({ id: 'op', sequence: 4 }),
+      10_000,
+    );
   });
   it('rejects cancelling reviewed output', async () => {
     config.phase = 'in_review';

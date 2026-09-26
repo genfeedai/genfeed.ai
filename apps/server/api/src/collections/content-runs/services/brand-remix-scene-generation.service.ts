@@ -3,7 +3,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { remixAvatarAspectRatio } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { BrandRemixSceneBillingService } from '@api/collections/content-runs/services/brand-remix-scene-billing.service';
-import { assertSupportedSceneFidelity } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import {
+  assertSupportedSceneFidelity,
+  isStaleSceneClaim,
+} from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -75,17 +78,32 @@ export class BrandRemixSceneGenerationService {
       );
     return asset;
   }
+  /**
+   * Advance every accepted scene as far as its inputs allow: reconcile
+   * in-flight stages, then dispatch each pending still and each clip whose
+   * still is ready. Scenes progress in parallel so one slow clip does not hold
+   * the whole ad. `reconcileOnly` records work already accepted by a provider
+   * after cancellation and never claims or dispatches.
+   *
+   * Resolves true once every scene has a ready clip. Throws once nothing is in
+   * flight and at least one scene needs an explicit repair quote.
+   */
   async step(
     organizationId: string,
     runId: string,
     operationId: string,
+    options: { reconcileOnly?: boolean } = {},
   ): Promise<boolean> {
-    let { config, brandId } = await this.store.fence(
-      organizationId,
-      runId,
-      operationId,
-    );
-    assertSupportedSceneFidelity(config);
+    const reconcileOnly = options.reconcileOnly === true;
+    const fenced = await this.store.fence(organizationId, runId, operationId, {
+      allowCancelled: reconcileOnly,
+    });
+    const { brandId } = fenced;
+    let { config } = fenced;
+    if (!reconcileOnly) assertSupportedSceneFidelity(config);
+    let isComplete = true;
+    let isInFlight = false;
+    const failures: string[] = [];
     for (const scene of config.concept?.storyboard ?? []) {
       if (!scene.id)
         throw new ConflictException('Missing stable scene identity.');
@@ -96,52 +114,75 @@ export class BrandRemixSceneGenerationService {
           throw new ConflictException('Missing accepted scene snapshot.');
         const stage = saved[stageName];
         if (stage.state === 'ready') continue;
+        isComplete = false;
+        if (stage.state === 'failed') {
+          failures.push(stage.error ?? 'Scene generation failed.');
+          break;
+        }
         const groupId =
           stage.groupId ??
           this.group(runId, scene.id, stageName, stage.attempt);
-        const category =
-          stageName === 'image' ? ('IMAGE' as const) : ('AVATAR' as const);
-        if (stage.state !== 'pending') {
-          const isSettled = await this.reconcileSubmittedStage(
+        if (stage.state === 'pending') {
+          if (reconcileOnly) break;
+          await this.dispatchPendingStage(
             organizationId,
             runId,
             operationId,
             brandId,
+            config,
+            scene,
             scene.id,
             stageName,
             stage,
             saved,
             pipeline.quote,
+            pipeline.operation.userId,
             groupId,
-            category,
           );
-          if (!isSettled) return false;
+          isInFlight = true;
           ({ config } = await this.store.fence(
             organizationId,
             runId,
             operationId,
           ));
-          continue;
+          break;
         }
-        await this.dispatchPendingStage(
+        const outcome = await this.reconcileSubmittedStage(
           organizationId,
           runId,
           operationId,
           brandId,
-          config,
-          scene,
           scene.id,
           stageName,
           stage,
           saved,
           pipeline.quote,
-          pipeline.operation.userId,
           groupId,
+          stageName === 'image' ? 'IMAGE' : 'AVATAR',
         );
-        return false;
+        ({ config } = await this.store.fence(
+          organizationId,
+          runId,
+          operationId,
+          { allowCancelled: reconcileOnly },
+        ));
+        if (outcome === 'ready') continue;
+        if (outcome === 'failed') {
+          const failed = config.scenePipeline?.scenes[scene.id]?.[stageName];
+          failures.push(failed?.error ?? 'Scene generation failed.');
+        } else if (outcome === 'processing' || !reconcileOnly) {
+          // Undispatched stages retry their same accepted attempt next step.
+          isInFlight = true;
+        }
+        break;
       }
     }
-    return true;
+    if (isComplete) return true;
+    if (!isInFlight && failures.length > 0 && !reconcileOnly)
+      throw new ConflictException(
+        `${failures.length} scene${failures.length === 1 ? '' : 's'} need repair: ${failures[0]}`,
+      );
+    return reconcileOnly ? !isInFlight : false;
   }
   private async reconcileSubmittedStage(
     organizationId: string,
@@ -155,66 +196,97 @@ export class BrandRemixSceneGenerationService {
     quote: BrandRemixSceneQuote,
     groupId: string,
     category: 'IMAGE' | 'AVATAR',
-  ): Promise<boolean> {
-    const found = stage.assetId
-      ? await this.asset(
-          organizationId,
-          brandId,
-          stage.assetId,
-          groupId,
-          category,
-        )
-      : await this.prisma.ingredient.findFirst({
-          where: scopedWhere(organizationId, {
-            brandId,
-            groupId,
-            category,
-          }),
-          include: { metadata: true },
-        });
-    if (!found)
-      throw new ConflictException(
-        'Provider acceptance is uncertain; no new paid attempt will be dispatched.',
-      );
-    if (found.status === 'FAILED') {
-      await this.patch(organizationId, runId, operationId, sceneId, stageName, {
-        state: 'failed',
-        assetId: found.id,
-        error: 'Provider generation failed. Request a repair quote.',
-      });
-      throw new ConflictException(
-        'Scene generation failed. Request an explicit repair quote.',
-      );
-    }
-    if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
-      if (!stage.assetId)
-        await this.patch(
-          organizationId,
-          runId,
-          operationId,
-          sceneId,
-          stageName,
-          {
-            assetId: found.id,
-            state: 'submitted',
-          },
-        );
-      return false;
-    }
+  ): Promise<'ready' | 'failed' | 'processing' | 'undispatched'> {
+    const found = await this.prisma.ingredient.findFirst({
+      where: scopedWhere(organizationId, {
+        brandId,
+        groupId,
+        category,
+        ...(stage.assetId ? { id: stage.assetId } : {}),
+      }),
+      include: { metadata: true },
+    });
     const acceptedLine = quote.items.find(
       (item) =>
         item.sceneId === sceneId &&
         item.stage === stageName &&
         item.attempt === stage.attempt,
     );
-    if (acceptedLine)
-      await this.billing.settle(
+    const isImageHold = stageName === 'image' && Boolean(acceptedLine?.credits);
+    const fail = async (error: string, assetId?: string) => {
+      if (acceptedLine)
+        await this.billing.release(
+          organizationId,
+          runId,
+          operationId,
+          acceptedLine,
+          isImageHold,
+        );
+      await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+        state: 'failed',
+        ...(assetId ? { assetId } : {}),
+        error,
+      });
+      return 'failed' as const;
+    };
+    if (!found) {
+      if (stage.assetId)
+        return fail('Generated scene asset is unavailable. Request a repair.');
+      // Placeholders persist before any provider call, so a stale claim with
+      // no placeholder never reached a provider.
+      if (!isStaleSceneClaim(stage)) return 'processing';
+      await this.resetUndispatched(
         organizationId,
         runId,
         operationId,
-        acceptedLine,
-        stageName === 'image' && acceptedLine.credits > 0,
+        sceneId,
+        stageName,
       );
+      return 'undispatched';
+    }
+    if (found.sourceActionId?.startsWith('remix-source:'))
+      return fail('Generated scene asset is outside this run.', found.id);
+    if (found.status === 'FAILED')
+      return fail(
+        'Provider generation failed. Request a repair quote.',
+        found.id,
+      );
+    if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
+      if (
+        isStaleSceneClaim(stage) &&
+        found.status === 'PROCESSING' &&
+        !found.metadata?.externalId &&
+        !found.metadata?.externalProvider
+      ) {
+        await this.prisma.ingredient.updateMany({
+          where: scopedWhere(organizationId, {
+            brandId,
+            id: found.id,
+            status: 'PROCESSING' as const,
+          }),
+          data: { status: 'FAILED' as const },
+        });
+        await this.resetUndispatched(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          found.id,
+        );
+        return 'undispatched';
+      }
+      if (stage.assetId !== found.id)
+        await this.patch(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          { assetId: found.id },
+        );
+      return 'processing';
+    }
     let actualDurationSeconds = saved.actualDurationSeconds;
     if (stageName === 'video') {
       const url =
@@ -230,6 +302,14 @@ export class BrandRemixSceneGenerationService {
         !probe.height ||
         !probe.audioCodec
       ) {
+        // The provider delivered a clip, so its cost is incurred.
+        if (acceptedLine)
+          await this.billing.settle(
+            organizationId,
+            runId,
+            operationId,
+            acceptedLine,
+          );
         await this.patch(
           organizationId,
           runId,
@@ -243,12 +323,18 @@ export class BrandRemixSceneGenerationService {
               'Repair required: missing speech or unsupported clip duration/dimensions.',
           },
         );
-        throw new ConflictException(
-          'Scene needs repair: expected speech audio and a clip up to 20 seconds.',
-        );
+        return 'failed';
       }
       actualDurationSeconds = probe.durationSeconds;
     }
+    if (acceptedLine)
+      await this.billing.settle(
+        organizationId,
+        runId,
+        operationId,
+        acceptedLine,
+        isImageHold,
+      );
     await this.patch(
       organizationId,
       runId,
@@ -258,7 +344,46 @@ export class BrandRemixSceneGenerationService {
       { state: 'ready', assetId: found.id },
       actualDurationSeconds,
     );
-    return true;
+    return 'ready';
+  }
+  private async resetUndispatched(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    sceneId: string,
+    stageName: SceneStageName,
+    abandonedAssetId?: string,
+  ) {
+    const { config } = await this.store.fence(
+      organizationId,
+      runId,
+      operationId,
+      { allowCancelled: true },
+    );
+    const pipeline = config.scenePipeline;
+    const scene = pipeline?.scenes[sceneId];
+    if (!pipeline || !scene) throw new ConflictException('Scene was removed.');
+    const stage = scene[stageName];
+    await this.store.save(organizationId, runId, config, {
+      ...config,
+      scenePipeline: {
+        ...pipeline,
+        scenes: {
+          ...pipeline.scenes,
+          [sceneId]: {
+            ...scene,
+            [stageName]: {
+              attempt: stage.attempt,
+              state: 'pending',
+              ...(stage.groupId ? { groupId: stage.groupId } : {}),
+            },
+            replacedAssetIds: abandonedAssetId
+              ? [...scene.replacedAssetIds, abandonedAssetId]
+              : scene.replacedAssetIds,
+          },
+        },
+      },
+    });
   }
   private async dispatchPendingStage(
     organizationId: string,
@@ -296,26 +421,91 @@ export class BrandRemixSceneGenerationService {
       )
     )
       throw new ConflictException('Accepted references changed.');
+    const output = config.draft.output;
+    if (!('aspectRatio' in output))
+      throw new ConflictException('Missing scene aspect ratio.');
     const claimToken = randomUUID();
-    await this.patch(organizationId, runId, operationId, sceneId, stageName, {
-      state: 'claimed',
-      claimedAt: new Date().toISOString(),
-      claimToken,
-    });
+    await this.patch(
+      organizationId,
+      runId,
+      operationId,
+      sceneId,
+      stageName,
+      {
+        state: 'claimed',
+        claimedAt: new Date().toISOString(),
+        claimToken,
+      },
+      undefined,
+      { isClaim: true },
+    );
+    let placeholderId: string | undefined;
     const onPlaceholderCreated: PlaceholderCreated = async (assetId) => {
+      placeholderId = assetId;
       await this.patch(organizationId, runId, operationId, sceneId, stageName, {
         assetId,
       });
     };
-    const output = config.draft.output;
-    if (!('aspectRatio' in output))
-      throw new ConflictException('Missing scene aspect ratio.');
     const user: AuthenticatedUser = {
       id: userId,
       userId,
       organizationId,
       brandId,
     };
+    try {
+      await this.dispatchClaimedStage(
+        organizationId,
+        runId,
+        operationId,
+        brandId,
+        config,
+        scene,
+        sceneId,
+        stageName,
+        saved,
+        line,
+        groupId,
+        output.aspectRatio,
+        user,
+        onPlaceholderCreated,
+      );
+    } catch (error: unknown) {
+      // Without a placeholder no provider was called: the claim is released
+      // as a definitive failure the user repairs with a new quote.
+      if (!placeholderId)
+        await this.patch(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          {
+            state: 'failed',
+            error:
+              error instanceof Error
+                ? error.message.slice(0, 4_000)
+                : 'Scene dispatch failed before reaching a provider.',
+          },
+        );
+      throw error;
+    }
+  }
+  private async dispatchClaimedStage(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    brandId: string,
+    config: BrandRemixRunConfig,
+    scene: BrandRemixStoryboardScene,
+    sceneId: string,
+    stageName: SceneStageName,
+    saved: SavedRemixScene,
+    line: SceneQuoteLine,
+    groupId: string,
+    aspectRatio: string,
+    user: AuthenticatedUser,
+    onPlaceholderCreated: PlaceholderCreated,
+  ): Promise<void> {
     if (stageName === 'image') {
       await this.dispatchSceneImage(
         organizationId,
@@ -329,7 +519,7 @@ export class BrandRemixSceneGenerationService {
         saved,
         line,
         groupId,
-        output.aspectRatio,
+        aspectRatio,
         user,
         onPlaceholderCreated,
       );
@@ -346,7 +536,7 @@ export class BrandRemixSceneGenerationService {
       saved,
       line,
       groupId,
-      output.aspectRatio,
+      aspectRatio,
       user,
       onPlaceholderCreated,
     );
@@ -438,13 +628,7 @@ export class BrandRemixSceneGenerationService {
     );
     if (!response.data?.id)
       throw new ConflictException('Image provider returned no durable asset.');
-    await this.billing.settle(
-      organizationId,
-      runId,
-      operationId,
-      line,
-      line.credits > 0,
-    );
+    // Settlement waits for a usable still; a failed provider output releases.
     await this.patch(organizationId, runId, operationId, sceneId, stageName, {
       assetId: response.data.id,
       state: 'submitted',
@@ -506,7 +690,6 @@ export class BrandRemixSceneGenerationService {
         await this.billing.reserve(organizationId, runId, operationId, line);
       },
     );
-    await this.billing.settle(organizationId, runId, operationId, line);
     await this.patch(organizationId, runId, operationId, sceneId, stageName, {
       assetId: result.ingredientId,
       state: 'submitted',
@@ -520,11 +703,15 @@ export class BrandRemixSceneGenerationService {
     stage: 'image' | 'video',
     patch: Partial<SceneStage>,
     actualDurationSeconds?: number,
+    options: { isClaim?: boolean } = {},
   ) {
+    // Only a new claim needs a live operation; recording work a provider
+    // already accepted must survive a concurrent cancellation.
     const { config } = await this.store.fence(
       organizationId,
       runId,
       operationId,
+      { allowCancelled: !options.isClaim },
     );
     const pipeline = config.scenePipeline;
     const scene = pipeline?.scenes[sceneId];

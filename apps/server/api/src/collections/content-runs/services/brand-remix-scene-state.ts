@@ -223,10 +223,17 @@ export function invalidateScenePipeline(
           (value): value is string => Boolean(value),
         ),
       );
-  if (pipeline.assembly?.assetId) replaced.push(pipeline.assembly.assetId);
+  for (const assetId of [
+    pipeline.assembly?.assetId,
+    pipeline.assembly?.mergedAssetId,
+  ])
+    if (assetId) replaced.push(assetId);
   return {
     ...pipeline,
-    state: 'storyboard',
+    state:
+      pipeline.analysis?.rewrite.state === 'ready'
+        ? 'storyboard'
+        : 'awaiting_analysis',
     quote: undefined,
     operation: undefined,
     assembly: undefined,
@@ -234,6 +241,56 @@ export function invalidateScenePipeline(
     scenes: retained,
     replacedAssetIds: [...new Set(replaced)],
   };
+}
+
+/** A claim older than this cannot belong to a live step and may be reconciled. */
+export const STALE_SCENE_CLAIM_MS = 2 * 60_000;
+/** An active operation whose run was not written for this long lost its step chain. */
+export const STALLED_SCENE_CHAIN_MS = 5 * 60_000;
+type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
+
+export function isStaleSceneClaim(stage: SceneStage, now = Date.now()) {
+  return (
+    stage.state === 'claimed' &&
+    (!stage.claimedAt ||
+      now - Date.parse(stage.claimedAt) > STALE_SCENE_CLAIM_MS)
+  );
+}
+
+/**
+ * Synchronous platform calls (Whisper, OpenRouter) have no upstream job to
+ * adopt. Their accepted attempt may run again under the same idempotent
+ * reservation key once no live step can still hold the claim.
+ */
+export function isRetryableSyncSceneStage(stage: SceneStage, now = Date.now()) {
+  return (
+    stage.state === 'pending' ||
+    stage.state === 'uncertain' ||
+    isStaleSceneClaim(stage, now)
+  );
+}
+
+export function hasInFlightSceneGeneration(
+  pipeline: BrandRemixScenePipeline | undefined,
+): boolean {
+  return Object.values(pipeline?.scenes ?? {}).some((scene) =>
+    [scene.image, scene.video].some((stage) =>
+      ['claimed', 'submitted'].includes(stage.state),
+    ),
+  );
+}
+
+export function canResumeScenePipeline(
+  pipeline: BrandRemixScenePipeline | undefined,
+  lastWrittenAt: Date,
+  now = Date.now(),
+): boolean {
+  if (!pipeline?.operation) return false;
+  if (['partial_failure', 'cancelled'].includes(pipeline.state)) return true;
+  return (
+    isSceneOperationActive(pipeline) &&
+    now - lastWrittenAt.getTime() > STALLED_SCENE_CHAIN_MS
+  );
 }
 
 export function hasUnreconciledSceneWork(

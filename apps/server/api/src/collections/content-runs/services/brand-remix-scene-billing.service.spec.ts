@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { BrandRemixSceneStoreService } from './brand-remix-scene-store.service';
+import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
+import { describe, expect, it, vi } from 'vitest';
 import { BrandRemixSceneBillingService } from './brand-remix-scene-billing.service';
 import { initialScenePipeline } from './brand-remix-scene-state';
+import type { BrandRemixSceneStoreService } from './brand-remix-scene-store.service';
 
 describe('scene credit ownership', () => {
   it('separates new operation charges while keeping resume keys stable', () => {
@@ -111,5 +112,88 @@ describe('pre-dispatch reservation compensation', () => {
       organizationId: 'org',
       idempotencyKey: 'remix-run-op-run-analysis-1',
     });
+  });
+});
+
+describe('stage settlement and failure compensation', () => {
+  const imageLine = {
+    key: 'scene-image-1',
+    sceneId: 'scene',
+    stage: 'image' as const,
+    model: 'image-model',
+    credits: 2,
+    billingMode: 'platform' as const,
+    attempt: 1,
+  };
+  function setup(receiptState: 'reserved' | 'settled') {
+    let config = {
+      scenePipeline: {
+        ...initialScenePipeline(),
+        operation: { id: 'op', userId: 'user' },
+        receipts: [
+          {
+            key: 'generation:remix-run-op-scene-image-1',
+            operationId: 'op',
+            actorUserId: 'actor',
+            amount: 2,
+            billingMode: 'platform' as const,
+            state: receiptState,
+          },
+        ],
+      },
+    };
+    const credits = {
+      settleReservation: vi.fn(),
+      releaseReservation: vi.fn(),
+    };
+    const store = {
+      read: vi.fn(async () => ({ config })),
+      save: vi.fn(async (_org, _run, _old, next) => {
+        config = next;
+      }),
+    };
+    const service = new BrandRemixSceneBillingService(
+      credits as unknown as CreditsUtilsService,
+      store as unknown as BrandRemixSceneStoreService,
+    );
+    return {
+      credits,
+      service,
+      receipt: () => config.scenePipeline.receipts[0],
+    };
+  }
+  it('settles the image-owned hold under its generation key once', async () => {
+    const { credits, service, receipt } = setup('reserved');
+    await service.settle('org', 'run', 'op', imageLine, true);
+    await service.settle('org', 'run', 'op', imageLine, true);
+    expect(credits.settleReservation).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        actorUserId: 'actor',
+        actualAmount: 2,
+        idempotencyKey: 'generation:remix-run-op-scene-image-1',
+      }),
+    );
+    expect(receipt().state).toBe('settled');
+  });
+  it('records an expired hold as released instead of charging or failing', async () => {
+    const { credits, service, receipt } = setup('reserved');
+    credits.settleReservation.mockRejectedValueOnce(
+      new UnsettleableReservationException('EXPIRED'),
+    );
+    await service.settle('org', 'run', 'op', imageLine, true);
+    expect(receipt().state).toBe('released');
+  });
+  it('releases a failed stage hold but never a settled charge', async () => {
+    const reserved = setup('reserved');
+    await reserved.service.release('org', 'run', 'op', imageLine, true);
+    expect(reserved.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org',
+      idempotencyKey: 'generation:remix-run-op-scene-image-1',
+    });
+    expect(reserved.receipt().state).toBe('released');
+    const settled = setup('settled');
+    await settled.service.release('org', 'run', 'op', imageLine, true);
+    expect(settled.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(settled.receipt().state).toBe('settled');
   });
 });
