@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 const navigationState = vi.hoisted(() => ({
@@ -388,5 +388,112 @@ describe('Container', () => {
       'data-module-chrome',
       'section-topbar',
     );
+  });
+
+  describe('dev-only chrome-mode-change warning', () => {
+    beforeEach(() => {
+      vi.stubEnv('NODE_ENV', 'development');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('warns when the resolved chrome mode changes between renders', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+        /* silence expected warning */
+      });
+
+      const { rerender } = render(
+        <Container label="Runs" right={<button type="button">Refresh</button>}>
+          content
+        </Container>,
+      );
+      expect(screen.getByTestId('container')).toHaveAttribute(
+        'data-module-chrome',
+        'classic',
+      );
+
+      rerender(
+        <Container
+          label="Runs"
+          titleVisibility="sr-only"
+          right={<button type="button">Refresh</button>}
+        >
+          content
+        </Container>,
+      );
+      expect(screen.getByTestId('container')).toHaveAttribute(
+        'data-module-chrome',
+        'section-topbar',
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Container's chrome mode changed"),
+        expect.objectContaining({ next: true, previous: false }),
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('does not warn across renders that keep the same resolved chrome mode', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+        /* silence in case of an unexpected warning; asserted below */
+      });
+
+      const { rerender } = render(
+        <Container label="Runs" moduleChrome>
+          content
+        </Container>,
+      );
+      rerender(
+        <Container label="Runs" moduleChrome>
+          more content
+        </Container>,
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('does not warn on the very first render', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+        /* silence in case of an unexpected warning; asserted below */
+      });
+
+      render(
+        <Container label="Runs" moduleChrome>
+          content
+        </Container>,
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('stays silent outside development', () => {
+      vi.stubEnv('NODE_ENV', 'test');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+        /* silence in case of an unexpected warning; asserted below */
+      });
+
+      const { rerender } = render(
+        <Container label="Runs" right={<button type="button">Refresh</button>}>
+          content
+        </Container>,
+      );
+      rerender(
+        <Container
+          label="Runs"
+          titleVisibility="sr-only"
+          right={<button type="button">Refresh</button>}
+        >
+          content
+        </Container>,
+      );
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
   });
 });

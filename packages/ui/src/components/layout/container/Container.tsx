@@ -5,12 +5,13 @@ import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
+import { logger } from '@genfeedai/services/core/logger.service';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const ContainerInsetContext = createContext(false);
 
@@ -99,6 +100,28 @@ export default function Container({
       shouldLiftBodyTabsAlone ||
       hasLeading ||
       (!hasVisibleTitle && hasHeaderRight));
+
+  // Dev-only regression net for the flip class of bug this file exists to
+  // prevent: catch a mounted Container whose resolved chrome mode changes
+  // between renders (right/tabs/headerTabs/leading populated differently
+  // across a loading/error/loaded sequence) even though nobody added
+  // `moduleChrome` to lock it. `null` marks "no render observed yet" so the
+  // very first render never warns.
+  const previousModuleChromeRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
+
+    const previous = previousModuleChromeRef.current;
+    if (previous !== null && previous !== usesModuleLocalChrome) {
+      logger.warn(
+        "Container's chrome mode changed between renders (classic ↔ SectionTopbar), which reflows the page. If this page's loading/error/loaded branches populate `right`/`tabs`/`headerTabs`/`leading` differently, pass the same `moduleChrome` value on every branch instead of leaving Container to infer it.",
+        { next: usesModuleLocalChrome, previous },
+      );
+    }
+    previousModuleChromeRef.current = usesModuleLocalChrome;
+  }, [usesModuleLocalChrome]);
 
   // When SectionTopbar owns the chrome title, skip a second sr-only h1 here.
   const needsStandaloneScreenReaderTitle =

@@ -63,13 +63,11 @@ export interface CardIconProps {
   label?: string;
 }
 
-export interface ContainerProps {
+interface ContainerBaseProps {
   label?: ReactNode;
   description?: ReactNode;
   icon?: IconComponent | ReactNode;
   titleVisibility?: 'visible' | 'sr-only';
-  tabs?: TabItem[] | NavigationTab[];
-  headerTabs?: TabsProps;
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: ReactNode;
@@ -82,23 +80,42 @@ export interface ContainerProps {
   right?: ReactNode;
   /** Explicit help popover; `null` hides the route-level help for this page. */
   help?: PageHelpContent | null;
-  /**
-   * Declare, once per page, whether this route always uses module-local
-   * chrome (`SectionTopbar`) — independent of whether `right` / `tabs` /
-   * `headerTabs` / `leading` happen to be populated on a given render.
-   *
-   * Without this, Container infers its layout from those props, which flips
-   * structure (and reflows the page) whenever a page's loading, error, and
-   * loaded states populate them differently — e.g. a detail shell that only
-   * adds `headerTabs` once data has loaded. Pages with that shape should
-   * pass the same `moduleChrome` value on every branch/render instead of
-   * relying on the heuristic.
-   *
-   * Leave unset to keep the default heuristic, which is correct for pages
-   * whose header content is naturally stable across their lifecycle.
-   */
-  moduleChrome?: boolean;
 }
+
+/**
+ * `moduleChrome` declares, once per page, whether this route always uses
+ * module-local chrome (`SectionTopbar`) — independent of whether `right` /
+ * `tabs` / `headerTabs` / `leading` happen to be populated on a given
+ * render.
+ *
+ * Without it, Container infers its layout from those props, which flips
+ * structure (and reflows the page) whenever a page's loading, error, and
+ * loaded states populate them differently — e.g. a detail shell that only
+ * adds `headerTabs` once data has loaded. Pages with that shape should pass
+ * the same `moduleChrome` value on every branch/render instead of relying
+ * on the heuristic.
+ *
+ * Leave unset to keep the default heuristic, which is correct for pages
+ * whose header content is naturally stable across their lifecycle.
+ *
+ * `moduleChrome={false}` cannot be combined with `tabs`/`headerTabs`: both
+ * only ever render inside module-local chrome, so forcing the classic
+ * layout would silently drop them. This is enforced at the type level
+ * rather than left as a runtime footgun.
+ */
+export type ContainerProps = ContainerBaseProps &
+  (
+    | {
+        moduleChrome?: true;
+        tabs?: TabItem[] | NavigationTab[];
+        headerTabs?: TabsProps;
+      }
+    | {
+        moduleChrome: false;
+        tabs?: undefined;
+        headerTabs?: undefined;
+      }
+  );
 
 export interface LinkProps {
   url: string;
