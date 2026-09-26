@@ -48,6 +48,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   HttpException,
@@ -224,6 +225,10 @@ export class CreditsGuard implements CanActivate {
         body = request.body as CreditsRequestBody;
       }
 
+      if (creditsConfig.isBodyModelIgnored) {
+        modelKey = undefined;
+      }
+
       // Hoisted model reference for BYOK provider resolution
       let resolvedModel: ModelDocument | null = null;
       const deserializedBody = body as Record<string, unknown> | null;
@@ -354,7 +359,7 @@ export class CreditsGuard implements CanActivate {
               source: modelSource,
             });
 
-            throw new InsufficientCreditsException(0, 0);
+            throw new BadRequestException(`Unknown model: ${modelKey}`);
           }
         }
       } else if (
@@ -534,7 +539,10 @@ export class CreditsGuard implements CanActivate {
 
       if (creditsDeferred) return true;
 
+      // A zero-cost request is never refused, and never depends on the
+      // wallet lookup succeeding.
       const hasEnoughCredits =
+        requiredCredits === 0 ||
         hasGenerationSourceActionId(request) ||
         (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
           user.organizationId,
@@ -599,14 +607,17 @@ export class CreditsGuard implements CanActivate {
 
       return true;
     } catch (error: unknown) {
-      // If it's already an InsufficientCreditsException, re-throw it
-      if (error instanceof InsufficientCreditsException) {
-        throw error;
+      // HTTP errors (insufficient credits, organization required, BYOK billing,
+      // unknown model) already carry their own status and reason. Anything else
+      // is a real failure: surface it rather than reporting it as
+      // "Insufficient credits: 0 required, 0 available".
+      if (!(error instanceof HttpException)) {
+        this.loggerService.error(
+          'Credits guard: Error checking credits',
+          error,
+        );
       }
-
-      // For any other error, log it and throw an exception
-      this.loggerService.error('Credits guard: Error checking credits', error);
-      throw new InsufficientCreditsException(0, 0);
+      throw error;
     }
   }
 

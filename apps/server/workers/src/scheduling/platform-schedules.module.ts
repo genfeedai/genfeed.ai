@@ -1,5 +1,6 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
+import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -33,6 +34,7 @@ import { CronXRepliesModule } from '@workers/crons/x-replies/cron.x-replies.modu
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
+import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
@@ -45,6 +47,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     LibsConfigModule,
     LoggerModule,
     WorkflowsModule,
+    WorkflowExecutionsModule,
     IngredientsModule,
     ReferralsModule,
     VideoCompletionCoreModule,
@@ -87,6 +90,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     PlatformScheduleRegistryService,
     PlatformSchedulesProcessor,
     PlatformWorkflowSchedulesService,
+    PendingWorkflowExecutionReconcileService,
     WorkflowContinuationReconcileService,
   ],
 })

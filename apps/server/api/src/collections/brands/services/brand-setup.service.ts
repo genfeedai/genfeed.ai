@@ -9,9 +9,16 @@ import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dt
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import type { BrandSetupResponse } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
+import {
+  BRAND_SCRAPE_EMPTY_CONTENT_WARNING,
+  classifyBrandScrapeError,
+  isBrandScrapeContentEmpty,
+} from '@api/services/brand-scraper/brand-scrape-error.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { BrandScrapeErrorCode } from '@genfeedai/contracts';
 import type {
+  IBrandScrapeWarning,
   IBrandVoiceAnalysis,
   IExtractedBrandData,
   IScrapedBrandData,
@@ -19,6 +26,17 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+
+/**
+ * The scrape step always degrades to a fallback profile rather than failing
+ * brand setup — see `scrapeBrandData` below. `warning` carries the classified,
+ * stable reason for that degradation so it survives to the app instead of
+ * being dropped after a server-side log line (#5080).
+ */
+interface ScrapeBrandDataResult {
+  data: IScrapedBrandData;
+  warning?: IBrandScrapeWarning;
+}
 
 /**
  * BrandSetupService
@@ -97,13 +115,16 @@ export class BrandSetupService {
 
   /**
    * Detect brand sources from the setup DTO and scrape them, falling back
-   * to a minimal brand payload when scraping fails.
+   * to a minimal brand payload when scraping fails. Never throws: an
+   * expected upstream/input failure (unreachable site, blocked, timed out,
+   * empty content, upstream provider error) is classified into a stable code
+   * and returned as `warning` instead of failing the whole brand setup.
    */
   private async scrapeBrandData(
     dto: BrandSetupDto,
     existingBrand: { label?: string | null },
     caller: string,
-  ): Promise<IScrapedBrandData> {
+  ): Promise<ScrapeBrandDataResult> {
     const detectedSources = this.brandScraperService.detectUrlType(
       dto.brandUrl,
     );
@@ -133,30 +154,40 @@ export class BrandSetupService {
     });
 
     try {
+      let data: IScrapedBrandData;
+
       if (hasMultipleSources) {
         const merged = await this.brandScraperService.scrapeAllSources(sources);
-        return this.brandDataMapper.mapMergedSources(merged, dto.brandUrl);
-      }
-
-      if (sources.linkedinUrl) {
+        data = this.brandDataMapper.mapMergedSources(merged, dto.brandUrl);
+      } else if (sources.linkedinUrl) {
         const linkedinData = await this.brandScraperService.scrapeLinkedIn(
           sources.linkedinUrl,
         );
-        return this.brandDataMapper.mapLinkedInData(linkedinData, dto.brandUrl);
-      }
-
-      if (sources.xProfileUrl) {
+        data = this.brandDataMapper.mapLinkedInData(linkedinData, dto.brandUrl);
+      } else if (sources.xProfileUrl) {
         const xData = await this.brandScraperService.scrapeXProfile(
           sources.xProfileUrl,
         );
-        return this.brandDataMapper.mapXProfileData(xData, dto.brandUrl);
+        data = this.brandDataMapper.mapXProfileData(xData, dto.brandUrl);
+      } else {
+        data = await this.brandScraperService.scrapeWebsite(dto.brandUrl);
       }
 
-      return await this.brandScraperService.scrapeWebsite(dto.brandUrl);
+      if (isBrandScrapeContentEmpty(data)) {
+        this.loggerService.warn(`${caller} scrape returned no usable content`, {
+          code: BRAND_SCRAPE_EMPTY_CONTENT_WARNING.code,
+          url: dto.brandUrl,
+        });
+        return { data, warning: BRAND_SCRAPE_EMPTY_CONTENT_WARNING };
+      }
+
+      return { data };
     } catch (scrapeError: unknown) {
+      const warning = classifyBrandScrapeError(scrapeError);
       this.loggerService.warn(
         `${caller} scrape failed, continuing with minimal brand setup`,
         {
+          code: warning.code,
           error:
             scrapeError instanceof Error
               ? scrapeError.message
@@ -164,7 +195,10 @@ export class BrandSetupService {
           url: dto.brandUrl,
         },
       );
-      return this.brandDataMapper.buildFallbackScrapedData(dto, existingBrand);
+      return {
+        data: this.brandDataMapper.buildFallbackScrapedData(dto, existingBrand),
+        warning,
+      };
     }
   }
 
@@ -216,10 +250,14 @@ export class BrandSetupService {
       this.loggerService,
       caller,
       {
+        // Unexpected failures here (persistence, unforeseen exceptions) must
+        // not leak internal exception text to the onboarding client — only
+        // this stable code and generic detail are public. Full diagnostics
+        // still reach Sentry/the logger via this same catch (#5080).
+        code: BrandScrapeErrorCode.UNKNOWN,
         detail: 'Failed to setup brand',
         hasHttpExceptionPassthrough: true,
         hasPrismaPassthrough: true,
-        isErrorMessageUsed: true,
         title: 'Brand Setup Failed',
       },
       async () => {
@@ -227,7 +265,11 @@ export class BrandSetupService {
         const validation = this.brandScraperService.validateUrl(dto.brandUrl);
         if (!validation.isValid) {
           throw new HttpException(
-            { detail: validation.error, title: 'Invalid URL' },
+            {
+              code: BrandScrapeErrorCode.INVALID_URL,
+              detail: validation.error,
+              title: 'Invalid URL',
+            },
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -241,11 +283,8 @@ export class BrandSetupService {
         const userId = (user.userId ?? user.id)?.toString() ?? '';
 
         // 3. Scrape brand sources (auto-detected from the URL)
-        const scrapedData = await this.scrapeBrandData(
-          dto,
-          { label: brandLabel },
-          caller,
-        );
+        const { data: scrapedData, warning: scrapeWarning } =
+          await this.scrapeBrandData(dto, { label: brandLabel }, caller);
 
         // 4. Analyze brand voice with AI
         this.loggerService.log(`${caller} analyzing brand voice`);
@@ -315,6 +354,7 @@ export class BrandSetupService {
           extractedData,
           message: 'Brand setup completed successfully',
           success: true,
+          ...(scrapeWarning ? { scrapeWarning } : {}),
         };
       },
     );

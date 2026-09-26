@@ -111,31 +111,76 @@ export default function TrainingDetail({
 
   const isTrainingUnavailable = !isLoading && !training;
 
+  // Static regardless of load state — the destinations and their badges
+  // already degrade gracefully when `training` is null (badge omitted, not
+  // a crash) — so the error branch below can render the exact same tab bar
+  // instead of dropping it. Sharing this object is what keeps the two
+  // branches' `headerTabs` from drifting apart and reintroducing the flip
+  // this admin route had: an error after a successful load used to replace
+  // the whole page (module chrome + tabs) with the bare classic error card.
+  const trainingSubNavHeaderTabs = {
+    fullWidth: false,
+    tabs: [
+      {
+        badge:
+          training?.totalGeneratedImages !== undefined ? (
+            <Badge
+              value={training.totalGeneratedImages}
+              variant="info"
+              size={ComponentSize.SM}
+            />
+          ) : undefined,
+        href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
+        icon: Image,
+        label: 'Images',
+      },
+      {
+        badge:
+          training?.totalSources !== undefined ? (
+            <Badge
+              value={training.totalSources}
+              variant="secondary"
+              size={ComponentSize.SM}
+            />
+          ) : undefined,
+        href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
+        icon: Database,
+        label: 'Sources',
+      },
+    ],
+  };
+
   if (error || isTrainingUnavailable) {
     return (
-      <Container>
-        <Card className="p-12 text-center">
-          <div className="mx-auto mb-4 size-12 rounded-full bg-error/10 flex items-center justify-center">
-            <span className="text-2xl text-error">!</span>
-          </div>
+      <>
+        <Container>
+          <Card className="p-12 text-center">
+            <div className="mx-auto mb-4 size-12 rounded-full bg-error/10 flex items-center justify-center">
+              <span className="text-2xl text-error">!</span>
+            </div>
 
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Failed to load training details
-          </h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Failed to load training details
+            </h3>
 
-          <p className="text-muted-foreground mb-4">
-            {error || 'Training not found'}
-          </p>
+            <p className="text-muted-foreground mb-4">
+              {error || 'Training not found'}
+            </p>
 
-          <Button
-            label="Try Again"
-            onClick={() => {
-              void loadTraining();
-            }}
-            className="mt-4"
-          />
-        </Card>
-      </Container>
+            <Button
+              label="Try Again"
+              onClick={() => {
+                void loadTraining();
+              }}
+              className="mt-4"
+            />
+          </Card>
+        </Container>
+
+        <Container moduleChrome headerTabs={trainingSubNavHeaderTabs}>
+          {null}
+        </Container>
+      </>
     );
   }
 
@@ -227,39 +272,7 @@ export default function TrainingDetail({
         )}
       </Container>
 
-      <Container
-        headerTabs={{
-          fullWidth: false,
-          tabs: [
-            {
-              badge:
-                training?.totalGeneratedImages !== undefined ? (
-                  <Badge
-                    value={training.totalGeneratedImages}
-                    variant="info"
-                    size={ComponentSize.SM}
-                  />
-                ) : undefined,
-              href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
-              icon: Image,
-              label: 'Images',
-            },
-            {
-              badge:
-                training?.totalSources !== undefined ? (
-                  <Badge
-                    value={training.totalSources}
-                    variant="secondary"
-                    size={ComponentSize.SM}
-                  />
-                ) : undefined,
-              href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
-              icon: Database,
-              label: 'Sources',
-            },
-          ],
-        }}
-      >
+      <Container moduleChrome headerTabs={trainingSubNavHeaderTabs}>
         {training ? (
           <TrainingProvider training={training} refreshTraining={loadTraining}>
             {children}

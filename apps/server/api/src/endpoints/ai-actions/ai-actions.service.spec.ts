@@ -5,12 +5,10 @@ import {
   type ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import {
-  PROMPT_ENHANCEMENT_MODEL,
-  PromptEnhancementService,
-} from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -27,6 +25,12 @@ describe('AiActionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PromptEnhancementService,
+        {
+          provide: AgentChatModelRegistryService,
+          useValue: {
+            resolveModelKey: vi.fn().mockResolvedValue('admin/default-text'),
+          },
+        },
         {
           provide: PromptsService,
           useValue: { findOne: vi.fn().mockResolvedValue(null) },
@@ -248,7 +252,7 @@ describe('AiActionsService', () => {
       });
       expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: PROMPT_ENHANCEMENT_MODEL,
+          model: 'admin/default-text',
           messages: [
             expect.objectContaining({
               content: expect.stringContaining('Existing brand preamble'),
