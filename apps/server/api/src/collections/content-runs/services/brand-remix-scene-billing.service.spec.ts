@@ -1,5 +1,6 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UnsettleableReservationException } from '@api/exceptions/business-logic.exception';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { BrandRemixSceneBillingService } from './brand-remix-scene-billing.service';
 import { initialScenePipeline } from './brand-remix-scene-state';
@@ -121,9 +122,10 @@ describe('pre-dispatch reservation compensation', () => {
       },
     };
     const credits = {
-      reserveCredits: vi
-        .fn()
-        .mockResolvedValue({ id: 'reservation', status: 'released' }),
+      reserveCredits: vi.fn().mockResolvedValue({
+        id: 'reservation',
+        status: CreditReservationStatus.RELEASED,
+      }),
       releaseReservation: vi.fn(),
     };
     const store = {
