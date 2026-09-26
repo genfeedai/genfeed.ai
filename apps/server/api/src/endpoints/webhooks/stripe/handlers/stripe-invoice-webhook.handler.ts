@@ -17,6 +17,7 @@ import {
   BillingRevenueSource,
   ByokBillingStatus,
   SubscriptionStatus,
+  SubscriptionTier,
 } from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
@@ -133,6 +134,8 @@ export class StripeInvoiceWebhookHandler {
         userId: updatedSubscription.userId,
       });
 
+      await this.upsertSubscriptionLeadForTier(updatedSubscription);
+
       // Mark onboarding as completed server-side on first subscription payment
       if (billingReason === 'subscription_create') {
         await this.markOnboardingCompleteFromInvoice(subscription, url);
@@ -150,6 +153,37 @@ export class StripeInvoiceWebhookHandler {
       }
       throw error;
     }
+  }
+
+  /**
+   * Give a Pro/Scale subscription CRM visibility. Best-effort: a lookup or
+   * write failure here is logged by the support service and must not fail
+   * subscription reconciliation, which already completed above.
+   */
+  private async upsertSubscriptionLeadForTier(subscription: {
+    organizationId: string;
+    stripePriceId?: string | null;
+    stripeSubscriptionId?: string | null;
+    userId: string;
+  }): Promise<void> {
+    if (!subscription.stripePriceId || !subscription.stripeSubscriptionId) {
+      return;
+    }
+
+    const tier = this.supportService.resolveTierFromPriceId(
+      subscription.stripePriceId,
+    );
+
+    if (tier !== SubscriptionTier.PRO && tier !== SubscriptionTier.SCALE) {
+      return;
+    }
+
+    await this.supportService.upsertSubscriptionLead({
+      organizationId: subscription.organizationId,
+      stripeSubscriptionId: subscription.stripeSubscriptionId,
+      tier,
+      userId: subscription.userId,
+    });
   }
 
   private async markOnboardingCompleteFromInvoice(
