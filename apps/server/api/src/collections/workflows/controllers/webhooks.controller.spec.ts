@@ -1,5 +1,6 @@
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -47,6 +48,10 @@ describe('WebhooksController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('is public — the global CombinedAuthGuard must not gate this route ahead of its own secret check (genfeedai/genfeed.ai#5246)', () => {
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, WebhooksController)).toBe(true);
   });
 
   describe('triggerWebhook', () => {

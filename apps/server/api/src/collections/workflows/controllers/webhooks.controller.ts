@@ -9,6 +9,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -25,6 +26,7 @@ interface WebhookPayload {
 }
 
 @AutoSwagger()
+@Public()
 @Controller('webhooks')
 export class WebhooksController {
   constructor(
