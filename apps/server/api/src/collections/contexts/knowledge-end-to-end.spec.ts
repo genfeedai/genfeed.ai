@@ -423,18 +423,22 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
   });
 
   it('never surfaces brand B’s saved memory in brand A’s assembled chat context (AgentContextAssemblyService)', async () => {
+    // AgentContextAssemblyService's automatic retrieval uses
+    // ContextsService's own default minRelevance (0.65, stricter than this
+    // file's other cases), so these passages stay short with heavy word
+    // overlap against the query rather than a longer, more realistic note.
     const memoryA = await capture.capture(actorA, {
       kind: KnowledgeSourceKind.TEXT,
       purpose: KnowledgeSourcePurpose.INSPIRATION,
       scope: KnowledgeMemoryScope.BRAND,
-      text: 'Brand A internal note: Q3 launch numbers hit 12 percent lift.',
+      text: 'Brand A Q3 launch numbers.',
       title: 'Brand A Q3 note',
     });
     const memoryB = await capture.capture(actorB, {
       kind: KnowledgeSourceKind.TEXT,
       purpose: KnowledgeSourcePurpose.INSPIRATION,
       scope: KnowledgeMemoryScope.BRAND,
-      text: 'Brand B internal note: Q3 launch numbers hit 40 percent lift.',
+      text: 'Brand B Q3 launch numbers.',
       title: 'Brand B Q3 note',
     });
 
