@@ -8,15 +8,29 @@ export const UPSTREAM_SLUGS = [
   'ad-copy-creator',
   'ad-performance-analyzer',
   'blog-content-creator',
+  'brand-os-architect',
+  'cinematic-prompting',
   'competitor-analyzer',
   'content-atomizer',
+  'content-geo-optimizer',
+  'content-reviewer',
   'content-seo-optimizer',
   'content-strategist',
+  'genfeed-brand-os',
+  'image-prompt-engineer',
   'instagram-content-creator',
+  'instagram-warmup',
+  'launch-copy-creator',
+  'linkedin-content-creator',
+  'linkedin-warmup',
   'newsletter-creator',
+  'prompt-generator',
+  'tiktok-warmup',
   'visual-brand-kit',
   'x-content-creator',
+  'x-warmup',
   'youtube-content-creator',
+  'youtube-warmup',
 ];
 const APPLICATION_PROCEDURES = new Set([
   'brand-interview',
@@ -167,6 +181,11 @@ export function createCatalogLock(
     sourceCommittedAt,
     skills: catalogSlugs(directory).map((slug) => {
       const upstream = UPSTREAM_SLUGS.includes(slug);
+      // Free content skills come only from the pinned public source; only app procedures are authored here.
+      if (!upstream && !APPLICATION_PROCEDURES.has(slug))
+        throw new Error(
+          `Unowned catalog skill: ${slug}; pin it from ${SOURCE_REPOSITORY} or declare it an application procedure`,
+        );
       const dir = join(directory, slug);
       const files = inventory(dir, upstream);
       const compiled = compileSkill(dir, files);
@@ -181,11 +200,7 @@ export function createCatalogLock(
         ownership: upstream ? 'upstream' : 'application',
         ...(upstream
           ? { sourceCommit }
-          : {
-              reason: APPLICATION_PROCEDURES.has(slug)
-                ? 'Application procedure retained'
-                : 'Deferred free content reconciliation',
-            }),
+          : { reason: 'Application procedure retained' }),
         sourceRepository: upstream
           ? SOURCE_REPOSITORY
           : 'https://github.com/genfeedai/genfeed.ai',

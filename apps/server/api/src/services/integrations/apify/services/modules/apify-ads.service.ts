@@ -214,13 +214,20 @@ export class ApifyAdsService {
       );
     } catch (error: unknown) {
       if (error instanceof ServiceUnavailableException) {
-        const response = error.getResponse();
+        // `getResponse()` returns the createBody-wrapped
+        // { message, error, statusCode } object in this Nest version, not
+        // the raw string passed to the constructor, so comparing it to a
+        // string here was always false — this allowlist silently never
+        // matched anything. `message` is the one property this class
+        // reliably sets to exactly the string we threw.
+        const { message } = error;
         if (
-          response === 'research_paid_access_required' ||
-          response === 'research_subscription_unverified' ||
-          response === 'research_collection_recovery_pending' ||
-          response === 'research_collection_cost_unverified' ||
-          response === 'research_collection_start_unconfirmed'
+          message === 'research_paid_access_required' ||
+          message === 'research_subscription_unverified' ||
+          message === 'research_collection_recovery_pending' ||
+          message === 'research_collection_cost_unverified' ||
+          message === 'research_collection_start_unconfirmed' ||
+          message === 'research_collection_start_unreconciled'
         ) {
           throw error;
         }

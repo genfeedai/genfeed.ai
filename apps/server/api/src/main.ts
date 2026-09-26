@@ -40,6 +40,7 @@ import {
   reportLicenseVerificationWarning,
 } from '@genfeedai/config/license-server';
 import { assertLiveArticleColumnContract } from '@genfeedai/prisma';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { ConfigService } from '@libs/config/config.service';
 import {
   getGenfeedCorsOptions,
@@ -360,8 +361,9 @@ async function main() {
         });
       }
 
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
+      const parsedAuthHeader = parseAuthorizationHeader(authHeader);
+      if (parsedAuthHeader?.normalizedScheme === 'bearer') {
+        const token = parsedAuthHeader.token;
         const tokenBuf = Buffer.from(token);
         const expectedBuf = Buffer.from(expectedToken);
         if (

@@ -7,6 +7,7 @@ import type { WorkflowExecutorService } from '@api/collections/workflows/service
 import type { WorkflowExecutionResult } from '@api/collections/workflows/services/workflow-executor.types';
 import {
   buildHiddenSystemWorkflowMetadata,
+  getSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
   isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -15,6 +16,9 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
 import {
+  PLATFORM_SWEEP_CANONICAL_IDS,
+  PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
+  PROACTIVE_AGENT_TURN_SOURCE,
   type RunSystemWorkflowInput,
   type SystemWorkflowGraphDefinition,
 } from '@api/collections/workflows/system-workflow-definition';
@@ -298,13 +302,17 @@ export class SystemWorkflowRunnerService
     );
 
     try {
+      const isAgentConversation = AGENT_CONVERSATION_WORKFLOW_IDS.includes(
+        input.canonicalId,
+      );
       await this.getWorkflowQueue().queueSystemWorkflow(
         { ...input, trigger, userId },
         `system-workflow-${execution.id}`,
         {
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
-          ...(AGENT_CONVERSATION_WORKFLOW_IDS.includes(input.canonicalId)
-            ? { attempts: 1 }
+          ...(isAgentConversation ? { attempts: 1 } : {}),
+          ...(this.isPlatformOriginatedSource(input.source)
+            ? { usePlatformQueue: true }
             : {}),
           priorExecution: {
             executionId: execution.id,
@@ -627,16 +635,22 @@ export class SystemWorkflowRunnerService
       if (!this.workflowDefinitions.has(options.childWorkflowId)) {
         throw new Error(`Unknown system workflow: ${options.childWorkflowId}`);
       }
+      // #5162 (#5252 review): a for-each fanned out from a platform-sweep
+      // workflow (e.g. analytics-sync's own children) must stay off the
+      // interactive queue too, or the sweep starves interactive turns one
+      // level removed from its own top-level dispatch instead of directly.
+      const usePlatformQueue = await this.isPlatformSweepWorkflow(
+        request.provenance.workflowId,
+      );
       return scheduleForEach({
         childContexts,
         options,
         parentNodeId,
         queueSystemWorkflow: (workflow, jobId, queueOptions) =>
-          this.getWorkflowQueue().queueSystemWorkflow(
-            workflow,
-            jobId,
-            queueOptions,
-          ),
+          this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
+            ...queueOptions,
+            ...(usePlatformQueue ? { usePlatformQueue: true } : {}),
+          }),
         request,
       });
     }
@@ -833,6 +847,44 @@ export class SystemWorkflowRunnerService
         `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} requires a hidden system workflow parent`,
       );
     }
+  }
+
+  /**
+   * Whether `source` on an `enqueueWorkflow` call identifies platform
+   * background work rather than a live interactive request — see
+   * `PLATFORM_WORKFLOW_SCHEDULE_SOURCE` and `PROACTIVE_AGENT_TURN_SOURCE`.
+   */
+  private isPlatformOriginatedSource(source: string): boolean {
+    return (
+      source === PLATFORM_WORKFLOW_SCHEDULE_SOURCE ||
+      source === PROACTIVE_AGENT_TURN_SOURCE
+    );
+  }
+
+  /**
+   * Whether `workflowId` is the hidden system-workflow mirror for one of the
+   * canonical ids `PlatformWorkflowSchedulesService` dispatches — used to
+   * route a `workflow.for-each` node's `scheduled` children off the
+   * interactive queue when the for-each itself is running inside a
+   * platform-sweep workflow (e.g. analytics-sync).
+   */
+  private async isPlatformSweepWorkflow(workflowId: string): Promise<boolean> {
+    const workflow = await this.prisma.workflow.findFirst({
+      select: { metadata: true },
+      where: {
+        id: workflowId,
+        isDeleted: false,
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      },
+    });
+    const canonicalId = getSystemWorkflowMetadata(
+      workflow?.metadata,
+    )?.canonicalId;
+    return (
+      canonicalId !== undefined &&
+      PLATFORM_SWEEP_CANONICAL_IDS.includes(canonicalId)
+    );
   }
 
   private async linkPostsToExecution(

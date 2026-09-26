@@ -1,0 +1,17 @@
+{
+  "id": "text-in-image",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Legible text",
+  "rationale": "The single most commercially decisive image capability and the one that moves most between releases. A model that cannot set six words correctly cannot make an ad, a thumbnail, or a menu.",
+  "prompt": "A hand-painted sandwich board outside a coffee shop. The board reads exactly:\nCLOSED MONDAYS\nOPEN 7-4 OTHERWISE\nChalk on black, slightly uneven letterforms, wet pavement, early morning.",
+  "referenceRoles": ["none"],
+  "outputSpec": { "aspectRatio": "4:5", "count": 1 },
+  "rubric": [
+    "Is every character of the requested copy correct?",
+    "Is the line break where the prompt put it?",
+    "Does the lettering sit on the surface with correct perspective?",
+    "Craft of the surrounding image, once text is judged"
+  ]
+}
