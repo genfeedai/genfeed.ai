@@ -124,7 +124,7 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
     expect(apiError?.code).toBe('RATE_LIMIT_EXCEEDED');
   });
 
-  it('resolves a classified brand-scrape 500 (BrandScrapeErrorCode.UNKNOWN) to a 500, not something else', () => {
+  it('resolves a classified brand-scrape 500 (BrandScrapeErrorCode.UNKNOWN) to a 500, keeping the raw code in the body', () => {
     const exception = new HttpException(
       {
         code: 'BRAND_SCRAPE_UNKNOWN',
@@ -136,13 +136,21 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
 
     filter.catch(exception, mockArgumentsHost);
 
-    const body = mockResponse.json.mock.calls[0][0];
+    const body = mockResponse.json.mock.calls[0][0] as Parameters<
+      typeof ErrorHandler.convertJsonApiError
+    >[0];
     expect(getErrorStatus(body)).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    const apiError = ErrorHandler.convertJsonApiError(
-      body as Parameters<typeof ErrorHandler.convertJsonApiError>[0],
-    );
+    // `convertJsonApiError` deliberately re-derives a coarse code from the
+    // status through its own small ErrorCode map — it was never a carrier
+    // for an arbitrary semantic code like `BrandScrapeErrorCode`, and that
+    // is unrelated to this regression. What matters here is that the
+    // status still resolves correctly, and that the raw code survives in
+    // the body itself for a caller that reads it directly (e.g.
+    // `extractBrandScrapeErrorCode` in the onboarding app).
+    const apiError = ErrorHandler.convertJsonApiError(body);
     expect(apiError?.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    expect(apiError?.code).toBe('BRAND_SCRAPE_UNKNOWN');
+    expect(apiError?.code).toBe('INTERNAL_ERROR');
+    expect(body.errors[0]?.code).toBe('BRAND_SCRAPE_UNKNOWN');
   });
 
   it('still resolves an uncoded exception (no code member at all) by its status', () => {
