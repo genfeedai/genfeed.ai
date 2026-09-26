@@ -290,7 +290,10 @@ describe('useWorkflowExecutions summary', () => {
 
       // A rejected stats call must not zero out `active` and freeze
       // `refetchInterval`: this RUNNING execution has to keep polling.
-      await vi.waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(listMock).toHaveBeenCalledTimes(2);
       expect(result.current.isError).toBe(false);
     } finally {
       vi.useRealTimers();
