@@ -481,6 +481,22 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       memoryA.source.id,
     );
 
+    // The exact #5144 bug: brand-a2 is a *sibling* brand in the SAME
+    // organization as brand-a (not a different tenant), so this proves the
+    // isolation is per-brand, not merely per-org. The legacy
+    // getRelevantContextBases path selected every active context base in the
+    // organization with no brand filter, so brand-a2's thread would have
+    // seen brand-a's saved memory too.
+    const contextSiblingBrand = await agentContextAssembly.assembleContext({
+      brandId: 'brand-a2',
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(contextSiblingBrand?.brandId).toBe('brand-a2');
+    expect(contextSiblingBrand?.ragEntries).toBeUndefined();
+
     // An unbranded thread in brand A's own organization must not inherit
     // brand A's saved memory either — only org/personal scope is eligible.
     const unbrandedContext = await agentContextAssembly.assembleContext({

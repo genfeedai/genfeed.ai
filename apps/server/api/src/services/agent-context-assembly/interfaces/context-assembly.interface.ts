@@ -17,10 +17,11 @@ export interface AssembleContextParams {
    */
   brandId?: string;
   /**
-   * The acting user. Required to ground automatic Knowledge (RAG) retrieval
-   * in the actor's personal scope when `brandId` is omitted; without it that
-   * retrieval falls back to organization scope only. Not required when
-   * `brandId` is set.
+   * The acting user. Required to run automatic Knowledge (RAG) retrieval when
+   * `brandId` is omitted — that retrieval scopes to organization scope plus
+   * the actor's own personal scope. Without both `brandId` and `userId`, RAG
+   * retrieval is skipped entirely (no organization-only fallback) and
+   * `ragEntries` stays unset. Not required when `brandId` is set.
    */
   userId?: string;
   query?: string;
