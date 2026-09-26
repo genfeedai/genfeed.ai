@@ -32,12 +32,15 @@ export type PublishingPostsPublicationState =
 
 export interface PublishingPostsFilterRouteOptions {
   publicationState?: PublishingPostsPublicationState;
+  /** Release-group id; opens the Posts library with its detail drawer. */
+  release?: string;
   status?: string;
 }
 
 /** Build a canonical Posts library deep link with lifecycle filters. */
 export function createPublishingPostsFilterRoute({
   publicationState,
+  release,
   status,
 }: PublishingPostsFilterRouteOptions = {}): string {
   const params: string[] = [];
@@ -51,6 +54,12 @@ export function createPublishingPostsFilterRoute({
   if (status) {
     params.push(
       `${PUBLISHING_POSTS_QUERY_KEYS.STATUS}=${encodeURIComponent(status)}`,
+    );
+  }
+
+  if (release) {
+    params.push(
+      `${PUBLISHING_POSTS_QUERY_KEYS.RELEASE}=${encodeURIComponent(release)}`,
     );
   }
 

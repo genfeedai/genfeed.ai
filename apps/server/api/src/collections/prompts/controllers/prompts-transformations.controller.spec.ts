@@ -4,6 +4,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
@@ -34,9 +35,14 @@ describe('PromptsTransformationsController', () => {
     original: 'A mountain at sunrise',
     userId: user.userId,
   };
+  const modelsService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
   const transformationService = {
     createRemix: vi.fn().mockResolvedValue(prompt),
-    enhanceExisting: vi.fn().mockResolvedValue(prompt),
+    enhanceExisting: vi
+      .fn()
+      .mockResolvedValue({ model: 'anthropic/claude-sonnet-5', prompt }),
     parse: vi.fn().mockResolvedValue({
       normalizedType: PromptCategory.MODELS_PROMPT_IMAGE,
       promptString: '{"prompt":"A mountain at sunrise"}',
@@ -55,6 +61,7 @@ describe('PromptsTransformationsController', () => {
           provide: PromptTransformationService,
           useValue: transformationService,
         },
+        { provide: ModelsService, useValue: modelsService },
       ],
     })
       .overrideGuard(BetterAuthGuard)

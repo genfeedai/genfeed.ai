@@ -241,6 +241,40 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
+  it('never bounces an onboarding thread to a brand-scoped route even when the thread carries a brandId', async () => {
+    // Regression for #5075: this deep-link redirect must stay off the
+    // onboarding surface. Onboarding is org-scoped end to end (proxy.ts's
+    // canonical entry is `/:org/~/agent/onboarding`), so a thread created
+    // there legitimately has a `brandId` without the URL ever adopting that
+    // brand's slug — this effect used to ignore `isOnboarding` and would
+    // race the org-scoped promotion back to a brand path.
+    navigationState.pathname = '/agent/onboarding/thread-onboarding-voice';
+    storeState.activeThreadId = 'thread-onboarding-voice';
+    // Mismatched on purpose: brand scope has not resolved to this thread's
+    // brand yet, which is exactly when the un-guarded effect used to fire.
+    brandState.brandId = 'brand-2';
+    storeState.threads = [
+      {
+        brandId: 'brand-1',
+        id: 'thread-onboarding-voice',
+        organizationId: 'org-1',
+        status: 'active',
+      },
+    ];
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
   it('does not redirect when the open thread already matches the route brand', async () => {
     navigationState.pathname = '/agent/thread-same-brand';
     storeState.activeThreadId = 'thread-same-brand';
@@ -797,7 +831,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-new',
+        '/acme-org/~/agent/onboarding/thread-new',
       );
     });
   });
@@ -861,7 +895,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+        '/acme-org/~/agent/onboarding/thread-onboarding-latest',
       );
     });
     expect(getThreads).toHaveBeenCalledWith(
@@ -907,7 +941,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+        '/acme-org/~/agent/onboarding/thread-onboarding-latest',
       );
     });
     expect(getThreads).toHaveBeenCalledWith(
