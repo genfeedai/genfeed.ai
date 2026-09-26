@@ -878,6 +878,7 @@ model Organization {
   llmVendorCosts                LlmVendorCost[]
   mediaVendorCosts              MediaVendorCost[]
   mediaPerceptions              MediaPerception[]
+  mediaModerations              MediaModeration[]
   billingRevenueEvents          BillingRevenueEvent[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
@@ -2132,6 +2133,7 @@ model Ingredient {
   clipResults               ClipResult[]               @relation("clip_result_ingredient")
   workflowNodeContinuations WorkflowNodeContinuation[]
   mediaPerceptions          MediaPerception[]
+  mediaModerations          MediaModeration[]
 
   @@index([groupId])
   @@index([scope])
@@ -3549,6 +3551,37 @@ model BillingRevenueEvent {
   @@index([isDeleted, occurredAt(sort: Desc)], map: "billing_revenue_events_deleted_occurred_at_idx")
   @@index([organizationId, isDeleted, occurredAt(sort: Desc)], map: "billing_revenue_events_org_deleted_occurred_at_idx")
   @@map("billing_revenue_events")
+}
+
+/// Moderation classifier result for one asset (#4880), next to its perception
+/// record. `verdict` is what gates act on (never flagged in `shadow`);
+/// `candidateVerdict` is what the thresholds say regardless of mode. JSON
+/// shapes are validated by `mediaModerationRecordSchema` on every read.
+model MediaModeration {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  ingredientId      String
+  ingredient        Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  assetHash         String
+  provider          String
+  mode              String
+  isFlagged         Boolean      @default(false)
+  flaggedCategories String[]     @default([])
+  maxConfidence     Float        @default(0)
+  verdict           Json
+  candidateVerdict  Json
+  inputs            Json         @default("[]")
+  thresholds        Json         @default("{}")
+  reusedFromId      String?
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([organizationId, ingredientId], map: "media_moderations_org_ingredient_key")
+  @@index([organizationId, assetHash, provider, isDeleted], map: "media_moderations_org_hash_provider_deleted_idx")
+  @@index([organizationId, isFlagged, isDeleted], map: "media_moderations_org_flagged_deleted_idx")
+  @@map("media_moderations")
 }
 
 /// Media perception artefacts for one asset (#4879): sampled frames, OCR text,

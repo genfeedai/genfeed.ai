@@ -43,6 +43,8 @@ export const ONBOARDING_STARTER_ASSETS_QUEUE = 'onboarding-starter-assets';
 /** Per-asset media perception (#4879): frames, OCR, transcript and scene
  * description, persisted once per asset hash off the publish request path. */
 export const MEDIA_PERCEPTION_QUEUE = 'media-perception';
+/** Moderation classifier (#4880) over perceived frames, transcript and OCR. */
+export const MEDIA_MODERATION_QUEUE = 'media-moderation';
 
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
@@ -55,6 +57,7 @@ export const ALL_QUEUE_NAMES = [
   CREDIT_DEDUCTION_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
+  MEDIA_MODERATION_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

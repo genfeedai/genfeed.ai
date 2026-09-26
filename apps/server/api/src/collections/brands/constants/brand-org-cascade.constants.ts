@@ -725,6 +725,18 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     ],
   },
   {
+    delegate: 'mediaModeration',
+    table: 'media_moderations',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'ingredient',
+        parentBrandField: 'brandId',
+        fkField: 'ingredientId',
+      },
+    ],
+  },
+  {
     delegate: 'mediaPerception',
     table: 'media_perceptions',
     orgField: 'organizationId',

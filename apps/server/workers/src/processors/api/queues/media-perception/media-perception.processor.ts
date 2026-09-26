@@ -1,4 +1,5 @@
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
+import { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
 import {
   MEDIA_PERCEPTION_QUEUE,
   type MediaPerceptionJobData,
@@ -15,6 +16,7 @@ import type { Job } from 'bullmq';
 export class MediaPerceptionProcessor extends WorkerHost {
   constructor(
     private readonly mediaPerceptionService: MediaPerceptionService,
+    private readonly mediaModerationQueueService: MediaModerationQueueService,
     private readonly logger: LoggerService,
   ) {
     super();
@@ -22,6 +24,11 @@ export class MediaPerceptionProcessor extends WorkerHost {
 
   async process(job: Job<MediaPerceptionJobData>): Promise<void> {
     const outcome = await this.mediaPerceptionService.process(job.data);
+    if (outcome !== 'skipped') {
+      // Moderation skips an asset whose perception is still pending, and the
+      // sweep re-offers it once it settles.
+      await this.mediaModerationQueueService.enqueue(job.data);
+    }
     this.logger.log('MediaPerceptionProcessor finished', {
       ingredientId: job.data.ingredientId,
       outcome,

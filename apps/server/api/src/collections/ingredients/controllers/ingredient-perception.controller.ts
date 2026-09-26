@@ -10,15 +10,21 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
+import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
-import { MediaPerceptionSerializer } from '@genfeedai/serializers';
+import {
+  MediaModerationSerializer,
+  MediaPerceptionSerializer,
+} from '@genfeedai/serializers';
 import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 /**
- * Read access to an asset's media perception record (#4879): sampled frames,
- * OCR text, transcript and scene description. Perception is operational data,
- * so it is scoped to the caller's organization even for public assets.
+ * Read access to an asset's media validation records: perception (#4879 —
+ * sampled frames, OCR text, transcript, scene description) and moderation
+ * (#4880 — per-input category scores and verdict). Both are operational
+ * data, so they are scoped to the caller's organization even for public
+ * assets.
  */
 @AutoSwagger()
 @Controller('ingredients')
@@ -28,6 +34,7 @@ export class IngredientPerceptionController {
 
   constructor(
     private readonly mediaPerceptionService: MediaPerceptionService,
+    private readonly mediaModerationService: MediaModerationService,
   ) {}
 
   @Get(':ingredientId/perception')
@@ -49,5 +56,26 @@ export class IngredientPerceptionController {
       return returnNotFound(this.constructorName, ingredientId);
     }
     return serializeSingle(request, MediaPerceptionSerializer, perception);
+  }
+
+  @Get(':ingredientId/moderation')
+  @UseGuards(AssetAccessGuard)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findModeration(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('ingredientId') ingredientId: string,
+  ): Promise<JsonApiSingleResponse> {
+    const { organizationId } = extractRequestContext(user);
+    const moderation = organizationId
+      ? await this.mediaModerationService.getForAsset(
+          organizationId,
+          ingredientId,
+        )
+      : null;
+    if (!moderation) {
+      return returnNotFound(this.constructorName, ingredientId);
+    }
+    return serializeSingle(request, MediaModerationSerializer, moderation);
   }
 }

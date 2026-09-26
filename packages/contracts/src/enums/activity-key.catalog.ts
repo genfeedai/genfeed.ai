@@ -34,6 +34,7 @@ export type ActivityLifecycle =
   | 'published'
   | 'created'
   | 'disconnected'
+  | 'flagged'
   | 'skipped';
 
 /**
@@ -51,6 +52,7 @@ export type ActivityOperation =
   | 'credit'
   | 'connect'
   | 'import'
+  | 'moderate'
   | 'relocate';
 
 export interface ActivityKeyParts {
@@ -72,6 +74,7 @@ export type ActivityMessageId =
   | 'activity.lifecycle.published'
   | 'activity.lifecycle.created'
   | 'activity.lifecycle.disconnected'
+  | 'activity.lifecycle.flagged'
   | 'activity.lifecycle.skipped'
   | 'activity.credits.change'
   | 'activity.credits.add'
@@ -124,6 +127,7 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.IMAGE_UPSCALE_COMPLETED]: 'activity.lifecycle.completed',
   [ActivityKey.IMAGE_UPSCALE_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.IMAGE_UPSCALE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.MEDIA_MODERATION_FLAGGED]: 'activity.lifecycle.flagged',
   [ActivityKey.MODELS_TRAINING_COMPLETED]: 'activity.lifecycle.completed',
   [ActivityKey.MODELS_TRAINING_CREATED]: 'activity.lifecycle.created',
   [ActivityKey.MODELS_TRAINING_FAILED]: 'activity.lifecycle.failed',
@@ -222,6 +226,7 @@ const SUBJECT_LABELS: Record<string, string> = {
   credits: 'credits',
   image: 'image',
   integration: 'social integration',
+  media: 'media asset',
   model: 'model training',
   music: 'music',
   post: 'post',
@@ -236,6 +241,7 @@ const OPERATION_LABELS: Record<ActivityOperation, string> = {
   enhance: 'enhance',
   generate: 'generate',
   import: 'import',
+  moderate: 'moderate',
   publish: 'publish',
   reframe: 'reframe',
   relocate: 'relocate',
@@ -320,6 +326,14 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
     return null;
   },
   (key) => {
+    if (key === 'media-moderation-flagged') {
+      return {
+        key,
+        lifecycle: 'flagged',
+        operation: 'moderate',
+        subject: 'media',
+      };
+    }
     if (key === 'brand-relocated') {
       return {
         key,
@@ -451,6 +465,8 @@ export function getActivityMessageDescriptor(
       return { id: 'activity.lifecycle.created', params };
     case 'disconnected':
       return { id: 'activity.lifecycle.disconnected', params };
+    case 'flagged':
+      return { id: 'activity.lifecycle.flagged', params };
     case 'completed':
       return { id: 'activity.lifecycle.completed', params };
     default:
@@ -695,6 +711,9 @@ export function formatActivityMessage(
     case 'activity.lifecycle.disconnected':
       return `${descriptor.params.capitalizedSubject} disconnected`;
 
+    case 'activity.lifecycle.flagged':
+      return `${descriptor.params.capitalizedSubject} flagged for review`;
+
     case 'activity.credits.change': {
       const { count, creditCategory } = descriptor.params;
       const amount = count.toLocaleString('en-US', {
@@ -775,6 +794,7 @@ export function getActivityLifecycleStatus(
     case 'completed':
     case 'published':
     case 'disconnected':
+    case 'flagged':
       return 'completed';
     default:
       return 'pending';
