@@ -123,6 +123,7 @@ type PrismaMock = {
 type TestContext = {
   conversations: StoreConversation[];
   logger: {
+    error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
   messages: StoreMessage[];
