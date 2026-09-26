@@ -1,6 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   BrandRemixAdPlatform,
+  type BrandRemixConcept,
+  type BrandRemixDraftEdits,
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
@@ -212,8 +214,23 @@ async function routeRemixRun(
 
   await page.route(`**/content-runs/${options.id}/remix`, async (route) => {
     if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON() as {
+        edits?: BrandRemixDraftEdits;
+      };
+      const conceptEdits = body.edits?.concept;
+      const mergedConcept: BrandRemixConcept | undefined = conceptEdits
+        ? {
+            angle: conceptEdits.angle ?? run.concept?.angle ?? '',
+            hook: conceptEdits.hook ?? run.concept?.hook ?? '',
+            savedAt: '2026-08-20T10:01:00.000Z',
+            script: conceptEdits.script ?? run.concept?.script ?? '',
+            storyboard:
+              conceptEdits.storyboard ?? run.concept?.storyboard ?? [],
+          }
+        : run.concept;
       run = {
         ...run,
+        concept: mergedConcept,
         revision: run.revision + 1,
         updatedAt: '2026-08-20T10:01:00.000Z',
       };
