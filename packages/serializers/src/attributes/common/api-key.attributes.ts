@@ -3,6 +3,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const apiKeyFullAttributes = createEntityAttributes([
   'user',
   'organization',
+  'defaultBrand',
 
   'key',
   'label',
