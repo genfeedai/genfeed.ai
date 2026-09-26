@@ -273,72 +273,26 @@ export class BrandRemixSceneGenerationService {
         'Provider generation failed. Request a repair quote.',
         found.id,
       );
-    if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
-      if (
-        isStaleSceneClaim(stage) &&
-        found.status === 'PROCESSING' &&
-        !found.metadata?.externalId &&
-        !found.metadata?.externalProvider
-      ) {
-        await this.prisma.ingredient.updateMany({
-          where: scopedWhere(organizationId, {
-            brandId,
-            id: found.id,
-            status: 'PROCESSING' as const,
-          }),
-          data: { status: 'FAILED' as const },
-        });
-        if (reconcileOnly)
-          return fail(
-            'Cancelled before this scene reached a provider.',
-            found.id,
-          );
-        await this.resetUndispatched(
-          organizationId,
-          runId,
-          operationId,
-          sceneId,
-          stageName,
-          found.id,
-        );
-        return 'undispatched';
-      }
-      if (stage.assetId !== found.id)
-        await this.patch(
-          organizationId,
-          runId,
-          operationId,
-          sceneId,
-          stageName,
-          { assetId: found.id },
-        );
-      return 'processing';
-    }
+    if (!['GENERATED', 'VALIDATED'].includes(found.status ?? ''))
+      return this.reconcileUnfinishedPlaceholder(
+        organizationId,
+        runId,
+        operationId,
+        brandId,
+        sceneId,
+        stageName,
+        stage,
+        found,
+        reconcileOnly,
+        fail,
+      );
     let actualDurationSeconds = saved.actualDurationSeconds;
     if (stageName === 'video') {
-      const url =
-        readIngredientMediaUrl(found) ??
-        (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
-      let probe:
-        | Awaited<ReturnType<FilesClientService['probeMediaFromUrl']>>
-        | undefined;
-      if (url) {
-        try {
-          probe = await this.files.probeMediaFromUrl(url, 'video');
-        } catch (error: unknown) {
-          // Normal steps retry a transient probe on resume; after
-          // cancellation nobody resumes, so the clip is recorded as needing
-          // repair rather than blocking the run.
-          if (!reconcileOnly) throw error;
-        }
-      }
-      if (
-        !probe?.durationSeconds ||
-        probe.durationSeconds > 20 ||
-        !probe.width ||
-        !probe.height ||
-        !probe.audioCodec
-      ) {
+      const clipDurationSeconds = await this.probeCompletedClip(
+        found,
+        reconcileOnly,
+      );
+      if (!clipDurationSeconds) {
         // The provider delivered a clip, so its cost is incurred.
         if (acceptedLine)
           await this.billing.settle(
@@ -362,7 +316,7 @@ export class BrandRemixSceneGenerationService {
         );
         return 'failed';
       }
-      actualDurationSeconds = probe.durationSeconds;
+      actualDurationSeconds = clipDurationSeconds;
     }
     if (acceptedLine)
       await this.billing.settle(
@@ -382,6 +336,100 @@ export class BrandRemixSceneGenerationService {
       actualDurationSeconds,
     );
     return 'ready';
+  }
+  /**
+   * A placeholder that is not finished is either still with its provider or,
+   * when a step died before any provider call (no `externalProvider` or
+   * `externalId`), abandoned: it is failed and its accepted attempt retried,
+   * or recorded as failed while reconciling a cancellation.
+   */
+  private async reconcileUnfinishedPlaceholder(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    brandId: string,
+    sceneId: string,
+    stageName: SceneStageName,
+    stage: SceneStage,
+    found: {
+      id: string;
+      status: string | null;
+      metadata: {
+        externalId?: string | null;
+        externalProvider?: string | null;
+      } | null;
+    },
+    reconcileOnly: boolean,
+    fail: (error: string, assetId?: string) => Promise<'failed'>,
+  ): Promise<'failed' | 'processing' | 'undispatched'> {
+    const isAbandoned =
+      isStaleSceneClaim(stage) &&
+      found.status === 'PROCESSING' &&
+      !found.metadata?.externalId &&
+      !found.metadata?.externalProvider;
+    if (!isAbandoned) {
+      if (stage.assetId !== found.id)
+        await this.patch(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          { assetId: found.id },
+        );
+      return 'processing';
+    }
+    await this.prisma.ingredient.updateMany({
+      where: scopedWhere(organizationId, {
+        brandId,
+        id: found.id,
+        status: 'PROCESSING' as const,
+      }),
+      data: { status: 'FAILED' as const },
+    });
+    if (reconcileOnly)
+      return fail('Cancelled before this scene reached a provider.', found.id);
+    await this.resetUndispatched(
+      organizationId,
+      runId,
+      operationId,
+      sceneId,
+      stageName,
+      found.id,
+    );
+    return 'undispatched';
+  }
+  /**
+   * The duration of a completed clip that has speech and a supported size,
+   * or undefined when it needs repair.
+   */
+  private async probeCompletedClip(
+    clip: { s3Key?: string | null },
+    reconcileOnly: boolean,
+  ): Promise<number | undefined> {
+    const url =
+      readIngredientMediaUrl(clip) ??
+      (clip.s3Key ? this.mediaUrls.buildUrl(clip.s3Key) : undefined);
+    if (!url) return undefined;
+    let probe: Awaited<ReturnType<FilesClientService['probeMediaFromUrl']>>;
+    try {
+      probe = await this.files.probeMediaFromUrl(url, 'video');
+    } catch (error: unknown) {
+      // Normal steps retry a transient probe on resume; after cancellation
+      // nobody resumes, so the clip is recorded as needing repair rather
+      // than blocking the run.
+      if (!reconcileOnly) throw error;
+      return undefined;
+    }
+    if (
+      !probe.durationSeconds ||
+      probe.durationSeconds > 20 ||
+      !probe.width ||
+      !probe.height ||
+      !probe.audioCodec
+    )
+      return undefined;
+    return probe.durationSeconds;
   }
   private async resetUndispatched(
     organizationId: string,
