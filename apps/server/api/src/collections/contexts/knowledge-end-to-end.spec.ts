@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
@@ -131,6 +132,7 @@ let prisma: PrismaClient;
 let schema: string;
 let records: KnowledgeRecordsService;
 let contexts: ContextsService;
+let knowledgeContentRetrieval: KnowledgeContentRetrievalService;
 let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
 let selection: KnowledgeSelectionService;
@@ -180,7 +182,7 @@ async function retrieve(
   query: string,
   extra: Partial<BrandContentMemoryRetrievalParams> = {},
 ) {
-  return contexts.retrieveBrandContentMemory({
+  return knowledgeContentRetrieval.retrieveBrandContentMemory({
     brandId: actor.brandId ?? '',
     limit: 8,
     minRelevance: 0.05,
@@ -192,7 +194,7 @@ async function retrieve(
 
 /** The automatic chat-retrieval path for a thread with no validated brand. */
 async function retrieveOrgAndPersonal(actor: KnowledgeActor, query: string) {
-  return contexts.retrieveOrgAndPersonalContentMemory({
+  return knowledgeContentRetrieval.retrieveOrgAndPersonalContentMemory({
     limit: 8,
     minRelevance: 0.05,
     organizationId: actor.organizationId,
@@ -253,6 +255,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       } as never,
       { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
     );
+    knowledgeContentRetrieval = new KnowledgeContentRetrievalService(
+      prismaService,
+      contexts,
+    );
     ingest = new KnowledgeSourceIngestService(prismaService, contexts);
     capture = new KnowledgeCaptureService(
       records,
@@ -291,7 +297,7 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     agentContextAssembly = new AgentContextAssemblyService(
       fakeBrandsService as never,
       { getInsights: vi.fn().mockResolvedValue([]) } as never,
-      contexts,
+      knowledgeContentRetrieval,
       { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
       noopCache as never,
       logger as never,
