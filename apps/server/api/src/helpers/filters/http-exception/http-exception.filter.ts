@@ -80,6 +80,10 @@ export class HttpExceptionFilter extends AllExceptionFilter {
     let detail = 'An error occurred';
     let source: Record<string, unknown> | undefined;
     let fieldErrors: ValidatorFieldError[] = [];
+    // Stable, non-generic code (e.g. `BrandScrapeErrorCode`) an exception
+    // author attached to its response body. Falls back to the HTTP status
+    // string below so every error stays JSON:API-shaped (#5080).
+    let code: string | undefined;
 
     if (response && typeof response === 'object' && response !== null) {
       const responseObj = response as Record<string, unknown>;
@@ -99,6 +103,8 @@ export class HttpExceptionFilter extends AllExceptionFilter {
         detail;
       source = responseObj.source as Record<string, unknown> | undefined;
       fieldErrors = readValidatorFieldErrors(responseObj);
+      code =
+        typeof responseObj.code === 'string' ? responseObj.code : undefined;
     } else if (typeof response === 'string') {
       detail = response;
     }
@@ -144,6 +150,7 @@ export class HttpExceptionFilter extends AllExceptionFilter {
     }
 
     this.writeJsonApiError(res, {
+      code,
       detail,
       pointer: redactEmailTrackingUrl(req.originalUrl),
       source,

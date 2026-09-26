@@ -24,8 +24,8 @@ import Modal from '@ui/modals/modal/Modal';
 import {
   getErrorMessage,
   hasErrorDetail,
-  isAxiosError,
 } from '@utils/error/error-handler.util';
+import { isAxiosError } from '@utils/error/json-api-status.util';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import EditMemberForm from './EditMemberForm';
