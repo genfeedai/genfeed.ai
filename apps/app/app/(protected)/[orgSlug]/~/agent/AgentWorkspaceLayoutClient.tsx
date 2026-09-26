@@ -113,7 +113,12 @@ function AgentWorkspaceLayoutClientContent({
   );
   const { replace } = useRouter();
   const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
-  const { activeHref, brandSlug: routeBrandSlug, orgSlug } = useOrgUrl();
+  const {
+    activeHref,
+    brandSlug: routeBrandSlug,
+    orgHref,
+    orgSlug,
+  } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
@@ -283,9 +288,12 @@ function AgentWorkspaceLayoutClientContent({
           if (pendingNavigationThreadRef.current !== resumable.id) {
             pendingNavigationThreadRef.current = resumable.id;
             newRouteBaselineThreadRef.current = resumable.id;
-            replace(
-              activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`),
-            );
+            // Onboarding is the org-scoped agent surface (proxy.ts sends every
+            // incomplete-onboarding user to `/:org/~/agent/onboarding`, never a
+            // brand path) — resuming must stay on that canonical route, not
+            // `activeHref`'s brand-scoped fallback (see the note above on the
+            // returning-bootstrap effect for why that fallback is unstable).
+            replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`));
           }
           return;
         }
@@ -322,7 +330,6 @@ function AgentWorkspaceLayoutClientContent({
       if (!started) hasAttemptedResumeRef.current = false;
     };
   }, [
-    activeHref,
     activeThreadId,
     agentApiService,
     brandId,
@@ -330,6 +337,7 @@ function AgentWorkspaceLayoutClientContent({
     effectiveIsLoaded,
     isBrandScopeResolved,
     isOnboardingEntryRoute,
+    orgHref,
     organizationId,
     prefillPrompt,
     replace,
@@ -512,8 +520,11 @@ function AgentWorkspaceLayoutClientContent({
 
   // Deep-linked /agent/:id under the wrong brand slug: once the thread is in
   // the store, replace to the brand that owns it so chrome + list match data.
+  // Onboarding is exempt — it is the org-scoped surface (see the resume and
+  // auto-navigate effects above), and a thread created there can legitimately
+  // carry a `brandId` without the URL ever adopting that brand's slug.
   useEffect(() => {
-    if (!orgSlug || !organizationId) {
+    if (!orgSlug || !organizationId || isOnboarding) {
       return;
     }
 
@@ -556,6 +567,7 @@ function AgentWorkspaceLayoutClientContent({
     activeThreadId,
     brandId,
     brands,
+    isOnboarding,
     orgSlug,
     organizationId,
     pathname,
@@ -581,8 +593,13 @@ function AgentWorkspaceLayoutClientContent({
       activeThreadId !== newRouteBaselineThreadRef.current &&
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
+      // Onboarding stays on the org-scoped surface (`orgHref`) once the
+      // thread is created: `activeHref` falls back to the session-selected
+      // brand, and proxy.ts's canonical onboarding entry is always
+      // `/:org/~/agent/onboarding` — never a brand path (see the resume
+      // effect above for the same fallback instability).
       const nextRoute = isOnboarding
-        ? activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
+        ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
         : activeHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
@@ -597,6 +614,7 @@ function AgentWorkspaceLayoutClientContent({
     isOnboarding,
     isUnthreadedRoute,
     activeHref,
+    orgHref,
     replace,
   ]);
 

@@ -1,4 +1,8 @@
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import {
+  assertValidChannelTargetSchedule,
+  InvalidChannelTargetScheduleException,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
@@ -25,6 +29,8 @@ export interface PostBatchScheduleTarget {
 }
 
 export interface PostBatchScheduleResult {
+  /** Items that resolved to a real Post but failed the channel contract. */
+  invalidTargetPostIds: string[];
   missingPostIds: string[];
   posts: PostDocument[];
 }
@@ -53,9 +59,12 @@ export interface PostBatchScheduleContext {
 }
 
 type ExistingPost = {
+  category: string;
   id: string;
   parentId: string | null;
   publishApprovalId: string | null;
+  targetSettings: Prisma.JsonValue;
+  visibility: string | null;
 };
 
 /**
@@ -65,6 +74,11 @@ type ExistingPost = {
  * immediately before its own update) so an in-batch child still wins over its
  * parent's cascade. `updateIndexes` records where each post's own update sits
  * so the transaction results can be mapped back to documents.
+ *
+ * Each item is validated against the channel contract (#5193) before any of
+ * its writes are queued — an item that fails is skipped (and its id
+ * reported via `invalidTargetPostIds`) rather than scheduled with content
+ * the target platform can't take.
  */
 function planBatchWrites(
   context: PostBatchScheduleContext,
@@ -72,9 +86,14 @@ function planBatchWrites(
   existingById: Map<string, ExistingPost>,
   organizationId: string,
   target: PostBatchScheduleTarget,
-): { updateIndexes: number[]; writes: Prisma.PrismaPromise<unknown>[] } {
+): {
+  invalidTargetPostIds: string[];
+  updateIndexes: number[];
+  writes: Prisma.PrismaPromise<unknown>[];
+} {
   const writes: Prisma.PrismaPromise<unknown>[] = [];
   const updateIndexes: number[] = [];
+  const invalidTargetPostIds: string[] = [];
 
   for (const item of items) {
     const postId = String(item.postId);
@@ -90,6 +109,31 @@ function planBatchWrites(
 
     const ingredientIds =
       EntityIdUtil.normalizeIds(item.ingredientIds ?? []) ?? [];
+    const category =
+      ingredientIds.length > 0 ? PostCategory.IMAGE : existing.category;
+
+    try {
+      assertValidChannelTargetSchedule({
+        caption: item.text,
+        category,
+        credentialId: target.credentialId,
+        ingredients: ingredientIds,
+        platform: target.platform,
+        publishMode: 'scheduled',
+        settings: existing.targetSettings as Record<string, unknown> | null,
+        visibility: existing.visibility,
+      });
+    } catch (error: unknown) {
+      if (!(error instanceof InvalidChannelTargetScheduleException)) {
+        throw error;
+      }
+      context.logger.log('Skipped batch item that failed channel validation', {
+        error: error.message,
+        postId,
+      });
+      invalidTargetPostIds.push(postId);
+      continue;
+    }
 
     // Scheduling a root post cascades to its children, exactly as `patch`
     // does — and, as there, before the post's own update is applied.
@@ -140,7 +184,7 @@ function planBatchWrites(
     );
   }
 
-  return { updateIndexes, writes };
+  return { invalidTargetPostIds, updateIndexes, writes };
 }
 
 /**
@@ -164,13 +208,20 @@ export async function batchSchedulePosts(
   target: PostBatchScheduleTarget,
 ): Promise<PostBatchScheduleResult> {
   if (items.length === 0) {
-    return { missingPostIds: [], posts: [] };
+    return { invalidTargetPostIds: [], missingPostIds: [], posts: [] };
   }
 
   const requestedIds = [...new Set(items.map((item) => String(item.postId)))];
 
   const existingPosts = await context.prisma.post.findMany({
-    select: { id: true, parentId: true, publishApprovalId: true },
+    select: {
+      category: true,
+      id: true,
+      parentId: true,
+      publishApprovalId: true,
+      targetSettings: true,
+      visibility: true,
+    },
     where: scopedWhere(organizationId, { id: { in: requestedIds } }),
   });
   const existingById = new Map<string, ExistingPost>(
@@ -193,7 +244,7 @@ export async function batchSchedulePosts(
     );
   }
 
-  const { updateIndexes, writes } = planBatchWrites(
+  const { invalidTargetPostIds, updateIndexes, writes } = planBatchWrites(
     context,
     items,
     existingById,
@@ -202,7 +253,7 @@ export async function batchSchedulePosts(
   );
 
   if (writes.length === 0) {
-    return { missingPostIds, posts: [] };
+    return { invalidTargetPostIds, missingPostIds, posts: [] };
   }
 
   const results = await context.prisma.$transaction(writes);
@@ -227,6 +278,7 @@ export async function batchSchedulePosts(
   );
 
   context.logger.log('Batch scheduled posts', {
+    invalid: invalidTargetPostIds.length,
     missing: missingPostIds.length,
     organizationId,
     requested: requestedIds.length,
@@ -234,6 +286,7 @@ export async function batchSchedulePosts(
   });
 
   return {
+    invalidTargetPostIds,
     missingPostIds,
     posts,
   };

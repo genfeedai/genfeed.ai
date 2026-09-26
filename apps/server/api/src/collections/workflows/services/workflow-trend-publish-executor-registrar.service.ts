@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import {
+  filterTargetsByMediaCapability,
+  toValidationMediaFromIngredientIds,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -444,19 +448,44 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         // A brand may hold several accounts on one platform, so a publish node
         // expands into one post per connected account. They share a groupId so
         // downstream review and notifications still see a single batch.
-        const targets = await fanoutService.resolveTargets({
+        const resolvedTargets = await fanoutService.resolveTargets({
           brandId,
           caption,
           organizationId,
           platforms,
         });
+        const category =
+          ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT;
+        // Only filter when this run actually schedules the fan-out — a
+        // caption-only draft is fine to create on every platform, it's
+        // SCHEDULED that the channel contract rejects (#5193). Filtering
+        // before `create()` means a video-only platform in the fan-out is
+        // skipped instead of creating a post the choke point then rejects.
+        const { eligible: targets, skipped } = scheduledFor
+          ? filterTargetsByMediaCapability(
+              resolvedTargets,
+              toValidationMediaFromIngredientIds(ingredients, category),
+            )
+          : {
+              eligible: resolvedTargets,
+              skipped: [] as typeof resolvedTargets,
+            };
+        if (skipped.length > 0) {
+          this.loggerService.warn(
+            'Skipped publish node targets requiring media',
+            {
+              logContext: this.logContext,
+              platforms: skipped.map((target) => target.platform),
+              workflowId,
+            },
+          );
+        }
         const groupId = randomUUID();
 
         for (const target of targets) {
           const post = await postsService.create({
             brandId: brandId,
-            category:
-              ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
+            category,
             credentialId: target.credentialId,
             description: target.caption,
             groupId,
