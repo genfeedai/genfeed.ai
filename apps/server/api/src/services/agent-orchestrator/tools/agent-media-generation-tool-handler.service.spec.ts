@@ -206,7 +206,13 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('grounds social drafts in the thread brand and shows their receipts', async () => {
-    const { contentGeneratorService, handler } = createHandler();
+    const { brandsService, contentGeneratorService, handler } = createHandler();
+    // #5219: resolveGenerationBrand re-validates the thread's brandId against
+    // the org rather than trusting ctx.brandId blindly -- resolve back to
+    // whatever id was actually queried instead of the shared default stub.
+    brandsService.findOne.mockImplementation(async (query: { id?: string }) =>
+      query.id ? { id: query.id } : null,
+    );
     const receipt = {
       excerpt: 'We ship every Thursday.',
       kind: 'TEXT',
