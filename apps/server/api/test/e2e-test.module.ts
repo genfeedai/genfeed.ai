@@ -475,10 +475,14 @@ export class TestDatabaseHelper {
     'ingredient',
     'credential',
     'tag',
-    'brand',
     'organizationSetting',
     'invitation',
+    // member.currentBrandId is a required, ON DELETE RESTRICT FK (#5219) --
+    // member rows must clear before brand, not after, or brand's deleteMany
+    // fails its FK check (silently swallowed by deleteFromDelegate) and
+    // leaks orphaned brand rows across test runs.
     'member',
+    'brand',
     'organization',
     'setting',
     'user',

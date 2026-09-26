@@ -236,9 +236,13 @@ describe('proactive organization to strategy run and attributed draft integratio
       { reconcile: vi.fn() } as never,
       { reconcile: vi.fn() } as never,
     );
-    const processorArgs = Array.from({ length: 30 }, () => ({}));
+    // PlatformSchedulesProcessor's constructor has 33 positional params;
+    // workflowSchedules sits at index 31, followed by xReplyWatch at index 32
+    // -- pad to the full length so schedules lands in its real slot instead
+    // of a trailing push overwriting whatever param happens to be last.
+    const processorArgs = Array.from({ length: 33 }, () => ({}));
     processorArgs[0] = { isDevSchedulersEnabled: true };
-    processorArgs.push(schedules);
+    processorArgs[31] = schedules;
     const processor = new PlatformSchedulesProcessor(
       ...(processorArgs as ConstructorParameters<
         typeof PlatformSchedulesProcessor
