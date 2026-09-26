@@ -1,7 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -13,15 +12,11 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
-  ByokBillingStatus,
   CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import {
-  type ISubscriptionOssReadModel,
-  SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/contracts/interfaces/billing';
+import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -57,7 +52,6 @@ describe('StripeWebhookSupportService', () => {
     getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model_1']),
     patch: vi.fn(),
   };
-  const organizationsService = { findOne: vi.fn() };
   const subscriptionsService = { findByStripeCustomerId: vi.fn() };
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const requestContextCacheService = {
@@ -116,7 +110,6 @@ describe('StripeWebhookSupportService', () => {
           provide: OrganizationSettingsService,
           useValue: organizationSettingsService,
         },
-        { provide: OrganizationsService, useValue: organizationsService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: UsersService, useValue: usersService },
         {
@@ -421,7 +414,7 @@ describe('StripeWebhookSupportService', () => {
         brandId: 'org_1',
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
-        value: 'BYOK platform fee paid: $12.50',
+        value: 'Subscription credits granted',
       });
 
       expect(activitiesService.create).toHaveBeenCalledWith({
@@ -429,7 +422,7 @@ describe('StripeWebhookSupportService', () => {
         key: ActivityKey.CREDITS_ADD,
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
-        value: 'BYOK platform fee paid: $12.50',
+        value: 'Subscription credits granted',
       });
     });
   });
@@ -517,40 +510,6 @@ describe('StripeWebhookSupportService', () => {
       );
       expect(loggerService.log.mock.calls[0][1]).not.toHaveProperty('email');
     });
-
-    it('persists the tier through updateOrganizationTierAndModels when given', async () => {
-      const subscription = {
-        cancelAtPeriodEnd: false,
-        id: 'sub_db_1',
-        isDeleted: false,
-        organizationId: 'org_1',
-        status: 'active',
-        userId: 'user_1',
-      } satisfies ISubscriptionOssReadModel;
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        subscription,
-      );
-      usersService.findOne.mockResolvedValue({
-        id: 'user_1',
-        email: 'ada@example.com',
-        isOnboardingCompleted: true,
-      });
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-
-      await service.markOnboardingCompleteFromSession(
-        session,
-        'test',
-        SubscriptionTier.BYOK,
-      );
-
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: 'user_1',
-      });
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        enabledModelIds: ['model_1'],
-        subscriptionTier: SubscriptionTier.BYOK,
-      });
-    });
   });
 
   describe('setHasEverHadCredits', () => {
@@ -587,58 +546,6 @@ describe('StripeWebhookSupportService', () => {
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to set hasEverHadCredits flag'),
         expect.objectContaining({ organizationId: 'org_1' }),
-      );
-    });
-  });
-
-  describe('setByokBillingStatus', () => {
-    it('patches the billing status on the org setting', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-
-      await service.setByokBillingStatus(
-        'org_1',
-        ByokBillingStatus.ACTIVE,
-        'in_1',
-        'test',
-        'failed to reset byokBillingStatus after payment',
-      );
-
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        byokBillingStatus: ByokBillingStatus.ACTIVE,
-      });
-      expect(
-        requestContextCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        organizationSettingsService.patch.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        requestContextCacheService.invalidateForOrganization.mock
-          .invocationCallOrder[0],
-      );
-    });
-
-    it('logs patch failures with the caller-provided message', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValueOnce(
-        new Error('boom'),
-      );
-
-      await service.setByokBillingStatus(
-        'org_1',
-        ByokBillingStatus.PAST_DUE,
-        'in_1',
-        'test',
-        'failed to set past_due status after payment failure',
-      );
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'failed to set past_due status after payment failure',
-        ),
-        expect.objectContaining({ invoiceId: 'in_1', organizationId: 'org_1' }),
       );
     });
   });

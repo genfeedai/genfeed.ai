@@ -108,14 +108,6 @@ describe('CreditsController', () => {
     expect(metadata).toEqual({ limit: 20, scope: 'user', windowMs: 60000 });
   });
 
-  it('should have rate limit on getByokUsageSummary endpoint', () => {
-    const metadata = Reflect.getMetadata(
-      RATE_LIMIT_KEY,
-      CreditsController.prototype.getByokUsageSummary,
-    );
-    expect(metadata).toEqual({ limit: 20, scope: 'user', windowMs: 60000 });
-  });
-
   it('should have rate limit on getLastPurchaseBaseline endpoint', () => {
     const metadata = Reflect.getMetadata(
       RATE_LIMIT_KEY,

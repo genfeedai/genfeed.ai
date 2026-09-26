@@ -64,7 +64,6 @@ describe('CreditsGuard', () => {
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
   let byokService: {
     isByokActiveForProvider: ReturnType<typeof vi.fn>;
-    isByokBillingInGoodStanding: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -83,7 +82,6 @@ describe('CreditsGuard', () => {
     modelsService = { findOne: vi.fn() };
     byokService = {
       isByokActiveForProvider: vi.fn().mockResolvedValue(false),
-      isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
     };
 
     guard = new CreditsGuard(

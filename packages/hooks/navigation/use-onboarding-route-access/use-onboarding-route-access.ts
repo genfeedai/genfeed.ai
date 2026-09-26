@@ -24,7 +24,6 @@ export function useOnboardingRouteAccess(pathname: string) {
   const {
     accessState,
     hasPaygCredits,
-    isByok,
     isLoading: isAccessStateLoading,
     isSubscribed,
     isSuperAdmin,
@@ -76,7 +75,7 @@ export function useOnboardingRouteAccess(pathname: string) {
         return null;
       }
 
-      if (isSuperAdmin || isSubscribed || isByok) {
+      if (isSuperAdmin || isSubscribed) {
         return null;
       }
 
@@ -93,13 +92,7 @@ export function useOnboardingRouteAccess(pathname: string) {
       return `/onboarding/${resumeStep}`;
     }
 
-    if (
-      isBillingEnabled &&
-      !isSuperAdmin &&
-      !isSubscribed &&
-      !isByok &&
-      !hasPaygCredits
-    ) {
+    if (isBillingEnabled && !isSuperAdmin && !isSubscribed && !hasPaygCredits) {
       return '/onboarding/summary';
     }
 
@@ -112,7 +105,6 @@ export function useOnboardingRouteAccess(pathname: string) {
     hasPaygCredits,
     isAccessStateLoading,
     isBillingEnabled,
-    isByok,
     isOnboardingRoute,
     isSubscribed,
     isSuperAdmin,

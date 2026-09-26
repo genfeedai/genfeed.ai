@@ -8,6 +8,12 @@ Genfeed exposes the following providers through **Organization settings →
 Integrations**. Saving a credential validates it against the provider before it
 is encrypted for the organization.
 
+On Genfeed Cloud, bring-your-own-key is included with Pro, Scale, and
+Enterprise: generations that run on an organization key draw no credits and
+carry no usage fee. Without a paid plan, stored keys are ignored and generation
+falls back to Genfeed-hosted providers billed in credits. Self-hosted
+deployments never gate BYOK.
+
 ## Provider catalog
 
 | Provider key | Provider    | Primary Genfeed use                          | Self-hosted fallback                           | Provider setup                                                 |

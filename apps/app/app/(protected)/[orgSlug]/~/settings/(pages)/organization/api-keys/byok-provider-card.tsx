@@ -84,6 +84,7 @@ function ProviderLogo({
 export default function ByokProviderCard({
   providerStatus,
   cardState,
+  canAddKey,
   apiKeyValue,
   apiSecretValue,
   onToggleExpand,
@@ -143,12 +144,14 @@ export default function ByokProviderCard({
         <div className="flex flex-wrap items-center gap-2">
           {isConnected ? (
             <>
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                onClick={onToggleExpand}
-              >
-                Replace Key
-              </Button>
+              {canAddKey ? (
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={onToggleExpand}
+                >
+                  Replace Key
+                </Button>
+              ) : null}
               <Button
                 variant={ButtonVariant.SECONDARY}
                 onClick={onRemoveKey}
@@ -158,11 +161,11 @@ export default function ByokProviderCard({
                 <Trash2 className="size-4" />
               </Button>
             </>
-          ) : (
+          ) : canAddKey ? (
             <Button variant={ButtonVariant.SECONDARY} onClick={onToggleExpand}>
               Add Key
             </Button>
-          )}
+          ) : null}
         </div>
       </Card>
 

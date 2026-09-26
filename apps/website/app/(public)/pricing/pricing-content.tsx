@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,
-  BYOK_CREDIT_VALUE_DOLLARS,
+  CREDIT_VALUE_DOLLARS,
   creditPackPrice,
   creditPackTotalCredits,
   formatPrice,
@@ -110,7 +110,7 @@ function formatCredits(credits: number): string {
 }
 
 function formatCreditsDollars(credits: number): string {
-  return `$${(credits * BYOK_CREDIT_VALUE_DOLLARS).toFixed(2)}`;
+  return `$${(credits * CREDIT_VALUE_DOLLARS).toFixed(2)}`;
 }
 
 function getOrderedPlans() {
@@ -124,7 +124,7 @@ function getOrderedPlans() {
  */
 export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return `Credits at $${BYOK_CREDIT_VALUE_DOLLARS.toFixed(2)} each`;
+    return `Credits at $${CREDIT_VALUE_DOLLARS.toFixed(2)} each`;
   }
 
   if (plan.type === 'subscription') {

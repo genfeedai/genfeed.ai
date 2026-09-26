@@ -96,7 +96,7 @@ function printUiActionSummary(metadata?: Record<string, unknown>): void {
     } else if (typeof action.botId === 'string') {
       print(`  ${chalk.dim(`Try: gf chat --thread ${metadata?.threadId ?? ''}`.trim())}`);
     } else if (type === 'credits_balance_card') {
-      print(`  ${chalk.dim('Try: gf credits summary')}`);
+      print(`  ${chalk.dim('Try: gf credits usage')}`);
     }
   }
 }

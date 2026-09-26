@@ -14,12 +14,6 @@ describe('tier-models.helper', () => {
       ]);
     });
 
-    it('should give BYOK tier only BASIC quality', () => {
-      expect(TIER_QUALITY_ACCESS[SubscriptionTier.BYOK]).toEqual([
-        QualityTier.BASIC,
-      ]);
-    });
-
     it('should give PRO tier BASIC, STANDARD, and HIGH', () => {
       expect(TIER_QUALITY_ACCESS[SubscriptionTier.PRO]).toEqual([
         QualityTier.BASIC,

@@ -3922,7 +3922,7 @@
     },
     {
       "code": 2345,
-      "count": 3,
+      "count": 2,
       "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
       "fingerprint": "4ad3be1518aa42472029",
       "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
@@ -4506,14 +4506,6 @@
     },
     {
       "code": 2551,
-      "count": 2,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "0d71be7be9f266226912",
-      "message": "Property 'createCheckoutSession' does not exist on type 'StripeService'. Did you mean 'createSetupCheckoutSession'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
       "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
       "fingerprint": "492eff98574934fc2625",
@@ -4542,14 +4534,6 @@
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
       "fingerprint": "92325114290d7bbad1c3",
       "message": "Property 'createSubscription' does not exist on type 'StripeService'. Did you mean 'getSubscription'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 2,
-      "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "9ff5ee1cd6917b30dbc7",
-      "message": "Property 'createCheckoutSession' does not exist on type 'StripeService'. Did you mean 'createSetupCheckoutSession'?",
       "workspace": "api"
     },
     {
