@@ -328,28 +328,48 @@ jobs:
       - name: Run UI guards
         run: bun run check:ui-guards
 
-  # The Typecheck job above cannot see spec files: every backend workspace's
-  # tsconfig.typecheck.json excludes them, and no vitest config enables
-  # `typecheck`. #2369 shipped a spec calling a deleted method straight through
-  # that hole. This job typechecks them against the same compiler options via
-  # tsconfig.typecheck.specs.json and ratchets the pre-existing debt.
+  # The Typecheck job above cannot see spec/test files: every backend
+  # workspace's tsconfig.typecheck.json excludes them, and every frontend or
+  # package workspace's own tsconfig.json does the same for `.spec.ts(x)` /
+  # `.test.ts(x)`. No vitest config enables `typecheck` either. #2369 shipped a
+  # spec calling a deleted method straight through that hole, and #5244 found
+  # the same gap in apps/app and packages/*. This job typechecks them against
+  # the same compiler options via each workspace's tsconfig.typecheck.specs.json
+  # and ratchets the pre-existing debt. Workspaces are discovered under
+  # apps/server, apps (currently only apps/app has opted in), and packages —
+  # enrolling one is purely a matter of adding that file, nothing here.
   #
   # On change runs (PR / merge queue) the scope step below narrows the ratchet
-  # to the server workspaces the diff can actually affect, and skips the whole
-  # tail (Bun setup, package build, loop) when nothing server-related changed —
-  # the common frontend-only PR. Anything shared (packages/**, root configs,
-  # apps/server files outside a single workspace, this workflow) escalates to
+  # to the workspaces the diff can actually affect, and skips the whole tail
+  # (Bun setup, package build, loop) when nothing relevant changed — the common
+  # single-app PR. A `packages/**` change resolves through turbo's own
+  # dependency graph (`turbo run build --affected`, keyed off each package's
+  # declared `package.json` dependencies) to the changed package(s) plus their
+  # dependents, instead of escalating every packages/** touch to a full run —
+  # CI capacity is the bottleneck, and most package changes (leaf utilities,
+  # a single feature package) have a small, cheaply-derivable dependent set.
+  # Anything genuinely global (root configs, scripts, the lockfile, this
+  # workflow, apps/server files outside a single workspace) still escalates to
   # every workspace, as does a heavy run, the full-suite label, or a missing
-  # diff base. Heavy full-suite runs on master push always cover all
-  # workspaces, so any cross-workspace drift a scoped PR run misses lands at
-  # most one merge behind. Each workspace is still checked in a fresh Bun
-  # process so TypeScript can release the previous program's memory before
-  # loading the next workspace; the CLI scopes the repo-wide baseline to the
-  # requested workspace on each invocation.
+  # diff base. Heavy full-suite runs on master push (and any scheduled/nightly
+  # run, which is a non-change run) always cover all workspaces regardless of
+  # scoping, so any cross-workspace drift a scoped PR run misses lands at most
+  # one merge behind. Each workspace is still checked in a fresh Bun process so
+  # TypeScript can release the previous program's memory before loading the
+  # next workspace; the CLI scopes the repo-wide baseline to the requested
+  # workspace on each invocation.
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # #5244 added apps/app and 24 packages/* workspaces. A scoped PR run still
+    # checks only what changed, but a full run (heavy tier, master push,
+    # release) walks every workspace sequentially, and several of the new
+    # ones pull most of the monorepo's type graph in transitively through
+    # source-pointing path aliases (see the rootDir comment in
+    # scripts/architecture/check-spec-typecheck.ts) — apps/app alone took
+    # ~9 minutes standalone during #5244's own baseline generation. 45 minutes
+    # was sized for the original 8 backend-only workspaces.
+    timeout-minutes: 90
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -362,14 +382,23 @@ jobs:
           RUN_HEAVY: ${{ needs.trust.outputs.heavy-tier == 'true' }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           all_workspaces=()
-          for config in apps/server/*/tsconfig.typecheck.specs.json; do
-            workspace="${config#apps/server/}"
-            all_workspaces+=("${workspace%%/*}")
+          # apps/server/<workspace> and packages/<workspace> each hold many
+          # ratchet workspaces one directory deep; apps/<app> holds several
+          # frontend/desktop apps but today only apps/app has opted in — the
+          # glob simply finds nothing for the others.
+          for config in apps/server/*/tsconfig.typecheck.specs.json \
+            apps/*/tsconfig.typecheck.specs.json \
+            packages/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            all_workspaces+=("${workspace##*/}")
           done
+          shopt -u nullglob
 
           emit() {
             echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
+            echo "needs_turbo=false" >>"${GITHUB_OUTPUT}"
             if [ -n "$1" ]; then
               echo "run_any=true" >>"${GITHUB_OUTPUT}"
             else
@@ -414,14 +443,39 @@ jobs:
                 emit "${all_workspaces[*]}" "full: shared server config ${file}"
                 exit 0
                 ;;
+              apps/*/*)
+                # Any other app (apps/app, apps/desktop, ...) owns its own
+                # files the same way a backend workspace owns its own — but
+                # unlike apps/server, not every app is enrolled in the
+                # ratchet, so a missing config here means "not part of this
+                # guard" (skip) rather than "escalate": apps/desktop churning
+                # cannot affect apps/app's spec program.
+                workspace="${file#apps/}"
+                workspace="${workspace%%/*}"
+                if [ -f "apps/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                fi
+                ;;
               docs/*|.agents/*|*.md)
                 ;;
               apps/*)
-                # Frontend/desktop apps never feed server spec programs.
+                # Shallow files directly under apps/ (rare) feed no program.
+                ;;
+              packages/*/*)
+                # A package's own files never escalate immediately: packages
+                # commonly import each other, but turbo already knows the
+                # declared (package.json) dependency graph, so the follow-up
+                # "Resolve turbo-affected packages" step below asks it for the
+                # changed package(s) plus their dependents instead of running
+                # every enrolled package on every packages/** touch. This
+                # loop only needs to know that at least one packages/** file
+                # changed; which package(s) is turbo's job.
+                packages_touched=1
                 ;;
               *)
-                # packages/**, root tsconfigs, scripts, lockfile, workflows —
-                # anything outside apps/ can reshape every program: escalate.
+                # Root tsconfigs, scripts, the lockfile, this workflow —
+                # anything outside apps/ and packages/ can reshape every
+                # program with no dependency graph to consult: escalate.
                 emit "${all_workspaces[*]}" "full: shared surface ${file}"
                 exit 0
                 ;;
@@ -434,21 +488,117 @@ jobs:
               scoped+=("${workspace}")
             fi
           done
-          emit "${scoped[*]-}" "affected only"
+
+          if [ "${packages_touched:-0}" = "1" ]; then
+            # Defer the final workspace list to the turbo-affected step: it
+            # still needs to fold in whatever packages turbo resolves as
+            # affected before this job knows what to actually run.
+            echo "needs_turbo=true" >>"${GITHUB_OUTPUT}"
+            echo "apps_affected=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
+            echo "Spec typecheck scope: apps=${scoped[*]:-<none>}, packages touched — resolving affected packages via turbo"
+          else
+            emit "${scoped[*]-}" "affected only"
+          fi
       - name: Setup Bun environment
-        if: steps.scope.outputs.run_any == 'true'
+        if: steps.scope.outputs.run_any == 'true' || steps.scope.outputs.needs_turbo == 'true'
         uses: ./.github/actions/setup-bun-env
+      # turbo's own dependency graph (package.json dependencies) is the
+      # "cheaply derivable" affected-set turbo already computes for every
+      # other --affected call in this workflow (lint, type-check, test
+      # sharding above). `--affected` returns each changed package under
+      # packages/** plus every package that (transitively) depends on it, so
+      # a leaf utility change stays small while a widely-imported package
+      # (e.g. contracts) still fans out to most of the monorepo — correctly,
+      # since that IS what could break. `--dry=json` only plans the build
+      # graph; it runs nothing.
+      - name: Resolve turbo-affected packages
+        id: turbo-scope
+        if: steps.scope.outputs.needs_turbo == 'true'
+        env:
+          APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          all_workspaces=()
+          for config in apps/server/*/tsconfig.typecheck.specs.json \
+            apps/*/tsconfig.typecheck.specs.json \
+            packages/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            all_workspaces+=("${workspace##*/}")
+          done
+          shopt -u nullglob
+
+          affected_json="$(TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run build --affected --filter='./packages/*' --dry=json)"
+          mapfile -t affected_packages < <(echo "${affected_json}" | node -e '
+            let data = "";
+            process.stdin.on("data", (chunk) => { data += chunk; });
+            process.stdin.on("end", () => {
+              const parsed = JSON.parse(data);
+              for (const name of parsed.packages || []) {
+                console.log(name.replace(/^@genfeedai\//, ""));
+              }
+            });
+          ')
+
+          declare -A affected=()
+          for workspace in ${APPS_AFFECTED}; do
+            [ -n "${workspace}" ] && affected["${workspace}"]=1
+          done
+          for pkg in "${affected_packages[@]}"; do
+            affected["${pkg}"]=1
+          done
+
+          scoped=()
+          for workspace in "${all_workspaces[@]}"; do
+            if [ -n "${affected[${workspace}]:-}" ]; then
+              scoped+=("${workspace}")
+            fi
+          done
+
+          build_filters=()
+          if [ -z "${APPS_AFFECTED// /}" ]; then
+            # Only narrow the build when nothing under apps/ is also in
+            # scope. An affected app's own package dependency footprint isn't
+            # something this scope step derives cheaply (apps/app alone pulls
+            # in most of the monorepo per #5244's baseline), so mixing an app
+            # into scope falls back to building every package below rather
+            # than guessing — same behavior as before this change.
+            for pkg in "${affected_packages[@]}"; do
+              build_filters+=("--filter=@genfeedai/${pkg}")
+            done
+          fi
+
+          echo "workspaces=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
+          echo "build_filters=${build_filters[*]-}" >>"${GITHUB_OUTPUT}"
+          if [ -n "${scoped[*]-}" ]; then
+            echo "run_any=true" >>"${GITHUB_OUTPUT}"
+          else
+            echo "run_any=false" >>"${GITHUB_OUTPUT}"
+          fi
+          echo "Spec typecheck scope (turbo-resolved): ${scoped[*]:-<none>}"
       - name: Spec Typecheck Guard Tests
-        if: steps.scope.outputs.run_any == 'true'
+        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
       # The typecheck base config resolves @genfeedai/contracts and
       # @genfeedai/contracts/constants to their dist output, so the package graph has to
-      # exist before any program is created.
+      # exist before any program is created. A scoped, packages-touched run builds
+      # only the turbo-affected packages (which already pulls in each one's own
+      # dependencies via turbo's `dependsOn: ["^build"]` graph — the same graph
+      # `Resolve turbo-affected packages` just queried); every other run (full,
+      # or scoped to apps only) still builds every package, since a bare
+      # apps/app change gives no cheap signal about which packages it needs.
       - name: Build packages
-        if: steps.scope.outputs.run_any == 'true'
-        run: bunx turbo run build --filter='./packages/*' --concurrency=1
+        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
+        run: |
+          set -euo pipefail
+          if [ -n "${{ steps.turbo-scope.outputs.build_filters }}" ]; then
+            # shellcheck disable=SC2086 # intentional word-splitting of pre-built --filter args
+            bunx turbo run build ${{ steps.turbo-scope.outputs.build_filters }} --concurrency=1
+          else
+            bunx turbo run build --filter='./packages/*' --concurrency=1
+          fi
       - name: Spec Typecheck Ratchet
-        if: steps.scope.outputs.run_any == 'true'
+        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
         # Keep each TypeScript program in its own process. A single repo-wide
         # process retained enough compiler state to hit the runner shutdown
         # window without emitting a diagnostic.
@@ -460,7 +610,7 @@ jobs:
         # baseline fix would otherwise cost a CI round-trip per workspace.
         # Failures are collected and their diagnostics replayed together below.
         env:
-          SCOPED_WORKSPACES: ${{ steps.scope.outputs.workspaces }}
+          SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
         run: |
           set -euo pipefail
           log_dir="$(mktemp -d)"

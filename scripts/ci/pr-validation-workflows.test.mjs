@@ -635,12 +635,15 @@ test('spec typecheck scope escalates shared server configs before ignoring apps'
   // `case` globs span `/`, so apps/server/tsconfig.typecheck.base.json misses
   // apps/server/*/* and lands on whichever branch comes next. If apps/* wins
   // that race, editing the base config every program extends scopes the ratchet
-  // to nothing.
+  // to nothing. Other apps and packages scope themselves before the `*`
+  // escalation; packages defer to turbo's affected graph.
   assert.deepEqual(branches, [
     'apps/server/*/*',
     'apps/server/*',
+    'apps/*/*',
     'docs/*|.agents/*|*.md',
     'apps/*',
+    'packages/*/*',
     '*',
   ]);
 });
