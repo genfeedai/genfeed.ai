@@ -55,6 +55,19 @@ function meanOf(values: readonly number[]): number | null {
     : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+/**
+ * A vote's choice from this answer's point of view: `a` = this answer won,
+ * `b` = the other answer won. Shown positions are shuffled per match, so the
+ * raw letter would read as a split between judges who actually agree.
+ */
+export function choiceForAnswer(
+  rawChoice: 'a' | 'b' | 'tie' | null,
+  side: 'a' | 'b',
+): 'a' | 'b' | 'tie' | null {
+  if (rawChoice === null || rawChoice === 'tie') return rawChoice;
+  return rawChoice === side ? 'a' : 'b';
+}
+
 /** One scored row per answer; votes are every panel vote cast on it. */
 function toScoredRows(
   section: MediaLadderSection,
@@ -85,7 +98,7 @@ function toScoredRows(
           : null;
         return {
           callId: vote.callId,
-          choice: vote.rawChoice,
+          choice: choiceForAnswer(vote.rawChoice, side),
           family: vote.judgeFamily,
           judgeRegistryKey: vote.vote.judgeModelId,
           model: vote.vote.judgeModelId,

@@ -10,6 +10,7 @@ import type {
 import type { MediaGenerationPort } from './generation';
 import type { FrameSamplerPort, VisionJudgePort } from './judge';
 import type { MediaProbePort } from './readiness';
+import { choiceForAnswer } from './report';
 import {
   InsufficientJudgePanelError,
   type MediaLadderDeps,
@@ -336,5 +337,15 @@ describe('runMediaLadder', () => {
     expect(partial?.isAborted).toBe(true);
     expect(partial?.answers).toHaveLength(1);
     expect(partial?.matches).toHaveLength(0);
+  });
+});
+
+describe('choiceForAnswer', () => {
+  it('normalises a shown-position vote to the answer the row describes', () => {
+    expect(choiceForAnswer('a', 'a')).toBe('a');
+    expect(choiceForAnswer('a', 'b')).toBe('b');
+    expect(choiceForAnswer('b', 'b')).toBe('a');
+    expect(choiceForAnswer('tie', 'b')).toBe('tie');
+    expect(choiceForAnswer(null, 'a')).toBeNull();
   });
 });
