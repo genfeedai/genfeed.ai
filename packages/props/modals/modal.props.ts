@@ -218,7 +218,7 @@ export interface ModalPostProps extends ModalVisibilityProps {
   post?: IPost | null;
   ingredient?: IIngredient | null;
   ingredients?: IIngredient[]; // For carousel support
-  modalId?: ModalEnum;
+  modalId: ModalEnum;
   credential?: ICredential | null;
   credentials?: ICredential[];
   parentPost?: IPost | null;
@@ -230,6 +230,9 @@ export interface ModalPostProps extends ModalVisibilityProps {
   showViewDetailsButton?: boolean;
   onViewDetails?: () => void;
 }
+
+/** The batch publish modal always renders as `ModalEnum.POST_BATCH`. */
+export type ModalPostBatchProps = Omit<ModalPostProps, 'modalId'>;
 
 export interface PostMetadataOverlayProps {
   post: IPost | null;
