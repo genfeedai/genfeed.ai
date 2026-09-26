@@ -54,6 +54,18 @@ const RUN_START_TIMEOUT_MS = 30_000;
  */
 const RUN_START_MATCH_BUFFER_MS = 5_000;
 
+/** Apify's per-page cap for this recovery lookup. */
+const RUN_LIST_PAGE_LIMIT = 20;
+
+/**
+ * Sane ceiling on how far back recovery pages through an actor's run
+ * history (RUN_LIST_MAX_PAGES * RUN_LIST_PAGE_LIMIT = 100 runs). Recovery
+ * only runs on an already-rare ambiguous start, so this bounds the worst
+ * case (an extremely busy shared actor) without turning a stuck recovery
+ * into an unbounded crawl of Apify's API.
+ */
+const RUN_LIST_MAX_PAGES = 5;
+
 /**
  * Hosted research collection. A retry uses the recorded Apify run before
  * any new start, and settles that run's cost at most once.
@@ -299,17 +311,36 @@ export class ResearchCollectionRunner {
         'research_collection_recovery_pending',
       );
     }
-    const runs = await this.listRecentRuns(actorId, job);
-    if (runs === null) {
-      throw new ServiceUnavailableException(
-        'research_collection_recovery_pending',
-      );
-    }
     const startedAt = job.startAttemptedAt
       ? job.startAttemptedAt.getTime()
       : job.leaseExpiresAt
         ? job.leaseExpiresAt.getTime() - RESEARCH_COLLECTION_LEASE_MS
         : undefined;
+    // Page back only far enough to rule our own window out — a busy shared
+    // actor's newest 20 runs can all postdate a start attempt that is even a
+    // few minutes old, which would wrongly read as "no run seen" and send a
+    // real, still-running job to UNRECONCILED. Legacy rows (no startedAt) have
+    // nothing to bound pagination against, so they keep the single-page read.
+    const lowerBoundMs =
+      startedAt === undefined
+        ? undefined
+        : startedAt - RUN_START_MATCH_BUFFER_MS;
+    const listed = await this.listRecentRuns(actorId, job, lowerBoundMs);
+    if (listed === null) {
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
+    const { isComplete, runs } = listed;
+    if (startedAt !== undefined && !isComplete) {
+      // Paged RUN_LIST_MAX_PAGES deep and every page was still at or after
+      // our window's lower bound: an extraordinarily busy actor could still
+      // have our run further back than we looked. Treat this the same as a
+      // failed list call — inconclusive, not "no match".
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
     if (startedAt === undefined) {
       // A legacy row has no start bound recorded, so any listed run at
       // this actor might still be ours; only an empty list clears it below.
@@ -328,13 +359,14 @@ export class ResearchCollectionRunner {
       // an unrelated run on the shared hosted token that starts anywhere in
       // that (up to 15-30 minute) span would count as ours and keep
       // recovery pending indefinitely, exactly the bug this fixes.
+      const earliestStart = startedAt - RUN_START_MATCH_BUFFER_MS;
       const latestStart =
         startedAt + RUN_START_TIMEOUT_MS + RUN_START_MATCH_BUFFER_MS;
       const sawRun = runs.some((run) => {
         const started = Date.parse(run.startedAt);
         return (
           Number.isFinite(started) &&
-          started >= startedAt - RUN_START_MATCH_BUFFER_MS &&
+          started >= earliestStart &&
           started <= latestStart
         );
       });
@@ -446,30 +478,65 @@ export class ResearchCollectionRunner {
     return response.data;
   }
 
+  /**
+   * List an actor's runs, newest first, paging back with `offset` (Apify's
+   * standard list pagination, shared by every list endpoint including this
+   * one) until either a page is short (no more runs exist) or the oldest run
+   * on the page already started before `lowerBoundMs` — anything further
+   * back is even older and cannot fall inside our match window either. A
+   * busy shared actor can produce more than RUN_LIST_PAGE_LIMIT runs within
+   * a few minutes, so reading only the first page would let a real,
+   * still-in-flight run silently age out of view and read as "no run seen".
+   * `lowerBoundMs` is undefined for legacy rows with no start bound to page
+   * against, which keeps their original single-page read.
+   */
   private async listRecentRuns(
     actorId: string,
     job: ResearchCollectionJobRecord,
-  ): Promise<ApifyActorRun[] | null> {
+    lowerBoundMs: number | undefined,
+  ): Promise<{ isComplete: boolean; runs: ApifyActorRun[] } | null> {
     const token = await this.baseService.resolveCollectionToken(
       job.organizationId,
       collectionTokenMode(job.scope),
     );
     if (!token) return null;
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${API_URL}/acts/${this.baseService.normalizeActorId(actorId)}/runs?desc=1&limit=20`,
-          { headers: this.authHeaders(token.token) },
-        ),
-      );
-      return readRunItems(response.data);
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        'Research collection could not list actor runs for recovery',
-        { actorId, error, organizationId: job.organizationId },
-      );
-      return null;
+    const collected: ApifyActorRun[] = [];
+    for (let page = 0; page < RUN_LIST_MAX_PAGES; page += 1) {
+      const offset = page * RUN_LIST_PAGE_LIMIT;
+      let items: ApifyActorRun[];
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get(
+            `${API_URL}/acts/${this.baseService.normalizeActorId(actorId)}/runs?desc=1&limit=${RUN_LIST_PAGE_LIMIT}&offset=${offset}`,
+            { headers: this.authHeaders(token.token) },
+          ),
+        );
+        items = readRunItems(response.data);
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          'Research collection could not list actor runs for recovery',
+          { actorId, error, offset, organizationId: job.organizationId },
+        );
+        return null;
+      }
+      collected.push(...items);
+      if (items.length < RUN_LIST_PAGE_LIMIT) {
+        return { isComplete: true, runs: collected }; // reached the end of the list
+      }
+      const oldestOnPage = Date.parse(items[items.length - 1].startedAt);
+      if (
+        lowerBoundMs === undefined ||
+        !Number.isFinite(oldestOnPage) ||
+        oldestOnPage < lowerBoundMs
+      ) {
+        return { isComplete: true, runs: collected }; // paged past the window's lower bound
+      }
     }
+    // Hit RUN_LIST_MAX_PAGES while every page so far was still full and still
+    // at or after lowerBoundMs: an extraordinarily busy actor could still
+    // have our run further back. Report incomplete rather than let the
+    // caller treat this partial read as proof of "no match".
+    return { isComplete: false, runs: collected };
   }
 
   private authHeaders(token: string): Record<string, string> {

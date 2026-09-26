@@ -376,6 +376,103 @@ describe('ResearchCollectionRunner', () => {
     vi.useRealTimers();
   });
 
+  it('pages back past a busy shared actor to find a real match further back', async () => {
+    // A busy shared actor can produce a full page of runs newer than our own
+    // attempt within minutes. Reading only the first (newest) page would
+    // wrongly conclude "no run seen" once those push our real run off it.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      leaseExpiresAt: new Date('2026-09-24T12:15:00.000Z'),
+      startAttemptedAt: new Date('2026-09-24T12:00:00.000Z'),
+      status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+      upstreamRunId: null,
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    const newestPage = Array.from({ length: 20 }, (_, i) => ({
+      id: `run-busy-${i}`,
+      // All well after our ~35s match window, but also well after our
+      // lowerBoundMs, so the oldest one on this page does not clear us to
+      // stop paging.
+      startedAt: '2026-09-24T12:05:00.000Z',
+      status: 'RUNNING',
+    }));
+    http.get
+      .mockReturnValueOnce(of({ data: { data: { items: newestPage } } }))
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              items: [
+                {
+                  // Our real run, on the second page (offset=20).
+                  id: 'run-1',
+                  startedAt: '2026-09-24T12:00:01.000Z',
+                  status: 'RUNNING',
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+    await expect(
+      runner.run('org-1', job.actorId, { query: 'acme' }),
+    ).rejects.toThrow('research_collection_recovery_pending');
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get.mock.calls[0][0]).toContain('offset=0');
+    expect(http.get.mock.calls[1][0]).toContain('offset=20');
+    expect(jobs.finishUnreconciledStart).not.toHaveBeenCalled();
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('treats an exhausted page cap as inconclusive rather than as no match', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      leaseExpiresAt: new Date('2026-09-24T12:15:00.000Z'),
+      startAttemptedAt: new Date('2026-09-24T12:00:00.000Z'),
+      status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+      upstreamRunId: null,
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    // Every page is full and still at/after lowerBoundMs, so recovery gives
+    // up after RUN_LIST_MAX_PAGES pages without ever seeing the boundary.
+    http.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            items: Array.from({ length: 20 }, (_, i) => ({
+              id: `run-endless-${i}`,
+              startedAt: '2026-09-24T12:05:00.000Z',
+              status: 'RUNNING',
+            })),
+          },
+        },
+      }),
+    );
+
+    await expect(
+      runner.run('org-1', job.actorId, { query: 'acme' }),
+    ).rejects.toThrow('research_collection_recovery_pending');
+    expect(http.get).toHaveBeenCalledTimes(5);
+    expect(jobs.finishUnreconciledStart).not.toHaveBeenCalled();
+    expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
+    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it('keeps recovery pending when the unreconciled transition loses the race', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
