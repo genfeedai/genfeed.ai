@@ -215,4 +215,13 @@ export { MetaAdsService } from './services/integrations/meta-ads/services/meta-a
 export { BasePublisherService } from './services/integrations/publishers/base-publisher.service';
 export { ReplicateService } from './services/integrations/replicate/services/replicate.service';
 export { LifecycleEmailDeliveryService } from './services/lifecycle-emails/lifecycle-email-delivery.service';
-export { brandScope, scopedWhere } from './tenancy/scoped-where';
+export {
+  type BillingAccountAccessClient,
+  type BillingAccountScope,
+  resolveBillingAccountAccess,
+} from './tenancy/billing-account-scope';
+export {
+  billingAccountScopedWhere,
+  brandScope,
+  scopedWhere,
+} from './tenancy/scoped-where';

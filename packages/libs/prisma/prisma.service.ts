@@ -5,7 +5,10 @@ import type { ConfigService } from '@libs/config/config.service';
 import { assertMediaUrlSigningConfig } from '@libs/media/media-url.util';
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { tenantModelsFromMetadata } from './discover-tenant-models';
+import {
+  billingAccountModelNamesFromMetadata,
+  tenantModelsFromMetadata,
+} from './discover-tenant-models';
 import { createMediaUrlExtension } from './media-url.extension';
 import {
   createPrismaPgConfig,
@@ -100,16 +103,25 @@ export class PrismaService
     const mediaUrlConfig = configService.mediaUrlConfig;
     assertMediaUrlSigningConfig(mediaUrlConfig);
 
+    const tenantModelNames = new Set(
+      tenantModelsFromMetadata(PRISMA_MODEL_METADATA).map(({ model }) => model),
+    );
+    const billingAccountFieldModelNames = billingAccountModelNamesFromMetadata(
+      PRISMA_MODEL_METADATA,
+    );
+    const billingAccountModelNames = new Set(
+      [...tenantModelNames].filter((model) =>
+        billingAccountFieldModelNames.has(model),
+      ),
+    );
+
     const extended = this.$extends(
       createTenantGuardExtension({
+        billingAccountModelNames,
         isCloud: isCloudTenantGuardEnabled((key) =>
           readConfigString(configService, key),
         ),
-        tenantModelNames: new Set(
-          tenantModelsFromMetadata(PRISMA_MODEL_METADATA).map(
-            ({ model }) => model,
-          ),
-        ),
+        tenantModelNames,
       }),
     ).$extends(createMediaUrlExtension(mediaUrlConfig));
 

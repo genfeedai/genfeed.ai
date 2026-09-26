@@ -1,6 +1,11 @@
 import { PlanLimitExceededException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
+import {
+  type BillingAccountScope,
+  billingAccountScopedWhere,
+  resolveBillingAccountAccess,
+  scopedWhere,
+} from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BillingAccountBudgetPolicy,
@@ -168,23 +173,28 @@ export class BillingAccountsService {
     userId: string,
   ): Promise<IBillingAccount> {
     const account = await this.resolveForOrganization(organizationId);
+    // Guard-visible proof (#5217) that this organization may read this
+    // billing account's shared rows, independent of `resolveForOrganization`
+    // returning the same account above — see `resolveBillingAccountAccess`.
+    const scope = await resolveBillingAccountAccess(
+      organizationId,
+      this.prisma,
+    );
     const callerRole = await this.findRole(account.id, userId);
     const links = await this.prisma.billingAccountOrganization.findMany({
-      where: {
-        billingAccountId: account.id,
-        isDeleted: false,
+      where: billingAccountScopedWhere(scope, {
         status: BillingAccountOrganizationStatus.LINKED,
-      },
+      }),
       include: { organization: true },
     });
     const wallet = await this.prisma.creditBalance.findFirst({
-      where: { billingAccountId: account.id, isDeleted: false },
+      where: billingAccountScopedWhere(scope, {}),
     });
     const settled = wallet?.balance ?? 0;
     const held = wallet?.heldAmount ?? 0;
-    const usageByOrg = await this.usageByOrganization(account.id);
+    const usageByOrg = await this.usageByOrganization(scope);
     const subscription = await this.prisma.subscription.findFirst({
-      where: { billingAccountId: account.id, isDeleted: false },
+      where: billingAccountScopedWhere(scope, {}),
     });
     const status = parseBillingAccountStatus(account.status);
     const linkedOrganizations: IBillingAccountOrganizationLink[] = links.map(
@@ -349,12 +359,20 @@ export class BillingAccountsService {
           where: { id: input.organizationId },
         });
 
+        // The update above is what makes this organization-scoped proof
+        // (#5217) succeed: resolveBillingAccountAccess re-reads the
+        // organization it just wrote and follows its now-current
+        // billingAccountId, inside the same transaction.
+        const scope = await resolveBillingAccountAccess(
+          input.organizationId,
+          tx,
+        );
+
         const orgBalance = await tx.creditBalance.findFirst({
           where: { isDeleted: false, organizationId: input.organizationId },
         });
-        // tenant-scope-ignore: the destination is the billing account's shared cross-organization wallet and must be addressed by billingAccountId
         const accountBalance = await tx.creditBalance.findFirst({
-          where: { billingAccountId: currentAccount.id, isDeleted: false },
+          where: billingAccountScopedWhere(scope, {}),
         });
 
         if (
@@ -371,18 +389,13 @@ export class BillingAccountsService {
           accountBalance &&
           orgBalance.id !== accountBalance.id
         ) {
-          // tenant-scope-ignore: the destination is the billing account's shared cross-organization wallet and cannot be scoped to the linking organization
           const mergedBalance = await tx.creditBalance.updateMany({
             data: {
               balance: { increment: orgBalance.balance },
               heldAmount: { increment: orgBalance.heldAmount },
               version: { increment: 1 },
             },
-            where: {
-              billingAccountId: currentAccount.id,
-              id: accountBalance.id,
-              isDeleted: false,
-            },
+            where: billingAccountScopedWhere(scope, { id: accountBalance.id }),
           });
           if (mergedBalance.count !== 1) {
             throw new ConflictException(
@@ -717,15 +730,13 @@ export class BillingAccountsService {
     });
   }
 
-  private async usageByOrganization(billingAccountId: string) {
+  private async usageByOrganization(scope: BillingAccountScope) {
     const rows = await this.prisma.creditTransaction.groupBy({
       by: ['organizationId'],
       _sum: { amount: true },
-      where: {
-        billingAccountId,
+      where: billingAccountScopedWhere(scope, {
         category: CreditTransactionCategory.DEDUCT,
-        isDeleted: false,
-      },
+      }),
     });
     return new Map(
       rows.map((row) => [row.organizationId, row._sum.amount ?? 0]),
