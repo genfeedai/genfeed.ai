@@ -25,7 +25,10 @@ export default function GlobalError({
       </head>
       <body className="gf-app gf-studio-app bg-background text-foreground">
         <ThemeDocumentSync />
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background">
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-background"
+          data-testid="error-boundary-fallback"
+        >
           <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
             <h1 className="text-2xl font-semibold mb-4 text-center text-balance">
               Something went wrong

@@ -4,4 +4,5 @@ export interface ErrorFallbackProps {
   compact?: boolean;
   title?: string;
   description?: string;
+  'data-testid'?: string;
 }
