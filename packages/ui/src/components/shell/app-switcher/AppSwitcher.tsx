@@ -462,7 +462,7 @@ function AppSwitcherGridItem({
             <span
               aria-hidden="true"
               data-testid={`app-switcher-badge-${app.itemKey}`}
-              className="absolute -right-1.5 -top-1.5 rounded-full bg-info px-1 text-[10px] tabular-nums text-info-foreground"
+              className="absolute -right-1.5 -top-1.5 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
             >
               {badge.count > 99 ? '99+' : badge.count}
             </span>
