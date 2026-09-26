@@ -21,7 +21,7 @@ import type {
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
 import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
-import { getPublishingPostHref } from '@helpers/content/posts.helper';
+import { getPublishingReleaseHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
@@ -612,7 +612,7 @@ function PublishingSurface({
                     href={createBrandAppRoute(
                       orgSlug,
                       brandSlug,
-                      getPublishingPostHref(publication.id),
+                      getPublishingReleaseHref(publication.id),
                     )}
                     meta={
                       <ClientFormattedDate

@@ -31,7 +31,9 @@ function createService(overrides?: {
   brandOsRevisionsService?: { findApproved: ReturnType<typeof vi.fn> };
   brandsService?: { findOne: ReturnType<typeof vi.fn> };
   contentHarnessService?: { composeBrief: ReturnType<typeof vi.fn> };
-  contextsService?: { retrieveBrandContentMemory: ReturnType<typeof vi.fn> };
+  knowledgeContentRetrievalService?: {
+    retrieveBrandContentMemory: ReturnType<typeof vi.fn>;
+  };
   harnessProfilesService?: {
     resolveContributionForBrand: ReturnType<typeof vi.fn>;
   };
@@ -46,9 +48,10 @@ function createService(overrides?: {
   const harnessProfilesService = overrides?.harnessProfilesService ?? {
     resolveContributionForBrand: vi.fn().mockResolvedValue(null),
   };
-  const contextsService = overrides?.contextsService ?? {
-    retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
-  };
+  const knowledgeContentRetrievalService =
+    overrides?.knowledgeContentRetrievalService ?? {
+      retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
+    };
 
   const brandOsRevisionsService = overrides?.brandOsRevisionsService ?? {
     findApproved: vi.fn().mockResolvedValue(null),
@@ -59,7 +62,7 @@ function createService(overrides?: {
     logger as never,
     brandsService as never,
     harnessProfilesService as never,
-    contextsService as never,
+    knowledgeContentRetrievalService as never,
     undefined,
     brandOsRevisionsService as unknown as BrandOsRevisionsService,
   );
@@ -68,7 +71,7 @@ function createService(overrides?: {
     brandOsRevisionsService,
     brandsService,
     contentHarnessService,
-    contextsService,
+    knowledgeContentRetrievalService,
     harnessProfilesService,
     logger,
     service,
@@ -157,18 +160,19 @@ describe('HarnessGenerationService#resolveBrief', () => {
   });
 
   it('merges caller-supplied additionalSources ahead of retrieved brand content memory', async () => {
-    const { service, contentHarnessService, contextsService } = createService({
-      contextsService: {
-        retrieveBrandContentMemory: vi.fn().mockResolvedValue([
-          {
-            content: 'A top-performing winner post',
-            id: 'memory-1',
-            relevance: 0.9,
-            source: 'library',
-          },
-        ]),
-      },
-    });
+    const { service, contentHarnessService, knowledgeContentRetrievalService } =
+      createService({
+        knowledgeContentRetrievalService: {
+          retrieveBrandContentMemory: vi.fn().mockResolvedValue([
+            {
+              content: 'A top-performing winner post',
+              id: 'memory-1',
+              relevance: 0.9,
+              source: 'library',
+            },
+          ]),
+        },
+      });
 
     await service.resolveBrief({
       additionalSources: [
@@ -184,7 +188,9 @@ describe('HarnessGenerationService#resolveBrief', () => {
       topic: 'Product launch',
     });
 
-    expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         limit: 5,
@@ -201,7 +207,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
 
   describe('topic gate (includeContentMemory ?? Boolean(topic?.trim()))', () => {
     it('skips brand content memory retrieval when no topic and includeContentMemory is unset', async () => {
-      const { service, contextsService } = createService();
+      const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
         brandId: 'brand-1',
@@ -209,11 +215,13 @@ describe('HarnessGenerationService#resolveBrief', () => {
         organizationId: 'org-1',
       });
 
-      expect(contextsService.retrieveBrandContentMemory).not.toHaveBeenCalled();
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).not.toHaveBeenCalled();
     });
 
     it('retrieves brand content memory by default when a topic is present', async () => {
-      const { service, contextsService } = createService();
+      const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
         brandId: 'brand-1',
@@ -222,11 +230,13 @@ describe('HarnessGenerationService#resolveBrief', () => {
         topic: 'AI tools',
       });
 
-      expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalled();
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).toHaveBeenCalled();
     });
 
     it('honors an explicit includeContentMemory: false even when a topic is present', async () => {
-      const { service, contextsService } = createService();
+      const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
         brandId: 'brand-1',
@@ -236,11 +246,13 @@ describe('HarnessGenerationService#resolveBrief', () => {
         topic: 'AI tools',
       });
 
-      expect(contextsService.retrieveBrandContentMemory).not.toHaveBeenCalled();
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).not.toHaveBeenCalled();
     });
 
     it('does not retrieve memory for an explicit includeContentMemory: true without a topic', async () => {
-      const { service, contextsService } = createService();
+      const { service, knowledgeContentRetrievalService } = createService();
 
       await service.resolveBrief({
         brandId: 'brand-1',
@@ -249,7 +261,9 @@ describe('HarnessGenerationService#resolveBrief', () => {
         organizationId: 'org-1',
       });
 
-      expect(contextsService.retrieveBrandContentMemory).not.toHaveBeenCalled();
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -279,7 +293,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
         knowledgePurposes: ['BRAND_TRUTH'],
         knowledgeSourceIds: ['source-1'],
       });
-      const contextsService = {
+      const knowledgeContentRetrievalService = {
         retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
       };
       const contentHarnessService = {
@@ -292,7 +306,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
         {
           resolveContributionForBrand: vi.fn().mockResolvedValue(null),
         } as never,
-        contextsService as never,
+        knowledgeContentRetrievalService as never,
         {
           get: vi.fn((token: unknown) =>
             token === KnowledgeSelectionService ? { resolve } : undefined,
@@ -312,7 +326,9 @@ describe('HarnessGenerationService#resolveBrief', () => {
         sourceIds: ['source-1'],
         spaceIds: ['space-1'],
       });
-      expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           knowledgePurposes: ['BRAND_TRUTH'],
           knowledgeSourceIds: ['source-1'],
