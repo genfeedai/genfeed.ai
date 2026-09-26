@@ -798,17 +798,24 @@ export class SkillLibraryService {
     return loadAuthorizedSkillVersions(
       this.prisma,
       actor,
-      documents.map((document) => ({
-        audience: document.audience,
-        currentVersionId: document.currentVersionId,
-        id: String(document.id),
-        ownerKind: document.ownerKind,
-        ownerUserId: (document as { ownerUserId?: string | null }).ownerUserId,
-        publishedVersionId: document.publishedVersionId,
-        sharedVersionId:
-          (document as { sharedVersionId?: string | null }).sharedVersionId ??
-          null,
-      })),
+      documents.map((document) => {
+        const subject = this.subjectFromDocument(document);
+        return {
+          allowsCatalogRead:
+            subject.ownerKind === 'system' &&
+            this.sourcePolicy(subject, document).allowsRead,
+          audience: document.audience,
+          currentVersionId: document.currentVersionId,
+          id: String(document.id),
+          ownerKind: document.ownerKind,
+          ownerUserId: (document as { ownerUserId?: string | null })
+            .ownerUserId,
+          publishedVersionId: document.publishedVersionId,
+          sharedVersionId:
+            (document as { sharedVersionId?: string | null }).sharedVersionId ??
+            null,
+        };
+      }),
       editable,
       options.pins ?? [],
       options.purpose ?? 'execute',
@@ -890,6 +897,7 @@ export class SkillLibraryService {
       return {
         ...PUBLIC_FREE_SOURCE_POLICY,
         allowsDerivatives: true,
+        allowsExport: subject.ownerKind === 'system',
         allowsPublicPublication: false,
         allowsShare: false,
       };
