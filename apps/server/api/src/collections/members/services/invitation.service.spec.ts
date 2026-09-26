@@ -143,7 +143,9 @@ function makeMember(overrides: Partial<MemberRow> = {}): MemberRow {
 function buildPrisma(): MockPrisma {
   const prisma: MockPrisma = {
     warmupAccount: { findFirst: vi.fn().mockResolvedValue(null) },
-    brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand_default_123' }) },
+    brand: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'brand_default_123' }),
+    },
     $transaction: vi.fn(),
     invitation: {
       create: vi.fn(),
@@ -679,9 +681,9 @@ describe('InvitationService', () => {
       prisma.member.findFirst.mockResolvedValue(null);
       prisma.brand.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.acceptInvitation('token-123'),
-      ).rejects.toThrow(`Cannot accept invitation: organization ${orgId} has no brand`);
+      await expect(service.acceptInvitation('token-123')).rejects.toThrow(
+        `Cannot accept invitation: organization ${orgId} has no brand`,
+      );
 
       expect(prisma.member.create).not.toHaveBeenCalled();
     });
