@@ -17,7 +17,10 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interfaces';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -66,6 +69,27 @@ export interface QueueSystemWorkflowOptions {
   priorExecution?: NonNullable<
     NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
   >;
+  /**
+   * Route this job to `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of
+   * `WORKFLOW_EXECUTION_QUEUE`. Set for platform-cron sweep dispatches
+   * (`PlatformWorkflowSchedulesService`), proactive agent-strategy turns, and
+   * `workflow.for-each` children spawned from a platform-sweep workflow —
+   * see #5162.
+   *
+   * BullMQ `priority` was considered and dropped (#5252 review): its rate
+   * limiter is checked before priority is ever consulted, and an
+   * already-active job is never evicted from a concurrency slot for a
+   * higher-priority one that arrives later — so priority on a shared queue
+   * only makes starvation *less likely*, and only for the producers that set
+   * it. This queue was the one shared by ~40 unprioritized producers (worker
+   * crons, batch generation, the clip factory, `workflow.for-each` fan-out);
+   * `fetchNextJob.lua` pops the plain wait list before the `prioritized` set,
+   * so giving only agent turns a priority would have made every one of those
+   * other producers run *ahead* of them — the opposite of the intent. A
+   * dedicated queue is the only fix that is correct for every producer
+   * without auditing and annotating all of them.
+   */
+  usePlatformQueue?: boolean;
   /**
    * @deprecated `queueSystemWorkflow` now always reserves a fresh id (removing
    * a stale/terminal job under the same deterministic jobId before adding) —
@@ -116,11 +140,23 @@ export function workflowSchedulerId(workflowId: string): string {
 /**
  * States a freshly enqueued `system-run` job may legitimately be in right
  * after `add()` returns: still waiting for a worker, scheduled for a delayed
- * retry, or already picked up by a worker within this same call. Anything
- * else (most importantly `completed`/`failed`) means `add()` silently handed
- * back a stale job instead of creating new work — see #5162.
+ * retry, already picked up by a worker within this same call, or — for a job
+ * added with `priority > 0` — sitting in BullMQ's separate `prioritized` ZSET
+ * (`getState` reads that set before the plain wait list; see
+ * includes/getState.lua in the installed bullmq package). Anything else
+ * (most importantly `completed`/`failed`) means `add()` silently handed back
+ * a stale job instead of creating new work — see #5162.
+ *
+ * Also used by `hasClaimableSystemWorkflowJob` to answer the same question
+ * later, for a `WorkflowExecution` that has been sitting `PENDING` — see
+ * `PendingWorkflowExecutionReconcileService`.
  */
-const CLAIMABLE_JOB_STATES = new Set<string>(['waiting', 'delayed', 'active']);
+export const CLAIMABLE_JOB_STATES = new Set<string>([
+  'waiting',
+  'delayed',
+  'active',
+  'prioritized',
+]);
 
 function requireQueueJobId(
   jobId: string | undefined,
@@ -152,6 +188,10 @@ export class WorkflowExecutionQueueService {
   constructor(
     @InjectQueue(WORKFLOW_EXECUTION_QUEUE)
     private readonly executionQueue: Queue<WorkflowExecutionJobData>,
+    // Platform-cron sweep dispatches only — see `usePlatformQueue` on
+    // `QueueSystemWorkflowOptions` and #5162.
+    @InjectQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
+    private readonly platformSystemWorkflowQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -206,7 +246,14 @@ export class WorkflowExecutionQueueService {
     // Always reserve the id first so a stale/terminal job is removed and a
     // fresh one can be added; an in-flight job under the same id is left
     // alone and reported back rather than silently swallowed.
-    const reservation = await reserveIdempotentJob(this.executionQueue, jobId);
+    //
+    // Platform-cron sweep dispatches (`usePlatformQueue`) reserve and add on
+    // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of the shared
+    // `WORKFLOW_EXECUTION_QUEUE` — see #5162 and `QueueSystemWorkflowOptions`.
+    const targetQueue = options.usePlatformQueue
+      ? this.platformSystemWorkflowQueue
+      : this.executionQueue;
+    const reservation = await reserveIdempotentJob(targetQueue, jobId);
     if (reservation.alreadyQueued) {
       this.logger.log(`${this.logContext} system workflow already queued`, {
         canonicalId: input.canonicalId,
@@ -216,7 +263,7 @@ export class WorkflowExecutionQueueService {
       });
       return jobId;
     }
-    const job = await this.executionQueue.add(
+    const job = await targetQueue.add(
       'system-run',
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
@@ -432,5 +479,29 @@ export class WorkflowExecutionQueueService {
       .flatMap((job) =>
         job.id ? [{ delay: job.delay, id: job.id, type: job.data.type }] : [],
       );
+  }
+
+  /**
+   * Whether `jobId` (the deterministic `system-workflow-${executionId}` id a
+   * `system-run` job is queued under) is still claimable by a worker on
+   * either queue a system workflow may have been routed to. Used by
+   * `PendingWorkflowExecutionReconcileService` (#5162) to tell a merely slow
+   * run from one that was queued but will never be picked up — no job at
+   * all, or one sitting in a terminal `completed`/`failed` state while its
+   * `WorkflowExecution` row is still `PENDING`.
+   */
+  async hasClaimableSystemWorkflowJob(jobId: string): Promise<boolean> {
+    for (const queue of [
+      this.executionQueue,
+      this.platformSystemWorkflowQueue,
+    ]) {
+      const job = await queue.getJob(jobId);
+      if (!job) continue;
+      const state = await job.getState();
+      if (CLAIMABLE_JOB_STATES.has(state)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
