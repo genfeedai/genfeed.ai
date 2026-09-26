@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createCreditsCommand, creditsCommand } from '@/commands/credits';
 
 const {
   mockCreateCreditsCheckout,
@@ -81,7 +82,6 @@ describe('credits command', () => {
   });
 
   it('prints canonical credit packs as JSON', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['packs', '--json'], { from: 'user' });
@@ -97,7 +97,6 @@ describe('credits command', () => {
   });
 
   it('prints the root balance as JSON', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['--json'], { from: 'user' });
@@ -106,7 +105,6 @@ describe('credits command', () => {
   });
 
   it('creates hosted Checkout without opening a browser when requested', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['buy', '5000', '--no-open', '--json'], {
@@ -153,7 +151,6 @@ describe('credits command', () => {
         description: '[BYOK] Image generation',
       },
     ]);
-    const { creditsCommand } = await import('@/commands/credits');
     await creditsCommand.parseAsync(['history'], { from: 'user' });
     const output = stdoutSpy.mock.calls.map((call) => String(call[0])).join('');
     expect(output).toContain('−1 credit');
@@ -167,7 +164,6 @@ describe('credits command', () => {
   });
 
   it('returns bounded credit history', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['history', '--limit', '25', '--json'], {
@@ -179,7 +175,6 @@ describe('credits command', () => {
   });
 
   it('prints credit usage as JSON', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['usage', '--json'], { from: 'user' });
@@ -188,7 +183,6 @@ describe('credits command', () => {
   });
 
   it('prints the BYOK summary as JSON', async () => {
-    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['summary', '--json'], { from: 'user' });
