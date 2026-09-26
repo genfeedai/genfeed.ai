@@ -2147,6 +2147,12 @@ function buildWorkflowExecutionStats(
   const active = normalized.filter(
     (status) => status === 'PENDING' || status === 'RUNNING',
   ).length;
+  // Matches normalizeExecution's creditsUsed derivation so the mocked
+  // summary agrees with the mocked executions' reported credits.
+  const totalCredits = normalized.reduce(
+    (sum, status) => sum + (status === 'COMPLETED' ? 18 : 7),
+    0,
+  );
 
   return {
     active,
@@ -2155,7 +2161,7 @@ function buildWorkflowExecutionStats(
     failed,
     failedToday: 0,
     total: executions.length,
-    totalCredits: 0,
+    totalCredits,
   };
 }
 

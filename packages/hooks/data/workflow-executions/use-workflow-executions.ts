@@ -95,12 +95,24 @@ export function useWorkflowExecutions(
         throw new Error('Authentication is required to load workflow activity');
       const service = WorkflowExecutionsService.getInstance(token);
       const { limit: _limit, offset: _offset, sort: _sort, ...scope } = params;
-      const [executions, stats] = await Promise.all([
+      // Stats and the execution list are fetched independently: a stats
+      // failure (a 400 from the 26-hour window check, a transient 5xx, or an
+      // older API during rollout) must not drop the execution list.
+      const [executionsResult, statsResult] = await Promise.allSettled([
         service.list(params),
         service.getStats({ ...scope, ...dayWindow }),
       ]);
-      return { executions, stats };
+      if (executionsResult.status === 'rejected') {
+        throw executionsResult.reason;
+      }
+      const stats =
+        statsResult.status === 'fulfilled'
+          ? coerceExecutionStats(statsResult.value)
+          : EMPTY_STATS;
+      return { executions: executionsResult.value, stats };
     },
+    // `stats` is coerced above before it is cached, so a null/degraded
+    // response can never make this throw and stop polling.
     refetchInterval: (query) => (query.state.data?.stats.active ? 5000 : false),
   });
 
@@ -123,6 +135,7 @@ export function useWorkflowExecutions(
     refresh: async () => {
       await refetch();
     },
-    stats: data ? coerceExecutionStats(data.stats) : EMPTY_STATS,
+    // Cached stats are already coerced in queryFn; no need to re-coerce here.
+    stats: data?.stats ?? EMPTY_STATS,
   };
 }

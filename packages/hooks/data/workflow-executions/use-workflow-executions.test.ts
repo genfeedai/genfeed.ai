@@ -142,4 +142,64 @@ describe('useWorkflowExecutions summary', () => {
       totalCredits: 0,
     });
   });
+
+  it('keeps executions and reports empty stats when getStats rejects', async () => {
+    listMock.mockReset();
+    listMock.mockResolvedValue([
+      { creditsUsed: 0, id: 'exec-rejected', status: 'COMPLETED' },
+    ]);
+    statsMock.mockRejectedValueOnce(new Error('stats endpoint unavailable'));
+    const { result } = renderHook(() => useWorkflowExecutions(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.executions[0]?.id).toBe('exec-rejected'),
+    );
+    expect(result.current.isError).toBe(false);
+    expect(result.current.stats).toEqual({
+      active: 0,
+      completed: 0,
+      completedToday: 0,
+      failed: 0,
+      failedToday: 0,
+      total: 0,
+      totalCredits: 0,
+    });
+  });
+
+  it('keeps executions and coerces stats when getStats resolves with null data', async () => {
+    listMock.mockReset();
+    listMock.mockResolvedValue([
+      { creditsUsed: 0, id: 'exec-null-stats', status: 'COMPLETED' },
+    ]);
+    statsMock.mockResolvedValueOnce(null);
+    const { result } = renderHook(() => useWorkflowExecutions(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() =>
+      expect(result.current.executions[0]?.id).toBe('exec-null-stats'),
+    );
+    expect(result.current.isError).toBe(false);
+    expect(result.current.stats).toEqual({
+      active: 0,
+      completed: 0,
+      completedToday: 0,
+      failed: 0,
+      failedToday: 0,
+      total: 0,
+      totalCredits: 0,
+    });
+  });
+
+  it('does not throw from refetchInterval when stats are null and keeps polling paused', async () => {
+    listMock.mockReset();
+    listMock.mockResolvedValue([]);
+    statsMock.mockResolvedValueOnce(null);
+    const { result } = renderHook(() => useWorkflowExecutions(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isError).toBe(false);
+    expect(result.current.stats.active).toBe(0);
+  });
 });
