@@ -54,6 +54,12 @@ export const mediaValidationSchema = {
   // Per-category overrides, `category=confidence` pairs, e.g.
   // `sexual=0.5,violence=0.7`. Unset categories keep the contract defaults
   // (DEFAULT_MODERATION_THRESHOLDS); lower is stricter.
+  // Vision-evaluation flags (#4881): the scorer's typed rubric over perceived
+  // frames. `shadow` records flags on the evaluation without gating; `live`
+  // forces review on a flagged asset. Costs one vision call per asset.
+  MEDIA_GATE_VISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
   MODERATION_THRESHOLDS: Joi.string()
     .pattern(/^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/)
     .optional()

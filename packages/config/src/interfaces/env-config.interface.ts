@@ -206,6 +206,7 @@ export interface IEnvConfig {
   UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
 
   // === Media validation (#4877) ===
+  MEDIA_GATE_VISION_MODE?: 'off' | 'shadow' | 'live';
   MEDIA_PERCEPTION_ENABLED?: 'true' | 'false';
   MEDIA_PERCEPTION_FRAME_COUNT?: number;
   MEDIA_PERCEPTION_LOOKBACK_HOURS?: number;

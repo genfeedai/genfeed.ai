@@ -5,6 +5,7 @@ import type {
   IngredientCategory,
   Status,
 } from '../..';
+import type { VisionRubric } from '../../api-types/contracts/content-quality-scoring.contract';
 
 export interface IEvaluation {
   id: string;
@@ -26,6 +27,8 @@ export interface IEvaluationData {
   scores?: IEvaluationScores;
   analysis?: IEvaluationAnalysis;
   flags?: IEvaluationFlags;
+  /** Bounded vision rubric the flags were derived from (#4881). */
+  visionRubric?: VisionRubric;
   externalContent?: IExternalContentData;
   actualPerformance?: IActualPerformance;
   review?: IEvaluationReview;

@@ -3613,6 +3613,8 @@ model MediaPerception {
   diagnostics       Json         @default("[]")
   // Extracted audio track kept for transcript retries; not part of the record.
   audioUrl          String?
+  // Vision-evaluation record for these bytes (#4881), once evaluated.
+  visionEvaluationId String?
   // Retry bookkeeping for artefacts left `pending` by a provider outage.
   attempts          Int          @default(0)
   nextAttemptAt     DateTime?
