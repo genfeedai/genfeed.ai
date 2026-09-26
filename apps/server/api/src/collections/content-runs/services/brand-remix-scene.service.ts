@@ -337,6 +337,22 @@ export class BrandRemixSceneService {
       ].includes(config.phase)
     )
       throw new ConflictException('Reviewed remix output is immutable.');
+    if (pipeline?.operation && pipeline.state === 'cancelled') {
+      // Re-trigger reconciliation of accepted provider work whose chain
+      // stopped; this never claims or dispatches anything new.
+      if (!hasInFlightSceneGeneration(pipeline))
+        throw new ConflictException('No scene operation is running.');
+      const operation = {
+        ...pipeline.operation,
+        sequence: pipeline.operation.sequence + 1,
+      };
+      await this.store.save(organizationId, runId, config, {
+        ...config,
+        scenePipeline: { ...pipeline, operation },
+      });
+      await this.workflow.enqueue(organizationId, runId, operation);
+      return this.store.view(organizationId, runId);
+    }
     if (
       !pipeline?.operation ||
       !(
@@ -348,16 +364,12 @@ export class BrandRemixSceneService {
       ...pipeline.operation,
       sequence: pipeline.operation.sequence + 1,
     };
-    const released = await this.abandonSyncStages(
-      organizationId,
-      runId,
-      pipeline,
-    );
+    const { next, released } = this.abandonSyncStages(runId, pipeline);
     await this.store.save(organizationId, runId, config, {
       ...config,
       phase: config.phase === 'generating' ? 'prefilled' : config.phase,
       scenePipeline: {
-        ...released,
+        ...next,
         operation,
         state: 'cancelled',
         cancellationGeneration: pipeline.cancellationGeneration + 1,
@@ -365,6 +377,15 @@ export class BrandRemixSceneService {
           'Future dispatch is cancelled. Already accepted provider work may still finish and is recorded.',
       },
     });
+    // Holds are returned only after the cancellation is durable, so a lost
+    // compare-and-swap never leaves a released hold behind a live receipt.
+    for (const receipt of released)
+      await this.credits.releaseReservation({
+        organizationId,
+        ...(receipt.reservationId
+          ? { reservationId: receipt.reservationId }
+          : { idempotencyKey: receipt.key }),
+      });
     // Provider work accepted before cancellation keeps being reconciled so
     // its output and cost are recorded and the storyboard becomes editable.
     if (hasInFlightSceneGeneration(pipeline))
@@ -372,15 +393,18 @@ export class BrandRemixSceneService {
     return this.store.view(organizationId, runId);
   }
   /**
-   * Synchronous platform stages that errored or were abandoned by a crashed
-   * step have no upstream job to reconcile. Cancelling releases their holds
-   * and marks them failed so the run can be edited or quoted again.
+   * Synchronous platform stages whose call already ended in an uncertain
+   * error, or whose step died long ago, have no upstream job to reconcile.
+   * Cancelling marks them failed and returns their holds so the run can be
+   * edited or quoted again. A claim that may still be live is left alone.
    */
-  private async abandonSyncStages(
-    organizationId: string,
+  private abandonSyncStages(
     runId: string,
     pipeline: BrandRemixScenePipeline,
-  ): Promise<BrandRemixScenePipeline> {
+  ): {
+    next: BrandRemixScenePipeline;
+    released: BrandRemixScenePipeline['receipts'];
+  } {
     const operationId = pipeline.operation?.id;
     const keys: string[] = [];
     const abandon = (
@@ -414,19 +438,16 @@ export class BrandRemixSceneService {
         next.assembly.transcription,
         'captions',
       );
+    const released: BrandRemixScenePipeline['receipts'] = [];
     for (const key of keys) {
       const receipt = next.receipts.find(
         (candidate) => candidate.key === key && candidate.state === 'reserved',
       );
       if (!receipt) continue;
-      if (receipt.amount > 0)
-        await this.credits.releaseReservation({
-          organizationId,
-          idempotencyKey: key,
-        });
+      if (receipt.amount > 0) released.push({ ...receipt });
       receipt.state = 'released';
     }
-    return next;
+    return { next, released };
   }
   async resume(
     organizationId: string,

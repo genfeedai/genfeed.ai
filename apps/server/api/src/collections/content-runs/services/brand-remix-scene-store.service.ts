@@ -1,6 +1,7 @@
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
+import { isSceneOperationActive } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import type { BrandRemixRunConfig } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
@@ -69,7 +70,7 @@ export class BrandRemixSceneStoreService {
     const saved = await this.read(organizationId, runId);
     const pipeline = saved.config.scenePipeline;
     const isCurrent =
-      pipeline?.state !== 'cancelled' &&
+      isSceneOperationActive(pipeline) &&
       pipeline?.operation?.cancellationGeneration ===
         pipeline?.cancellationGeneration;
     if (

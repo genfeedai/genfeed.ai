@@ -125,27 +125,38 @@ export class BrandRemixSceneGenerationService {
         if (stage.state === 'pending') {
           isComplete = false;
           if (reconcileOnly) break;
-          await this.dispatchPendingStage(
-            organizationId,
-            runId,
-            operationId,
-            brandId,
-            config,
-            scene,
-            scene.id,
-            stageName,
-            stage,
-            saved,
-            pipeline.quote,
-            pipeline.operation.userId,
-            groupId,
-          );
-          isInFlight = true;
+          let dispatchError: unknown;
+          try {
+            await this.dispatchPendingStage(
+              organizationId,
+              runId,
+              operationId,
+              brandId,
+              config,
+              scene,
+              scene.id,
+              stageName,
+              stage,
+              saved,
+              pipeline.quote,
+              pipeline.operation.userId,
+              groupId,
+            );
+          } catch (error: unknown) {
+            dispatchError = error;
+          }
+          // A cancellation or superseding operation stops the whole step;
+          // one scene's dispatch failure does not stop the others.
           ({ config } = await this.store.fence(
             organizationId,
             runId,
             operationId,
           ));
+          const dispatched =
+            config.scenePipeline?.scenes[scene.id]?.[stageName];
+          if (dispatchError && dispatched?.state === 'failed')
+            failures.push(dispatched.error ?? 'Scene dispatch failed.');
+          else isInFlight = true;
           break;
         }
         const outcome = await this.reconcileSubmittedStage(
@@ -160,6 +171,7 @@ export class BrandRemixSceneGenerationService {
           pipeline.quote,
           groupId,
           stageName === 'image' ? 'IMAGE' : 'AVATAR',
+          reconcileOnly,
         );
         ({ config } = await this.store.fence(
           organizationId,
@@ -198,15 +210,21 @@ export class BrandRemixSceneGenerationService {
     quote: BrandRemixSceneQuote,
     groupId: string,
     category: 'IMAGE' | 'AVATAR',
+    reconcileOnly: boolean,
   ): Promise<'ready' | 'failed' | 'processing' | 'undispatched'> {
+    // A retried attempt keeps its group; abandoned placeholders are excluded
+    // so an old FAILED row never stands in for the live attempt.
     const found = await this.prisma.ingredient.findFirst({
       where: scopedWhere(organizationId, {
         brandId,
         groupId,
         category,
-        ...(stage.assetId ? { id: stage.assetId } : {}),
+        ...(stage.assetId
+          ? { id: stage.assetId }
+          : { id: { notIn: saved.replacedAssetIds } }),
       }),
       include: { metadata: true },
+      orderBy: { createdAt: 'desc' },
     });
     const acceptedLine = quote.items.find(
       (item) =>
@@ -237,6 +255,8 @@ export class BrandRemixSceneGenerationService {
       // Placeholders persist before any provider call, so a stale claim with
       // no placeholder never reached a provider.
       if (!isStaleSceneClaim(stage)) return 'processing';
+      if (reconcileOnly)
+        return fail('Cancelled before this scene reached a provider.');
       await this.resetUndispatched(
         organizationId,
         runId,
@@ -268,6 +288,11 @@ export class BrandRemixSceneGenerationService {
           }),
           data: { status: 'FAILED' as const },
         });
+        if (reconcileOnly)
+          return fail(
+            'Cancelled before this scene reached a provider.',
+            found.id,
+          );
         await this.resetUndispatched(
           organizationId,
           runId,
@@ -294,11 +319,21 @@ export class BrandRemixSceneGenerationService {
       const url =
         readIngredientMediaUrl(found) ??
         (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
-      if (!url)
-        throw new ConflictException('Completed scene video has no media URL.');
-      const probe = await this.files.probeMediaFromUrl(url, 'video');
+      let probe:
+        | Awaited<ReturnType<FilesClientService['probeMediaFromUrl']>>
+        | undefined;
+      if (url) {
+        try {
+          probe = await this.files.probeMediaFromUrl(url, 'video');
+        } catch (error: unknown) {
+          // Normal steps retry a transient probe on resume; after
+          // cancellation nobody resumes, so the clip is recorded as needing
+          // repair rather than blocking the run.
+          if (!reconcileOnly) throw error;
+        }
+      }
       if (
-        !probe.durationSeconds ||
+        !probe?.durationSeconds ||
         probe.durationSeconds > 20 ||
         !probe.width ||
         !probe.height ||
@@ -402,30 +437,46 @@ export class BrandRemixSceneGenerationService {
     userId: string,
     groupId: string,
   ): Promise<void> {
+    const markFailed = async (error: unknown) =>
+      this.patch(organizationId, runId, operationId, sceneId, stageName, {
+        state: 'failed',
+        error:
+          error instanceof Error
+            ? error.message.slice(0, 4_000)
+            : 'Scene dispatch failed before reaching a provider.',
+      });
     const line = quote.items.find(
       (item) =>
         item.sceneId === sceneId &&
         item.stage === stageName &&
         item.attempt === stage.attempt,
     );
-    if (!line)
-      throw new ConflictException(
-        'No accepted quote exists for this stage attempt.',
-      );
-    await this.planning.assertDraftAssetsAuthorized(organizationId, brandId, {
-      ...config.draft,
-      identity: saved.identity,
-    });
-    if (
-      JSON.stringify(saved.referenceAssetIds) !==
-      JSON.stringify(
-        config.draft.references.map((reference) => reference.assetId),
-      )
-    )
-      throw new ConflictException('Accepted references changed.');
     const output = config.draft.output;
-    if (!('aspectRatio' in output))
-      throw new ConflictException('Missing scene aspect ratio.');
+    try {
+      if (!line)
+        throw new ConflictException(
+          'No accepted quote covers this scene. Request a repair quote.',
+        );
+      await this.planning.assertDraftAssetsAuthorized(organizationId, brandId, {
+        ...config.draft,
+        identity: saved.identity,
+      });
+      if (
+        JSON.stringify(saved.referenceAssetIds) !==
+        JSON.stringify(
+          config.draft.references.map((reference) => reference.assetId),
+        )
+      )
+        throw new ConflictException('Accepted references changed.');
+      if (!('aspectRatio' in output))
+        throw new ConflictException('Missing scene aspect ratio.');
+    } catch (error: unknown) {
+      // Deterministic pre-dispatch failures are repaired with a new quote
+      // rather than retried every step.
+      await markFailed(error);
+      throw error;
+    }
+    if (!line || !('aspectRatio' in output)) return;
     const claimToken = randomUUID();
     await this.patch(
       organizationId,
@@ -474,21 +525,7 @@ export class BrandRemixSceneGenerationService {
     } catch (error: unknown) {
       // Without a placeholder no provider was called: the claim is released
       // as a definitive failure the user repairs with a new quote.
-      if (!placeholderId)
-        await this.patch(
-          organizationId,
-          runId,
-          operationId,
-          sceneId,
-          stageName,
-          {
-            state: 'failed',
-            error:
-              error instanceof Error
-                ? error.message.slice(0, 4_000)
-                : 'Scene dispatch failed before reaching a provider.',
-          },
-        );
+      if (!placeholderId) await markFailed(error);
       throw error;
     }
   }

@@ -257,7 +257,7 @@ describe('scene façade spending and persistence boundaries', () => {
       service.resume('org', 'run', user, { expectedRevision: 1 }),
     ).rejects.toThrow('still running');
     expect(workflow.enqueue).toHaveBeenCalledTimes(1);
-    runUpdatedAt = new Date(Date.now() - 10 * 60_000);
+    runUpdatedAt = new Date(Date.now() - 20 * 60_000);
     await service.resume('org', 'run', user, { expectedRevision: 1 });
     expect(workflow.enqueue).toHaveBeenCalledTimes(2);
     expect(config.scenePipeline?.operation?.sequence).toBe(1);
@@ -353,6 +353,36 @@ describe('scene façade spending and persistence boundaries', () => {
       'run',
       expect.objectContaining({ id: 'op', sequence: 4 }),
       10_000,
+    );
+  });
+  it('re-triggers reconciliation of accepted work on a cancelled run without dispatching', async () => {
+    const pipeline = config.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    pipeline.state = 'cancelled';
+    pipeline.operation = {
+      id: 'op',
+      quoteId: 'quote',
+      revision: 1,
+      cancellationGeneration: 0,
+      startedAt: new Date().toISOString(),
+      userId: 'user',
+      sequence: 5,
+    };
+    pipeline.cancellationGeneration = 1;
+    pipeline.scenes.scene = {
+      identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+      referenceAssetIds: [],
+      image: { attempt: 1, state: 'ready', assetId: 'still' },
+      video: { attempt: 1, state: 'submitted', assetId: 'clip' },
+      replacedAssetIds: [],
+    };
+    await service.cancel('org', 'run', { expectedRevision: 1 });
+    expect(config.scenePipeline?.state).toBe('cancelled');
+    expect(config.scenePipeline?.cancellationGeneration).toBe(1);
+    expect(workflow.enqueue).toHaveBeenCalledWith(
+      'org',
+      'run',
+      expect.objectContaining({ id: 'op', sequence: 6 }),
     );
   });
   it('rejects cancelling reviewed output', async () => {

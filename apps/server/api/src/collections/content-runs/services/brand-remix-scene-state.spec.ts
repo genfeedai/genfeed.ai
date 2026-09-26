@@ -221,7 +221,7 @@ describe('scene contract invariants', () => {
     ).toBe(false);
     expect(
       isRetryableSyncSceneStage(
-        { attempt: 1, state: 'claimed', claimedAt: '2026-09-24T00:50:00.000Z' },
+        { attempt: 1, state: 'claimed', claimedAt: '2026-09-24T00:30:00.000Z' },
         now,
       ),
     ).toBe(true);
@@ -244,7 +244,7 @@ describe('scene contract invariants', () => {
       },
     };
     const fresh = new Date(now - 30_000);
-    const stale = new Date(now - 10 * 60_000);
+    const stale = new Date(now - 20 * 60_000);
     expect(
       canResumeScenePipeline({ ...pipeline, state: 'generating' }, fresh, now),
     ).toBe(false);
@@ -257,5 +257,20 @@ describe('scene contract invariants', () => {
     expect(
       canResumeScenePipeline({ ...pipeline, state: 'ready' }, stale, now),
     ).toBe(false);
+    const reconciling = {
+      ...pipeline,
+      state: 'cancelled' as const,
+      scenes: {
+        a: {
+          identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+          referenceAssetIds: [],
+          image: { attempt: 1, state: 'ready' as const },
+          video: { attempt: 1, state: 'submitted' as const },
+          replacedAssetIds: [],
+        },
+      },
+    };
+    expect(canResumeScenePipeline(reconciling, fresh, now)).toBe(false);
+    expect(canResumeScenePipeline(reconciling, stale, now)).toBe(true);
   });
 });

@@ -134,10 +134,8 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
       const current = await this.store.read(organizationId, runId);
       const pipeline = current.config.scenePipeline;
       if (pipeline?.operation?.id !== operationId) return;
-      if (pipeline.state === 'cancelled') {
-        await this.reconcileCancelled(organizationId, runId, operationId);
-        return;
-      }
+      // Cancellation already started its own reconcile chain.
+      if (pipeline.state === 'cancelled') return;
       await this.store.save(organizationId, runId, current.config, {
         ...current.config,
         phase: 'prefilled',
@@ -163,20 +161,35 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
   ) {
     const { config } = await this.store.read(organizationId, runId);
     if (!hasInFlightSceneGeneration(config.scenePipeline)) return;
-    const isDrained = await this.generation.step(
-      organizationId,
-      runId,
-      operationId,
-      { reconcileOnly: true },
-    );
+    let isDrained = false;
+    let delayMs = 10_000;
+    try {
+      isDrained = await this.generation.step(
+        organizationId,
+        runId,
+        operationId,
+        { reconcileOnly: true },
+      );
+    } catch {
+      // A transient read, probe or compare-and-swap failure must not end
+      // the only chain that records accepted work; retry with backoff.
+      delayMs = 60_000;
+    }
     if (!isDrained)
-      await this.scheduleNext(organizationId, runId, operationId, true);
+      await this.scheduleNext(
+        organizationId,
+        runId,
+        operationId,
+        true,
+        delayMs,
+      );
   }
   private async scheduleNext(
     organizationId: string,
     runId: string,
     operationId: string,
     isCancelled: boolean,
+    delayMs = 10_000,
   ) {
     const current = await this.store.fence(organizationId, runId, operationId, {
       allowCancelled: isCancelled,
@@ -191,6 +204,6 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
       ...current.config,
       scenePipeline: { ...saved, operation },
     });
-    await this.enqueue(organizationId, runId, operation, 10_000);
+    await this.enqueue(organizationId, runId, operation, delayMs);
   }
 }

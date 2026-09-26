@@ -196,10 +196,17 @@ export default function StudioRemixScenes({
     Boolean(pipeline?.operation) &&
     !immutable &&
     (Boolean(active) || pipeline?.state === 'partial_failure');
+  const isRecordingAcceptedWork = Object.values(pipeline?.scenes ?? {}).some(
+    (scene) =>
+      [scene.image.state, scene.video.state].some(
+        (state) => state === 'claimed' || state === 'submitted',
+      ),
+  );
   const canResume =
     Boolean(pipeline?.operation) &&
     !immutable &&
-    (pipeline?.state === 'partial_failure' || pipeline?.state === 'cancelled');
+    (pipeline?.state === 'partial_failure' ||
+      (pipeline?.state === 'cancelled' && !isRecordingAcceptedWork));
   return (
     <section
       aria-label={t('title')}

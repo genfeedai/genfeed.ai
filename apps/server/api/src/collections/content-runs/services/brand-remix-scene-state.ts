@@ -243,10 +243,14 @@ export function invalidateScenePipeline(
   };
 }
 
-/** A claim older than this cannot belong to a live step and may be reconciled. */
-export const STALE_SCENE_CLAIM_MS = 2 * 60_000;
-/** An active operation whose run was not written for this long lost its step chain. */
-export const STALLED_SCENE_CHAIN_MS = 5 * 60_000;
+/**
+ * A claim older than this cannot belong to a live step and may be reconciled.
+ * It exceeds the longest synchronous platform call a step makes (sampled
+ * frames plus semantic analysis, or a transcription).
+ */
+export const STALE_SCENE_CLAIM_MS = 15 * 60_000;
+/** A run not written for this long has lost its step chain. */
+export const STALLED_SCENE_CHAIN_MS = 15 * 60_000;
 type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
 
 export function isStaleSceneClaim(stage: SceneStage, now = Date.now()) {
@@ -286,11 +290,12 @@ export function canResumeScenePipeline(
   now = Date.now(),
 ): boolean {
   if (!pipeline?.operation) return false;
-  if (['partial_failure', 'cancelled'].includes(pipeline.state)) return true;
-  return (
-    isSceneOperationActive(pipeline) &&
-    now - lastWrittenAt.getTime() > STALLED_SCENE_CHAIN_MS
-  );
+  const isChainStalled = now - lastWrittenAt.getTime() > STALLED_SCENE_CHAIN_MS;
+  if (pipeline.state === 'partial_failure') return true;
+  // A cancelled run with accepted provider work keeps a reconcile chain.
+  if (pipeline.state === 'cancelled')
+    return !hasInFlightSceneGeneration(pipeline) || isChainStalled;
+  return isSceneOperationActive(pipeline) && isChainStalled;
 }
 
 export function hasUnreconciledSceneWork(

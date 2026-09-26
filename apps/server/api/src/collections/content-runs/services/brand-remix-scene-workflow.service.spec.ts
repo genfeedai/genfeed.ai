@@ -168,4 +168,19 @@ describe('scene step chain ownership', () => {
       { attempts: 1, delayMs: 10_000 },
     );
   });
+  it('retries the reconcile chain with backoff instead of stopping on an error', async () => {
+    config.scenePipeline.state = 'cancelled';
+    generation.step.mockRejectedValue(new Error('probe unavailable'));
+    await step({
+      organizationId: 'org',
+      runId: 'run',
+      operationId: 'op',
+      sequence: 2,
+    });
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      'remix-run-op-3',
+      { attempts: 1, delayMs: 60_000 },
+    );
+  });
 });

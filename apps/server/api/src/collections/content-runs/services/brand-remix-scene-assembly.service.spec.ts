@@ -295,7 +295,7 @@ describe('caption failure settlement recovery', () => {
     );
   });
 
-  it('compensates an unusable caption transcript and allows a later resume', async () => {
+  it('compensates an unusable caption transcript and requires a new quote to retry', async () => {
     whisper.transcribeUrl.mockResolvedValueOnce({ srt: '   ' });
     await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
       /no captions/,
@@ -305,14 +305,12 @@ describe('caption failure settlement recovery', () => {
     expect(config.scenePipeline?.assembly?.transcription.state).toBe('failed');
     expect(queue.processVideo).not.toHaveBeenCalled();
 
-    whisper.transcribeUrl.mockResolvedValueOnce({
-      srt: '1\n00:00:00,000 --> 00:00:01,000\nHello\n',
-    });
-    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
-    expect(billing.settle).toHaveBeenCalledOnce();
-    expect(config.scenePipeline?.assembly?.srt).toContain('Hello');
-    expect(config.scenePipeline?.assembly?.transcription.state).toBe('ready');
-    expect(queue.processVideo).not.toHaveBeenCalled();
+    // The released hold cannot fund another Whisper call on resume.
+    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
+      /new generation quote/,
+    );
+    expect(whisper.transcribeUrl).toHaveBeenCalledOnce();
+    expect(billing.reserve).toHaveBeenCalledOnce();
   });
 
   it('settles accepted captions when cancellation arrives before rendering', async () => {

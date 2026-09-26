@@ -376,6 +376,50 @@ describe('canonical generated still to avatar boundary', () => {
     expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
     expect(billing.reserve).not.toHaveBeenCalled();
   });
+  it('ignores abandoned placeholders when adopting a retried attempt', async () => {
+    const claimed = config.scenePipeline;
+    if (!claimed) throw new Error('missing pipeline');
+    claimed.scenes.scene.replacedAssetIds = ['orphan'];
+    claimed.scenes.scene.video = {
+      ...claimed.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: new Date().toISOString(),
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce(null);
+    await service.step('org', 'run', 'operation');
+    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          groupId: 'clip-group',
+          id: { notIn: ['orphan'] },
+        }),
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+  });
+  it('fails and releases an undispatched stage found while reconciling a cancellation', async () => {
+    const cancelled = config.scenePipeline;
+    if (!cancelled) throw new Error('missing pipeline');
+    cancelled.state = 'cancelled';
+    cancelled.scenes.scene.video = {
+      ...cancelled.scenes.scene.video,
+      state: 'claimed',
+      claimedAt: '2026-09-24T00:00:00.000Z',
+    };
+    prisma.ingredient.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      service.step('org', 'run', 'operation', { reconcileOnly: true }),
+    ).resolves.toBe(true);
+    expect(config.scenePipeline?.scenes.scene.video.state).toBe('failed');
+    expect(billing.release).toHaveBeenCalledWith(
+      'org',
+      'run',
+      'operation',
+      expect.objectContaining({ key: 'scene-video-1' }),
+      false,
+    );
+    expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
+  });
   it('dispatches every ready scene in one step instead of one scene at a time', async () => {
     const pipeline = config.scenePipeline;
     const concept = config.concept;

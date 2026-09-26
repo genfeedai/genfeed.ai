@@ -359,13 +359,14 @@ export class BrandRemixSceneAssemblyService {
     assembly: NonNullable<BrandRemixScenePipeline['assembly']>,
   ) {
     const stage = assembly.transcription;
-    // Whisper is synchronous: a failed, uncertain or abandoned attempt reruns
-    // under the same idempotent reservation instead of blocking the run.
-    if (
-      stage.state !== 'ready' &&
-      stage.state !== 'failed' &&
-      !isRetryableSyncSceneStage(stage)
-    )
+    // A failed attempt already returned its hold, so it cannot rerun unbilled.
+    if (stage.state === 'failed')
+      throw new ConflictException(
+        'Caption transcription failed. Request a new generation quote.',
+      );
+    // Whisper is synchronous: an uncertain or abandoned attempt reruns under
+    // the same idempotent reservation instead of blocking the run.
+    if (stage.state !== 'ready' && !isRetryableSyncSceneStage(stage))
       throw new ConflictException(
         'Caption transcription is still running. Wait before resuming.',
       );

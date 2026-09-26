@@ -110,7 +110,71 @@ describe('pre-dispatch reservation compensation', () => {
     ).rejects.toThrow('CAS conflict');
     expect(credits.releaseReservation).toHaveBeenCalledExactlyOnceWith({
       organizationId: 'org',
-      idempotencyKey: 'remix-run-op-run-analysis-1',
+      reservationId: 'reservation',
+    });
+  });
+  it('refuses to reuse a hold that was already released', async () => {
+    const config = {
+      scenePipeline: {
+        ...initialScenePipeline(),
+        operation: { id: 'op', userId: 'user' },
+      },
+    };
+    const credits = {
+      reserveCredits: vi
+        .fn()
+        .mockResolvedValue({ id: 'reservation', status: 'released' }),
+      releaseReservation: vi.fn(),
+    };
+    const store = {
+      fence: vi.fn().mockResolvedValue({ config }),
+      save: vi.fn(),
+    };
+    const service = new BrandRemixSceneBillingService(
+      credits as unknown as CreditsUtilsService,
+      store as unknown as BrandRemixSceneStoreService,
+    );
+    await expect(
+      service.reserve('org', 'run', 'op', {
+        key: 'run-captions-1',
+        stage: 'captions',
+        model: 'whisper',
+        credits: 1,
+        billingMode: 'platform',
+        attempt: 1,
+      }),
+    ).rejects.toThrow('new quote');
+    expect(store.save).not.toHaveBeenCalled();
+  });
+  it('returns an image-owned hold when cancellation lands before its receipt', async () => {
+    const credits = { reserveCredits: vi.fn(), releaseReservation: vi.fn() };
+    const store = {
+      fence: vi.fn().mockRejectedValue(new Error('cancelled')),
+      save: vi.fn(),
+    };
+    const service = new BrandRemixSceneBillingService(
+      credits as unknown as CreditsUtilsService,
+      store as unknown as BrandRemixSceneStoreService,
+    );
+    await expect(
+      service.reserve(
+        'org',
+        'run',
+        'op',
+        {
+          key: 'scene-image-1',
+          stage: 'image',
+          model: 'image-model',
+          credits: 2,
+          billingMode: 'platform',
+          attempt: 1,
+        },
+        'image-hold',
+      ),
+    ).rejects.toThrow('cancelled');
+    expect(credits.releaseReservation).toHaveBeenCalledExactlyOnceWith({
+      organizationId: 'org',
+      reservationId: 'image-hold',
     });
   });
 });
