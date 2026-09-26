@@ -92,6 +92,19 @@ describe('OpenAiModerationProvider', () => {
     await expect(provider.classifyText('x'.repeat(15_000))).resolves.toEqual({
       hate: 0.8,
     });
-    expect(create.mock.calls[0][0].input).toHaveLength(2);
+    const { input } = create.mock.calls[0][0];
+    expect(input).toHaveLength(2);
+    expect(typeof input[0]).toBe('string');
+  });
+
+  it('refuses a response that does not score every chunk', async () => {
+    create.mockResolvedValue({
+      results: [{ category_scores: { hate: 0.1 } }],
+    });
+    const provider = new OpenAiModerationProvider('key');
+
+    await expect(provider.classifyText('x'.repeat(15_000))).rejects.toThrow(
+      '1 results for 2 text chunks',
+    );
   });
 });

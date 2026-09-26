@@ -32,10 +32,15 @@ export interface IMediaModeration extends MediaModerationRecord {
 
 /**
  * What one moderation job did: `classified` called the provider, `reused`
- * copied the result for identical bytes, `skipped` had nothing to do
- * (provider off, perception not ready, already moderated).
+ * copied the result for identical bytes, `reevaluated` re-applied current
+ * mode and thresholds to stored scores, `skipped` had nothing to do
+ * (provider off, perception not ready, asset deleted, already current).
  */
-export type MediaModerationOutcome = 'classified' | 'reused' | 'skipped';
+export type MediaModerationOutcome =
+  | 'classified'
+  | 'reevaluated'
+  | 'reused'
+  | 'skipped';
 
 /** Moderation state for an asset a publish path is about to use. */
 export interface IMediaModerationLookup {

@@ -12,8 +12,13 @@ const MAX_TEXT_CHUNK = 10_000;
 /**
  * OpenAI label → Genfeed category. Several vendor labels fold into one
  * category and the category takes their maximum. `illicit` covers wrongdoing
- * advice, of which drugs are the dominant case; `illicit/violent` is weapons
+ * advice (drugs dominate, but fraud and hacking land there too, so a `drugs`
+ * flag from this adapter means "illicit"); `illicit/violent` is weapons
  * procurement. OpenAI has no spam label, so `spam` is never scored here.
+ *
+ * OpenAI scores `sexual/minors` for text only. Visual minor safety is covered
+ * by the moderation service, which raises `sexual_minors` from a frame's
+ * sexual score when perception suspects minors in it.
  */
 const CATEGORY_BY_LABEL: Readonly<Record<string, ModerationCategory>> = {
   harassment: ModerationCategory.HARASSMENT,
@@ -124,16 +129,21 @@ export class OpenAiModerationProvider implements IModerationProvider {
     if (chunks.length === 0) {
       return {};
     }
-    const results = await this.create(
-      chunks.map((chunk) => ({ text: chunk, type: 'text' as const })),
-    );
+    // A plain string array is scored one result per string; an array of
+    // `{ type: 'text' }` parts would be scored as a single combined input.
+    const results = await this.create(chunks);
+    if (results.length !== chunks.length) {
+      throw new Error(
+        `OpenAI moderation returned ${results.length} results for ${chunks.length} text chunks`,
+      );
+    }
     return mergeMax(
       results.map((result) => toModerationScores(result, 'text')),
     );
   }
 
   private async create(
-    input: ModerationMultiModalInput[],
+    input: ModerationMultiModalInput[] | string[],
   ): Promise<OpenAiModerationResult[]> {
     if (!this.client) {
       throw new Error('OPENAI_API_KEY is not configured for moderation');

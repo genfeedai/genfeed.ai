@@ -1,5 +1,4 @@
-import type { ServerActivityWriter } from '@api/collections/activities/activities.port';
-import { SERVER_TOKENS } from '@api/server.dependencies';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MEDIA_MODERATION_SELECT,
@@ -16,9 +15,15 @@ import {
   evaluateModerationVerdict,
 } from '@api/services/moderation/moderation-verdict.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
+import {
+  ActivityEntityModel,
+  ActivityKey,
+  ActivitySource,
+  ModerationCategory,
+} from '@genfeedai/contracts';
 import type {
   ModerationInputResult,
+  ModerationScores,
   ModerationVerdict,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
@@ -36,6 +41,28 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable } from '@nestjs/common';
+
+/**
+ * Hosted classifiers may score `sexual_minors` for text only. When perception
+ * suspects minors in the asset, a visual input's sexual score also counts as
+ * `sexual_minors`, so the strict minors threshold applies to it.
+ */
+export function withVisualMinorSafety(
+  scores: ModerationScores,
+  isMinorSuspected: boolean,
+): ModerationScores {
+  const sexual = scores[ModerationCategory.SEXUAL];
+  if (!isMinorSuspected || sexual === undefined) {
+    return scores;
+  }
+  return {
+    ...scores,
+    [ModerationCategory.SEXUAL_MINORS]: Math.max(
+      scores[ModerationCategory.SEXUAL_MINORS] ?? 0,
+      sexual,
+    ),
+  };
+}
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -81,8 +108,7 @@ export class MediaModerationService {
     private readonly mediaPerceptionService: MediaPerceptionService,
     @Inject(MODERATION_PROVIDER)
     private readonly provider: IModerationProvider,
-    @Inject(SERVER_TOKENS.activities)
-    private readonly activities: ServerActivityWriter,
+    private readonly activities: ActivitiesService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
@@ -110,17 +136,36 @@ export class MediaModerationService {
       return 'skipped';
     }
 
-    const existing = await this.prisma.mediaModeration.findFirst({
-      select: { assetHash: true, provider: true },
+    const ingredient = await this.prisma.ingredient.findFirst({
+      select: { id: true },
+      where: scopedWhere(job.organizationId, { id: job.ingredientId }),
+    });
+    if (!ingredient) {
+      // Deleted after perception: nothing of it may leave the host.
+      return 'skipped';
+    }
+
+    const existingRow = await this.prisma.mediaModeration.findFirst({
+      select: MEDIA_MODERATION_SELECT,
       where: scopedWhere(job.organizationId, {
         ingredientId: job.ingredientId,
       }),
     });
+    const existing = existingRow ? toMediaModeration(existingRow) : null;
     if (
       existing?.assetHash === perception.assetHash &&
       existing.provider === this.provider.name
     ) {
-      return 'skipped';
+      // Same bytes, same vendor: never classify again, but a mode or
+      // threshold change re-evaluates the stored scores.
+      return this.isCurrent(existing, settings)
+        ? 'skipped'
+        : this.persistEvaluation(job, perception.assetHash, {
+            inputs: existing.inputs,
+            outcome: 'reevaluated',
+            reusedFromId: existing.reusedFromId,
+            settings,
+          });
     }
 
     const reusable = await this.prisma.mediaModeration.findFirst({
@@ -134,18 +179,49 @@ export class MediaModerationService {
     });
     const reused = reusable ? toMediaModeration(reusable) : null;
 
-    const inputs = reused ? reused.inputs : await this.classify(perception);
-    const candidateVerdict = evaluateModerationVerdict(
-      inputs,
-      settings.thresholds,
-    );
-    const verdict = applyModerationMode(candidateVerdict, settings.mode);
-
-    await this.persist(job, perception.assetHash, {
-      candidateVerdict,
-      inputs,
+    return this.persistEvaluation(job, perception.assetHash, {
+      inputs: reused ? reused.inputs : await this.classify(perception),
+      outcome: reused ? 'reused' : 'classified',
       reusedFromId: reused?.id ?? null,
       settings,
+    });
+  }
+
+  /** Whether a stored record was evaluated under the current settings. */
+  private isCurrent(
+    moderation: IMediaModeration,
+    settings: ModerationSettings,
+  ): boolean {
+    return (
+      moderation.mode === settings.mode &&
+      Object.values(ModerationCategory).every(
+        (category) =>
+          moderation.thresholds[category] === settings.thresholds[category],
+      )
+    );
+  }
+
+  private async persistEvaluation(
+    job: MediaModerationJobData,
+    assetHash: string,
+    input: {
+      inputs: ModerationInputResult[];
+      outcome: MediaModerationOutcome;
+      reusedFromId: string | null;
+      settings: ModerationSettings;
+    },
+  ): Promise<MediaModerationOutcome> {
+    const candidateVerdict = evaluateModerationVerdict(
+      input.inputs,
+      input.settings.thresholds,
+    );
+    const verdict = applyModerationMode(candidateVerdict, input.settings.mode);
+
+    await this.persist(job, assetHash, {
+      candidateVerdict,
+      inputs: input.inputs,
+      reusedFromId: input.reusedFromId,
+      settings: input.settings,
       verdict,
     });
 
@@ -158,8 +234,7 @@ export class MediaModerationService {
         organizationId: job.organizationId,
       });
     }
-
-    return reused ? 'reused' : 'classified';
+    return input.outcome;
   }
 
   async getForAssets(
@@ -208,12 +283,17 @@ export class MediaModerationService {
     }
     // tenant-scope-ignore: administrative discovery reads tenant identifiers only; each queued job re-reads its rows under its own organization scope.
     return this.prisma.mediaPerception.findMany({
-      orderBy: { updatedAt: 'asc' },
+      // Newest first: an asset that keeps failing ages out of the window
+      // instead of holding the head of every batch.
+      orderBy: { updatedAt: 'desc' },
       select: { ingredientId: true, organizationId: true },
       take: limit,
       where: {
         framesStatus: { not: 'pending' },
-        ingredient: { mediaModerations: { none: { isDeleted: false } } },
+        ingredient: {
+          isDeleted: false,
+          mediaModerations: { none: { isDeleted: false } },
+        },
         isDeleted: false,
         ocrStatus: { not: 'pending' },
         transcriptStatus: { not: 'pending' },
@@ -227,10 +307,15 @@ export class MediaModerationService {
   ): Promise<ModerationInputResult[]> {
     const inputs: ModerationInputResult[] = [];
 
+    const isMinorSuspected =
+      perception.description?.hasSuspectedMinors === true;
     if (perception.kind === 'image' && perception.frames[0]) {
       inputs.push({
         frameIndex: null,
-        scores: await this.provider.classifyImage(perception.frames[0].url),
+        scores: withVisualMinorSafety(
+          await this.provider.classifyImage(perception.frames[0].url),
+          isMinorSuspected,
+        ),
         source: 'image',
       });
     } else if (perception.kind === 'video' && perception.frames.length > 0) {
@@ -240,7 +325,10 @@ export class MediaModerationService {
       perception.frames.forEach((frame, position) => {
         inputs.push({
           frameIndex: frame.index,
-          scores: frameScores[position] ?? {},
+          scores: withVisualMinorSafety(
+            frameScores[position] ?? {},
+            isMinorSuspected,
+          ),
           source: 'frame',
         });
       });
@@ -331,6 +419,8 @@ export class MediaModerationService {
       }
       await this.activities.create({
         brandId: ingredient.brandId,
+        entityId: job.ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MEDIA_MODERATION_FLAGGED,
         organizationId: job.organizationId,
         source: ActivitySource.MEDIA_MODERATION,

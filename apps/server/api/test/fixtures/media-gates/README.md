@@ -24,8 +24,16 @@ Text rows for the moderation classifier (#4880), scored as `transcript` inputs:
 ```
 
 `expected` lists every Genfeed `ModerationCategory` the row should flag; an
-empty array is a safe row. `sexual_minors` has no text row on purpose — that
-category is exercised only through the private image manifest.
+empty array is a safe row. `sexual_minors` has no text row on purpose.
+
+**Known coverage gap — visual minor safety.** The OpenAI adapter scores
+`sexual/minors` for text only. For images and frames the moderation service
+raises `sexual_minors` from the visual `sexual` score when perception's scene
+description reports `hasSuspectedMinors`, so the strict minors threshold
+applies; there is no independent visual minors classifier. A private image
+manifest can measure that derived signal, but it is not a substitute for a
+dedicated visual classifier, and `live` should not be treated as full visual
+minor-safety coverage.
 
 Per-category precision and recall come from
 `computeModerationCalibration` (`apps/server/api/src/services/moderation`);
