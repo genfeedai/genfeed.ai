@@ -48,7 +48,6 @@ export interface RecordNewRepliesInput {
 
 export interface MarkConversationRepliesReadInput {
   organizationId: string;
-  userId: string;
   conversationId: string;
 }
 
@@ -191,17 +190,19 @@ export class SocialReplyNotificationService {
   }
 
   /**
-   * Reading a conversation clears the acting user's unread `social.reply`
-   * items that reference it, but only once every conversation such an item
-   * covers is read: one run can add replies to several threads. Returns how
-   * many items were marked read. Failures are logged, never thrown, so the
-   * thread read itself always succeeds.
+   * A thread was read, replied to or resolved: clear every member's unread
+   * `social.reply` items in the organization that reference it, but only once
+   * every conversation such an item covers has no unread messages (one run
+   * can add replies to several threads). The thread's read state is shared by
+   * the team, so the bell follows it for everyone. Returns how many items
+   * were marked read. Failures are logged, never thrown, so the underlying
+   * action always succeeds.
    */
   async markConversationRepliesRead(
     input: MarkConversationRepliesReadInput,
   ): Promise<number> {
-    const { conversationId, organizationId, userId } = input;
-    if (!organizationId || !userId || !conversationId) {
+    const { conversationId, organizationId } = input;
+    if (!organizationId || !conversationId) {
       return 0;
     }
 
@@ -219,7 +220,6 @@ export class SocialReplyNotificationService {
           },
           readAt: null,
           topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
-          userId,
         }),
       });
       const coverage = items.map((item) => ({
@@ -258,7 +258,6 @@ export class SocialReplyNotificationService {
           id: { in: readItemIds },
           readAt: null,
           topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
-          userId,
         }),
       });
       return result.count;

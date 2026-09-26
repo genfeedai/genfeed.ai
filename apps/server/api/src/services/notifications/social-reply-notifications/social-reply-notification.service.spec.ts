@@ -207,10 +207,9 @@ describe('SocialReplyNotificationService', () => {
     const readInput = {
       conversationId: 'conversation-a',
       organizationId: 'org-1',
-      userId: 'user-1',
     };
 
-    it('reads only items whose every conversation is read', async () => {
+    it("reads every member's items whose every conversation is read", async () => {
       context.prisma.notificationInboxItem.findMany.mockResolvedValue([
         {
           event: { payload: { conversationIds: ['conversation-a'] } },
@@ -251,9 +250,12 @@ describe('SocialReplyNotificationService', () => {
           organizationId: 'org-1',
           readAt: null,
           topic: 'social.reply',
-          userId: 'user-1',
         },
       });
+      // Not filtered by recipient: the thread's read state is shared.
+      expect(
+        context.prisma.notificationInboxItem.findMany.mock.calls[0][0].where,
+      ).not.toHaveProperty('userId');
       expect(context.prisma.socialConversation.findMany).toHaveBeenCalledWith({
         select: { id: true },
         where: {
@@ -273,7 +275,6 @@ describe('SocialReplyNotificationService', () => {
           organizationId: 'org-1',
           readAt: null,
           topic: 'social.reply',
-          userId: 'user-1',
         },
       });
     });

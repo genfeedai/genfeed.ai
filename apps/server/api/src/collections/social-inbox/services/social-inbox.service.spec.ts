@@ -650,7 +650,7 @@ describe('SocialInboxService', () => {
       });
     });
 
-    it('marks a conversation read and clears the acting user replies', async () => {
+    it('marks a conversation read and clears reply notifications for the whole team', async () => {
       const context = createContext();
       await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
       const conversationId = context.conversations[0].id;
@@ -667,7 +667,6 @@ describe('SocialInboxService', () => {
       ).toHaveBeenCalledWith({
         conversationId,
         organizationId: 'org-1',
-        userId: 'user-1',
       });
       expect(context.notificationsPublisher.emit).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -675,7 +674,7 @@ describe('SocialInboxService', () => {
       );
     });
 
-    it('clears the acting user replies when a thread is resolved', async () => {
+    it('clears reply notifications for the whole team when a thread is resolved', async () => {
       const context = createContext();
       await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
       const conversationId = context.conversations[0].id;
@@ -697,11 +696,10 @@ describe('SocialInboxService', () => {
       ).toHaveBeenCalledWith({
         conversationId,
         organizationId: 'org-1',
-        userId: 'user-1',
       });
     });
 
-    it('clears the acting user replies once a reply is posted, not when it fails', async () => {
+    it('clears reply notifications for the whole team once a reply is posted, not when it fails', async () => {
       const context = createContext();
       const inbound = await context.service.ingestInboundMessage({
         body: 'Inbound',
@@ -738,7 +736,6 @@ describe('SocialInboxService', () => {
       ).toHaveBeenCalledWith({
         conversationId: inbound.conversationId,
         organizationId: 'org-1',
-        userId: 'user-1',
       });
     });
 

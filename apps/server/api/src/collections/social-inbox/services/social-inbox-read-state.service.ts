@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * Read receipts for the social inbox. Keeps a conversation's unread counter
- * and the acting user's `social.reply` bell items in step.
+ * and the organization's `social.reply` bell items in step.
  */
 @Injectable()
 export class SocialInboxReadStateService {
@@ -22,8 +22,8 @@ export class SocialInboxReadStateService {
   ) {}
 
   /**
-   * The acting user opened the thread: zero its unread counter and clear
-   * that user's reply notifications once every thread they cover is read.
+   * A member opened the thread: zero its unread counter and clear every
+   * member's reply notifications once every thread they cover is read.
    */
   async markConversationRead(
     scope: SocialInboxScope,
@@ -53,7 +53,7 @@ export class SocialInboxReadStateService {
   }
 
   /**
-   * Clear the acting user's reply notifications for a thread whose unread
+   * Clear every member's reply notifications for a thread whose unread
    * counter was zeroed (read, replied to or resolved). Items covering other
    * still-unread threads stay unread.
    */
@@ -61,13 +61,9 @@ export class SocialInboxReadStateService {
     scope: SocialInboxScope,
     conversationId: string,
   ): Promise<void> {
-    if (!scope.userId) {
-      return;
-    }
     await this.socialReplyNotifications.markConversationRepliesRead({
       conversationId,
       organizationId: scope.organizationId,
-      userId: scope.userId,
     });
   }
 }
