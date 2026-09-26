@@ -231,7 +231,10 @@ export function buildReadinessSamplesForSpec(
         'aspect-ratio-off',
         {
           ...compliant,
-          height: Math.max(1, Math.round(compliant.width / ratio)),
+          height: Math.max(
+            1,
+            Math.round(compliantDimensions(spec).width / ratio),
+          ),
         },
         'aspectRatio',
       ),
