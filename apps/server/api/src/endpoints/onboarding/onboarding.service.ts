@@ -145,7 +145,7 @@ export class OnboardingService {
     try {
       // Persist the active org to the DB so both identity resolvers route to it
       // (epic #735, Phase C — no legacy auth provider write-back). Brand resolves from the
-      // member's lastUsedBrandId / org default.
+      // member's currentBrandId / org default.
       await this.usersService.patch(userId, {
         lastUsedOrganizationId: organizationId,
       });

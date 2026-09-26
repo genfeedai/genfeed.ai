@@ -276,7 +276,6 @@ export class BrandRelocationService {
     'scope',
     'isActive',
     'isHighlighted',
-    'isSelected',
     'isFleetEnabled',
     'isSocialHistoryImportEnabled',
     'isDeleted',
@@ -340,6 +339,24 @@ export class BrandRelocationService {
 
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
+    // An org always keeps at least one non-deleted brand (#5219): the source org
+    // must have another brand left for its members' currentBrandId to fall back
+    // to once this one moves out.
+    const sourceFallbackBrand = await this.prisma.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: {
+        id: { not: brandId },
+        isDeleted: false,
+        organizationId: sourceOrgId,
+      },
+    });
+    if (!sourceFallbackBrand) {
+      throw new ConflictException(
+        "Cannot move an organization's only brand to another organization.",
+      );
+    }
+
     const passthrough = this.pickRelocationPassthrough(updateBrandDto);
     this.logger.log('Relocating brand between organizations', {
       brandId,
@@ -368,6 +385,7 @@ export class BrandRelocationService {
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
+              sourceOrgId,
               destOrgId,
               passthrough,
             );
@@ -675,12 +693,43 @@ export class BrandRelocationService {
   private async runBrandOrgCascade(
     tx: Prisma.TransactionClient,
     brandId: string,
+    sourceOrgId: string,
     destOrgId: string,
     passthrough: Record<string, unknown>,
   ): Promise<RelocationReconcileResult> {
     const client = tx as unknown as Record<string, CascadeDelegate>;
 
     const impact = await this.classifyRelocationImpact(tx, brandId, destOrgId);
+
+    // 0. Reassign source-org members off this brand BEFORE its organizationId
+    // moves. currentBrandId is a single-column FK to Brand.id (not the
+    // compound (brandId, organizationId) FK used by brand-owned content, see
+    // schema.prisma) precisely so a member row never gets swept into the
+    // destination org by a cascade; this method reassigns it explicitly
+    // instead. `sourceFallbackBrand` was already proven to exist by the
+    // caller's last-brand guard, re-read here inside the transaction.
+    const sourceFallbackBrand = await tx.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: {
+        id: { not: brandId },
+        isDeleted: false,
+        organizationId: sourceOrgId,
+      },
+    });
+    if (!sourceFallbackBrand) {
+      throw new ConflictException(
+        "Cannot move an organization's only brand to another organization.",
+      );
+    }
+    await tx.member.updateMany({
+      data: { currentBrandId: sourceFallbackBrand.id },
+      where: {
+        currentBrandId: brandId,
+        isDeleted: false,
+        organizationId: sourceOrgId,
+      },
+    });
 
     // 1. The brand row itself (+ any co-patched scalar fields). The workflow
     // composite FK cascades workflow.organizationId with the brand.
@@ -801,11 +850,9 @@ export class BrandRelocationService {
       });
     }
 
-    // Clear per-member "last used brand" pointers left in other orgs.
-    await client.member.updateMany({
-      data: { lastUsedBrandId: null },
-      where: { lastUsedBrandId: brandId, organizationId: { not: destOrgId } },
-    });
+    // Per-member currentBrandId pointers into the source org were already
+    // reassigned in step 0, before the brand's organizationId moved (required —
+    // currentBrandId is NOT NULL, so there is no "clear" step here).
 
     // Runtime backstop for member many-to-many links plus workflow rows classified
     // before the brand update. Still inside the transaction, recompute the post-state

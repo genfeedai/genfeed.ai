@@ -76,7 +76,7 @@ describe('UsersController', () => {
     subscriptionsService = { findOne: vi.fn() };
     membersService = {
       findOne: vi.fn(),
-      setLastUsedBrand: vi.fn().mockResolvedValue({}),
+      setCurrentBrand: vi.fn().mockResolvedValue({}),
     };
     filesClientService = {
       getPresignedUploadUrl: vi.fn().mockResolvedValue({
@@ -606,7 +606,7 @@ describe('UsersController', () => {
         canonicalId,
       );
 
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+      expect(membersService.setCurrentBrand).toHaveBeenCalledWith(
         {
           isActive: true,
           isDeleted: false,
@@ -640,7 +640,7 @@ describe('UsersController', () => {
         userId,
         orgId,
       );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+      expect(membersService.setCurrentBrand).toHaveBeenCalledWith(
         {
           isActive: true,
           isDeleted: false,
@@ -682,7 +682,7 @@ describe('UsersController', () => {
         userId,
         orgId,
       );
-      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+      expect(membersService.setCurrentBrand).toHaveBeenCalledWith(
         {
           isActive: true,
           isDeleted: false,

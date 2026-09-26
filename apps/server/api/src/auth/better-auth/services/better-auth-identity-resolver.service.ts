@@ -211,19 +211,19 @@ export class BetterAuthIdentityResolverService {
     const memberForOrg = members.find(
       (member) => getMemberOrganizationId(member) === organizationId,
     );
-    const lastUsedBrandId = getRecordId(
+    const currentBrandId = getRecordId(
       memberForOrg as unknown as Record<string, unknown> | undefined,
-      'lastUsedBrandId',
+      'currentBrandId',
     );
 
-    if (lastUsedBrandId) {
-      const lastUsedBrand = await this.brandsService.findOne({
-        id: lastUsedBrandId,
+    if (currentBrandId) {
+      const currentBrand = await this.brandsService.findOne({
+        id: currentBrandId,
         isDeleted: false,
         organizationId: organizationId,
       });
       const brandId = getEntityId(
-        lastUsedBrand as Record<string, unknown> | null | undefined,
+        currentBrand as Record<string, unknown> | null | undefined,
       );
       if (brandId) {
         return brandId;

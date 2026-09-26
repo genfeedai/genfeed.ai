@@ -631,8 +631,23 @@ export class InvitationService {
       });
     }
 
+    // currentBrandId is a required per-member invariant (#5219). A newly
+    // accepted member has no prior selection, so default to the org's oldest
+    // non-deleted brand — every org is guaranteed to have at least one.
+    const defaultBrand = await tx.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { isDeleted: false, organizationId: invitation.organizationId },
+    });
+    if (!defaultBrand) {
+      throw new Error(
+        `Cannot accept invitation: organization ${invitation.organizationId} has no brand`,
+      );
+    }
+
     return tx.member.create({
       data: {
+        currentBrandId: defaultBrand.id,
         isActive: true,
         organizationId: invitation.organizationId,
         roleId: invitation.roleId,

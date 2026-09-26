@@ -56,7 +56,7 @@ export interface SecondOrderCascadeTarget {
  * Models with both a brand key and an org key. Rewrite `orgField` → destination.
  *
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
- * `lastUsedBrandId`, a per-user UI pointer — the member row belongs to its own org
+ * `currentBrandId`, a per-user UI pointer — the member row belongs to its own org
  * and must NOT move), plus `ContentVersionPin`, `LlmVendorCost`,
  * `MediaVendorCost`, and `PublishApproval` (records whose composite Brand foreign
  * keys cascade atomically with the Brand row instead of being rewritten by the

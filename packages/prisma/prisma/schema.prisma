@@ -969,7 +969,6 @@ model Brand {
   secondaryColor           String       @default("#FFFFFF")
   backgroundColor          String       @default("transparent")
   referenceImages          Json         @default("[]")
-  isSelected               Boolean
   scope                    AssetScope   @default(USER)
   isActive                 Boolean      @default(true)
   isDefault                Boolean      @default(false)
@@ -987,7 +986,8 @@ model Brand {
 
   // Ownership relations
   members                    Member[]                   @relation("member_brands")
-  lastUsedByMembers          Member[]                   @relation("member_last_used_brand")
+  membersWithCurrentBrand    Member[]                   @relation("member_current_brand")
+  apiKeyDefaults             ApiKey[]                   @relation("api_key_default_brand")
   credentials                Credential[]
   ingredients                Ingredient[]               @relation("ingredient_brand")
   campaigns                  Campaign[]
@@ -1332,8 +1332,20 @@ model Member {
   // Member.roleId -> Role.
   roleKey                  String?
   brands                   Brand[]      @relation("member_brands")
-  lastUsedBrandId          String?
-  lastUsedBrand            Brand?       @relation("member_last_used_brand", fields: [lastUsedBrandId], references: [id])
+  // The member's current brand — a required per-member invariant (#5219). Every
+  // generation entrypoint resolves its brand from here (or an explicit param),
+  // never from a stale org-wide "selected" flag. Must reference a non-deleted
+  // brand of this member's own organizationId; enforced in application code
+  // (BrandsService.selectBrandForUser / MembersService), not by a DB CHECK.
+  currentBrandId           String
+  // Single-column FK to Brand.id only (matches the prior lastUsedBrandId
+  // convention) — NOT the compound (brandId, organizationId) FK used by
+  // brand-owned content. A member row must never move orgs just because a
+  // brand's organizationId changes, so it cannot share that cascade. Org
+  // consistency is validated in application code (BrandsService /
+  // MembersService), and BrandRelocationService reassigns affected members'
+  // currentBrandId to a same-org brand before a brand's org changes.
+  currentBrand             Brand        @relation("member_current_brand", fields: [currentBrandId], references: [id])
   isActive                 Boolean      @default(true)
   isDeleted                Boolean      @default(false)
   createdAt                DateTime     @default(now())
@@ -1342,6 +1354,7 @@ model Member {
   @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
   @@index([organizationId, roleKey, isDeleted], map: "members_organizationId_roleKey_isDeleted_idx")
   @@index([userId, isActive, isDeleted], map: "members_user_active_deleted_idx")
+  @@index([currentBrandId, organizationId], map: "members_current_brand_org_idx")
   @@map("members")
 }
 
@@ -1826,6 +1839,15 @@ model ApiKey {
   user           User           @relation(fields: [userId], references: [id])
   organizationId String
   organization   Organization   @relation(fields: [organizationId], references: [id])
+  // Default brand for MCP generation tools when a call omits an explicit
+  // brandId. Validated to this key's organizationId at create/update and
+  // re-validated (non-deleted, same org) at use time (#5219).
+  defaultBrandId String?
+  // Single-column FK to Brand.id only, same reasoning as Member.currentBrand:
+  // an API key never moves orgs, so it cannot share the compound
+  // (brandId, organizationId) cascade used by brand-owned content. Validated
+  // to this key's organizationId in application code at create/update/use.
+  defaultBrand   Brand?         @relation("api_key_default_brand", fields: [defaultBrandId], references: [id])
   key            String         @unique
   label          String
   category       ApiKeyCategory @default(GENFEEDAI)
@@ -1847,6 +1869,7 @@ model ApiKey {
   @@index([userId])
   @@index([organizationId])
   @@index([keyFingerprint])
+  @@index([defaultBrandId])
   @@map("api_keys")
 }
 

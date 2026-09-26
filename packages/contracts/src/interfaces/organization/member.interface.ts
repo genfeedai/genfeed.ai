@@ -34,7 +34,9 @@ export interface IMember extends IBaseEntity {
   organizationId: string;
   userId: string;
   roleId: string;
-  lastUsedBrandId?: string | null;
+  // Required per-member invariant (#5219): always a non-deleted brand of this
+  // member's own organizationId.
+  currentBrandId: string;
   roleKey?: string | null;
   organization?: IOrganization;
   user?: IUser;

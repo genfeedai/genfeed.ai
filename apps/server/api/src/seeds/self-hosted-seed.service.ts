@@ -81,14 +81,13 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       },
     });
 
-    await this.prisma.brand.create({
+    const brand = await this.prisma.brand.create({
       data: {
         backgroundColor: 'transparent',
         defaultImageModel: LOWEST_COST_IMAGE_MODEL_KEY,
         defaultVideoModel: LOWEST_COST_VIDEO_MODEL_KEY,
         description: 'Default brand for self-hosted instance',
         isDefault: true,
-        isSelected: true,
         label: 'Default Brand',
         organizationId: org.id,
         primaryColor: '#000000',
@@ -99,7 +98,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     });
 
     await this.ensureDefaultRoles();
-    await this.ensureOwnerMembership(org.id, user.id);
+    await this.ensureOwnerMembership(org.id, user.id, brand.id);
 
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
@@ -196,6 +195,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
   private async ensureOwnerMembership(
     organizationId: string,
     userId: string,
+    currentBrandId?: string,
   ): Promise<void> {
     const existingMember = await this.prisma.member.findFirst({
       where: {
@@ -226,8 +226,31 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       where: { key: MemberRole.OWNER },
     });
 
+    // currentBrandId is a required per-member invariant (#5219). The caller
+    // passes the brand it just created; the idempotent repair path (existing
+    // default org, no member yet) falls back to the org's oldest non-deleted
+    // brand.
+    const resolvedBrandId =
+      currentBrandId ??
+      (
+        await this.prisma.brand.findFirst({
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+          where: { isDeleted: false, organizationId },
+        })
+      )?.id;
+
+    if (!resolvedBrandId) {
+      this.logger.warn(
+        `Cannot create owner membership for org ${organizationId}: no brand exists yet`,
+        this.context,
+      );
+      return;
+    }
+
     await this.prisma.member.create({
       data: {
+        currentBrandId: resolvedBrandId,
         isActive: true,
         organizationId,
         roleId: role.id,

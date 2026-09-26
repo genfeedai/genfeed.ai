@@ -424,10 +424,10 @@ describe('BrandRelocationService', () => {
       },
     });
 
-    // Sever: cleared stale lastUsedBrand pointers + default-recurring markers.
+    // Sever: cleared stale currentBrand pointers + default-recurring markers.
     expect(getDelegate('member').updateMany).toHaveBeenCalledWith({
-      data: { lastUsedBrandId: null },
-      where: { lastUsedBrandId: BRAND_ID, organizationId: { not: DEST_ORG } },
+      data: { currentBrandId: null },
+      where: { currentBrandId: BRAND_ID, organizationId: { not: DEST_ORG } },
     });
     expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
       data: { defaultRecurringBrandId: null },

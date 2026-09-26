@@ -136,6 +136,11 @@ export class ProactiveOnboardingService {
         });
       }
 
+      // The placeholder member (inactive until signup) is created below, after
+      // step 5 creates its brand — currentBrandId is a required per-member
+      // invariant (#5219), so the member row can't exist before its brand does.
+      let pendingPlaceholderMemberUserId: string | null = null;
+
       if (!shadowOrg) {
         const name = lead.data.name ?? '';
         // Create a placeholder user for the shadow org (will be transferred on signup)
@@ -155,14 +160,7 @@ export class ProactiveOnboardingService {
           userId: placeholderUser.id,
         });
 
-        // Create member record (inactive until signup)
-        const roleId = await this.resolveDefaultRoleId();
-        await this.membersService.create({
-          isActive: false,
-          organizationId: shadowOrg.id,
-          roleId: roleId,
-          userId: placeholderUser.id,
-        });
+        pendingPlaceholderMemberUserId = placeholderUser.id.toString();
       }
 
       const shadowOrgId = shadowOrg.id.toString();
@@ -255,7 +253,6 @@ export class ProactiveOnboardingService {
             'Default description. Use it as a pre-prompt',
           fontFamily: scrapedData.fontFamily ?? FontFamily.MONTSERRAT_BLACK,
           handle: brandSlug,
-          isSelected: true,
           label: brandLabel,
           organizationId: shadowOrgId,
           primaryColor: scrapedData.primaryColor ?? '#000000',
@@ -265,6 +262,19 @@ export class ProactiveOnboardingService {
           userId: shadowOrgUserId,
         }) as unknown as Parameters<BrandsService['create']>[0],
       );
+
+      // Create the placeholder member record now that its currentBrandId target
+      // exists (inactive until signup).
+      if (pendingPlaceholderMemberUserId) {
+        const roleId = await this.resolveDefaultRoleId();
+        await this.membersService.create({
+          currentBrandId: brand.id.toString(),
+          isActive: false,
+          organizationId: shadowOrgId,
+          roleId: roleId,
+          userId: pendingPlaceholderMemberUserId,
+        } as unknown as Parameters<MembersService['create']>[0]);
+      }
 
       await this.brandsService.updateAgentConfig(
         brand.id.toString(),

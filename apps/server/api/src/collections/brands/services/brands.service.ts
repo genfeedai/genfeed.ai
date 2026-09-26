@@ -847,6 +847,34 @@ export class BrandsService extends BaseService<
       service: this.constructorName,
     });
 
+    const existing = await this.findOne({ id });
+    if (!existing || typeof existing.organizationId !== 'string') {
+      throw new NotFoundException('Brand', id);
+    }
+    const organizationId = existing.organizationId;
+
+    // An org always keeps at least one non-deleted brand (#5219): every member's
+    // currentBrandId must keep resolving. Refuse to delete the last one instead
+    // of leaving members pointed at a soft-deleted brand.
+    const fallbackBrand = await this.prisma.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { id: { not: id }, isDeleted: false, organizationId },
+    });
+
+    if (!fallbackBrand) {
+      throw new ConflictException(
+        "Cannot delete an organization's last brand. Create another brand first.",
+      );
+    }
+
+    // Move every member currently pointed at this brand to the fallback before
+    // the brand disappears — currentBrandId is a required invariant, never null.
+    await this.prisma.member.updateMany({
+      data: { currentBrandId: fallbackBrand.id },
+      where: { currentBrandId: id, isDeleted: false, organizationId },
+    });
+
     const brand = await super.remove(id);
 
     if (!brand) {
@@ -908,14 +936,16 @@ export class BrandsService extends BaseService<
   }
 
   /**
-   * Atomically select a brand for a user by deselecting all others and selecting the target.
+   * Set the acting member's current brand (#5219). currentBrandId is a
+   * required per-member invariant — this is the single write path for it, and
+   * there is no "clear" counterpart (a member always has a current brand).
    */
   async selectBrandForUser(
     brandId: string,
     userId: string,
     organizationId: string,
   ): Promise<BrandDocument> {
-    this.logger.debug('Atomically selecting brand for user', {
+    this.logger.debug('Setting current brand for member', {
       brandId,
       operation: 'selectBrandForUser',
       organizationId,
@@ -932,43 +962,15 @@ export class BrandsService extends BaseService<
       throw new NotFoundException('Brand', brandId);
     }
 
-    // Deselect all brands for user, then select the resolved target brand.
-    await this.delegate.updateMany({
+    const updated = await this.prisma.member.updateMany({
+      data: { currentBrandId: targetBrand.id },
       where: scopedWhere(organizationId, { userId }),
-      data: { isSelected: false },
     });
 
-    await this.delegate.updateMany({
-      where: scopedWhere(organizationId, { id: targetBrand.id }),
-      data: { isSelected: true },
-    });
-
-    // Return the updated brand
-    const updatedBrand = await this.findOne(
-      scopedWhere(organizationId, { id: targetBrand.id }),
-    );
-
-    if (!updatedBrand) {
-      throw new NotFoundException('Brand', brandId);
+    if (updated.count === 0) {
+      throw new NotFoundException('Member', userId);
     }
 
-    return updatedBrand;
-  }
-
-  async clearBrandSelectionForUser(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    this.logger.debug('Clearing selected brand for user', {
-      operation: 'clearBrandSelectionForUser',
-      organizationId,
-      service: this.constructorName,
-      userId,
-    });
-
-    await this.delegate.updateMany({
-      where: scopedWhere(organizationId, { userId }),
-      data: { isSelected: false },
-    });
+    return targetBrand;
   }
 }

@@ -5,6 +5,6 @@ export const memberAttributes = createEntityAttributes([
   'userId',
   'roleId',
   'roleKey',
-  'lastUsedBrandId',
+  'currentBrandId',
   'isActive',
 ]);
