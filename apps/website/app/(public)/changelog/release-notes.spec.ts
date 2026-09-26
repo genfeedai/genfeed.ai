@@ -20,6 +20,15 @@ describe('release notes', () => {
     expect(releaseSummary(notes)).toBe('Highlights');
   });
 
+  it('keeps a dated linked heading that does not match the release tag', () => {
+    const notes = releaseNotes(
+      '\n## [Migration guide](https://github.com/genfeedai/genfeed.ai/releases/tag/v0.1.76) - 2026-09-25\n\n### Features\n\n- **app:** palette\n',
+      'v0.1.76',
+    );
+    expect(notes.startsWith('## [Migration guide]')).toBe(true);
+    expect(notes).toContain('2026-09-25');
+  });
+
   it('keeps older changelog headings and counts their items', () => {
     const notes = releaseNotes(
       "## What's Changed\n* fix(api): scope the lookup by @VincentShipsIt in https://github.com/genfeedai/genfeed.ai/pull/1\n* fix(app): align the row\n",
