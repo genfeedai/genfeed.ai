@@ -179,6 +179,7 @@ export class CreditReservationService {
           balanceDelta: -input.actualAmount,
           billingAccountId: reservation.billingAccountId,
           heldDelta: -reservation.amount,
+          isBillingAccountPreauthorized: true,
         },
         tx,
       );
@@ -259,6 +260,7 @@ export class CreditReservationService {
         {
           billingAccountId: reservation.billingAccountId,
           heldDelta: -reservation.amount,
+          isBillingAccountPreauthorized: true,
         },
         tx,
       );
@@ -440,6 +442,7 @@ export class CreditReservationService {
         reservation.organizationId,
         tx,
         reservation.billingAccountId,
+        true,
       ),
     );
   }

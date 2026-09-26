@@ -20,6 +20,9 @@ const guardQuery = (model: string, args: unknown) =>
 describe('CreditBalanceService', () => {
   const prisma = {
     $executeRaw: vi.fn(),
+    billingAccount: {
+      findFirst: vi.fn(),
+    },
     billingAccountOrganization: {
       findFirst: vi.fn(),
     },
@@ -42,6 +45,7 @@ describe('CreditBalanceService', () => {
     vi.clearAllMocks();
     prisma.organization.findFirst.mockResolvedValue(null);
     prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.billingAccount.findFirst.mockResolvedValue(null);
   });
 
   it('returns the wallet the organization owns directly, without consulting billing-account relations', async () => {
@@ -103,6 +107,7 @@ describe('CreditBalanceService', () => {
         billingAccount: {
           select: {
             creditBalances: {
+              orderBy: { createdAt: 'asc' },
               take: 1,
               where: { billingAccountId: 'ba_1', isDeleted: false },
             },
@@ -141,21 +146,29 @@ describe('CreditBalanceService', () => {
     );
 
     expect(balance.id).toBe('balance_1');
+    // BillingAccountOrganization.billingAccount is a *required* to-one
+    // relation, so its relation-select args cannot carry a `where` (only an
+    // optional to-one relation's can, per the "direct" case above) — the
+    // generated Prisma client rejects one with PrismaClientValidationError
+    // before ever opening a connection. The isDeleted checks live in this
+    // query's own root `where` instead, as relation filters.
     expect(prisma.billingAccountOrganization.findFirst).toHaveBeenCalledWith({
       select: {
         billingAccount: {
           select: {
             creditBalances: {
+              orderBy: { createdAt: 'asc' },
               take: 1,
               where: { billingAccountId: 'ba_1', isDeleted: false },
             },
           },
-          where: { isDeleted: false },
         },
       },
       where: {
+        billingAccount: { isDeleted: false },
         billingAccountId: 'ba_1',
         isDeleted: false,
+        organization: { isDeleted: false },
         organizationId: 'org_2',
         status: BillingAccountOrganizationStatus.LINKED,
       },
@@ -196,6 +209,49 @@ describe('CreditBalanceService', () => {
         version: 0,
       },
     });
+    // Without isBillingAccountPreauthorized, the reservation-only path (path
+    // 4) must never be consulted — an unlinked org gets no extra chance to
+    // reach another org's wallet.
+    expect(prisma.billingAccount.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('isBillingAccountPreauthorized: reaches the wallet of a billing account the organization has since detached from', async () => {
+    prisma.creditBalance.findFirst.mockResolvedValue(null); // own-wallet check misses
+    prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
+    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.billingAccount.findFirst.mockResolvedValue({
+      creditBalances: [
+        {
+          balance: 100,
+          billingAccountId: 'ba_1',
+          heldAmount: 40,
+          id: 'balance_1',
+          isDeleted: false,
+          organizationId: null,
+          version: 3,
+        },
+      ],
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+      true,
+    );
+
+    expect(balance.id).toBe('balance_1');
+    expect(prisma.billingAccount.findFirst).toHaveBeenCalledWith({
+      select: {
+        creditBalances: {
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+          where: { billingAccountId: 'ba_1', isDeleted: false },
+        },
+      },
+      where: { id: 'ba_1', isDeleted: false },
+    });
+    expect(prisma.creditBalance.create).not.toHaveBeenCalled();
   });
 
   it.each(['org_1', null])(
@@ -232,6 +288,7 @@ describe('CreditBalanceService', () => {
           billingAccount: {
             select: {
               creditBalances: {
+                orderBy: { createdAt: 'asc' },
                 take: 1,
                 where: {
                   billingAccountId: 'ba_1',

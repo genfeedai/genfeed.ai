@@ -432,7 +432,11 @@ describe('CreditReservationService', () => {
     });
     expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
       'org_1',
-      { billingAccountId: 'ba_1', heldDelta: -12 },
+      {
+        billingAccountId: 'ba_1',
+        heldDelta: -12,
+        isBillingAccountPreauthorized: true,
+      },
       txClient,
     );
     expect(snapshot.held).toBe(0);
@@ -592,7 +596,11 @@ describe('CreditReservationService', () => {
     await expect(service.expireDue()).resolves.toBe(1);
     expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
       'org_1',
-      { billingAccountId: 'ba_1', heldDelta: -20 },
+      {
+        billingAccountId: 'ba_1',
+        heldDelta: -20,
+        isBillingAccountPreauthorized: true,
+      },
       txClient,
     );
   });

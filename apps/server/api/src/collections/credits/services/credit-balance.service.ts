@@ -13,6 +13,28 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+type WalletLookupFilter = { billingAccountId?: string; id?: string };
+
+/**
+ * The nested `CreditBalance[]` read shared by every relation-based wallet
+ * lookup path (`findDirectWallet`, `findLinkedWallet`,
+ * `findReservationAuthorizedWallet`): the caller's filter, not deleted, the
+ * oldest match first so a billing account with more than one live wallet
+ * resolves deterministically instead of picking whichever row Postgres
+ * happens to return first.
+ */
+function creditBalanceLookup(filter: WalletLookupFilter): {
+  orderBy: Prisma.CreditBalanceOrderByWithRelationInput;
+  take: number;
+  where: Prisma.CreditBalanceWhereInput;
+} {
+  return {
+    orderBy: { createdAt: 'asc' },
+    take: 1,
+    where: { ...filter, isDeleted: false },
+  };
+}
+
 @Injectable()
 export class CreditBalanceService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -59,6 +81,7 @@ export class CreditBalanceService {
     organizationId: string,
     tx?: PrismaTransactionClient,
     billingAccountId?: string | null,
+    isBillingAccountPreauthorized = false,
   ): Promise<CreditBalanceDocument> {
     if (!organizationId) {
       throw new Error(`Invalid organization ID: ${organizationId}`);
@@ -70,6 +93,7 @@ export class CreditBalanceService {
         organizationId,
         { billingAccountId },
         client,
+        isBillingAccountPreauthorized,
       );
       if (shared) {
         return shared;
@@ -108,7 +132,10 @@ export class CreditBalanceService {
    * requesting organization may use a wallet it owns, or one whose billing
    * account it is actively attached to (direct `Organization.billingAccountId`
    * or a LINKED, non-deleted `BillingAccountOrganization` row — the same two
-   * paths `BillingAccountsService.resolveForOrganization` accepts).
+   * paths `BillingAccountsService.resolveForOrganization` accepts) — or, when
+   * `isBillingAccountPreauthorized` is set, one an independently tenant-scoped
+   * row (a `CreditReservation`) already proved this org held credits against,
+   * even if the org has since detached from it.
    *
    * Each path is proven with its own tenant-scoped query rather than an `OR`
    * folded into the `CreditBalance` lookup itself: `organizationId` on
@@ -118,46 +145,112 @@ export class CreditBalanceService {
    * LINKED `BillingAccountOrganization` row scoped with `scopedWhere` — and
    * reads the wallet through the Prisma relation from there, so the join
    * itself (not an `OR`) is what proves the wallet is reachable.
+   *
+   * Split into one method per path (rather than inlined here) so each path's
+   * exact Prisma argument object can be exercised in isolation against a real
+   * (even unreachable) Prisma client in tests — Prisma validates argument
+   * shape before it ever opens a connection, so that catches an invalid shape
+   * a mock can't: `Organization.billingAccount` is an optional to-one
+   * relation, so its relation-select args accept a `where`.
+   * `BillingAccountOrganization.billingAccount` is a *required* to-one
+   * relation — its relation-select args have no `where` at all, so its
+   * `isDeleted`/`organization.isDeleted` checks are relation filters on the
+   * root `where` instead of a nested `where` (see `findLinkedWallet`).
    */
   private async findAccessibleWallet(
     organizationId: string,
-    filter: { billingAccountId?: string; id?: string },
+    filter: WalletLookupFilter,
     client: PrismaService | PrismaTransactionClient,
+    isBillingAccountPreauthorized = false,
   ): Promise<CreditBalanceDocument | null> {
-    const own = await client.creditBalance.findFirst({
-      where: scopedWhere(organizationId, { ...filter }),
-    });
+    const own = await this.findOwnWallet(organizationId, filter, client);
     if (own) {
       return own;
     }
 
-    const walletWhere: Prisma.CreditBalanceWhereInput = {
-      ...filter,
-      isDeleted: false,
-    };
+    const direct = await this.findDirectWallet(organizationId, filter, client);
+    if (direct) {
+      return direct;
+    }
 
+    const linked = await this.findLinkedWallet(organizationId, filter, client);
+    if (linked) {
+      return linked;
+    }
+
+    if (!isBillingAccountPreauthorized || !filter.billingAccountId) {
+      return null;
+    }
+
+    return this.findReservationAuthorizedWallet(
+      filter.billingAccountId,
+      filter,
+      client,
+    );
+  }
+
+  /** Path 1: a wallet the requesting organization owns outright. */
+  private async findOwnWallet(
+    organizationId: string,
+    filter: WalletLookupFilter,
+    client: PrismaService | PrismaTransactionClient,
+  ): Promise<CreditBalanceDocument | null> {
+    return client.creditBalance.findFirst({
+      where: scopedWhere(organizationId, { ...filter }),
+    });
+  }
+
+  /**
+   * Path 2: a wallet on the BillingAccount the organization is directly
+   * attached to via `Organization.billingAccountId` — an optional to-one
+   * relation, so its relation-select args may carry their own `where`.
+   */
+  private async findDirectWallet(
+    organizationId: string,
+    filter: WalletLookupFilter,
+    client: PrismaService | PrismaTransactionClient,
+  ): Promise<CreditBalanceDocument | null> {
     const direct = await client.organization.findFirst({
       select: {
         billingAccount: {
-          select: { creditBalances: { take: 1, where: walletWhere } },
+          select: {
+            creditBalances: creditBalanceLookup(filter),
+          },
           where: { isDeleted: false },
         },
       },
       where: { id: organizationId, isDeleted: false },
     });
-    const directWallet = direct?.billingAccount?.creditBalances[0];
-    if (directWallet) {
-      return directWallet;
-    }
 
+    return direct?.billingAccount?.creditBalances[0] ?? null;
+  }
+
+  /**
+   * Path 3: a wallet on the BillingAccount a LINKED, non-deleted
+   * `BillingAccountOrganization` row attaches the organization to.
+   * `BillingAccountOrganization.billingAccount` is a *required* to-one
+   * relation, so — unlike `findDirectWallet` above — its relation-select args
+   * have no `where` of their own; the generated Prisma client rejects one
+   * with `PrismaClientValidationError` before ever opening a connection. The
+   * `isDeleted` checks on the billing account and the organization are
+   * instead relation filters on this query's own root `where`.
+   */
+  private async findLinkedWallet(
+    organizationId: string,
+    filter: WalletLookupFilter,
+    client: PrismaService | PrismaTransactionClient,
+  ): Promise<CreditBalanceDocument | null> {
     const linked = await client.billingAccountOrganization.findFirst({
       select: {
         billingAccount: {
-          select: { creditBalances: { take: 1, where: walletWhere } },
-          where: { isDeleted: false },
+          select: {
+            creditBalances: creditBalanceLookup(filter),
+          },
         },
       },
       where: scopedWhere(organizationId, {
+        billingAccount: { isDeleted: false },
+        organization: { isDeleted: false },
         status: BillingAccountOrganizationStatus.LINKED,
         ...(filter.billingAccountId
           ? { billingAccountId: filter.billingAccountId }
@@ -166,6 +259,29 @@ export class CreditBalanceService {
     });
 
     return linked?.billingAccount?.creditBalances[0] ?? null;
+  }
+
+  /**
+   * Path 4: a wallet on a BillingAccount the caller has already proven
+   * `organizationId` transacted against through an independently
+   * tenant-scoped row (a `CreditReservation` matched with `scopedWhere`),
+   * even if the organization has since detached from that billing account.
+   * Reads through `BillingAccount` directly rather than re-deriving
+   * current-day link status — `BillingAccount` carries no `organizationId`,
+   * so it is not a tenant-scoped model, and access here is authorized by the
+   * caller's own proof, not by this query.
+   */
+  private async findReservationAuthorizedWallet(
+    billingAccountId: string,
+    filter: WalletLookupFilter,
+    client: PrismaService | PrismaTransactionClient,
+  ): Promise<CreditBalanceDocument | null> {
+    const viaReservation = await client.billingAccount.findFirst({
+      select: { creditBalances: creditBalanceLookup(filter) },
+      where: { id: billingAccountId, isDeleted: false },
+    });
+
+    return viaReservation?.creditBalances[0] ?? null;
   }
 
   toSnapshot(balance: CreditBalanceDocument): ICreditWalletSnapshot {
@@ -200,6 +316,7 @@ export class CreditBalanceService {
       organizationId,
       tx,
       input.billingAccountId,
+      input.isBillingAccountPreauthorized,
     );
     const client = tx ?? this.prisma;
     const updated = await client.$executeRaw(
@@ -239,6 +356,7 @@ export class CreditBalanceService {
         id: balance.id,
       },
       client,
+      input.isBillingAccountPreauthorized,
     );
     if (!next) {
       throw new BusinessLogicException(
