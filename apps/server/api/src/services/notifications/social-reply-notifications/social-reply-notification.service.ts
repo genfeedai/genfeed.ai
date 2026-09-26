@@ -15,9 +15,8 @@ export const SOCIAL_REPLY_EVENT_KEY = 'social.reply.received';
 export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
 
 /**
- * Version 2 adds the social inbox conversations the replies landed in, so the
- * bell deep-links to a thread and clears once every thread is read. Version 1
- * rows carry neither field and keep linking to the Messages inbox.
+ * Carries the social inbox conversations the replies landed in, so the bell
+ * deep-links to a thread and clears once every thread it covers is read.
  */
 export interface SocialReplyNotificationPayload {
   version: 2;

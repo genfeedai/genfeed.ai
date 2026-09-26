@@ -300,9 +300,9 @@ describe('SocialReplyNotificationService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('ignores version 1 payloads without conversation ids', async () => {
+    it('ignores payloads without conversation ids', async () => {
       context.prisma.notificationInboxItem.findMany.mockResolvedValue([
-        { event: { payload: { version: 1 } }, id: 'legacy' },
+        { event: { payload: { kind: 'social_reply' } }, id: 'malformed' },
       ]);
 
       await expect(
