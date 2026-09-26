@@ -42,6 +42,9 @@ const BRAND_ID = 'brand_abc';
 const SOURCE_ORG = 'org_source';
 const DEST_ORG = 'org_dest';
 const USER_ID = 'user_1';
+// The org always keeps a non-deleted brand for members' currentBrandId to
+// fall back to (#5219) — a second, unrelated brand in SOURCE_ORG.
+const SOURCE_FALLBACK_BRAND_ID = 'brand_fallback';
 
 const EMPTY_RELOCATION_SUMMARY = {
   membersSevered: 0,
@@ -127,14 +130,30 @@ describe('BrandRelocationService', () => {
   }
 
   // Brand read returns SOURCE_ORG first (pre-move), then the moved row (post-move).
+  // Brand read returns SOURCE_ORG first (pre-move), then the moved row
+  // (post-move) for every plain `{ id: brandId }`-shaped lookup. A
+  // `{ id: { not: brandId } }`-shaped lookup is the last-brand fallback guard
+  // (checked once outside the transaction, re-read once inside it) and always
+  // resolves to a second, unrelated brand still in SOURCE_ORG — matched by
+  // shape rather than call order, since the guard can run any number of times.
   function primeRelocatableBrand(): void {
-    getDelegate('brand')
-      .findFirst.mockResolvedValueOnce({
-        id: BRAND_ID,
-        isDeleted: false,
-        organizationId: SOURCE_ORG,
-      })
-      .mockResolvedValueOnce({ id: BRAND_ID, organizationId: DEST_ORG });
+    let identityCalls = 0;
+    getDelegate('brand').findFirst.mockImplementation(
+      async (args?: { where?: { id?: unknown } }) => {
+        const idFilter = args?.where?.id;
+        if (idFilter && typeof idFilter === 'object' && 'not' in idFilter) {
+          return {
+            id: SOURCE_FALLBACK_BRAND_ID,
+            isDeleted: false,
+            organizationId: SOURCE_ORG,
+          };
+        }
+        identityCalls += 1;
+        return identityCalls === 1
+          ? { id: BRAND_ID, isDeleted: false, organizationId: SOURCE_ORG }
+          : { id: BRAND_ID, organizationId: DEST_ORG };
+      },
+    );
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
   }
 
@@ -342,15 +361,36 @@ describe('BrandRelocationService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('cascades org across first- and second-order targets and invalidates both orgs', async () => {
-    getDelegate('brand')
-      .findFirst.mockResolvedValueOnce({
-        id: BRAND_ID,
-        isDeleted: false,
-        organizationId: SOURCE_ORG,
-      })
-      .mockResolvedValueOnce({ id: BRAND_ID, organizationId: DEST_ORG });
+  it("refuses to relocate an organization's only brand", async () => {
+    // Identity lookup succeeds, but the fallback-guard query for a second,
+    // non-deleted brand in SOURCE_ORG finds nothing — this is the org's last brand.
+    getDelegate('brand').findFirst.mockImplementation(
+      async (args?: { where?: { id?: unknown } }) => {
+        const idFilter = args?.where?.id;
+        if (idFilter && typeof idFilter === 'object' && 'not' in idFilter) {
+          return null;
+        }
+        return { id: BRAND_ID, isDeleted: false, organizationId: SOURCE_ORG };
+      },
+    );
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
+
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        { isSuperAdmin: true, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      "Cannot move an organization's only brand to another organization.",
+    );
+    // Refused before any transaction opened — nothing moved, nothing invalidated.
+    expect(transactionSpy).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('cascades org across first- and second-order targets and invalidates both orgs', async () => {
+    primeRelocatableBrand();
     // A moved Task exists → its TaskComment children must follow.
     getDelegate('task').findMany.mockResolvedValue([{ id: 'task_1' }]);
     // A moved social reply campaign exists → its recipients must follow.
@@ -424,10 +464,16 @@ describe('BrandRelocationService', () => {
       },
     });
 
-    // Sever: cleared stale currentBrand pointers + default-recurring markers.
+    // Reassigned: source-org members' currentBrandId moved to the fallback
+    // brand BEFORE the brand's own organizationId moved (#5219 — currentBrandId
+    // is NOT NULL, so there is no "clear" step here, unlike the pre-#5219 sever).
     expect(getDelegate('member').updateMany).toHaveBeenCalledWith({
-      data: { currentBrandId: null },
-      where: { currentBrandId: BRAND_ID, organizationId: { not: DEST_ORG } },
+      data: { currentBrandId: SOURCE_FALLBACK_BRAND_ID },
+      where: {
+        currentBrandId: BRAND_ID,
+        isDeleted: false,
+        organizationId: SOURCE_ORG,
+      },
     });
     expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
       data: { defaultRecurringBrandId: null },

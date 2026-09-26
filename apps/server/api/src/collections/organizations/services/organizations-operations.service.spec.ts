@@ -265,6 +265,7 @@ describe('OrganizationsOperationsService', () => {
       );
       expect(membersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          currentBrandId: 'brand_new',
           organizationId: 'org_new',
           roleId: 'role_user',
           userId: 'user_1',
@@ -273,15 +274,6 @@ describe('OrganizationsOperationsService', () => {
       expect(usersService.patch).toHaveBeenCalledWith('user_1', {
         lastUsedOrganizationId: 'org_new',
       });
-      expect(membersService.setCurrentBrand).toHaveBeenCalledWith(
-        {
-          isActive: true,
-          isDeleted: false,
-          organizationId: 'org_new',
-          userId: 'user_1',
-        },
-        'brand_new',
-      );
       expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
         'user_1',
       );

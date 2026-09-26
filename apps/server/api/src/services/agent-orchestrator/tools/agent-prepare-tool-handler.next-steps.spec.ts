@@ -10,6 +10,7 @@ function createHandler(): AgentPrepareToolHandler {
   return new AgentPrepareToolHandler(
     {} as PrepareHandlerCtor[0],
     {} as PrepareHandlerCtor[1],
+    {} as PrepareHandlerCtor[2],
   );
 }
 

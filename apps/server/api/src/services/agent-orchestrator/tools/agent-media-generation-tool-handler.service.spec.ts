@@ -39,6 +39,8 @@ function createHandler() {
       contentGeneratorService as never,
       newslettersService as never,
       gateway as never,
+      brandsService as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
     ),
     new AgentMediaAssetGenerationService(
       logger as never,
@@ -50,6 +52,7 @@ function createHandler() {
     new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
     ),
   );
@@ -931,6 +934,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       batchGenerationQueueService as never,
       batchGenerationService as never,
       undefined,
@@ -1198,6 +1202,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       batchGenerationQueueService as never,
       batchGenerationService as never,
       undefined,
@@ -1247,6 +1252,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       {} as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       queue as never,
       batchGenerationService as never,
       credentialsService as never,
@@ -1284,6 +1290,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }) } as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
       { cancelBatch: vi.fn(), createBatch } as never,
       { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,

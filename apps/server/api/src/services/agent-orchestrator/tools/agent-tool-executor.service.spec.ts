@@ -59,7 +59,7 @@ import {
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -218,6 +218,13 @@ describe('AgentToolExecutorService', () => {
           },
         ],
       }),
+    };
+    // #5219: resolveGenerationBrand's per-member fallback. Individual tests
+    // still drive the resolved brand entirely through brandsService.findOne
+    // (mockResolvedValue/mockResolvedValueOnce) — this only has to satisfy the
+    // "acting member's currentBrandId" lookup that now precedes it.
+    const membersService = {
+      findOne: vi.fn().mockResolvedValue({ currentBrandId: 'brand-1' }),
     };
     const brandsService = {
       create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
@@ -533,6 +540,7 @@ describe('AgentToolExecutorService', () => {
     const routeRewriteService = new AgentRouteRewriteService(
       loggerService,
       brandsService as never,
+      membersService as never,
       organizationsService as never,
     );
     const organizationSettingsService = {
@@ -645,6 +653,7 @@ describe('AgentToolExecutorService', () => {
     );
     const livestreamHandler = new AgentLivestreamToolHandler(
       brandsService as never,
+      membersService as never,
       botsService as never,
       botsLivestreamService as never,
     );
@@ -933,6 +942,7 @@ describe('AgentToolExecutorService', () => {
       new AgentInstagramInspirationToolHandler(
         adsResearchService as never,
         brandsService as never,
+        membersService as never,
         credentialsService as never,
         instagramInspirationService as never,
       );
@@ -942,6 +952,7 @@ describe('AgentToolExecutorService', () => {
     const workspaceHandler = new AgentWorkspaceToolHandler(
       creditsUtilsService as never,
       brandsService as never,
+      membersService as never,
       postsService as never,
       { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
       presignedUploadService as never,
@@ -952,6 +963,7 @@ describe('AgentToolExecutorService', () => {
     const adsResearchHandler = new AgentAdsResearchToolHandler(
       adsResearchService as never,
       brandsService as never,
+      membersService as never,
     );
     const connectionHandler = new AgentConnectionToolHandler(
       credentialsService as never,
@@ -1030,6 +1042,7 @@ describe('AgentToolExecutorService', () => {
     const workflowCreateService = new AgentWorkflowToolCreateService(
       workflowsService as never,
       brandsService as never,
+      membersService as never,
       workflowGenerationService as never,
     );
     const workflowInstallCacheService = {
@@ -1043,6 +1056,7 @@ describe('AgentToolExecutorService', () => {
         configService as never,
         workflowsService as never,
         brandsService as never,
+        membersService as never,
         systemWorkflowCatalogService as never,
         workflowCreateService,
         marketplaceApiClient as never,
@@ -1064,6 +1078,8 @@ describe('AgentToolExecutorService', () => {
         contentGeneratorService as never,
         newslettersService as never,
         generationGateway as never,
+        brandsService as never,
+        membersService as never,
       ),
       new AgentMediaAssetGenerationService(
         loggerService,
@@ -1076,6 +1092,7 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
+        membersService as never,
         batchGenerationWorkflowService as never,
         batchGenerationService as never,
         credentialsService as never,
@@ -1099,6 +1116,7 @@ describe('AgentToolExecutorService', () => {
     );
     const prepareHandler = new AgentPrepareToolHandler(
       brandsService as never,
+      membersService as never,
       workflowsService as never,
       organizationSettingsService as never,
       voicesService as never,
@@ -1205,6 +1223,7 @@ describe('AgentToolExecutorService', () => {
       botsLivestreamService,
       botsService,
       brandsService,
+      membersService,
       authProviderService,
       contentQualityScorerService,
       articleAnalyticsService,
@@ -2300,7 +2319,6 @@ describe('AgentToolExecutorService', () => {
         voice: { audience: ['founders'], hashtags: ['creatorops'] },
       },
       id: testId('goal'),
-      isSelected: true,
       label: 'Genfeed',
     });
     credentialsService.findOne.mockResolvedValueOnce({
@@ -2317,10 +2335,11 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+    // #5219: no isSelected filter — resolved via the acting member's
+    // currentBrandId (membersService.findOne, mocked to 'brand-1' by default).
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      isSelected: true,
+      id: 'brand-1',
       organizationId: testId('org'),
-      userId: testId('user'),
     });
     expect(
       instagramInspirationService.listInstagramInspiration,
@@ -4237,11 +4256,11 @@ describe('AgentToolExecutorService', () => {
         }),
       }),
     );
+    // #5219: no isSelected filter — resolved via the acting member's
+    // currentBrandId (membersService.findOne, mocked to 'brand-1' by default).
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      isSelected: true,
+      id: 'brand-1',
       organizationId: testId('org'),
-      userId: testId('user'),
     });
   });
 
@@ -4270,7 +4289,6 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: testId('entitybb'),
-      isDeleted: false,
       organizationId: testId('org'),
     });
     expect(brandsService.findOne).not.toHaveBeenCalledWith(
@@ -4305,7 +4323,6 @@ describe('AgentToolExecutorService', () => {
       handle: 'genfeed',
       id: testId('currentbrand'),
       isActive: true,
-      isSelected: true,
       label: 'Genfeed',
       text: 'Publish content. Now.',
     });
@@ -4334,11 +4351,11 @@ describe('AgentToolExecutorService', () => {
       testId('user'),
       testId('org'),
     );
+    // #5219: no isSelected filter — resolved via the acting member's
+    // currentBrandId (membersService.findOne, mocked to 'brand-1' by default).
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      isSelected: true,
+      id: 'brand-1',
       organizationId: testId('org'),
-      userId: testId('user'),
     });
   });
 
@@ -5279,14 +5296,18 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should fall back to an available brand when the selected brand is missing', async () => {
-    const { brandsService, recurringWorkflowId, service, workflowsService } =
+  it('rejects workflow creation when no brand resolves — no "any brand in the org" fallback (#5219)', async () => {
+    const { brandsService, membersService, service, workflowsService } =
       createService();
 
-    brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      id: testId('brandfallback'),
-      label: 'Fallback Brand',
+    // No explicit params.brandId and no ctx.brandId — resolution falls through
+    // to the acting member's currentBrandId, but that brand no longer resolves
+    // (e.g. deleted/stale). resolveGenerationBrand returns null, and there is
+    // no further "first brand in the org" guess to fall back to.
+    membersService.findOne.mockResolvedValueOnce({
+      currentBrandId: testId('stalebrand'),
     });
+    brandsService.findOne.mockResolvedValueOnce(null);
 
     const result = await service.executeTool(
       'create_workflow',
@@ -5302,20 +5323,9 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      testId('user'),
-      testId('org'),
-      expect.objectContaining({
-        brandId: expect.any(String),
-      }),
-    );
-    expect(result.success).toBe(true);
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        brandId: testId('brandfallback'),
-        editorUrl: `/automation/workflows/${recurringWorkflowId}`,
-      }),
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('No valid brand is available');
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
   it('should create a YouTube livestream bot with defaults and return a bot card', async () => {
@@ -5799,6 +5809,7 @@ describe('AgentToolExecutorService', () => {
       imagesService,
       instagramInspirationHandler,
       loggerService,
+      membersService,
       organizationsService,
       postsService,
       usersService,
@@ -5846,6 +5857,7 @@ describe('AgentToolExecutorService', () => {
       new AgentRouteRewriteService(
         loggerService,
         brandsService as never,
+        membersService as never,
         organizationsService as never,
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
@@ -5854,6 +5866,7 @@ describe('AgentToolExecutorService', () => {
       new AgentCampaignToolHandler({} as never),
       new AgentLivestreamToolHandler(
         brandsService as never,
+        membersService as never,
         {} as never,
         {} as never,
       ),
@@ -5868,6 +5881,7 @@ describe('AgentToolExecutorService', () => {
       new AgentWorkspaceToolHandler(
         {} as never,
         brandsService as never,
+        membersService as never,
         postsService as never,
         { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
         { confirmUpload: vi.fn(), getPresignedUploadUrl: vi.fn() } as never,
@@ -5894,6 +5908,7 @@ describe('AgentToolExecutorService', () => {
       new AgentAdsResearchToolHandler(
         adsResearchService as never,
         brandsService as never,
+        membersService as never,
       ),
       onboardingWithoutScorer,
       new AgentAnalyticsToolHandler(
@@ -5909,15 +5924,18 @@ describe('AgentToolExecutorService', () => {
           { get: vi.fn() } as never,
           workflowsService as never,
           brandsService as never,
+          membersService as never,
           { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
           new AgentWorkflowToolCreateService(
             workflowsService as never,
             brandsService as never,
+            membersService as never,
           ),
         ),
         new AgentWorkflowToolCreateService(
           workflowsService as never,
           brandsService as never,
+          membersService as never,
         ),
         new AgentWorkflowToolExecuteService(
           workflowsService as never,
@@ -5933,6 +5951,8 @@ describe('AgentToolExecutorService', () => {
           {} as never,
           {} as never,
           generationGatewayWithoutScorer as never,
+          brandsService as never,
+          membersService as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,
@@ -5945,6 +5965,7 @@ describe('AgentToolExecutorService', () => {
         new AgentMediaBatchGenerationService(
           loggerService,
           brandsService as never,
+          membersService as never,
           { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
           {} as never,
           credentialsService as never,
@@ -5958,6 +5979,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentPrepareToolHandler(
         brandsService as never,
+        membersService as never,
         workflowsService as never,
         { findOne: vi.fn().mockResolvedValue({}) } as never,
         { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,

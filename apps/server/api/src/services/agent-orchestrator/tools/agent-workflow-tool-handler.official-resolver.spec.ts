@@ -96,6 +96,7 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
       {} as never,
       workflowsService as never,
       brandsService as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
       systemWorkflowCatalogService as never,
       createService as never,
       undefined,
