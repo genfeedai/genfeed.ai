@@ -28,6 +28,7 @@ import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
@@ -59,6 +60,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     ScheduledPostDeliveryService,
     ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
+    ScheduledPostFailureService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
     ThreadCommentDeliveryService,
