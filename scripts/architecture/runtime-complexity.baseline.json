@@ -30,7 +30,7 @@
     "symbol": "BillingAccountsService.linkOrganization"
   },
   {
-    "actual": 1016,
+    "actual": 1015,
     "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"

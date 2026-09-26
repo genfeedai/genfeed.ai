@@ -663,7 +663,10 @@ export interface IDesktopDataService {
   generateContent: (
     params: IDesktopGenerationOptions,
   ) => Promise<IDesktopDataResult<IDesktopGeneratedContent>>;
-  generateHooks: (topic: string) => Promise<IDesktopDataResult<string[]>>;
+  generateHooks: (
+    topic: string,
+    brandId?: string,
+  ) => Promise<IDesktopDataResult<string[]>>;
   getAnalytics: (params: {
     days: number;
   }) => Promise<IDesktopDataResult<IDesktopAnalytics>>;
@@ -730,6 +733,13 @@ export interface IDesktopGeneratedContent {
 }
 
 export interface IDesktopGenerationOptions {
+  /**
+   * The active workspace's linked brand (#5219) — generation always runs in
+   * an explicit brand context. Callers send `IDesktopWorkspace.linkedBrandId`
+   * / `cloudLink.cloudBrandId`; main-process handlers fill it in from the
+   * active workspace when the caller omits it.
+   */
+  brandId?: string;
   brief?: IDesktopContentRunBrief;
   platform: DesktopContentPlatform;
   projectId?: string;
@@ -1092,7 +1102,7 @@ export interface IGenfeedDesktopBridge {
     generateContent: (
       params: IDesktopGenerationOptions,
     ) => Promise<IDesktopGeneratedContent>;
-    generateHooks: (topic: string) => Promise<string[]>;
+    generateHooks: (topic: string, brandId?: string) => Promise<string[]>;
     getAnalytics: (params: { days: number }) => Promise<IDesktopAnalytics>;
     getIngredients: (filter?: {
       limit?: number;

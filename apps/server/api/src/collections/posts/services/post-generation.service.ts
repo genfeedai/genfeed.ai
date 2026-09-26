@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -73,8 +77,10 @@ export class PostGenerationService {
   constructor(
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
+    private readonly brandsService: BrandsService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
+    private readonly membersService: MembersService,
     private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -848,7 +854,10 @@ export class PostGenerationService {
    */
   async generateHookVariations(
     dto: GenerateHooksDto,
-    identity: Pick<AuthenticatedUser, 'organizationId'>,
+    identity: Pick<
+      AuthenticatedUser,
+      'brandId' | 'id' | 'organizationId' | 'userId'
+    >,
   ): Promise<{
     hooks: string[];
     metadata: {
@@ -858,6 +867,32 @@ export class PostGenerationService {
       topic: string;
     };
   }> {
+    // #5219: generation always has an explicit brand. Explicit dto.brandId,
+    // else the route/thread context (identity.brandId), else the acting
+    // member's currentBrandId — never an org-wide guess.
+    const resolvedBrand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: identity.brandId,
+      explicitBrandId: dto.brandId,
+      membersService: this.membersService,
+      organizationId: identity.organizationId,
+      userId: identity.userId ?? identity.id,
+    });
+    if (!resolvedBrand?.id) {
+      throw new BadRequestException(
+        'brandId is required to generate hook variations.',
+      );
+    }
+    const brand = await this.brandsService.findOne({
+      id: String(resolvedBrand.id),
+      organizationId: identity.organizationId,
+    });
+    if (!brand) {
+      throw new BadRequestException(
+        'brandId is required to generate hook variations.',
+      );
+    }
+
     const count = dto.count || 5;
 
     const platformToneMap: Record<string, string> = {
@@ -883,13 +918,25 @@ Requirements:
 - No hashtags in hooks
 - Return as JSON array: ["hook1", "hook2", ...]`;
 
-    // Route through the prompt builder so hooks inherit brand/org system-prompt
-    // context and a typed Replicate input, matching the other generation flows
-    // (issue #861). Replaces the prior raw-string call that needed a type
-    // suppression because generateTextCompletionSync expects an input object.
+    // Route through the prompt builder so hooks inherit the resolved brand's
+    // voice/identity (#5219) and a typed Replicate input, matching the other
+    // generation flows (issue #861). Replaces the prior raw-string call that
+    // needed a type suppression because generateTextCompletionSync expects
+    // an input object.
+    const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const { input } = await this.promptBuilderService.buildPrompt(
       DEFAULT_MINI_TEXT_MODEL,
       {
+        brand: {
+          description: brand.description ?? undefined,
+          label: brand.label ?? 'Brand',
+          primaryColor: brand.primaryColor ?? undefined,
+          secondaryColor: brand.secondaryColor ?? undefined,
+          text: brand.text ?? undefined,
+        },
+        branding: brandPromptBranding,
+        brandingMode: 'brand',
+        isBrandingEnabled: true,
         maxTokens: TEXT_GENERATION_LIMITS.hookGeneration,
         modelCategory: ModelCategory.TEXT,
         prompt: userPrompt,

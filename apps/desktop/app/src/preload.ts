@@ -125,8 +125,12 @@ const desktopBridge: IGenfeedDesktopBridge = {
   cloud: {
     generateContent: async (params) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cloudGenerateContent, params),
-    generateHooks: async (topic) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cloudGenerateHooks, topic),
+    generateHooks: async (topic, brandId) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
+        topic,
+        brandId,
+      ),
     getAnalytics: async (params) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.cloudGetAnalytics, params),
     getIngredients: async (filter) =>

@@ -1,6 +1,7 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
@@ -67,6 +68,7 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     CredentialsCoreModule,
     InstagramModule,
+    MembersModule,
     LinkedInModule,
     ModelsModule,
     PinterestModule,
