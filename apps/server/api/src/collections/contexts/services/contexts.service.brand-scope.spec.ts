@@ -251,6 +251,41 @@ describe('ContextsService brand-scoped retrieval', () => {
       expect(similarity.sql).toContain('AND s."brandId" = ?');
       expect(similarity.values).toContain(BRAND_A);
     });
+
+    it('passes isKnowledgeOnly through so uncited legacy chunks never take a result slot', async () => {
+      const { contextBase, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([
+        { data: { label: 'A' }, id: 'ctx-a', sourceBrandId: BRAND_A },
+      ]);
+
+      await service.retrieveBrandContentMemory({
+        brandId: BRAND_A,
+        isKnowledgeOnly: true,
+        organizationId: 'org-1',
+        query: 'pricing',
+      });
+
+      const similarity = lastSimilarityQuery(queryRaw);
+      expect(similarity.sql).toContain('AND e."knowledgeSourceId" IS NOT NULL');
+    });
+
+    it('omits the Knowledge-only filter by default, keeping uncited legacy chunks eligible', async () => {
+      const { contextBase, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([
+        { data: { label: 'A' }, id: 'ctx-a', sourceBrandId: BRAND_A },
+      ]);
+
+      await service.retrieveBrandContentMemory({
+        brandId: BRAND_A,
+        organizationId: 'org-1',
+        query: 'pricing',
+      });
+
+      const similarity = lastSimilarityQuery(queryRaw);
+      expect(similarity.sql).not.toContain(
+        'AND e."knowledgeSourceId" IS NOT NULL',
+      );
+    });
   });
 
   describe('retrieveOrgAndPersonalContentMemory', () => {

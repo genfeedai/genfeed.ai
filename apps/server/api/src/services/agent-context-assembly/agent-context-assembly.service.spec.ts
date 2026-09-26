@@ -474,6 +474,7 @@ describe('AgentContextAssemblyService', () => {
     expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
+        isKnowledgeOnly: true,
         organizationId: 'org-1',
         query: 'launch post',
       }),
@@ -491,6 +492,73 @@ describe('AgentContextAssemblyService', () => {
     expect(service.buildSystemPrompt('', context)).toContain(
       '## Retrieved Brand Memory\n- [Saved Content Memory]: Hook that won last week',
     );
+  });
+
+  it('requests Knowledge-only hits so uncited legacy chunks never crowd out cited Knowledge passages', async () => {
+    // The mock stands in for the server-side `isKnowledgeOnly` SQL filter:
+    // when honored, uncited legacy rows never even reach the result set, so
+    // they cannot occupy a LIMIT slot ahead of a cited Knowledge passage.
+    contextsService.retrieveBrandContentMemory.mockImplementation(
+      async (params: { isKnowledgeOnly?: boolean }) =>
+        params.isKnowledgeOnly
+          ? [
+              {
+                citation: {
+                  kind: 'TEXT',
+                  purpose: 'INSPIRATION',
+                  sourceId: 'source-cited',
+                  title: 'Cited Knowledge passage',
+                  version: 1,
+                  versionId: 'source-cited-v1',
+                },
+                content: 'The cited Knowledge passage',
+                relevance: 0.7,
+              },
+            ]
+          : [
+              {
+                content: 'Uncited legacy passage 1',
+                relevance: 0.99,
+                source: 'Legacy Context Base',
+              },
+              {
+                content: 'Uncited legacy passage 2',
+                relevance: 0.98,
+                source: 'Legacy Context Base',
+              },
+              {
+                citation: {
+                  kind: 'TEXT',
+                  purpose: 'INSPIRATION',
+                  sourceId: 'source-cited',
+                  title: 'Cited Knowledge passage',
+                  version: 1,
+                  versionId: 'source-cited-v1',
+                },
+                content: 'The cited Knowledge passage',
+                relevance: 0.7,
+              },
+            ],
+    );
+
+    const context = (await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false, recentPosts: false },
+      organizationId: 'org-1',
+      query: 'launch post',
+      userId: 'user-1',
+    })) as AssembledBrandContext;
+
+    expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ isKnowledgeOnly: true }),
+    );
+    expect(context.ragEntries).toEqual([
+      {
+        citation: expect.objectContaining({ sourceId: 'source-cited' }),
+        content: 'The cited Knowledge passage',
+        relevance: 0.7,
+      },
+    ]);
   });
 
   it('never includes another brand’s passages when scoped to brand A', async () => {
@@ -585,6 +653,27 @@ describe('AgentContextAssemblyService', () => {
         relevance: 0.8,
       },
     ]);
+  });
+
+  it('skips every brand-owned content layer for an unbranded thread even though identity still resolves to the org’s selected brand', async () => {
+    // brandsService.findOne is mocked to always resolve brand-1, standing in
+    // for the org's `isSelected` fallback used purely for cosmetic identity.
+    // None of these content layers may key off that resolved brand.
+    const context = (await service.assembleContext({
+      organizationId: 'org-1',
+      query: 'launch post',
+      userId: 'user-1',
+    })) as AssembledBrandContext;
+
+    expect(context.brandId).toBe('brand-1');
+    expect(brandMemoryService.getInsights).not.toHaveBeenCalled();
+    expect(contextsService.retrieveBrandKnowledge).not.toHaveBeenCalled();
+    expect(prisma.post.findMany).not.toHaveBeenCalled();
+    expect(patternMatcherService.getTopPatternsForBrand).not.toHaveBeenCalled();
+    expect(context.layersUsed).not.toContain('brandMemory');
+    expect(context.layersUsed).not.toContain('brandKnowledge');
+    expect(context.layersUsed).not.toContain('recentPosts');
+    expect(context.layersUsed).not.toContain('performancePatterns');
   });
 
   it('skips automatic retrieval entirely for an unscoped thread with no actor', async () => {

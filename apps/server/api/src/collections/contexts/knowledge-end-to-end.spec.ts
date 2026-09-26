@@ -8,6 +8,7 @@ import { KnowledgeRecordsService } from '@api/collections/contexts/services/know
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { formatHarnessBrief } from '@api/services/harness/harness-brief.util';
 import {
   brandMemoryHitsToHarnessSources,
@@ -134,6 +135,18 @@ let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
 let selection: KnowledgeSelectionService;
 let legacyBackfill: KnowledgeLegacyBackfillService;
+let agentContextAssembly: AgentContextAssemblyService;
+
+/** Minimal brand identity the fixture brands table names — just enough for
+ * `AgentContextAssemblyService.assembleContext` to render identity without a
+ * real Brand row or BrandsService. */
+function fakeBrand(id: string, organizationId: string) {
+  return {
+    id,
+    label: `Brand ${id}`,
+    organizationId,
+  };
+}
 const ingestRuns: KnowledgeSourceIngestWorkflowInput[] = [];
 
 /** Runs the canonical ingest graph inline: load → mark → extract → chunk → replace → finalize. */
@@ -252,6 +265,39 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       records,
       workflowStub as never,
       logger as never,
+    );
+    const noopCache = {
+      generateKey: (...parts: string[]) => parts.join(':'),
+      getOrSet: (_key: string, factory: () => Promise<unknown>) => factory(),
+    };
+    const fakeBrandsService = {
+      // `isSelected` stands in for the organization's default brand — an
+      // unbranded thread's identity layer still resolves to it, but RAG
+      // scoping must key off the *caller's* brandId, never this fallback.
+      findOne: vi.fn(
+        async (filter: {
+          id?: string;
+          isSelected?: boolean;
+          organizationId: string;
+        }) => {
+          if (filter.id) return fakeBrand(filter.id, filter.organizationId);
+          if (filter.isSelected)
+            return fakeBrand('brand-a', filter.organizationId);
+          return null;
+        },
+      ),
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
+    };
+    agentContextAssembly = new AgentContextAssemblyService(
+      fakeBrandsService as never,
+      { getInsights: vi.fn().mockResolvedValue([]) } as never,
+      contexts,
+      { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
+      noopCache as never,
+      logger as never,
+      { getTopPatternsForBrand: vi.fn().mockResolvedValue([]) } as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
+      undefined as never,
     );
   });
 
@@ -374,6 +420,72 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     expect(new Set(bySpace?.knowledgeSourceIds)).toEqual(
       new Set([truth.source.id, inspiration.source.id]),
     );
+  });
+
+  it('never surfaces brand B’s saved memory in brand A’s assembled chat context (AgentContextAssemblyService)', async () => {
+    const memoryA = await capture.capture(actorA, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand A internal note: Q3 launch numbers hit 12 percent lift.',
+      title: 'Brand A Q3 note',
+    });
+    const memoryB = await capture.capture(actorB, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand B internal note: Q3 launch numbers hit 40 percent lift.',
+      title: 'Brand B Q3 note',
+    });
+
+    const query = 'Q3 launch numbers';
+    const disabledLayers = {
+      brandGuidance: false,
+      brandIdentity: true,
+      brandKnowledge: false,
+      brandMemory: false,
+      performancePatterns: false,
+      ragContext: true,
+      recentPosts: false,
+    };
+
+    const contextA = await agentContextAssembly.assembleContext({
+      brandId: 'brand-a',
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(
+      contextA?.ragEntries?.map((entry) => entry.citation.sourceId),
+    ).toEqual([memoryA.source.id]);
+    expect(JSON.stringify(contextA?.ragEntries)).not.toContain(
+      memoryB.source.id,
+    );
+
+    const contextB = await agentContextAssembly.assembleContext({
+      brandId: 'brand-b',
+      layers: disabledLayers,
+      organizationId: 'org-b',
+      query,
+      userId: 'user-b',
+    });
+    expect(
+      contextB?.ragEntries?.map((entry) => entry.citation.sourceId),
+    ).toEqual([memoryB.source.id]);
+    expect(JSON.stringify(contextB?.ragEntries)).not.toContain(
+      memoryA.source.id,
+    );
+
+    // An unbranded thread in brand A's own organization must not inherit
+    // brand A's saved memory either — only org/personal scope is eligible.
+    const unbrandedContext = await agentContextAssembly.assembleContext({
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(unbrandedContext?.ragEntries).toBeUndefined();
   });
 
   it('scopes automatic no-brand chat retrieval to organization plus the actor’s own personal Knowledge', async () => {

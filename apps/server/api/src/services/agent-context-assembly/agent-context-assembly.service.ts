@@ -148,8 +148,19 @@ export class AgentContextAssemblyService {
     );
     const fetchPromises: Array<Promise<void>> = [];
 
+    // Every layer below reads brand-owned content (saved memory, Knowledge,
+    // posts, performance history). `brandId` here is the *resolved* brand —
+    // when the caller passed no brandId, layer 1 above still resolves it to
+    // the organization's `isSelected` brand purely to render cosmetic
+    // identity (name, voice, persona). Gating these layers on
+    // `params.brandId` instead of `brandId` means a thread with no explicit
+    // brand scope never pulls another brand's saved memory, BRAND_TRUTH
+    // facts, recent posts or performance patterns just because the org
+    // happens to have one brand marked selected.
+    const hasExplicitBrandId = Boolean(params.brandId);
+
     // Layer 4: Memory Insights (cached)
-    if (layers.brandMemory) {
+    if (layers.brandMemory && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadMemoryLayer(organizationId, brandId, context),
       );
@@ -172,7 +183,7 @@ export class AgentContextAssemblyService {
     }
 
     // Layer 5b: authoritative BRAND_TRUTH Knowledge (query-dependent)
-    if (layers.brandKnowledge && params.query) {
+    if (layers.brandKnowledge && hasExplicitBrandId && params.query) {
       fetchPromises.push(
         this.loadBrandKnowledgeLayer(
           organizationId,
@@ -184,7 +195,7 @@ export class AgentContextAssemblyService {
     }
 
     // Layer 6: Recent Posts
-    if (layers.recentPosts) {
+    if (layers.recentPosts && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadRecentPostsLayer(
           organizationId,
@@ -197,7 +208,7 @@ export class AgentContextAssemblyService {
     }
 
     // Layer 7: Performance Patterns
-    if (layers.performancePatterns) {
+    if (layers.performancePatterns && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadPerformancePatternsLayer(
           organizationId,
@@ -802,6 +813,7 @@ export class AgentContextAssemblyService {
     const hits = threadBrandId
       ? await this.contextsService.retrieveBrandContentMemory({
           brandId: threadBrandId,
+          isKnowledgeOnly: true,
           organizationId,
           query,
         })

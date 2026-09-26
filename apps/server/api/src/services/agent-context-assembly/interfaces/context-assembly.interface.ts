@@ -5,11 +5,22 @@ import type {
 
 export interface AssembleContextParams {
   organizationId: string;
+  /**
+   * The thread's own validated brand scope — pass this only when the caller
+   * actually has one. When omitted, brand identity (name, voice, persona)
+   * still resolves cosmetically to the organization's `isSelected` brand, but
+   * every brand-owned content layer (saved memory, BRAND_TRUTH Knowledge,
+   * recent posts, performance patterns, and RAG) is skipped rather than
+   * silently reading whichever brand happens to be selected. RAG instead
+   * falls back to organization scope plus the actor's personal scope — see
+   * `userId`.
+   */
   brandId?: string;
   /**
-   * The acting user. Required to ground automatic Knowledge retrieval in the
-   * actor's personal scope when the thread has no validated brand; without it
-   * that retrieval falls back to organization scope only.
+   * The acting user. Required to ground automatic Knowledge (RAG) retrieval
+   * in the actor's personal scope when `brandId` is omitted; without it that
+   * retrieval falls back to organization scope only. Not required when
+   * `brandId` is set.
    */
   userId?: string;
   query?: string;

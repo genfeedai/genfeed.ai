@@ -510,6 +510,7 @@ export class ContextsService {
         ...(params.knowledgePurposes?.length
           ? { knowledgePurposes: params.knowledgePurposes }
           : {}),
+        ...(params.isKnowledgeOnly ? { isKnowledgeOnly: true } : {}),
       },
     );
     return toBrandContentMemoryHits(entries, bases);
