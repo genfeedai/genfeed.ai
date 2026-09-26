@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
   credentialId: string;
@@ -131,9 +132,14 @@ function createDeliveryMocks() {
 }
 
 function createDeliveryService(mocks: DeliveryMocks) {
-  const service = new ScheduledPostDeliveryService(
+  const postFailureService = new ScheduledPostFailureService(
     mocks.logger as never,
     mocks.activitiesService as never,
+    mocks.schedulerPublishStateService as never,
+  );
+  const service = new ScheduledPostDeliveryService(
+    mocks.logger as never,
+    postFailureService,
     mocks.credentialsService as never,
     mocks.organizationsService as never,
     mocks.quotaService as never,

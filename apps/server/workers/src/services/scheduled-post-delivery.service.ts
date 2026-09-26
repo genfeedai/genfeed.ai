@@ -1,5 +1,4 @@
 import type { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -55,6 +54,7 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   collectMediaGateAssetIds,
   type PlannedThreadChild,
@@ -97,7 +97,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly postFailureService: ScheduledPostFailureService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly organizationsService: OrganizationsService,
@@ -831,7 +831,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           postId: post.id.toString(),
         },
       );
-      await this.failChildren(post, getPublishErrorCode(error), errorMessage);
+      await this.postFailureService.failChildren(
+        post,
+        getPublishErrorCode(error),
+        errorMessage,
+      );
     }
   }
 
@@ -881,36 +885,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       message,
     );
     if (persisted) {
-      await this.failChildren(post, 'parent_failed', 'Parent post failed');
-      await this.notifyPublishFailed(post, activity);
+      await this.postFailureService.failChildren(
+        post,
+        'parent_failed',
+        'Parent post failed',
+      );
+      await this.postFailureService.notifyPublishFailed(post, activity);
       this.emitPublishFailedWebhook(post, message, platform || undefined);
     }
     return createFailedPublishResult(platform, message);
-  }
-
-  /**
-   * The target is already FAILED when this runs, so a notification error is
-   * logged instead of thrown: rethrowing would reach `handlePublishError`,
-   * whose retry path moves the target back to SCHEDULED.
-   */
-  private async notifyPublishFailed(
-    post: PostEntity,
-    activity: ActivityEntity,
-  ): Promise<void> {
-    try {
-      await this.activitiesService.create(activity);
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} failed to record publish failure activity`,
-        {
-          error: getErrorMessage(error, {
-            fallback: () => undefined,
-            messageSource: 'error-instance',
-          }),
-          postId: post.id.toString(),
-        },
-      );
-    }
   }
 
   private async attemptRetry(
@@ -977,8 +960,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (!persisted) {
       return undefined;
     }
-    await this.failChildren(post, 'parent_failed', 'Parent post failed');
-    await this.notifyPublishFailed(
+    await this.postFailureService.failChildren(
+      post,
+      'parent_failed',
+      'Parent post failed',
+    );
+    await this.postFailureService.notifyPublishFailed(
       post,
       createPublishFailedActivity(post, errorMessage),
     );
@@ -1223,60 +1210,5 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       success: result.success === true,
       url: typeof result.url === 'string' ? result.url : '',
     };
-  }
-
-  /**
-   * Moves still-pending thread children to FAILED. The prior-state guard
-   * leaves a child the provider already delivered untouched.
-   */
-  private async failChildren(
-    post: PostEntity,
-    code: string,
-    reason: string,
-  ): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const children = (post.children || []) as unknown as PostDocument[];
-
-    if (children.length === 0) {
-      return;
-    }
-
-    this.logger.log(`${url} failing ${children.length} children`, {
-      childrenCount: children.length,
-      parentPostId: post.id.toString(),
-      reason,
-    });
-
-    for (const child of children) {
-      try {
-        await this.schedulerPublishStateService.transitionPost(
-          {
-            groupId: child.groupId,
-            id: child.id,
-            organizationId: post.organizationId,
-          },
-          {
-            error: createChannelTargetError(code, reason, false),
-            executionState: TargetExecutionState.FAILED,
-          },
-          reason,
-          {
-            priorExecutionStates: [
-              TargetExecutionState.SCHEDULED,
-              TargetExecutionState.PUBLISHING,
-            ],
-          },
-        );
-      } catch (error: unknown) {
-        this.logger.error(`${url} failed to mark child as failed`, {
-          childPostId: child.id.toString(),
-          error: getErrorMessage(error, {
-            fallback: () => undefined,
-            messageSource: 'error-instance',
-          }),
-          parentPostId: post.id.toString(),
-        });
-      }
-    }
   }
 }
