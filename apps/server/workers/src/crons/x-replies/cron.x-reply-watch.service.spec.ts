@@ -83,7 +83,7 @@ function setup() {
   const socialInboxService = {
     ingestXPostReplies: vi.fn().mockResolvedValue({
       conversationsCreated: 0,
-      createdMessageIds: [],
+      createdMessages: [],
       messagesCreated: 0,
     }),
   };
@@ -240,7 +240,10 @@ describe('CronXReplyWatchService', () => {
     });
     context.socialInboxService.ingestXPostReplies.mockResolvedValue({
       conversationsCreated: 2,
-      createdMessageIds: [direct.tweetId, inThread.tweetId],
+      createdMessages: [
+        { conversationId: 'conv-p1', externalMessageId: direct.tweetId },
+        { conversationId: 'conv-p2', externalMessageId: inThread.tweetId },
+      ],
       messagesCreated: 2,
     });
 
@@ -261,7 +264,10 @@ describe('CronXReplyWatchService', () => {
       accountHandle: 'handle_a',
       brandId: 'brand-a',
       credentialId: 'a',
-      newReplyExternalIds: [direct.tweetId, inThread.tweetId],
+      newReplies: [
+        { conversationId: 'conv-p1', externalMessageId: direct.tweetId },
+        { conversationId: 'conv-p2', externalMessageId: inThread.tweetId },
+      ],
       organizationId: 'org-a',
       platform: 'twitter',
     });
@@ -350,7 +356,9 @@ describe('CronXReplyWatchService', () => {
       .mockResolvedValueOnce({ tweets: [] });
     context.socialInboxService.ingestXPostReplies.mockResolvedValueOnce({
       conversationsCreated: 1,
-      createdMessageIds: [reply.tweetId],
+      createdMessages: [
+        { conversationId: 'conv-p1', externalMessageId: reply.tweetId },
+      ],
       messagesCreated: 1,
     });
     context.notifications.recordNewReplies.mockRejectedValueOnce(
@@ -361,14 +369,18 @@ describe('CronXReplyWatchService', () => {
 
     expect(first.notified).toBe(0);
     expect(context.cache.get(xReplyWatchPendingNotifyKey('a'))).toEqual([
-      reply.tweetId,
+      { conversationId: 'conv-p1', externalMessageId: reply.tweetId },
     ]);
 
     const second = await context.service.watchRecentPostReplies(NOW);
 
     expect(second.notified).toBe(1);
     expect(context.notifications.recordNewReplies).toHaveBeenLastCalledWith(
-      expect.objectContaining({ newReplyExternalIds: [reply.tweetId] }),
+      expect.objectContaining({
+        newReplies: [
+          { conversationId: 'conv-p1', externalMessageId: reply.tweetId },
+        ],
+      }),
     );
     expect(context.cache.has(xReplyWatchPendingNotifyKey('a'))).toBe(false);
     expect(

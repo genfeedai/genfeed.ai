@@ -343,6 +343,27 @@ const getActiveWorkspaceId = (
   return workspaces[0]?.id ?? null;
 };
 
+/**
+ * The active workspace's linked brand (#5219) — generation always runs in an
+ * explicit brand context. Falls back to the cloud link's brand when the
+ * workspace itself isn't directly linked. Returns undefined (never guesses a
+ * different brand) when there is no active workspace or neither is set; the
+ * server rejects a brand-less generation call itself.
+ */
+const getActiveWorkspaceLinkedBrandId = (): string | undefined => {
+  const activeWorkspaceId = getActiveWorkspaceId();
+  if (!activeWorkspaceId || !workspaceService) {
+    return undefined;
+  }
+
+  try {
+    const workspace = workspaceService.getWorkspace(activeWorkspaceId);
+    return workspace.linkedBrandId ?? workspace.cloudLink?.cloudBrandId;
+  } catch {
+    return undefined;
+  }
+};
+
 const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
   if (!workspaceService || !kvService) {
     throw new Error('Select local mode before choosing a workspace.');
@@ -1406,15 +1427,23 @@ const registerIpcHandlers = (): void => {
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
-    async (_event: unknown, topic: string) =>
-      runDataService((service) => service.generateHooks(topic)),
+    async (_event: unknown, topic: string, brandId?: string) =>
+      runDataService((service) =>
+        service.generateHooks(
+          topic,
+          brandId ?? getActiveWorkspaceLinkedBrandId(),
+        ),
+      ),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
     async (_event: unknown, params: IDesktopGenerationOptions) => {
       try {
         return await runDataService((service) =>
-          service.generateContent(params),
+          service.generateContent({
+            ...params,
+            brandId: params.brandId ?? getActiveWorkspaceLinkedBrandId(),
+          }),
         );
       } finally {
         await emitBootstrap();

@@ -113,7 +113,11 @@ export class UserSetupService {
       // Billing-account linking verifies that the caller administers the
       // organization. Establish the canonical membership before invoking that
       // authorization boundary so first-time signup can finish provisioning.
-      member = await this.getOrCreateMember(organization.id, userId);
+      member = await this.getOrCreateMember(
+        organization.id,
+        userId,
+        brand.id.toString(),
+      );
 
       await this.billingAccountsService.ensureForOrganization({
         label: organization.label,
@@ -332,7 +336,6 @@ export class UserSetupService {
       backgroundColor: '#000000',
       description: 'Default description. Use it as a pre-prompt',
       fontFamily: 'montserrat-black',
-      isSelected: true,
       label,
       organizationId,
       primaryColor: '#000000',
@@ -352,6 +355,7 @@ export class UserSetupService {
   private async getOrCreateMember(
     organizationId: string,
     userId: string,
+    currentBrandId: string,
   ): Promise<MemberDocument> {
     const existing = await this.membersService.findOne({
       organizationId: organizationId,
@@ -382,6 +386,7 @@ export class UserSetupService {
     const roleToAssign = await this.resolveSignupMemberRole();
 
     const member = await this.membersService.create({
+      currentBrandId,
       isActive: true,
       organizationId,
       roleId: String(roleToAssign.id),

@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   diffSpecTypecheckBaseline,
   discoverSpecWorkspaces,
+  discoverSpecWorkspacesAcrossRoots,
   normalizeDiagnosticMessage,
   parseSpecTypecheckBaseline,
   runSpecTypecheck,
@@ -44,6 +45,46 @@ describe('check-spec-typecheck', () => {
 
     it('returns nothing when the workspaces directory is absent', () => {
       expect(discoverSpecWorkspaces(testDir, 'apps/server')).toEqual([]);
+    });
+  });
+
+  describe('discoverSpecWorkspacesAcrossRoots', () => {
+    it('merges workspaces enrolled under different roots (#5244)', () => {
+      writeWorkspace('api', 'apps/server');
+      writeWorkspace('app', 'apps');
+      writeWorkspace('ui', 'packages');
+
+      const byWorkspace = discoverSpecWorkspacesAcrossRoots(testDir, [
+        'apps/server',
+        'apps',
+        'packages',
+      ]);
+
+      expect(Object.fromEntries(byWorkspace)).toEqual({
+        api: 'apps/server',
+        app: 'apps',
+        ui: 'packages',
+      });
+    });
+
+    it('ignores a root that has no workspaces', () => {
+      writeWorkspace('api', 'apps/server');
+
+      const byWorkspace = discoverSpecWorkspacesAcrossRoots(testDir, [
+        'apps/server',
+        'packages',
+      ]);
+
+      expect([...byWorkspace.keys()]).toEqual(['api']);
+    });
+
+    it('rejects the same workspace name enrolled under two roots', () => {
+      writeWorkspace('ui', 'apps/server');
+      writeWorkspace('ui', 'packages');
+
+      expect(() =>
+        discoverSpecWorkspacesAcrossRoots(testDir, ['apps/server', 'packages']),
+      ).toThrow(/enrolled under both/u);
     });
   });
 
@@ -197,6 +238,45 @@ describe('check-spec-typecheck', () => {
         expect(finding.file).not.toContain(testDir);
       }
     });
+
+    it('checks workspaces enrolled under multiple roots in one run (#5244)', () => {
+      writeWorkspace('api', 'apps/server');
+      writeFixture(
+        'apps/server/api/src/broken.spec.ts',
+        'const value: string = 1;',
+      );
+
+      writeWorkspace('ui', 'packages');
+      writeFixture(
+        'packages/ui/src/broken.spec.ts',
+        'const value: number = "x";',
+      );
+
+      const result = runSpecTypecheck({
+        rootDir: testDir,
+        workspacesDir: ['apps/server', 'packages'],
+      });
+
+      expect(result.workspaces).toEqual(['api', 'ui']);
+      expect(
+        result.findings.map((finding) => finding.workspace).sort(),
+      ).toEqual(['api', 'ui']);
+      expect(
+        result.findings.find((finding) => finding.workspace === 'ui')?.file,
+      ).toBe('packages/ui/src/broken.spec.ts');
+    });
+
+    it('throws when an explicitly requested workspace has no spec tsconfig under any configured root', () => {
+      writeWorkspace('api', 'apps/server');
+
+      expect(() =>
+        runSpecTypecheck({
+          rootDir: testDir,
+          workspaces: ['does-not-exist'],
+          workspacesDir: ['apps/server', 'packages'],
+        }),
+      ).toThrow(/Unknown spec typecheck workspace "does-not-exist"/u);
+    });
   });
 
   describe('normalizeDiagnosticMessage', () => {
@@ -339,9 +419,9 @@ describe('check-spec-typecheck', () => {
    * `apps/server/tsconfig.typecheck.base.json`, whose path aliases resolve into
    * built package `dist` output that a temp directory has no way to provide.
    */
-  function writeWorkspace(name: string): void {
+  function writeWorkspace(name: string, root = 'apps/server'): void {
     writeFixture(
-      `apps/server/${name}/tsconfig.typecheck.specs.json`,
+      `${root}/${name}/tsconfig.typecheck.specs.json`,
       JSON.stringify({
         compilerOptions: {
           module: 'esnext',

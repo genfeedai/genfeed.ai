@@ -100,6 +100,34 @@ describe('AgentChatInput', () => {
     expect(screen.getByTestId('agent-chat-input-shell')).toBeTruthy();
   });
 
+  it('shows an explicit Knowledge selection as a chip that reopens the library', () => {
+    render(
+      <AgentChatInput
+        knowledgeSection={<section aria-label="Knowledge">Sources</section>}
+        knowledgeSelection={{ sourceIds: ['source-1', 'source-2'] }}
+        onSend={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('region', { name: 'Knowledge' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Knowledge · 2 selected' }),
+    );
+    expect(
+      screen.getByRole('region', { name: 'Knowledge' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no Knowledge chip while grounding is automatic', () => {
+    render(<AgentChatInput knowledgeSelection={{}} onSend={vi.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: /Knowledge ·/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps the prompt shell opaque when disabled', () => {
     render(<AgentChatInput disabled onSend={vi.fn()} />);
 

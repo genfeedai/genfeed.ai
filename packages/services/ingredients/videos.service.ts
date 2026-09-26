@@ -19,6 +19,7 @@ import {
   IngredientMergeSerializer,
   VideoCaptionSerializer,
   VideoEditSerializer,
+  VideoGenerationSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -55,7 +56,7 @@ export class VideosService extends IngredientsService<Video> {
       | VideoGenerationPayload,
     signal?: AbortSignal,
   ) {
-    const data = VideoSerializer.serialize(body);
+    const data = VideoGenerationSerializer.serialize(body);
     return await this.instance
       .post<JsonApiResponseDocument>('', data, { signal }) // Empty string for root path, data as second argument
       .then((res) => this.mapOne(res.data));

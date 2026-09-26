@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
+  SocialConversationReadDto,
   SocialConversationUpdateDto,
   SocialDmDto,
   SocialDraftDto,
@@ -9,6 +10,7 @@ import {
 import { SocialInboxIngestDto } from '@api/collections/social-inbox/dto/social-inbox-ingest.dto';
 import {
   SocialInboxQueryDto,
+  SocialInboxUnreadCountQueryDto,
   SocialMessagesQueryDto,
 } from '@api/collections/social-inbox/dto/social-inbox-query.dto';
 import {
@@ -41,6 +43,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   SocialConversationSerializer,
+  SocialInboxUnreadCountSerializer,
   SocialMessageSerializer,
 } from '@genfeedai/serializers';
 import {
@@ -79,6 +82,23 @@ export class SocialInboxController {
     const scope = this.buildScope(user);
     const data = await this.socialInboxService.listConversations(scope, query);
     return serializeCollection(request, SocialConversationSerializer, data);
+  }
+
+  @Get('unread-count')
+  @ApiOperation({
+    summary: 'Count social inbox conversations with unread messages',
+  })
+  async countUnreadConversations(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: SocialInboxUnreadCountQueryDto,
+  ): Promise<JsonApiSingleResponse> {
+    const scope = this.buildScope(user);
+    const data = await this.socialInboxService.countUnreadConversations(
+      scope,
+      query,
+    );
+    return serializeSingle(request, SocialInboxUnreadCountSerializer, data);
   }
 
   @Post('youtube/sync')
@@ -231,6 +251,25 @@ export class SocialInboxController {
       query,
     );
     return serializeCollection(request, SocialMessageSerializer, data);
+  }
+
+  @Patch(':conversationId/read')
+  @ApiOperation({
+    summary: 'Mark a social conversation read for the current user',
+  })
+  async markConversationRead(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('conversationId') conversationId: string,
+    @Body() body: SocialConversationReadDto,
+  ): Promise<JsonApiSingleResponse> {
+    const scope = this.buildScope(user);
+    const data = await this.socialInboxService.markConversationRead(
+      scope,
+      conversationId,
+      body.unreadCountSeen,
+    );
+    return serializeSingle(request, SocialConversationSerializer, data);
   }
 
   @Post(':conversationId/drafts')

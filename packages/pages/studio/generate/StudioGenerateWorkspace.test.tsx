@@ -199,6 +199,31 @@ vi.mock('@pages/studio/generate/components/StudioGenerateComposer', () => ({
   },
 }));
 
+vi.mock(
+  '@pages/library/knowledge/components/KnowledgeReferenceSection',
+  () => ({
+    countKnowledgeSelection: (selection: {
+      sourceIds?: string[];
+      spaceIds?: string[];
+      purposes?: string[];
+    }) =>
+      (selection.sourceIds?.length ?? 0) +
+      (selection.spaceIds?.length ?? 0) +
+      (selection.purposes?.length ?? 0),
+    default: (props: {
+      brandId?: string;
+      onChange: (value: { sourceIds: string[] }) => void;
+    }) => (
+      <button
+        type="button"
+        onClick={() => props.onChange({ sourceIds: ['source-1'] })}
+      >
+        Pick Knowledge for {props.brandId}
+      </button>
+    ),
+  }),
+);
+
 vi.mock('@pages/studio/generate/components/StudioGenerateResults', () => ({
   default: (props: unknown) => {
     mocks.results(props);
@@ -471,6 +496,33 @@ describe('StudioGenerateWorkspace', () => {
     act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
     expect(mocks.submit).toHaveBeenLastCalledWith(
       'Other coast',
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it('sends the Library picker Knowledge pick and drops it on brand change', async () => {
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onOpenLibrary('reference'));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: `Pick Knowledge for ${mocks.brandId.value}`,
+      }),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A heron'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A heron',
+      expect.anything(),
+      { knowledge: { sourceIds: ['source-1'] } },
+    );
+
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioGenerateWorkspace />);
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A crane'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A crane',
       expect.anything(),
       undefined,
     );

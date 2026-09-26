@@ -76,14 +76,6 @@ describe('Brands E2E Tests', () => {
       userId: testUser.id,
     });
 
-    // Create test member (owner)
-    testMember = createTestMember({
-      id: generateIdString(),
-      organizationId: testOrganization.id,
-      roleId: 'owner',
-      userId: testUser.id,
-    });
-
     // Create test brand
     testBrand = createTestBrand({
       id: generateIdString(),
@@ -94,11 +86,22 @@ describe('Brands E2E Tests', () => {
       userId: testUser.id,
     });
 
+    // Create test member (owner). currentBrandId is a required per-member
+    // invariant (#5219) -- wire it to the brand above and seed the brand
+    // before the member so the FK is satisfied on insert.
+    testMember = createTestMember({
+      id: generateIdString(),
+      currentBrandId: testBrand.id,
+      organizationId: testOrganization.id,
+      roleId: 'owner',
+      userId: testUser.id,
+    });
+
     // Seed core data
     await dbHelper.seedCollection('users', [testUser]);
     await dbHelper.seedCollection('organizations', [testOrganization]);
-    await dbHelper.seedCollection('members', [testMember]);
     await dbHelper.seedCollection('brands', [testBrand]);
+    await dbHelper.seedCollection('members', [testMember]);
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
         id: generateIdString(),
@@ -266,7 +269,6 @@ describe('Brands E2E Tests', () => {
       expect(attributes).toHaveProperty('primaryColor');
       expect(attributes).toHaveProperty('secondaryColor');
       expect(attributes).toHaveProperty('backgroundColor');
-      expect(attributes).toHaveProperty('isSelected');
       expect(attributes).toHaveProperty('isActive');
       expect(attributes).toHaveProperty('isDeleted');
     });
@@ -611,13 +613,6 @@ describe('Brands E2E Tests', () => {
         userId: otherUser.id,
       });
 
-      const otherMember = createTestMember({
-        id: generateIdString(),
-        organizationId: otherOrganization.id,
-        roleId: 'owner',
-        userId: otherUser.id,
-      });
-
       otherBrand = createTestBrand({
         id: generateIdString(),
         label: 'Other Org Brand',
@@ -626,10 +621,18 @@ describe('Brands E2E Tests', () => {
         userId: otherUser.id,
       });
 
+      const otherMember = createTestMember({
+        id: generateIdString(),
+        currentBrandId: otherBrand.id,
+        organizationId: otherOrganization.id,
+        roleId: 'owner',
+        userId: otherUser.id,
+      });
+
       await dbHelper.seedCollection('users', [otherUser]);
       await dbHelper.seedCollection('organizations', [otherOrganization]);
-      await dbHelper.seedCollection('members', [otherMember]);
       await dbHelper.seedCollection('brands', [otherBrand]);
+      await dbHelper.seedCollection('members', [otherMember]);
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
           id: generateIdString(),

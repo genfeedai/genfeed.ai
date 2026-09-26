@@ -23,6 +23,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 type MockFn = ReturnType<typeof vi.fn>;
 
 type PrismaMock = {
+  billingAccount: { findFirst: MockFn };
   billingAccountOrganization: { findFirst: MockFn; findMany: MockFn };
   billingAccountMember: { findFirst: MockFn; findMany: MockFn };
   creditTransaction: { findFirst: MockFn };
@@ -104,6 +105,11 @@ describe('ReferralsService', () => {
   beforeEach(() => {
     configMock.organizationBilling = true;
     prisma = {
+      billingAccount: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ id: 'ba_referred', isDeleted: false }),
+      },
       billingAccountOrganization: {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi
@@ -116,7 +122,14 @@ describe('ReferralsService', () => {
       },
       creditTransaction: { findFirst: vi.fn().mockResolvedValue(null) },
       organization: {
-        findFirst: vi.fn(),
+        // Default: ACTOR's organization is directly attached to
+        // ba_referred, matching the mocked BillingAccountsService below —
+        // resolveBillingAccountAccess (#5217) reads this independently of
+        // that mock. Tests unrelated to claim() override this per case.
+        findFirst: vi.fn().mockResolvedValue({
+          billingAccountId: 'ba_referred',
+          id: ACTOR.organizationId,
+        }),
         findMany: vi.fn().mockResolvedValue([{ id: ACTOR.organizationId }]),
       },
       referral: {

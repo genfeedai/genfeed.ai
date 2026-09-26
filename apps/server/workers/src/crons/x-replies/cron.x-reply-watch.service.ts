@@ -1,5 +1,8 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
-import type { XReplyTargetPost } from '@api/collections/social-inbox/services/social-inbox.types';
+import type {
+  CreatedSocialMessageRef,
+  XReplyTargetPost,
+} from '@api/collections/social-inbox/services/social-inbox.types';
 import { CacheService } from '@api/services/cache/cache.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import type { TwitterInboxTweet } from '@api/services/integrations/twitter/services/twitter-inbox.service';
@@ -67,6 +70,19 @@ const EMPTY_OUTCOME: CredentialOutcome = {
 };
 
 const SNOWFLAKE_PATTERN = /^\d{1,20}$/;
+
+function isCreatedMessageRef(value: unknown): value is CreatedSocialMessageRef {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const ref = value as Record<string, unknown>;
+  return (
+    typeof ref.conversationId === 'string' &&
+    ref.conversationId.length > 0 &&
+    typeof ref.externalMessageId === 'string' &&
+    ref.externalMessageId.length > 0
+  );
+}
 
 /** X ids are snowflakes: numeric order is time order. */
 function newestSnowflake(ids: ReadonlyArray<string | null | undefined>) {
@@ -319,7 +335,7 @@ export class CronXReplyWatchService {
       repliesMatched: replies.length,
     };
 
-    let createdMessageIds: string[] = [];
+    let createdMessages: CreatedSocialMessageRef[] = [];
     if (replies.length > 0) {
       const ingested = await this.socialInboxService.ingestXPostReplies(
         {
@@ -330,9 +346,9 @@ export class CronXReplyWatchService {
         { credentialId: credential.id, replies },
       );
       outcome.repliesCreated = ingested.messagesCreated;
-      createdMessageIds = ingested.createdMessageIds;
+      createdMessages = ingested.createdMessages;
     }
-    outcome.notified = await this.notify(credential, createdMessageIds);
+    outcome.notified = await this.notify(credential, createdMessages);
 
     const nextCursor = newestSnowflake([
       sinceId,
@@ -352,12 +368,19 @@ export class CronXReplyWatchService {
 
   private async notify(
     credential: XReplyWatchCredential,
-    createdMessageIds: string[],
+    createdMessages: CreatedSocialMessageRef[],
   ): Promise<number> {
     const pendingKey = xReplyWatchPendingNotifyKey(credential.id);
-    const pending = (await this.cacheService.get<string[]>(pendingKey)) ?? [];
-    const replyIds = [...new Set([...pending, ...createdMessageIds])];
-    if (replyIds.length === 0) {
+    const cached = await this.cacheService.get<unknown>(pendingKey);
+    const pending = Array.isArray(cached)
+      ? cached.filter(isCreatedMessageRef)
+      : [];
+    const repliesById = new Map<string, CreatedSocialMessageRef>();
+    for (const reply of [...pending, ...createdMessages]) {
+      repliesById.set(reply.externalMessageId, reply);
+    }
+    const replies = [...repliesById.values()];
+    if (replies.length === 0) {
       return 0;
     }
     try {
@@ -365,7 +388,7 @@ export class CronXReplyWatchService {
         accountHandle: credential.externalHandle ?? credential.username,
         brandId: credential.brandId,
         credentialId: credential.id,
-        newReplyExternalIds: replyIds,
+        newReplies: replies,
         organizationId: credential.organizationId,
         platform: Platform.TWITTER,
       });
@@ -376,7 +399,7 @@ export class CronXReplyWatchService {
     } catch (error: unknown) {
       // The replies are stored and re-ingesting them creates nothing new, so
       // keep their ids and retry the notification next tick without X calls.
-      await this.cacheService.set(pendingKey, replyIds, {
+      await this.cacheService.set(pendingKey, replies, {
         ttl: X_REPLY_WATCH_WINDOW_MS / 1000,
       });
       this.logger.error('X reply notification failed', error, {

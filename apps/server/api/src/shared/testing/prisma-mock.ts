@@ -46,9 +46,9 @@ function flattenSqlValue(value: unknown): { sql: string; values: unknown[] } {
  * (not just a TypeScript type) anywhere in apps/server/api/src:
  * `Prisma.sql`, `Prisma.raw`, `Prisma.empty`, `Prisma.join`, `Prisma.Sql`,
  * `Prisma.AnyNull`, `Prisma.DbNull`, `Prisma.JsonNull`,
- * `Prisma.PrismaClientKnownRequestError`. Everything else the codebase
- * writes as `Prisma.XWhereInput` etc. is a type, erased at compile time —
- * it needs no runtime stub.
+ * `Prisma.PrismaClientKnownRequestError`, `Prisma.PrismaClientValidationError`.
+ * Everything else the codebase writes as `Prisma.XWhereInput` etc. is a
+ * type, erased at compile time — it needs no runtime stub.
  */
 export class MockPrismaClientKnownRequestError extends Error {
   code: string;
@@ -71,6 +71,17 @@ export class MockPrismaClientKnownRequestError extends Error {
   }
 }
 
+/** Mirrors the real `PrismaClientValidationError`: a bad argument shape, thrown before any connection is attempted. */
+export class MockPrismaClientValidationError extends Error {
+  clientVersion: string;
+
+  constructor(message: string, options: { clientVersion: string }) {
+    super(message);
+    this.name = 'PrismaClientValidationError';
+    this.clientVersion = options.clientVersion;
+  }
+}
+
 export const mockPrismaNamespace = {
   empty: createSql(''),
   AnyNull: Object.freeze({ __prismaNull: 'AnyNull' }),
@@ -84,6 +95,7 @@ export const mockPrismaNamespace = {
     );
   },
   PrismaClientKnownRequestError: MockPrismaClientKnownRequestError,
+  PrismaClientValidationError: MockPrismaClientValidationError,
   raw: (sql: string) => createSql(sql),
   sql: (strings: TemplateStringsArray, ...values: unknown[]) => {
     const boundValues: unknown[] = [];

@@ -11,7 +11,7 @@ export class Member extends BaseEntity implements IMember {
   declare public organizationId: string;
   declare public userId: string;
   declare public roleId: string;
-  declare public lastUsedBrandId?: string | null;
+  declare public currentBrandId: string;
   declare public roleKey?: string | null;
   declare public organization?: IOrganization;
   declare public user?: IUser;

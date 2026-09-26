@@ -20,8 +20,12 @@ import {
   hasVideoReferences,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   StudioGenerateComposerProps,
@@ -29,6 +33,9 @@ import type {
 } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
+import KnowledgeReferenceSection, {
+  countKnowledgeSelection,
+} from '@pages/library/knowledge/components/KnowledgeReferenceSection';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
@@ -99,6 +106,9 @@ interface StudioContentReference {
  * supports, enriched with the brand's own prompt data, and everything the
  * brand has ever generated sits above it in one grid.
  */
+
+const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
+
 export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const {
@@ -172,6 +182,24 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const [contentReferences, setContentReferences] = useState<
     StudioContentReference[]
   >([]);
+  const [brandKnowledgeSelection, setBrandKnowledgeSelection] =
+    useState<BrandKnowledgeSelection>({
+      brandId: undefined,
+      value: EMPTY_KNOWLEDGE_SELECTION,
+    });
+  // A pick made under another brand is never sent: switching brand returns
+  // the Library picker to Auto instead of carrying foreign sources over.
+  const knowledgeSelection =
+    brandKnowledgeSelection.brandId === brandId
+      ? brandKnowledgeSelection.value
+      : EMPTY_KNOWLEDGE_SELECTION;
+  const hasKnowledgeSelection = countKnowledgeSelection(knowledgeSelection) > 0;
+  const handleKnowledgeSelectionChange = useCallback(
+    (value: KnowledgeSelection) => {
+      setBrandKnowledgeSelection({ brandId, value });
+    },
+    [brandId],
+  );
   const uploadRolesRef = useRef(
     new WeakMap<File, StudioGenerateReferenceRole>(),
   );
@@ -725,10 +753,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
         imageReferenceIds: prepared.referenceIds,
       },
       skillSlugs.length ||
+        hasKnowledgeSelection ||
         (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
         (enhancedPromptId && prepared.text === prompt)
         ? {
             ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
+            ...(hasKnowledgeSelection ? { knowledge: knowledgeSelection } : {}),
             ...(isHandoffAccepted && handoffPayload?.harness !== undefined
               ? { harness: handoffPayload.harness }
               : {}),
@@ -742,6 +772,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     isHandoffAccepted,
     handoffPayload,
     enhancedPromptId,
+    hasKnowledgeSelection,
+    knowledgeSelection,
     isListening,
     isTranscribing,
     isUploading,
@@ -1261,6 +1293,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
         isLoading={isContentLibraryLoading}
         isOpen={isContentLibraryOpen}
         items={contentLibraryItems}
+        knowledgeSection={
+          <KnowledgeReferenceSection
+            brandId={brandId || undefined}
+            key={brandId || 'no-brand'}
+            onChange={handleKnowledgeSelectionChange}
+            value={knowledgeSelection}
+          />
+        }
         onOpenChange={setIsContentLibraryOpen}
         onSelect={handleSelectContentReference}
         selectedIds={selectedContentIds}

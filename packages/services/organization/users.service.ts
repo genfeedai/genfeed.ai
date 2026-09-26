@@ -75,18 +75,16 @@ export class UsersService extends BaseService<User> {
       );
   }
 
-  public async patchMeBrand(
-    id: string,
-    brand: Partial<IBrand>,
-  ): Promise<IBrand> {
+  /**
+   * Marks `id` as the signed-in member's current brand. The server derives
+   * everything it needs from the URL param and the authenticated user, so
+   * this sends no body.
+   */
+  public async patchMeBrand(id: string): Promise<IBrand> {
     return await this.instance
-      .patch<JsonApiResponseDocument>(`me/brands/${id}`, brand)
+      .patch<JsonApiResponseDocument>(`me/brands/${id}`, {})
       .then((res) => res.data)
       .then((res) => new Brand(this.extractResource<Partial<IBrand>>(res)));
-  }
-
-  public async clearMeBrandSelection(): Promise<IUser> {
-    return await this.patchMe({ selectedBrandId: null });
   }
 
   public async patchSettings(
@@ -220,9 +218,7 @@ export class UsersService extends BaseService<User> {
       .then((res) => this.mapOne(res.data));
   }
 
-  public async patchMe(
-    body: Partial<IUser> & { selectedBrandId?: string | null },
-  ): Promise<IUser> {
+  public async patchMe(body: Partial<IUser>): Promise<IUser> {
     return await this.instance
       .patch<JsonApiResponseDocument>('me', body)
       .then((res) => this.mapOne(res.data));

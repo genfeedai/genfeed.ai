@@ -89,13 +89,6 @@ export class CreateBrandDto {
   })
   readonly backgroundColor!: string;
 
-  @IsBoolean()
-  @ApiProperty({
-    description: 'Whether this brand is currently selected',
-    required: true,
-  })
-  readonly isSelected!: boolean;
-
   @IsEnum(AssetScope)
   @IsOptional()
   @ApiProperty({

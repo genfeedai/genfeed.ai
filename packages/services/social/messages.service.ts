@@ -6,6 +6,8 @@ import type {
   SocialConversationStatus,
   SocialInboxQuery,
   SocialInboxSyncEnqueueResult,
+  SocialInboxUnreadCount,
+  SocialInboxUnreadCountQuery,
   SocialMessage,
   SocialMessageQuery,
 } from '@genfeedai/contracts/interfaces';
@@ -64,6 +66,44 @@ export class SocialMessagesService extends BaseService<
     signal?: AbortSignal,
   ): Promise<SocialConversationModel> {
     return this.findOne(id, {}, signal);
+  }
+
+  unreadCount(
+    params: SocialInboxUnreadCountQuery = {},
+    signal?: AbortSignal,
+  ): Promise<SocialInboxUnreadCount> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/unread-count`,
+      this.instance
+        .get<JsonApiResponseDocument>('/unread-count', { params, signal })
+        .then((response) =>
+          this.extractResource<SocialInboxUnreadCount>(response.data),
+        ),
+    );
+  }
+
+  /**
+   * Marks the conversation read for the current user. `unreadCountSeen` is
+   * the unread count the caller actually rendered before deciding to mark
+   * it read — the server clears exactly that many, atomically, so a reply
+   * landing after the caller's view stays unread instead of being cleared
+   * by a fresh (and by then stale) server-side count.
+   */
+  markRead(
+    conversationId: string,
+    unreadCountSeen?: number,
+    signal?: AbortSignal,
+  ): Promise<SocialConversationModel> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${conversationId}/read`,
+      this.instance
+        .patch<JsonApiResponseDocument>(
+          `/${conversationId}/read`,
+          typeof unreadCountSeen === 'number' ? { unreadCountSeen } : {},
+          { signal },
+        )
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 
   listMessages(

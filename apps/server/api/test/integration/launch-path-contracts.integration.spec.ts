@@ -407,7 +407,12 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const similarity = readSourceOf('buildContextSimilarityQuery', {
       root: API_SRC,
     });
-    const contexts = readSourceOf('ContextsService', { root: API_SRC });
+    const knowledgeRetrieval = readSourceOf(
+      'KnowledgeContentRetrievalService',
+      {
+        root: API_SRC,
+      },
+    );
     const harnessGen = readSourceOf('HarnessGenerationService', {
       root: API_SRC,
     });
@@ -420,7 +425,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(migration).toContain('CREATE EXTENSION IF NOT EXISTS vector');
     expect(migration).toContain('hnsw');
     expect(similarity).toContain('<=>');
-    expect(contexts).toContain('retrieveBrandContentMemory');
+    expect(knowledgeRetrieval).toContain('retrieveBrandContentMemory');
     expect(harnessGen).toContain('loadBrandMemorySources');
     expect(harnessGen).toContain('retrieveBrandContentMemory');
     // DI must wire ContextsService or memory silently no-ops at runtime.

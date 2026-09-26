@@ -91,11 +91,25 @@ export class ApiKeyAuthGuard implements CanActivate {
 
     const apiKeyId = apiKey.id;
 
+    // `AuthenticatedUser.brandId` is a general request-scoping convenience
+    // read by many non-generation endpoints, so it must always resolve to a
+    // real brand — never the organizationId (a prior bug here) and never
+    // undefined. This is NOT the #5219 generation-brand resolution: MCP
+    // generation tools look up the key's validated `defaultBrandId`
+    // separately (explicit param > key default > reject); they must not
+    // trust this ambient value as if it were that stricter signal.
+    const requestScopedBrandId =
+      (await this.apiKeysService.resolveValidDefaultBrandId(
+        apiKey.organizationId,
+        apiKey.defaultBrandId,
+      )) ??
+      (await this.apiKeysService.resolveAnyBrandId(apiKey.organizationId));
+
     // Attach user info to request for downstream use
     request.user = {
       actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
       apiKeyId,
-      brandId: apiKey.organizationId,
+      brandId: requestScopedBrandId ?? '',
       id: apiKey.userId,
       isApiKey: true,
       isSuperAdmin: false,

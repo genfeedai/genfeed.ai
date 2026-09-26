@@ -1,7 +1,10 @@
 'use client';
 
 import { IngredientStatus } from '@genfeedai/contracts';
-import type { IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  IModel,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import type {
   GenerationResponse,
   SocketResult,
@@ -74,6 +77,8 @@ export interface UseStudioGenerationReturn {
 export interface StudioGenerationOptions {
   requestedSkillSlugs?: string[];
   harness?: boolean;
+  /** Explicit Knowledge pick from the Library picker; absent means Auto. */
+  knowledge?: KnowledgeSelection;
   promptId?: string;
 }
 
@@ -610,6 +615,7 @@ export function useStudioGeneration({
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
+                ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
               },
               promptData,
             );
@@ -639,6 +645,7 @@ export function useStudioGeneration({
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
+                ...(options?.knowledge ? { knowledge: options.knowledge } : {}),
               },
               videoPromptData,
             );

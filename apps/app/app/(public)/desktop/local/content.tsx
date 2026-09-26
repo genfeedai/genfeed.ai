@@ -111,8 +111,19 @@ export default function LocalDesktopContent() {
     setError(null);
     setIsBusy(true);
     try {
+      // Generation always runs in an explicit brand context (#5219). Send
+      // the active workspace's linked brand; the main process falls back to
+      // it too when a caller omits this, but sending it here keeps the
+      // active workspace (not whatever the account's ambient current brand
+      // is) authoritative for this generation.
+      const activeWorkspace = bootstrap?.workspaces.find(
+        (workspace) => workspace.id === bootstrap.activeWorkspaceId,
+      );
       setResult(
         await bridge.cloud.generateContent({
+          brandId:
+            activeWorkspace?.linkedBrandId ??
+            activeWorkspace?.cloudLink?.cloudBrandId,
           platform: 'twitter',
           prompt: prompt.trim(),
           publishIntent: 'review',

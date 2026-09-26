@@ -32,6 +32,12 @@ describe('TrendsController', () => {
   let modelsService: {
     findOne: ReturnType<typeof vi.fn>;
   };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+  };
+  let membersService: {
+    findOne: ReturnType<typeof vi.fn>;
+  };
 
   const mockTrend = {
     growthRate: 150,
@@ -90,11 +96,22 @@ describe('TrendsController', () => {
         pricing: { input: 1, output: 1 },
       }),
     };
+    brandsService = {
+      findOne: vi.fn().mockResolvedValue({
+        id: mockUser.brandId,
+        label: 'Mock Brand',
+      }),
+    };
+    membersService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
     controller = new TrendsController(
       mockTrendsService as never,
       mockTrendPreferencesService as never,
       creditsUtilsService as never,
       modelsService as never,
+      brandsService as never,
+      membersService as never,
     );
     discoveryController = new TrendsDiscoveryController(
       mockTrendsService as never,
@@ -623,6 +640,7 @@ describe('TrendsController', () => {
         [mockTrend],
         query.limit,
         expect.any(Function),
+        { description: undefined, label: 'Mock Brand', text: undefined },
       );
       expect(result.success).toBe(true);
       expect(result.ideas).toBeDefined();

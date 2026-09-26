@@ -81,9 +81,7 @@ describe('useBrandSwitchHandler', () => {
     });
 
     expect(mockGetUsersService).toHaveBeenCalledTimes(1);
-    expect(mockPatchMeBrand).toHaveBeenCalledWith('brand-2', {
-      isSelected: true,
-    });
+    expect(mockPatchMeBrand).toHaveBeenCalledWith('brand-2');
     expect(mockReload).toHaveBeenCalled();
     expect(onBrandChange).toHaveBeenCalledWith('brand-2');
   });

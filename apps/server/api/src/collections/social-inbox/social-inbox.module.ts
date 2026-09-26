@@ -4,6 +4,7 @@ import { SocialInboxService } from '@api/collections/social-inbox/services/socia
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
@@ -14,6 +15,7 @@ import { InstagramModule } from '@api/services/integrations/instagram/instagram.
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { Module } from '@nestjs/common';
 
@@ -23,6 +25,7 @@ import { Module } from '@nestjs/common';
   imports: [
     InstagramModule,
     LinkedInModule,
+    NotificationsModule,
     NotificationsPublisherModule,
     QueuesModule,
     TwitterModule,
@@ -33,6 +36,7 @@ import { Module } from '@nestjs/common';
     SocialInboxActionService,
     SocialInboxIngestionService,
     SocialInboxQueryService,
+    SocialInboxReadStateService,
     SocialInboxRealtimeService,
     SocialInboxService,
     SocialInboxSyncWorkflowService,

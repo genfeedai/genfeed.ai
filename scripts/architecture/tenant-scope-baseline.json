@@ -121,46 +121,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "billingAccountOrganization",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "76e2c49c8648240a1fe3",
-      "method": "count",
-      "model": "BillingAccountOrganization",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "billingAccountOrganization",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "c8916652188acefbc19e",
-      "method": "findMany",
-      "model": "BillingAccountOrganization",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "76889126642b6c1f3545",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditTransaction",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "cab27a49d6bbe39655f6",
-      "method": "groupBy",
-      "model": "CreditTransaction",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "subscription",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "b8e10dbeaa4e636a5e62",
-      "method": "findFirst",
-      "model": "Subscription",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "botActivity",
       "file": "apps/server/api/src/collections/bot-activities/services/bot-activities.service.ts",
       "fingerprint": "9f5a806541980fc5b19d",
@@ -333,14 +293,6 @@
       "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "3b1634b077dec89f88de",
       "method": "findMany",
-      "model": "Member",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-      "fingerprint": "36d0322de7e12c2f0387",
-      "method": "updateMany",
       "model": "Member",
       "reason": "missing-is-deleted"
     },
@@ -1726,22 +1678,6 @@
       "fingerprint": "562e54e453a692e649bf",
       "method": "findFirst",
       "model": "Brand",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "d97358209162153c7034",
-      "method": "update",
-      "model": "Member",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "member",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "508ce7256277cec07fbb",
-      "method": "update",
-      "model": "Member",
       "reason": "missing-organization-id"
     },
     {

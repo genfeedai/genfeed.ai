@@ -42,7 +42,6 @@ export function useAgentBrandCreate(): (
         new Brand({
           description: description.trim(),
           isDeleted: false,
-          isSelected: false,
           label: trimmedName,
           ...(organizationId ? { organizationId } : {}),
         } as Partial<IBrand>),

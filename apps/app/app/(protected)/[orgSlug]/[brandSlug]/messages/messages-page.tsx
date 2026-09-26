@@ -10,7 +10,10 @@ import {
   Platform,
   SocialConversationType,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  MESSAGES_CONVERSATION_QUERY_PARAM,
+} from '@genfeedai/contracts/constants';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
@@ -49,6 +52,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useRefreshInboxIndicators } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 
 import {
@@ -60,7 +64,6 @@ import {
   AUTOMATION_OPTIONS,
   formatMessageTime,
   getMessageProvenanceItems,
-  SELECTED_CONVERSATION_PARAM,
   STATUS_LABELS,
   STATUS_STYLES,
 } from './messages-page.helpers';
@@ -304,9 +307,9 @@ export default function MessagesPage() {
       const nextSearchParams = new URLSearchParams(searchParamsString);
 
       if (conversationId) {
-        nextSearchParams.set(SELECTED_CONVERSATION_PARAM, conversationId);
+        nextSearchParams.set(MESSAGES_CONVERSATION_QUERY_PARAM, conversationId);
       } else {
-        nextSearchParams.delete(SELECTED_CONVERSATION_PARAM);
+        nextSearchParams.delete(MESSAGES_CONVERSATION_QUERY_PARAM);
       }
 
       const queryString = nextSearchParams.toString();
@@ -322,7 +325,9 @@ export default function MessagesPage() {
   }, [updateSelectedConversationParam]);
 
   const requestedConversationId =
-    searchParams.get(SELECTED_CONVERSATION_PARAM) ?? null;
+    searchParams.get(MESSAGES_CONVERSATION_QUERY_PARAM) ?? null;
+
+  const refreshInboxIndicators = useRefreshInboxIndicators();
 
   const {
     conversationPagination,
@@ -342,6 +347,7 @@ export default function MessagesPage() {
   } = useMessagesConversations({
     getMessagesService,
     onClearSelectedConversationParam: clearSelectedConversationParam,
+    onUnreadStateChange: refreshInboxIndicators,
     query: filters.query,
     requestedConversationId,
     scopedOrganizationId,
@@ -382,6 +388,7 @@ export default function MessagesPage() {
     conversationType: filters.conversationType,
     getMessagesService,
     loadConversations,
+    onInboxReadStateChange: refreshInboxIndicators,
     onLoadError: setLoadError,
     refreshSelectedThread,
     selectedConversation,

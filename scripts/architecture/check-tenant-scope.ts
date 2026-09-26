@@ -26,6 +26,15 @@
  * `@api/tenancy/scoped-where`. Existing Chips B/C debt is captured by an exact,
  * deterministic baseline. New findings and stale baseline entries both fail,
  * so the baseline can only move with an explicit reviewed change.
+ *
+ * A tenant model that also carries `billingAccountId` (#5217) may instead
+ * prove scope with `billingAccountScopedWhere(scope, where)`, where `scope`
+ * can only come from `resolveBillingAccountAccess`. This is additive: it
+ * never lets a query skip proving `isDeleted`, and a model without
+ * `billingAccountId` is entirely unaffected. A literal `billingAccountId: …`
+ * property does NOT satisfy this — only the helper call does, the same way a
+ * raw `organizationId: …` literal is weaker proof than `scopedWhere` but is
+ * (for that field only) still accepted for backward compatibility.
  */
 
 import { createHash } from 'node:crypto';
@@ -34,6 +43,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 import {
+  discoverBillingAccountModelNames,
   discoverTenantModels,
   TENANT_QUERY_OPERATION_SET,
   type TenantModel,
@@ -178,18 +188,28 @@ type PropertyResolution =
 type Presence = 'absent' | 'present' | 'unresolved';
 
 type ScopePresence = {
+  /** Only set by a `billingAccountScopedWhere(...)` call — see module docstring. */
+  billingAccountId: Presence;
   isDeleted: Presence;
   organizationId: Presence;
 };
 
-type ScopedWhereBindings = {
+type ScopedWhereBindingSet = {
   identifiers: Set<string>;
   namespaces: Set<string>;
+};
+
+/** The two helpers a `where` can prove scope with: `scopedWhere` and `billingAccountScopedWhere`. */
+type ScopedWhereBindings = {
+  billingAccount: ScopedWhereBindingSet;
+  organization: ScopedWhereBindingSet;
 };
 
 type CallCandidate = {
   call: ts.CallExpression;
   delegate: string;
+  /** Tenant model that also carries `billingAccountId` in the schema (#5217). */
+  isBillingAccountCapable: boolean;
   method: string;
   model: string;
 };
@@ -370,10 +390,12 @@ function resolveLocalInitializer(
   return mutated ? null : declaration.initializer;
 }
 
-function collectScopedWhereBindings(
+/** Collects the local bindings for one named import (`importedName`) from the canonical tenancy modules. */
+function collectImportBindings(
   sourceFile: ts.SourceFile,
-): ScopedWhereBindings {
-  const bindings: ScopedWhereBindings = {
+  importedName: string,
+): ScopedWhereBindingSet {
+  const bindings: ScopedWhereBindingSet = {
     identifiers: new Set(),
     namespaces: new Set(),
   };
@@ -402,9 +424,10 @@ function collectScopedWhereBindings(
     }
 
     for (const element of namedBindings.elements) {
-      const importedName = element.propertyName?.text ?? element.name.text;
+      const elementImportedName =
+        element.propertyName?.text ?? element.name.text;
 
-      if (importedName === 'scopedWhere') {
+      if (elementImportedName === importedName) {
         bindings.identifiers.add(element.name.text);
       }
     }
@@ -413,9 +436,22 @@ function collectScopedWhereBindings(
   return bindings;
 }
 
-function isScopedWhereCall(
+function collectScopedWhereBindings(
+  sourceFile: ts.SourceFile,
+): ScopedWhereBindings {
+  return {
+    billingAccount: collectImportBindings(
+      sourceFile,
+      'billingAccountScopedWhere',
+    ),
+    organization: collectImportBindings(sourceFile, 'scopedWhere'),
+  };
+}
+
+function isBoundCall(
   expression: ts.Expression,
-  bindings: ScopedWhereBindings,
+  bindings: ScopedWhereBindingSet,
+  methodName: string,
 ): boolean {
   const unwrapped = unwrapExpression(expression);
 
@@ -433,7 +469,25 @@ function isScopedWhereCall(
     ts.isPropertyAccessExpression(callee) &&
     ts.isIdentifier(callee.expression) &&
     bindings.namespaces.has(callee.expression.text) &&
-    callee.name.text === 'scopedWhere'
+    callee.name.text === methodName
+  );
+}
+
+function isScopedWhereCall(
+  expression: ts.Expression,
+  bindings: ScopedWhereBindings,
+): boolean {
+  return isBoundCall(expression, bindings.organization, 'scopedWhere');
+}
+
+function isBillingAccountScopedWhereCall(
+  expression: ts.Expression,
+  bindings: ScopedWhereBindings,
+): boolean {
+  return isBoundCall(
+    expression,
+    bindings.billingAccount,
+    'billingAccountScopedWhere',
   );
 }
 
@@ -527,8 +581,36 @@ function mergeScopePresence(
   right: ScopePresence,
 ): ScopePresence {
   return {
+    billingAccountId: mergePresence(
+      left.billingAccountId,
+      right.billingAccountId,
+    ),
     isDeleted: mergePresence(left.isDeleted, right.isDeleted),
     organizationId: mergePresence(left.organizationId, right.organizationId),
+  };
+}
+
+function unresolvedScopePresence(): ScopePresence {
+  return {
+    billingAccountId: 'unresolved',
+    isDeleted: 'unresolved',
+    organizationId: 'unresolved',
+  };
+}
+
+function absentScopePresence(): ScopePresence {
+  return {
+    billingAccountId: 'absent',
+    isDeleted: 'absent',
+    organizationId: 'absent',
+  };
+}
+
+function presentScopePresence(): ScopePresence {
+  return {
+    billingAccountId: 'present',
+    isDeleted: 'present',
+    organizationId: 'present',
   };
 }
 
@@ -547,6 +629,10 @@ function intersectScopePresence(
   right: ScopePresence,
 ): ScopePresence {
   return {
+    billingAccountId: intersectPresence(
+      left.billingAccountId,
+      right.billingAccountId,
+    ),
     isDeleted: intersectPresence(left.isDeleted, right.isDeleted),
     organizationId: intersectPresence(
       left.organizationId,
@@ -560,6 +646,10 @@ function applySpreadPresence(
   spread: ScopePresence,
 ): ScopePresence {
   return {
+    billingAccountId:
+      spread.billingAccountId === 'absent'
+        ? current.billingAccountId
+        : spread.billingAccountId,
     isDeleted:
       spread.isDeleted === 'absent' ? current.isDeleted : spread.isDeleted,
     organizationId:
@@ -579,18 +669,12 @@ function inspectDisjunction(
 
   if (ts.isIdentifier(unwrapped)) {
     if (visitedIdentifiers.has(unwrapped.text)) {
-      return {
-        isDeleted: 'unresolved',
-        organizationId: 'unresolved',
-      };
+      return unresolvedScopePresence();
     }
 
     const initializer = resolveLocalInitializer(unwrapped, sourceFile);
     if (!initializer) {
-      return {
-        isDeleted: 'unresolved',
-        organizationId: 'unresolved',
-      };
+      return unresolvedScopePresence();
     }
 
     const nextVisited = new Set(visitedIdentifiers);
@@ -608,10 +692,7 @@ function inspectDisjunction(
   }
 
   if (unwrapped.elements.length === 0) {
-    return {
-      isDeleted: 'absent',
-      organizationId: 'absent',
-    };
+    return absentScopePresence();
   }
 
   return unwrapped.elements.reduce<ScopePresence>(
@@ -632,10 +713,7 @@ function inspectDisjunction(
               new Set(visitedIdentifiers),
             ),
       ),
-    {
-      isDeleted: 'present',
-      organizationId: 'present',
-    },
+    presentScopePresence(),
   );
 }
 
@@ -649,25 +727,28 @@ function inspectWhereExpression(
 
   if (isScopedWhereCall(unwrapped, bindings)) {
     return {
+      billingAccountId: 'absent',
       isDeleted: 'present',
       organizationId: 'present',
     };
   }
 
+  if (isBillingAccountScopedWhereCall(unwrapped, bindings)) {
+    return {
+      billingAccountId: 'present',
+      isDeleted: 'present',
+      organizationId: 'absent',
+    };
+  }
+
   if (ts.isIdentifier(unwrapped)) {
     if (visitedIdentifiers.has(unwrapped.text)) {
-      return {
-        isDeleted: 'unresolved',
-        organizationId: 'unresolved',
-      };
+      return unresolvedScopePresence();
     }
 
     const initializer = resolveLocalInitializer(unwrapped, sourceFile);
     if (!initializer) {
-      return {
-        isDeleted: 'unresolved',
-        organizationId: 'unresolved',
-      };
+      return unresolvedScopePresence();
     }
 
     const nextVisited = new Set(visitedIdentifiers);
@@ -699,24 +780,15 @@ function inspectWhereExpression(
                 new Set(visitedIdentifiers),
               ),
         ),
-      {
-        isDeleted: 'absent',
-        organizationId: 'absent',
-      },
+      absentScopePresence(),
     );
   }
 
   if (!ts.isObjectLiteralExpression(unwrapped)) {
-    return {
-      isDeleted: 'unresolved',
-      organizationId: 'unresolved',
-    };
+    return unresolvedScopePresence();
   }
 
-  let presence: ScopePresence = {
-    isDeleted: 'absent',
-    organizationId: 'absent',
-  };
+  let presence: ScopePresence = absentScopePresence();
 
   for (const property of unwrapped.properties) {
     if (ts.isSpreadAssignment(property)) {
@@ -748,10 +820,7 @@ function inspectWhereExpression(
         ts.isGetAccessorDeclaration(property) ||
         ts.isSetAccessorDeclaration(property))
     ) {
-      presence = {
-        isDeleted: 'unresolved',
-        organizationId: 'unresolved',
-      };
+      presence = unresolvedScopePresence();
       continue;
     }
 
@@ -793,6 +862,7 @@ function inspectWhereExpression(
 function collectCallCandidates(
   sourceFile: ts.SourceFile,
   tenantModelByDelegate: ReadonlyMap<string, string>,
+  billingAccountCapableModels: ReadonlySet<string>,
 ): CallCandidate[] {
   const candidates: CallCandidate[] = [];
 
@@ -814,6 +884,7 @@ function collectCallCandidates(
             candidates.push({
               call: node,
               delegate,
+              isBillingAccountCapable: billingAccountCapableModels.has(model),
               method: callee.name.text,
               model,
             });
@@ -937,15 +1008,30 @@ function findingsForCandidate(
         sourceFile,
         bindings,
       );
+      const billingAccountIdUnresolved =
+        candidate.isBillingAccountCapable &&
+        presence.billingAccountId === 'unresolved';
 
       if (
         presence.organizationId === 'unresolved' ||
-        presence.isDeleted === 'unresolved'
+        presence.isDeleted === 'unresolved' ||
+        billingAccountIdUnresolved
       ) {
         reasons = ['unresolved-where'];
       } else {
         reasons = [];
-        if (presence.organizationId === 'absent') {
+
+        // A billing-account-capable model may prove scope with
+        // billingAccountScopedWhere(scope, …) instead of organizationId
+        // (#5217) — `scope` can only come from `resolveBillingAccountAccess`,
+        // so a bare `billingAccountId: '…'` literal does not count (it never
+        // sets `presence.billingAccountId`; see `inspectWhereExpression`).
+        const hasOrganizationProof = presence.organizationId === 'present';
+        const hasBillingAccountProof =
+          candidate.isBillingAccountCapable &&
+          presence.billingAccountId === 'present';
+
+        if (!hasOrganizationProof && !hasBillingAccountProof) {
           reasons.push('missing-organization-id');
         }
         if (presence.isDeleted === 'absent') {
@@ -991,12 +1077,17 @@ function scanSourceFile(
   filePath: string,
   rootDir: string,
   tenantModelByDelegate: ReadonlyMap<string, string>,
+  billingAccountCapableModels: ReadonlySet<string>,
 ): Pick<TenantScopeCheckResult, 'findings' | 'suppressionViolations'> {
   const sourceText = readFileSync(filePath, 'utf8');
   const sourceFile = parseSourceFile(filePath, sourceText, true);
   const file = normalizePath(path.relative(rootDir, filePath));
   const bindings = collectScopedWhereBindings(sourceFile);
-  const candidates = collectCallCandidates(sourceFile, tenantModelByDelegate);
+  const candidates = collectCallCandidates(
+    sourceFile,
+    tenantModelByDelegate,
+    billingAccountCapableModels,
+  );
   const signatureOccurrences = new Map<string, number>();
   const findings: TenantScopeFinding[] = [];
 
@@ -1036,9 +1127,21 @@ export function runTenantScopeCheck(
     rootDir,
     options.schemaPath ?? DEFAULT_SCHEMA_PATH,
   );
-  const tenantModels = discoverTenantModels(readFileSync(schemaPath, 'utf8'));
+  const schemaText = readFileSync(schemaPath, 'utf8');
+  const tenantModels = discoverTenantModels(schemaText);
   const tenantModelByDelegate = new Map(
     tenantModels.map(({ delegate, model }) => [delegate, model]),
+  );
+  // Tenant models that also carry billingAccountId (#5217) — the subset
+  // allowed to prove scope with billingAccountScopedWhere instead of
+  // organizationId. A model that isn't already a tenant model (no
+  // organizationId field) is out of this checker's scan surface either way.
+  const billingAccountFieldModels =
+    discoverBillingAccountModelNames(schemaText);
+  const billingAccountCapableModels = new Set(
+    tenantModels
+      .map(({ model }) => model)
+      .filter((model) => billingAccountFieldModels.has(model)),
   );
   const files = globSync(options.includeGlobs ?? DEFAULT_INCLUDE_GLOBS, {
     absolute: true,
@@ -1050,7 +1153,12 @@ export function runTenantScopeCheck(
   const suppressionViolations: TenantScopeSuppressionViolation[] = [];
 
   for (const file of files) {
-    const result = scanSourceFile(file, rootDir, tenantModelByDelegate);
+    const result = scanSourceFile(
+      file,
+      rootDir,
+      tenantModelByDelegate,
+      billingAccountCapableModels,
+    );
     findings.push(...result.findings);
     suppressionViolations.push(...result.suppressionViolations);
   }

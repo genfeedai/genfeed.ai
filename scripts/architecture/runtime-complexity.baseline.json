@@ -24,10 +24,16 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 238,
-    "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+    "actual": 1015,
+    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"
+  },
+  {
+    "actual": 153,
+    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
     "metric": "method-lines",
-    "symbol": "BillingAccountsService.linkOrganization"
+    "symbol": "BrandRelocationService.relocateToOrganization"
   },
   {
     "actual": 182,
@@ -66,13 +72,13 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1085,
+    "actual": 1101,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
   },
   {
-    "actual": 1500,
+    "actual": 1511,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
@@ -102,7 +108,7 @@
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
   },
   {
-    "actual": 266,
+    "actual": 276,
     "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
     "metric": "method-lines",
     "symbol": "ProactiveOnboardingService.prepareBrand"
@@ -192,7 +198,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 203,
+    "actual": 202,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
@@ -222,7 +228,7 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 1087,
+    "actual": 1095,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts"

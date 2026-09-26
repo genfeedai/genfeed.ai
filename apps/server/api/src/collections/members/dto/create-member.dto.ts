@@ -35,6 +35,14 @@ export class CreateMemberDto {
   })
   readonly roleId!: string;
 
+  @IsEntityId()
+  @ApiProperty({
+    description:
+      'The brand this member currently has selected. Must reference a non-deleted brand of organizationId (#5219).',
+    required: true,
+  })
+  readonly currentBrandId!: string;
+
   @IsOptional()
   @IsArray()
   @IsEntityId({ each: true })

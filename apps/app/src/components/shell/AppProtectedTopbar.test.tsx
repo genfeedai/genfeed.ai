@@ -2,6 +2,26 @@ vi.mock('@/components/shell/NotificationInboxMenu', () => ({
   default: () => <div data-testid="notification-inbox" />,
 }));
 
+const messagesUnread = vi.hoisted(() => ({
+  count: 0,
+  spy: vi.fn(),
+}));
+vi.mock('@/components/shell/use-messages-unread-count', () => ({
+  useMessagesUnreadCount: (
+    brandId?: string,
+    isBrandScopeResolved?: boolean,
+  ) => {
+    messagesUnread.spy(brandId, isBrandScopeResolved);
+    return messagesUnread.count;
+  },
+}));
+
+// The constants barrel is mocked below, so the catalog-backed stub cannot load.
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: { count?: number }) =>
+    key === 'unreadBadge' ? `${values?.count} unread conversations` : key,
+}));
+
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
@@ -92,17 +112,25 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+const brandContextState = vi.hoisted(() => ({
+  brands: [
+    {
+      id: 'brand',
+      label: 'Acme Brand',
+      organization: { id: 'org', slug: 'acme' },
+      slug: 'brand',
+    },
+  ] as Array<{
+    id: string;
+    label: string;
+    organization: { id: string; slug: string };
+    slug: string;
+  }>,
+}));
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand',
-    brands: [
-      {
-        id: 'brand',
-        label: 'Acme Brand',
-        organization: { id: 'org', slug: 'acme' },
-        slug: 'brand',
-      },
-    ],
+    brands: brandContextState.brands,
     selectedBrand: {
       id: 'brand',
       label: 'Acme Brand',
@@ -251,6 +279,16 @@ describe('AppProtectedTopbar', () => {
     workspaceInspectorState.value = null;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
+    messagesUnread.count = 0;
+    messagesUnread.spy.mockClear();
+    brandContextState.brands = [
+      {
+        id: 'brand',
+        label: 'Acme Brand',
+        organization: { id: 'org', slug: 'acme' },
+        slug: 'brand',
+      },
+    ];
     mockPush.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -309,6 +347,47 @@ describe('AppProtectedTopbar', () => {
       cloudSyncIndicator.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('badges the Messages tile with the route brand unread count', () => {
+    messagesUnread.count = 3;
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand', true);
+    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        badges: {
+          messages: { count: 3, label: '3 unread conversations' },
+        },
+      }),
+    );
+  });
+
+  it('counts every brand for the org-scoped Messages tile', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, true);
+  });
+
+  it('never falls back to the org-wide count while the routed brand has not loaded yet', () => {
+    brandContextState.brands = [];
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    // Unresolved: no brand id yet, and the hook must not fetch org-wide
+    // instead — that would flash the wrong count once brands load.
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, false);
   });
 
   it('does not inject the context brand into explicit org-scoped routes', () => {

@@ -36,3 +36,7 @@ export const socialConversationAttributes = createEntityAttributes([
   'availability',
   'metadata',
 ]);
+
+export const socialInboxUnreadCountAttributes = createEntityAttributes([
+  'unreadCount',
+]);

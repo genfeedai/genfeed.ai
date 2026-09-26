@@ -14,13 +14,21 @@ import {
 import FormSearchbar from '@ui/primitives/searchbar';
 import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 export interface ContentLibraryPickerProps {
   isOpen: boolean;
   isLoading?: boolean;
   items?: readonly ContentMentionItem[];
   selectedIds?: ReadonlySet<string>;
+  /** Brand Knowledge grounding, shown above the content grid. */
+  knowledgeSection?: ReactNode;
   onOpenChange: (open: boolean) => void;
   onSelect: (item: ContentMentionItem) => void;
 }
@@ -44,6 +52,7 @@ export function ContentLibraryPicker({
   isLoading = false,
   items = EMPTY_ITEMS,
   selectedIds,
+  knowledgeSection,
   onOpenChange,
   onSelect,
 }: ContentLibraryPickerProps): ReactElement {
@@ -74,9 +83,16 @@ export function ContentLibraryPicker({
         <DialogHeader className="border-b border-border px-4 py-3">
           <DialogTitle>Reference library content</DialogTitle>
           <DialogDescription>
-            Pick posts or assets to attach as visual references in your message.
+            Pick posts or assets to attach as visual references, and choose the
+            brand knowledge that grounds your message.
           </DialogDescription>
         </DialogHeader>
+
+        {knowledgeSection ? (
+          <div className="border-b border-border px-4 py-3">
+            {knowledgeSection}
+          </div>
+        ) : null}
 
         <div className="border-b border-border px-4 py-3">
           <FormSearchbar

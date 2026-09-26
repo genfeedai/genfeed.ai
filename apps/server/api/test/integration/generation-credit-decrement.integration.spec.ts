@@ -76,6 +76,7 @@ import type { MediaPromptEnhancementInput } from '@api/services/harness/media-pr
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  createTestBrand,
   createTestMember,
   createTestOrganization,
   generateIdString,
@@ -435,11 +436,22 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
   const seedOrganizationWithBalance = async (): Promise<string> => {
     const organizationId = generateIdString();
     const userId = generateIdString();
+    const brandId = generateIdString();
     await dbHelper.seedCollection('organizations', [
       createTestOrganization({ id: organizationId, userId }),
     ]);
+    // currentBrandId is a required per-member invariant (#5219) -- every
+    // seeded org needs a real brand for its member row to reference.
+    await dbHelper.seedCollection('brands', [
+      createTestBrand({ id: brandId, organizationId, userId }),
+    ]);
     await dbHelper.seedCollection('members', [
-      createTestMember({ organizationId, roleId: 'owner', userId }),
+      createTestMember({
+        currentBrandId: brandId,
+        organizationId,
+        roleId: 'owner',
+        userId,
+      }),
     ]);
     await billingAccountsService.ensureForOrganization({
       organizationId,

@@ -8,6 +8,9 @@ describe('AgentRouteRewriteService', () => {
   const brandsService = {
     findOne: vi.fn(),
   };
+  const membersService = {
+    findOne: vi.fn(),
+  };
   const organizationsService = {
     findOne: vi.fn(),
   };
@@ -21,6 +24,7 @@ describe('AgentRouteRewriteService', () => {
     new AgentRouteRewriteService(
       loggerService as never,
       brandsService as never,
+      membersService as never,
       organizationsService as never,
     );
 
@@ -28,6 +32,9 @@ describe('AgentRouteRewriteService', () => {
     vi.clearAllMocks();
     organizationsService.findOne.mockResolvedValue({ slug: 'genfeed-ai' });
     brandsService.findOne.mockResolvedValue({ slug: 'launch-brand' });
+    membersService.findOne.mockResolvedValue({
+      currentBrandId: 'member-current-brand',
+    });
   });
 
   it('rewrites nested route hrefs with active organization and brand slugs', async () => {

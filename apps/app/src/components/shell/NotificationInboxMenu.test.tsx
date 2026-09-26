@@ -167,6 +167,34 @@ describe('NotificationInboxMenu', () => {
       screen.getByRole('link', { name: /Reply in Messages/ }),
     ).toHaveAttribute('href', '/acme/brand/messages');
   });
+  it('marks an unread item read when its link is opened', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'social.reply',
+        outcome: 'completed',
+        sourceHref: '/acme/brand/messages?socialConversation=conversation-1',
+        sourceLabel: null,
+        failure: null,
+        socialReply: { accountHandle: 'acme', replyCount: 1 },
+      },
+    ];
+    const user = await open();
+    const link = screen.getByRole('link', { name: /Reply in Messages/ });
+    link.addEventListener('click', (event) => event.preventDefault());
+    await user.click(link);
+    expect(current.read.mutate).toHaveBeenCalledWith(['item-1']);
+  });
+  it('does not re-read an already read item when its link is opened', async () => {
+    current.history.data.pages[0].items = [
+      { ...item, readAt: '2026-09-05T11:00:00Z' },
+    ];
+    const user = await open();
+    const link = screen.getByRole('link', { name: /My task/ });
+    link.addEventListener('click', (event) => event.preventDefault());
+    await user.click(link);
+    expect(current.read.mutate).not.toHaveBeenCalled();
+  });
   it('keeps existing rows and failed read action retryable', async () => {
     current.read.isError = true;
     const user = await open();

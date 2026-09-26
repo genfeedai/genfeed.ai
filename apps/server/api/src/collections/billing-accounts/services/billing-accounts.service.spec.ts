@@ -118,10 +118,12 @@ describe('BillingAccountsService', () => {
     prisma.billingAccountMember.findFirst.mockResolvedValue({
       role: BillingAccountMemberRole.OWNER,
     });
-    prisma.organization.findFirst.mockResolvedValue({
-      billingAccountId: null,
-      id: 'org_2',
-    });
+    // First read (unlinked, before tx.organization.update); second read is
+    // resolveBillingAccountAccess (#5217) after that update, once the link
+    // is live.
+    prisma.organization.findFirst
+      .mockResolvedValueOnce({ billingAccountId: null, id: 'org_2' })
+      .mockResolvedValueOnce({ billingAccountId: 'ba_1', id: 'org_2' });
     prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
     prisma.billingAccountOrganization.count.mockResolvedValue(0);
     prisma.creditBalance.findFirst
@@ -254,10 +256,12 @@ describe('BillingAccountsService', () => {
     prisma.billingAccountMember.findFirst.mockResolvedValue({
       role: BillingAccountMemberRole.OWNER,
     });
-    prisma.organization.findFirst.mockResolvedValue({
-      billingAccountId: null,
-      id: 'org_2',
-    });
+    // First read (unlinked, before tx.organization.update); second read is
+    // resolveBillingAccountAccess (#5217) after that update, once the link
+    // is live.
+    prisma.organization.findFirst
+      .mockResolvedValueOnce({ billingAccountId: null, id: 'org_2' })
+      .mockResolvedValueOnce({ billingAccountId: 'ba_1', id: 'org_2' });
     prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
     prisma.billingAccountOrganization.count.mockResolvedValue(0);
     prisma.creditBalance.findFirst
@@ -355,11 +359,26 @@ describe('BillingAccountsService', () => {
   });
 
   it('creates an unprovisioned account when an organization has none', async () => {
-    prisma.organization.findFirst.mockResolvedValue({
-      billingAccountId: null,
-      id: 'org_1',
-      label: 'Acme',
-    });
+    // Calls 1-2 (ensureForOrganization's own check, then
+    // tx.organization.findFirst inside linkOrganization) precede the link;
+    // the fallback (call 3+) is resolveBillingAccountAccess (#5217) reading
+    // the organization after tx.organization.update makes the link live.
+    prisma.organization.findFirst
+      .mockResolvedValueOnce({
+        billingAccountId: null,
+        id: 'org_1',
+        label: 'Acme',
+      })
+      .mockResolvedValueOnce({
+        billingAccountId: null,
+        id: 'org_1',
+        label: 'Acme',
+      })
+      .mockResolvedValue({
+        billingAccountId: 'ba_new',
+        id: 'org_1',
+        label: 'Acme',
+      });
     prisma.billingAccountMember.findMany.mockResolvedValue([]);
     prisma.billingAccount.create.mockResolvedValue({
       id: 'ba_new',

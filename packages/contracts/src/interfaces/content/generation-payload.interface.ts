@@ -1,5 +1,6 @@
 import type { IngredientFormat, RouterPriority } from '../..';
 import type { IIngredient } from '../index';
+import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
 
 export interface BaseGenerationPayload {
   requestedSkillSlugs?: string[];
@@ -7,6 +8,8 @@ export interface BaseGenerationPayload {
   model?: string;
   autoSelectModel?: boolean;
   harness?: boolean;
+  /** Explicit Knowledge pick; omit to let the brand's Knowledge apply automatically. */
+  knowledge?: KnowledgeSelection;
   prioritize?: RouterPriority;
   brand?: string;
   references: string[];

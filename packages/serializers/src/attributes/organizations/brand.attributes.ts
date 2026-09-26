@@ -21,7 +21,6 @@ export const brandAttributes = createEntityAttributes([
   'defaultImageModel',
   'defaultImageToVideoModel',
   'defaultMusicModel',
-  'isSelected',
   'scope',
   'isActive',
   'isHighlighted',

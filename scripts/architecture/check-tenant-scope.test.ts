@@ -513,6 +513,171 @@ describe('check-tenant-scope', () => {
   }
 });
 
+describe('check-tenant-scope — billing-account scope (#5217)', () => {
+  let testDir = '';
+
+  beforeEach(() => {
+    testDir = mkdtempSync(path.join(tmpdir(), 'tenant-scope-billing-check-'));
+    writeBillingFixture(
+      testDir,
+      'packages/prisma/prisma/schema.prisma',
+      `
+        model CreditBalance {
+          id               String  @id
+          organizationId   String?
+          billingAccountId String?
+          isDeleted        Boolean @default(false)
+        }
+
+        model BillingAccountMember {
+          id               String @id
+          billingAccountId String
+        }
+      `,
+    );
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { force: true, recursive: true });
+  });
+
+  it('accepts billingAccountScopedWhere as proof for a billing-account-capable tenant model', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/wallet.service.ts',
+      `
+        import { billingAccountScopedWhere } from '@api/index';
+
+        export async function wallet(prisma: unknown, scope: unknown): Promise<void> {
+          await prisma.creditBalance.findFirst({
+            where: billingAccountScopedWhere(scope, { id: 'wallet-1' }),
+          });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('still accepts the organization-scoped proof on a billing-account-capable model', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/wallet-org.service.ts',
+      `
+        import { scopedWhere } from './tenancy/scoped-where';
+
+        export async function wallet(prisma: unknown): Promise<void> {
+          await prisma.creditBalance.findFirst({
+            where: scopedWhere('org-1', { id: 'wallet-1' }),
+          });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    expect(result.findings).toEqual([]);
+  });
+
+  it('does not accept a bare billingAccountId literal (raw string is not proof)', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/wallet-literal.service.ts',
+      `
+        export async function wallet(prisma: unknown): Promise<void> {
+          await prisma.creditBalance.findFirst({
+            where: { billingAccountId: 'billing-1', isDeleted: false },
+          });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        delegate: 'creditBalance',
+        reason: 'missing-organization-id',
+      }),
+    ]);
+  });
+
+  it('does not accept billingAccountScopedWhere imported from another module', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/wallet-spoofed.service.ts',
+      `
+        import { billingAccountScopedWhere } from './unsafe-helper';
+
+        export async function wallet(prisma: unknown, scope: unknown): Promise<void> {
+          await prisma.creditBalance.findFirst({
+            where: billingAccountScopedWhere(scope),
+          });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    expect(result.findings).toEqual([
+      expect.objectContaining({ reason: 'unresolved-where' }),
+    ]);
+  });
+
+  it('still requires both keys on a billing-account-capable model with no proof at all', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/wallet-unscoped.service.ts',
+      `
+        export async function wallet(prisma: unknown): Promise<void> {
+          await prisma.creditBalance.findMany({ where: { id: 'wallet-1' } });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    expect(result.findings.map(({ reason }) => reason).sort()).toEqual([
+      'missing-is-deleted',
+      'missing-organization-id',
+    ]);
+  });
+
+  it('leaves a model with no billingAccountId field entirely unaffected (BillingAccountMember has no organizationId either)', () => {
+    writeBillingFixture(
+      testDir,
+      'apps/server/api/src/members.service.ts',
+      `
+        export async function members(prisma: unknown): Promise<void> {
+          await prisma.billingAccountMember.findMany({
+            where: { billingAccountId: 'billing-1' },
+          });
+        }
+      `,
+    );
+
+    const result = runTenantScopeCheck({ rootDir: testDir });
+
+    // BillingAccountMember has no organizationId field, so it was never a
+    // tenant model — #5217 only extends recognition for models that already
+    // are (organizationId + isDeleted) and also carry billingAccountId. This
+    // call stays completely outside the checker's scan surface, unchanged.
+    expect(result.findings).toEqual([]);
+  });
+});
+
+function writeBillingFixture(
+  testDir: string,
+  relativePath: string,
+  content: string,
+): void {
+  const filePath = path.join(testDir, relativePath);
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, content, 'utf8');
+}
+
 function toBaselineEntry(
   finding:
     | {

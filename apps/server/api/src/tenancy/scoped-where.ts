@@ -1,3 +1,8 @@
+import {
+  type BillingAccountScope,
+  isBillingAccountScope,
+} from './billing-account-scope';
+
 /**
  * Canonical tenant scope for a Prisma `where`.
  *
@@ -23,6 +28,43 @@ export function scopedWhere<W extends Record<string, unknown>>(
   }
 
   return { isDeleted: false, ...(where as W), organizationId };
+}
+
+/**
+ * Canonical billing-account scope for a Prisma `where` on a
+ * billing-account-shared model (#5217) — `CreditBalance`, `CreditTransaction`,
+ * `CreditReservation`, `BillingAccountOrganization`, and any other model that
+ * carries `billingAccountId`. `scope` can only come from
+ * `resolveBillingAccountAccess`, which proves — via guard-visible,
+ * organization-scoped reads — that the caller's organization may use this
+ * billing account, and registers it as the request's active scope for the
+ * runtime tenant guard (`packages/libs/prisma/tenant-guard.ts`). A raw
+ * `billingAccountId` string cannot satisfy this call, by construction.
+ *
+ * `billingAccountId` is spread last and is deliberately non-overridable,
+ * mirroring `scopedWhere`'s `organizationId` guarantee above. `isDeleted` is
+ * spread first for the same reason `scopedWhere` does: an explicit
+ * `{ isDeleted: true }` from the caller is honored, not silently clobbered.
+ */
+export function billingAccountScopedWhere<W extends Record<string, unknown>>(
+  scope: BillingAccountScope,
+  where?: W,
+): W & { billingAccountId: string; isDeleted: boolean } {
+  // Runtime brand check (#5217, MAJOR 2): the type system blocks a raw
+  // string here, but an `as`/`as unknown as BillingAccountScope` cast does
+  // not. Verifying the brand at runtime means such a cast still fails loudly
+  // instead of quietly forging a scope the caller never actually resolved.
+  if (!isBillingAccountScope(scope)) {
+    throw new Error(
+      'billingAccountScopedWhere: scope must come from resolveBillingAccountAccess',
+    );
+  }
+
+  return {
+    isDeleted: false,
+    ...(where as W),
+    billingAccountId: scope.billingAccountId,
+  };
 }
 
 export function brandScope(

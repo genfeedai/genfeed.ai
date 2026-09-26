@@ -62,6 +62,7 @@ export class TelegramWorkflowRunnerService {
     try {
       const brandId = await this.resolveExecutionBrand(
         authContext.organizationId,
+        authContext,
       );
       const { provenance, result } =
         await this.systemWorkflowRunner.runWorkflow<unknown>({
@@ -102,19 +103,60 @@ export class TelegramWorkflowRunnerService {
     }
   }
 
-  private async resolveExecutionBrand(organizationId: string): Promise<string> {
-    const brand = await this.prisma.brand.findFirst({
-      orderBy: [
-        { isDefault: 'desc' },
-        { isSelected: 'desc' },
-        { createdAt: 'asc' },
-      ],
-      select: { id: true },
-      where: scopedWhere(organizationId, { isActive: true }),
+  /**
+   * #5219: generation always has an explicit brand. An API-key-authenticated
+   * chat resolves the key's validated defaultBrandId; a Better-Auth-linked
+   * chat resolves the acting member's currentBrandId. Neither falls back to
+   * "any active brand in the org" — the bot must be configured with a brand
+   * before it can run media workflows.
+   */
+  private async resolveExecutionBrand(
+    organizationId: string,
+    authContext: ChatAuthContext,
+  ): Promise<string> {
+    if (authContext.authType === 'api_key' && authContext.apiKeyId) {
+      const apiKey = await this.prisma.apiKey.findFirst({
+        select: { defaultBrandId: true },
+        where: { id: authContext.apiKeyId, isRevoked: false, organizationId },
+      });
+      const brand = apiKey?.defaultBrandId
+        ? await this.prisma.brand.findFirst({
+            select: { id: true },
+            where: {
+              id: apiKey.defaultBrandId,
+              isDeleted: false,
+              organizationId,
+            },
+          })
+        : null;
+      if (!brand) {
+        throw new Error(
+          'This API key has no default brand configured. Set one before running media workflows from Telegram.',
+        );
+      }
+      return brand.id;
+    }
+
+    const member = await this.prisma.member.findFirst({
+      select: { currentBrandId: true },
+      where: scopedWhere(organizationId, {
+        isActive: true,
+        userId: authContext.userId,
+      }),
     });
+    const brand = member?.currentBrandId
+      ? await this.prisma.brand.findFirst({
+          select: { id: true },
+          where: {
+            id: member.currentBrandId,
+            isDeleted: false,
+            organizationId,
+          },
+        })
+      : null;
     if (!brand) {
       throw new Error(
-        'Create an active brand before running media workflows from Telegram.',
+        'Select a current brand before running media workflows from Telegram.',
       );
     }
     return brand.id;

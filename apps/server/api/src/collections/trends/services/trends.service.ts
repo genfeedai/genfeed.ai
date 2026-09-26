@@ -23,6 +23,7 @@ import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/tr
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
+import type { TrendIdeaBrandContext } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import {
   type TrendFetchBatchOptions,
@@ -414,11 +415,13 @@ export class TrendsService {
     trends: TrendEntity[],
     limit: number = 10,
     onBilling?: (amount: number) => void,
+    brand?: TrendIdeaBrandContext,
   ): Promise<Map<string, TrendIdea[]>> {
     return this.trendContentIdeasService.generateContentIdeas(
       trends,
       limit,
       onBilling,
+      brand,
     );
   }
 

@@ -347,7 +347,6 @@ export class AdminWarmupAccountsService {
 
     const brand = await tx.brand.create({
       data: {
-        isSelected: true,
         label: dto.brandName.trim(),
         organizationId: organization.id,
         slug: brandSlug,
@@ -656,12 +655,12 @@ export class AdminWarmupAccountsService {
     });
 
     if (existing) {
-      await tx.member.update({
+      await tx.member.updateMany({
         data: {
           isActive: true,
-          lastUsedBrandId: input.brandId,
+          currentBrandId: input.brandId,
         },
-        where: { id: existing.id },
+        where: scopedWhere(input.organizationId, { id: existing.id }),
       });
       return;
     }
@@ -670,7 +669,7 @@ export class AdminWarmupAccountsService {
     await tx.member.create({
       data: {
         isActive: true,
-        lastUsedBrandId: input.brandId,
+        currentBrandId: input.brandId,
         organizationId: input.organizationId,
         roleId: role.id,
         roleKey: role.key,

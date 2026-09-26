@@ -1,9 +1,10 @@
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
+import { isSceneOperationActive } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import type { BrandRemixRunConfig } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/contracts';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -55,16 +56,28 @@ export class BrandRemixSceneStoreService {
       config,
     );
   }
-  async fence(organizationId: string, runId: string, operationId: string) {
+  /**
+   * Require the accepted operation to still own the run. `allowCancelled`
+   * admits recording already-dispatched work after a cancellation; it never
+   * admits a new claim or dispatch.
+   */
+  async fence(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    options: { allowCancelled?: boolean } = {},
+  ) {
     const saved = await this.read(organizationId, runId);
     const pipeline = saved.config.scenePipeline;
+    const isCurrent =
+      isSceneOperationActive(pipeline) &&
+      pipeline?.operation?.cancellationGeneration ===
+        pipeline?.cancellationGeneration;
     if (
       !pipeline?.operation ||
       pipeline.operation.id !== operationId ||
-      pipeline.state === 'cancelled' ||
       pipeline.operation.revision !== saved.config.revision ||
-      pipeline.operation.cancellationGeneration !==
-        pipeline.cancellationGeneration
+      !(isCurrent || (options.allowCancelled && pipeline.state === 'cancelled'))
     )
       throw new ConflictException(
         'Scene operation was cancelled or superseded.',

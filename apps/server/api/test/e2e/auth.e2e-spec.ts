@@ -8,6 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 // Import services
 import { UsersService } from '@api/collections/users/services/users.service';
 import {
+  createTestBrand,
   createTestCredit,
   createTestMember,
   createTestOrganization,
@@ -31,6 +32,7 @@ describe('Authentication E2E Tests', () => {
   // Test data
   let testUser: ReturnType<typeof createTestUser>;
   let testOrganization: ReturnType<typeof createTestOrganization>;
+  let testBrand: ReturnType<typeof createTestBrand>;
   let testMember: ReturnType<typeof createTestMember>;
 
   beforeAll(async () => {
@@ -79,8 +81,17 @@ describe('Authentication E2E Tests', () => {
       userId: testUser.id,
     });
 
+    // currentBrandId is a required per-member invariant (#5219) -- every
+    // seeded org needs a real brand for its member row to reference.
+    testBrand = createTestBrand({
+      id: generateIdString(),
+      organizationId: testOrganization.id,
+      userId: testUser.id,
+    });
+
     // Create test member
     testMember = createTestMember({
+      currentBrandId: testBrand.id,
       organizationId: testOrganization.id,
       roleId: 'owner',
       userId: testUser.id,
@@ -89,6 +100,7 @@ describe('Authentication E2E Tests', () => {
     // Seed database
     await dbHelper.seedCollection('users', [testUser]);
     await dbHelper.seedCollection('organizations', [testOrganization]);
+    await dbHelper.seedCollection('brands', [testBrand]);
     await dbHelper.seedCollection('members', [testMember]);
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({ organizationId: testOrganization.id }),
@@ -171,13 +183,21 @@ describe('Authentication E2E Tests', () => {
         userId: testUser.id,
       });
 
+      const secondBrand = createTestBrand({
+        id: generateIdString(),
+        organizationId: secondOrg.id,
+        userId: testUser.id,
+      });
+
       const secondMember = createTestMember({
+        currentBrandId: secondBrand.id,
         organizationId: secondOrg.id,
         roleId: 'owner',
         userId: testUser.id,
       });
 
       await dbHelper.seedCollection('organizations', [secondOrg]);
+      await dbHelper.seedCollection('brands', [secondBrand]);
       await dbHelper.seedCollection('members', [secondMember]);
 
       const orgCount = await dbHelper.getDocumentCount('organizations', {
@@ -199,6 +219,7 @@ describe('Authentication E2E Tests', () => {
       });
 
       const memberInTestOrg = createTestMember({
+        currentBrandId: testBrand.id,
         organizationId: testOrganization.id,
         roleId: 'member', // Not owner
         userId: anotherUser.id,

@@ -8,7 +8,12 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { AgentGenerationMode, AgentThreadMode } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  AgentThreadMode,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
@@ -18,8 +23,11 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import { BookOpen } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
   type ReactNode,
@@ -77,7 +85,7 @@ interface AgentChatInputProps {
   /** Knowledge selection sent with every turn from this composer. */
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided picker rendered above the attachment tray. */
-  knowledgePicker?: ReactNode;
+  knowledgeSection?: ReactNode;
 }
 
 function mapAttachmentToTrayAsset(
@@ -116,7 +124,7 @@ export function AgentChatInput({
   isTopAttached = false,
   willQueueFollowUp = false,
   knowledgeSelection,
-  knowledgePicker,
+  knowledgeSection,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -168,6 +176,11 @@ export function AgentChatInput({
     showStop,
   });
 
+  const translate = useTranslations('common.agent.composer');
+  const knowledgeSelectionCount =
+    (knowledgeSelection?.sourceIds?.length ?? 0) +
+    (knowledgeSelection?.spaceIds?.length ?? 0) +
+    (knowledgeSelection?.purposes?.length ?? 0);
   const trayAssets: PromptBarAttachedAsset[] = useMemo(
     () => attachments.map(mapAttachmentToTrayAsset),
     [attachments],
@@ -204,9 +217,23 @@ export function AgentChatInput({
 
       <PromptBarComposer
         beforeBody={
-          knowledgePicker || hasAttachments || references.length > 0 ? (
+          knowledgeSelectionCount > 0 ||
+          hasAttachments ||
+          references.length > 0 ? (
             <>
-              {knowledgePicker}
+              {knowledgeSelectionCount > 0 ? (
+                <div className="px-2 pt-2">
+                  <Button
+                    icon={<BookOpen className="size-4" />}
+                    label={translate('knowledgeSelected', {
+                      count: knowledgeSelectionCount,
+                    })}
+                    onClick={handleInsertReference}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  />
+                </div>
+              ) : null}
               {hasAttachments || references.length > 0 ? (
                 <AgentChatInputAttachmentTray
                   assets={trayAssets}
@@ -265,6 +292,7 @@ export function AgentChatInput({
         isLoading={isContentLibraryLoading}
         isOpen={isContentPickerOpen}
         items={contentLibraryItems}
+        knowledgeSection={knowledgeSection}
         onOpenChange={setIsContentPickerOpen}
         onSelect={handleSelectContentReference}
         selectedIds={selectedContentIds}

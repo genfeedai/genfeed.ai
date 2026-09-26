@@ -1,6 +1,8 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
+import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
@@ -41,6 +43,7 @@ export class AgentInstagramInspirationToolHandler {
     @Optional()
     public readonly adsResearchService: AdsResearchService | undefined,
     private readonly brandsService: BrandsService,
+    private readonly membersService: MembersService,
     @Optional()
     private readonly credentialsService: CredentialsService,
     private readonly instagramInspirationService: InstagramInspirationService,
@@ -177,16 +180,14 @@ export class AgentInstagramInspirationToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<InstagramInspirationBrandContext> {
     const explicitBrandId = readOptionalString(params.brandId);
-    const brand = explicitBrandId
-      ? await this.brandsService.findOne({
-          id: explicitBrandId,
-          organizationId: ctx.organizationId,
-        })
-      : await this.brandsService.findOne({
-          isSelected: true,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        });
+    const brand = await resolveGenerationBrand({
+      brandsService: this.brandsService,
+      contextBrandId: ctx.brandId,
+      explicitBrandId,
+      membersService: this.membersService,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
 
     if (!brand) {
       throw new BadRequestException(

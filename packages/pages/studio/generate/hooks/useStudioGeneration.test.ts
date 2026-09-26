@@ -233,6 +233,28 @@ describe('useStudioGeneration request payloads', () => {
     },
   );
 
+  it.each(['image', 'video'] as const)(
+    'forwards an explicit Knowledge pick to %s without making it sticky',
+    async (type) => {
+      const { result } = renderStudioGeneration({ type });
+      await act(async () => {
+        await result.current.submit(
+          'Mascot poster',
+          {},
+          { knowledge: { sourceIds: ['source-1'] } },
+        );
+      });
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      expect(post.mock.calls[0]?.[0]).toMatchObject({
+        knowledge: { sourceIds: ['source-1'] },
+      });
+      await act(async () => {
+        await result.current.submit('Other prompt');
+      });
+      expect(post.mock.calls[1]?.[0]).not.toHaveProperty('knowledge');
+    },
+  );
+
   it('does not forward a media enhancement override to music generation', async () => {
     const { result } = renderStudioGeneration({ type: 'music' });
     await act(async () => {

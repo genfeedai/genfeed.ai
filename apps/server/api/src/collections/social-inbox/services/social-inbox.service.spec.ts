@@ -4,6 +4,7 @@ import { SocialInboxProviderError } from '@api/collections/social-inbox/services
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
@@ -14,6 +15,11 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
 
 type StoreConversation = {
   id: string;
@@ -117,6 +123,7 @@ type PrismaMock = {
 type TestContext = {
   conversations: StoreConversation[];
   logger: {
+    error: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
   messages: StoreMessage[];
@@ -138,6 +145,9 @@ type TestContext = {
     queueTriggerEvent: ReturnType<typeof vi.fn>;
   };
   service: SocialInboxService;
+  socialReplyNotifications: {
+    markConversationRepliesRead: ReturnType<typeof vi.fn>;
+  };
   twitterService: {
     buildTweetUrl: ReturnType<typeof vi.fn>;
     listDirectMessages: ReturnType<typeof vi.fn>;
@@ -180,6 +190,9 @@ function matchesWhere<T extends Record<string, unknown>>(
       if ('gt' in operator) {
         return Number(item[key]) > Number(operator.gt);
       }
+      if ('gte' in operator) {
+        return Number(item[key]) >= Number(operator.gte);
+      }
       if ('lt' in operator) {
         return Number(item[key]) < Number(operator.lt);
       }
@@ -201,6 +214,21 @@ function matchesWhere<T extends Record<string, unknown>>(
 
     return item[key] === value;
   });
+}
+
+/** Mirrors Prisma's numeric field update operators for `unreadCount`. */
+function resolveUnreadCountUpdate(current: number, nextValue: unknown): number {
+  if (nextValue && typeof nextValue === 'object') {
+    const operator = nextValue as { decrement?: number; increment?: number };
+    if (typeof operator.increment === 'number') {
+      return current + operator.increment;
+    }
+    if (typeof operator.decrement === 'number') {
+      return current - operator.decrement;
+    }
+    return current;
+  }
+  return typeof nextValue === 'number' ? nextValue : current;
 }
 
 function createContext(): TestContext {
@@ -291,10 +319,10 @@ function createContext(): TestContext {
         }
         Object.assign(conversation, {
           ...data,
-          unreadCount:
-            typeof data.unreadCount === 'object' && data.unreadCount?.increment
-              ? conversation.unreadCount + data.unreadCount.increment
-              : (data.unreadCount ?? conversation.unreadCount),
+          unreadCount: resolveUnreadCountUpdate(
+            conversation.unreadCount,
+            data.unreadCount,
+          ),
         });
         return Promise.resolve(conversation);
       }),
@@ -305,11 +333,10 @@ function createContext(): TestContext {
         for (const conversation of matched) {
           Object.assign(conversation, {
             ...data,
-            unreadCount:
-              typeof data.unreadCount === 'object' &&
-              data.unreadCount?.increment
-                ? conversation.unreadCount + data.unreadCount.increment
-                : (data.unreadCount ?? conversation.unreadCount),
+            unreadCount: resolveUnreadCountUpdate(
+              conversation.unreadCount,
+              data.unreadCount,
+            ),
             updatedAt: new Date(),
           });
         }
@@ -445,7 +472,11 @@ function createContext(): TestContext {
     emit: vi.fn().mockResolvedValue(undefined),
   };
   const logger = {
+    error: vi.fn(),
     warn: vi.fn(),
+  };
+  const socialReplyNotifications = {
+    markConversationRepliesRead: vi.fn().mockResolvedValue(0),
   };
   const queryService = new SocialInboxQueryService(prisma as never);
   const realtimeService = new SocialInboxRealtimeService(
@@ -464,12 +495,20 @@ function createContext(): TestContext {
     } as never,
     logger as never,
   );
+  const readStateService = new SocialInboxReadStateService(
+    prisma as never,
+    queryService,
+    realtimeService,
+    socialReplyNotifications as never,
+    logger as never,
+  );
   const actionService = new SocialInboxActionService(
     prisma as never,
     youtubeService as never,
     instagramService as never,
     twitterService as never,
     queryService,
+    readStateService,
     realtimeService,
     systemWorkflowRunner as never,
   );
@@ -488,7 +527,9 @@ function createContext(): TestContext {
       queryService,
       ingestionService,
       actionService,
+      readStateService,
     ),
+    socialReplyNotifications,
     twitterService,
     youtubeService,
   };
@@ -575,6 +616,429 @@ describe('SocialInboxService', () => {
       brandTwoOnly.docs[0]?.id as string,
     );
     expect(openedAcrossBrand.brandId).toBe('brand-2');
+  });
+
+  describe('unread state', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    async function seedThread(
+      service: SocialInboxService,
+      input: { brandId: string; id: string; organizationId?: string },
+    ) {
+      return service.ingestInboundMessage({
+        body: `Thread ${input.id}`,
+        brandId: input.brandId,
+        conversationType: 'comment',
+        externalConversationId: `thread-${input.id}`,
+        externalMessageId: `comment-${input.id}`,
+        organizationId: input.organizationId ?? 'org-1',
+        participantExternalId: `author-${input.id}`,
+        participantName: 'Taylor',
+        platform: 'youtube',
+      });
+    }
+
+    it('counts unread conversations scoped to the organization and brand', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      await seedThread(context.service, { brandId: 'brand-1', id: 'b' });
+      await seedThread(context.service, { brandId: 'brand-2', id: 'c' });
+      await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'd',
+        organizationId: 'org-2',
+      });
+      // Read, archived, and deleted threads never count.
+      context.conversations[1].unreadCount = 0;
+      await seedThread(context.service, { brandId: 'brand-1', id: 'e' });
+      context.conversations[4].status = 'archived';
+      await seedThread(context.service, { brandId: 'brand-1', id: 'f' });
+      context.conversations[5].isDeleted = true;
+
+      await expect(
+        context.service.countUnreadConversations(scope, { brandId: 'brand-1' }),
+      ).resolves.toEqual({ id: 'brand-1', unreadCount: 1 });
+      await expect(
+        context.service.countUnreadConversations(scope, { allBrands: true }),
+      ).resolves.toEqual({ id: 'org-1', unreadCount: 2 });
+
+      const where =
+        context.prisma.socialConversation.count.mock.calls[0][0].where;
+      expect(where).toMatchObject({
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: { not: 'archived' },
+        unreadCount: { gt: 0 },
+      });
+    });
+
+    it('marks a conversation read and clears reply notifications for the whole team', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+      );
+
+      expect(read.unreadCount).toBe(0);
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
+        organizationId: 'org-1',
+      });
+      expect(context.notificationsPublisher.emit).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ kind: 'conversation-updated' }),
+      );
+    });
+
+    it('leaves a reply that arrived after the client saw the thread unread, clearing only what the client actually saw', async () => {
+      const context = createContext();
+      const inbound = await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'gap',
+      });
+      const conversationId = inbound.conversationId;
+      // The client rendered the thread showing this many unread messages...
+      const unreadCountSeenByClient = context.conversations[0].unreadCount;
+      expect(unreadCountSeenByClient).toBe(1);
+
+      // ...then, before its mark-read request lands, a second reply arrives.
+      await context.service.ingestInboundMessage({
+        body: "A second reply, after the client's view",
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-gap',
+        externalMessageId: 'comment-gap-2',
+        organizationId: 'org-1',
+        participantExternalId: 'author-gap',
+        participantName: 'Taylor',
+        platform: 'youtube',
+      });
+      expect(context.conversations[0].unreadCount).toBe(2);
+
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+        unreadCountSeenByClient,
+      );
+
+      // A fresh server-side read here would have re-derived "2" and cleared
+      // the reply the client never saw. Only the seen message is cleared.
+      expect(read.unreadCount).toBe(1);
+      expect(context.conversations[0].unreadCount).toBe(1);
+    });
+
+    it('re-reads and returns the current row when the clear guard does not match (a concurrent write already moved the counter)', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'race' });
+      const conversationId = context.conversations[0].id;
+      const unreadCountSeenByClient = context.conversations[0].unreadCount;
+      expect(unreadCountSeenByClient).toBe(1);
+
+      // A concurrent action (e.g. another member resolving the thread
+      // through a different request) lands before this mark-read's
+      // conditional decrement runs, so the `gte` guard no longer matches —
+      // nothing here changes the row.
+      context.conversations[0].unreadCount = 0;
+      context.notificationsPublisher.emit.mockClear();
+
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+        unreadCountSeenByClient,
+      );
+
+      // The value fetched before the attempt (1) must never be returned as
+      // current — the guard didn't match, so the caller must see today's
+      // true state (0), not the stale value from before the attempt.
+      expect(read.unreadCount).toBe(0);
+      expect(context.conversations[0].unreadCount).toBe(0);
+      // No update actually happened, so no realtime event for this call.
+      expect(context.notificationsPublisher.emit).not.toHaveBeenCalled();
+    });
+
+    it('clears reply notifications for the whole team when a thread is resolved', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'needs_review',
+      });
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'resolved',
+      });
+
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team once a reply is posted, not when it fails', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-reply',
+        externalMessageId: 'comment-reply',
+        externalParentId: 'comment-reply',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+
+      context.youtubeService.postCommentReply.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+      await expect(
+        context.service.postReply(scope, inbound.conversationId, {
+          idempotencyKey: 'reply-fail',
+          text: 'Thanks!',
+        }),
+      ).rejects.toThrow();
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+
+      await context.service.postReply(scope, inbound.conversationId, {
+        idempotencyKey: 'reply-ok',
+        text: 'Thanks!',
+      });
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('never fails a reply that already posted when clearing the bell throws', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-clear-fails',
+        externalMessageId: 'comment-clear-fails',
+        externalParentId: 'comment-clear-fails',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+      context.socialReplyNotifications.markConversationRepliesRead.mockRejectedValueOnce(
+        new Error('query shape rejected'),
+      );
+
+      // The reply already posted through the provider; a bell-clear failure
+      // (a broken query shape, a timeout, anything) must never turn that
+      // into a 500 telling the caller to retry an action already done.
+      const sent = await context.service.postReply(
+        scope,
+        inbound.conversationId,
+        { idempotencyKey: 'reply-clear-fails', text: 'Thanks!' },
+      );
+
+      expect(sent.status).toBe('sent');
+      expect(context.logger.error).toHaveBeenCalledWith(
+        'Failed to clear social reply notifications',
+        expect.any(Error),
+        expect.objectContaining({
+          conversationId: inbound.conversationId,
+          organizationId: 'org-1',
+        }),
+      );
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            conversationId: inbound.conversationId,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+    });
+
+    it('never fails resolving a thread when clearing the bell throws', async () => {
+      const context = createContext();
+      await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'clear-fails-resolve',
+      });
+      const conversationId = context.conversations[0].id;
+      context.socialReplyNotifications.markConversationRepliesRead.mockRejectedValueOnce(
+        new Error('query shape rejected'),
+      );
+
+      const resolved = await context.service.updateConversation(
+        scope,
+        conversationId,
+        { status: 'resolved' },
+      );
+
+      expect(resolved.status).toBe('resolved');
+      expect(context.logger.error).toHaveBeenCalledWith(
+        'Failed to clear social reply notifications',
+        expect.any(Error),
+        expect.objectContaining({ conversationId, organizationId: 'org-1' }),
+      );
+    });
+
+    it('clears reply notifications for the whole team once a draft is approved', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-approve',
+        externalMessageId: 'comment-approve',
+        externalParentId: 'comment-approve',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+      const draft = await context.service.createDraft(
+        scope,
+        inbound.conversationId,
+        { text: 'Drafted answer' },
+      );
+
+      await context.service.approveDraft(
+        scope,
+        inbound.conversationId,
+        draft.id,
+      );
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team once a DM is sent', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'dm',
+        externalConversationId: 'thread-dm',
+        externalMessageId: 'message-dm',
+        organizationId: 'org-1',
+        participantExternalId: 'author-1',
+        platform: 'instagram',
+      });
+
+      await context.service.sendDm(scope, inbound.conversationId, {
+        idempotencyKey: 'dm-clears-bell',
+        recipientId: 'author-1',
+        text: 'Following up',
+      });
+
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId: inbound.conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('clears reply notifications for the whole team when a thread is archived', async () => {
+      const context = createContext();
+      await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
+      const conversationId = context.conversations[0].id;
+
+      await context.service.updateConversation(scope, conversationId, {
+        status: 'archived',
+      });
+
+      expect(context.conversations[0].unreadCount).toBe(0);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).toHaveBeenCalledWith({
+        conversationId,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('reopens an archived conversation and counts unread when a new reply arrives', async () => {
+      const context = createContext();
+      const inbound = await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'reopen',
+      });
+
+      await context.service.updateConversation(scope, inbound.conversationId, {
+        status: 'archived',
+      });
+      expect(context.conversations[0].status).toBe('archived');
+      expect(context.conversations[0].unreadCount).toBe(0);
+
+      await context.service.ingestInboundMessage({
+        body: 'Another reply',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-reopen',
+        externalMessageId: 'comment-reopen-2',
+        organizationId: 'org-1',
+        participantExternalId: 'author-reopen',
+        participantName: 'Taylor',
+        platform: 'youtube',
+      });
+
+      // A still-archived thread with unreadCount > 0 would disagree with
+      // the badge and Unread view (both exclude archived), and the bell
+      // gate/still-unread checks (both plain unreadCount > 0) would treat
+      // it as unread with no way to ever clear it through the UI. Reopening
+      // keeps unreadCount > 0 and status === 'archived' mutually exclusive.
+      expect(context.conversations[0].status).toBe('open');
+      expect(context.conversations[0].unreadCount).toBe(1);
+
+      await expect(
+        context.service.countUnreadConversations(scope, {
+          brandId: 'brand-1',
+        }),
+      ).resolves.toEqual({ id: 'brand-1', unreadCount: 1 });
+    });
+
+    it('never marks another organization conversation read', async () => {
+      const context = createContext();
+      await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'a',
+        organizationId: 'org-2',
+      });
+
+      await expect(
+        context.service.markConversationRead(
+          scope,
+          context.conversations[0].id,
+        ),
+      ).rejects.toThrow();
+      expect(context.conversations[0].unreadCount).toBe(1);
+      expect(
+        context.socialReplyNotifications.markConversationRepliesRead,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   it('authorizes typed agent selectors against the current inbox scope', async () => {
@@ -2137,7 +2601,12 @@ describe('SocialInboxService', () => {
 
       expect(result).toEqual({
         conversationsCreated: 1,
-        createdMessageIds: ['1980000000000000101'],
+        createdMessages: [
+          {
+            conversationId: 'conversation-1',
+            externalMessageId: '1980000000000000101',
+          },
+        ],
         messagesCreated: 1,
       });
       expect(context.conversations).toEqual([
@@ -2164,7 +2633,7 @@ describe('SocialInboxService', () => {
 
       expect(second).toEqual({
         conversationsCreated: 0,
-        createdMessageIds: [],
+        createdMessages: [],
         messagesCreated: 0,
       });
       expect(context.messages).toHaveLength(1);

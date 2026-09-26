@@ -10,6 +10,9 @@ describe('AgentWorkflowToolCreateService', () => {
   const brandsService = {
     findOne: vi.fn(),
   };
+  const membersService = {
+    findOne: vi.fn(),
+  };
   const workflowGenerationService = {
     generateWorkflowFromDescription: vi.fn(),
   };
@@ -31,6 +34,7 @@ describe('AgentWorkflowToolCreateService', () => {
     service = new AgentWorkflowToolCreateService(
       workflowsService as never,
       brandsService as never,
+      membersService as never,
       workflowGenerationService as never,
     );
   });

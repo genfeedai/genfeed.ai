@@ -179,6 +179,7 @@ export const brandRemixScenePipelineSchema = z
         z
           .object({
             key: id,
+            reservationId: id.optional(),
             operationId: id.optional(),
             actorUserId: id.optional(),
             amount: z.number().nonnegative(),

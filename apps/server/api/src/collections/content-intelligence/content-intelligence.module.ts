@@ -4,6 +4,7 @@
  * playbook building, and pattern-based content generation.
  */
 
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
@@ -44,6 +45,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     AgentContextAssemblyModule,
+    ApiKeysModule,
     ApifyModule,
     ConfigModule,
     ContentPerformanceModule,

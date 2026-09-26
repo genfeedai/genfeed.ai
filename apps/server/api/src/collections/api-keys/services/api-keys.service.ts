@@ -103,6 +103,65 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
+   * Validate that an API key's default brand (#5219) belongs to the key's own
+   * organization and is not soft-deleted. Called at create and update; MCP
+   * generation tools re-validate at use time in case the brand was deleted or
+   * relocated after the key was configured.
+   */
+  async assertValidDefaultBrandId(
+    organizationId: string,
+    defaultBrandId: string | null | undefined,
+  ): Promise<void> {
+    if (!defaultBrandId) {
+      return;
+    }
+    const resolved = await this.resolveValidDefaultBrandId(
+      organizationId,
+      defaultBrandId,
+    );
+    if (!resolved) {
+      throw new BadRequestException(
+        "defaultBrandId must reference a brand in this API key's organization.",
+      );
+    }
+  }
+
+  /**
+   * Re-validate an API key's configured defaultBrandId at use time (#5219):
+   * still belongs to the key's organization and is not soft-deleted. Returns
+   * the id when valid, `undefined` otherwise (a deleted/relocated brand must
+   * not silently resolve as if it were still the key's default).
+   */
+  async resolveValidDefaultBrandId(
+    organizationId: string,
+    defaultBrandId: string | null | undefined,
+  ): Promise<string | undefined> {
+    if (!defaultBrandId) {
+      return undefined;
+    }
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: defaultBrandId, isDeleted: false, organizationId },
+    });
+    return brand?.id;
+  }
+
+  /**
+   * General request-scoping fallback for API-key auth when the key has no
+   * (valid) default brand — every organization has at least one non-deleted
+   * brand (#5219). This is a convenience for non-generation reads, not a
+   * substitute for the stricter generation-brand resolution.
+   */
+  async resolveAnyBrandId(organizationId: string): Promise<string | undefined> {
+    const brand = await this.prisma.brand.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+      where: { isDeleted: false, organizationId },
+    });
+    return brand?.id;
+  }
+
+  /**
    * Generate a secure API key
    */
   generateApiKey(): string {
@@ -148,6 +207,10 @@ export class ApiKeysService extends BaseService<
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const scopes = createApiKeyDto.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
+    await this.assertValidDefaultBrandId(
+      createApiKeyDto.organizationId,
+      createApiKeyDto.defaultBrandId,
+    );
 
     const plainKey = this.generateApiKey();
     const hashedKey = await this.hashApiKey(plainKey);

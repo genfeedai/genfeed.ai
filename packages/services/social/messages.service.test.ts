@@ -206,6 +206,55 @@ describe('SocialMessagesService', () => {
     });
   });
 
+  describe('unread state', () => {
+    it('unreadCount reads the brand-scoped unread conversation count', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(resourceDocument({ unreadCount: 4 }, { id: 'brand-1' })),
+      );
+
+      const result = await service.unreadCount({ brandId: 'brand-1' });
+
+      expect(http.get).toHaveBeenCalledWith('/unread-count', {
+        params: { brandId: 'brand-1' },
+        signal: undefined,
+      });
+      expect(result).toMatchObject({ id: 'brand-1', unreadCount: 4 });
+    });
+
+    it('markRead patches the conversation read route with no body when the seen count is omitted', async () => {
+      http.patch.mockResolvedValue(
+        axiosResponse(
+          resourceDocument({ unreadCount: 0 }, { id: conversationId }),
+        ),
+      );
+
+      const result = await service.markRead(conversationId);
+
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${conversationId}/read`,
+        {},
+        { signal: undefined },
+      );
+      expect(result).toBeInstanceOf(SocialConversationModel);
+    });
+
+    it('markRead sends the unread count the caller saw', async () => {
+      http.patch.mockResolvedValue(
+        axiosResponse(
+          resourceDocument({ unreadCount: 0 }, { id: conversationId }),
+        ),
+      );
+
+      await service.markRead(conversationId, 3);
+
+      expect(http.patch).toHaveBeenCalledWith(
+        `/${conversationId}/read`,
+        { unreadCountSeen: 3 },
+        { signal: undefined },
+      );
+    });
+  });
+
   describe('conversation updates', () => {
     it('updateStatus PATCHes the conversation status', async () => {
       http.patch.mockResolvedValue(

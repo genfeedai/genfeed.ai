@@ -299,6 +299,9 @@ export class ImageGenerationService {
       contentType: 'image',
       model,
       harness: createImageDto.harness,
+      ...(createImageDto.knowledge
+        ? { knowledgeSelection: createImageDto.knowledge }
+        : {}),
       promptId: createImageDto.promptId,
       ...(createImageDto.requestedSkillSlugs?.length
         ? { requestedSkillSlugs: createImageDto.requestedSkillSlugs }

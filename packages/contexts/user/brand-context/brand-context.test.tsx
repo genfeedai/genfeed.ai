@@ -507,9 +507,7 @@ describe('BrandProvider', () => {
       );
     });
     await waitFor(() => {
-      expect(patchMeBrand).toHaveBeenCalledWith('brand_fud', {
-        isSelected: true,
-      });
+      expect(patchMeBrand).toHaveBeenCalledWith('brand_fud');
     });
   });
 

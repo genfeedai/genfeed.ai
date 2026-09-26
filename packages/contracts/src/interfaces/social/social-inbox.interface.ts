@@ -183,6 +183,18 @@ export interface SocialInboxQuery {
   unread?: boolean;
 }
 
+/** Brand filter for the Messages unread badge. */
+export interface SocialInboxUnreadCountQuery {
+  allBrands?: boolean;
+  brandId?: string;
+}
+
+/** Conversations with unread inbound messages, behind the Messages badge. */
+export interface SocialInboxUnreadCount {
+  id: string;
+  unreadCount: number;
+}
+
 export interface SocialMessageQuery {
   cursor?: string;
   limit?: number;

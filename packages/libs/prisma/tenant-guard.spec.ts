@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { crossOrgUnsafe, runWithTenantContext } from './tenant-context';
+import {
+  crossOrgUnsafe,
+  registerBillingAccountScope,
+  runWithTenantContext,
+} from './tenant-context';
 import {
   assertTenantScopedQuery,
   type TenantGuardArgs,
@@ -7,12 +11,29 @@ import {
 } from './tenant-guard';
 import { createTenantGuardExtension } from './tenant-guard.extension';
 
-const TENANT_MODEL_NAMES = new Set(['Post']);
+const TENANT_MODEL_NAMES = new Set(['Post', 'CreditBalance']);
+const BILLING_ACCOUNT_MODEL_NAMES = new Set(['CreditBalance']);
 const CLOUD_TENANT: Omit<TenantGuardArgs, 'args' | 'operation'> = {
   isCloud: true,
   model: 'Post',
   tenantModelNames: TENANT_MODEL_NAMES,
 };
+const CLOUD_BILLING_ACCOUNT_MODEL: Omit<TenantGuardArgs, 'args' | 'operation'> =
+  {
+    billingAccountModelNames: BILLING_ACCOUNT_MODEL_NAMES,
+    isCloud: true,
+    model: 'CreditBalance',
+    tenantModelNames: TENANT_MODEL_NAMES,
+  };
+
+function guardBillingAccount(overrides: Partial<TenantGuardArgs> = {}): void {
+  assertTenantScopedQuery({
+    args: { where: { billingAccountId: 'billing-1' } },
+    operation: 'findFirst',
+    ...CLOUD_BILLING_ACCOUNT_MODEL,
+    ...overrides,
+  });
+}
 
 function guard(overrides: Partial<TenantGuardArgs> = {}): void {
   assertTenantScopedQuery({
@@ -134,6 +155,275 @@ describe('assertTenantScopedQuery', () => {
   });
 });
 
+describe('assertTenantScopedQuery — billing-account scope (#5217)', () => {
+  it('allows a billingAccountId query whose scope is active in the tenant context', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount();
+      }),
+    ).not.toThrow();
+  });
+
+  it('denies a billingAccountId query with no active scope registered', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        guardBillingAccount(),
+      ),
+    ).toThrow(TenantIsolationError);
+
+    try {
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        guardBillingAccount(),
+      );
+    } catch (error) {
+      expect(error).toMatchObject({
+        model: 'CreditBalance',
+        name: 'TenantIsolationError',
+        reason: 'billing-account-id-mismatch',
+      });
+      return;
+    }
+
+    throw new Error('Expected TenantIsolationError');
+  });
+
+  it('denies a billingAccountId that does not match any active scope, even with other scopes active', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-other');
+        guardBillingAccount();
+      }),
+    ).toThrow(TenantIsolationError);
+  });
+
+  it('denies a stale scope from an earlier, unrelated tenant context', () => {
+    const scope = runWithTenantContext({ organizationId: 'org-1' }, () => {
+      registerBillingAccountScope('billing-1');
+      return 'billing-1';
+    });
+
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-2' }, () =>
+        guardBillingAccount({
+          args: { where: { billingAccountId: scope } },
+        }),
+      ),
+    ).toThrow(TenantIsolationError);
+  });
+
+  it('falls through to the unchanged organizationId rule when no billingAccountId is present', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        guardBillingAccount({ args: { where: { id: 'row-1' } } }),
+      ),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('still enforces organizationId when the model is not billing-account capable', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guard({ args: { where: { billingAccountId: 'billing-1' } } });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('is unaffected when billingAccountModelNames is not provided (back-compat)', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        assertTenantScopedQuery({
+          args: { where: { billingAccountId: 'billing-1' } },
+          isCloud: true,
+          model: 'CreditBalance',
+          operation: 'findFirst',
+          tenantModelNames: TENANT_MODEL_NAMES,
+        }),
+      ),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('passes through the crossOrgUnsafe escape hatch even without a registered scope', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        crossOrgUnsafe(() => guardBillingAccount()),
+      ),
+    ).not.toThrow();
+  });
+
+  // BLOCKER fix: outside any tenant context (BullMQ processors, cron, Stripe
+  // webhooks, the signup listener) a billing-account-model query must behave
+  // exactly like master — no enforcement at all — even though it names a
+  // billingAccountId and nothing has (or could have) registered it as an
+  // active scope.
+  it('does not throw with no tenant context, even naming an unregistered billingAccountId', () => {
+    expect(() => guardBillingAccount()).not.toThrow();
+    expect(() =>
+      guardBillingAccount({
+        args: {
+          data: { billingAccountId: 'billing-1' },
+          where: { id: 'row-1', isDeleted: false },
+        },
+        operation: 'updateMany',
+      }),
+    ).not.toThrow();
+  });
+
+  // BLOCKER fix: a query that already carries a matching organizationId
+  // (credit-reservation settle copying reservation.billingAccountId into
+  // `data` alongside an organization-scoped `where`, billing-accounts
+  // linkOrganization's pre-scope alreadyLinked check, etc.) must fall
+  // through to the existing organizationId check and never require the
+  // billingAccountId to be a registered scope.
+  it('does not require a registered scope when organizationId already matches the tenant context', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        guardBillingAccount({
+          args: {
+            data: { billingAccountId: 'billing-unregistered' },
+            where: { isDeleted: false, organizationId: 'org-1' },
+          },
+          operation: 'updateMany',
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  // MAJOR 1 fix: a registered billing scope must never let an explicit,
+  // mismatched organizationId elsewhere in the same query (where, data, or
+  // an OR arm) slip through. The organizationId check always still runs
+  // when organizationId is present anywhere.
+  it('still rejects a mismatched organizationId even with a valid registered billing scope', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: { billingAccountId: 'billing-1', organizationId: 'org-2' },
+          },
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'organization-id-mismatch' }));
+  });
+
+  it('still rejects a mismatched organizationId hidden in an OR arm alongside a valid billing scope', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: {
+              OR: [
+                { billingAccountId: 'billing-1' },
+                { organizationId: 'org-2' },
+              ],
+            },
+          },
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'organization-id-mismatch' }));
+  });
+
+  it('rejects an unregistered billingAccountId inside an OR arm with no organizationId anywhere', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            where: {
+              OR: [
+                { billingAccountId: 'billing-1' },
+                { billingAccountId: 'billing-unregistered' },
+              ],
+            },
+          },
+        });
+      }),
+    ).toThrow(
+      expect.objectContaining({ reason: 'billing-account-id-mismatch' }),
+    );
+  });
+
+  // Hardening (second re-review): a billingAccountId that appears only in
+  // `data`/`create` — never in `where` — must not be treated as proof, even
+  // when that id is a validly registered active scope. `where` is what
+  // actually selects which rows the query touches; `data`/`create` are just
+  // values being written. Before this hardening, the guard collected
+  // billingAccountId across the whole query (matching the organizationId
+  // check's shape), which let a write reassign or label an arbitrary,
+  // unrelated row with a billing account the caller happened to hold a
+  // scope for, as long as nothing else in the query carried organizationId.
+  it('rejects update({ where: { id }, data: { billingAccountId } }) on a registered id alone', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            data: { billingAccountId: 'billing-1' },
+            where: { id: 'victim-row' },
+          },
+          operation: 'update',
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('rejects upsert({ create: { billingAccountId } }) on a registered id alone', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            create: { billingAccountId: 'billing-1' },
+            update: { isDeleted: false },
+            where: { id: 'target-row' },
+          },
+          operation: 'upsert',
+        });
+      }),
+    ).toThrow(expect.objectContaining({ reason: 'missing-organization-id' }));
+  });
+
+  it('still allows the same registered id when it is actually the where-clause proof', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            data: { balanceCents: 100 },
+            where: { billingAccountId: 'billing-1' },
+          },
+          operation: 'update',
+        });
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a where-scoped registered id whose upsert create carries a different, unregistered id', () => {
+    // The where clause proves billing-1; the create payload separately
+    // claims a different, unregistered account. Since organizationId is
+    // absent everywhere, this still goes through the billing-account
+    // branch, and only the where-collected id (billing-1) is checked against
+    // active scopes — the unregistered id in `create` is inert data, not a
+    // second claim the guard evaluates. This documents that shape rather
+    // than asserting a throw: the create payload's own correctness is the
+    // caller's responsibility, not this guard's.
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        guardBillingAccount({
+          args: {
+            create: { billingAccountId: 'billing-unregistered' },
+            update: { isDeleted: false },
+            where: { billingAccountId: 'billing-1' },
+          },
+          operation: 'upsert',
+        });
+      }),
+    ).not.toThrow();
+  });
+});
+
 describe('createTenantGuardExtension', () => {
   it('intercepts $allOperations and forwards args when the query is allowed', async () => {
     const extension = createTenantGuardExtension({
@@ -168,6 +458,52 @@ describe('createTenantGuardExtension', () => {
           args: { where: { id: 'post-1' } },
           model: 'Post',
           operation: 'update',
+          query: async (args) => {
+            queryCalled = true;
+            return args;
+          },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(TenantIsolationError);
+    expect(queryCalled).toBe(false);
+  });
+
+  it('allows a billing-account-scoped query when its scope is registered active', async () => {
+    const extension = createTenantGuardExtension({
+      billingAccountModelNames: BILLING_ACCOUNT_MODEL_NAMES,
+      isCloud: true,
+      tenantModelNames: TENANT_MODEL_NAMES,
+    });
+    const query = async (args: unknown) => args;
+    const args = { where: { billingAccountId: 'billing-1', isDeleted: false } };
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        registerBillingAccountScope('billing-1');
+        return extension.query.$allModels.$allOperations({
+          args,
+          model: 'CreditBalance',
+          operation: 'findFirst',
+          query,
+        });
+      }),
+    ).resolves.toEqual(args);
+  });
+
+  it('rejects a billing-account-scoped query with no active scope before calling query', async () => {
+    const extension = createTenantGuardExtension({
+      billingAccountModelNames: BILLING_ACCOUNT_MODEL_NAMES,
+      isCloud: true,
+      tenantModelNames: TENANT_MODEL_NAMES,
+    });
+    let queryCalled = false;
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        extension.query.$allModels.$allOperations({
+          args: { where: { billingAccountId: 'billing-1' } },
+          model: 'CreditBalance',
+          operation: 'findFirst',
           query: async (args) => {
             queryCalled = true;
             return args;

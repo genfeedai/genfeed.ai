@@ -238,15 +238,14 @@ export const createTestBrand = (
   backgroundColor: 'transparent',
   createdAt: new Date(),
   description: 'Test brand description',
-  fontFamily: 'MONTSERRAT_BLACK',
+  fontFamily: 'MONTSERRAT_BLACK' as const,
   isActive: true,
   isDeleted: false,
   isHighlighted: false,
-  isSelected: false,
   label: 'Test Brand',
   organizationId: generateIdString(),
   primaryColor: '#000000',
-  scope: 'USER',
+  scope: 'USER' as const,
   secondaryColor: '#FFFFFF',
   slug: `brand-${Date.now()}`,
   updatedAt: new Date(),
@@ -279,6 +278,10 @@ export const createTestMember = (
 ) => ({
   id: generateIdString(),
   createdAt: new Date(),
+  // Required per-member invariant (#5219) — like organizationId/userId above,
+  // this placeholder id has no matching row; callers that persist a member
+  // must override it with a real brand in the same organization.
+  currentBrandId: generateIdString(),
   isActive: true,
   isDeleted: false,
   organizationId: generateIdString(),
