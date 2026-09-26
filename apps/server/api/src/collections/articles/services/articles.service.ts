@@ -903,25 +903,14 @@ export class ArticlesService
     organizationId: string,
     generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
-    // Admin → Automation → Models `isDefault` TEXT row wins over the seed
-    // constants below (#5161) whenever the caller has not pinned an explicit
-    // or organization-configured model. Reuses the same resolver #5167 added
-    // for agent chat.
+    // The Admin default TEXT model (#5161) replaces the seed constant as the
+    // system default; explicit and org-configured models still win.
     const systemDefault =
-      await this.resolveDefaultTextModel(DEFAULT_TEXT_MODEL);
-
-    if (!this.organizationSettingsService) {
-      return {
-        generationModel: resolveGenerationDefaultModel<string>({
-          explicit: generationModelOverride,
-          systemDefault,
-        }),
-        reviewModel: DEFAULT_MINI_TEXT_MODEL,
-        updateModel: DEFAULT_MINI_TEXT_MODEL,
-      };
-    }
-
-    const settings = await this.organizationSettingsService.findOne(
+      (await this.agentChatModelRegistry?.resolveModelKey(
+        undefined,
+        DEFAULT_TEXT_MODEL,
+      )) ?? DEFAULT_TEXT_MODEL;
+    const settings = await this.organizationSettingsService?.findOne(
       scopedWhere(organizationId, {}),
     );
 
@@ -934,19 +923,6 @@ export class ArticlesService
       reviewModel: settings?.defaultModelReview || DEFAULT_MINI_TEXT_MODEL,
       updateModel: settings?.defaultModelUpdate || DEFAULT_MINI_TEXT_MODEL,
     };
-  }
-
-  /**
-   * Resolves the operator-owned Admin default TEXT model through the #5167
-   * agent-chat registry resolver, falling back to `fallbackKey` (a caller's
-   * own seed constant) when the registry isn't wired (e.g. unit tests) or no
-   * Admin default resolves.
-   */
-  private async resolveDefaultTextModel(fallbackKey: string): Promise<string> {
-    if (!this.agentChatModelRegistry) {
-      return fallbackKey;
-    }
-    return this.agentChatModelRegistry.resolveModelKey(undefined, fallbackKey);
   }
 
   /**
