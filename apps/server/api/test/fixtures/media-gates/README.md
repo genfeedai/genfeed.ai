@@ -1,7 +1,38 @@
 # Media gate fixtures
 
 Labelled sets for the media-validation gates of epic #4877. They measure the
-gates; they are not production data.
+gates; they are not production data. Thresholds, the live-flip checklist and
+the outage drill are in
+[docs/operations/media-gates.md](../../../../../../docs/operations/media-gates.md).
+
+## Running the benchmark
+
+```bash
+bun run bench:typed-decisions -- --mode=media
+```
+
+This prints the readiness results, per-category moderation precision and
+recall, accuracy by score decile, and per-question accuracy for the text
+decisions. Moderation uses `MODERATION_PROVIDER` / `MODERATION_THRESHOLDS`
+from the environment; the text decisions use `--provider` (default `jev`).
+Add `--image-manifest=<path>` for the private image set, and
+`--skip=readiness,moderation,text` to run a subset. The flags are documented
+in `scripts/typed-decisions/media-benchmark.ts`.
+
+## `readiness-samples.fixture.ts`
+
+The readiness samples are not files. They are generated from
+`PLATFORM_MEDIA_SPECS`, per platform and kind:
+
+- one compliant probe, which must raise nothing;
+- one probe just past every limit the spec sets (minimum, maximum, container,
+  codecs, aspect ratio);
+- one sample with the probe missing.
+
+The evaluator reads probe metadata, so a probe one step past a limit tests
+exactly what an ffmpeg-generated file would, without committed binaries.
+Because the samples come from the spec table, a spec edit carries them along.
+`media-readiness.fixtures.spec.ts` requires every sample to pass.
 
 ## Anonymisation rules
 
@@ -13,7 +44,9 @@ gates; they are not production data.
 - **Image sets are never committed.** Labelled images for sexual, graphic or
   minor-safety categories must not live in a public repository. They are kept
   in an operator-held private bucket and referenced by a local manifest passed
-  to the benchmark at run time (#4883).
+  to the benchmark at run time with `--image-manifest=<path>`. It is JSONL,
+  one `{ "url": "…", "expected": ["sexual"], "source": "…" }` per image, and
+  the URLs must be reachable by the provider.
 
 ## `moderation-transcripts.jsonl`
 
@@ -36,9 +69,9 @@ dedicated visual classifier, and `live` should not be treated as full visual
 minor-safety coverage.
 
 Per-category precision and recall come from
-`computeModerationCalibration` (`apps/server/api/src/services/moderation`);
-#4883's benchmark mode runs this set against the configured provider and prints
-them. **No live flip may cite this set alone**: it is a floor for wiring and
+`computeModerationCalibration` (`apps/server/api/src/services/moderation`).
+The benchmark's media mode runs this set against the configured provider and
+prints them. **No live flip may cite this set alone**: it is a floor for wiring and
 regression, sized for coverage, not a statistically meaningful accuracy claim.
 
 ## `media-text-transcripts.jsonl` and `caption-description-pairs.jsonl`
@@ -53,8 +86,8 @@ typed-decision fixture shape — `state` is exactly what
 ```
 
 They are **synthetic and small** (33 transcripts across three brand profiles,
-20 caption/description pairs) and exist so the wiring and benchmark tooling
-(#4883) run end to end. The issue's gate for `MEDIA_TEXT_GATE_DECISION_MODE=live`
+20 caption/description pairs) and exist so the wiring and the benchmark's
+media mode run end to end. The issue's gate for `MEDIA_TEXT_GATE_DECISION_MODE=live`
 — at least 150 transcripts and 150 caption/description pairs **labelled by an
 operator**, with accuracy reported — is not met by these files and stays open
 until an operator-labelled set replaces them.
