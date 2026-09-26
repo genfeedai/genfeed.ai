@@ -39,6 +39,14 @@ export function xReplyWatchCursorKey(credentialId: string): string {
   return `x-reply-watch:cursor:${credentialId}`;
 }
 
+/**
+ * Stored reply ids whose notification failed. Retried on the next tick
+ * without another X call, since re-ingesting them creates nothing new.
+ */
+export function xReplyWatchPendingNotifyKey(credentialId: string): string {
+  return `x-reply-watch:pending-notify:${credentialId}`;
+}
+
 export function xReplyWatchBackoffKey(credentialId: string): string {
   return `x-reply-watch:backoff:${credentialId}`;
 }

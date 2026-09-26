@@ -9,6 +9,7 @@ import {
   X_REPLY_WATCH_WINDOW_MS,
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
+  xReplyWatchPendingNotifyKey,
 } from '@workers/crons/x-replies/x-reply-watch.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +65,7 @@ function setup() {
   const cacheService = {
     acquireLock: vi.fn().mockResolvedValue(true),
     get: vi.fn(async (key: string) => cache.get(key) ?? null),
+    del: vi.fn(async (key: string) => cache.delete(key)),
     releaseLock: vi.fn().mockResolvedValue(true),
     set: vi.fn(async (key: string, value: unknown) => {
       cache.set(key, value);
@@ -332,6 +334,46 @@ describe('CronXReplyWatchService', () => {
       '1800000000000000150',
     );
     expect(context.logger.warn).toHaveBeenCalledOnce();
+  });
+
+  it('retries a failed notification next tick without another X call', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    const reply = tweet('1800000000000000120', {
+      conversationId: '1800000000000000100',
+      inReplyToId: '1800000000000000100',
+    });
+    context.twitterService.listMentionsPage
+      .mockResolvedValueOnce({ tweets: [reply] })
+      .mockResolvedValueOnce({ tweets: [] });
+    context.socialInboxService.ingestXPostReplies.mockResolvedValueOnce({
+      conversationsCreated: 1,
+      createdMessageIds: [reply.tweetId],
+      messagesCreated: 1,
+    });
+    context.notifications.recordNewReplies.mockRejectedValueOnce(
+      new Error('db unavailable'),
+    );
+
+    const first = await context.service.watchRecentPostReplies(NOW);
+
+    expect(first.notified).toBe(0);
+    expect(context.cache.get(xReplyWatchPendingNotifyKey('a'))).toEqual([
+      reply.tweetId,
+    ]);
+
+    const second = await context.service.watchRecentPostReplies(NOW);
+
+    expect(second.notified).toBe(1);
+    expect(context.notifications.recordNewReplies).toHaveBeenLastCalledWith(
+      expect.objectContaining({ newReplyExternalIds: [reply.tweetId] }),
+    );
+    expect(context.cache.has(xReplyWatchPendingNotifyKey('a'))).toBe(false);
+    expect(
+      context.socialInboxService.ingestXPostReplies,
+    ).toHaveBeenCalledOnce();
   });
 
   it('does not notify when every matched reply was already stored', async () => {

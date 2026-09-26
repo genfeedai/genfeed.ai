@@ -28,6 +28,7 @@ import {
   X_REPLY_WATCH_WINDOW_MS,
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
+  xReplyWatchPendingNotifyKey,
 } from '@workers/crons/x-replies/x-reply-watch.constants';
 
 export type XReplyWatchCredential = {
@@ -318,6 +319,7 @@ export class CronXReplyWatchService {
       repliesMatched: replies.length,
     };
 
+    let createdMessageIds: string[] = [];
     if (replies.length > 0) {
       const ingested = await this.socialInboxService.ingestXPostReplies(
         {
@@ -328,11 +330,9 @@ export class CronXReplyWatchService {
         { credentialId: credential.id, replies },
       );
       outcome.repliesCreated = ingested.messagesCreated;
-      outcome.notified = await this.notify(
-        credential,
-        ingested.createdMessageIds,
-      );
+      createdMessageIds = ingested.createdMessageIds;
     }
+    outcome.notified = await this.notify(credential, createdMessageIds);
 
     const nextCursor = newestSnowflake([
       sinceId,
@@ -354,7 +354,10 @@ export class CronXReplyWatchService {
     credential: XReplyWatchCredential,
     createdMessageIds: string[],
   ): Promise<number> {
-    if (createdMessageIds.length === 0) {
+    const pendingKey = xReplyWatchPendingNotifyKey(credential.id);
+    const pending = (await this.cacheService.get<string[]>(pendingKey)) ?? [];
+    const replyIds = [...new Set([...pending, ...createdMessageIds])];
+    if (replyIds.length === 0) {
       return 0;
     }
     try {
@@ -362,13 +365,20 @@ export class CronXReplyWatchService {
         accountHandle: credential.externalHandle ?? credential.username,
         brandId: credential.brandId,
         credentialId: credential.id,
-        newReplyExternalIds: createdMessageIds,
+        newReplyExternalIds: replyIds,
         organizationId: credential.organizationId,
         platform: Platform.TWITTER,
       });
+      if (pending.length > 0) {
+        await this.cacheService.del(pendingKey);
+      }
       return deliveryId ? 1 : 0;
     } catch (error: unknown) {
-      // The replies are stored; a lost notification must not re-read X.
+      // The replies are stored and re-ingesting them creates nothing new, so
+      // keep their ids and retry the notification next tick without X calls.
+      await this.cacheService.set(pendingKey, replyIds, {
+        ttl: X_REPLY_WATCH_WINDOW_MS / 1000,
+      });
       this.logger.error('X reply notification failed', error, {
         context: this.context,
         credentialId: credential.id,
