@@ -139,6 +139,9 @@ export class PromptEnhancementService {
           { content: input.userPrompt, role: 'user' },
         ],
         model,
+        // A short rewrite needs no reasoning. A reasoning default model would
+        // otherwise spend the whole budget thinking and return empty content.
+        reasoning: { enabled: false },
         temperature: 0.8,
       },
       options?.byokApiKey,

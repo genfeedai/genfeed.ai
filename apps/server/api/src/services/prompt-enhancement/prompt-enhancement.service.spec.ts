@@ -126,6 +126,7 @@ describe('PromptEnhancementService', () => {
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
       {
         model: 'admin/default-text',
+        reasoning: { enabled: false },
         max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
         temperature: 0.8,
         messages: [
@@ -233,7 +234,10 @@ describe('PromptEnhancementService', () => {
       DEFAULT_TEXT_MODEL,
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'admin/default-text' }),
+      expect.objectContaining({
+        model: 'admin/default-text',
+        reasoning: { enabled: false },
+      }),
       undefined,
     );
     expect(JSON.stringify(openRouter.chatCompletion.mock.calls)).not.toContain(
