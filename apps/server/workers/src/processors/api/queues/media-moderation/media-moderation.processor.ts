@@ -24,14 +24,30 @@ export class MediaModerationProcessor extends WorkerHost {
   }
 
   async process(job: Job<MediaModerationJobData>): Promise<void> {
-    const outcome = await this.mediaModerationService.moderate(job.data);
-    const visionOutcome = await this.mediaVisionEvaluationService.evaluate(
-      job.data,
+    // Each gate runs even when another throws, so one provider outage never
+    // starves the others; the first failure still fails the job for retry.
+    const failures: unknown[] = [];
+    const run = async <T>(gate: () => Promise<T>): Promise<T | 'error'> => {
+      try {
+        return await gate();
+      } catch (error: unknown) {
+        failures.push(error);
+        return 'error';
+      }
+    };
+    const outcome = await run(() =>
+      this.mediaModerationService.moderate(job.data),
+    );
+    const visionOutcome = await run(() =>
+      this.mediaVisionEvaluationService.evaluate(job.data),
     );
     this.logger.log('MediaModerationProcessor finished', {
       ingredientId: job.data.ingredientId,
       outcome,
       visionOutcome,
     });
+    if (failures.length > 0) {
+      throw failures[0];
+    }
   }
 }

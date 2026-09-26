@@ -26,6 +26,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import {
+  type AgentPublishMediaAssessment,
   type AgentPublishPolicyResult,
   evaluateAgentPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
@@ -417,6 +418,21 @@ export async function createAgentTextDraft(
   };
 }
 
+/**
+ * The publish card shows the policy reason. When media forced or added to
+ * the review, the reviewer must see why, even if an autonomy denial is the
+ * headline reason.
+ */
+function withMediaReasons(
+  reason: string,
+  mediaReasons: readonly string[] | undefined,
+): string {
+  if (!mediaReasons?.length || reason.startsWith('Media review required')) {
+    return reason;
+  }
+  return `${reason} Media review: ${mediaReasons.join(' ')}`;
+}
+
 export async function finishConfirmedPublish(input: {
   autoPublishPolicy: { policyId: string };
   baseContent: string;
@@ -512,7 +528,10 @@ export async function finishConfirmedPublish(input: {
   const description = effectiveScheduledAt
     ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
     : requiresApproval
-      ? publishPolicy.result.reason
+      ? withMediaReasons(
+          publishPolicy.result.reason,
+          publishPolicy.result.mediaAssessmentReasons,
+        )
       : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
 
   return {
@@ -566,7 +585,34 @@ export async function finishConfirmedPublish(input: {
   };
 }
 
-export function fallbackConfirmedPublishPolicy(ctx: ToolExecutionContext): {
+/**
+ * The confirmed-in-thread fallback, tightened by the media assessment (#4881)
+ * so a flagged asset is never auto-published through it either.
+ */
+export async function resolveConfirmedFallbackPolicy(
+  params: {
+    assetIds?: string[];
+    ctx: ToolExecutionContext;
+    targets: Array<{ platform: string }>;
+  },
+  service:
+    | Pick<AutonomousPublishPolicyService, 'assessMediaForPolicy'>
+    | undefined,
+): Promise<PublishPolicy> {
+  return fallbackConfirmedPublishPolicy(
+    params.ctx,
+    await service?.assessMediaForPolicy({
+      assetIds: params.assetIds ?? [],
+      organizationId: params.ctx.organizationId,
+      platforms: params.targets.map((target) => target.platform),
+    }),
+  );
+}
+
+export function fallbackConfirmedPublishPolicy(
+  ctx: ToolExecutionContext,
+  mediaAssessment?: AgentPublishMediaAssessment,
+): {
   autonomyMode: AgentAutonomyMode;
   result: AgentPublishPolicyResult;
 } {
@@ -580,6 +626,7 @@ export function fallbackConfirmedPublishPolicy(ctx: ToolExecutionContext): {
       autonomyMode,
       brandAllowsAutoPublish: confirmed,
       channelAllowsAutoPublish: confirmed,
+      mediaAssessment,
     }),
   };
 }

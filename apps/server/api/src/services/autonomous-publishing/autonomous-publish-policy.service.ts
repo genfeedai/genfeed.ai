@@ -16,6 +16,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
+  type AgentPublishMediaAssessment,
   type AgentPublishPolicyResult,
   evaluateAgentPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
@@ -26,6 +27,12 @@ export interface ResolveAutonomousPostPolicyInput {
   organizationId: string;
   postId: string;
   strategyId?: string;
+  /**
+   * Skip the media assessment for callers that only need the timeout or
+   * autonomy settings (the review-expiry sweep runs inside a locked
+   * transaction and must not fan out into media reads).
+   */
+  skipMediaAssessment?: boolean;
 }
 export interface ResolveAutonomousTargetPolicyInput {
   organizationId: string;
@@ -97,7 +104,7 @@ export class AutonomousPublishPolicyService {
       where: scopedWhere(input.organizationId, { id: input.postId }),
     });
     const attached =
-      post && this.mediaAssessmentService
+      post && this.mediaAssessmentService && !input.skipMediaAssessment
         ? await db.ingredient.findMany({
             select: { id: true },
             where: scopedWhere(input.organizationId, {
@@ -225,17 +232,66 @@ export class AutonomousPublishPolicyService {
    * service or media leaves the decision exactly as autonomy × brand ×
    * channel made it.
    */
-  private async assessMedia(input: ResolveAutonomousTargetPolicyInput) {
-    if (!this.mediaAssessmentService || !input.assetIds?.length) {
+  private assessMedia(input: ResolveAutonomousTargetPolicyInput) {
+    return this.assessMediaForPolicy({
+      assetIds: input.assetIds ?? [],
+      organizationId: input.organizationId,
+      platforms: [input.platform],
+    });
+  }
+
+  /**
+   * The media assessment in the form the publish policy consumes, for paths
+   * that evaluate the policy without a strategy (the agent's confirmed
+   * fallback). Undefined when no assessment service is wired or no media is
+   * attached, which leaves the decision exactly as it was.
+   */
+  async assessMediaForPolicy(input: {
+    assetIds: readonly string[];
+    organizationId: string;
+    platforms: readonly string[];
+  }): Promise<AgentPublishMediaAssessment | undefined> {
+    if (!this.mediaAssessmentService || input.assetIds.length === 0) {
       return undefined;
     }
-    const platform = parsePlatform(input.platform);
     const assessment = await this.mediaAssessmentService.assessPublishMedia({
       assetIds: input.assetIds,
       organizationId: input.organizationId,
-      platforms: platform ? [platform] : [],
+      platforms: input.platforms.flatMap((platform) => {
+        const parsed = parsePlatform(platform);
+        return parsed ? [parsed] : [];
+      }),
     });
     return toPolicyMediaAssessment(assessment);
+  }
+
+  /** Assessment reasons for a post's attached media, for the review inbox. */
+  async assessPostMediaReasons(
+    organizationId: string,
+    postId: string,
+  ): Promise<string[]> {
+    if (!this.mediaAssessmentService) {
+      return [];
+    }
+    const post = await this.prisma.post.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: postId }),
+    });
+    if (!post) {
+      return [];
+    }
+    const attached = await this.prisma.ingredient.findMany({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        postIngredients: { some: { id: postId } },
+      }),
+    });
+    const assessment = await this.assessMediaForPolicy({
+      assetIds: attached.map((ingredient) => ingredient.id),
+      organizationId,
+      platforms: [],
+    });
+    return assessment?.reasons ?? [];
   }
 
   async recordReviewDecision(

@@ -4,6 +4,7 @@ import {
   MEDIA_PERCEPTION_SELECT,
   toMediaPerception,
 } from '@api/services/media-perception/media-perception.record';
+import { resolveMediaKind } from '@api/services/media-readiness/media-kind.util';
 import {
   readBlockingDiagnostics,
   readWarningDiagnostics,
@@ -33,6 +34,9 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+
+const CHECKS_PENDING_MESSAGE =
+  'Media checks are still running for this asset; it needs review until they finish.';
 
 /** The slice of an assessment the publish policy consumes. */
 export function toPolicyMediaAssessment(
@@ -115,12 +119,33 @@ export class MediaAssessmentService implements IMediaPublishGate {
       }
     }
 
-    const isPerceptionPending = await this.collectPerceptionAndVision(
+    // Classifier gates only apply to media; a text or source ingredient is
+    // never perceived and must not read as "checks pending".
+    const mediaAssetIds = await this.filterMediaAssets(
       request.organizationId,
       assetIds,
-      reasons,
     );
-    await this.collectModeration(request.organizationId, assetIds, reasons);
+    const unchecked = new Set<string>();
+    const isPerceptionPending = await this.collectPerceptionAndVision(
+      request.organizationId,
+      mediaAssetIds,
+      reasons,
+      unchecked,
+    );
+    await this.collectModeration(
+      request.organizationId,
+      mediaAssetIds,
+      reasons,
+      unchecked,
+    );
+    for (const assetId of unchecked) {
+      reasons.push({
+        assetId,
+        code: 'perception:checks_pending',
+        message: CHECKS_PENDING_MESSAGE,
+        source: 'perception',
+      });
+    }
 
     return {
       isBlocking: reasons.length > 0,
@@ -134,17 +159,30 @@ export class MediaAssessmentService implements IMediaPublishGate {
     organizationId: string,
     assetIds: readonly string[],
     reasons: MediaAssessmentReason[],
+    unchecked: Set<string>,
   ): Promise<void> {
     const settings = resolveModerationSettings(this.configService);
     if (settings.mode === 'off') {
       return;
     }
+    const isClassifierLive =
+      settings.mode === 'live' &&
+      settings.provider !== 'none' &&
+      String(this.configService.get('OPENAI_API_KEY') ?? '').trim().length > 0;
     const rows = await this.prisma.mediaModeration.findMany({
       select: MEDIA_MODERATION_SELECT,
       where: scopedWhere(organizationId, {
         ingredientId: { in: [...assetIds] },
       }),
     });
+    if (isClassifierLive) {
+      const moderated = new Set(rows.map((row) => row.ingredientId));
+      for (const assetId of assetIds) {
+        if (!moderated.has(assetId)) {
+          unchecked.add(assetId);
+        }
+      }
+    }
     for (const row of rows) {
       const moderation = toMediaModeration(row);
       if (!moderation) {
@@ -177,11 +215,29 @@ export class MediaAssessmentService implements IMediaPublishGate {
     }
   }
 
-  /** Returns whether any asset is still waiting on perception. */
+  private async filterMediaAssets(
+    organizationId: string,
+    assetIds: readonly string[],
+  ): Promise<string[]> {
+    const rows = await this.prisma.ingredient.findMany({
+      select: { category: true, id: true },
+      where: scopedWhere(organizationId, { id: { in: [...assetIds] } }),
+    });
+    return rows
+      .filter((row) => resolveMediaKind(row.category) !== null)
+      .map((row) => row.id);
+  }
+
+  /**
+   * Returns whether any asset is still waiting on perception. While vision is
+   * `live`, an asset without settled perception or without its evaluation is
+   * added to `unchecked`.
+   */
   private async collectPerceptionAndVision(
     organizationId: string,
     assetIds: readonly string[],
     reasons: MediaAssessmentReason[],
+    unchecked: Set<string>,
   ): Promise<boolean> {
     const rows = await this.prisma.mediaPerception.findMany({
       select: { ...MEDIA_PERCEPTION_SELECT, visionEvaluationId: true },
@@ -191,6 +247,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     });
     const settled = new Set<string>();
     const evaluationByAsset = new Map<string, string>();
+    const needsVision = new Set<string>();
     for (const row of rows) {
       const perception = toMediaPerception(row);
       if (perception && !hasPendingArtefacts(perception)) {
@@ -198,13 +255,21 @@ export class MediaAssessmentService implements IMediaPublishGate {
       }
       if (row.visionEvaluationId) {
         evaluationByAsset.set(row.ingredientId, row.visionEvaluationId);
+      } else if (perception?.framesStatus !== 'unavailable') {
+        needsVision.add(row.ingredientId);
       }
     }
 
-    if (
-      resolveVisionGateMode(this.configService) === 'live' &&
-      evaluationByAsset.size > 0
-    ) {
+    const isVisionLive = resolveVisionGateMode(this.configService) === 'live';
+    if (isVisionLive) {
+      for (const assetId of assetIds) {
+        if (!settled.has(assetId) || needsVision.has(assetId)) {
+          unchecked.add(assetId);
+        }
+      }
+    }
+
+    if (isVisionLive && evaluationByAsset.size > 0) {
       const evaluations = await this.prisma.evaluation.findMany({
         select: { data: true, id: true },
         where: scopedWhere(organizationId, {

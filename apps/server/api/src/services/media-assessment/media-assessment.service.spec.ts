@@ -62,6 +62,7 @@ function moderationRow(ingredientId: string, hate: number, mode = 'shadow') {
 }
 
 function makeHarness(options: {
+  categories?: Record<string, string>;
   config?: Record<string, unknown>;
   evaluations?: Record<string, unknown>[];
   moderations?: Record<string, unknown>[];
@@ -82,9 +83,19 @@ function makeHarness(options: {
   const evaluationFindMany = vi
     .fn()
     .mockResolvedValue(options.evaluations ?? []);
+  const categories = options.categories ?? {};
   const service = new MediaAssessmentService(
     {
       evaluation: { findMany: evaluationFindMany },
+      ingredient: {
+        findMany: vi.fn(
+          async ({ where }: { where: { id: { in: string[] } } }) =>
+            where.id.in.map((id) => ({
+              category: categories[id] ?? 'IMAGE',
+              id,
+            })),
+        ),
+      },
       mediaModeration: {
         findMany: vi.fn().mockResolvedValue(options.moderations ?? []),
       },
@@ -245,5 +256,45 @@ describe('MediaAssessmentService', () => {
 
     await service.assessPublishMedia({ ...REQUEST, platforms: [] });
     expect(evaluatePublishReadiness).not.toHaveBeenCalled();
+  });
+
+  it('treats live moderation without a result as checks pending, never clean', async () => {
+    const { service } = makeHarness({
+      config: { OPENAI_API_KEY: 'key' },
+      perceptions: [perceptionRow('asset-1')],
+    });
+
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        code: 'perception:checks_pending',
+        source: 'perception',
+      }),
+    ]);
+  });
+
+  it('treats live vision without an evaluation as checks pending', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1')],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: true,
+      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
+    });
+  });
+
+  it('never gates a non-media attachment on pending checks', async () => {
+    const { service } = makeHarness({
+      categories: { 'asset-1': 'TEXT' },
+      config: { MEDIA_GATE_VISION_MODE: 'live', OPENAI_API_KEY: 'key' },
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: false,
+      reasons: [],
+    });
   });
 });

@@ -32,4 +32,21 @@ describe('MediaModerationProcessor', () => {
       }),
     );
   });
+
+  it('still runs vision when moderation throws, then fails the job', async () => {
+    const moderate = vi.fn().mockRejectedValue(new Error('vendor down'));
+    const evaluate = vi.fn().mockResolvedValue('evaluated');
+    const processor = new MediaModerationProcessor(
+      { moderate } as unknown as MediaModerationService,
+      { evaluate } as unknown as MediaVisionEvaluationService,
+      { log: vi.fn() } as unknown as LoggerService,
+    );
+
+    await expect(
+      processor.process({
+        data: { ingredientId: 'asset-1', organizationId: 'org-1' },
+      } as Job<MediaModerationJobData>),
+    ).rejects.toThrow('vendor down');
+    expect(evaluate).toHaveBeenCalledOnce();
+  });
 });

@@ -3676,6 +3676,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'transcript',
       'transcriptStatus',
       'updatedAt',
+      'visionAttempts',
       'visionEvaluationId',
     ],
     listFields: [],

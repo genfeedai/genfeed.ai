@@ -42,7 +42,11 @@ function makeHarness(
         } as IMediaPerception);
   const perceptionFindFirst = vi
     .fn()
-    .mockResolvedValueOnce({ id: 'perception-1', visionEvaluationId: null })
+    .mockResolvedValueOnce({
+      id: 'perception-1',
+      visionAttempts: 0,
+      visionEvaluationId: null,
+    })
     .mockResolvedValueOnce(options.sibling ?? null);
   const updateMany = vi.fn().mockResolvedValue({ count: 1 });
   const evaluationCreate = vi.fn().mockResolvedValue({ id: 'evaluation-1' });
@@ -57,7 +61,7 @@ function makeHarness(
     score: 4,
     suggestions: ['Regenerate.'],
   });
-  const logger = { log: vi.fn() };
+  const logger = { log: vi.fn(), warn: vi.fn() };
   const service = new MediaVisionEvaluationService(
     {
       evaluation: { create: evaluationCreate },
@@ -140,6 +144,18 @@ describe('MediaVisionEvaluationService', () => {
     expect(h.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { visionEvaluationId: 'evaluation-0' } }),
     );
+  });
+
+  it('records a failed paid attempt instead of throwing', async () => {
+    const h = makeHarness();
+    h.scoreVisionFrames.mockRejectedValueOnce(new Error('refused'));
+
+    await expect(h.service.evaluate(JOB)).resolves.toBe('failed');
+    expect(h.updateMany).toHaveBeenCalledWith({
+      data: { visionAttempts: { increment: 1 } },
+      where: { id: 'perception-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(h.evaluationCreate).not.toHaveBeenCalled();
   });
 
   it('waits for frames', async () => {

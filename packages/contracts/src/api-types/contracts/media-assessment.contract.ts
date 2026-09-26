@@ -10,7 +10,9 @@
  *
  * An assessment can only tighten a publish decision: `isBlocking` turns an
  * auto-publish into review-required, and nothing here can turn a denial into
- * a publish.
+ * a publish. A gate that is `live` but has not produced a result for an asset
+ * yet blocks too (source `perception`): unchecked media is never treated as
+ * clean.
  */
 
 import { z } from 'zod';
@@ -18,6 +20,7 @@ import { z } from 'zod';
 export const mediaAssessmentSourceValues = [
   'description',
   'moderation',
+  'perception',
   'readiness',
   'transcript',
   'vision',
@@ -45,24 +48,3 @@ export const mediaAssessmentSchema = z.object({
 export type MediaAssessmentSource = z.infer<typeof mediaAssessmentSourceSchema>;
 export type MediaAssessmentReason = z.infer<typeof mediaAssessmentReasonSchema>;
 export type MediaAssessment = z.infer<typeof mediaAssessmentSchema>;
-
-export const EMPTY_MEDIA_ASSESSMENT: MediaAssessment = {
-  isBlocking: false,
-  isPerceptionPending: false,
-  reasons: [],
-  warnings: [],
-};
-
-/** Merge per-post assessments (a multi-target publish checks each target). */
-export function mergeMediaAssessments(
-  assessments: readonly MediaAssessment[],
-): MediaAssessment {
-  return {
-    isBlocking: assessments.some((assessment) => assessment.isBlocking),
-    isPerceptionPending: assessments.some(
-      (assessment) => assessment.isPerceptionPending,
-    ),
-    reasons: assessments.flatMap((assessment) => assessment.reasons),
-    warnings: assessments.flatMap((assessment) => assessment.warnings),
-  };
-}

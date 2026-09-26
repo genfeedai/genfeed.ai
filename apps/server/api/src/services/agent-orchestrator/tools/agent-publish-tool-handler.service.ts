@@ -17,8 +17,8 @@ import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/t
 import {
   createAgentTextDraft,
   createProactiveAgentTextPost,
-  fallbackConfirmedPublishPolicy,
   finishConfirmedPublish,
+  resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
 import {
@@ -433,7 +433,7 @@ export class AgentPublishToolHandler {
         ) ?? policies[0];
       if (resolved) return resolved;
     }
-    return fallbackConfirmedPublishPolicy(params.ctx);
+    return resolveConfirmedFallbackPolicy(params, service);
   }
 
   private async writePublishAudit(params: {

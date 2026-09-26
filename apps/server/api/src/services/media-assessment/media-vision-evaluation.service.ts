@@ -18,12 +18,20 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 
 /** Frames shown to the vision model; enough to judge, cheap to send. */
 const MAX_EVALUATED_FRAMES = 4;
 
-export type MediaVisionEvaluationOutcome = 'evaluated' | 'reused' | 'skipped';
+/** Paid vision attempts per asset before the sweep stops offering it. */
+export const MAX_VISION_ATTEMPTS = 3;
+
+export type MediaVisionEvaluationOutcome =
+  | 'evaluated'
+  | 'failed'
+  | 'reused'
+  | 'skipped';
 
 const SEVERITY: Record<'critical' | 'info' | 'warning', EvaluationSeverity> = {
   critical: EvaluationSeverity.CRITICAL,
@@ -88,12 +96,16 @@ export class MediaVisionEvaluationService {
     }
 
     const link = await this.prisma.mediaPerception.findFirst({
-      select: { id: true, visionEvaluationId: true },
+      select: { id: true, visionAttempts: true, visionEvaluationId: true },
       where: scopedWhere(job.organizationId, {
         ingredientId: job.ingredientId,
       }),
     });
-    if (!link || link.visionEvaluationId) {
+    if (
+      !link ||
+      link.visionEvaluationId ||
+      link.visionAttempts >= MAX_VISION_ATTEMPTS
+    ) {
       return 'skipped';
     }
 
@@ -126,13 +138,30 @@ export class MediaVisionEvaluationService {
       return 'skipped';
     }
 
-    const scoring = await this.scorer.scoreVisionFrames({
-      brandId: ingredient.brandId,
-      imageUrls: pickEvenly(perception.frames, MAX_EVALUATED_FRAMES).map(
-        (frame) => frame.url,
-      ),
-      organizationId: job.organizationId,
-    });
+    let scoring: Awaited<
+      ReturnType<ContentQualityScorerService['scoreVisionFrames']>
+    >;
+    try {
+      scoring = await this.scorer.scoreVisionFrames({
+        brandId: ingredient.brandId,
+        imageUrls: pickEvenly(perception.frames, MAX_EVALUATED_FRAMES).map(
+          (frame) => frame.url,
+        ),
+        organizationId: job.organizationId,
+      });
+    } catch (error: unknown) {
+      // Record the paid attempt so a permanent failure is not re-billed on
+      // every sweep; the asset stays unchecked (and gated while live).
+      await this.prisma.mediaPerception.updateMany({
+        data: { visionAttempts: { increment: 1 } },
+        where: scopedWhere(job.organizationId, { id: link.id }),
+      });
+      this.logger.warn(
+        `${this.constructorName} vision evaluation failed: ${getErrorMessage(error)}`,
+        { attempts: link.visionAttempts + 1, ingredientId: job.ingredientId },
+      );
+      return 'failed';
+    }
     const flags = deriveVisionFlags(scoring.rubric);
     const data: IEvaluationData = {
       analysis: {
@@ -202,6 +231,7 @@ export class MediaVisionEvaluationService {
             framesStatus: 'ready',
             isDeleted: false,
             updatedAt: { gte: since },
+            visionAttempts: { lt: MAX_VISION_ATTEMPTS },
             visionEvaluationId: null,
           },
         },
