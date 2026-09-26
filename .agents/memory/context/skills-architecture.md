@@ -22,6 +22,7 @@ Clone and go.
   `bun run skills:sync --source-dir <clean checkout> --commit <sha> --write`.
 - Only app-usage procedures are authored in `skills/`: brand-interview, node-creator,
   workflow-creator, onboarding, model-selector, scope-validator, openclaw-integration
-  (`APPLICATION_PROCEDURES` in `skill-catalog-artifact.ts`). Any other slug fails the lock.
+  (`APPLICATION_PROCEDURES` in `skill-catalog-artifact.ts`). Any other slug fails the lock,
+  and the lock's `sourceSkillSlugs` must not list an app procedure (no public duplicates).
 - `bun run check:skills-catalog` (CI, offline) rejects drift in files, hashes, compiler, index
   or README; `--check-source` verifies the pin against a clean source checkout.
