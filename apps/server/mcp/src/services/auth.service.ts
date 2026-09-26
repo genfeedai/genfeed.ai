@@ -194,7 +194,7 @@ export class AuthService {
 
   extractBearerToken(authHeader: string | undefined): string | null {
     const parsed = parseAuthorizationHeader(authHeader);
-    if (parsed?.scheme !== 'Bearer') {
+    if (parsed?.normalizedScheme !== 'bearer') {
       return null;
     }
     return parsed.token;

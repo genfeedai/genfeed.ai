@@ -46,7 +46,7 @@ export function extractBearerTokenStrict(
   authHeader: string | undefined,
 ): string {
   const parsed = parseAuthorizationHeader(authHeader);
-  return parsed?.scheme === 'Bearer' ? parsed.token : '';
+  return parsed?.normalizedScheme === 'bearer' ? parsed.token : '';
 }
 
 export interface IInternalApiKeyGuardOptions {

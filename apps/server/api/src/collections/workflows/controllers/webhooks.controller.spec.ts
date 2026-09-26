@@ -149,6 +149,53 @@ describe('WebhooksController', () => {
           ),
         ).rejects.toThrow(HttpException);
       });
+
+      it('should trigger workflow with a lowercase bearer scheme', async () => {
+        // RFC 7235: scheme names are case-insensitive.
+        mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+          bearerWorkflow,
+        );
+        mockWorkflowWebhookService.triggerViaWebhook.mockResolvedValue({
+          runId: 'run123',
+          status: 'queued',
+        });
+
+        const result = await controller.triggerWebhook(
+          'webhook123',
+          {},
+          undefined,
+          'bearer my-bearer-token',
+        );
+
+        expect(result.data.runId).toBe('run123');
+      });
+
+      it.each([
+        ['wrong scheme', 'Basic my-bearer-token'],
+        ['surplus fields', 'Bearer my-bearer-token extra'],
+        ['single field', 'Bearer'],
+      ])(
+        // Regression coverage for #5206: a naive
+        // `startsWith('Bearer ')`/`substring(7)` parse either missed a
+        // differently-cased scheme or silently kept surplus fields as part
+        // of the "token" (which then just failed the secret compare instead
+        // of being rejected outright as malformed).
+        'should throw 401 for a %s Authorization header',
+        async (_label, authorization) => {
+          mockWorkflowWebhookService.findByWebhookId.mockResolvedValue(
+            bearerWorkflow,
+          );
+
+          await expect(
+            controller.triggerWebhook(
+              'webhook123',
+              {},
+              undefined,
+              authorization,
+            ),
+          ).rejects.toThrow(HttpException);
+        },
+      );
     });
 
     describe('no auth', () => {

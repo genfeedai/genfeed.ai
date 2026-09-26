@@ -129,6 +129,40 @@ describe('ApiKeyAuthGuard', () => {
       },
     );
 
+    it.each([
+      ['bearer', 'bearer gf_test_abc123'],
+      ['BEARER', 'BEARER gf_test_abc123'],
+      ['apikey', 'apikey gf_test_abc123'],
+      ['ApiKEY', 'ApiKEY gf_test_abc123'],
+    ])(
+      // Regression coverage for #5206 follow-up: RFC 7235 scheme names are
+      // case-insensitive. CombinedAuthGuard already recognizes a
+      // case-varied `bearer` scheme and routes `gf_` tokens here — this
+      // guard's own comparison must accept the same casing instead of
+      // 401ing a request CombinedAuthGuard already decided was a bearer
+      // token.
+      'accepts a %s scheme (case-insensitive per RFC 7235)',
+      async (_label, authorization) => {
+        request = buildMockRequest({
+          ...request,
+          headers: { authorization },
+        });
+        mockContext = createMockExecutionContext({ request });
+        vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+        vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+        vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+          allowed: true,
+          limit: 60,
+          retryAfterSeconds: 0,
+        });
+
+        const result = await guard.canActivate(mockContext);
+
+        expect(result).toBe(true);
+        expect(apiKeysService.findByKey).toHaveBeenCalledWith('gf_test_abc123');
+      },
+    );
+
     it('should return true for non-API key tokens', async () => {
       request = buildMockRequest({
         ...request,

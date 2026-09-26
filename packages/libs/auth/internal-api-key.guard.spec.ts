@@ -76,6 +76,24 @@ describe('InternalApiKeyGuard (shared @libs/auth core)', () => {
     ).toThrow(UnauthorizedException);
   });
 
+  it.each([
+    ['bearer', 'bearer secret-token'],
+    ['BEARER', 'BEARER secret-token'],
+    ['BeArEr', 'BeArEr secret-token'],
+  ])(
+    // RFC 7235: scheme names are case-insensitive.
+    'accepts a %s scheme',
+    (_label, authorization) => {
+      const guard = buildGuard('secret-token', false);
+
+      const result = guard.canActivate(
+        createContext({ headers: { authorization } }),
+      );
+
+      expect(result).toBe(true);
+    },
+  );
+
   it('rejects invalid bearer tokens (timing-safe mismatch)', () => {
     const guard = buildGuard('secret-token', false);
 

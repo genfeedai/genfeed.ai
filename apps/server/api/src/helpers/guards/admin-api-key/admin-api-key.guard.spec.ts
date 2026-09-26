@@ -132,5 +132,17 @@ describe('AdminApiKeyGuard', () => {
         guard.canActivate(makeContext(`Bearer ${VALID_KEY}extra`)),
       ).toThrow(UnauthorizedException);
     });
+
+    it.each([
+      ['bearer', `bearer ${VALID_KEY}`],
+      ['BEARER', `BEARER ${VALID_KEY}`],
+      ['BeArEr', `BeArEr ${VALID_KEY}`],
+    ])(
+      // RFC 7235: scheme names are case-insensitive.
+      'accepts a %s scheme',
+      (_label, authorization) => {
+        expect(guard.canActivate(makeContext(authorization))).toBe(true);
+      },
+    );
   });
 });

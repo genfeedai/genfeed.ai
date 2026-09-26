@@ -16,7 +16,7 @@ function resolveBearerToken(
 ): string | undefined {
   const parsed = parseAuthorizationHeader(authorizationHeader);
 
-  if (parsed?.scheme.toLowerCase() !== 'bearer') {
+  if (parsed?.normalizedScheme !== 'bearer') {
     return undefined;
   }
 

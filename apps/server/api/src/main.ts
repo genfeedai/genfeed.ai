@@ -362,7 +362,7 @@ async function main() {
       }
 
       const parsedAuthHeader = parseAuthorizationHeader(authHeader);
-      if (parsedAuthHeader?.scheme === 'Bearer') {
+      if (parsedAuthHeader?.normalizedScheme === 'bearer') {
         const token = parsedAuthHeader.token;
         const tokenBuf = Buffer.from(token);
         const expectedBuf = Buffer.from(expectedToken);

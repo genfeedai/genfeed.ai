@@ -36,7 +36,7 @@ export class BetterAuthStrategy extends PassportStrategy(
     }
 
     const parsed = parseAuthorizationHeader(req.headers.authorization);
-    if (parsed?.scheme.toLowerCase() !== 'bearer' || !parsed.token) {
+    if (parsed?.normalizedScheme !== 'bearer' || !parsed.token) {
       throw new UnauthorizedException('No token provided');
     }
     const token = parsed.token;

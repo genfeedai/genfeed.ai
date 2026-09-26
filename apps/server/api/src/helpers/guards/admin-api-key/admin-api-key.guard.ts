@@ -38,7 +38,7 @@ export class AdminApiKeyGuard implements CanActivate {
     // Extract token from Bearer header
     const parsed = parseAuthorizationHeader(authHeader);
 
-    if (parsed?.scheme !== 'Bearer') {
+    if (parsed?.normalizedScheme !== 'bearer') {
       throw new UnauthorizedException('Invalid authorization header format');
     }
 

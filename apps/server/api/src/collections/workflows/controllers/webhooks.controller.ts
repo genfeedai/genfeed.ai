@@ -9,6 +9,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -80,14 +81,16 @@ export class WebhooksController {
         );
       }
     } else if (authType === 'bearer') {
-      if (!authHeader?.startsWith('Bearer ')) {
+      // RFC 7235: scheme names are case-insensitive.
+      const parsedAuthHeader = parseAuthorizationHeader(authHeader);
+      if (parsedAuthHeader?.normalizedScheme !== 'bearer') {
         throw new HttpException(
           { error: 'Missing or invalid Authorization header', status: 401 },
           HttpStatus.UNAUTHORIZED,
         );
       }
 
-      const token = authHeader.substring(7);
+      const token = parsedAuthHeader.token;
       if (
         !workflow.webhookSecret ||
         !this.validateSecret(token, workflow.webhookSecret)

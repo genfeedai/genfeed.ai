@@ -338,7 +338,7 @@ export class TerminalGateway
     const headerToken = client.handshake.headers.authorization;
     if (typeof headerToken === 'string') {
       const parsed = parseAuthorizationHeader(headerToken);
-      return parsed?.scheme === 'Bearer' ? parsed.token : undefined;
+      return parsed?.normalizedScheme === 'bearer' ? parsed.token : undefined;
     }
 
     return undefined;

@@ -150,6 +150,37 @@ describe('TerminalGateway', () => {
     },
   );
 
+  it.each([
+    ['bearer', 'bearer session-token'],
+    ['BEARER', 'BEARER session-token'],
+    ['BeArEr', 'BeArEr session-token'],
+  ])(
+    // RFC 7235: scheme names are case-insensitive.
+    'accepts a %s scheme via the Authorization header',
+    async (_label, authorization) => {
+      const terminalService = createTerminalService();
+      const gateway = new TerminalGateway(terminalService as never);
+      const socket = {
+        disconnect: vi.fn(),
+        emit: vi.fn(),
+        handshake: {
+          address: '127.0.0.1',
+          auth: {},
+          headers: { authorization, origin: 'http://localhost:3000' },
+        },
+        id: 'socket-1',
+      } as unknown as Socket;
+
+      await gateway.handleConnection(socket);
+
+      expect(verifyMock).toHaveBeenCalledWith('session-token');
+      expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+        socketId: 'socket-1',
+      });
+      expect(socket.disconnect).not.toHaveBeenCalled();
+    },
+  );
+
   it('accepts localhost origins by minting a token from the Better Auth session cookie', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);
