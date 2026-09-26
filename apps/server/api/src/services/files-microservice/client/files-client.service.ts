@@ -2,9 +2,14 @@ import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
-import type {
-  MediaProbe,
-  MediaReadinessKind,
+import {
+  type MediaPerceptionArtefacts,
+  type MediaPerceptionArtefactsRequest,
+  type MediaPerceptionFingerprint,
+  type MediaProbe,
+  type MediaReadinessKind,
+  mediaPerceptionArtefactsSchema,
+  mediaPerceptionFingerprintSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   IApiUploadSource,
@@ -183,6 +188,33 @@ export class FilesClientService {
       ),
     );
     return this.toMediaProbe(response.data, kind);
+  }
+
+  /** SHA-256 and size of the bytes behind an asset URL (#4879). */
+  async fingerprintMedia(url: string): Promise<MediaPerceptionFingerprint> {
+    const response = await firstValueFrom(
+      this.httpService.post<unknown>(
+        `${this.filesServiceUrl}/v1/files/perception/fingerprint`,
+        { url },
+      ),
+    );
+    return mediaPerceptionFingerprintSchema.parse(response.data);
+  }
+
+  /**
+   * Model-free perception artefacts (#4879): sampled frames, OCR text and the
+   * extracted audio track. The response is validated before it is trusted.
+   */
+  async extractPerceptionArtefacts(
+    request: MediaPerceptionArtefactsRequest,
+  ): Promise<MediaPerceptionArtefacts> {
+    const response = await firstValueFrom(
+      this.httpService.post<unknown>(
+        `${this.filesServiceUrl}/v1/files/perception/artefacts`,
+        request,
+      ),
+    );
+    return mediaPerceptionArtefactsSchema.parse(response.data);
   }
 
   private toMediaProbe(

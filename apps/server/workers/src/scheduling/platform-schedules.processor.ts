@@ -12,6 +12,7 @@ import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cro
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
 import { CronLifecycleEmailsService } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.service';
 import { CronLlmIdleService } from '@workers/crons/llm-idle/cron.llm-idle.service';
+import { CronMediaPerceptionService } from '@workers/crons/media-perception/cron.media-perception.service';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { CronOAuthClientCleanupService } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service';
@@ -60,6 +61,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly falModelWatcher: CronFalModelWatcherService,
     private readonly ingredients: CronIngredientsService,
     private readonly llmIdle: CronLlmIdleService,
+    private readonly mediaPerception: CronMediaPerceptionService,
     private readonly modelDeprecation: CronModelDeprecationService,
     private readonly modelWatcher: CronModelWatcherService,
     private readonly notificationRecovery: NotificationDeliveryRecoveryService,
@@ -120,6 +122,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.ingredients.checkStuckProcessingIngredients(),
       [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN]: () =>
         this.llmIdle.shutdownIfIdle(),
+      [PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP]: () =>
+        this.mediaPerception.queueDuePerceptions(),
       [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: () =>
         this.modelDeprecation.deprecateSupersededModels(),
       [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: () =>

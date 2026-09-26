@@ -1,3 +1,4 @@
+import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
@@ -32,6 +33,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
   LIFECYCLE_EMAILS: 'lifecycle-emails',
   LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
+  MEDIA_PERCEPTION_SWEEP: 'media-perception-sweep',
   MODEL_DEPRECATION: 'model-deprecation',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
@@ -122,6 +124,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN]: {
     pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP]: {
+    pattern: MEDIA_PERCEPTION_SWEEP_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: {

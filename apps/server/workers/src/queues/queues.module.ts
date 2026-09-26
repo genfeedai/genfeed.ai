@@ -14,6 +14,7 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
   REPLICATE_POLL_QUEUE,
@@ -123,6 +124,14 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: true,
         },
         name: ONBOARDING_STARTER_ASSETS_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: true,
+          removeOnFail: { age: 24 * 60 * 60 },
+        },
+        name: MEDIA_PERCEPTION_QUEUE,
       },
     ),
   ],

@@ -877,6 +877,7 @@ model Organization {
   referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
   llmVendorCosts                LlmVendorCost[]
   mediaVendorCosts              MediaVendorCost[]
+  mediaPerceptions              MediaPerception[]
   billingRevenueEvents          BillingRevenueEvent[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
@@ -2130,6 +2131,7 @@ model Ingredient {
   taskApprovedOutputs       Task[]                     @relation("task_approved_outputs")
   clipResults               ClipResult[]               @relation("clip_result_ingredient")
   workflowNodeContinuations WorkflowNodeContinuation[]
+  mediaPerceptions          MediaPerception[]
 
   @@index([groupId])
   @@index([scope])
@@ -3553,6 +3555,49 @@ model BillingRevenueEvent {
 /// Micro-USD integers derived from Model.providerCostUsd × realized output
 /// units (seconds / megapixels / runs). BYOK rows store units with
 /// vendorCostMicros = 0. Never stores prompt content.
+/// Media perception artefacts for one asset (#4879): sampled frames, OCR text,
+/// transcript and a schema-enforced scene description. One live row per
+/// ingredient; `assetHash` is the SHA-256 of the asset bytes, and a second
+/// ingredient with the same bytes in the same organization copies these
+/// artefacts instead of re-running perception (`reusedFromId`). Status columns
+/// hold `ready | pending | unavailable | failed`; JSON shapes are validated by
+/// `mediaPerceptionRecordSchema` in @genfeedai/contracts on every read.
+model MediaPerception {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  ingredientId      String
+  ingredient        Ingredient   @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  assetHash         String
+  schemaVersion     Int
+  kind              String
+  durationSeconds   Float?
+  frames            Json         @default("[]")
+  framesStatus      String
+  ocr               Json         @default("[]")
+  ocrStatus         String
+  transcript        Json?
+  transcriptStatus  String
+  description       Json?
+  descriptionStatus String
+  descriptionModel  String?
+  diagnostics       Json         @default("[]")
+  // Extracted audio track kept for transcript retries; not part of the record.
+  audioUrl          String?
+  // Retry bookkeeping for artefacts left `pending` by a provider outage.
+  attempts          Int          @default(0)
+  nextAttemptAt     DateTime?
+  reusedFromId      String?
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([organizationId, ingredientId], map: "media_perceptions_org_ingredient_key")
+  @@index([organizationId, assetHash, isDeleted], map: "media_perceptions_org_hash_deleted_idx")
+  @@index([isDeleted, nextAttemptAt], map: "media_perceptions_deleted_next_attempt_idx")
+  @@map("media_perceptions")
+}
+
 model MediaVendorCost {
   pricingSnapshot Json?
   costEvidence String?
