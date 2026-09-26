@@ -141,6 +141,31 @@ describe('WebSocketGateway', () => {
     expect(socket.disconnect).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ['surplus fields (exploit shape)', 'Bearer junk validJWT'],
+    ['wrong scheme', 'Basic validJWT'],
+    ['single field', 'Bearer'],
+  ])(
+    // Regression coverage for #5206: `headerToken.split(' ').pop()` used to
+    // take the LAST whitespace-separated field, so a header like
+    // `Bearer junk <validJWT>` would still extract and verify `validJWT`.
+    'never extracts a token from a malformed Authorization header (%s)',
+    async (_label, authorization) => {
+      const socket = createMockSocket({
+        handshake: {
+          auth: {},
+          headers: { authorization },
+          query: {},
+        } as Socket['handshake'],
+      });
+
+      await gateway.handleConnection(socket as Socket);
+
+      expect(verifyMock).not.toHaveBeenCalled();
+      expect(socket.disconnect).toHaveBeenCalledOnce();
+    },
+  );
+
   it('falls back to API_BASE_URL for JWKS when BETTER_AUTH_URL is unset', async () => {
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'API_BASE_URL') {

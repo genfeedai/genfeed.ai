@@ -165,6 +165,77 @@ describe('AgentChatModelRegistryService', () => {
     );
   });
 
+  it('follows succeededBy when an active isDefault row has been retired, never returning the retired key', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+    await expect(service.resolveModelKey(undefined)).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+  });
+
+  it('falls back to the cheapest selectable row when the retired default has no successor', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: null,
+          }),
+          row({
+            cost: 9,
+            isDefault: false,
+            key: 'available',
+            lifecycle: ModelLifecycle.AVAILABLE,
+          }),
+          row({
+            cost: 2,
+            isDefault: false,
+            key: 'recommended',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe('recommended');
+  });
+
   it('uses a caller-supplied fallback key only when no active row is available', async () => {
     const prisma = { model: { findMany: vi.fn().mockResolvedValue([]) } };
     const service = new AgentChatModelRegistryService(
@@ -203,6 +274,301 @@ describe('AgentChatModelRegistryService', () => {
     await expect(
       service.resolveModelKey(undefined, 'google/gemini-3.8-flash'),
     ).resolves.toBe('google/gemini-2.5-flash-lite');
+  });
+
+  it('walks multiple Retired succeededBy hops to find the active default', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-v1',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-v2',
+          }),
+          row({
+            cost: 30,
+            isDefault: false,
+            key: 'anthropic/claude-legacy-v2',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'anthropic/claude-sonnet-5',
+    );
+    await expect(
+      service.resolveModelKey('anthropic/claude-legacy-v1'),
+    ).resolves.toBe('anthropic/claude-sonnet-5');
+  });
+
+  it('falls back to the cheapest selectable row instead of looping on a succeededBy cycle', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-a',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-b',
+          }),
+          row({
+            cost: 41,
+            isActive: true,
+            isDefault: false,
+            key: 'anthropic/claude-legacy-b',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-legacy-a',
+          }),
+          row({
+            cost: 2,
+            isDefault: false,
+            key: 'recommended',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await expect(service.getDefaultModelKey()).resolves.toBe('recommended');
+    await expect(
+      service.resolveModelKey('anthropic/claude-legacy-a'),
+    ).resolves.toBe('recommended');
+  });
+
+  it('picks the cheapest, then lowest-key, Retired isDefault row when several are marked default', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 40,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-expensive',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'anthropic/claude-sonnet-5',
+          }),
+          row({
+            cost: 5,
+            isActive: true,
+            isDefault: true,
+            key: 'anthropic/claude-legacy-cheap',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'google/gemini-2.5-flash-lite',
+          }),
+          row({
+            cost: 4,
+            isDefault: false,
+            key: 'anthropic/claude-sonnet-5',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+          row({
+            cost: 1,
+            isDefault: false,
+            key: 'google/gemini-2.5-flash-lite',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    // Deterministic across repeated calls: the cheaper Retired default
+    // (`anthropic/claude-legacy-cheap`) wins the tie, every time.
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'google/gemini-2.5-flash-lite',
+    );
+    await expect(service.getDefaultModelKey()).resolves.toBe(
+      'google/gemini-2.5-flash-lite',
+    );
+  });
+
+  it('warns that the registry is empty (seed the catalog) when there are no rows at all', async () => {
+    const warn = vi.fn();
+    const prisma = { model: { findMany: vi.fn().mockResolvedValue([]) } };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await service.getDefaultModelKey('google/gemini-3.8-flash');
+
+    expect(warn).toHaveBeenCalledWith(
+      'Agent chat model registry is empty; using seed default key',
+      expect.objectContaining({ fallback: 'google/gemini-3.8-flash' }),
+    );
+  });
+
+  it('warns that no active, non-Retired row exists when every seeded row is Retired', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            isActive: true,
+            key: 'anthropic/claude-legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: null,
+          }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    await service.getDefaultModelKey('google/gemini-3.8-flash');
+
+    expect(warn).toHaveBeenCalledWith(
+      'No active, non-Retired agent-chat model in registry; using seed default key',
+      expect.objectContaining({ fallback: 'google/gemini-3.8-flash' }),
+    );
+  });
+});
+
+describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
+  const buildService = (rows: ReturnType<typeof row>[]) => {
+    const prisma = {
+      model: { findMany: vi.fn().mockResolvedValue(rows) },
+    };
+    return new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+  };
+
+  it('resolves a known override key normally', async () => {
+    const service = buildService([
+      row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+    ]);
+
+    await expect(service.resolveOverrideModelKey('recommended')).resolves.toBe(
+      'recommended',
+    );
+  });
+
+  it('follows succeededBy for a Retired override key', async () => {
+    const service = buildService([
+      row({
+        key: 'legacy',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'recommended',
+      }),
+      row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+    ]);
+
+    await expect(service.resolveOverrideModelKey('legacy')).resolves.toBe(
+      'recommended',
+    );
+  });
+
+  it('falls back to the platform default and warns on an override the registry does not know', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('stale-cuid-no-longer-in-catalog'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({
+        overrideKey: 'stale-cuid-no-longer-in-catalog',
+      }),
+    );
+  });
+
+  it('falls back to the platform default and warns when a Retired chain dead-ends on an unknown key', async () => {
+    const warn = vi.fn();
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            key: 'legacy',
+            lifecycle: ModelLifecycle.RETIRED,
+            succeededBy: 'removed-from-catalog',
+          }),
+          row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(service.resolveOverrideModelKey('legacy')).resolves.toBe(
+      'recommended',
+    );
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'legacy' }),
+    );
+  });
+
+  it('returns the platform default for an empty or missing override, without warning', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              key: 'recommended',
+              lifecycle: ModelLifecycle.RECOMMENDED,
+            }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(service.resolveOverrideModelKey(null)).resolves.toBe(
+      'recommended',
+    );
+    await expect(service.resolveOverrideModelKey(undefined)).resolves.toBe(
+      'recommended',
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 });
 

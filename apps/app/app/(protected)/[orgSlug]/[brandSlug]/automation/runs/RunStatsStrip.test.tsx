@@ -39,4 +39,23 @@ describe('RunStatsStrip', () => {
     expect(screen.getByText('5,500')).toBeVisible();
     expect(document.querySelectorAll('.animate-pulse')).toHaveLength(0);
   });
+
+  it('surfaces a degraded note on the stale fallback counters but not on Active', () => {
+    render(<RunStatsStrip isLoading={false} isStatsDegraded stats={stats} />);
+
+    // Total, Completed, Failed, and Credits are the fallback (previously
+    // cached or zeroed) counters; Active is always freshly recomputed from
+    // the execution list and must not be marked stale.
+    expect(
+      screen.getAllByText('Statistics may be outdated; retrying.'),
+    ).toHaveLength(4);
+  });
+
+  it('renders no degraded note when stats are fresh', () => {
+    render(<RunStatsStrip isLoading={false} stats={stats} />);
+
+    expect(
+      screen.queryByText('Statistics may be outdated; retrying.'),
+    ).not.toBeInTheDocument();
+  });
 });

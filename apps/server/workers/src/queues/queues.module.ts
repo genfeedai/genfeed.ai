@@ -17,6 +17,7 @@ import {
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -77,6 +78,18 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: WORKFLOW_EXECUTION_QUEUE,
+      },
+      // Platform-cron sweep dispatches only — split from WORKFLOW_EXECUTION_QUEUE
+      // in #5162 so a sweep burst can never occupy the concurrency/rate-limit
+      // budget an interactive agent turn depends on.
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: PLATFORM_SYSTEM_WORKFLOW_QUEUE,
       },
       {
         defaultJobOptions: {

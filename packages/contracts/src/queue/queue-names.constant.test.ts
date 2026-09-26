@@ -6,6 +6,7 @@ import {
   HEYGEN_POLL_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from './queue-names.constant';
@@ -20,6 +21,7 @@ describe('queue-names.constant', () => {
     expect(REPLICATE_POLL_QUEUE).toBe('replicate-poll');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
+    expect(PLATFORM_SYSTEM_WORKFLOW_QUEUE).toBe('platform-system-workflow');
     expect(MEDIA_PERCEPTION_QUEUE).toBe('media-perception');
   });
 

@@ -47,6 +47,7 @@ export default function MissionControl() {
     isLoading,
     isError,
     isRefreshing,
+    isStatsDegraded,
     refresh,
     stats,
   } = useWorkflowExecutions(
@@ -108,7 +109,11 @@ export default function MissionControl() {
           />
         ) : (
           <>
-            <RunStatsStrip isLoading={isLoading} stats={stats} />
+            <RunStatsStrip
+              isLoading={isLoading}
+              isStatsDegraded={isStatsDegraded}
+              stats={stats}
+            />
 
             <ActiveRunsPanel
               executions={activeExecutions}
