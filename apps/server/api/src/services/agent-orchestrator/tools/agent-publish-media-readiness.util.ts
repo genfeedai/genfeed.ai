@@ -19,15 +19,12 @@ import type {
  */
 
 export type AgentPublishMediaGate = {
+  /** Attached asset ids, for the publish policy's media assessment (#4881). */
+  assetIds: string[];
   /** The tool result to return instead of publishing, or null to proceed. */
   blockedResult: AgentToolResult | null;
   /** Warning diagnostics for the publish card, as a spreadable fragment. */
   cardData: { mediaDiagnostics?: MediaReadinessDiagnostic[] };
-};
-
-const OPEN_GATE: AgentPublishMediaGate = {
-  blockedResult: null,
-  cardData: {},
 };
 
 /**
@@ -47,7 +44,7 @@ export async function resolveAgentPublishMediaGate(params: {
     return parsed ? [parsed] : [];
   });
   if (!params.gate || assetIds.length === 0 || platforms.length === 0) {
-    return OPEN_GATE;
+    return { assetIds, blockedResult: null, cardData: {} };
   }
 
   const report = await params.gate.evaluatePublishReadiness({
@@ -58,6 +55,7 @@ export async function resolveAgentPublishMediaGate(params: {
   const blockers = readBlockingDiagnostics(report);
   if (blockers.length > 0) {
     return {
+      assetIds,
       blockedResult: {
         creditsUsed: 0,
         data: { contentId: params.contentId, mediaDiagnostics: blockers },
@@ -70,6 +68,7 @@ export async function resolveAgentPublishMediaGate(params: {
 
   const warnings = readWarningDiagnostics(report);
   return {
+    assetIds,
     blockedResult: null,
     cardData: warnings.length > 0 ? { mediaDiagnostics: warnings } : {},
   };

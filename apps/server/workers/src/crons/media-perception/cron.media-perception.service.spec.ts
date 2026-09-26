@@ -1,3 +1,4 @@
+import type { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaPerceptionQueueService } from '@api/services/media-perception/media-perception-queue.service';
 import type { MediaModerationService } from '@api/services/moderation/media-moderation.service';
@@ -29,12 +30,20 @@ function makeHarness(isEnabled = true) {
       ]),
   };
   const moderationQueue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+  const vision = {
+    findUnevaluatedAssets: vi
+      .fn()
+      .mockResolvedValue([
+        { ingredientId: 'asset-4', organizationId: 'org-1' },
+      ]),
+  };
   const logger = { error: vi.fn(), log: vi.fn() };
   const service = new CronMediaPerceptionService(
     perception as unknown as MediaPerceptionService,
     queue as unknown as MediaPerceptionQueueService,
     moderation as unknown as MediaModerationService,
     moderationQueue as unknown as MediaModerationQueueService,
+    vision as unknown as MediaVisionEvaluationService,
     logger as unknown as LoggerService,
   );
   return { logger, moderation, moderationQueue, perception, queue, service };
@@ -46,7 +55,7 @@ describe('CronMediaPerceptionService', () => {
     const now = new Date('2026-09-26T12:00:00.000Z');
 
     await expect(service.queueDuePerceptions(now)).resolves.toEqual({
-      queuedModerations: 1,
+      queuedModerations: 2,
       queuedPerceptions: 1,
       queuedRetries: 1,
     });
@@ -68,13 +77,17 @@ describe('CronMediaPerceptionService', () => {
     );
   });
 
-  it('queues settled perceptions for moderation', async () => {
+  it('queues settled perceptions for moderation and vision evaluation', async () => {
     const { moderationQueue, service } = makeHarness();
 
     await service.queueDuePerceptions();
 
     expect(moderationQueue.enqueue).toHaveBeenCalledWith({
       ingredientId: 'asset-3',
+      organizationId: 'org-1',
+    });
+    expect(moderationQueue.enqueue).toHaveBeenCalledWith({
+      ingredientId: 'asset-4',
       organizationId: 'org-1',
     });
   });
@@ -96,7 +109,7 @@ describe('CronMediaPerceptionService', () => {
     queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
 
     await expect(service.queueDuePerceptions()).resolves.toEqual({
-      queuedModerations: 1,
+      queuedModerations: 2,
       queuedPerceptions: 0,
       queuedRetries: 1,
     });

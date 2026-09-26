@@ -435,7 +435,9 @@ export async function finishConfirmedPublish(input: {
   missingPlatforms: string[];
   postGroupsService: PostGroupsService;
   postingSetId?: string;
-  publishPolicy: { result: { reason: string } };
+  publishPolicy: {
+    result: { mediaAssessmentReasons?: string[]; reason: string };
+  };
   release: IReleaseGroup;
   requiresApproval: boolean;
   scheduledAt: string | undefined;
@@ -520,6 +522,11 @@ export async function finishConfirmedPublish(input: {
       contentId,
       createdPlatforms,
       ...mediaGate.cardData,
+      ...(publishPolicy.result.mediaAssessmentReasons?.length
+        ? {
+            mediaAssessmentReasons: publishPolicy.result.mediaAssessmentReasons,
+          }
+        : {}),
       missingPlatforms,
       ...(postingSetId ? { postingSetId } : {}),
       postIds,

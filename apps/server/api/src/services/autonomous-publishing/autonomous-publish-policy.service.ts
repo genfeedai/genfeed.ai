@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  MediaAssessmentService,
+  toPolicyMediaAssessment,
+} from '@api/services/media-assessment/media-assessment.service';
 import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -7,6 +11,7 @@ import {
   AgentPublishDecision,
   fromPrismaCredentialPlatform,
   normalizeAgentAutonomyMode,
+  parsePlatform,
   ReviewDecision,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
@@ -15,7 +20,7 @@ import {
   evaluateAgentPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import { Prisma } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export interface ResolveAutonomousPostPolicyInput {
   organizationId: string;
@@ -30,6 +35,11 @@ export interface ResolveAutonomousTargetPolicyInput {
   platform: string;
   credentialId?: string | null;
   channelAllowsAutoPublish?: boolean;
+  /**
+   * Media attached to the publish. When present, the media assessment
+   * (#4881) can only tighten the decision to review-required.
+   */
+  assetIds?: readonly string[];
 }
 export interface ResolvedAutonomousPostPolicy {
   autonomyMode: AgentAutonomyMode;
@@ -72,7 +82,11 @@ function boundedInteger(value: unknown, fallback: number, max: number): number {
 }
 @Injectable()
 export class AutonomousPublishPolicyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly mediaAssessmentService?: MediaAssessmentService,
+  ) {}
 
   async resolveForPost(
     input: ResolveAutonomousPostPolicyInput,
@@ -82,6 +96,15 @@ export class AutonomousPublishPolicyService {
     const post = await db.post.findFirst({
       where: scopedWhere(input.organizationId, { id: input.postId }),
     });
+    const attached =
+      post && this.mediaAssessmentService
+        ? await db.ingredient.findMany({
+            select: { id: true },
+            where: scopedWhere(input.organizationId, {
+              postIngredients: { some: { id: input.postId } },
+            }),
+          })
+        : [];
     return this.resolveForTarget(
       {
         organizationId: input.organizationId,
@@ -95,6 +118,7 @@ export class AutonomousPublishPolicyService {
           (!input.strategyId ||
             !post?.agentStrategyId ||
             input.strategyId === post.agentStrategyId),
+        assetIds: attached.map((ingredient) => ingredient.id),
       },
       transaction,
     );
@@ -172,6 +196,7 @@ export class AutonomousPublishPolicyService {
           ? AgentAutonomyMode.AUTO_PUBLISH
           : baseMode;
     const matchingStrategy = Boolean(strategy || (!strategyId && persona));
+    const mediaAssessment = await this.assessMedia(input);
     return {
       autonomyMode,
       reviewTimeoutHours: boundedInteger(policy.reviewTimeoutHours, 24, 168),
@@ -190,8 +215,27 @@ export class AutonomousPublishPolicyService {
             fromPrismaCredentialPlatform(credential.platform) ===
               input.platform,
         ),
+        mediaAssessment,
       }),
     };
+  }
+
+  /**
+   * Persisted media gate results for the attached assets (#4881). Absent
+   * service or media leaves the decision exactly as autonomy × brand ×
+   * channel made it.
+   */
+  private async assessMedia(input: ResolveAutonomousTargetPolicyInput) {
+    if (!this.mediaAssessmentService || !input.assetIds?.length) {
+      return undefined;
+    }
+    const platform = parsePlatform(input.platform);
+    const assessment = await this.mediaAssessmentService.assessPublishMedia({
+      assetIds: input.assetIds,
+      organizationId: input.organizationId,
+      platforms: platform ? [platform] : [],
+    });
+    return toPolicyMediaAssessment(assessment);
   }
 
   async recordReviewDecision(

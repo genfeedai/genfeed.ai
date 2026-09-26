@@ -45,6 +45,7 @@ import { ContentOptimizationModule } from '@api/services/content-optimization/co
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
+import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -125,6 +126,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => LifecycleEmailsModule),
     MediaPerceptionModule,
     ModerationModule,
+    MediaVisionEvaluationModule,
     forwardRef(() => NotificationsModule),
     forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),

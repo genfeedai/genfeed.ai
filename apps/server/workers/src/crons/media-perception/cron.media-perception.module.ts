@@ -1,3 +1,4 @@
+import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -6,7 +7,12 @@ import { CronMediaPerceptionService } from '@workers/crons/media-perception/cron
 
 @Module({
   exports: [CronMediaPerceptionService],
-  imports: [LoggerModule, MediaPerceptionModule, ModerationModule],
+  imports: [
+    LoggerModule,
+    MediaPerceptionModule,
+    MediaVisionEvaluationModule,
+    ModerationModule,
+  ],
   providers: [CronMediaPerceptionService],
 })
 export class CronMediaPerceptionModule {}

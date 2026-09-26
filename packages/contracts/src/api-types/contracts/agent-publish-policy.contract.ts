@@ -72,7 +72,15 @@ export function evaluateAgentPublishPolicy(
   input: AgentPublishPolicyInput,
 ): AgentPublishPolicyResult {
   const parsed = agentPublishPolicyInputSchema.parse(input);
+  return applyMediaAssessmentToPublishPolicy(
+    evaluateAutonomyBrandChannel(parsed),
+    parsed.mediaAssessment,
+  );
+}
 
+function evaluateAutonomyBrandChannel(
+  parsed: AgentPublishPolicyInput,
+): AgentPublishPolicyResult {
   if (parsed.autonomyMode !== AgentAutonomyMode.AUTO_PUBLISH) {
     return {
       decision: AgentPublishDecision.DENIED,
@@ -97,12 +105,9 @@ export function evaluateAgentPublishPolicy(
     };
   }
 
-  return applyMediaAssessmentToPublishPolicy(
-    {
-      decision: AgentPublishDecision.PERMITTED,
-      policyName: AGENT_PUBLISH_POLICY_NAME,
-      reason: 'Autonomy mode, brand, and channel all permit auto-publish.',
-    },
-    parsed.mediaAssessment,
-  );
+  return {
+    decision: AgentPublishDecision.PERMITTED,
+    policyName: AGENT_PUBLISH_POLICY_NAME,
+    reason: 'Autonomy mode, brand, and channel all permit auto-publish.',
+  };
 }

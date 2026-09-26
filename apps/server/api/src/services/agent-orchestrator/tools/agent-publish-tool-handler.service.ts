@@ -269,6 +269,7 @@ export class AgentPublishToolHandler {
 
     const ingredientBrandId = readOptionalString(ingredient.brandId);
     const publishPolicy = await this.resolvePublishPolicy({
+      assetIds: mediaGate.assetIds,
       brandId: ingredientBrandId,
       targets: resolvedTargets.targets,
       channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
@@ -401,6 +402,7 @@ export class AgentPublishToolHandler {
   }
 
   private async resolvePublishPolicy(params: {
+    assetIds?: string[];
     brandId?: string;
     targets: Array<{ credentialId: string; platform: string }>;
     channelAllowsAutoPublish: boolean;
@@ -415,6 +417,7 @@ export class AgentPublishToolHandler {
       const policies = await Promise.all(
         params.targets.map((target) =>
           service.resolveForTarget({
+            assetIds: params.assetIds,
             organizationId: params.ctx.organizationId,
             brandId,
             strategyId: params.ctx.strategyId,

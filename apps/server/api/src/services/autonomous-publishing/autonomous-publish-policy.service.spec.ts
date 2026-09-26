@@ -78,6 +78,49 @@ describe('AutonomousPublishPolicyService', () => {
       ).result.decision,
     ).toBe(AgentPublishDecision.DENIED);
   });
+  it('lets a blocking media assessment turn auto-publish into review (#4881)', async () => {
+    db.agentStrategy.findFirst.mockResolvedValue({
+      id: 'strategy-1',
+      isActive: true,
+      config: { autonomyMode: AgentAutonomyMode.AUTO_PUBLISH },
+      policies,
+    });
+    const ingredient = {
+      findMany: vi.fn().mockResolvedValue([{ id: 'asset-1' }]),
+    };
+    const assessPublishMedia = vi.fn().mockResolvedValue({
+      isBlocking: true,
+      isPerceptionPending: false,
+      reasons: [
+        {
+          assetId: 'asset-1',
+          code: 'moderation:violence',
+          message: 'Moderation flagged violence (91% on frame 2).',
+          source: 'moderation',
+        },
+      ],
+      warnings: [],
+    });
+    const gated = new AutonomousPublishPolicyService(
+      { ...db, ingredient } as never,
+      { assessPublishMedia } as never,
+    );
+
+    const policy = await gated.resolveForPost({
+      organizationId: 'org-1',
+      postId: 'post-1',
+    });
+
+    expect(assessPublishMedia).toHaveBeenCalledWith({
+      assetIds: ['asset-1'],
+      organizationId: 'org-1',
+      platforms: ['instagram'],
+    });
+    expect(policy.result.decision).toBe(AgentPublishDecision.DENIED);
+    expect(policy.result.mediaAssessmentReasons).toEqual([
+      'Moderation flagged violence (91% on frame 2).',
+    ]);
+  });
   it('requires actual brand and strategy opt-ins for explicit auto-publish', async () => {
     db.agentStrategy.findFirst.mockResolvedValue({
       id: 'strategy-1',

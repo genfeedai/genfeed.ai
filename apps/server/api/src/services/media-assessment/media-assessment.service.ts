@@ -1,7 +1,4 @@
-import {
-  resolveModerationGateMode,
-  resolveVisionGateMode,
-} from '@api/services/media-assessment/media-gate.settings';
+import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import {
   hasPendingArtefacts,
   MEDIA_PERCEPTION_SELECT,
@@ -16,6 +13,11 @@ import {
   MEDIA_MODERATION_SELECT,
   toMediaModeration,
 } from '@api/services/moderation/media-moderation.record';
+import { resolveModerationSettings } from '@api/services/moderation/moderation.settings';
+import {
+  applyModerationMode,
+  evaluateModerationVerdict,
+} from '@api/services/moderation/moderation-verdict.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   MediaAssessment,
@@ -133,7 +135,8 @@ export class MediaAssessmentService implements IMediaPublishGate {
     assetIds: readonly string[],
     reasons: MediaAssessmentReason[],
   ): Promise<void> {
-    if (resolveModerationGateMode(this.configService) === 'off') {
+    const settings = resolveModerationSettings(this.configService);
+    if (settings.mode === 'off') {
       return;
     }
     const rows = await this.prisma.mediaModeration.findMany({
@@ -144,11 +147,20 @@ export class MediaAssessmentService implements IMediaPublishGate {
     });
     for (const row of rows) {
       const moderation = toMediaModeration(row);
-      if (!moderation?.verdict.isFlagged) {
+      if (!moderation) {
         continue;
       }
-      for (const category of moderation.verdict.flaggedCategories) {
-        const top = moderation.verdict.triggers
+      // Stored scores under today's mode and thresholds: a verdict persisted
+      // during shadow, or under older thresholds, is never trusted as-is.
+      const verdict = applyModerationMode(
+        evaluateModerationVerdict(moderation.inputs, settings.thresholds),
+        settings.mode,
+      );
+      if (!verdict.isFlagged) {
+        continue;
+      }
+      for (const category of verdict.flaggedCategories) {
+        const top = verdict.triggers
           .filter((trigger) => trigger.category === category)
           .sort((a, b) => b.confidence - a.confidence)[0];
         const where =

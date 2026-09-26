@@ -10,13 +10,3 @@ export function resolveVisionGateMode(
     .toLowerCase();
   return raw === 'live' || raw === 'shadow' ? raw : 'off';
 }
-
-/** The one place MODERATION_MODE is read for gating (#4880 → #4881). */
-export function resolveModerationGateMode(
-  configService: ConfigService,
-): MediaGateMode {
-  const raw = String(configService.get('MODERATION_MODE') ?? '')
-    .trim()
-    .toLowerCase();
-  return raw === 'live' || raw === 'off' ? raw : 'shadow';
-}
