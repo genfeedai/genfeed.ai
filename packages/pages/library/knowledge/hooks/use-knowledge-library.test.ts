@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { KnowledgeProcessingState } from '@genfeedai/contracts';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   findForBrand: vi.fn(),
@@ -44,7 +45,10 @@ vi.mock('@services/content/knowledge-spaces.service', () => ({
   },
 }));
 
-import { useKnowledgeLibrary } from './use-knowledge-library';
+import {
+  KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS,
+  useKnowledgeLibrary,
+} from './use-knowledge-library';
 
 describe('useKnowledgeLibrary', () => {
   beforeEach(() => {
@@ -117,5 +121,83 @@ describe('useKnowledgeLibrary', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe('Knowledge could not be loaded.');
     expect(result.current.rows).toEqual([]);
+  });
+
+  describe('while ingestion is pending', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function currentVersion(processingState: KnowledgeProcessingState) {
+      return [{ id: 'current', isCurrent: true, processingState, version: 1 }];
+    }
+
+    it('re-reads in the background until the version settles, then stops', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mocks.findForBrand.mockResolvedValue([{ id: 's1', title: 'Pricing' }]);
+      mocks.findVersions
+        .mockResolvedValueOnce(currentVersion(KnowledgeProcessingState.QUEUED))
+        .mockResolvedValueOnce(
+          currentVersion(KnowledgeProcessingState.PROCESSING),
+        )
+        .mockResolvedValue(currentVersion(KnowledgeProcessingState.READY));
+
+      const { result } = renderHook(() =>
+        useKnowledgeLibrary({ brandId: 'brand-a' }),
+      );
+      await waitFor(() =>
+        expect(result.current.rows[0]?.version?.processingState).toBe(
+          KnowledgeProcessingState.QUEUED,
+        ),
+      );
+
+      await act(() =>
+        vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
+      );
+      await waitFor(() =>
+        expect(result.current.rows[0]?.version?.processingState).toBe(
+          KnowledgeProcessingState.PROCESSING,
+        ),
+      );
+      expect(result.current.isLoading).toBe(false);
+
+      await act(() =>
+        vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
+      );
+      await waitFor(() =>
+        expect(result.current.rows[0]?.version?.processingState).toBe(
+          KnowledgeProcessingState.READY,
+        ),
+      );
+
+      const reads = mocks.findForBrand.mock.calls.length;
+      await act(() =>
+        vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS * 3),
+      );
+      expect(mocks.findForBrand).toHaveBeenCalledTimes(reads);
+    });
+
+    it('keeps the rows when a background read fails', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mocks.findForBrand
+        .mockResolvedValueOnce([{ id: 's1', title: 'Pricing' }])
+        .mockRejectedValue(new Error('network'));
+      mocks.findVersions.mockResolvedValue(
+        currentVersion(KnowledgeProcessingState.PROCESSING),
+      );
+
+      const { result } = renderHook(() =>
+        useKnowledgeLibrary({ brandId: 'brand-a' }),
+      );
+      await waitFor(() => expect(result.current.rows).toHaveLength(1));
+
+      await act(() =>
+        vi.advanceTimersByTimeAsync(KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS),
+      );
+
+      expect(mocks.findForBrand).toHaveBeenCalledTimes(2);
+      expect(result.current.rows.map((row) => row.source.id)).toEqual(['s1']);
+      expect(result.current.error).toBeNull();
+    });
   });
 });
