@@ -76,9 +76,9 @@ const FIXTURE_SQL = `
   CREATE TYPE "BookmarkIntent" AS ENUM ('VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION');
   CREATE TABLE bookmarks (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "folderId" text, category "BookmarkCategory" NOT NULL DEFAULT 'URL', url text NOT NULL, platform "BookmarkPlatform" NOT NULL DEFAULT 'WEB', title text, content text NOT NULL DEFAULT '', description text, author text, "authorHandle" text, "thumbnailUrl" text, "mediaUrls" text[] NOT NULL DEFAULT '{}', "platformData" jsonb NOT NULL DEFAULT '{}', intent "BookmarkIntent" NOT NULL DEFAULT 'INSPIRATION', "savedAt" timestamptz NOT NULL DEFAULT now(), "processedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
-  INSERT INTO users(id) VALUES ('user-a'), ('user-b');
+  INSERT INTO users(id) VALUES ('user-a'), ('user-a-other'), ('user-b');
   INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-a2', 'org-a'), ('brand-b', 'org-b');
-  INSERT INTO members(id, "organizationId", "userId") VALUES ('m-a', 'org-a', 'user-a'), ('m-b', 'org-b', 'user-b');
+  INSERT INTO members(id, "organizationId", "userId") VALUES ('m-a', 'org-a', 'user-a'), ('m-a-other', 'org-a', 'user-a-other'), ('m-b', 'org-b', 'user-b');
 `;
 
 /**
@@ -110,6 +110,18 @@ const actorB: KnowledgeActor = {
   organizationId: 'org-b',
   userId: 'user-b',
   brandId: 'brand-b',
+  role: MemberRole.ADMIN,
+};
+/** A second member of org-a with no brand of their own — the automatic
+ * no-brand chat retrieval path (org-scope + personal-scope). */
+const actorAOrgOnly: KnowledgeActor = {
+  organizationId: 'org-a',
+  userId: 'user-a',
+  role: MemberRole.ADMIN,
+};
+const actorAOther: KnowledgeActor = {
+  organizationId: 'org-a',
+  userId: 'user-a-other',
   role: MemberRole.ADMIN,
 };
 
@@ -162,6 +174,17 @@ async function retrieve(
     organizationId: actor.organizationId,
     query,
     ...extra,
+  });
+}
+
+/** The automatic chat-retrieval path for a thread with no validated brand. */
+async function retrieveOrgAndPersonal(actor: KnowledgeActor, query: string) {
+  return contexts.retrieveOrgAndPersonalContentMemory({
+    limit: 8,
+    minRelevance: 0.05,
+    organizationId: actor.organizationId,
+    query,
+    userId: actor.userId,
   });
 }
 
@@ -350,6 +373,71 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     });
     expect(new Set(bySpace?.knowledgeSourceIds)).toEqual(
       new Set([truth.source.id, inspiration.source.id]),
+    );
+  });
+
+  it('scopes automatic no-brand chat retrieval to organization plus the actor’s own personal Knowledge', async () => {
+    // Brand A's own Knowledge must never reach an unbranded thread just
+    // because it happens to live in the same organization.
+    const brandOnly = await capture.capture(actorA, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand A only: our launch playbook per month.',
+      title: 'Brand A playbook',
+    });
+    const orgWide = await capture.capture(actorAOrgOnly, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.ORG,
+      text: 'Org-wide note: renew the domain every month.',
+      title: 'Org renewal note',
+    });
+    const personalMine = await capture.capture(actorAOrgOnly, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.PERSONAL,
+      text: 'Personal reminder: follow up on the invoice every month.',
+      title: 'My personal reminder',
+    });
+    const personalOther = await capture.capture(actorAOther, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.PERSONAL,
+      text: 'Someone else’s personal note about the month ahead.',
+      title: 'Other member note',
+    });
+    await capture.capture(actorB, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.ORG,
+      text: 'Other tenant org note about the coming month.',
+      title: 'Other tenant note',
+    });
+
+    const query = 'note about the month';
+    const mine = await retrieveOrgAndPersonal(actorAOrgOnly, query);
+    expect(new Set(mine.map((hit) => hit.citation?.sourceId))).toEqual(
+      new Set([orgWide.source.id, personalMine.source.id]),
+    );
+    expect(mine.map((hit) => hit.citation?.sourceId)).not.toContain(
+      brandOnly.source.id,
+    );
+    expect(mine.map((hit) => hit.citation?.sourceId)).not.toContain(
+      personalOther.source.id,
+    );
+
+    const otherMember = await retrieveOrgAndPersonal(actorAOther, query);
+    expect(new Set(otherMember.map((hit) => hit.citation?.sourceId))).toEqual(
+      new Set([orgWide.source.id, personalOther.source.id]),
+    );
+    expect(otherMember.map((hit) => hit.citation?.sourceId)).not.toContain(
+      personalMine.source.id,
+    );
+
+    const otherTenant = await retrieveOrgAndPersonal(actorB, query);
+    expect(otherTenant.map((hit) => hit.citation?.sourceId)).not.toContain(
+      orgWide.source.id,
     );
   });
 

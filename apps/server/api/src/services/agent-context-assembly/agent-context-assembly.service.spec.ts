@@ -86,8 +86,9 @@ describe('AgentContextAssemblyService', () => {
   };
   let cacheService: ReturnType<typeof createCacheService>;
   let contextsService: {
-    enhancePrompt: ReturnType<typeof vi.fn>;
+    retrieveBrandContentMemory: ReturnType<typeof vi.fn>;
     retrieveBrandKnowledge: ReturnType<typeof vi.fn>;
+    retrieveOrgAndPersonalContentMemory: ReturnType<typeof vi.fn>;
   };
   let loggerService: ReturnType<typeof createLogger>;
   let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
@@ -107,8 +108,9 @@ describe('AgentContextAssemblyService', () => {
     };
     cacheService = createCacheService();
     contextsService = {
-      enhancePrompt: vi.fn().mockResolvedValue({ context: [] }),
+      retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
       retrieveBrandKnowledge: vi.fn().mockResolvedValue([]),
+      retrieveOrgAndPersonalContentMemory: vi.fn().mockResolvedValue([]),
     };
     loggerService = createLogger();
     organizationSettingsService = {
@@ -443,42 +445,182 @@ describe('AgentContextAssemblyService', () => {
     );
   });
 
-  it('scopes saved-memory retrieval to the active brand', async () => {
-    contextsService.enhancePrompt.mockResolvedValue({
-      context: [
-        {
-          content: 'Hook that won last week',
-          contextBaseId: 'ctx-a',
-          contextBaseType: 'content_library',
-          relevance: 0.9,
-          source: 'Saved Content Memory',
-        },
-      ],
-    });
+  it('scopes saved-memory retrieval to the thread brand via the Knowledge contract', async () => {
+    const citation = {
+      kind: 'TEXT',
+      purpose: 'INSPIRATION',
+      sourceId: 'source-a',
+      title: 'Saved Content Memory',
+      version: 1,
+      versionId: 'source-a-v1',
+    };
+    contextsService.retrieveBrandContentMemory.mockResolvedValue([
+      {
+        citation,
+        content: 'Hook that won last week',
+        relevance: 0.9,
+        source: 'Saved Content Memory',
+      },
+    ]);
 
     const context = (await service.assembleContext({
       brandId: 'brand-1',
       layers: { brandMemory: false, recentPosts: false },
       organizationId: 'org-1',
       query: 'launch post',
+      userId: 'user-1',
     })) as AssembledBrandContext;
 
-    expect(contextsService.enhancePrompt).toHaveBeenCalledWith(
-      expect.objectContaining({ brandId: 'brand-1', prompt: 'launch post' }),
-      'org-1',
+    expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        query: 'launch post',
+      }),
     );
+    expect(
+      contextsService.retrieveOrgAndPersonalContentMemory,
+    ).not.toHaveBeenCalled();
     expect(context.ragEntries).toEqual([
       {
+        citation,
         content: 'Hook that won last week',
-        contextBaseId: 'ctx-a',
-        contextBaseType: 'content_library',
         relevance: 0.9,
-        source: 'Saved Content Memory',
       },
     ]);
     expect(service.buildSystemPrompt('', context)).toContain(
       '## Retrieved Brand Memory\n- [Saved Content Memory]: Hook that won last week',
     );
+  });
+
+  it('never includes another brand’s passages when scoped to brand A', async () => {
+    // The mock stands in for the tenant-scoped retrieval contract: it always
+    // receives brand A and never leaks brand B's citation into the result.
+    contextsService.retrieveBrandContentMemory.mockImplementation(
+      async (params: { brandId: string }) =>
+        params.brandId === 'brand-a'
+          ? [
+              {
+                citation: {
+                  kind: 'TEXT',
+                  purpose: 'INSPIRATION',
+                  sourceId: 'source-brand-a',
+                  title: 'Brand A memory',
+                  version: 1,
+                  versionId: 'source-brand-a-v1',
+                },
+                content: 'Brand A saved content',
+                relevance: 0.9,
+              },
+            ]
+          : [
+              {
+                citation: {
+                  kind: 'TEXT',
+                  purpose: 'INSPIRATION',
+                  sourceId: 'source-brand-b',
+                  title: 'Brand B memory',
+                  version: 1,
+                  versionId: 'source-brand-b-v1',
+                },
+                content: 'Brand B saved content',
+                relevance: 0.9,
+              },
+            ],
+    );
+
+    const context = (await service.assembleContext({
+      brandId: 'brand-a',
+      layers: { brandMemory: false, recentPosts: false },
+      organizationId: 'org-1',
+      query: 'launch post',
+      userId: 'user-1',
+    })) as AssembledBrandContext;
+
+    expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-a' }),
+    );
+    expect(context.ragEntries).toHaveLength(1);
+    expect(context.ragEntries?.[0]?.citation.sourceId).toBe('source-brand-a');
+    expect(JSON.stringify(context.ragEntries)).not.toContain('source-brand-b');
+  });
+
+  it('falls back to org-scope plus the actor’s personal scope when the thread has no brand', async () => {
+    contextsService.retrieveOrgAndPersonalContentMemory.mockResolvedValue([
+      {
+        citation: {
+          kind: 'TEXT',
+          purpose: 'INSPIRATION',
+          sourceId: 'source-org',
+          title: 'Org-wide note',
+          version: 1,
+          versionId: 'source-org-v1',
+        },
+        content: 'Organization-wide saved content',
+        relevance: 0.8,
+      },
+    ]);
+
+    const context = (await service.assembleContext({
+      layers: { brandMemory: false, recentPosts: false },
+      organizationId: 'org-1',
+      query: 'launch post',
+      userId: 'user-1',
+    })) as AssembledBrandContext;
+
+    expect(
+      contextsService.retrieveOrgAndPersonalContentMemory,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        query: 'launch post',
+        userId: 'user-1',
+      }),
+    );
+    expect(contextsService.retrieveBrandContentMemory).not.toHaveBeenCalled();
+    expect(context.ragEntries).toEqual([
+      {
+        citation: expect.objectContaining({ sourceId: 'source-org' }),
+        content: 'Organization-wide saved content',
+        relevance: 0.8,
+      },
+    ]);
+  });
+
+  it('skips automatic retrieval entirely for an unscoped thread with no actor', async () => {
+    const context = (await service.assembleContext({
+      layers: { brandMemory: false, recentPosts: false },
+      organizationId: 'org-1',
+      query: 'launch post',
+    })) as AssembledBrandContext;
+
+    expect(contextsService.retrieveBrandContentMemory).not.toHaveBeenCalled();
+    expect(
+      contextsService.retrieveOrgAndPersonalContentMemory,
+    ).not.toHaveBeenCalled();
+    expect(context.ragEntries).toBeUndefined();
+    expect(context.layersUsed).not.toContain('ragContext');
+  });
+
+  it('drops retrieved passages without citation identity instead of showing them uncited', async () => {
+    contextsService.retrieveBrandContentMemory.mockResolvedValue([
+      {
+        content: 'Uncited legacy passage',
+        relevance: 0.95,
+        source: 'Legacy Context Base',
+      },
+    ]);
+
+    const context = (await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false, recentPosts: false },
+      organizationId: 'org-1',
+      query: 'launch post',
+      userId: 'user-1',
+    })) as AssembledBrandContext;
+
+    expect(context.ragEntries).toBeUndefined();
+    expect(context.layersUsed).not.toContain('ragContext');
   });
 
   it('injects BRAND_TRUTH Knowledge but never inspiration or research', async () => {

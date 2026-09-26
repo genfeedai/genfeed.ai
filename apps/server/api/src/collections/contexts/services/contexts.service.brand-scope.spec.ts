@@ -253,6 +253,127 @@ describe('ContextsService brand-scoped retrieval', () => {
     });
   });
 
+  describe('retrieveOrgAndPersonalContentMemory', () => {
+    const USER_A = 'user-a';
+    const USER_C = 'user-c';
+
+    it('returns nothing without an actor instead of an unscoped read', async () => {
+      const { contextBase, service } = buildService();
+
+      const hits = await service.retrieveOrgAndPersonalContentMemory({
+        organizationId: 'org-1',
+        query: 'pricing',
+        userId: '  ',
+      });
+
+      expect(hits).toEqual([]);
+      expect(contextBase.findMany).not.toHaveBeenCalled();
+    });
+
+    it('selects only organization-wide and the actor’s own personal Knowledge bases', async () => {
+      const { contextBase, service } = buildService();
+
+      await service.retrieveOrgAndPersonalContentMemory({
+        organizationId: 'org-1',
+        query: 'pricing',
+        userId: USER_A,
+      });
+
+      const where = contextBase.findMany.mock.calls[0]?.[0]?.where;
+      expect(where).toMatchObject({
+        AND: [{ data: { equals: 'knowledge-base', path: ['purpose'] } }],
+        isDeleted: false,
+        OR: [
+          {
+            AND: [
+              { sourceBrandId: null },
+              { data: { equals: 'org', path: ['knowledgeScope'] } },
+            ],
+          },
+          {
+            AND: [
+              { sourceBrandId: null },
+              { createdById: USER_A },
+              { data: { equals: 'personal', path: ['knowledgeScope'] } },
+            ],
+          },
+        ],
+        organizationId: 'org-1',
+      });
+    });
+
+    it('never returns any brand-owned base, even one labelled as organization-wide', async () => {
+      const { contextBase, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([
+        {
+          createdById: null,
+          data: { knowledgeScope: 'org', purpose: 'knowledge-base' },
+          id: 'ctx-org',
+          sourceBrandId: null,
+        },
+        {
+          // Legacy owner recorded only in JSON — still brand-owned.
+          createdById: null,
+          data: {
+            brandId: BRAND_A,
+            knowledgeScope: 'org',
+            purpose: 'knowledge-base',
+          },
+          id: 'ctx-brand-legacy',
+          sourceBrandId: null,
+        },
+        {
+          createdById: null,
+          data: { knowledgeScope: 'org', purpose: 'knowledge-base' },
+          id: 'ctx-brand-owned',
+          sourceBrandId: BRAND_A,
+        },
+      ]);
+      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+      await service.retrieveOrgAndPersonalContentMemory({
+        organizationId: 'org-1',
+        query: 'pricing',
+        userId: USER_A,
+      });
+
+      const similarity = lastSimilarityQuery(queryRaw);
+      expect(similarity.values).toContain('ctx-org');
+      expect(similarity.values).not.toContain('ctx-brand-legacy');
+      expect(similarity.values).not.toContain('ctx-brand-owned');
+    });
+
+    it('never returns another user’s personal-scope base', async () => {
+      const { contextBase, queryRaw, service } = buildService();
+      contextBase.findMany.mockResolvedValue([
+        {
+          createdById: USER_A,
+          data: { knowledgeScope: 'personal', purpose: 'knowledge-base' },
+          id: 'ctx-personal-a',
+          sourceBrandId: null,
+        },
+        {
+          createdById: USER_C,
+          data: { knowledgeScope: 'personal', purpose: 'knowledge-base' },
+          id: 'ctx-personal-c',
+          sourceBrandId: null,
+        },
+      ]);
+      queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+      await service.retrieveOrgAndPersonalContentMemory({
+        organizationId: 'org-1',
+        query: 'pricing',
+        userId: USER_A,
+      });
+
+      const similarity = lastSimilarityQuery(queryRaw);
+      expect(similarity.values).toContain('ctx-personal-a');
+      expect(similarity.values).not.toContain('ctx-personal-c');
+      expect(similarity.sql).toContain('OR (s."scope" = ? AND s."userId" = ?)');
+    });
+  });
+
   describe('retrieveBrandKnowledge', () => {
     it('selects only the brand and organization Knowledge bases', async () => {
       const { contextBase, service } = buildService();

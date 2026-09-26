@@ -25,6 +25,19 @@ export interface BrandContentMemoryHit {
 }
 
 /**
+ * Automatic retrieval for a thread that has no validated brand: organization
+ * scope plus the actor's own personal scope. Never includes brand-owned
+ * material — that requires a brand id and {@link BrandContentMemoryRetrievalParams}.
+ */
+export interface OrgAndPersonalContentMemoryRetrievalParams {
+  organizationId: string;
+  userId: string;
+  query: string;
+  limit?: number;
+  minRelevance?: number;
+}
+
+/**
  * Explicit Knowledge selection for one execution. Sources and spaces are
  * unioned; purposes narrow the union. Empty selection means brand default.
  */

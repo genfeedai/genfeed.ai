@@ -165,8 +165,8 @@ function readKnowledgeEntries(
     content: entry.content,
     origin: 'context_memory',
     relevance: entry.relevance,
-    source: entry.source,
-    ...(entry.contextBaseId ? { sourceId: entry.contextBaseId } : {}),
+    source: entry.citation.title,
+    sourceId: entry.citation.sourceId,
   }));
   return [...brandKnowledge, ...contextMemory];
 }

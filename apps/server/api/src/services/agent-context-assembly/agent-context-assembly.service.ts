@@ -155,11 +155,19 @@ export class AgentContextAssemblyService {
       );
     }
 
-    // Layer 5: RAG Context (not cached — query-dependent). Brand-scoped so
-    // another brand's saved memory never reaches this prompt.
+    // Layer 5: RAG Context (not cached — query-dependent). Scoped to the
+    // thread's own validated brand (params.brandId), not the brand resolved
+    // above for identity/voice — a thread with no brand must never inherit
+    // another brand's saved memory just because the org has one selected.
     if (layers.ragContext && params.query) {
       fetchPromises.push(
-        this.loadRagLayer(organizationId, brandId, params.query, context),
+        this.loadRagLayer(
+          organizationId,
+          params.userId,
+          params.brandId,
+          params.query,
+          context,
+        ),
       );
     }
 
@@ -451,7 +459,7 @@ export class AgentContextAssemblyService {
         `\n${RETRIEVED_BRAND_MEMORY_HEADER}${context.ragEntries
           .map(
             (entry) =>
-              `\n- [${this.toPromptLine(entry.source)}]: ${this.toPromptLine(entry.content, MAX_RAG_PASSAGE_LENGTH)}`,
+              `\n- [${this.toPromptLine(entry.citation.title)}]: ${this.toPromptLine(entry.content, MAX_RAG_PASSAGE_LENGTH)}`,
           )
           .join('')}`,
       );
@@ -775,33 +783,50 @@ export class AgentContextAssemblyService {
     }
   }
 
+  /**
+   * Automatic chat-retrieval grounding through the Knowledge retrieval
+   * contract. A thread scoped to a brand only ever sees that brand's own
+   * Knowledge plus organization-wide sources (never another brand's); an
+   * unscoped thread only sees organization-wide plus the actor's own
+   * personal-scope Knowledge. Every returned entry carries a citation —
+   * uncited hits (legacy, unlinked chunks) are dropped rather than shown
+   * without source identity.
+   */
   private async loadRagLayer(
     organizationId: string,
-    brandId: string,
+    userId: string | undefined,
+    threadBrandId: string | undefined,
     query: string,
     context: AssembledBrandContext,
   ): Promise<void> {
-    const result = await this.contextsService.enhancePrompt(
-      {
-        brandId,
-        contentType: 'caption',
-        prompt: query,
-        useBrandVoice: true,
-        useContentLibrary: true,
-      },
-      organizationId,
+    const hits = threadBrandId
+      ? await this.contextsService.retrieveBrandContentMemory({
+          brandId: threadBrandId,
+          organizationId,
+          query,
+        })
+      : userId
+        ? await this.contextsService.retrieveOrgAndPersonalContentMemory({
+            organizationId,
+            query,
+            userId,
+          })
+        : [];
+
+    const entries = hits.flatMap((hit) =>
+      hit.citation
+        ? [
+            {
+              citation: hit.citation,
+              content: hit.content,
+              relevance: hit.relevance,
+            },
+          ]
+        : [],
     );
 
-    if (result.context?.length) {
-      context.ragEntries = result.context.map((entry) => ({
-        content: entry.content,
-        contextBaseId: entry.contextBaseId,
-        ...(entry.contextBaseType
-          ? { contextBaseType: entry.contextBaseType }
-          : {}),
-        relevance: entry.relevance,
-        source: entry.source,
-      }));
+    if (entries.length > 0) {
+      context.ragEntries = entries;
       context.layersUsed.push('ragContext');
     }
   }

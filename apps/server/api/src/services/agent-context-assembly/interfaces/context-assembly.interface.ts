@@ -6,6 +6,12 @@ import type {
 export interface AssembleContextParams {
   organizationId: string;
   brandId?: string;
+  /**
+   * The acting user. Required to ground automatic Knowledge retrieval in the
+   * actor's personal scope when the thread has no validated brand; without it
+   * that retrieval falls back to organization scope only.
+   */
+  userId?: string;
   query?: string;
   platform?: string;
   layers?: ContextLayers;
@@ -35,16 +41,17 @@ export type AssembledContextLayerName =
   | 'performancePatterns'
   | 'credentialContext';
 
-/** A saved-memory passage (brand_voice / content_library / audience base). */
+/**
+ * A retrieved Knowledge passage from the automatic chat-retrieval layer,
+ * scoped to the thread's validated brand plus org-scope sources (or, without
+ * a brand, org-scope plus the actor's personal scope). `citation` carries the
+ * source id, version id, title, kind, purpose and URL — every entry here was
+ * matched to a live, visible, non-deleted Knowledge source.
+ */
 export interface AssembledRagEntry {
+  citation: KnowledgeRetrievalCitation;
   content: string;
-  /** Context base the passage was retrieved from. */
-  contextBaseId: string;
-  /** `data.type` of that context base, e.g. `content_library`. */
-  contextBaseType?: string;
   relevance: number;
-  /** Context base label shown to the model. */
-  source: string;
 }
 
 /**
