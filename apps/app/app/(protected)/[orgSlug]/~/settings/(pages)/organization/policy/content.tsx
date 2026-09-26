@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
+import { Skeleton } from '@ui/primitives/skeleton';
 import { useCallback, useState } from 'react';
 import SettingsAgentsPage from './settings-agents-page';
 
@@ -34,12 +35,22 @@ function resolveReplyStyle(raw?: string | null): AgentReplyStyle {
 }
 
 export default function SettingsOrganizationPolicyPage() {
-  const { settings, updateSettings } = useOrganization();
+  const {
+    isLoading: isSettingsLoading,
+    settings,
+    updateSettings,
+  } = useOrganization();
   const [isSavingReplyStyle, setIsSavingReplyStyle] = useState(false);
   const replyStyle = resolveReplyStyle(settings?.agentReplyStyle);
 
   const handleReplyStyleChange = useCallback(
     async (value: string) => {
+      // Settings have not loaded — resolveReplyStyle(undefined) would read as
+      // the CONCISE default rather than whatever the org actually has saved,
+      // so a change here has nothing real to diff against yet.
+      if (isSettingsLoading) {
+        return;
+      }
       setIsSavingReplyStyle(true);
       try {
         await updateSettings('agentReplyStyle', resolveReplyStyle(value));
@@ -49,7 +60,7 @@ export default function SettingsOrganizationPolicyPage() {
         setIsSavingReplyStyle(false);
       }
     },
-    [updateSettings],
+    [isSettingsLoading, updateSettings],
   );
 
   return (
@@ -61,22 +72,26 @@ export default function SettingsOrganizationPolicyPage() {
       >
         <div>
           <p className="text-sm font-medium">Organization Default</p>
-          <Select
-            value={replyStyle}
-            disabled={isSavingReplyStyle}
-            onValueChange={handleReplyStyleChange}
-          >
-            <SelectTrigger className="w-full mt-2 rounded">
-              <SelectValue placeholder="Select a reply style" />
-            </SelectTrigger>
-            <SelectContent>
-              {REPLY_STYLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isSettingsLoading ? (
+            <Skeleton className="mt-2 h-9 w-full rounded" />
+          ) : (
+            <Select
+              value={replyStyle}
+              disabled={isSavingReplyStyle}
+              onValueChange={handleReplyStyleChange}
+            >
+              <SelectTrigger className="w-full mt-2 rounded">
+                <SelectValue placeholder="Select a reply style" />
+              </SelectTrigger>
+              <SelectContent>
+                {REPLY_STYLE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </Card>
 

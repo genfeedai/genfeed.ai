@@ -5,11 +5,15 @@ import {
   readBlockingDiagnostics,
   readWarningDiagnostics,
 } from '@api/services/media-readiness/media-readiness.evaluator';
-import type { MediaReadinessDiagnostic } from '@genfeedai/contracts/api-types/contracts';
 import type {
-  IMediaReadinessGate,
-  IPublishApproval,
-  IPublishApprovalDestination,
+  MediaAssessmentReason,
+  MediaReadinessDiagnostic,
+} from '@genfeedai/contracts/api-types/contracts';
+import {
+  type IMediaReadinessGate,
+  type IPublishApproval,
+  type IPublishApprovalDestination,
+  isMediaPublishGate,
 } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
@@ -44,9 +48,25 @@ export class PublishApprovalMediaNotReadyException extends HttpException {
 }
 
 /**
+ * What the media gate hands back to an approval: readiness warnings plus the
+ * classifier reasons (#4881) a reviewer should see. An approval is already a
+ * human review, so assessment reasons inform it rather than block it.
+ */
+export type ApprovalMediaGateOutcome = {
+  assessmentReasons: MediaAssessmentReason[];
+  warnings: MediaReadinessDiagnostic[];
+};
+
+const EMPTY_OUTCOME: ApprovalMediaGateOutcome = {
+  assessmentReasons: [],
+  warnings: [],
+};
+
+/**
  * Runs before the approval exists, so an off-spec asset never reaches provider
- * dispatch. `error` diagnostics reject the approval; `warning` diagnostics are
- * returned for the caller to carry on the approval's provenance.
+ * dispatch. `error` diagnostics reject the approval; `warning` diagnostics and
+ * any media assessment reasons are returned for the caller to carry on the
+ * approval's provenance.
  *
  * The gate is optional: callers that construct the service without one
  * (self-host wiring, specs) keep the previous behaviour.
@@ -56,10 +76,10 @@ export async function assertApprovalMediaReady(params: {
   gate: IMediaReadinessGate | undefined;
   logger: ServerLogger | undefined;
   post: ApprovalPost;
-}): Promise<MediaReadinessDiagnostic[]> {
+}): Promise<ApprovalMediaGateOutcome> {
   const assetIds = params.post.ingredients.map((ingredient) => ingredient.id);
   if (!params.gate || assetIds.length === 0) {
-    return [];
+    return EMPTY_OUTCOME;
   }
 
   const report = await params.gate.evaluatePublishReadiness({
@@ -79,18 +99,31 @@ export async function assertApprovalMediaReady(params: {
     );
   }
 
-  return readWarningDiagnostics(report);
+  const assessment = isMediaPublishGate(params.gate)
+    ? await params.gate.assessPublishMedia({
+        assetIds,
+        organizationId: params.post.organizationId,
+        platforms: [],
+      })
+    : null;
+  return {
+    assessmentReasons: assessment?.reasons ?? [],
+    warnings: readWarningDiagnostics(report),
+  };
 }
 
 /** Provenance for a newly created approval, carrying this attempt's warnings. */
 export function withMediaWarningProvenance(
   provenance: Record<string, unknown> | undefined,
-  mediaWarnings: readonly MediaReadinessDiagnostic[],
+  outcome: ApprovalMediaGateOutcome,
 ): Record<string, unknown> {
   return {
     ...(provenance ?? {}),
-    ...(mediaWarnings.length > 0
-      ? { mediaReadinessWarnings: mediaWarnings }
+    ...(outcome.warnings.length > 0
+      ? { mediaReadinessWarnings: outcome.warnings }
+      : {}),
+    ...(outcome.assessmentReasons.length > 0
+      ? { mediaAssessmentReasons: outcome.assessmentReasons }
       : {}),
   };
 }
@@ -102,18 +135,15 @@ export function withMediaWarningProvenance(
  */
 export function withMediaWarnings(
   approval: IPublishApproval,
-  mediaWarnings: readonly MediaReadinessDiagnostic[],
+  outcome: ApprovalMediaGateOutcome,
 ): IPublishApproval {
-  if (mediaWarnings.length === 0) {
-    const { mediaReadinessWarnings: _stale, ...provenance } =
-      approval.provenance;
-    return { ...approval, provenance };
-  }
+  const {
+    mediaAssessmentReasons: _staleReasons,
+    mediaReadinessWarnings: _staleWarnings,
+    ...provenance
+  } = approval.provenance;
   return {
     ...approval,
-    provenance: {
-      ...approval.provenance,
-      mediaReadinessWarnings: mediaWarnings,
-    },
+    provenance: withMediaWarningProvenance(provenance, outcome),
   };
 }

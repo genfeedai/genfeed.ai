@@ -1,0 +1,591 @@
+/**
+ * Content-eval harness contracts (#4922, epic #4921).
+ *
+ * Every shape a run reads or writes lives here: fixture rows, the resolved
+ * suite config, thresholds, the dispatcher port, per-call provenance and the
+ * report. Media match records reuse the public bench schema pinned in
+ * `./bench/schema.ts`; sibling phases (#4923 golden set, #4924 calibration,
+ * #4925/#4926 ladders, #5234 outliers) extend the report through the optional
+ * sections below rather than reshaping it.
+ */
+
+import type { ZodType } from 'zod';
+import { z } from 'zod';
+import { matchSchema } from './bench/schema';
+import {
+  outlierSectionSchema,
+  outlierThresholdsSchema,
+} from './outliers/contracts';
+import type {
+  FixtureRow,
+  JudgeVote,
+  PairwiseChoice,
+  PairwiseResult,
+  ScoredRow,
+  SuiteName,
+} from './rows';
+import { pairwiseResultSchema, SUITE_NAMES, scoredRowSchema } from './rows';
+
+export * from './rows';
+
+export const CONTENT_EVAL_REPORT_SCHEMA_VERSION = 1;
+
+export const DISPATCHER_KINDS = ['stub', 'live'] as const;
+export type DispatcherKind = (typeof DISPATCHER_KINDS)[number];
+
+export const CALL_ROLES = ['generation', 'judge'] as const;
+export type CallRole = (typeof CALL_ROLES)[number];
+
+/** `spend`: the cap stopped the run. `error`: an unexpected failure mid-run. */
+export const ABORT_REASONS = ['spend', 'error'] as const;
+export type AbortReason = (typeof ABORT_REASONS)[number];
+
+// ─── Thresholds ─────────────────────────────────────────────────────────────
+
+/**
+ * Pass/fail gates. Changed only in a PR that links the report justifying the
+ * new value (#4921 FR 8); the version is written into every report.
+ */
+export const CONTENT_EVAL_THRESHOLDS = {
+  version: 'thresholds-v1',
+  /** A generated output is "accepted" at or above this judge score (0–1). */
+  acceptedMinScore: 0.6,
+  /** Judge suite: share of rows whose judge score lands in the human band. */
+  judgeMinBandAgreement: 0.6,
+  /** Pairwise suites: share of pairs whose verdict flips with the ordering. */
+  maxPositionBiasRate: 0.05,
+  /** Pairwise suites: generation or judge failures per contestant. */
+  maxVoidRate: 0.2,
+  /** Pairwise suites: default |scoreA − scoreB| that still counts as a tie. */
+  pointwiseTieBand: 0.05,
+} as const;
+
+export type ContentEvalThresholds = typeof CONTENT_EVAL_THRESHOLDS;
+
+// ─── Suite config ───────────────────────────────────────────────────────────
+
+export const contestantSchema = z.object({
+  /** Stable id within a run, e.g. `openai/gpt-5.6-luna` or `…#brief`. */
+  id: z.string().min(1),
+  /** Guidance arm for harness A/B; `raw` sends the prompt alone. */
+  guidanceArm: z.enum(['raw', 'brief']),
+  isCompiled: z.boolean().default(false),
+  registryKey: z.string().min(1),
+});
+export type Contestant = z.infer<typeof contestantSchema>;
+
+export const suiteConfigSchema = z.object({
+  contestants: z.array(contestantSchema),
+  dispatcher: z.enum(DISPATCHER_KINDS),
+  fixturePath: z.string().min(1),
+  judgeRegistryKeys: z.array(z.string().min(1)).min(1),
+  maxCredits: z.number().positive(),
+  /** Outlier cut (#5234); the report records the defaults when unset. */
+  outlierThresholds: outlierThresholdsSchema.optional(),
+  seed: z.number().int(),
+  suite: z.enum(SUITE_NAMES),
+  tieBand: z.number().min(0).max(1),
+});
+export type SuiteConfig = z.infer<typeof suiteConfigSchema>;
+
+// ─── Dispatcher port ────────────────────────────────────────────────────────
+
+export interface EvalMessageTextPart {
+  text: string;
+  type: 'text';
+}
+
+export interface EvalMessageImagePart {
+  image_url: { url: string };
+  type: 'image_url';
+}
+
+export type EvalMessageContentPart = EvalMessageTextPart | EvalMessageImagePart;
+
+export interface EvalMessage {
+  content: string | EvalMessageContentPart[];
+  role: 'system' | 'user' | 'assistant';
+}
+
+export interface EvalStructuredRequest<TResult> {
+  maxTokens: number;
+  messages: EvalMessage[];
+  model: string;
+  role: CallRole;
+  schema: ZodType<TResult>;
+  schemaName: string;
+  seed: number;
+  temperature: number;
+}
+
+export interface EvalUsage {
+  completionTokens: number;
+  /** Provider-reported USD charge; null when the route does not report one. */
+  costUsd: number | null;
+  promptTokens: number;
+}
+
+export interface EvalStructuredResponse<TResult> {
+  latencyMs: number;
+  /** Resolved model id the provider actually served. */
+  modelVersion: string;
+  provider: string;
+  usage: EvalUsage;
+  value: TResult;
+}
+
+/**
+ * The only way a suite reaches a model. The live adapter wraps
+ * `LlmDispatcherService.completeStructured`, so retention policy, BYOK routing
+ * and the vendor cost ledger apply; a suite never calls a provider URL.
+ */
+export interface EvalDispatcher {
+  completeStructured<TResult>(
+    request: EvalStructuredRequest<TResult>,
+  ): Promise<EvalStructuredResponse<TResult>>;
+  close(): Promise<void>;
+  readonly kind: DispatcherKind;
+}
+
+// ─── Provenance ─────────────────────────────────────────────────────────────
+
+export const llmCallSettingsSchema = z.object({
+  maxTokens: z.number().int().positive(),
+  temperature: z.number(),
+});
+
+/** LLM calls carry token settings; media generations carry the request knobs. */
+export const callSettingsSchema = z.union([
+  llmCallSettingsSchema,
+  z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+]);
+
+export const callProvenanceSchema = z.object({
+  /** Media answers: generation-brief capability profile version. */
+  capabilityProfileVersion: z.string().nullable().default(null),
+  callId: z.string().min(1),
+  /** Media answers: generation-brief compiler version. */
+  compilerVersion: z.string().nullable().default(null),
+  completionTokens: z.number().int().nonnegative(),
+  costUsd: z.number().nonnegative(),
+  /**
+   * `reported`: provider charge; `catalogue`: priced by the harness from the
+   * model catalogue; `retail-credits`: product credits charged for a media
+   * generation, which include margin and so overstate vendor cost;
+   * `reservation`: usage unknown (failed or unreported call), so the
+   * worst-case reservation is charged.
+   */
+  costEvidence: z.enum([
+    'reported',
+    'catalogue',
+    'retail-credits',
+    'reservation',
+  ]),
+  credits: z.number().nonnegative(),
+  family: z.string().min(1),
+  /** The call errored (provider, schema repair, timeout) but was still charged. */
+  isFailed: z.boolean().default(false),
+  kind: z.enum(CALL_ROLES),
+  latencyMs: z.number().nonnegative(),
+  model: z.string().min(1),
+  modelVersion: z.string().min(1),
+  promptDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  promptTokens: z.number().int().nonnegative(),
+  provider: z.string().min(1),
+  rowId: z.string().min(1),
+  rubricDigest: z
+    .string()
+    .regex(/^sha256:[0-9a-f]{64}$/)
+    .nullable(),
+  rubricVersion: z.string().nullable(),
+  seed: z.number().int(),
+  settings: callSettingsSchema,
+});
+export type CallProvenance = z.infer<typeof callProvenanceSchema>;
+export type CallProvenanceInput = z.input<typeof callProvenanceSchema>;
+
+export const spendSummarySchema = z.object({
+  byKind: z.object({
+    generation: z.number().nonnegative(),
+    judge: z.number().nonnegative(),
+  }),
+  callCount: z.number().int().nonnegative(),
+  maxCredits: z.number().positive(),
+  spentCredits: z.number().nonnegative(),
+  spentUsd: z.number().nonnegative(),
+});
+export type SpendSummary = z.infer<typeof spendSummarySchema>;
+
+/** One non-LLM or LLM cost line charged against the run's cap. */
+export interface SpendCharge {
+  credits: number;
+  kind: CallRole;
+  provenance: CallProvenance;
+}
+
+// ─── Summaries ──────────────────────────────────────────────────────────────
+
+export const contestantSummarySchema = z.object({
+  acceptedCount: z.number().int().nonnegative(),
+  contestantId: z.string().min(1),
+  creditsPerAcceptedOutput: z.number().nonnegative().nullable(),
+  deterministicPassRate: z.number().min(0).max(1).nullable(),
+  latencyP50Ms: z.number().nonnegative(),
+  latencyP95Ms: z.number().nonnegative(),
+  meanScore: z.number().min(0).max(1).nullable(),
+  rows: z.number().int().nonnegative(),
+  spentCredits: z.number().nonnegative(),
+  /** Rates are null, not 0, when there is nothing to divide by. */
+  voidRate: z.number().min(0).max(1).nullable(),
+  vsBaseline: z
+    .object({
+      lossRate: z.number().min(0).max(1).nullable(),
+      pairs: z.number().int().nonnegative(),
+      tieRate: z.number().min(0).max(1).nullable(),
+      voidRate: z.number().min(0).max(1).nullable(),
+      winRate: z.number().min(0).max(1).nullable(),
+    })
+    .nullable(),
+});
+export type ContestantSummary = z.infer<typeof contestantSummarySchema>;
+
+export const judgeSummarySchema = z.object({
+  bandAgreement: z.number().min(0).max(1).nullable(),
+  judgeRegistryKey: z.string().min(1),
+  labelledRows: z.number().int().nonnegative(),
+  meanAbsoluteError: z.number().nonnegative().nullable(),
+  scoredRows: z.number().int().nonnegative(),
+});
+export type JudgeSummary = z.infer<typeof judgeSummarySchema>;
+
+export const thresholdCheckSchema = z.object({
+  actual: z.number().nullable(),
+  comparator: z.enum(['>=', '<=']),
+  id: z.string().min(1),
+  passed: z.boolean(),
+  subject: z.string().min(1),
+  threshold: z.number(),
+});
+export type ThresholdCheck = z.infer<typeof thresholdCheckSchema>;
+
+export const suiteOutcomeSchema = z.object({
+  contestants: z.array(contestantSummarySchema),
+  judges: z.array(judgeSummarySchema),
+  pairs: z.array(pairwiseResultSchema),
+  positionBiasRate: z.number().min(0).max(1).nullable(),
+  rows: z.array(scoredRowSchema),
+  thresholdChecks: z.array(thresholdCheckSchema),
+  /** Media ladder match records; lifted to `report.benchMatches`. */
+  benchMatches: z.array(matchSchema).optional(),
+  /** Media-only section (#4926); lifted to `report.media`. */
+  media: z.unknown().optional(),
+});
+export type SuiteOutcome = z.infer<typeof suiteOutcomeSchema>;
+
+// ─── Report ─────────────────────────────────────────────────────────────────
+
+const digestSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
+
+export const rubricRecordSchema = z.object({
+  choiceScores: z.record(z.string(), z.number()),
+  digest: digestSchema,
+  id: z.string().min(1),
+  source: z.string().min(1),
+  version: z.string().min(1),
+});
+export type RubricRecord = z.infer<typeof rubricRecordSchema>;
+
+export const contentEvalReportSchema = z.object({
+  aborted: z.enum(ABORT_REASONS).nullable(),
+  abortMessage: z.string().nullable(),
+  /** Bench match records from the media ladder (#4926). */
+  benchMatches: z.array(matchSchema).optional(),
+  calls: z.array(callProvenanceSchema),
+  config: suiteConfigSchema,
+  dispatcher: z.enum(DISPATCHER_KINDS),
+  evidenceKind: z.enum(['stub-dispatcher', 'live-dispatcher']),
+  fixture: z.object({
+    digest: digestSchema,
+    path: z.string().min(1),
+    rowCount: z.number().int().nonnegative(),
+  }),
+  generatedAt: z.iso.datetime(),
+  /** Stub runs never measure model quality; only live runs can. */
+  modelQualityAssessed: z.boolean(),
+  outcome: suiteOutcomeSchema,
+  /** Owned by #4926; narrowed by `media/` when it lands. */
+  media: z.unknown().optional(),
+  /** Outlier section (#5234): capped cases plus per-contestant rates. */
+  outliers: outlierSectionSchema.optional(),
+  passed: z.boolean(),
+  rubrics: z.array(rubricRecordSchema),
+  runId: z.string().min(1),
+  schemaVersion: z.literal(CONTENT_EVAL_REPORT_SCHEMA_VERSION),
+  sourceRevision: z.string().regex(/^[0-9a-f]{40}$/),
+  spend: spendSummarySchema,
+  suite: z.enum(SUITE_NAMES),
+  thresholds: z.object({
+    acceptedMinScore: z.number(),
+    judgeMinBandAgreement: z.number(),
+    maxPositionBiasRate: z.number(),
+    maxVoidRate: z.number(),
+    pointwiseTieBand: z.number(),
+    version: z.string().min(1),
+  }),
+  workingTreeDirty: z.boolean(),
+});
+export type ContentEvalReport = z.infer<typeof contentEvalReportSchema>;
+
+// ─── Suite runner ───────────────────────────────────────────────────────────
+
+export interface SuiteContext {
+  config: SuiteConfig;
+  dispatcher: EvalDispatcher;
+  judge: EvalJudge;
+  ledger: EvalSpendLedger;
+  rows: FixtureRow[];
+  runId: string;
+}
+
+export const CROSS_FAMILY_SCOPES = ['run', 'per-match'] as const;
+export type CrossFamilyScope = (typeof CROSS_FAMILY_SCOPES)[number];
+
+/** What a suite runs on, resolved before any dispatcher exists. */
+export interface SuitePreparation {
+  contestants: Contestant[];
+  /**
+   * `run`: the runner rejects any judge sharing a family with any contestant.
+   * `per-match`: the suite excludes judges per match itself (bench rule) and
+   * must throw before its first provider call when a match cannot be seated.
+   */
+  crossFamily: CrossFamilyScope;
+  fixture: LoadedFixture;
+}
+
+export interface SuiteRunner {
+  /**
+   * Suite-owned fixture and contestant resolution. Suites without it use the
+   * text-suite default (JSONL rows, `--models`, run-wide cross-family rule).
+   */
+  prepare?(options: ContentEvalRunOptions): Promise<SuitePreparation>;
+  /**
+   * Returns what the suite has scored so far. On a spend abort the runner
+   * catches `SpendCapExceededError` and still writes a partial report, so a
+   * suite must push results as it goes via `onProgress`.
+   */
+  run(
+    context: SuiteContext,
+    onProgress: (outcome: SuiteOutcome) => void,
+  ): Promise<SuiteOutcome>;
+  readonly suite: SuiteName;
+}
+
+export interface EvalSpendLedger {
+  charge(charge: SpendCharge): void;
+  /** Throws before a call whose worst-case cost would breach the cap. */
+  reserve(estimatedCredits: number): void;
+  readonly calls: CallProvenance[];
+  summary(): SpendSummary;
+}
+
+export interface PointwiseJudgement {
+  callId: string | null;
+  /** Why the judge produced no score (provider or schema failure). */
+  failure: string | null;
+  rationale: string | null;
+  score: number | null;
+  vote: JudgeVote;
+}
+
+export interface BattleJudgement {
+  callId: string | null;
+  failure: string | null;
+  /** True when the judge preferred the response shown first. */
+  isFirstPreferred: boolean | null;
+  rationale: string | null;
+  vote: JudgeVote;
+}
+
+export interface PointwiseJudgeRequest {
+  judgeRegistryKey: string;
+  output: string;
+  row: FixtureRow;
+}
+
+export interface BattleJudgeRequest {
+  first: string;
+  judgeRegistryKey: string;
+  row: FixtureRow;
+  second: string;
+}
+
+export interface EvalJudge {
+  battle(request: BattleJudgeRequest): Promise<BattleJudgement>;
+  pointwise(request: PointwiseJudgeRequest): Promise<PointwiseJudgement>;
+  rubrics(): RubricRecord[];
+}
+
+/** Versioned rubric in autoevals' ModelGradedSpec shape. */
+export interface EvalRubricSpec {
+  choiceScores: Record<string, number>;
+  id: string;
+  promptTemplate: string;
+  /** Where the prompt text comes from, e.g. `autoevals@0.3.0:battle`. */
+  source: string;
+  version: string;
+}
+
+export interface CrossFamilyCheckInput {
+  generatorRegistryKeys: string[];
+  judgeRegistryKeys: string[];
+}
+
+// ─── Harness internals ──────────────────────────────────────────────────────
+
+export interface LoadedFixture {
+  digest: string;
+  path: string;
+  rows: FixtureRow[];
+}
+
+export interface SourceRevision {
+  sourceRevision: string;
+  workingTreeDirty: boolean;
+}
+
+export interface MeteredCallContext {
+  dispatcher: EvalDispatcher;
+  ledger: EvalSpendLedger;
+  rowId: string;
+  rubricDigest: string | null;
+  rubricVersion: string | null;
+}
+
+export interface MeteredCallResult<TResult> {
+  provenance: CallProvenance;
+  response: EvalStructuredResponse<TResult>;
+}
+
+export interface StubDispatcherOptions {
+  /** Registry keys whose calls fail, to exercise void handling. */
+  failingModels?: string[];
+  usdPerToken?: number;
+}
+
+export interface EvalJudgeOptions {
+  dispatcher: EvalDispatcher;
+  ledger: EvalSpendLedger;
+  seed: number;
+}
+
+export interface JudgeClassifyInput {
+  judgeRegistryKey: string;
+  rowId: string;
+  spec: EvalRubricSpec;
+  variables: Record<string, unknown>;
+}
+
+export interface JudgeClassifyResult {
+  choice: string;
+  provenance: CallProvenance;
+  reasons: string;
+}
+
+export interface JudgedText {
+  callIds: string[];
+  failures: string[];
+  score: number | null;
+  votes: JudgeVote[];
+}
+
+export interface ContestantAnswer {
+  scoredRow: ScoredRow;
+  text: string | null;
+}
+
+export interface OrderedChoice {
+  choice: PairwiseChoice | null;
+  isPositionBiased: boolean | null;
+}
+
+export interface PairJudging {
+  biasFlags: Array<boolean | null>;
+  pair: PairwiseResult;
+}
+
+export interface CallTotals {
+  credits: number;
+  latencyMs: number;
+}
+
+export interface ReportAnalyzerInput {
+  fixtureRowsById: Map<string, FixtureRow>;
+  pairs: PairwiseResult[];
+  rows: ScoredRow[];
+  runId: string;
+  thresholds: unknown;
+}
+
+/** Adds a report section from already-scored results; never calls a model. */
+export interface ReportAnalyzer {
+  analyze(input: ReportAnalyzerInput): unknown;
+  readonly key: 'outliers';
+  summaryLines?(report: ContentEvalReport): string[];
+}
+
+export interface ReportInput {
+  aborted: AbortReason | null;
+  abortMessage: string | null;
+  config: SuiteConfig;
+  fixture: LoadedFixture;
+  generatedAt: string;
+  outcome: SuiteOutcome;
+  revision: SourceRevision;
+  rubrics: RubricRecord[];
+  runId: string;
+  spend: { calls: CallProvenance[]; summary: SpendSummary };
+}
+
+export interface ContentEvalRunOptions {
+  /** Raw CLI arguments, for suite-specific flags read in `prepare`. */
+  argv?: string[];
+  createDispatcher: (kind: DispatcherKind) => Promise<EvalDispatcher>;
+  dispatcherKind: DispatcherKind;
+  fixturePath: string;
+  judgeRegistryKeys: string[];
+  maxCredits: number;
+  models: string[];
+  now?: Date;
+  outlierThresholds?: unknown;
+  runId?: string;
+  seed: number;
+  suite: SuiteName;
+  tieBand: number;
+}
+
+export interface ContentEvalRunResult {
+  exitCode: number;
+  report: ContentEvalReport;
+}
+
+export interface ContentEvalCliArgs {
+  dispatcherKind: DispatcherKind;
+  fixturePath: string;
+  judgeRegistryKeys: string[];
+  maxCredits: number;
+  models: string[];
+  out: string | null;
+  seed: number;
+  suite: SuiteName;
+  tieBand: number;
+}
+
+export interface ChargeableUsage {
+  costEvidence: CallProvenance['costEvidence'];
+  costUsd: number;
+}
+
+export interface ReservationTokens {
+  completion: number;
+  prompt: number;
+}

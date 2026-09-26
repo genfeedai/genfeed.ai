@@ -26,9 +26,9 @@ import {
 } from '@ui/primitives/select';
 import {
   ErrorHandler,
-  getErrorStatus,
   type IAxiosLikeError,
 } from '@utils/error/error-handler.util';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util';
 import { ArrowRight, Layers3, Sparkles } from 'lucide-react';
 import Link from 'next/link';

@@ -1,3 +1,4 @@
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { isBearerTokenValid } from '@libs/auth/internal-api-key.guard';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,9 +15,10 @@ import type { Request } from 'express';
  * Used for server-to-server communication where legacy auth provider auth is not available
  *
  * Unlike the internal-api-key guards (clips/images) this guard has NO
- * development-mode bypass and uses split-based header parsing with its own
- * error messages — those differences are intentional and preserved. Only
- * the timing-safe comparison core is shared, via @libs/auth.
+ * development-mode bypass and uses its own error messages — those
+ * differences are intentional and preserved. The header parsing (strict
+ * single scheme + single token, no surplus fields) and the timing-safe
+ * comparison core are shared, via @libs/auth.
  */
 @Injectable()
 export class AdminApiKeyGuard implements CanActivate {
@@ -34,11 +36,13 @@ export class AdminApiKeyGuard implements CanActivate {
     }
 
     // Extract token from Bearer header
-    const [type, token] = authHeader.split(' ');
+    const parsed = parseAuthorizationHeader(authHeader);
 
-    if (type !== 'Bearer' || !token) {
+    if (parsed?.normalizedScheme !== 'bearer') {
       throw new UnauthorizedException('Invalid authorization header format');
     }
+
+    const token = parsed.token;
 
     // Validate against admin API key
     const adminApiKey = this.configService.get('GENFEEDAI_API_KEY');

@@ -53,6 +53,7 @@ import {
   batchItemRowsInclude,
   writeBatchJsonAndItemRows,
 } from '@api/services/batch-generation/batch-item-rows';
+import { withMediaAssessmentReasons } from '@api/services/batch-generation/batch-review-media-assessment.util';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
@@ -147,7 +148,11 @@ export class BatchGenerationReviewService {
       changesRequestedCount,
       pendingCount,
       readyCount,
-      recentItems: readyRows.map((row) => this.toReviewInboxItemSummary(row)),
+      recentItems: await withMediaAssessmentReasons(
+        readyRows.map((row) => this.toReviewInboxItemSummary(row)),
+        orgId,
+        this.autonomousPublishPolicy,
+      ),
       rejectedCount,
     };
   }
@@ -635,7 +640,7 @@ export class BatchGenerationReviewService {
         });
         if (!post || (!post.agentStrategyId && !post.personaId)) continue;
         const policy = await this.autonomousPublishPolicy.resolveForPost(
-          { organizationId: orgId, postId: post.id },
+          { organizationId: orgId, postId: post.id, skipMediaAssessment: true },
           transaction,
         );
         if (

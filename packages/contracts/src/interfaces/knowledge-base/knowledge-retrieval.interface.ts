@@ -12,6 +12,14 @@ export interface BrandContentMemoryRetrievalParams {
   knowledgeSourceIds?: string[];
   /** Knowledge purposes allowed for this execution; legacy memory stays eligible. */
   knowledgePurposes?: KnowledgeSourcePurpose[];
+  /**
+   * Restrict hits to chunks linked to a Knowledge source version — legacy,
+   * unlinked context entries (uncited) never take a result slot. Callers that
+   * require citation identity on every returned passage (automatic chat
+   * retrieval) should set this; harness/legacy-memory callers that still
+   * accept uncited hits leave it unset.
+   */
+  isKnowledgeOnly?: boolean;
 }
 
 /** One retrieved passage with enough identity to cite it later. */
@@ -22,6 +30,19 @@ export interface BrandContentMemoryHit {
   metadata?: Record<string, unknown>;
   relevance: number;
   source?: string;
+}
+
+/**
+ * Automatic retrieval for a thread that has no validated brand: organization
+ * scope plus the actor's own personal scope. Never includes brand-owned
+ * material — that requires a brand id and {@link BrandContentMemoryRetrievalParams}.
+ */
+export interface OrgAndPersonalContentMemoryRetrievalParams {
+  organizationId: string;
+  userId: string;
+  query: string;
+  limit?: number;
+  minRelevance?: number;
 }
 
 /**

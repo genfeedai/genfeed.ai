@@ -173,6 +173,8 @@ export interface ReviewInboxItemSummary {
   status: string;
   summary: string;
   continuityQa?: VideoContinuityQaReport;
+  /** Why media gates want review of this item (#4881), when any. */
+  mediaAssessmentReasons?: string[];
 }
 
 export interface ReviewInboxSummary {

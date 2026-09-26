@@ -11,6 +11,7 @@ import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
   findAllPages: vi.fn(),
+  isSettingsLoading: false,
   modelAccess: null as {
     isLocked: boolean;
     lockedModelKey: string | null;
@@ -52,6 +53,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: () => ({
+    isLoading: mocks.isSettingsLoading,
     refresh: mocks.refresh,
     settings: mocks.settings,
   }),
@@ -180,6 +182,7 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mocks.organizationId = 'org-1';
+    mocks.isSettingsLoading = false;
     mocks.modelAccess = null;
     mocks.modelCosts = {};
     mocks.settings = {
@@ -243,6 +246,114 @@ describe('SettingsAgentsPage', () => {
       </NextIntlClientProvider>,
     );
   }
+
+  it('gates every control behind a loading skeleton until settings load, and initializes from the real policy once they do', async () => {
+    mocks.isSettingsLoading = true;
+    const { rerender } = renderPage();
+
+    // Nothing interactive exists yet — initialPolicyFormState's blank
+    // defaults (allowAdvancedOverrides: false, empty caps) are a
+    // placeholder, never a value an early click could persist over the
+    // stored policy (#5228).
+    expect(screen.queryAllByRole('combobox')).toHaveLength(0);
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.queryByText('Autonomous Agent Policy')).toBeNull();
+
+    mocks.isSettingsLoading = false;
+    rerender(
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          <SettingsAgentsPage />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Autonomous Agent Policy')).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            // From the real, loaded settings — not initialPolicyFormState's
+            // false/blank defaults that would have applied had the gate not
+            // waited for settings to load.
+            allowAdvancedOverrides: true,
+            autonomyDefault: AgentAutonomyMode.AUTO_PUBLISH,
+            creditGovernance: expect.objectContaining({
+              agentDailyCreditCap: 250,
+              brandDailyCreditCap: 1000,
+            }),
+            qualityTierDefault: 'budget',
+          }),
+        }),
+      );
+    });
+  });
+
+  it('serializes overlapping saves so a slower earlier request can never overwrite a later one', async () => {
+    const callOrder: string[] = [];
+    let releaseFirstSave: (() => void) | null = null;
+    mocks.patchSettings.mockImplementation(
+      (
+        _organizationId: string,
+        payload: { agentPolicy: { qualityTierDefault?: string } },
+      ) => {
+        const label = payload.agentPolicy.qualityTierDefault;
+        if (label === 'budget') {
+          callOrder.push('start:budget');
+          return new Promise((resolve) => {
+            releaseFirstSave = () => {
+              callOrder.push('end:budget');
+              resolve({});
+            };
+          });
+        }
+        callOrder.push(`start:${label}`);
+        callOrder.push(`end:${label}`);
+        return Promise.resolve({});
+      },
+    );
+    renderPage();
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+    fireEvent.change(selects[0], { target: { value: 'high_quality' } });
+
+    // The second save is queued behind the first — it must not start (and
+    // therefore cannot complete, and cannot overwrite the first's eventual
+    // write) until the first request settles.
+    await waitFor(() => {
+      expect(callOrder).toEqual(['start:budget']);
+    });
+    expect(mocks.patchSettings).toHaveBeenCalledTimes(1);
+
+    releaseFirstSave?.();
+
+    await waitFor(() => {
+      expect(callOrder).toEqual([
+        'start:budget',
+        'end:budget',
+        'start:high_quality',
+        'end:high_quality',
+      ]);
+    });
+    expect(mocks.patchSettings).toHaveBeenCalledTimes(2);
+    // The last call — high_quality — is also the last write, so it wins.
+    expect(mocks.patchSettings.mock.calls.at(-1)?.[1]).toMatchObject({
+      agentPolicy: { qualityTierDefault: 'high_quality' },
+    });
+  });
 
   it('loads existing policy settings and patches on each control change', async () => {
     renderPage();
@@ -439,6 +550,138 @@ describe('SettingsAgentsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('preserves stored model overrides on an unrelated save while the catalog is loading, then validates them once it loads', async () => {
+    let resolveCatalog: (models: unknown[]) => void = () => {};
+    mocks.findAllPages.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCatalog = resolve;
+        }),
+    );
+    renderPage();
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'budget' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalled();
+    });
+    const [, firstPayload] = mocks.patchSettings.mock.calls[0] as [
+      string,
+      { agentPolicy: Record<string, unknown> },
+    ];
+    // `agentPolicy` is a JSON column replaced wholesale on every save — an
+    // unrelated field change (quality tier here) must never omit or clear
+    // an override it did not touch.
+    expect(firstPayload.agentPolicy).toMatchObject({
+      generationModelOverride: 'google/nano-banana-2',
+      reviewModelOverride: 'gpt-5.4-mini',
+      thinkingModelOverride: 'gpt-5.5',
+    });
+
+    resolveCatalog([
+      {
+        category: 'text',
+        id: 'gpt-5.5-id',
+        key: 'gpt-5.5',
+        label: 'GPT-5.5',
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('gpt-5.5');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'high_quality' },
+    });
+
+    await waitFor(() => {
+      const lastCall = mocks.patchSettings.mock.calls.at(-1) as [
+        string,
+        { agentPolicy: Record<string, unknown> },
+      ];
+      expect(lastCall[1].agentPolicy).toHaveProperty(
+        'thinkingModelOverride',
+        'gpt-5.5',
+      );
+    });
+  });
+
+  it('keeps an unresolved stored override on an unrelated save, and only clears it when the admin explicitly picks Auto', async () => {
+    mocks.settings.agentPolicy = {
+      ...(mocks.settings.agentPolicy as Record<string, unknown>),
+      thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+    };
+    renderPage();
+
+    await waitFor(() => {
+      // Shown as an explicit "unresolved" state, distinct from Auto, so the
+      // admin can see the stored value did not silently vanish.
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__unresolved__');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'budget' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+          }),
+        }),
+      );
+    });
+
+    mocks.patchSettings.mockClear();
+    fireEvent.change(screen.getAllByRole('combobox')[2], {
+      target: { value: '__auto__' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: null,
+          }),
+        }),
+      );
+    });
+  });
+
+  it('preserves an override key that is only enabled for a different selector category, on an unrelated save', async () => {
+    mocks.settings.agentPolicy = {
+      ...(mocks.settings.agentPolicy as Record<string, unknown>),
+      // A valid catalog key, but it belongs to the generation (media)
+      // category — the thinking selector must not show or accept it.
+      thinkingModelOverride: 'google/nano-banana-2',
+    };
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__unresolved__');
+    });
+
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'budget' },
+    });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            thinkingModelOverride: 'google/nano-banana-2',
+          }),
+        }),
+      );
+    });
+  });
+
   it('replaces the thinking model picker with the locked model and an upgrade hint on the free tier', async () => {
     mocks.modelAccess = {
       isLocked: true,
@@ -456,7 +699,12 @@ describe('SettingsAgentsPage', () => {
       'href',
       '/acme/settings/subscription',
     );
-    // Generation + review overrides stay; the thinking picker is gone.
-    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    // Generation + review overrides stay; the thinking picker is gone. The
+    // model catalog is a separate, independently-loading query — wait for it
+    // rather than asserting on whatever tick the lock notice happened to
+    // settle on.
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    });
   });
 });

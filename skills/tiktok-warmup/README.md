@@ -5,7 +5,7 @@ Evidence-aware TikTok 5–7 day guidance: native-app consumption and niche engag
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/tiktok-warmup
+bunx skills add genfeedai/skills/tiktok-warmup
 ```
 
 ## Usage

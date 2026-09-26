@@ -1,4 +1,5 @@
 import type {
+  IBrandScrapeWarning,
   IExtractedBrandData,
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
@@ -12,6 +13,8 @@ export interface BrandSetupResponse {
   brandId: string;
   extractedData: IExtractedBrandData;
   message?: string;
+  /** Set when the scrape degraded to a fallback brand profile (#5080). */
+  scrapeWarning?: IBrandScrapeWarning;
 }
 
 export interface InstallReadinessResponse {

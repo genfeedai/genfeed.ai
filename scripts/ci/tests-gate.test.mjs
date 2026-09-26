@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { createTestsGateJobs, evaluateTestsGate } from './tests-gate.mjs';
+import {
+  createTestsGateJobs,
+  evaluateTestsGate,
+  readSupersession,
+} from './tests-gate.mjs';
 
 const ALL_SUCCESS_ENV = {
   TEST_SCOPE_APP: 'true',
@@ -32,8 +36,39 @@ const ALL_SUCCESS_ENV = {
 };
 
 function evaluate(env = {}) {
-  return evaluateTestsGate(createTestsGateJobs({ ...ALL_SUCCESS_ENV, ...env }));
+  const merged = { ...ALL_SUCCESS_ENV, ...env };
+  return evaluateTestsGate(
+    createTestsGateJobs(merged),
+    readSupersession(merged),
+  );
 }
+
+// What a pull request run looks like after a newer push cancelled it: the
+// scope job never published outputs and every downstream job was cancelled.
+const CANCELLED_RUN_ENV = {
+  TEST_SCOPE_APP: '',
+  TEST_SCOPE_API: '',
+  TEST_SCOPE_APP_TESTS: '',
+  TEST_SCOPE_API_TESTS: '',
+  TEST_SCOPE_PACKAGES: '',
+  TEST_SCOPE_SERVER_SERVICES: '',
+  TEST_SCOPE_WEB_DESKTOP_MOBILE: '',
+  TEST_SCOPE_EXTENSIONS: '',
+  FULL_SUITE: '',
+  TEST_SCOPE_RESULT: 'cancelled',
+  TEST_PACKAGES_RESULT: 'cancelled',
+  TEST_SERVER_SERVICES_RESULT: 'cancelled',
+  TEST_WEB_DESKTOP_MOBILE_RESULT: 'cancelled',
+  TEST_EXTENSIONS_RESULT: 'cancelled',
+  STATIC_CHECKS_RESULT: 'cancelled',
+  SPEC_TYPECHECK_RESULT: 'cancelled',
+  BUILD_RESULT: 'cancelled',
+  TEST_APP_RESULT: 'cancelled',
+  TEST_APP_CHANGED_RESULT: 'cancelled',
+  TEST_API_RESULT: 'cancelled',
+  TEST_API_CHANGED_RESULT: 'cancelled',
+  OPENAPI_DRIFT_RESULT: 'cancelled',
+};
 
 function runGateCli(env = {}) {
   const gatePath = fileURLToPath(new URL('./tests-gate.mjs', import.meta.url));
@@ -188,6 +223,80 @@ test('fails when an upstream job is cancelled', () => {
   assert.deepEqual(result.failures, ['Build cancelled']);
 });
 
+test('a cancelled run that was not superseded still fails instead of crashing', () => {
+  const result = evaluate({ ...CANCELLED_RUN_ENV, RUN_SUPERSEDED: 'false' });
+
+  assert.equal(result.passed, false);
+  assert.equal(result.superseded, undefined);
+  assert.ok(result.failures.includes('Test scope cancelled'));
+});
+
+test('passes a pull request run superseded by a newer push', () => {
+  const result = evaluate({
+    ...CANCELLED_RUN_ENV,
+    RUN_SUPERSEDED: 'true',
+    SUPERSEDED_BY: '0ffd495866a8649fa37884b2c7ede62a709e0de9',
+  });
+
+  assert.equal(result.passed, true);
+  assert.equal(result.superseded, true);
+  assert.deepEqual(result.failures, []);
+});
+
+test('tolerates jobs left unrun by an upstream cancellation when superseded', () => {
+  const result = evaluate({
+    BUILD_RESULT: 'cancelled',
+    TEST_APP_CHANGED_RESULT: 'skipped',
+    RUN_SUPERSEDED: 'true',
+  });
+
+  assert.equal(result.passed, true);
+  assert.equal(result.superseded, true);
+});
+
+test('a genuine failure keeps a superseded run red', () => {
+  const result = evaluate({
+    ...CANCELLED_RUN_ENV,
+    TEST_SCOPE_APP: 'true',
+    TEST_SCOPE_API: 'true',
+    TEST_SCOPE_APP_TESTS: 'true',
+    TEST_SCOPE_API_TESTS: 'true',
+    TEST_SCOPE_PACKAGES: 'true',
+    TEST_SCOPE_SERVER_SERVICES: 'true',
+    TEST_SCOPE_WEB_DESKTOP_MOBILE: 'true',
+    TEST_SCOPE_EXTENSIONS: 'true',
+    FULL_SUITE: 'false',
+    TEST_SCOPE_RESULT: 'success',
+    STATIC_CHECKS_RESULT: 'failure',
+    RUN_SUPERSEDED: 'true',
+  });
+
+  assert.equal(result.passed, false);
+  assert.ok(result.failures.includes('Static checks failure'));
+});
+
+test('merge-queue and master runs never read as superseded', () => {
+  assert.deepEqual(readSupersession({}), {
+    superseded: false,
+    supersededBy: null,
+  });
+  assert.deepEqual(readSupersession({ RUN_SUPERSEDED: '' }), {
+    superseded: false,
+    supersededBy: null,
+  });
+});
+
+test('exits zero and names the newer commit for a superseded run', () => {
+  const result = runGateCli({
+    ...CANCELLED_RUN_ENV,
+    RUN_SUPERSEDED: 'true',
+    SUPERSEDED_BY: '0ffd495866a8649fa37884b2c7ede62a709e0de9',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Superseded by commit 0ffd495866a8/);
+});
+
 test('fails when the consolidated static checks fail', () => {
   // Format, secretlint, lint, typecheck, and the executable contracts run in
   // one static-checks job (#1969). The gate must treat that job exactly like
@@ -324,6 +433,16 @@ test('keeps the workflow contract stable', () => {
   ]) {
     assert.match(workflow, new RegExp(`^      - ${job}$`, 'm'));
   }
+
+  // Supersession is detected for pull requests only and fed to the gate.
+  assert.match(
+    workflow,
+    /^ {6}- name: Detect a pull request run superseded by a newer push\n {8}id: supersession\n {8}if: \$\{\{ github\.event_name == 'pull_request' \}\}\n/m,
+  );
+  assert.match(
+    workflow,
+    /^ {10}RUN_SUPERSEDED: \$\{\{ steps\.supersession\.outputs\.superseded \}\}\n {10}SUPERSEDED_BY: \$\{\{ steps\.supersession\.outputs\.superseded_by \}\}$/m,
+  );
 
   assert.match(
     workflow,

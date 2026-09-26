@@ -1,6 +1,7 @@
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -28,6 +29,7 @@ export type KnowledgeToolName =
 
 const SEARCH_DEFAULT_LIMIT = 6;
 const SEARCH_MAX_LIMIT = 12;
+const SEARCH_MIN_RELEVANCE = 0.6;
 const LIST_DEFAULT_LIMIT = 25;
 const LIST_MAX_LIMIT = 100;
 const PREVIEW_LENGTH = 1500;
@@ -139,7 +141,7 @@ export class AgentKnowledgeToolHandler {
     private readonly loggerService: LoggerService,
     private readonly records: KnowledgeRecordsService,
     private readonly capture: KnowledgeCaptureService,
-    private readonly contextsService: ContextsService,
+    private readonly knowledgeContentRetrievalService: KnowledgeContentRetrievalService,
   ) {}
 
   /** Single dispatch entry so the executor's route table stays flat. */
@@ -199,19 +201,23 @@ export class AgentKnowledgeToolHandler {
     if (sourceIds && ctx.isWorkflowScoped) {
       await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
     }
-    const hits = await this.contextsService.retrieveBrandContentMemory({
-      brandId,
-      knowledgePurposes: readPurposes(params.purposes),
-      knowledgeSourceIds: sourceIds,
-      limit: readBoundedInt(
-        params.limit,
-        SEARCH_DEFAULT_LIMIT,
-        SEARCH_MAX_LIMIT,
-      ),
-      minRelevance: 0.6,
-      organizationId: ctx.organizationId,
-      query,
-    });
+    const hits =
+      await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
+        brandId,
+        knowledgePurposes: readPurposes(params.purposes),
+        knowledgeSourceIds: sourceIds,
+        limit: readBoundedInt(
+          params.limit,
+          SEARCH_DEFAULT_LIMIT,
+          SEARCH_MAX_LIMIT,
+        ),
+        minRelevance: resolveKnowledgeMinRelevance(
+          sourceIds,
+          SEARCH_MIN_RELEVANCE,
+        ),
+        organizationId: ctx.organizationId,
+        query,
+      });
     const passages = hits
       .filter((hit) => hit.citation)
       .map((hit) => ({

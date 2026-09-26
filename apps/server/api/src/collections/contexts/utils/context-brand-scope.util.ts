@@ -18,6 +18,7 @@ export type BrandScopedRetrievalParams = Pick<
 
 /** The context-base columns brand-scope decisions read. */
 export type ContextBaseScopeRow = {
+  createdById: string | null;
   data: unknown;
   id: string;
   sourceBrandId: string | null;
@@ -100,6 +101,58 @@ export function buildBrandContentMemoryBaseWhere(
       },
     ],
   };
+}
+
+/**
+ * Automatic chat retrieval for a thread with no validated brand: only
+ * organization-wide Knowledge plus the actor's own personal Knowledge, never
+ * anything owned by any brand.
+ */
+export function buildOrgAndPersonalContentMemoryBaseWhere(
+  userId: string,
+): Prisma.ContextBaseWhereInput {
+  return {
+    AND: [KNOWLEDGE_BASE_PURPOSE_FILTER],
+    OR: [
+      {
+        AND: [
+          { sourceBrandId: null },
+          knowledgeScopeFilter(KnowledgeMemoryScope.ORG),
+        ],
+      },
+      {
+        AND: [
+          { sourceBrandId: null },
+          { createdById: userId },
+          knowledgeScopeFilter(KnowledgeMemoryScope.PERSONAL),
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Defense-in-depth mirror of {@link isContextBaseInBrandScope} for the
+ * no-brand automatic retrieval path: a base owned by any brand is always
+ * excluded, and personal-scope bases are eligible only for their own creator.
+ */
+export function isContextBaseInOrgOrPersonalScope(
+  row: Pick<ContextBaseScopeRow, 'createdById' | 'data' | 'sourceBrandId'>,
+  userId: string,
+): boolean {
+  const data = toDataRecord(row.data);
+  const owners = [row.sourceBrandId, data.brandId, data.sourceBrand].filter(
+    (owner): owner is string => typeof owner === 'string' && owner.length > 0,
+  );
+  if (owners.length > 0) {
+    return false;
+  }
+
+  if (data.knowledgeScope === KnowledgeMemoryScope.PERSONAL) {
+    return row.createdById === userId;
+  }
+
+  return data.knowledgeScope === KnowledgeMemoryScope.ORG;
 }
 
 /** Knowledge bases owned by the brand plus organization-wide Knowledge bases. */

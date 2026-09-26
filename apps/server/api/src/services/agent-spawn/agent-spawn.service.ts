@@ -44,6 +44,7 @@ export class AgentSpawnService implements OnModuleInit {
     const typeConfig = getAgentTypeConfig(agentType);
 
     const brandContext = await this.contextAssemblyService.assembleContext({
+      brandId: parentContext.scope?.brandId,
       credentialId,
       layers: {
         brandGuidance: true,
@@ -55,6 +56,7 @@ export class AgentSpawnService implements OnModuleInit {
       },
       organizationId: parentContext.organizationId,
       query: task,
+      userId: parentContext.userId,
     });
 
     const basePrompt =

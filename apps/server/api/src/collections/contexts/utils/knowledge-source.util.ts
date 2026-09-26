@@ -11,6 +11,19 @@ export const KNOWLEDGE_BASE_PURPOSE = 'knowledge-base';
 export const KNOWLEDGE_SOURCE_CHUNK_KIND = 'knowledge-source-chunk';
 
 /**
+ * Similarity floor for a retrieval. Sources the user explicitly chose are
+ * ranked, not thresholded: the context embedding model scores relevant
+ * query/passage pairs below the generic floor, which silently dropped every
+ * selected passage and its receipt.
+ */
+export function resolveKnowledgeMinRelevance(
+  knowledgeSourceIds: readonly string[] | undefined,
+  floor: number,
+): number {
+  return knowledgeSourceIds?.length ? 0 : floor;
+}
+
+/**
  * Legacy source metadata persisted on `ContextBase.data.sources` before
  * canonical Knowledge records existed. Read-only: the #4123 migration moves
  * these rows into `knowledge_sources`; nothing writes this shape any more.

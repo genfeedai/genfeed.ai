@@ -1,4 +1,5 @@
 import type { PostModalSchema } from '@genfeedai/client/schemas';
+import { ModalEnum } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import {
   closeModal,
@@ -89,14 +90,20 @@ describe('ModalPost', () => {
     mocks.patch.mockResolvedValue({ id: 'existing-post' });
   });
   it('keeps a manually opened composer open when it mounts', () => {
-    openModal('modal-post');
-    render(<ModalPost credentials={[]} onConfirm={vi.fn()} />);
-    expect(isModalOpen('modal-post')).toBe(true);
-    closeModal('modal-post');
+    openModal(ModalEnum.POST_LONG_FORM);
+    render(
+      <ModalPost
+        credentials={[]}
+        modalId={ModalEnum.POST_LONG_FORM}
+        onConfirm={vi.fn()}
+      />,
+    );
+    expect(isModalOpen(ModalEnum.POST_LONG_FORM)).toBe(true);
+    closeModal(ModalEnum.POST_LONG_FORM);
   });
   it('saves a manually written X draft without an account', async () => {
     const user = userEvent.setup();
-    render(<ModalPost credentials={[]} />);
+    render(<ModalPost credentials={[]} modalId={ModalEnum.POST_LONG_FORM} />);
     await user.type(
       screen.getByRole('textbox', { name: 'Post content' }),
       'A manual tweet',
@@ -119,6 +126,7 @@ describe('ModalPost', () => {
     render(
       <ModalPost
         credentials={[]}
+        modalId={ModalEnum.POST_LONG_FORM}
         post={
           {
             id: 'existing-post',
@@ -146,6 +154,7 @@ describe('ModalPost', () => {
     render(
       <ModalPost
         credentials={[]}
+        modalId={ModalEnum.POST_LONG_FORM}
         post={
           {
             id: 'existing-post',

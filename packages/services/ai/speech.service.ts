@@ -1,7 +1,7 @@
 import {
   getErrorStatus,
   isAxiosError,
-} from '@genfeedai/utils/error/error-handler.util';
+} from '@genfeedai/utils/error/json-api-status.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

@@ -1,0 +1,17 @@
+{
+  "id": "product-consistency",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Product consistency",
+  "rationale": "The commerce case. The product must survive relighting and relocation without the model redesigning it. Hallucinated logos, changed proportions, or invented buttons are disqualifying in a way that a slightly worse composition is not.",
+  "prompt": "Using the supplied product shot, place the exact same product in three scenes: on a bathroom shelf with morning light, in a gym bag on a bench, held in one hand outdoors against a blurred street. Do not alter the product's shape, label, colour or proportions.",
+  "referenceRoles": ["product-shot"],
+  "outputSpec": { "aspectRatio": "1:1", "count": 3 },
+  "rubric": [
+    "Is the product unchanged in shape, label and colour?",
+    "Does the lighting on the product match the new scene?",
+    "Is the product's contact with the world physically plausible?",
+    "Would a brand ship this without a retoucher"
+  ]
+}

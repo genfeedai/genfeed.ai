@@ -45,6 +45,10 @@ import { ContentOptimizationModule } from '@api/services/content-optimization/co
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
+import { MediaVisionEvaluationModule } from '@api/services/media-assessment/media-vision-evaluation.module';
+import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
+import { MediaTextDecisionsModule } from '@api/services/media-text-decisions/media-text-decisions.module';
+import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -59,10 +63,13 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
+import { PlatformSystemWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/platform-system-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
+import { MediaModerationProcessor } from '@workers/processors/api/queues/media-moderation/media-moderation.processor';
+import { MediaPerceptionProcessor } from '@workers/processors/api/queues/media-perception/media-perception.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 import { OnboardingStarterAssetsProcessor } from '@workers/processors/api/queues/onboarding-starter-assets/onboarding-starter-assets.processor';
@@ -119,6 +126,10 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => ContentOptimizationModule),
     forwardRef(() => ContentOrchestrationModule),
     forwardRef(() => LifecycleEmailsModule),
+    MediaPerceptionModule,
+    ModerationModule,
+    MediaVisionEvaluationModule,
+    MediaTextDecisionsModule,
     forwardRef(() => NotificationsModule),
     forwardRef(() => OnboardingModule),
     forwardRef(() => ReplyBotModule),
@@ -139,12 +150,15 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     ReplicatePollProcessor,
     NotificationDeliveryProcessor,
     OnboardingStarterAssetsProcessor,
+    MediaPerceptionProcessor,
+    MediaModerationProcessor,
 
     // --- services/ processors ---
     WebhookClientProcessor,
 
     // --- collections/ processors ---
     CollectionsWorkflowExecutionProcessor,
+    PlatformSystemWorkflowProcessor,
   ],
 })
 export class ProcessorsModule {}

@@ -25,6 +25,7 @@ export type PaidCreativeIngestionErrorCode =
   | 'paid_creative_platform_unsupported'
   | 'paid_creative_snapshot_write_failed'
   | 'paid_creative_source_unavailable'
+  | 'research_collection_start_unreconciled'
   | 'research_paid_access_required'
   | 'research_subscription_unverified';
 

@@ -230,6 +230,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
+    file: 'apps/server/workers/src/crons/media-perception/cron.media-perception.service.ts',
+    id: 'media-perception-sweep',
+    methodName: 'queueDuePerceptions',
+    reason:
+      'Platform schedule discovery handler (#4879); every tenant asset is perceived through the media-perception queue under its own organization.',
+  },
+  {
     file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
     id: 'oauth-client-cleanup',
     methodName: 'deleteAbandonedClients',

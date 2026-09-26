@@ -14,9 +14,7 @@
     "make a prompt for",
     "prompt for generating"
   ],
-  "references": {
-    "promptLibraryTypes": "packages/contracts/src/types/prompt-library.ts"
-  },
+  "references": {},
   "outputs": ["json", "text"],
   "tags": ["prompt", "image-generation", "video-generation", "ai", "creative"]
 }

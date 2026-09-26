@@ -570,7 +570,10 @@ describe('OperationalHomeContent', () => {
     const publishing = screen.getByTestId('operational-home-publishing');
     expect(
       within(publishing).getByRole('link', { name: /Launch announcement/ }),
-    ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/release_1');
+    ).toHaveAttribute(
+      'href',
+      '/acme/moonrise/publishing/posts?release=release_1',
+    );
     expect(within(publishing).getByText('scheduled')).toBeInTheDocument();
   });
 

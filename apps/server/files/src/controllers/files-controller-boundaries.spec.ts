@@ -4,6 +4,7 @@ import { EditorRenderJobsController } from '@files/controllers/editor-render-job
 import { FilesController } from '@files/controllers/files.controller';
 import { FilesAudioOverlayController } from '@files/controllers/files-audio-overlay.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
+import { FilesPerceptionController } from '@files/controllers/files-perception.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
@@ -19,6 +20,7 @@ const controllers = [
   [FilesAudioOverlayController, 'files'],
   [FilesController, 'files'],
   [FilesMetadataController, 'files'],
+  [FilesPerceptionController, 'files'],
   [FilesProcessingController, 'files'],
   [FilesStorageController, 'files'],
   [FilesWatermarkExportController, 'files'],
@@ -74,6 +76,16 @@ const routes = [
     FilesMetadataController.prototype.getFileMetadata,
     RequestMethod.POST,
     'metadata',
+  ],
+  [
+    FilesPerceptionController.prototype.fingerprint,
+    RequestMethod.POST,
+    'perception/fingerprint',
+  ],
+  [
+    FilesPerceptionController.prototype.artefacts,
+    RequestMethod.POST,
+    'perception/artefacts',
   ],
   [
     FilesMetadataController.prototype.getTempFile,
@@ -148,6 +160,7 @@ describe('files controller boundaries', () => {
       EditorRenderJobsController,
       FilesController,
       FilesMetadataController,
+      FilesPerceptionController,
       FilesAudioOverlayController,
       FilesProcessingController,
       FilesStorageController,

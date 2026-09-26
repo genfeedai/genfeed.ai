@@ -216,4 +216,49 @@ describe('ContentQualityScorerService', () => {
       ).toHaveBeenCalledWith(expect.anything(), 'org-1');
     });
   });
+
+  describe('scoreVisionFrames (#4881)', () => {
+    it('sends every frame as an image and enforces the vision rubric schema', async () => {
+      mocks.llmDispatcherService.completeStructured.mockResolvedValueOnce({
+        feedback: [],
+        rubric: {
+          artifactLevel: 'none',
+          brandReadiness: 'ready',
+          compositionQuality: 'strong',
+          hookStrength: 'strong',
+        },
+        score: 8,
+        suggestions: [],
+      });
+
+      await service.scoreVisionFrames({
+        brandId: 'brand-1',
+        imageUrls: ['https://cdn/f0.jpg', 'https://cdn/f1.jpg'],
+        organizationId: 'org-1',
+      });
+
+      const [params, organizationId, callContext] =
+        mocks.llmDispatcherService.completeStructured.mock.calls[0];
+      expect(params.schemaName).toBe('content_quality_vision_scoring');
+      expect(params.messages[1].content).toEqual([
+        { image_url: { url: 'https://cdn/f0.jpg' }, type: 'image_url' },
+        { image_url: { url: 'https://cdn/f1.jpg' }, type: 'image_url' },
+      ]);
+      expect(organizationId).toBe('org-1');
+      expect(callContext).toEqual({ brandId: 'brand-1' });
+    });
+
+    it('throws instead of degrading when the model is unavailable', async () => {
+      mocks.llmDispatcherService.completeStructured.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+
+      await expect(
+        service.scoreVisionFrames({
+          imageUrls: ['https://cdn/f0.jpg'],
+          organizationId: 'org-1',
+        }),
+      ).rejects.toThrow('provider down');
+    });
+  });
 });

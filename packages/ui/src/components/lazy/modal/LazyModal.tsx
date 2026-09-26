@@ -34,6 +34,7 @@ import type {
   ModalMemberProps,
   ModalMetadataProps,
   ModalModelProps,
+  ModalPostBatchProps,
   ModalPostProps,
   ModalPromptProps,
   ModalSoundProps,
@@ -234,7 +235,7 @@ export const LazyModalPostRemix = dynamic(
 export const LazyModalPostBatch = dynamic(
   () => import('@ui/modals/content/batch/ModalPostBatch'),
   { ssr: false },
-) as ComponentType<ModalPostProps>;
+) as ComponentType<ModalPostBatchProps>;
 
 export const LazyPostMetadataOverlay = dynamic(
   () => import('@ui/modals/content/post/ModalPostMetadata'),

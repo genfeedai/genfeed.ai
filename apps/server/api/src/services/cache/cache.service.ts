@@ -198,9 +198,9 @@ end
 -- absorbed yet is our own run appearing at the provider. It is not new
 -- external spend, including after a nonzero external baseline.
 -- The remainder is held immediately. The slice inside the open cap is
--- provisional and comes back out only when unsettled actuals cover that
--- whole slice. Recognized dollars cannot explain a new hold. Dollars
--- above the cap stay.
+-- provisional and comes back out only once outstanding reaches zero and
+-- settled dollars not yet recognized cover that whole slice. Recognized
+-- dollars cannot explain a new hold. Dollars above the cap stay.
 local unseen = settled - recognized
 if unseen < 0 then unseen = 0 end
 local explained = growth
@@ -432,10 +432,11 @@ export class CacheService {
   /**
    * Fold provider-account usage into the hosted counter. New provider
    * dollars are held immediately. The slice inside an open reservation cap
-   * is provisional and comes back out only when unsettled actuals cover
-   * that whole slice. Recognized dollars cannot explain a new hold.
-   * Dollars above that cap stay. A reservation release never drops the
-   * counter below provider usage already observed.
+   * is provisional and comes back out only once outstanding reaches zero
+   * and settled dollars not yet recognized cover that whole slice.
+   * Recognized dollars cannot explain a new hold. Dollars above that cap
+   * stay. A reservation release never drops the counter below provider
+   * usage already observed.
    */
   async importHostedAccountUsage(
     usageKey: string,

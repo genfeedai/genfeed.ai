@@ -175,12 +175,82 @@ describe('CreditBalanceService', () => {
     });
   });
 
-  it('never reaches another organization wallet when unlinked, and provisions its own instead', async () => {
+  it('never reaches another organization wallet when unlinked, and provisions its own untagged instead', async () => {
     prisma.creditBalance.findFirst
       .mockResolvedValueOnce(null) // own-wallet check for the shared lookup
       .mockResolvedValueOnce(null); // findByOrganization default-wallet lookup
-    prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
-    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValueOnce({
+      billingAccount: null,
+    });
+    prisma.creditBalance.create.mockResolvedValue({
+      balance: 0,
+      billingAccountId: null,
+      heldAmount: 0,
+      id: 'balance_new',
+      isDeleted: false,
+      organizationId: 'org_2',
+      version: 0,
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+    );
+
+    expect(balance.id).toBe('balance_new');
+    expect(balance.organizationId).toBe('org_2');
+    // The unproven billing account is never tagged onto the new wallet: that
+    // would claim the account's single live wallet slot for an organization
+    // that was never attached to it.
+    expect(prisma.creditBalance.create).toHaveBeenCalledWith({
+      data: {
+        balance: 0,
+        billingAccountId: undefined,
+        heldAmount: 0,
+        isDeleted: false,
+        organizationId: 'org_2',
+        version: 0,
+      },
+    });
+    expect(prisma.organization.findFirst).toHaveBeenLastCalledWith({
+      select: { id: true },
+      where: {
+        billingAccount: { isDeleted: false },
+        billingAccountId: 'ba_1',
+        id: 'org_2',
+        isDeleted: false,
+      },
+    });
+    expect(
+      prisma.billingAccountOrganization.findFirst,
+    ).toHaveBeenLastCalledWith({
+      select: { id: true },
+      where: {
+        billingAccount: { isDeleted: false },
+        billingAccountId: 'ba_1',
+        isDeleted: false,
+        organization: { isDeleted: false },
+        organizationId: 'org_2',
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+    // Without a reservationId, the reservation-authorized path (path 4) must
+    // never be consulted — an unlinked org gets no extra chance to reach
+    // another org's wallet.
+    expect(prisma.creditReservation.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('tags a new wallet with a billing account the organization is LINKED to when that account has no wallet yet', async () => {
+    prisma.creditBalance.findFirst
+      .mockResolvedValueOnce(null) // own-wallet check for the shared lookup
+      .mockResolvedValueOnce(null); // findByOrganization default-wallet lookup
+    prisma.organization.findFirst.mockResolvedValueOnce({
+      billingAccount: null,
+    });
+    prisma.billingAccountOrganization.findFirst
+      .mockResolvedValueOnce({ billingAccount: { creditBalances: [] } })
+      .mockResolvedValueOnce({ id: 'link_1' });
     prisma.creditBalance.create.mockResolvedValue({
       balance: 0,
       billingAccountId: 'ba_1',
@@ -197,8 +267,7 @@ describe('CreditBalanceService', () => {
       'ba_1',
     );
 
-    expect(balance.id).toBe('balance_new');
-    expect(balance.organizationId).toBe('org_2');
+    expect(balance.billingAccountId).toBe('ba_1');
     expect(prisma.creditBalance.create).toHaveBeenCalledWith({
       data: {
         balance: 0,
@@ -209,10 +278,54 @@ describe('CreditBalanceService', () => {
         version: 0,
       },
     });
-    // Without a reservationId, the reservation-authorized path (path 4) must
-    // never be consulted — an unlinked org gets no extra chance to reach
-    // another org's wallet.
-    expect(prisma.creditReservation.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('tags an untagged own wallet with a billing account its reservation proves access to', async () => {
+    prisma.creditBalance.findFirst
+      .mockResolvedValueOnce(null) // own-wallet check for the shared lookup
+      .mockResolvedValueOnce({
+        balance: 5,
+        billingAccountId: null,
+        heldAmount: 0,
+        id: 'balance_own',
+        isDeleted: false,
+        organizationId: 'org_2',
+        version: 1,
+      }); // findByOrganization default-wallet lookup
+    prisma.creditReservation.findFirst
+      .mockResolvedValueOnce(null) // reservation-authorized wallet lookup
+      .mockResolvedValueOnce({ id: 'res_1' }); // access proof
+    prisma.creditBalance.update.mockResolvedValue({
+      balance: 5,
+      billingAccountId: 'ba_1',
+      heldAmount: 0,
+      id: 'balance_own',
+      isDeleted: false,
+      organizationId: 'org_2',
+      version: 1,
+    });
+
+    const balance = await service.getOrCreateBalance(
+      'org_2',
+      undefined,
+      'ba_1',
+      'res_1',
+    );
+
+    expect(balance.billingAccountId).toBe('ba_1');
+    expect(prisma.creditReservation.findFirst).toHaveBeenLastCalledWith({
+      select: { id: true },
+      where: {
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        isDeleted: false,
+        organizationId: 'org_2',
+      },
+    });
+    expect(prisma.creditBalance.update).toHaveBeenCalledWith({
+      data: { billingAccountId: 'ba_1' },
+      where: { id: 'balance_own', isDeleted: false, organizationId: 'org_2' },
+    });
   });
 
   it('reservationId: reaches the wallet of a billing account the organization has since detached from', async () => {
@@ -268,18 +381,19 @@ describe('CreditBalanceService', () => {
     expect(prisma.creditBalance.create).not.toHaveBeenCalled();
   });
 
-  it('reservationId: a mismatched reservation or billing account reaches no wallet, and provisions the org its own instead', async () => {
+  it('reservationId: a mismatched reservation or billing account reaches no wallet, and provisions the org its own untagged instead', async () => {
     prisma.creditBalance.findFirst
       .mockResolvedValueOnce(null) // own-wallet check for the shared lookup
       .mockResolvedValueOnce(null); // findByOrganization default-wallet lookup
-    prisma.organization.findFirst.mockResolvedValue({ billingAccount: null });
-    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.organization.findFirst.mockResolvedValueOnce({
+      billingAccount: null,
+    });
     // The reservation exists, but not with this id/organizationId/
     // billingAccountId combination — scopedWhere matches no row.
     prisma.creditReservation.findFirst.mockResolvedValue(null);
     prisma.creditBalance.create.mockResolvedValue({
       balance: 0,
-      billingAccountId: 'ba_1',
+      billingAccountId: null,
       heldAmount: 0,
       id: 'balance_new',
       isDeleted: false,
@@ -296,6 +410,9 @@ describe('CreditBalanceService', () => {
 
     expect(balance.id).toBe('balance_new');
     expect(balance.organizationId).toBe('org_2');
+    expect(prisma.creditBalance.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ billingAccountId: undefined }),
+    });
   });
 
   it.each(['org_1', null])(

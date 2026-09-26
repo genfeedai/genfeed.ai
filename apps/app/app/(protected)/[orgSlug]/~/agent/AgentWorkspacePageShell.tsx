@@ -1,11 +1,18 @@
-import { AgentFullPage } from '@genfeedai/agent';
+import {
+  AgentFullPage,
+  useAgentChatStore,
+  useConversationComposerShell,
+} from '@genfeedai/agent';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import KnowledgeContextPicker from '@pages/library/knowledge/components/KnowledgeContextPicker';
 import type { AgentWorkspacePageShellProps } from '@props/agent/agent-workspace-page-shell.props';
+import type { BrandKnowledgeSelection } from '@props/content/knowledge-library.props';
 import { TasksService } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -13,6 +20,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { useAgentWorkspace } from './agent-workspace-context';
+
+const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
 
 export function AgentWorkspacePageShell({
   threadId,
@@ -32,6 +41,32 @@ export function AgentWorkspacePageShell({
     isOnboarding,
   } = useAgentWorkspace();
   const handleBrandCreate = useAgentBrandCreate();
+  // Knowledge is picked for the brand the next turn runs under: the composer's
+  // brand when it sets one (new threads adopt it), otherwise the open thread's.
+  const composerShell = useConversationComposerShell();
+  const activeThreadBrandId = useAgentChatStore(
+    (state) =>
+      state.threads.find((thread) => thread.id === state.activeThreadId)
+        ?.brandId ?? undefined,
+  );
+  const knowledgeBrandId = composerShell?.brandId ?? activeThreadBrandId;
+  const [brandKnowledgeSelection, setBrandKnowledgeSelection] =
+    useState<BrandKnowledgeSelection>({
+      brandId: undefined,
+      value: EMPTY_KNOWLEDGE_SELECTION,
+    });
+  // A selection made under another brand is never sent: switching brand
+  // empties it instead of widening the next turn to foreign sources.
+  const knowledgeSelection =
+    brandKnowledgeSelection.brandId === knowledgeBrandId
+      ? brandKnowledgeSelection.value
+      : EMPTY_KNOWLEDGE_SELECTION;
+  const handleKnowledgeSelectionChange = useCallback(
+    (value: KnowledgeSelection) => {
+      setBrandKnowledgeSelection({ brandId: knowledgeBrandId, value });
+    },
+    [knowledgeBrandId],
+  );
   const handleSkip = useCallback(async () => {
     setIsSkipping(true);
     setSkipError(null);
@@ -128,6 +163,14 @@ export function AgentWorkspacePageShell({
       <AgentFullPage
         apiService={agentApiService}
         authReady={isLoaded}
+        knowledgePicker={
+          <KnowledgeContextPicker
+            brandId={knowledgeBrandId}
+            onChange={handleKnowledgeSelectionChange}
+            value={knowledgeSelection}
+          />
+        }
+        knowledgeSelection={knowledgeSelection}
         onboardingMode={isOnboarding}
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
         showThreadSidebar={false}

@@ -12,9 +12,17 @@ export interface ContextSimilarityQueryOptions {
   knowledgePurposes?: KnowledgeSourcePurpose[];
   /**
    * Restrict Knowledge-linked hits to sources owned by this brand or shared
-   * organization-wide. Legacy (unlinked) chunks stay eligible.
+   * organization-wide. Legacy (unlinked) chunks stay eligible. Mutually
+   * exclusive with {@link knowledgeOrgAndPersonalUserId}.
    */
   knowledgeBrandId?: string;
+  /**
+   * Restrict Knowledge-linked hits to organization-wide sources plus this
+   * user's own personal sources; never brand-owned sources. Used for
+   * automatic retrieval on threads with no validated brand. Mutually
+   * exclusive with {@link knowledgeBrandId}.
+   */
+  knowledgeOrgAndPersonalUserId?: string;
   /** Only return chunks linked to a Knowledge source version. */
   isKnowledgeOnly?: boolean;
 }
@@ -69,6 +77,13 @@ export function buildContextSimilarityQuery(
         OR (s."scope" = ${KnowledgeMemoryScope.BRAND} AND s."brandId" = ${options.knowledgeBrandId})
       )`
     : Prisma.empty;
+  const orgAndPersonalScopeFilter = options.knowledgeOrgAndPersonalUserId
+    ? Prisma.sql`AND (
+        e."knowledgeSourceId" IS NULL
+        OR s."scope" = ${KnowledgeMemoryScope.ORG}
+        OR (s."scope" = ${KnowledgeMemoryScope.PERSONAL} AND s."userId" = ${options.knowledgeOrgAndPersonalUserId})
+      )`
+    : Prisma.empty;
   const knowledgeOnlyFilter = options.isKnowledgeOnly
     ? Prisma.sql`AND e."knowledgeSourceId" IS NOT NULL`
     : Prisma.empty;
@@ -117,6 +132,7 @@ export function buildContextSimilarityQuery(
       ${sourceFilter}
       ${purposeFilter}
       ${brandScopeFilter}
+      ${orgAndPersonalScopeFilter}
       ${knowledgeOnlyFilter}
       AND (e."embedding" <=> ${embedding}::vector) <= ${maxDistance}
     ORDER BY e."embedding" <=> ${embedding}::vector ASC

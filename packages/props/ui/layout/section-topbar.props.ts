@@ -35,5 +35,13 @@ export interface SectionTopbarProps {
    * Falls back to the route-level help supplied by `PageHelpProvider`.
    */
   help?: PageHelpContent | null;
+  /**
+   * Keep the bordered bar mounted even when title/leading/tabs/actions are
+   * all empty on this render. `Container` sets this when a page has declared
+   * (via `moduleChrome`) that it always uses this chrome, so a transient
+   * empty state (loading, no results yet) doesn't drop the bar and cause it
+   * to pop in once content appears.
+   */
+  forceVisible?: boolean;
   className?: string;
 }

@@ -2,6 +2,7 @@ import { BETTER_AUTH_STRATEGY_NAME } from '@api/auth/better-auth/better-auth.con
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { BetterAuthIdentityResolverService } from '@api/auth/better-auth/services/better-auth-identity-resolver.service';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -34,10 +35,11 @@ export class BetterAuthStrategy extends PassportStrategy(
       return null;
     }
 
-    const token = req.headers.authorization?.split(' ').pop();
-    if (!token) {
+    const parsed = parseAuthorizationHeader(req.headers.authorization);
+    if (parsed?.normalizedScheme !== 'bearer' || !parsed.token) {
       throw new UnauthorizedException('No token provided');
     }
+    const token = parsed.token;
 
     const claims = await this.betterAuthService.verifyToken(token);
     if (LEGACY_OBJECT_ID_PATTERN.test(claims.sub)) {

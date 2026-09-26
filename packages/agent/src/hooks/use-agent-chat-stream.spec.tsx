@@ -1171,8 +1171,109 @@ describe('useAgentChatStream', () => {
       ).toBeNull();
       expect(useAgentChatStore.getState().pendingInputRequest).toEqual(request);
       expect(useAgentChatStore.getState().messages).toHaveLength(0);
+      expect(findAgentStreamEntry('thread-a')?.terminalAt).toBeNull();
     },
   );
+
+  it('settles the entry when a rejected handoff has no failed request and no pending continuation', () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-a',
+      activeRunId: 'run-ask',
+      activeRunStatus: 'awaiting_input',
+    });
+    const { result } = renderHook(() =>
+      useAgentChatStream({ apiService: createApiService({}) }),
+    );
+    let handoff: ReturnType<typeof result.current.beginRunHandoff>;
+    act(() => {
+      handoff = result.current.beginRunHandoff('thread-a');
+    });
+    expect(findAgentStreamEntry('thread-a')?.terminalAt).toBeNull();
+    act(() => {
+      result.current.cancelRunHandoff(handoff);
+    });
+    expect(findAgentStreamEntry('thread-a')?.terminalAt).not.toBeNull();
+    expect(
+      findAgentStreamEntry('thread-a')?.pendingCompletionRef.current,
+    ).toBeNull();
+    expect(
+      findAgentStreamEntry('thread-a')?.unsubscribersRef.current,
+    ).toHaveLength(0);
+  });
+
+  async function markThreadRunningNotificationCount(
+    seedCacheEntry: boolean,
+  ): Promise<number> {
+    useAgentChatStore.setState({
+      threads: [
+        {
+          id: 'thread-a',
+          contextVersion: 1,
+          status: AgentThreadStatus.ACTIVE,
+          createdAt: '2026-09-08T10:00:00Z',
+          updatedAt: '2026-09-08T10:00:00Z',
+          attentionState: null,
+          pendingInputCount: 0,
+          runStatus: 'running',
+        },
+      ],
+    });
+    const apiService = createApiService({
+      chatStream: vi.fn(async () => ({
+        brandId: null,
+        contextVersion: 1,
+        executionId: 'run-1',
+        queuedAt: '2026-09-08T10:00:00.000Z',
+        threadId: 'thread-a',
+      })),
+    });
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+    await act(async () => {
+      await result.current.sendMessage('Hello');
+    });
+
+    // Seed the cache only after the send settles: sendMessage's own
+    // markThreadRunning call would otherwise evict it before the assertion.
+    useAgentChatStore.setState({
+      conversationCacheByThread: seedCacheEntry
+        ? {
+            'thread-a': {
+              cachedAt: Date.now(),
+              error: null,
+              latestProposedPlan: null,
+              hasMoreMessages: false,
+              messages: [],
+              messagesCursor: null,
+              pendingInputRequest: null,
+              workEvents: [],
+            },
+          }
+        : {},
+    });
+
+    const listener = vi.fn();
+    const unsubscribe = useAgentChatStore.subscribe(listener);
+    act(() => {
+      for (const handler of socketHandlers.get('agent:token') ?? []) {
+        handler({ threadId: 'thread-a', runId: 'run-1', token: 'Hi' });
+      }
+    });
+    unsubscribe();
+    return listener.mock.calls.length;
+  }
+
+  it('skips the cache-eviction store notification when no conversation is cached for the thread', async () => {
+    const withoutCacheEntry = await markThreadRunningNotificationCount(false);
+
+    resetAgentStreamRuntime();
+    socketHandlers.clear();
+
+    const withCacheEntry = await markThreadRunningNotificationCount(true);
+
+    // Evicting an existing cache entry is a real state change and must still
+    // notify; skipping the eviction when nothing is cached must not.
+    expect(withCacheEntry).toBe(withoutCacheEntry + 1);
+  });
 
   it('ignores a handoff acknowledgement after another thread took the stream', async () => {
     useAgentChatStore.setState({

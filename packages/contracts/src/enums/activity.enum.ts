@@ -38,6 +38,8 @@ export enum ActivitySource {
   EXPERT_FIRST_SYSTEM = 'expert-first-system',
   BRAND_RELOCATION = 'brand-relocation',
   REFERRAL = 'credits-referral',
+  /** Media moderation classifier (#4880). */
+  MEDIA_MODERATION = 'media-moderate',
   /** Agent chat LLM rounds, settled at exact provider cost × margin. */
   AGENT_CHAT = 'agent-chat',
 }
@@ -106,6 +108,8 @@ export enum ActivityKey {
   PROMPT_REMIX_COMPLETED = 'prompt-remix-completed',
   PROMPT_REMIX_FAILED = 'prompt-remix-failed',
   BRAND_RELOCATED = 'brand-relocated',
+  /** A live moderation verdict flagged an asset for review (#4880). */
+  MEDIA_MODERATION_FLAGGED = 'media-moderation-flagged',
 }
 
 export enum ActivityStatus {

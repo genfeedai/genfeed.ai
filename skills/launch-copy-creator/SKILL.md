@@ -4,7 +4,7 @@ description: Generate channel-conform launch copy for Hacker News (Show HN) and 
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Launch Copy Creator

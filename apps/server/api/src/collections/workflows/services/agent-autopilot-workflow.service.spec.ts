@@ -333,3 +333,93 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
     expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
   });
 });
+
+describe('AgentAutopilotWorkflowService.discoverProactiveStrategies', () => {
+  function buildStrategyRow(id: string, config: Record<string, unknown> = {}) {
+    return {
+      agentType: null,
+      brandId: null,
+      config,
+      goalId: null,
+      id,
+      label: null,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+  }
+
+  it('paginates past a single page instead of silently dropping strategies beyond it (#5252 review)', async () => {
+    // A single unordered `take: 100` would non-deterministically drop
+    // whichever strategies Postgres didn't happen to return first. None of
+    // page one's 100 rows are due, so satisfying MAX_STRATEGIES_PER_CYCLE
+    // requires the loop to actually fetch page two.
+    const pageOne = Array.from({ length: 100 }, (_, index) =>
+      buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`, {
+        requiresManualReactivation: true,
+      }),
+    );
+    const pageTwo = [
+      buildStrategyRow('strategy-100'),
+      buildStrategyRow('strategy-101'),
+      buildStrategyRow('strategy-102'),
+    ];
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce(pageOne)
+      .mockResolvedValueOnce(pageTwo);
+    const prisma = { agentStrategy: { findMany } };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.discoverProactiveStrategies('org-1', {
+      state: { acquired: true },
+    });
+
+    expect(findMany).toHaveBeenCalledTimes(2);
+    expect(findMany.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ orderBy: { id: 'asc' } }),
+    );
+    expect(findMany.mock.calls[1][0].where).toEqual(
+      expect.objectContaining({ id: { gt: 'strategy-099' } }),
+    );
+    expect(result.items).toHaveLength(3);
+    expect(
+      (result.items as Array<{ id: string }>).map((item) => item.id),
+    ).toEqual(['strategy-100', 'strategy-101', 'strategy-102']);
+  });
+
+  it('stops paging once MAX_STRATEGIES_PER_CYCLE due strategies are found', async () => {
+    const dueRows = Array.from({ length: 25 }, (_, index) =>
+      buildStrategyRow(`strategy-${String(index).padStart(3, '0')}`),
+    );
+    const findMany = vi.fn().mockResolvedValueOnce(dueRows);
+    const prisma = { agentStrategy: { findMany } };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.discoverProactiveStrategies('org-1', {
+      state: { acquired: true },
+    });
+
+    // 25 due rows came back on the first page, but only 20 (the cycle cap)
+    // are used, and no second page is fetched to find more.
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(result.items).toHaveLength(20);
+  });
+});

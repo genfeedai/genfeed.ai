@@ -169,16 +169,40 @@ export class QueueMetricsService implements OnModuleDestroy {
     redis: Redis,
   ): Promise<OperationalQueueSnapshot> {
     const now = Date.now();
-    const [counts, oldestWaitingJobs, events] = await Promise.all([
-      queue.getJobCounts('waiting', 'active', 'delayed', 'failed'),
-      queue.getJobs(['waiting'], 0, 0, true),
-      redis.xrange(
-        queue.toKey('events'),
-        `${now - COLLECTION_WINDOW_MS}-0`,
-        '+',
-      ),
-    ]);
-    const oldestWaitingTimestamp = oldestWaitingJobs[0]?.timestamp;
+    // `prioritized` is BullMQ's own state for a job added with `priority > 0`
+    // (e.g. the files runtime's FILE_JOB_PRIORITY queues) — a distinct Redis
+    // structure from the plain `waiting` list. Folded into `waiting` here so
+    // a backlog of prioritized jobs isn't invisible to the alerting that
+    // reads this snapshot (#5252 review).
+    const [counts, oldestWaitingJobs, oldestPrioritizedJobs, events] =
+      await Promise.all([
+        queue.getJobCounts(
+          'waiting',
+          'active',
+          'delayed',
+          'failed',
+          'prioritized',
+        ),
+        queue.getJobs(['waiting'], 0, 0, true),
+        queue.getJobs(['prioritized'], 0, 0, true),
+        redis.xrange(
+          queue.toKey('events'),
+          `${now - COLLECTION_WINDOW_MS}-0`,
+          '+',
+        ),
+      ]);
+    const oldestWaitingTimestamp = [
+      oldestWaitingJobs[0]?.timestamp,
+      oldestPrioritizedJobs[0]?.timestamp,
+    ].reduce<number | undefined>(
+      (oldest, timestamp) =>
+        timestamp === undefined
+          ? oldest
+          : oldest === undefined
+            ? timestamp
+            : Math.min(oldest, timestamp),
+      undefined,
+    );
     const stalled = extractBullMqNamedEvents(events, 'stalled');
     const stalledJobIds = stalled.jobIds.slice(0, MAX_STALLED_JOB_IDS);
 
@@ -198,7 +222,7 @@ export class QueueMetricsService implements OnModuleDestroy {
       queueName: queue.name,
       stalledEvents: stalled.count,
       stalledJobIds,
-      waiting: counts.waiting ?? 0,
+      waiting: (counts.waiting ?? 0) + (counts.prioritized ?? 0),
     };
   }
 

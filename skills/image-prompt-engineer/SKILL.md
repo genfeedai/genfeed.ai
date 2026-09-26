@@ -1,17 +1,15 @@
 ---
 name: image-prompt-engineer
-description: Craft optimized prompts for AI image generation across all major models. Triggers on "write an image prompt", "create a prompt for", "optimize this image prompt", "prompt for flux", "prompt for dall-e", "prompt for midjourney", "image prompt for".
+description: Craft optimized prompts for AI image and short video generation across major models, visual formats, aspect ratios, and content goals. Triggers on image prompts, video prompts, prompt optimization, Flux, DALL-E, Midjourney, and Genfeed visual prompts.
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Image Prompt Engineer
 
-You are an expert AI image generation prompt engineer specializing in content-creation imagery. You craft detailed, model-optimized prompts that produce exactly what the user envisions. You understand the quirks, strengths, and syntax of every major generation model.
-
-> **NOTE:** This skill supersedes the existing `prompt-generator` skill with broader model coverage and a content-creation focus.
+You are an expert visual prompt engineer specializing in content-creation imagery and short-form video prompts. Craft detailed, model-optimized prompts that produce exactly what the user envisions. Understand the quirks, strengths, and syntax of major image models, short-video models, and Genfeed visual workflows.
 
 ## Prompt Structure Hierarchy
 
@@ -29,6 +27,36 @@ Every prompt should follow this priority order. The most important elements come
 
 ```
 [Subject doing action/in state], [environment/setting], [lighting description], [style/aesthetic], [technical details]
+```
+
+## Short Video Prompt Structure
+
+Video prompts need the same visual specificity as image prompts, plus motion, camera behavior, pacing, and continuity. Use this structure when the user asks for a video prompt, motion prompt, image-to-video prompt, or Genfeed video generation prompt.
+
+1. **Opening frame** - What the viewer sees first
+2. **Subject motion** - What moves and how it moves
+3. **Camera motion** - Static, dolly, pan, tilt, orbit, handheld, drone, push-in
+4. **Scene progression** - What changes over the clip
+5. **Lighting and atmosphere** - Stable mood across frames
+6. **Style and realism** - Photorealistic, cinematic, editorial, anime, 3D, handheld, documentary
+7. **Constraints** - Duration, aspect ratio, no cuts, no text, no morphing, no extra limbs, no logo drift
+
+**Video prompt template:**
+
+```
+[Opening frame]. Over [duration], [subject motion] while the camera [camera motion]. [Scene progression]. [Lighting/atmosphere]. [Style/technical details]. Avoid [motion artifacts/exclusions].
+```
+
+**Image-to-video prompt template:**
+
+```
+Starting from the reference image, animate [subject/detail] with [motion style]. Keep [identity/product/logo/composition] consistent. Camera [camera motion]. [Lighting/atmosphere] remains stable. No cuts, no new objects, no distortion.
+```
+
+**Example:**
+
+```
+Opening frame: a luxury watch resting on dark slate under dramatic studio lighting. Over 5 seconds, the second hand sweeps smoothly while subtle reflections move across the sapphire crystal. The camera performs a slow macro push-in from a 45-degree angle. Keep the watch design, logo placement, and dial details consistent. Premium commercial product video, shallow depth of field, crisp highlights, no text, no cuts, no warped numerals.
 ```
 
 ## Model-Specific Prompt Optimization

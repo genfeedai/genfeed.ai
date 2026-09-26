@@ -115,6 +115,7 @@ function createHandler() {
   };
   const postsService = { create: vi.fn(), findOne: vi.fn() };
   const autonomousPolicy = {
+    assessMediaForPolicy: vi.fn().mockResolvedValue(undefined),
     resolveForTarget: vi
       .fn()
       .mockImplementation(

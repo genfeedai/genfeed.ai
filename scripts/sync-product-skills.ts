@@ -56,6 +56,13 @@ export function validateSource(source: string, commit: string): string {
     git(source, 'show', '-s', '--format=%cI', commit),
   ).toISOString();
 }
+export function sourceSkillSlugs(source: string): string[] {
+  return git(source, 'ls-files', '-z')
+    .split('\0')
+    .map((path) => /^([^/]+)\/SKILL\.md$/.exec(path)?.[1])
+    .filter((slug): slug is string => Boolean(slug))
+    .sort();
+}
 function sourcePackages(source: string) {
   if (lstatSync(source).isSymbolicLink())
     throw new Error('Source symlink rejected');
@@ -111,6 +118,11 @@ export function syncProductSkills(
       const timestamp = validateSource(options.sourceDir, lock.sourceCommit);
       if (timestamp !== lock.sourceCommittedAt)
         throw new Error('Source date mismatch');
+      if (
+        JSON.stringify(sourceSkillSlugs(options.sourceDir)) !==
+        JSON.stringify(lock.sourceSkillSlugs)
+      )
+        throw new Error('Source skill inventory mismatch');
       for (const pkg of sourcePackages(options.sourceDir)) {
         const entry = lock.skills.find((skill) => skill.slug === pkg.slug);
         if (JSON.stringify(pkg.files) !== JSON.stringify(entry?.files))
@@ -122,6 +134,7 @@ export function syncProductSkills(
   if (!options.sourceDir || !options.commit)
     throw new Error('--source-dir and --commit are required for --write');
   const committedAt = validateSource(options.sourceDir, options.commit);
+  const publishedSlugs = sourceSkillSlugs(options.sourceDir);
   const packages = sourcePackages(options.sourceDir);
   const initialImport = !existsSync(join(directory, 'catalog.lock.json'));
   const slugs = catalogSlugs(directory);
@@ -154,6 +167,7 @@ export function syncProductSkills(
       stagedDirectory,
       options.commit,
       committedAt,
+      publishedSlugs,
     );
     const index = renderSkillsIndex(stagingRoot, committedAt);
     const readme = renderSkillsReadme(stagingRoot);

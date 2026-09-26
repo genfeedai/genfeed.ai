@@ -199,6 +199,9 @@ export function createAgentStreamController(
         : {}),
     });
     useAgentChatStore.setState((state) => {
+      if (!(threadId in state.conversationCacheByThread)) {
+        return state;
+      }
       const cache = { ...state.conversationCacheByThread };
       delete cache[threadId];
       return { conversationCacheByThread: cache };
@@ -782,7 +785,15 @@ export function createAgentStreamController(
     // Release only this handoff's events; other threads retain their buffer.
     streamRuntime.pendingCompletionRef.current = null;
     clearCompletionWatchdog();
-    cleanupSubscriptions(true);
+    if (failedRequest) {
+      cleanupSubscriptions(true);
+    } else {
+      // No failed request and no continuation: nothing is pending for this
+      // handoff, so settle the entry (sets terminalAt) instead of leaving it
+      // "live" — otherwise thread-switch hydration and the reconnect
+      // recovery sweep keep treating it as an active local run.
+      releaseCompletedSubscriptions();
+    }
 
     if (failedRequest)
       updateThreadSummary(handoff.threadId, {

@@ -291,14 +291,46 @@ export class ResearchCollectionJobService {
     job: ResearchCollectionJobRecord,
     now: Date,
   ): Promise<boolean> {
+    return this.finishUnrecordedStart(job, now, {
+      status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
+      terminalReason: 'start_not_recorded',
+    });
+  }
+
+  /**
+   * Finish a start whose recovery window elapsed while only unrelated runs
+   * from the same actor were listed. Those runs are not evidence the start
+   * is ours, but they are also not proof it failed, so the job lands on
+   * UNRECONCILED instead of FAILED, and only after its lease has expired.
+   */
+  async finishUnreconciledStart(
+    job: ResearchCollectionJobRecord,
+    now: Date,
+  ): Promise<boolean> {
+    return this.finishUnrecordedStart(job, now, {
+      status: RESEARCH_COLLECTION_JOB_STATUS.UNRECONCILED,
+      terminalReason: 'start_unreconciled',
+    });
+  }
+
+  /**
+   * Shared atomic transition backing finishExpiredUnrecorded and
+   * finishUnreconciledStart: never recorded a run, still owned by this
+   * lease, and only after the lease has expired.
+   */
+  private async finishUnrecordedStart(
+    job: ResearchCollectionJobRecord,
+    now: Date,
+    outcome: { status: string; terminalReason: string },
+  ): Promise<boolean> {
     const legacyLeaseToken = job.leaseToken === null ? randomUUID() : null;
     const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         actualCostMicroUsd: 0,
         inflightRequestKey: null,
         reconciledAt: now,
-        status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
-        terminalReason: 'start_not_recorded',
+        status: outcome.status,
+        terminalReason: outcome.terminalReason,
         ...(legacyLeaseToken
           ? { leaseExpiresAt: now, leaseToken: legacyLeaseToken }
           : {}),

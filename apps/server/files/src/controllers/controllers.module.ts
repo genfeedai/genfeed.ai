@@ -3,6 +3,7 @@ import { EditorRenderJobsController } from '@files/controllers/editor-render-job
 import { FilesController } from '@files/controllers/files.controller';
 import { FilesAudioOverlayController } from '@files/controllers/files-audio-overlay.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
+import { FilesPerceptionController } from '@files/controllers/files-perception.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
@@ -17,6 +18,7 @@ import { Module } from '@nestjs/common';
     EditorRenderJobsController,
     FilesController,
     FilesMetadataController,
+    FilesPerceptionController,
     FilesAudioOverlayController,
     FilesProcessingController,
     FilesStorageController,

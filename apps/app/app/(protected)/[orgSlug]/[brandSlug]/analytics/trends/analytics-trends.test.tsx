@@ -335,27 +335,26 @@ function makeVideo(overrides: Record<string, unknown> = {}) {
 }
 
 function configureSuccessfulService() {
+  const healthyPlatforms = ['youtube', 'twitter', 'reddit', 'tiktok'];
   mocks.getCorpusFreshnessHealth.mockResolvedValue({
     generatedAt: '2026-08-31T08:05:00.000Z',
     providerFailures: [],
-    segments: [
-      {
-        id: 'youtube:native-api',
-        latestSeenAt: new Date().toISOString(),
-        platform: 'youtube',
-        provider: 'native-api',
-        status: 'healthy',
-      },
-    ],
+    segments: healthyPlatforms.map((platform) => ({
+      id: `${platform}:native-api`,
+      latestSeenAt: new Date().toISOString(),
+      platform,
+      provider: 'native-api',
+      status: 'healthy',
+    })),
     status: 'healthy',
     summary: {
       activeTrends: 2,
       failingProviders: 0,
-      freshSegments: 1,
-      platforms: ['youtube'],
+      freshSegments: healthyPlatforms.length,
+      platforms: healthyPlatforms,
       referenceRecords: 4,
       staleSegments: 0,
-      totalSegments: 1,
+      totalSegments: healthyPlatforms.length,
     },
   });
   mocks.getTrendsDiscovery.mockResolvedValue({

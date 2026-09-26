@@ -4,9 +4,11 @@ import {
   unavailableRequestedSkill,
 } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
@@ -14,11 +16,8 @@ import {
   PromptStatus,
   SystemPromptKey,
 } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable, Optional } from '@nestjs/common';
 
-export const PROMPT_ENHANCEMENT_MODEL =
-  AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE;
 const DEFAULT_TEXT_SYSTEM_PROMPT =
   'You are an expert AI assistant. Follow the instructions carefully and provide high-quality responses.';
 
@@ -57,9 +56,20 @@ export class PromptEnhancementService {
   constructor(
     private readonly openRouter: OpenRouterService,
     private readonly prompts: PromptsService,
+    private readonly modelRegistry: AgentChatModelRegistryService,
     @Optional() private readonly templates?: TemplatesService,
     @Optional() private readonly skills?: SkillRuntimeService,
   ) {}
+
+  /**
+   * The operator-owned Admin default TEXT model, the same resolver long
+   * product text uses; the seed constant applies only when no Admin default
+   * resolves. Never a hard-coded provider variant that a deployment's
+   * OpenRouter account may not be able to reach (#5265).
+   */
+  resolveModel(): Promise<string> {
+    return this.modelRegistry.resolveModelKey(undefined, DEFAULT_TEXT_MODEL);
+  }
 
   async enhance(
     input: PromptEnhancementInput,
@@ -117,6 +127,7 @@ export class PromptEnhancementService {
       organizationId: input.organizationId,
       prompt: `${systemContent}\n\n${input.userPrompt}`,
     });
+    const model = await this.resolveModel();
     const response = await this.openRouter.chatCompletion(
       {
         max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
@@ -127,7 +138,10 @@ export class PromptEnhancementService {
           },
           { content: input.userPrompt, role: 'user' },
         ],
-        model: PROMPT_ENHANCEMENT_MODEL,
+        model,
+        // A short rewrite needs no reasoning. A reasoning default model would
+        // otherwise spend the whole budget thinking and return empty content.
+        reasoning: { enabled: false },
         temperature: 0.8,
       },
       options?.byokApiKey,

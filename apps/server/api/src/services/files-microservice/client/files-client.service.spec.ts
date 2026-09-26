@@ -202,6 +202,44 @@ describe('FilesClientService', () => {
     );
   });
 
+  describe('media perception', () => {
+    const HASH = 'e'.repeat(64);
+
+    it('fingerprints an asset URL and validates the answer', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { assetHash: HASH, sizeBytes: 4096 } }));
+
+      await expect(
+        service.fingerprintMedia('https://cdn.test/clip.mp4'),
+      ).resolves.toEqual({ assetHash: HASH, sizeBytes: 4096 });
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/perception/fingerprint`,
+        { url: 'https://cdn.test/clip.mp4' },
+        { timeout: 120_000 },
+      );
+    });
+
+    it('rejects a malformed artefacts payload instead of trusting it', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { assetHash: HASH, frames: 'nope' } }));
+
+      await expect(
+        service.extractPerceptionArtefacts({
+          assetHash: HASH,
+          frameCount: 6,
+          kind: 'video',
+          organizationId: 'org-1',
+          url: 'https://cdn.test/clip.mp4',
+        }),
+      ).rejects.toThrow();
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/perception/artefacts`,
+        expect.objectContaining({ assetHash: HASH, frameCount: 6 }),
+        { timeout: 600_000 },
+      );
+    });
+  });
+
   describe('resizeImage', () => {
     it('sends the image as base64 and decodes the response', async () => {
       const { post, service } = createHarness();

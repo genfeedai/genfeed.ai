@@ -370,6 +370,9 @@ export interface AgentUiAction extends AgentUiActionBase {
   textContent?: string;
   textActions?: string[];
   nextSteps?: AgentNextStepOption[];
+  /** Exact source versions whose passages grounded this generated output. */
+  knowledgeReceipts?: KnowledgeReceipt[];
 }
 
 import type { PostVisibility } from '../..';
+import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';

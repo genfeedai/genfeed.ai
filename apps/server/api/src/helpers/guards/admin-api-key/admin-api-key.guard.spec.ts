@@ -75,6 +75,18 @@ describe('AdminApiKeyGuard', () => {
         'Invalid authorization header format',
       );
     });
+
+    it.each([
+      ['a valid-looking key', `Bearer ${VALID_KEY} extra`],
+      ['an already-invalid key', 'Bearer wrong-key-here-xyz extra-field'],
+    ])(
+      'throws when the header has a surplus field after %s',
+      (_label, authHeader) => {
+        expect(() => guard.canActivate(makeContext(authHeader))).toThrow(
+          new UnauthorizedException('Invalid authorization header format'),
+        );
+      },
+    );
   });
 
   describe('missing server config', () => {
@@ -120,5 +132,17 @@ describe('AdminApiKeyGuard', () => {
         guard.canActivate(makeContext(`Bearer ${VALID_KEY}extra`)),
       ).toThrow(UnauthorizedException);
     });
+
+    it.each([
+      ['bearer', `bearer ${VALID_KEY}`],
+      ['BEARER', `BEARER ${VALID_KEY}`],
+      ['BeArEr', `BeArEr ${VALID_KEY}`],
+    ])(
+      // RFC 7235: scheme names are case-insensitive.
+      'accepts a %s scheme',
+      (_label, authorization) => {
+        expect(guard.canActivate(makeContext(authorization))).toBe(true);
+      },
+    );
   });
 });

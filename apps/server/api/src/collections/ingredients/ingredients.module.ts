@@ -9,6 +9,7 @@ Workflow execution, state management, and cross-content type operations.
  */
 
 import { FoldersModule } from '@api/collections/folders/folders.module';
+import { IngredientPerceptionController } from '@api/collections/ingredients/controllers/ingredient-perception.controller';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -17,6 +18,8 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
+import { ModerationModule } from '@api/services/moderation/moderation.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { Module } from '@nestjs/common';
 
@@ -25,6 +28,7 @@ import { Module } from '@nestjs/common';
     IngredientsController,
     IngredientsRelationshipsController,
     IngredientExportsController,
+    IngredientPerceptionController,
   ],
   exports: [IngredientGenerationCancellationService, IngredientsService],
   imports: [
@@ -33,6 +37,8 @@ import { Module } from '@nestjs/common';
     FoldersModule,
     FailedGenerationModule,
     MetadataModule,
+    MediaPerceptionModule,
+    ModerationModule,
     ReplicateModule,
   ],
   providers: [

@@ -198,12 +198,27 @@ export interface IEnvConfig {
   TASK_ROUTING_MIN_CONFIDENCE?: number;
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
+  // Eval-organization API key the content-eval media ladder (#4926) uses to
+  // generate through the product API. Never a customer key.
+  CONTENT_EVAL_GENFEED_API_KEY?: string;
   // Capped at shadow (release-blocker follow-up, epic #4863): the provider
   // answer is recorded but never acted on.
   PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow';
   PATTERN_ANALYZER_MIN_CONFIDENCE?: number;
   UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow';
   UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
+
+  // === Media validation (#4877) ===
+  MEDIA_GATE_VISION_MODE?: 'off' | 'shadow' | 'live';
+  MEDIA_PERCEPTION_ENABLED?: 'true' | 'false';
+  MEDIA_TEXT_GATE_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  MEDIA_TEXT_GATE_MIN_CONFIDENCE?: number;
+  MEDIA_PERCEPTION_FRAME_COUNT?: number;
+  MEDIA_PERCEPTION_LOOKBACK_HOURS?: number;
+  MEDIA_PERCEPTION_VISION_MODEL?: string;
+  MODERATION_MODE?: 'off' | 'shadow' | 'live';
+  MODERATION_PROVIDER?: 'none' | 'openai';
+  MODERATION_THRESHOLDS?: string;
 
   // === Typed decision: model-discovery category (#4869) ===
   // Mirrors TypedDecisionMode in @genfeedai/contracts; spelled out here

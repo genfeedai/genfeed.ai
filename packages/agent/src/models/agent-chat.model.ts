@@ -15,6 +15,7 @@ import type {
   AgentTransferPresentation,
   AgentUIBlock,
   AnalyticsQueryReference,
+  KnowledgeReceipt,
   KnowledgeSelection,
   ScopedResearchFindingReference,
   SocialInboxReference,
@@ -346,6 +347,8 @@ export interface AgentUiAction {
   textActions?: string[];
   nextSteps?: AgentNextStepOption[];
   clipRunState?: ClipRunCardState;
+  /** Exact source versions whose passages grounded this generated output. */
+  knowledgeReceipts?: KnowledgeReceipt[];
 }
 
 export interface AgentToolCall {

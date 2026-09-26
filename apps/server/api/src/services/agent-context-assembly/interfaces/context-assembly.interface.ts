@@ -5,7 +5,25 @@ import type {
 
 export interface AssembleContextParams {
   organizationId: string;
+  /**
+   * The thread's own validated brand scope — pass this only when the caller
+   * actually has one. When omitted, brand identity (name, voice, persona)
+   * still resolves cosmetically to the organization's `isSelected` brand, but
+   * every brand-owned content layer (saved memory, BRAND_TRUTH Knowledge,
+   * recent posts, performance patterns, and RAG) is skipped rather than
+   * silently reading whichever brand happens to be selected. RAG instead
+   * falls back to organization scope plus the actor's personal scope — see
+   * `userId`.
+   */
   brandId?: string;
+  /**
+   * The acting user. Required to run automatic Knowledge (RAG) retrieval when
+   * `brandId` is omitted — that retrieval scopes to organization scope plus
+   * the actor's own personal scope. Without both `brandId` and `userId`, RAG
+   * retrieval is skipped entirely (no organization-only fallback) and
+   * `ragEntries` stays unset. Not required when `brandId` is set.
+   */
+  userId?: string;
   query?: string;
   platform?: string;
   layers?: ContextLayers;
@@ -35,16 +53,17 @@ export type AssembledContextLayerName =
   | 'performancePatterns'
   | 'credentialContext';
 
-/** A saved-memory passage (brand_voice / content_library / audience base). */
+/**
+ * A retrieved Knowledge passage from the automatic chat-retrieval layer,
+ * scoped to the thread's validated brand plus org-scope sources (or, without
+ * a brand, org-scope plus the actor's personal scope). `citation` carries the
+ * source id, version id, title, kind, purpose and URL — every entry here was
+ * matched to a live, visible, non-deleted Knowledge source.
+ */
 export interface AssembledRagEntry {
+  citation: KnowledgeRetrievalCitation;
   content: string;
-  /** Context base the passage was retrieved from. */
-  contextBaseId: string;
-  /** `data.type` of that context base, e.g. `content_library`. */
-  contextBaseType?: string;
   relevance: number;
-  /** Context base label shown to the model. */
-  source: string;
 }
 
 /**

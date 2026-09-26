@@ -4,7 +4,7 @@ description: Guide LinkedIn account warmup with engagement plans, SSI-building s
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # LinkedIn Warmup Skill
@@ -121,12 +121,14 @@ When the user provides their niche, generate a bank using this structure:
 #### Account Follow and Connection Criteria
 
 Follow and connect with people that match ALL of these:
+
 - Posting at least 3x per week in the past month
 - Writing original text posts (not just shares of external articles)
 - Show genuine comment activity — not just broadcasting posts without responding
 - Work in a role, industry, or content area aligned with your target audience
 
 Do NOT follow or connect with:
+
 - Brand/company pages — they do not reciprocate engagement and dilute your algorithmic identity
 - Accounts that have not posted in the last 30 days
 - Accounts whose follower count dramatically exceeds their engagement (bot-inflated)
@@ -147,6 +149,7 @@ Comments are the most powerful warmup action available on LinkedIn. A single wel
 #### Comment Targeting Criteria
 
 Target posts that meet ALL of these criteria:
+
 - Posted within the last 12 hours (comment visibility window is longer than X but still time-sensitive)
 - Already has 10-80 comments (high engagement, but not so saturated your comment is buried)
 - Posted by someone in your niche with 2K-100K followers
@@ -198,6 +201,7 @@ Post 1 short original text post per day starting Day 5. These are NOT your warmu
 #### Format for First Posts
 
 Keep them simple:
+
 - Text only — no images, no documents, no external links
 - Under 200 words (shorter is better for first posts)
 - Opinionated or specific — generic observations get no engagement
@@ -366,6 +370,7 @@ The warmup assessment is not a pass/fail threshold. It is a diagnostic to determ
 ### Warmup Succeeded Signals
 
 All of these together indicate readiness to scale:
+
 - SSI score is 25 or above (check linkedin.com/sales/ssi)
 - At least one post received impressions from people outside your connections (organic discovery working)
 - You have received 5+ comments that engaged substantively with your professional argument or story
@@ -376,6 +381,7 @@ All of these together indicate readiness to scale:
 ### Warmup Needs More Time Signals
 
 Any of these indicate extending warmup by 5-7 days:
+
 - SSI score is below 20 after 14 days
 - All impressions coming only from your 1st-degree connections (no outward push)
 - Zero comments on two or more posts
@@ -468,6 +474,7 @@ If you have access to Genfeed tools, use them throughout the warmup:
 ### `get_trends` (with category for niche)
 
 Use this during Phase 1 (Days 1-3) to identify:
+
 - Trending professional topics in the user's niche
 - High-engagement conversations happening now among LinkedIn professionals in the niche
 - Emerging industry subtopics that represent strong story post opportunities
@@ -477,6 +484,7 @@ Filter results by the `category` parameter matching the user's niche. Pass the c
 ### `create_post` (platform: linkedin)
 
 Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directly into the Genfeed platform. When using `create_post` for LinkedIn warmup content:
+
 - Set `platform` to `linkedin`
 - Mark the post as draft until the user confirms the story structure and hook
 - Store the full section-by-section breakdown in the post metadata
@@ -486,6 +494,7 @@ Use this during Phase 3 (Days 8-10) to draft the warmup story post brief directl
 ### `publish_post` (with gating conditions)
 
 Only invoke `publish_post` after the user confirms ALL of the following:
+
 - Post is value-only with no promotional content, external links in body, or follow CTAs
 - Hook (Line 1) is specific and compelling — not generic or filler
 - Final line ends with a genuine professional question (not engagement bait)

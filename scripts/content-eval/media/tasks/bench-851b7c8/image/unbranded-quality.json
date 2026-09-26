@@ -1,0 +1,17 @@
+{
+  "id": "unbranded-quality",
+  "version": 1,
+  "medium": "image",
+  "isDraft": false,
+  "title": "Unbranded craft",
+  "rationale": "Strips away every constraint except making a good picture. Separates models whose defaults are tasteful from models that need heavy prompting to stop looking synthetic. This is the task a raw model is most likely to win.",
+  "prompt": "An editorial photograph of a woman in her fifties closing up a neighbourhood bakery at dusk. Shot on 35mm, available light only, the shutters half-down behind her. She is tired and pleased. Natural skin texture, no retouching.",
+  "referenceRoles": ["none"],
+  "outputSpec": { "aspectRatio": "3:2", "count": 1 },
+  "rubric": [
+    "Does it read as a photograph rather than a render?",
+    "Skin, fabric and metal texture under available light",
+    "Is the emotional read the one the prompt asked for?",
+    "Absence of synthetic tells: waxy highlights, symmetric faces, dead eyes"
+  ]
+}

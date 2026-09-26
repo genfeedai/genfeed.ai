@@ -14,8 +14,11 @@ import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  MEDIA_MODERATION_QUEUE,
+  MEDIA_PERCEPTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   ONBOARDING_STARTER_ASSETS_QUEUE,
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -77,6 +80,18 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: WORKFLOW_EXECUTION_QUEUE,
       },
+      // Platform-cron sweep dispatches only — split from WORKFLOW_EXECUTION_QUEUE
+      // in #5162 so a sweep burst can never occupy the concurrency/rate-limit
+      // budget an interactive agent turn depends on.
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+      },
       {
         defaultJobOptions: {
           attempts: 3,
@@ -123,6 +138,24 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: true,
         },
         name: ONBOARDING_STARTER_ASSETS_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 60_000, type: 'exponential' },
+          removeOnComplete: true,
+          removeOnFail: { age: 30 * 60 },
+        },
+        name: MEDIA_PERCEPTION_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 60_000, type: 'exponential' },
+          removeOnComplete: true,
+          removeOnFail: { age: 30 * 60 },
+        },
+        name: MEDIA_MODERATION_QUEUE,
       },
     ),
   ],

@@ -198,13 +198,13 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1134,
+    "actual": 1137,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
   },
   {
-    "actual": 219,
+    "actual": 220,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPublishToolHandler.publishConfirmedContent"
@@ -354,7 +354,7 @@
     "symbol": "CronTiktokStatusService.checkPostStatus"
   },
   {
-    "actual": 32,
+    "actual": 33,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
     "symbol": "PlatformSchedulesProcessor.constructor"

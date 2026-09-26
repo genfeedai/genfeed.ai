@@ -4,7 +4,7 @@ description: Guide YouTube channel warmup with engagement plans, channel optimiz
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # YouTube Warmup Skill
@@ -53,6 +53,7 @@ Every piece of content — including warmup Shorts — should be mapped to a rea
 ### 2. CTR and Retention Are the Primary Signals
 
 YouTube's distribution decision is driven by two metrics above all others:
+
 - **CTR (click-through rate):** What percentage of viewers who see the thumbnail click it. A high CTR signals the title/thumbnail combination is compelling.
 - **Average view duration (AVD):** What percentage of the video is watched. High AVD signals the content delivered on the promise of the thumbnail/title.
 
@@ -123,12 +124,14 @@ When the user provides their niche, generate a keyword bank using this structure
 #### Channel Follow Criteria
 
 Subscribe to channels that match ALL of these:
+
 - Posted at least 2-3 times in the past 30 days
 - Have under 300K subscribers (mid-tier channels are more responsive and signal niche specificity)
 - Have comments that are specific, detailed, and conversational — not just emoji reactions
 - Produce content in a format you plan to create (Shorts if you plan Shorts, long-form if you plan long-form)
 
 Do NOT subscribe to:
+
 - Brand/corporate accounts unless you are specifically a brand channel
 - Channels that have not uploaded in the past 30 days
 - Channels with very high subscriber-to-view ratios (likely inflated or inactive subscriber base)
@@ -226,6 +229,7 @@ Create 2-3 playlists before the first upload. Playlists improve session time and
 ### Continued Engagement (Days 4-7)
 
 Continue Phase 1 engagement behavior at a reduced frequency:
+
 - 15-20 minutes of niche-relevant watch time per day
 - 2-3 comments per day
 - Maintain subscription activity — watch from the subscription feed
@@ -247,6 +251,7 @@ The warmup Short is not your main content. It is your first algorithmic signal. 
 ### Upload Timing
 
 Upload 1-2 hours before your niche's audience peak. For most niches, this means:
+
 - Tuesday–Thursday between 12:00–3:00 PM local time for your primary audience timezone
 - Avoid Friday after 5 PM and Sunday evening (lower active watch time)
 
@@ -394,6 +399,7 @@ For warmup assessment, **Browse features and YouTube Search are the two sources 
 ### Warmup Succeeded Signals
 
 All of these together indicate readiness to scale:
+
 - At least one video has CTR above 3% with AVD above 50%
 - Browse features or YouTube Search appears in traffic sources
 - You have 5+ subscribers from your warmup Short
@@ -403,6 +409,7 @@ All of these together indicate readiness to scale:
 ### Warmup Needs More Time Signals
 
 Any of these indicate extending the engagement-only or Shorts-only phase:
+
 - All traffic is from "Channel pages" only (no external distribution)
 - CTR is below 2% (thumbnail/title combination is not compelling in this niche)
 - AVD is under 30% (content is not matching what the title promises)
@@ -457,6 +464,7 @@ Do not jump from 1 warmup Short to a 3-video-per-week schedule. Sudden behaviora
 ### Community Posts (Unlocked at 500 Subscribers)
 
 Once unlocked, use community posts to:
+
 - Preview upcoming content (drives notification clicks)
 - Ask niche-relevant questions (increases comment engagement baseline)
 - Share relevant non-video content (builds Home feed presence)
@@ -517,6 +525,7 @@ If you have access to Genfeed tools, use them throughout the warmup:
 ### `get_trends` (Platform: YouTube)
 
 Use this during Phase 1 (Days 1-3) to identify:
+
 - Trending topics and keywords in the user's niche on YouTube
 - Rising search terms with growing volume but moderate competition (still climbable)
 - Trending Short formats or content patterns in the niche
@@ -526,6 +535,7 @@ Filter results by niche keywords from the user's brand profile. Prioritize topic
 ### `create_post`
 
 Use this during Phase 3 (Days 7-10) to draft the warmup Short brief directly into the Genfeed platform. When using `create_post` for warmup content:
+
 - Set platform to `youtube`
 - Mark the post as draft until the user confirms the script and thumbnail brief
 - Include the generated title options, description, and tag set in the post metadata
@@ -534,6 +544,7 @@ Use this during Phase 3 (Days 7-10) to draft the warmup Short brief directly int
 ### `publish_post`
 
 Only invoke `publish_post` after the user confirms:
+
 - The Short script is finalized and recorded
 - The thumbnail has been produced and matches the brief
 - The title is selected (Option A or Option B from the brief)

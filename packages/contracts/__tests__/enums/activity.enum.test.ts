@@ -49,6 +49,7 @@ describe('activity.enum', () => {
         'EXPERT_FIRST_SYSTEM',
         'BRAND_RELOCATION',
         'REFERRAL',
+        'MEDIA_MODERATION',
         'AGENT_CHAT',
       ]);
     });
@@ -98,6 +99,7 @@ describe('activity.enum', () => {
       expect(ActivitySource.EXPERT_FIRST_SYSTEM).toBe('expert-first-system');
       expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
       expect(ActivitySource.REFERRAL).toBe('credits-referral');
+      expect(ActivitySource.MEDIA_MODERATION).toBe('media-moderate');
     });
   });
 
@@ -159,6 +161,7 @@ describe('activity.enum', () => {
         'PROMPT_REMIX_COMPLETED',
         'PROMPT_REMIX_FAILED',
         'BRAND_RELOCATED',
+        'MEDIA_MODERATION_FLAGGED',
       ]);
     });
 
@@ -244,6 +247,9 @@ describe('activity.enum', () => {
       expect(ActivityKey.PROMPT_REMIX_COMPLETED).toBe('prompt-remix-completed');
       expect(ActivityKey.PROMPT_REMIX_FAILED).toBe('prompt-remix-failed');
       expect(ActivityKey.BRAND_RELOCATED).toBe('brand-relocated');
+      expect(ActivityKey.MEDIA_MODERATION_FLAGGED).toBe(
+        'media-moderation-flagged',
+      );
     });
   });
 

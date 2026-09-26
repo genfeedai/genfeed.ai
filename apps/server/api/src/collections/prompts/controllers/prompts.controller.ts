@@ -119,6 +119,7 @@ export class PromptsController {
   @Credits({
     amount: 1,
     description: 'Prompt creation and enhancement using OpenRouter free',
+    isBodyModelIgnored: true,
     skipWhenBodyAttribute: 'isSkipEnhancement',
     source: ActivitySource.PROMPT_CREATION,
   })

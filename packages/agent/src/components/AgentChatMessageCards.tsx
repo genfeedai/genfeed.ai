@@ -1,5 +1,6 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
+import { KnowledgeReceiptList } from '@genfeedai/agent/components/KnowledgeReceiptList';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -317,6 +318,9 @@ export function ContentPreviewCard({
           </div>
         ))
       )}
+      {action.knowledgeReceipts?.length ? (
+        <KnowledgeReceiptList receipts={action.knowledgeReceipts} />
+      ) : null}
       {resolvedImages && resolvedImages.length > 0 && (
         <AgentMediaArtifactPreview
           assets={resolvedImages.map((url, index) => ({

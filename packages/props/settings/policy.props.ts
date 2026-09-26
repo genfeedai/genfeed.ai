@@ -1,7 +1,22 @@
 import type { AgentAutonomyMode } from '@genfeedai/contracts';
-import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
+import type {
+  IModel,
+  IOrganizationSetting,
+} from '@genfeedai/contracts/interfaces';
 
 export type AgentPolicyState = NonNullable<IOrganizationSetting['agentPolicy']>;
+
+/**
+ * Per-selector enabled-model options for the generation/review/thinking
+ * override pickers, scoped to each selector's own category — never the full
+ * model catalog. See `resolveEnabledModelsForCategory` in
+ * `resolve-enabled-model-options.ts`.
+ */
+export type OverrideCategoryModels = {
+  generation: Array<Pick<IModel, 'id' | 'key'>>;
+  review: Array<Pick<IModel, 'id' | 'key'>>;
+  thinking: Array<Pick<IModel, 'id' | 'key'>>;
+};
 
 export type QualityTierOption = {
   description: string;

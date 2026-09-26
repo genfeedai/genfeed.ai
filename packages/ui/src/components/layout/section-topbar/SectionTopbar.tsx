@@ -29,6 +29,7 @@ export default function SectionTopbar({
   tabs,
   titleVisibility = 'auto',
   help,
+  forceVisible = false,
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
@@ -45,8 +46,17 @@ export default function SectionTopbar({
   const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
   const hasActions = Boolean(actions) || Boolean(helpTrigger);
 
-  // Chrome-only title with no tools: do not paint an empty border-b strip.
-  if (!hasVisibleTitle && !hasLeading && !hasTabs && !hasActions) {
+  // Chrome-only title with no tools: do not paint an empty border-b strip,
+  // unless the page has declared (via Container's `moduleChrome`) that this
+  // bar is always present — then keep the shell mounted so it doesn't pop in
+  // once content (tabs, actions, a resolved title) arrives.
+  if (
+    !forceVisible &&
+    !hasVisibleTitle &&
+    !hasLeading &&
+    !hasTabs &&
+    !hasActions
+  ) {
     return (
       <h1 className="sr-only" data-testid="section-topbar">
         {title}
@@ -65,6 +75,12 @@ export default function SectionTopbar({
           className={cn(
             'flex w-full items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
             !hasLeading && !hasTabs && hasActions && 'justify-end',
+            // Forced-visible bars must match a populated row's height (a
+            // size-8 action plus this row's own py-1.5 ≈ 44px/min-h-11) —
+            // otherwise the empty band during a loading/error state is a
+            // fraction of that, and the page still jumps once real actions
+            // or tabs mount into it.
+            forceVisible && 'min-h-11',
           )}
         >
           {hasLeading ? (

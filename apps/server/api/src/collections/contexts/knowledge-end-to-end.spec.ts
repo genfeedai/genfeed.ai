@@ -3,11 +3,13 @@ import { readFileSync } from 'node:fs';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { formatHarnessBrief } from '@api/services/harness/harness-brief.util';
 import {
   brandMemoryHitsToHarnessSources,
@@ -76,9 +78,9 @@ const FIXTURE_SQL = `
   CREATE TYPE "BookmarkIntent" AS ENUM ('VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION');
   CREATE TABLE bookmarks (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "folderId" text, category "BookmarkCategory" NOT NULL DEFAULT 'URL', url text NOT NULL, platform "BookmarkPlatform" NOT NULL DEFAULT 'WEB', title text, content text NOT NULL DEFAULT '', description text, author text, "authorHandle" text, "thumbnailUrl" text, "mediaUrls" text[] NOT NULL DEFAULT '{}', "platformData" jsonb NOT NULL DEFAULT '{}', intent "BookmarkIntent" NOT NULL DEFAULT 'INSPIRATION', "savedAt" timestamptz NOT NULL DEFAULT now(), "processedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
-  INSERT INTO users(id) VALUES ('user-a'), ('user-b');
+  INSERT INTO users(id) VALUES ('user-a'), ('user-a-other'), ('user-b');
   INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-a2', 'org-a'), ('brand-b', 'org-b');
-  INSERT INTO members(id, "organizationId", "userId") VALUES ('m-a', 'org-a', 'user-a'), ('m-b', 'org-b', 'user-b');
+  INSERT INTO members(id, "organizationId", "userId") VALUES ('m-a', 'org-a', 'user-a'), ('m-a-other', 'org-a', 'user-a-other'), ('m-b', 'org-b', 'user-b');
 `;
 
 /**
@@ -112,16 +114,41 @@ const actorB: KnowledgeActor = {
   brandId: 'brand-b',
   role: MemberRole.ADMIN,
 };
+/** A second member of org-a with no brand of their own — the automatic
+ * no-brand chat retrieval path (org-scope + personal-scope). */
+const actorAOrgOnly: KnowledgeActor = {
+  organizationId: 'org-a',
+  userId: 'user-a',
+  role: MemberRole.ADMIN,
+};
+const actorAOther: KnowledgeActor = {
+  organizationId: 'org-a',
+  userId: 'user-a-other',
+  role: MemberRole.ADMIN,
+};
 
 let pool: Pool;
 let prisma: PrismaClient;
 let schema: string;
 let records: KnowledgeRecordsService;
 let contexts: ContextsService;
+let knowledgeContentRetrieval: KnowledgeContentRetrievalService;
 let ingest: KnowledgeSourceIngestService;
 let capture: KnowledgeCaptureService;
 let selection: KnowledgeSelectionService;
 let legacyBackfill: KnowledgeLegacyBackfillService;
+let agentContextAssembly: AgentContextAssemblyService;
+
+/** Minimal brand identity the fixture brands table names — just enough for
+ * `AgentContextAssemblyService.assembleContext` to render identity without a
+ * real Brand row or BrandsService. */
+function fakeBrand(id: string, organizationId: string) {
+  return {
+    id,
+    label: `Brand ${id}`,
+    organizationId,
+  };
+}
 const ingestRuns: KnowledgeSourceIngestWorkflowInput[] = [];
 
 /** Runs the canonical ingest graph inline: load → mark → extract → chunk → replace → finalize. */
@@ -155,13 +182,24 @@ async function retrieve(
   query: string,
   extra: Partial<BrandContentMemoryRetrievalParams> = {},
 ) {
-  return contexts.retrieveBrandContentMemory({
+  return knowledgeContentRetrieval.retrieveBrandContentMemory({
     brandId: actor.brandId ?? '',
     limit: 8,
     minRelevance: 0.05,
     organizationId: actor.organizationId,
     query,
     ...extra,
+  });
+}
+
+/** The automatic chat-retrieval path for a thread with no validated brand. */
+async function retrieveOrgAndPersonal(actor: KnowledgeActor, query: string) {
+  return knowledgeContentRetrieval.retrieveOrgAndPersonalContentMemory({
+    limit: 8,
+    minRelevance: 0.05,
+    organizationId: actor.organizationId,
+    query,
+    userId: actor.userId,
   });
 }
 
@@ -222,6 +260,10 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       } as never,
       { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
     );
+    knowledgeContentRetrieval = new KnowledgeContentRetrievalService(
+      prismaService,
+      contexts,
+    );
     ingest = new KnowledgeSourceIngestService(prismaService, contexts);
     capture = new KnowledgeCaptureService(
       records,
@@ -234,6 +276,39 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       records,
       workflowStub as never,
       logger as never,
+    );
+    const noopCache = {
+      generateKey: (...parts: string[]) => parts.join(':'),
+      getOrSet: (_key: string, factory: () => Promise<unknown>) => factory(),
+    };
+    const fakeBrandsService = {
+      // `isSelected` stands in for the organization's default brand — an
+      // unbranded thread's identity layer still resolves to it, but RAG
+      // scoping must key off the *caller's* brandId, never this fallback.
+      findOne: vi.fn(
+        async (filter: {
+          id?: string;
+          isSelected?: boolean;
+          organizationId: string;
+        }) => {
+          if (filter.id) return fakeBrand(filter.id, filter.organizationId);
+          if (filter.isSelected)
+            return fakeBrand('brand-a', filter.organizationId);
+          return null;
+        },
+      ),
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
+    };
+    agentContextAssembly = new AgentContextAssemblyService(
+      fakeBrandsService as never,
+      { getInsights: vi.fn().mockResolvedValue([]) } as never,
+      knowledgeContentRetrieval,
+      { post: { findMany: vi.fn().mockResolvedValue([]) } } as never,
+      noopCache as never,
+      logger as never,
+      { getTopPatternsForBrand: vi.fn().mockResolvedValue([]) } as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
+      undefined as never,
     );
   });
 
@@ -355,6 +430,157 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
     });
     expect(new Set(bySpace?.knowledgeSourceIds)).toEqual(
       new Set([truth.source.id, inspiration.source.id]),
+    );
+  });
+
+  it('never surfaces brand B’s saved memory in brand A’s assembled chat context (AgentContextAssemblyService)', async () => {
+    // AgentContextAssemblyService's automatic retrieval uses
+    // ContextsService's own default minRelevance (0.65, stricter than this
+    // file's other cases), so these passages stay short with heavy word
+    // overlap against the query rather than a longer, more realistic note.
+    const memoryA = await capture.capture(actorA, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand A Q3 launch numbers.',
+      title: 'Brand A Q3 note',
+    });
+    const memoryB = await capture.capture(actorB, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand B Q3 launch numbers.',
+      title: 'Brand B Q3 note',
+    });
+
+    const query = 'Q3 launch numbers';
+    const disabledLayers = {
+      brandGuidance: false,
+      brandIdentity: true,
+      brandKnowledge: false,
+      brandMemory: false,
+      performancePatterns: false,
+      ragContext: true,
+      recentPosts: false,
+    };
+
+    const contextA = await agentContextAssembly.assembleContext({
+      brandId: 'brand-a',
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(
+      contextA?.ragEntries?.map((entry) => entry.citation.sourceId),
+    ).toEqual([memoryA.source.id]);
+    expect(JSON.stringify(contextA?.ragEntries)).not.toContain(
+      memoryB.source.id,
+    );
+
+    const contextB = await agentContextAssembly.assembleContext({
+      brandId: 'brand-b',
+      layers: disabledLayers,
+      organizationId: 'org-b',
+      query,
+      userId: 'user-b',
+    });
+    expect(
+      contextB?.ragEntries?.map((entry) => entry.citation.sourceId),
+    ).toEqual([memoryB.source.id]);
+    expect(JSON.stringify(contextB?.ragEntries)).not.toContain(
+      memoryA.source.id,
+    );
+
+    // The exact #5144 bug: brand-a2 is a *sibling* brand in the SAME
+    // organization as brand-a (not a different tenant), so this proves the
+    // isolation is per-brand, not merely per-org. The legacy
+    // getRelevantContextBases path selected every active context base in the
+    // organization with no brand filter, so brand-a2's thread would have
+    // seen brand-a's saved memory too.
+    const contextSiblingBrand = await agentContextAssembly.assembleContext({
+      brandId: 'brand-a2',
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(contextSiblingBrand?.brandId).toBe('brand-a2');
+    expect(contextSiblingBrand?.ragEntries).toBeUndefined();
+
+    // An unbranded thread in brand A's own organization must not inherit
+    // brand A's saved memory either — only org/personal scope is eligible.
+    const unbrandedContext = await agentContextAssembly.assembleContext({
+      layers: disabledLayers,
+      organizationId: 'org-a',
+      query,
+      userId: 'user-a',
+    });
+    expect(unbrandedContext?.ragEntries).toBeUndefined();
+  });
+
+  it('scopes automatic no-brand chat retrieval to organization plus the actor’s own personal Knowledge', async () => {
+    // Brand A's own Knowledge must never reach an unbranded thread just
+    // because it happens to live in the same organization.
+    const brandOnly = await capture.capture(actorA, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.BRAND,
+      text: 'Brand A only: our launch playbook per month.',
+      title: 'Brand A playbook',
+    });
+    const orgWide = await capture.capture(actorAOrgOnly, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.ORG,
+      text: 'Org-wide note: renew the domain every month.',
+      title: 'Org renewal note',
+    });
+    const personalMine = await capture.capture(actorAOrgOnly, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.PERSONAL,
+      text: 'Personal reminder: follow up on the invoice every month.',
+      title: 'My personal reminder',
+    });
+    const personalOther = await capture.capture(actorAOther, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.PERSONAL,
+      text: 'Someone else’s personal note about the month ahead.',
+      title: 'Other member note',
+    });
+    await capture.capture(actorB, {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      scope: KnowledgeMemoryScope.ORG,
+      text: 'Other tenant org note about the coming month.',
+      title: 'Other tenant note',
+    });
+
+    const query = 'note about the month';
+    const mine = await retrieveOrgAndPersonal(actorAOrgOnly, query);
+    expect(new Set(mine.map((hit) => hit.citation?.sourceId))).toEqual(
+      new Set([orgWide.source.id, personalMine.source.id]),
+    );
+    expect(mine.map((hit) => hit.citation?.sourceId)).not.toContain(
+      brandOnly.source.id,
+    );
+    expect(mine.map((hit) => hit.citation?.sourceId)).not.toContain(
+      personalOther.source.id,
+    );
+
+    const otherMember = await retrieveOrgAndPersonal(actorAOther, query);
+    expect(new Set(otherMember.map((hit) => hit.citation?.sourceId))).toEqual(
+      new Set([orgWide.source.id, personalOther.source.id]),
+    );
+    expect(otherMember.map((hit) => hit.citation?.sourceId)).not.toContain(
+      personalMine.source.id,
+    );
+
+    const otherTenant = await retrieveOrgAndPersonal(actorB, query);
+    expect(otherTenant.map((hit) => hit.citation?.sourceId)).not.toContain(
+      orgWide.source.id,
     );
   });
 

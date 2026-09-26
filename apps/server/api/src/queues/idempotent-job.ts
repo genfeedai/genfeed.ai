@@ -5,8 +5,19 @@ import type { Job } from 'bullmq';
  * duplicate enqueue under the same deterministic id. A job in any other state
  * (completed/failed/etc.) is stale and gets removed so a fresh job can reclaim
  * the id.
+ *
+ * `prioritized` is BullMQ's own state for any job added with `priority > 0` —
+ * distinct from `waiting` (getState reads the `prioritized` ZSET before the
+ * plain wait list; see includes/getState.lua). Missing it here meant a
+ * prioritized job was treated as stale and removed out from under a worker
+ * that could still claim it (#5252 review).
  */
-const ACTIVE_JOB_STATES = new Set<string>(['active', 'waiting', 'delayed']);
+const ACTIVE_JOB_STATES = new Set<string>([
+  'active',
+  'waiting',
+  'delayed',
+  'prioritized',
+]);
 
 export type IdempotentJobReservation =
   | { alreadyQueued: true; state: string }

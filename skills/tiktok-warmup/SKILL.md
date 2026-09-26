@@ -4,7 +4,7 @@ description: Guide a transparent TikTok 5–7 day warm-up with native-app engage
 license: MIT
 metadata:
   author: genfeedai
-  version: "2.0.0"
+  version: 2.0.0
 ---
 
 # TikTok Warm-up Skill

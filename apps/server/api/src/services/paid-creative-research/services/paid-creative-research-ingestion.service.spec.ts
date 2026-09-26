@@ -11,6 +11,7 @@ import {
 } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 const READY: PaidCreativeReadiness = {
   available: true,
@@ -300,6 +301,61 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
 
     expect(result).toMatchObject({
       errorCode: 'paid_creative_source_unavailable',
+      status: 'unavailable',
+    });
+    expect(
+      harness.adPerformanceService.markResearchSnapshotStale,
+    ).toHaveBeenCalledWith('org-1', 'watch-1', 'meta_ads_library');
+  });
+
+  it('denies collection instead of masking it as a source outage when the provider signals paid access is required', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+    harness.adapter.fetchCreatives.mockRejectedValue(
+      new ServiceUnavailableException('research_paid_access_required'),
+    );
+
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(result).toMatchObject({
+      errorCode: 'research_paid_access_required',
+      status: 'unavailable',
+    });
+    expect(
+      harness.adPerformanceService.markResearchSnapshotStale,
+    ).not.toHaveBeenCalled();
+    expect(
+      harness.adWatchedAdvertisersService.recordIngestionResult,
+    ).toHaveBeenCalledWith('watch-1', 'org-1', {
+      errorCode: 'research_paid_access_required',
+      freshnessState: 'unavailable',
+      status: 'unavailable',
+    });
+  });
+
+  it('denies collection when the provider signals the subscription is unverified', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+    harness.adapter.fetchCreatives.mockRejectedValue(
+      new ServiceUnavailableException('research_subscription_unverified'),
+    );
+
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(result).toMatchObject({
+      errorCode: 'research_subscription_unverified',
+      status: 'unavailable',
+    });
+  });
+
+  it('surfaces an unreconciled collection start as its own error code, not a generic outage (#5212)', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+    harness.adapter.fetchCreatives.mockRejectedValue(
+      new ServiceUnavailableException('research_collection_start_unreconciled'),
+    );
+
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(result).toMatchObject({
+      errorCode: 'research_collection_start_unreconciled',
       status: 'unavailable',
     });
     expect(

@@ -9,11 +9,33 @@ import type {
   IApplyCreditDeltaInput,
   ICreditWalletSnapshot,
 } from '@genfeedai/contracts/interfaces/billing';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, type PrismaClient } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type WalletLookupFilter = { billingAccountId?: string; id?: string };
+
+/**
+ * The minimal Prisma delegate surface the four wallet-lookup path methods
+ * below actually call — nothing more. `PrismaService` and
+ * `PrismaTransactionClient` both satisfy this structurally (they carry these
+ * delegates unchanged from the generated `PrismaClient` they extend/omit
+ * from), so every production call site is unaffected. Narrowing the
+ * parameter to this shape — rather than `PrismaService | PrismaTransactionClient`,
+ * which additionally requires the NestJS lifecycle hooks
+ * `onModuleInit`/`onModuleDestroy` that only `PrismaService` declares — is
+ * also what lets a test construct a real, bare generated `PrismaClient` (no
+ * Nest wiring, no lifecycle hooks) and pass it in directly, so the argument
+ * shapes below can be validated against the real Prisma client rather than a
+ * mock — without an `as never`/`as any` cast to paper over the mismatch.
+ */
+type WalletLookupClient = Pick<
+  PrismaClient,
+  | 'billingAccountOrganization'
+  | 'creditBalance'
+  | 'creditReservation'
+  | 'organization'
+>;
 
 /**
  * The nested `CreditBalance[]` read shared by every relation-based wallet
@@ -101,12 +123,32 @@ export class CreditBalanceService {
     }
 
     const balance = await this.findByOrganization(organizationId, tx);
+    if (balance?.billingAccountId) {
+      return balance;
+    }
+
+    // No wallet was reachable, so the organization's own wallet becomes the
+    // billing account's wallet — but only once the organization's attachment
+    // is proven. Tagging an unproven billingAccountId would let an unattached
+    // organization claim the account's single live wallet slot (a partial
+    // unique index), which every organization later linked to it would then
+    // be billed through.
+    const provenBillingAccountId =
+      billingAccountId &&
+      (await this.hasBillingAccountAccess(
+        organizationId,
+        billingAccountId,
+        client,
+        reservationId,
+      ))
+        ? billingAccountId
+        : undefined;
 
     if (!balance) {
       return this.create(
         {
           balance: 0,
-          billingAccountId: billingAccountId ?? undefined,
+          billingAccountId: provenBillingAccountId,
           heldAmount: 0,
           isDeleted: false,
           organizationId,
@@ -116,14 +158,66 @@ export class CreditBalanceService {
       );
     }
 
-    if (billingAccountId && !balance.billingAccountId) {
+    if (provenBillingAccountId) {
       return client.creditBalance.update({
-        data: { billingAccountId },
+        data: { billingAccountId: provenBillingAccountId },
         where: scopedWhere(organizationId, { id: balance.id }),
       });
     }
 
     return balance;
+  }
+
+  /**
+   * Whether the organization may use `billingAccountId` even though no wallet
+   * exists on it yet: the same attachment paths `findAccessibleWallet`
+   * accepts (direct, LINKED, or the organization's own reservation against
+   * that account), proven without requiring a wallet row.
+   */
+  private async hasBillingAccountAccess(
+    organizationId: string,
+    billingAccountId: string,
+    client: WalletLookupClient,
+    reservationId?: string,
+  ): Promise<boolean> {
+    const direct = await client.organization.findFirst({
+      select: { id: true },
+      where: {
+        billingAccount: { isDeleted: false },
+        billingAccountId,
+        id: organizationId,
+        isDeleted: false,
+      },
+    });
+    if (direct) {
+      return true;
+    }
+
+    const linked = await client.billingAccountOrganization.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        billingAccount: { isDeleted: false },
+        billingAccountId,
+        organization: { isDeleted: false },
+        status: BillingAccountOrganizationStatus.LINKED,
+      }),
+    });
+    if (linked) {
+      return true;
+    }
+
+    if (!reservationId) {
+      return false;
+    }
+
+    const reservation = await client.creditReservation.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        billingAccountId,
+        id: reservationId,
+      }),
+    });
+    return Boolean(reservation);
   }
 
   /**
@@ -162,7 +256,7 @@ export class CreditBalanceService {
   private async findAccessibleWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
     reservationId?: string,
   ): Promise<CreditBalanceDocument | null> {
     const own = await this.findOwnWallet(organizationId, filter, client);
@@ -196,7 +290,7 @@ export class CreditBalanceService {
   private async findOwnWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     return client.creditBalance.findFirst({
       where: scopedWhere(organizationId, { ...filter }),
@@ -211,7 +305,7 @@ export class CreditBalanceService {
   private async findDirectWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     const direct = await client.organization.findFirst({
       select: {
@@ -241,7 +335,7 @@ export class CreditBalanceService {
   private async findLinkedWallet(
     organizationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     const linked = await client.billingAccountOrganization.findFirst({
       select: {
@@ -285,7 +379,7 @@ export class CreditBalanceService {
     organizationId: string,
     reservationId: string,
     filter: WalletLookupFilter,
-    client: PrismaService | PrismaTransactionClient,
+    client: WalletLookupClient,
   ): Promise<CreditBalanceDocument | null> {
     if (!filter.billingAccountId) {
       return null;

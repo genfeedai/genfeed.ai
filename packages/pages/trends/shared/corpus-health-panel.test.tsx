@@ -150,7 +150,7 @@ describe('CorpusHealthPanel', () => {
     expect(screen.queryByText('Health unavailable')).not.toBeInTheDocument();
   });
 
-  it('collapses seed accounts into one platform row and ignores unused platforms', () => {
+  it('collapses seed accounts into one platform row and keeps uncovered expected platforms visible', () => {
     render(
       <CorpusHealthPanel
         health={{
@@ -185,11 +185,15 @@ describe('CorpusHealthPanel', () => {
     expect(screen.queryByText(/Anthropic/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Canva/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Figma/)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('group', { name: 'X / Twitter' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('group', { name: 'Reddit' }),
-    ).not.toBeInTheDocument();
+    for (const name of ['X / Twitter', 'Reddit', 'TikTok']) {
+      expect(
+        within(screen.getByRole('group', { name })).getByText(
+          'Health unavailable',
+        ),
+      ).toBeInTheDocument();
+    }
+    // Healthy LinkedIn coverage must not report the whole corpus healthy.
+    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
+    expect(screen.queryByText('Trend corpus healthy')).not.toBeInTheDocument();
   });
 });

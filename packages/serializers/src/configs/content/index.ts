@@ -38,6 +38,8 @@ export * from '@serializers/configs/content/knowledge-space.config';
 export * from '@serializers/configs/content/knowledge-space-membership.config';
 export * from '@serializers/configs/content/link.config';
 export * from '@serializers/configs/content/live-session.config';
+export * from '@serializers/configs/content/media-moderation.config';
+export * from '@serializers/configs/content/media-perception.config';
 export * from '@serializers/configs/content/media-readiness-diagnostic.config';
 export * from '@serializers/configs/content/mood-board.config';
 export * from '@serializers/configs/content/news.config';

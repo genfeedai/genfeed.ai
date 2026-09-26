@@ -78,6 +78,62 @@ describe('ContentPreviewCard', () => {
     });
   });
 
+  it('lists the exact Knowledge versions that grounded a draft', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          id: 'grounded-post',
+          knowledgeReceipts: [
+            {
+              excerpt: 'We ship every Thursday.',
+              kind: 'TEXT',
+              purpose: 'INSPIRATION',
+              relevance: 0.4,
+              sourceId: 'source-1',
+              title: 'Brand facts',
+              version: 2,
+              versionId: 'version-2',
+            },
+            {
+              excerpt: 'Build loud, ship louder.',
+              kind: 'TEXT',
+              purpose: 'INSPIRATION',
+              relevance: 0.7,
+              sourceId: 'source-1',
+              title: 'Brand facts',
+              version: 2,
+              versionId: 'version-2',
+            },
+            {
+              excerpt: 'Pricing starts at $29.',
+              kind: 'URL',
+              purpose: 'BRAND_TRUTH',
+              relevance: 0.6,
+              sourceId: 'source-2',
+              title: 'Pricing page',
+              url: 'https://example.com/pricing',
+              version: 1,
+              versionId: 'version-1',
+            },
+          ] as AgentUiAction['knowledgeReceipts'],
+          textContent: 'Thursday is ship day.',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    const receipts = screen.getByRole('region', { name: 'Knowledge sources' });
+    expect(receipts).toHaveTextContent('Brand facts');
+    expect(receipts).toHaveTextContent('Version 2');
+    expect(receipts).toHaveTextContent('Build loud, ship louder.');
+    expect(receipts).not.toHaveTextContent('We ship every Thursday.');
+    expect(screen.getByRole('link', { name: 'Pricing page' })).toHaveAttribute(
+      'href',
+      'https://example.com/pricing',
+    );
+    expect(receipts).toHaveTextContent('Brand Truth');
+  });
+
   it('does not enable draft actions in an inert preview', () => {
     render(
       <ContentPreviewCard

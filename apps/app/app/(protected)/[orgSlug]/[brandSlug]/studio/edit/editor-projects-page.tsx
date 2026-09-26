@@ -122,6 +122,11 @@ export default function EditorProjectsPage() {
       }
       right={error ? undefined : newProjectButton}
       titleVisibility="sr-only"
+      // `right` disappears on error, which would otherwise flip Container
+      // between module chrome and the classic layout as the page moves
+      // through loading/error/loaded. Declare the chrome mode once so it
+      // stays stable across all three.
+      moduleChrome
     >
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

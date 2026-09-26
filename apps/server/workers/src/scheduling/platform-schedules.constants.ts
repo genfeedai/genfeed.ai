@@ -1,3 +1,4 @@
+import { MEDIA_PERCEPTION_SWEEP_SCHEDULE } from '@workers/crons/media-perception/media-perception.constants';
 import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 import { X_REPLY_WATCH_SCHEDULE } from '@workers/crons/x-replies/x-reply-watch.constants';
@@ -32,10 +33,12 @@ export const PLATFORM_SCHEDULED_TASKS = {
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
   LIFECYCLE_EMAILS: 'lifecycle-emails',
   LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
+  MEDIA_PERCEPTION_SWEEP: 'media-perception-sweep',
   MODEL_DEPRECATION: 'model-deprecation',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
   OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
   PATTERN_EXTRACTION: 'pattern-extraction',
+  PENDING_WORKFLOW_EXECUTION_RECONCILE: 'pending-workflow-execution-reconcile',
   POSTS_PUBLISH: 'posts-publish',
   POSTS_THREAD_COMMENTS: 'posts-thread-comments',
   QUEUE_METRICS_PUBLISH: 'queue-metrics-publish',
@@ -124,6 +127,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
+  [PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP]: {
+    pattern: MEDIA_PERCEPTION_SWEEP_SCHEDULE,
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION]: {
     pattern: '0 3 * * 0',
     timezone: 'UTC',
@@ -138,6 +145,13 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: {
     pattern: '0 2 * * *',
+    timezone: 'UTC',
+  },
+  // Bounded-failure backstop for a `PENDING` system-workflow run no worker
+  // ever claimed — see #5162. This is a global reconcile, not a per-org
+  // dispatch: it scans for stuck rows, it does not enqueue one per org.
+  [PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE]: {
+    pattern: '* * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {

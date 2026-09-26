@@ -43,6 +43,8 @@ const BLOCKER_LABELS: Record<string, string> = {
     'Google publishes no ad API. Ingestion stays off until its contract is verified against reviewed fixtures.',
   paid_creative_apify_token_missing:
     'The archive scraper credential is not configured on this deployment.',
+  research_collection_start_unreconciled:
+    "We couldn't confirm whether this collection started. It's safe to retry.",
   research_paid_access_required:
     'Competitor collection requires an active paid subscription. Saved ads stay available.',
   research_subscription_unverified:

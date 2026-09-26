@@ -63,3 +63,9 @@ export interface KnowledgeContextPickerProps {
   onChange: (selection: KnowledgeSelection) => void;
   value: KnowledgeSelection;
 }
+
+/** A Knowledge pick remembered with the brand it was made under. */
+export interface BrandKnowledgeSelection {
+  brandId: string | undefined;
+  value: KnowledgeSelection;
+}

@@ -307,7 +307,13 @@ describe('useStoryboardWorkspace', () => {
 
       await waitFor(() => expect(mockVideosPost).toHaveBeenCalledTimes(1));
       expect(result.current.isGeneratingScenes).toBe(true);
-      expect(result.current.sceneProgress).toEqual({ current: 1, total: 3 });
+      // The in-flight request and its progress update land in the same tick,
+      // but React commits the state update asynchronously — under CI load the
+      // mock call can be observed a beat before the commit flushes, so this
+      // needs its own wait rather than a synchronous read.
+      await waitFor(() =>
+        expect(result.current.sceneProgress).toEqual({ current: 1, total: 3 }),
+      );
 
       await act(async () => {
         result.current.cancelSceneGeneration();

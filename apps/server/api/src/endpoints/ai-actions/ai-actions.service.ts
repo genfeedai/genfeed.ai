@@ -66,6 +66,7 @@ export class AiActionsService {
     // Single-turn helper: retrieve brand knowledge and semantically close
     // recent posts when they exist. Empty stores stay a no-op (#2460).
     const brandContext = await this.contextAssemblyService.assembleContext({
+      brandId: actor?.brandId ?? undefined,
       layers: {
         brandGuidance: true,
         brandIdentity: true,
@@ -76,6 +77,7 @@ export class AiActionsService {
       },
       organizationId: orgId,
       query: dto.content,
+      userId: actor?.userId,
     });
     if (brandContext) {
       const brandPreamble = this.contextAssemblyService.buildSystemPrompt(

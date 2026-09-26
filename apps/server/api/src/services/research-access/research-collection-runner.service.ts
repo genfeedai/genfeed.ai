@@ -30,6 +30,43 @@ const TERMINAL_RUN_STATUSES = new Set([
 ]);
 
 /**
+ * Upper bound for the actor-start POST itself. Apify's run-list API carries
+ * no caller-supplied identity: a run object exposes only id/status/timing and
+ * a provider-generated `meta` (origin/clientIp/userAgent), never a
+ * correlation id we set, and the "Run Actor" endpoint has no query parameter
+ * for one either. The only place a correlation value could ride along is the
+ * actor `input` itself, but this runner starts ~20 different third-party
+ * actors (see APIFY_ACTOR_REGISTRY in apify-base.service.ts) whose input
+ * schemas we do not own and cannot verify here (no live Apify calls in this
+ * change) — many Apify actor schemas reject unknown input properties, so
+ * stuffing a correlation field into every request risks turning a rare,
+ * already-mitigated recovery ambiguity into a routine, and much worse,
+ * start failure. So the start call is bounded by an explicit timeout
+ * instead: `isAmbiguousApifyStartError` can only fire (no HTTP status
+ * received) within this window, which caps how late a run that is genuinely
+ * ours can first appear in the actor's run list.
+ */
+const RUN_START_TIMEOUT_MS = 30_000;
+
+/**
+ * Clock skew and the small gap between recording `startAttemptedAt` and
+ * actually issuing the POST (rate-limit bookkeeping runs in between).
+ */
+const RUN_START_MATCH_BUFFER_MS = 5_000;
+
+/** Apify's per-page cap for this recovery lookup. */
+const RUN_LIST_PAGE_LIMIT = 20;
+
+/**
+ * Sane ceiling on how far back recovery pages through an actor's run
+ * history (RUN_LIST_MAX_PAGES * RUN_LIST_PAGE_LIMIT = 100 runs). Recovery
+ * only runs on an already-rare ambiguous start, so this bounds the worst
+ * case (an extremely busy shared actor) without turning a stuck recovery
+ * into an unbounded crawl of Apify's API.
+ */
+const RUN_LIST_MAX_PAGES = 5;
+
+/**
  * Hosted research collection. A retry uses the recorded Apify run before
  * any new start, and settles that run's cost at most once.
  */
@@ -274,28 +311,88 @@ export class ResearchCollectionRunner {
         'research_collection_recovery_pending',
       );
     }
-    const runs = await this.listRecentRuns(actorId, job);
-    if (runs === null) {
-      throw new ServiceUnavailableException(
-        'research_collection_recovery_pending',
-      );
-    }
     const startedAt = job.startAttemptedAt
       ? job.startAttemptedAt.getTime()
       : job.leaseExpiresAt
         ? job.leaseExpiresAt.getTime() - RESEARCH_COLLECTION_LEASE_MS
         : undefined;
-    const sawRun =
-      startedAt !== undefined &&
-      runs.some((run) => {
-        const started = Date.parse(run.startedAt);
-        return Number.isFinite(started) && started >= startedAt - 2_000;
-      });
-    // A listed run we did not record may still be this start. A legacy row
-    // has no start bound, so any listed run might be it.
-    if (sawRun || (startedAt === undefined && runs.length > 0)) {
+    // Page back only far enough to rule our own window out — a busy shared
+    // actor's newest 20 runs can all postdate a start attempt that is even a
+    // few minutes old, which would wrongly read as "no run seen" and send a
+    // real, still-running job to UNRECONCILED. Legacy rows (no startedAt) have
+    // nothing to bound pagination against, so they keep the single-page read.
+    const lowerBoundMs =
+      startedAt === undefined
+        ? undefined
+        : startedAt - RUN_START_MATCH_BUFFER_MS;
+    const listed = await this.listRecentRuns(actorId, job, lowerBoundMs);
+    if (listed === null) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
+      );
+    }
+    const { isComplete, runs } = listed;
+    if (startedAt !== undefined && !isComplete) {
+      // Paged RUN_LIST_MAX_PAGES deep and every page was still at or after
+      // our window's lower bound: an extraordinarily busy actor could still
+      // have our run further back than we looked. Treat this the same as a
+      // failed list call — inconclusive, not "no match".
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
+    if (startedAt === undefined) {
+      // A legacy row has no start bound recorded, so any listed run at
+      // this actor might still be ours; only an empty list clears it below.
+      if (runs.length > 0) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+    } else {
+      // Bound the match to the window our own start's POST call could
+      // plausibly still be resolving in: from just before we attempted it
+      // through its own explicit timeout (RUN_START_TIMEOUT_MS), not the
+      // much longer anti-duplicate lease. leaseExpiresAt exists only to
+      // block a second caller from starting another actor run while this
+      // one is ambiguous — it must not also widen the evidence window, or
+      // an unrelated run on the shared hosted token that starts anywhere in
+      // that (up to 15-30 minute) span would count as ours and keep
+      // recovery pending indefinitely, exactly the bug this fixes.
+      const earliestStart = startedAt - RUN_START_MATCH_BUFFER_MS;
+      const latestStart =
+        startedAt + RUN_START_TIMEOUT_MS + RUN_START_MATCH_BUFFER_MS;
+      const sawRun = runs.some((run) => {
+        const started = Date.parse(run.startedAt);
+        return (
+          Number.isFinite(started) &&
+          started >= earliestStart &&
+          started <= latestStart
+        );
+      });
+      if (sawRun) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+      // No run in the list can be tied to our request — this covers both an
+      // empty list and a list full of runs that started outside our narrow
+      // window. Per the issue's requirement, a candidate that cannot be tied
+      // to the request is not evidence either way, so both cases reconcile
+      // the same way: UNRECONCILED (not FAILED, since we cannot confirm the
+      // provider rejected the start), with the hold released. Splitting this
+      // by runs.length would make FAILED depend on whether this actor
+      // happens to have any run history at all, which is incidental and not
+      // what the issue asks for.
+      const reconciled = await this.jobs.finishUnreconciledStart(job, now);
+      if (!reconciled) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+      await this.releaseReservation(this.reservationFrom(job), 0);
+      throw new ServiceUnavailableException(
+        'research_collection_start_unreconciled',
       );
     }
     const released = await this.jobs.finishExpiredUnrecorded(job, now);
@@ -340,6 +437,7 @@ export class ResearchCollectionRunner {
     const response = await firstValueFrom(
       this.httpService.post<ApifyActorRunResponse>(url, input, {
         headers: this.authHeaders(token),
+        timeout: RUN_START_TIMEOUT_MS,
       }),
     );
     return response.data.data;
@@ -380,30 +478,65 @@ export class ResearchCollectionRunner {
     return response.data;
   }
 
+  /**
+   * List an actor's runs, newest first, paging back with `offset` (Apify's
+   * standard list pagination, shared by every list endpoint including this
+   * one) until either a page is short (no more runs exist) or the oldest run
+   * on the page already started before `lowerBoundMs` — anything further
+   * back is even older and cannot fall inside our match window either. A
+   * busy shared actor can produce more than RUN_LIST_PAGE_LIMIT runs within
+   * a few minutes, so reading only the first page would let a real,
+   * still-in-flight run silently age out of view and read as "no run seen".
+   * `lowerBoundMs` is undefined for legacy rows with no start bound to page
+   * against, which keeps their original single-page read.
+   */
   private async listRecentRuns(
     actorId: string,
     job: ResearchCollectionJobRecord,
-  ): Promise<ApifyActorRun[] | null> {
+    lowerBoundMs: number | undefined,
+  ): Promise<{ isComplete: boolean; runs: ApifyActorRun[] } | null> {
     const token = await this.baseService.resolveCollectionToken(
       job.organizationId,
       collectionTokenMode(job.scope),
     );
     if (!token) return null;
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${API_URL}/acts/${this.baseService.normalizeActorId(actorId)}/runs?desc=1&limit=20`,
-          { headers: this.authHeaders(token.token) },
-        ),
-      );
-      return readRunItems(response.data);
-    } catch (error: unknown) {
-      this.loggerService.warn(
-        'Research collection could not list actor runs for recovery',
-        { actorId, error, organizationId: job.organizationId },
-      );
-      return null;
+    const collected: ApifyActorRun[] = [];
+    for (let page = 0; page < RUN_LIST_MAX_PAGES; page += 1) {
+      const offset = page * RUN_LIST_PAGE_LIMIT;
+      let items: ApifyActorRun[];
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get(
+            `${API_URL}/acts/${this.baseService.normalizeActorId(actorId)}/runs?desc=1&limit=${RUN_LIST_PAGE_LIMIT}&offset=${offset}`,
+            { headers: this.authHeaders(token.token) },
+          ),
+        );
+        items = readRunItems(response.data);
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          'Research collection could not list actor runs for recovery',
+          { actorId, error, offset, organizationId: job.organizationId },
+        );
+        return null;
+      }
+      collected.push(...items);
+      if (items.length < RUN_LIST_PAGE_LIMIT) {
+        return { isComplete: true, runs: collected }; // reached the end of the list
+      }
+      const oldestOnPage = Date.parse(items[items.length - 1].startedAt);
+      if (
+        lowerBoundMs === undefined ||
+        !Number.isFinite(oldestOnPage) ||
+        oldestOnPage < lowerBoundMs
+      ) {
+        return { isComplete: true, runs: collected }; // paged past the window's lower bound
+      }
     }
+    // Hit RUN_LIST_MAX_PAGES while every page so far was still full and still
+    // at or after lowerBoundMs: an extraordinarily busy actor could still
+    // have our run further back. Report incomplete rather than let the
+    // caller treat this partial read as proof of "no match".
+    return { isComplete: false, runs: collected };
   }
 
   private authHeaders(token: string): Record<string, string> {

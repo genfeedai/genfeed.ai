@@ -100,6 +100,21 @@ export class RateLimitGuard implements CanActivate {
     parts.push(request.method);
     parts.push(request.route?.path || request.path);
 
+    // `request.route.path` is the route's pattern (e.g. `/:webhookId`), not
+    // the resolved value, so every distinct resource behind a route param
+    // would otherwise share one bucket. Fold the resolved param into the key
+    // whenever a route declares one, so e.g. two workflow webhooks (or two
+    // API keys, two organizations, ...) never share a rate-limit counter —
+    // see genfeedai/genfeed.ai#5248 (public workflow webhook trigger, keyed
+    // on webhookId + IP).
+    const routeIdParam = request.params?.webhookId;
+    const webhookIdParam = Array.isArray(routeIdParam)
+      ? routeIdParam[0]
+      : routeIdParam;
+    if (webhookIdParam) {
+      parts.push('id', webhookIdParam);
+    }
+
     // Add custom identifier from rate limit options if provided
     if (rateLimitOptions?.user) {
       parts.push('custom', rateLimitOptions.user);

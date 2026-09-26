@@ -127,6 +127,7 @@ function createHarness(options?: {
       .fn()
       .mockResolvedValue([{ key: 'default-model', label: 'Default Model' }]),
     resolveModelKey: vi.fn().mockResolvedValue('default-model'),
+    resolveOverrideModelKey: vi.fn().mockResolvedValue('default-model'),
   };
   const modelAccess = {
     enforceModel: vi.fn(

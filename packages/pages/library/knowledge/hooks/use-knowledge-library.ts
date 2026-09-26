@@ -5,6 +5,7 @@ import type {
   KnowledgeSourceVersion,
   KnowledgeSpace,
 } from '@genfeedai/client/models';
+import { KnowledgeProcessingState } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { KnowledgeSourceRow } from '@props/content/knowledge-library.props';
 import { KnowledgeSourcesService } from '@services/content/knowledge-sources.service';
@@ -13,6 +14,13 @@ import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const KNOWLEDGE_LIBRARY_PAGE_SIZE = 25;
+/** How often the list re-reads while a capture is still being processed. */
+export const KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS = 4_000;
+
+const PENDING_PROCESSING_STATES = new Set<KnowledgeProcessingState>([
+  KnowledgeProcessingState.QUEUED,
+  KnowledgeProcessingState.PROCESSING,
+]);
 
 interface UseKnowledgeLibraryOptions {
   brandId: string | undefined;
@@ -26,7 +34,9 @@ function isAbortError(error: unknown): boolean {
 /**
  * Loads one brand's Knowledge sources, their current versions and spaces.
  * Every request is aborted when the brand changes so a slow response for the
- * previous brand can never land in the next brand's view.
+ * previous brand can never land in the next brand's view. While any current
+ * version is queued or processing, the list re-reads in the background until
+ * it settles, so ingestion outcomes appear without a manual reload.
  */
 export function useKnowledgeLibrary({
   brandId,
@@ -44,81 +54,90 @@ export function useKnowledgeLibrary({
   const [error, setError] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const load = useCallback(async () => {
-    controllerRef.current?.abort();
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    setIsLoading(true);
-    setError(null);
-    if (!brandId) {
-      setRows([]);
-      setSpaces([]);
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const [sourcesService, spacesService] = await Promise.all([
-        getSourcesService(),
-        getSpacesService(),
-      ]);
-      const [sources, nextSpaces] = await Promise.all([
-        sourcesService.findForBrand(
-          { brandId, limit: KNOWLEDGE_LIBRARY_PAGE_SIZE, page },
-          controller.signal,
-        ),
-        spacesService.findForBrand(brandId, controller.signal),
-      ]);
-      const versions = await Promise.all(
-        sources.map((source: KnowledgeSource) =>
-          sourcesService
-            .findVersions(source.id, brandId, controller.signal)
-            .then(
-              (list: KnowledgeSourceVersion[]) =>
-                list.find((version) => version.isCurrent) ?? list[0],
-            ),
-        ),
-      );
-      const memberships = await Promise.all(
-        nextSpaces.map((space: KnowledgeSpace) =>
-          spacesService
-            .findMemberships(space.id, brandId, controller.signal)
-            .then((list) => ({ list, spaceId: space.id })),
-        ),
-      );
-      if (controller.signal.aborted) {
+  const load = useCallback(
+    async (isBackground = false) => {
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      if (!isBackground) {
+        setIsLoading(true);
+        setError(null);
+      }
+      if (!brandId) {
+        setRows([]);
+        setSpaces([]);
+        setIsLoading(false);
         return;
       }
-      const spaceIdsBySource = new Map<string, string[]>();
-      for (const { list, spaceId } of memberships) {
-        for (const membership of list) {
-          const ids = spaceIdsBySource.get(membership.sourceId) ?? [];
-          ids.push(spaceId);
-          spaceIdsBySource.set(membership.sourceId, ids);
+      try {
+        const [sourcesService, spacesService] = await Promise.all([
+          getSourcesService(),
+          getSpacesService(),
+        ]);
+        const [sources, nextSpaces] = await Promise.all([
+          sourcesService.findForBrand(
+            { brandId, limit: KNOWLEDGE_LIBRARY_PAGE_SIZE, page },
+            controller.signal,
+          ),
+          spacesService.findForBrand(brandId, controller.signal),
+        ]);
+        const versions = await Promise.all(
+          sources.map((source: KnowledgeSource) =>
+            sourcesService
+              .findVersions(source.id, brandId, controller.signal)
+              .then(
+                (list: KnowledgeSourceVersion[]) =>
+                  list.find((version) => version.isCurrent) ?? list[0],
+              ),
+          ),
+        );
+        const memberships = await Promise.all(
+          nextSpaces.map((space: KnowledgeSpace) =>
+            spacesService
+              .findMemberships(space.id, brandId, controller.signal)
+              .then((list) => ({ list, spaceId: space.id })),
+          ),
+        );
+        if (controller.signal.aborted) {
+          return;
+        }
+        const spaceIdsBySource = new Map<string, string[]>();
+        for (const { list, spaceId } of memberships) {
+          for (const membership of list) {
+            const ids = spaceIdsBySource.get(membership.sourceId) ?? [];
+            ids.push(spaceId);
+            spaceIdsBySource.set(membership.sourceId, ids);
+          }
+        }
+        setRows(
+          sources.map((source: KnowledgeSource, index: number) => ({
+            source,
+            spaceIds: spaceIdsBySource.get(source.id) ?? [],
+            version: versions[index],
+          })),
+        );
+        setSpaces(nextSpaces);
+        setError(null);
+      } catch (loadError) {
+        if (controller.signal.aborted || isAbortError(loadError)) {
+          return;
+        }
+        logger.error('Failed to load Knowledge library', loadError);
+        if (isBackground) {
+          // Keep the rows on screen; the next poll or a reload retries.
+          return;
+        }
+        setRows([]);
+        setSpaces([]);
+        setError('Knowledge could not be loaded.');
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
         }
       }
-      setRows(
-        sources.map((source: KnowledgeSource, index: number) => ({
-          source,
-          spaceIds: spaceIdsBySource.get(source.id) ?? [],
-          version: versions[index],
-        })),
-      );
-      setSpaces(nextSpaces);
-      setError(null);
-    } catch (loadError) {
-      if (controller.signal.aborted || isAbortError(loadError)) {
-        return;
-      }
-      logger.error('Failed to load Knowledge library', loadError);
-      setRows([]);
-      setSpaces([]);
-      setError('Knowledge could not be loaded.');
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-  }, [brandId, getSourcesService, getSpacesService, page]);
+    },
+    [brandId, getSourcesService, getSpacesService, page],
+  );
 
   useEffect(() => {
     load().catch((loadError) => {
@@ -129,5 +148,24 @@ export function useKnowledgeLibrary({
     };
   }, [load]);
 
-  return { error, isLoading, refresh: load, rows, spaces };
+  const hasPendingVersion = rows.some(
+    (row) =>
+      row.version !== undefined &&
+      PENDING_PROCESSING_STATES.has(row.version.processingState),
+  );
+  useEffect(() => {
+    if (!hasPendingVersion) {
+      return;
+    }
+    const interval = setInterval(() => {
+      load(true).catch((pollError) => {
+        logger.error('Failed to refresh Knowledge library', pollError);
+      });
+    }, KNOWLEDGE_LIBRARY_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [hasPendingVersion, load]);
+
+  const refresh = useCallback(() => load(), [load]);
+
+  return { error, isLoading, refresh, rows, spaces };
 }

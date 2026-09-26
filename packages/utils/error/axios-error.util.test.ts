@@ -34,10 +34,12 @@ vi.mock('@services/core/notifications.service', () => ({
 
 import {
   getErrorMessage,
-  getErrorStatus,
   hasErrorDetail,
-  isAxiosError,
 } from '@utils/error/error-handler.util';
+import {
+  getErrorStatus,
+  isAxiosError,
+} from '@utils/error/json-api-status.util';
 
 describe('axios-error.util (via error-handler)', () => {
   describe('isAxiosError — edge cases', () => {

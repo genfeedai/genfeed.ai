@@ -1,10 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { PatchWorkflowWebhookDto } from '@api/collections/workflows/dto/webhook.dto';
+import {
+  GenerateWorkflowWebhookDto,
+  PatchWorkflowWebhookDto,
+} from '@api/collections/workflows/dto/webhook.dto';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { WorkflowWebhookAuthType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -18,8 +22,6 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-
-type WebhookAuthType = 'none' | 'secret' | 'bearer';
 
 /**
  * Per-workflow webhook configuration (generate / rotate secret / delete /
@@ -36,24 +38,24 @@ export class WorkflowWebhookManagementController {
     readonly _loggerService: LoggerService,
   ) {}
 
-  private normalizeWebhookAuthType(value: unknown): WebhookAuthType {
-    return value === 'none' || value === 'bearer' || value === 'secret'
-      ? value
-      : 'secret';
+  private normalizeWebhookAuthType(value: unknown): WorkflowWebhookAuthType {
+    return (Object.values(WorkflowWebhookAuthType) as unknown[]).includes(value)
+      ? (value as WorkflowWebhookAuthType)
+      : WorkflowWebhookAuthType.SECRET;
   }
 
   @Post(':workflowId/webhook')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateWebhook(
     @Param('workflowId') workflowId: string,
-    @Body() body: { authType?: 'none' | 'secret' | 'bearer' },
+    @Body() body: GenerateWorkflowWebhookDto,
     @CurrentUser() user: User,
   ): Promise<{
     data: {
       webhookId: string;
       webhookUrl: string;
       webhookSecret: string | null;
-      authType: 'none' | 'secret' | 'bearer';
+      authType: WorkflowWebhookAuthType;
     };
   }> {
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
@@ -64,7 +66,7 @@ export class WorkflowWebhookManagementController {
     const result = await this.workflowWebhookService.generateWebhook(
       workflowId,
       user.organizationId,
-      body.authType || 'secret',
+      body.authType || WorkflowWebhookAuthType.SECRET,
     );
 
     return { data: result };
@@ -139,7 +141,7 @@ export class WorkflowWebhookManagementController {
     data: {
       webhookId: string | null;
       webhookUrl: string | null;
-      authType: 'none' | 'secret' | 'bearer';
+      authType: WorkflowWebhookAuthType;
       triggerCount: number;
       lastTriggeredAt: Date | null;
     };

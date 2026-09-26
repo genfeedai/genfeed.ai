@@ -61,14 +61,18 @@ function splitThreadSegments(content: string): string[] {
 }
 
 /**
- * Tool parameters may name sources or purposes explicitly; otherwise the
- * turn-level selection from the composer applies. Ids never widen scope:
- * retrieval still filters by the caller's organization and brand.
+ * The user's composer selection is authoritative for the turn: the model may
+ * not swap it for sources or purposes of its own choosing. Without one, tool
+ * parameters may name sources or purposes. Ids never widen scope: retrieval
+ * still filters by the caller's organization and brand.
  */
 export function resolveToolKnowledgeSelection(
   params: Record<string, unknown>,
   ctx: Pick<ToolExecutionContext, 'knowledgeSelection'>,
 ): KnowledgeSelection | undefined {
+  if (hasKnowledgeSelection(ctx.knowledgeSelection)) {
+    return ctx.knowledgeSelection;
+  }
   const sourceIds = readStringList(params.knowledgeSourceIds);
   const purposes = readStringList(params.knowledgePurposes)?.filter(
     (purpose): purpose is KnowledgeSourcePurpose =>
@@ -83,6 +87,16 @@ export function resolveToolKnowledgeSelection(
     };
   }
   return ctx.knowledgeSelection;
+}
+
+function hasKnowledgeSelection(
+  selection: KnowledgeSelection | undefined,
+): selection is KnowledgeSelection {
+  return Boolean(
+    selection?.sourceIds?.length ||
+      selection?.spaceIds?.length ||
+      selection?.purposes?.length,
+  );
 }
 
 function readStringList(value: unknown): string[] | undefined {
@@ -307,7 +321,7 @@ export class AgentMediaTextGenerationService {
       ctx.organizationId,
       {
         additionalContext: params.additionalContext as string[] | undefined,
-        brandId: params.brandId ? (params.brandId as string) : undefined,
+        brandId: readOptionalString(params.brandId) ?? ctx.brandId,
         ...(knowledge ? { knowledge } : {}),
         platform,
         topic: params.topic as string,
@@ -319,6 +333,7 @@ export class AgentMediaTextGenerationService {
       normalizedType === 'thread' && generated?.content
         ? splitThreadSegments(generated.content)
         : undefined;
+    const knowledgeReceipts = generated?.knowledgeReceipts ?? [];
 
     return {
       creditsUsed: 2,
@@ -326,7 +341,7 @@ export class AgentMediaTextGenerationService {
         content: generated?.content ?? '',
         hashtags: generated?.hashtags ?? [],
         hook: generated?.hook,
-        knowledgeReceipts: generated?.knowledgeReceipts ?? [],
+        knowledgeReceipts,
         patternUsed: generated?.patternUsed,
       },
       nextActions: generated?.content
@@ -336,6 +351,7 @@ export class AgentMediaTextGenerationService {
                 normalizedType === 'thread' ? 'thread' : 'social_post',
               description: `${formatPlatformLabel(platform)} draft ready for review.`,
               id: `content-gen-${Date.now()}`,
+              ...(knowledgeReceipts.length > 0 ? { knowledgeReceipts } : {}),
               platform,
               textContent: threadSegments?.[0] ?? generated.content,
               title: `${formatPlatformLabel(platform)} ${normalizedType === 'thread' ? 'thread' : 'post'}`,

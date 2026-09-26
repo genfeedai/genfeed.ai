@@ -25,7 +25,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
-import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
+import type { ModalPostBatchProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -107,7 +107,7 @@ export interface UseModalPostBatchReturn {
   isRefreshingTokens: boolean;
 }
 
-export function useModalPostBatch(props: ModalPostProps) {
+export function useModalPostBatch(props: ModalPostBatchProps) {
   const {
     ingredient,
     ingredients,

@@ -1,0 +1,29 @@
+{
+  "name": "linkedin-warmup",
+  "version": "1.0.0",
+  "description": "Guide LinkedIn account warmup with engagement plans, SSI-building strategy, comment-first content, and post-warmup assessment",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "linkedin warmup",
+    "warm up linkedin",
+    "new linkedin account",
+    "linkedin account warmup plan",
+    "linkedin engagement plan",
+    "warmup content linkedin",
+    "linkedin trust score",
+    "first post on linkedin",
+    "SSI score"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "linkedin",
+    "social-media",
+    "warmup",
+    "engagement",
+    "account-growth",
+    "ssi",
+    "new-account"
+  ]
+}

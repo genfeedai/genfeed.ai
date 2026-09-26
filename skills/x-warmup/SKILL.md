@@ -4,7 +4,7 @@ description: Guide X/Twitter account warmup and source-backed X content hardenin
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.2.0"
+  version: 1.2.0
 ---
 
 # X/Twitter Warmup Skill
@@ -36,6 +36,7 @@ Use these facts as the source of truth when explaining the process:
 - Ranking features include author age/newness, default profile image, spam/safety labels, mentions, hashtags, and engagement predictions.
 
 Source references:
+
 - https://help.x.com/en/rules-and-policies/recommendations
 - https://help.x.com/en/rules-and-policies/authenticity
 - https://help.x.com/en/rules-and-policies/x-automation
@@ -203,12 +204,14 @@ When the user provides their niche, generate a bank using this structure:
 #### Account Follow Criteria
 
 Follow accounts that match ALL of these:
+
 - Posting at least 4x per week in the past month
 - Have between 5K and 500K followers (high-signal engagement range)
 - Show genuine reply activity — not just broadcasting posts
 - Write in a voice and topic area similar to what you plan to create
 
 Do NOT follow:
+
 - Brand/corporate accounts (they rarely reply and lower your engagement rate by association)
 - Accounts that have not posted in the last 2 weeks
 - Accounts with very high follower-to-reply ratios (engagement appears artificial)
@@ -229,6 +232,7 @@ Replies are the most useful warmup action because they attach the account to exi
 #### Reply Targeting
 
 Target threads and tweets that meet ALL of these criteria:
+
 - Posted recently enough that the conversation is still active
 - Already has visible discussion, but not so many replies that your reply is invisible
 - Posted by an account in your niche with 5K-100K followers
@@ -278,6 +282,7 @@ Post 1-2 short original tweets per day starting Day 5. These are NOT the warmup 
 #### Format for First Tweets
 
 Keep them simple:
+
 - Single tweet, no thread yet
 - Under 200 characters (leave room for replies)
 - Opinionated or specific — generic takes get no engagement
@@ -438,6 +443,7 @@ The warmup assessment is not an official X pass/fail threshold. It is a diagnost
 ### Warmup Succeeded Signals
 
 All of these together indicate readiness to scale:
+
 - At least one post received organic impressions from non-followers (Impressions > Follows)
 - You have received 5+ replies that engaged substantively with your argument or content
 - Your home feed is now surfacing highly niche-relevant content without searching for it
@@ -447,6 +453,7 @@ All of these together indicate readiness to scale:
 ### Warmup Needs More Time Signals
 
 Any of these indicate extending warmup by 5-7 days:
+
 - All impressions coming only from accounts you follow (no outward push)
 - Zero replies on two or more posts
 - Followers gained are all bot-pattern accounts (no bio, default avatar, no posts)
@@ -462,6 +469,7 @@ X reach restrictions are not always visible to the user. Common indicators:
 - Profile visits drop to zero despite continued posting
 
 **Recovery playbook:** If the account shows restriction patterns, stop the behavior that may have triggered it and return to conservative activity:
+
 1. Stop posting completely for 48-72 hours
 2. Remove any profile links or bio elements that may have triggered the restriction
 3. Audit recent posts for content that intersects with X's sensitive topics list
@@ -553,6 +561,7 @@ If you have access to Genfeed tools, use them throughout the warmup:
 ### `get_trends` (Platform: Twitter/X)
 
 Use this during Phase 1 (Days 1-3) to identify:
+
 - Trending topics in the user's niche
 - High-engagement conversations happening now in the niche
 - Emerging subtopics that represent thread opportunities
@@ -562,6 +571,7 @@ Filter results by niche keywords from the user's brand profile. Prioritize conve
 ### `create_post`
 
 Use this during Phase 3 (Days 8-10) to draft the warmup thread brief directly into the Genfeed platform. When using `create_post` for warmup content:
+
 - Set platform to `twitter`
 - Mark the post as draft until the user confirms the thread structure
 - Store the full tweet-by-tweet breakdown in the post metadata
@@ -570,6 +580,7 @@ Use this during Phase 3 (Days 8-10) to draft the warmup thread brief directly in
 ### `publish_post`
 
 Only invoke `publish_post` after the user confirms:
+
 - Thread is value-only with no promotional content, links, or follow CTAs
 - Final tweet ends with a genuine open question (not engagement bait)
 - Hashtags are 0-2 maximum, niche-specific only

@@ -1,7 +1,7 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeContentRetrievalService } from '@api/collections/contexts/services/knowledge-content-retrieval.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SCOPED_CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
@@ -19,10 +19,7 @@ import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-mat
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
-import {
-  type BrandKitSourceBrand,
-  computeBrandKitReadiness,
-} from '@genfeedai/helpers';
+import { computeBrandKitReadiness } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import {
@@ -31,6 +28,12 @@ import {
   fitBrandContextToBudgetWithReport,
   RETRIEVED_BRAND_MEMORY_HEADER,
 } from './brand-context-budget.util';
+import {
+  mergeReferenceImages,
+  readNonDefaultColor,
+  readTextField,
+  toBrandKitSourceBrand,
+} from './brand-context-fields.util';
 import { rankByQueryOverlap } from './text-overlap.util';
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
@@ -71,7 +74,7 @@ export class AgentContextAssemblyService {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly brandMemoryService: BrandMemoryService,
-    private readonly contextsService: ContextsService,
+    private readonly knowledgeContentRetrievalService: KnowledgeContentRetrievalService,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
@@ -81,13 +84,49 @@ export class AgentContextAssemblyService {
     private readonly credentialsService: CredentialsService,
   ) {}
 
+  /**
+   * Thin orchestrator: resolve brand identity (layer 1), fire the remaining
+   * layers in parallel, and log any that failed. Split from a single
+   * 150+ line method (#5144 follow-up) into {@link resolveBrandIdentity} and
+   * {@link buildLayerFetchPromises} — behavior is unchanged.
+   */
   async assembleContext(
     params: AssembleContextParams,
   ): Promise<AssembledBrandContext | null> {
     const layers = { ...DEFAULT_LAYERS, ...params.layers };
+    const resolved = await this.resolveBrandIdentity(params, layers);
+    if (!resolved) {
+      return null;
+    }
+    const { brandId, context } = resolved;
+
+    const fetchPromises = this.buildLayerFetchPromises(
+      params,
+      layers,
+      brandId,
+      context,
+    );
+
+    // Execute all layer fetches in parallel
+    const results = await Promise.allSettled(fetchPromises);
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.loggerService.warn(`${this.constructorName} layer fetch failed`, {
+          error: result.reason,
+        });
+      }
+    }
+
+    return context;
+  }
+
+  /** Layer 1: Brand Identity (required — no brand = no context). */
+  private async resolveBrandIdentity(
+    params: AssembleContextParams,
+    layers: Required<ContextLayers>,
+  ): Promise<{ brandId: string; context: AssembledBrandContext } | null> {
     const { organizationId } = params;
 
-    // Layer 1: Brand Identity (required — no brand = no context)
     const brand = await this.cacheService.getOrSet(
       this.cacheService.generateKey(
         'brand-ctx',
@@ -146,25 +185,56 @@ export class AgentContextAssemblyService {
       effectiveBrandAgentConfig,
       layers.brandGuidance,
     );
+
+    return { brandId, context };
+  }
+
+  /**
+   * Layers 4-8. Every layer here but RAG reads brand-owned content (saved
+   * memory, Knowledge, posts, performance history). `brandId` is the
+   * *resolved* brand — when the caller passed no brandId,
+   * `resolveBrandIdentity` still resolves it to the organization's
+   * `isSelected` brand purely to render cosmetic identity (name, voice,
+   * persona). Gating these layers on `params.brandId` instead of `brandId`
+   * means a thread with no explicit brand scope never pulls another brand's
+   * saved memory, BRAND_TRUTH facts, recent posts or performance patterns
+   * just because the org happens to have one brand marked selected.
+   */
+  private buildLayerFetchPromises(
+    params: AssembleContextParams,
+    layers: Required<ContextLayers>,
+    brandId: string,
+    context: AssembledBrandContext,
+  ): Array<Promise<void>> {
+    const { organizationId } = params;
+    const hasExplicitBrandId = Boolean(params.brandId);
     const fetchPromises: Array<Promise<void>> = [];
 
     // Layer 4: Memory Insights (cached)
-    if (layers.brandMemory) {
+    if (layers.brandMemory && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadMemoryLayer(organizationId, brandId, context),
       );
     }
 
-    // Layer 5: RAG Context (not cached — query-dependent). Brand-scoped so
-    // another brand's saved memory never reaches this prompt.
+    // Layer 5: RAG Context (not cached — query-dependent). Scoped to the
+    // thread's own validated brand (params.brandId), not the brand resolved
+    // above for identity/voice — a thread with no brand must never inherit
+    // another brand's saved memory just because the org has one selected.
     if (layers.ragContext && params.query) {
       fetchPromises.push(
-        this.loadRagLayer(organizationId, brandId, params.query, context),
+        this.loadRagLayer(
+          organizationId,
+          params.userId,
+          params.brandId,
+          params.query,
+          context,
+        ),
       );
     }
 
     // Layer 5b: authoritative BRAND_TRUTH Knowledge (query-dependent)
-    if (layers.brandKnowledge && params.query) {
+    if (layers.brandKnowledge && hasExplicitBrandId && params.query) {
       fetchPromises.push(
         this.loadBrandKnowledgeLayer(
           organizationId,
@@ -176,7 +246,7 @@ export class AgentContextAssemblyService {
     }
 
     // Layer 6: Recent Posts
-    if (layers.recentPosts) {
+    if (layers.recentPosts && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadRecentPostsLayer(
           organizationId,
@@ -189,7 +259,7 @@ export class AgentContextAssemblyService {
     }
 
     // Layer 7: Performance Patterns
-    if (layers.performancePatterns) {
+    if (layers.performancePatterns && hasExplicitBrandId) {
       fetchPromises.push(
         this.loadPerformancePatternsLayer(
           organizationId,
@@ -207,17 +277,7 @@ export class AgentContextAssemblyService {
       );
     }
 
-    // Execute all layer fetches in parallel
-    const results = await Promise.allSettled(fetchPromises);
-    for (const result of results) {
-      if (result.status === 'rejected') {
-        this.loggerService.warn(`${this.constructorName} layer fetch failed`, {
-          error: result.reason,
-        });
-      }
-    }
-
-    return context;
+    return fetchPromises;
   }
 
   private createBrandContext(
@@ -234,7 +294,7 @@ export class AgentContextAssemblyService {
     const context: AssembledBrandContext = {
       assembledAt: new Date(),
       brandKitReadiness: computeBrandKitReadiness(
-        this.toBrandKitSourceBrand(brand, brandKitAssets),
+        toBrandKitSourceBrand(brand, brandKitAssets),
       ),
       brandDescription: brand.description ?? undefined,
       brandId: String(brand.id),
@@ -242,7 +302,7 @@ export class AgentContextAssemblyService {
       defaultModel: effectiveBrandAgentConfig.defaultModel ?? undefined,
       layersUsed,
       persona: effectiveBrandAgentConfig.persona,
-      promptGuidelines: this.readTextField(brand.text),
+      promptGuidelines: readTextField(brand.text),
     };
 
     this.applyVisualIdentity(context, brand, brandKitAssets);
@@ -257,25 +317,25 @@ export class AgentContextAssemblyService {
     brand: BrandRecord,
     brandKitAssets: IBrandKitResolvedAssets,
   ): void {
-    const primaryColor = this.readNonDefaultColor(
+    const primaryColor = readNonDefaultColor(
       brand.primaryColor,
       DEFAULT_PRIMARY_COLOR,
     );
-    const secondaryColor = this.readNonDefaultColor(
+    const secondaryColor = readNonDefaultColor(
       brand.secondaryColor,
       DEFAULT_SECONDARY_COLOR,
     );
-    const backgroundColor = this.readNonDefaultColor(
+    const backgroundColor = readNonDefaultColor(
       brand.backgroundColor,
       DEFAULT_BACKGROUND_COLOR,
     );
-    const referenceImages = this.mergeReferenceImages(
+    const referenceImages = mergeReferenceImages(
       brand.referenceImages,
       brandKitAssets,
     );
     const logoUrl = brandKitAssets.logo?.url;
     const bannerUrl = brandKitAssets.banner?.url;
-    const fontFamily = this.readTextField(brand.fontFamily);
+    const fontFamily = readTextField(brand.fontFamily);
     const hasVisualIdentity = Boolean(
       primaryColor ||
         secondaryColor ||
@@ -451,7 +511,7 @@ export class AgentContextAssemblyService {
         `\n${RETRIEVED_BRAND_MEMORY_HEADER}${context.ragEntries
           .map(
             (entry) =>
-              `\n- [${this.toPromptLine(entry.source)}]: ${this.toPromptLine(entry.content, MAX_RAG_PASSAGE_LENGTH)}`,
+              `\n- [${this.toPromptLine(entry.citation.title)}]: ${this.toPromptLine(entry.content, MAX_RAG_PASSAGE_LENGTH)}`,
           )
           .join('')}`,
       );
@@ -635,122 +695,6 @@ export class AgentContextAssemblyService {
       : null;
   }
 
-  private readTextField(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value
-      : undefined;
-  }
-
-  private readUrlField(value: unknown): string | undefined {
-    return this.readTextField(value);
-  }
-
-  private readNonDefaultColor(
-    value: unknown,
-    defaultValue: string,
-  ): string | undefined {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      return undefined;
-    }
-
-    return value.trim().toLowerCase() === defaultValue.toLowerCase()
-      ? undefined
-      : value;
-  }
-
-  private readReferenceImages(value: unknown): Array<{
-    category: string;
-    label?: string;
-    url: string;
-  }> {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((img) => {
-      if (typeof img === 'string') {
-        return this.readUrlField(img)
-          ? [{ category: 'reference', url: img }]
-          : [];
-      }
-
-      if (!img || typeof img !== 'object' || Array.isArray(img)) {
-        return [];
-      }
-
-      const record = img as Record<string, unknown>;
-      const url = this.readUrlField(record.url);
-      if (!url) {
-        return [];
-      }
-
-      return [
-        {
-          category: this.readTextField(record.category) ?? 'reference',
-          label: this.readTextField(record.label),
-          url,
-        },
-      ];
-    });
-  }
-
-  /**
-   * Reference images come from two places: the legacy `Brand.referenceImages`
-   * JSON column (still written by the onboarding upload path) and `Asset` rows
-   * imported through the brand kit. Both are real; neither supersedes the
-   * other, so the prompt gets the union, deduplicated by URL.
-   */
-  private mergeReferenceImages(
-    value: unknown,
-    assets: IBrandKitResolvedAssets,
-  ): Array<{ category: string; label?: string; url: string }> {
-    const merged = this.readReferenceImages(value);
-    const seenUrls = new Set(merged.map((image) => image.url));
-
-    for (const reference of assets.references) {
-      if (seenUrls.has(reference.url)) {
-        continue;
-      }
-
-      seenUrls.add(reference.url);
-      merged.push({
-        category: 'reference',
-        label: reference.label,
-        url: reference.url,
-      });
-    }
-
-    return merged;
-  }
-
-  private toBrandKitSourceBrand(
-    brand: Record<string, unknown>,
-    assets: IBrandKitResolvedAssets,
-  ): BrandKitSourceBrand {
-    const source: BrandKitSourceBrand = {
-      agentConfig:
-        brand.agentConfig &&
-        typeof brand.agentConfig === 'object' &&
-        !Array.isArray(brand.agentConfig)
-          ? (brand.agentConfig as BrandKitSourceBrand['agentConfig'])
-          : undefined,
-      backgroundColor: this.readTextField(brand.backgroundColor),
-      bannerUrl: assets.banner?.url,
-      description: this.readTextField(brand.description),
-      fontFamily: this.readTextField(brand.fontFamily),
-      id: this.readTextField(brand.id) ?? 'unknown-brand',
-      label: this.readTextField(brand.label),
-      logoUrl: assets.logo?.url,
-      organization: this.readTextField(brand.organizationId),
-      primaryColor: this.readTextField(brand.primaryColor),
-      referenceImages: this.mergeReferenceImages(brand.referenceImages, assets),
-      secondaryColor: this.readTextField(brand.secondaryColor),
-      text: this.readTextField(brand.text),
-    };
-
-    return source;
-  }
-
   private async loadMemoryLayer(
     organizationId: string,
     brandId: string,
@@ -775,33 +719,53 @@ export class AgentContextAssemblyService {
     }
   }
 
+  /**
+   * Automatic chat-retrieval grounding through the Knowledge retrieval
+   * contract. A thread scoped to a brand only ever sees that brand's own
+   * Knowledge plus organization-wide sources (never another brand's); an
+   * unscoped thread only sees organization-wide plus the actor's own
+   * personal-scope Knowledge. Every returned entry carries a citation —
+   * uncited hits (legacy, unlinked chunks) are dropped rather than shown
+   * without source identity.
+   */
   private async loadRagLayer(
     organizationId: string,
-    brandId: string,
+    userId: string | undefined,
+    threadBrandId: string | undefined,
     query: string,
     context: AssembledBrandContext,
   ): Promise<void> {
-    const result = await this.contextsService.enhancePrompt(
-      {
-        brandId,
-        contentType: 'caption',
-        prompt: query,
-        useBrandVoice: true,
-        useContentLibrary: true,
-      },
-      organizationId,
+    const hits = threadBrandId
+      ? await this.knowledgeContentRetrievalService.retrieveBrandContentMemory({
+          brandId: threadBrandId,
+          isKnowledgeOnly: true,
+          organizationId,
+          query,
+        })
+      : userId
+        ? await this.knowledgeContentRetrievalService.retrieveOrgAndPersonalContentMemory(
+            {
+              organizationId,
+              query,
+              userId,
+            },
+          )
+        : [];
+
+    const entries = hits.flatMap((hit) =>
+      hit.citation
+        ? [
+            {
+              citation: hit.citation,
+              content: hit.content,
+              relevance: hit.relevance,
+            },
+          ]
+        : [],
     );
 
-    if (result.context?.length) {
-      context.ragEntries = result.context.map((entry) => ({
-        content: entry.content,
-        contextBaseId: entry.contextBaseId,
-        ...(entry.contextBaseType
-          ? { contextBaseType: entry.contextBaseType }
-          : {}),
-        relevance: entry.relevance,
-        source: entry.source,
-      }));
+    if (entries.length > 0) {
+      context.ragEntries = entries;
       context.layersUsed.push('ragContext');
     }
   }
@@ -812,12 +776,13 @@ export class AgentContextAssemblyService {
     query: string,
     context: AssembledBrandContext,
   ): Promise<void> {
-    const hits = await this.contextsService.retrieveBrandKnowledge({
-      brandId,
-      limit: BRAND_KNOWLEDGE_LIMIT,
-      organizationId,
-      query,
-    });
+    const hits =
+      await this.knowledgeContentRetrievalService.retrieveBrandKnowledge({
+        brandId,
+        limit: BRAND_KNOWLEDGE_LIMIT,
+        organizationId,
+        query,
+      });
 
     // Inspiration and research must never silently become authoritative
     // brand context, whatever the retrieval layer returns.

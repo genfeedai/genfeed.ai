@@ -8,6 +8,7 @@ import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads
 import { UsersModule } from '@api/collections/users/users.module';
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
+import { StalePendingSystemExecutionFinderService } from '@api/collections/workflow-executions/services/stale-pending-system-execution-finder.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
@@ -21,7 +22,10 @@ import { Module } from '@nestjs/common';
     WorkflowExecutionsController,
     InternalWorkflowExecutionsController,
   ],
-  exports: [WorkflowExecutionsService],
+  exports: [
+    WorkflowExecutionsService,
+    StalePendingSystemExecutionFinderService,
+  ],
   imports: [
     AgentStrategiesCoreModule,
     AgentThreadsModule,
@@ -34,6 +38,7 @@ import { Module } from '@nestjs/common';
     AdminApiKeyGuard,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutionsService,
+    StalePendingSystemExecutionFinderService,
   ],
 })
 export class WorkflowExecutionsModule {}

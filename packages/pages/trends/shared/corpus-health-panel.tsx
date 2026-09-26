@@ -108,12 +108,12 @@ export default function CorpusHealthPanel({
     ...(health?.segments.map(({ platform }) => platform) ?? []),
     ...(health?.providerFailures.map(({ platform }) => platform) ?? []),
   ]);
+  // Expected platforms always get a row: one healthy platform must not hide
+  // another platform that has no saved coverage.
   const platforms =
     selectedPlatforms.length > 0
       ? uniquePlatforms(selectedPlatforms)
-      : observedPlatforms.length > 0
-        ? observedPlatforms
-        : [...DEFAULT_PLATFORMS];
+      : uniquePlatforms([...DEFAULT_PLATFORMS, ...observedPlatforms]);
   const scopedSegments =
     health?.segments.filter((segment) =>
       platforms.includes(normalizePlatform(segment.platform)),

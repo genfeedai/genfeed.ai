@@ -62,17 +62,20 @@ describe('first-party skill loader', () => {
   it('reports verified local provenance and rejects tampered or missing locks', () => {
     const directory = resolveProductSkillsDirectory() as string;
     const definitions = loadFirstPartySkillDefinitions(directory);
-    expect(
-      definitions.find((skill) => skill.slug === 'ad-copy-creator'),
-    ).toMatchObject({
-      catalogOrigin: 'upstream',
-      sourceRepository: 'https://github.com/genfeedai/skills',
-      sourceCommit: '21bc4b59b98db27e0fe5032412ae173a7409e11b',
-      sourcePath: 'ad-copy-creator',
-      catalogCompilerVersion: 'legacy-v1-char-caps',
-      sourcePackageHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-      instructionsHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-    });
+    const { sourceCommit } = JSON.parse(
+      readFileSync(join(directory, 'catalog.lock.json'), 'utf8'),
+    ) as { sourceCommit: string };
+    expect(sourceCommit).toMatch(/^[a-f0-9]{40}$/);
+    for (const slug of ['ad-copy-creator', 'content-reviewer', 'x-warmup'])
+      expect(definitions.find((skill) => skill.slug === slug)).toMatchObject({
+        catalogOrigin: 'upstream',
+        sourceRepository: 'https://github.com/genfeedai/skills',
+        sourceCommit,
+        sourcePath: slug,
+        catalogCompilerVersion: 'legacy-v1-char-caps',
+        sourcePackageHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        instructionsHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      });
     expect(
       definitions.find((skill) => skill.slug === 'workflow-creator'),
     ).toMatchObject({

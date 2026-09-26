@@ -6,6 +6,7 @@ import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
 import { HookRemixModule } from '@files/services/hook-remix/hook-remix.module';
 import { JobLifecyclePublisherService } from '@files/services/job-lifecycle-publisher.service';
+import { PerceptionModule } from '@files/services/perception/perception.module';
 import { RemotionRenderCancellationService } from '@files/services/remotion/remotion-render-cancellation.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { RemotionRendererService } from '@files/services/remotion/remotion-renderer.service';
@@ -28,6 +29,7 @@ import { Module } from '@nestjs/common';
     FilesModule,
     HookRemixModule,
     JobLifecyclePublisherService,
+    PerceptionModule,
     RemotionRenderCancellationService,
     RemotionRenderJobService,
     RemotionRendererService,
@@ -44,6 +46,7 @@ import { Module } from '@nestjs/common';
     FFmpegModule,
     FilesModule,
     HookRemixModule,
+    PerceptionModule,
     ThumbnailsModule,
     UploadModule,
     YtDlpModule,

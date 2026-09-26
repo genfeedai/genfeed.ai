@@ -26,6 +26,7 @@ describe('PlatformSchedulesProcessor', () => {
     refreshMissingMetadataDimensions: handler(),
   };
   const llmIdle = { shutdownIfIdle: handler() };
+  const mediaPerception = { queueDuePerceptions: handler() };
   const modelDeprecation = { deprecateSupersededModels: handler() };
   const replicateModels = { discoverNewModels: handler() };
   const notificationRecovery = { recover: handler() };
@@ -54,6 +55,7 @@ describe('PlatformSchedulesProcessor', () => {
   const workflowSchedules = {
     sweep: handler(),
     reconcileContinuations: handler(),
+    reconcilePendingExecutions: handler(),
   };
   const logger = { debug: vi.fn() };
 
@@ -110,6 +112,10 @@ describe('PlatformSchedulesProcessor', () => {
       ],
       [PLATFORM_SCHEDULED_TASKS.LLM_IDLE_SHUTDOWN, llmIdle.shutdownIfIdle],
       [
+        PLATFORM_SCHEDULED_TASKS.MEDIA_PERCEPTION_SWEEP,
+        mediaPerception.queueDuePerceptions,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.MODEL_DEPRECATION,
         modelDeprecation.deprecateSupersededModels,
       ],
@@ -124,6 +130,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION,
         patterns.computeDailyPatterns,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.PENDING_WORKFLOW_EXECUTION_RECONCILE,
+        workflowSchedules.reconcilePendingExecutions,
       ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
       [
@@ -201,6 +211,7 @@ describe('PlatformSchedulesProcessor', () => {
       falModels as never,
       ingredients as never,
       llmIdle as never,
+      mediaPerception as never,
       modelDeprecation as never,
       replicateModels as never,
       notificationRecovery as never,

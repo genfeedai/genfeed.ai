@@ -36,6 +36,10 @@
  *   --score-tolerance=<n>   |answer - expected| that still counts (default 0.1)
  *   --timeout-ms=<n>        per-call budget (default TYPED_DECISION_TIMEOUT_MS)
  *
+ * `--mode=media` runs the media-gate benchmark instead (#4883): readiness
+ * against the seeded spec table, moderation against the labelled set, and
+ * the media-text decisions. Its flags are documented in `media-benchmark.ts`.
+ *
  * The npm script passes `--tsconfig-override` so Bun applies the repo's path
  * aliases to the API sources this file pulls in. Bun prints a cosmetic
  * "Internal error: directory mismatch" notice for that flag; ignore it.
@@ -61,6 +65,7 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { createLogger, format, transports } from 'winston';
+import { runMediaBenchmark } from './media-benchmark';
 import {
   type BenchmarkOutcome,
   formatAccuracy,
@@ -274,6 +279,24 @@ function resolveTimeoutMs(configService: ConfigService): number {
 }
 
 async function main(): Promise<void> {
+  if (readFlag('mode') === 'media') {
+    const configService = new ConfigService();
+    const logger = buildLogger();
+    await runMediaBenchmark({
+      configService,
+      decisionProvider: createTypedDecisionProvider(
+        resolveProviderName(),
+        configService,
+        logger,
+      ),
+      logger,
+      readFlag,
+      readNumberFlag,
+      timeoutMs: resolveTimeoutMs(configService),
+    });
+    return;
+  }
+
   const fixturePath = readFlag('fixture');
   if (!fixturePath) {
     throw new Error('--fixture=<path to a labelled JSONL file> is required');

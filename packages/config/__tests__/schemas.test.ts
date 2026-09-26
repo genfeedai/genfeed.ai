@@ -1250,3 +1250,51 @@ describe('untrusted content activation boundary', () => {
     expect(result.value.UNTRUSTED_CONTENT_DECISION_MODE).toBe(mode ?? 'off');
   });
 });
+
+describe('media perception configuration', () => {
+  it('defaults perception on with six frames and a 24h lookback', () => {
+    const result = Joi.object(generalAiSchema).validate({});
+    expect(result.error).toBeUndefined();
+    expect(result.value).toMatchObject({
+      MEDIA_PERCEPTION_ENABLED: 'true',
+      MEDIA_PERCEPTION_FRAME_COUNT: 6,
+      MEDIA_PERCEPTION_LOOKBACK_HOURS: 24,
+    });
+  });
+
+  it.each([
+    { MEDIA_PERCEPTION_FRAME_COUNT: 0 },
+    { MEDIA_PERCEPTION_FRAME_COUNT: 25 },
+    { MEDIA_PERCEPTION_LOOKBACK_HOURS: 721 },
+    { MEDIA_PERCEPTION_ENABLED: 'yes' },
+  ])('rejects %o', (value) => {
+    expect(Joi.object(generalAiSchema).validate(value).error).toBeDefined();
+  });
+});
+
+describe('moderation configuration', () => {
+  it('keeps media on the host by default', () => {
+    const result = Joi.object(generalAiSchema).validate({});
+    expect(result.value).toMatchObject({
+      MODERATION_MODE: 'shadow',
+      MODERATION_PROVIDER: 'none',
+    });
+  });
+
+  it('accepts category threshold overrides', () => {
+    expect(
+      Joi.object(generalAiSchema).validate({
+        MODERATION_THRESHOLDS: 'sexual=0.5, violence=0.75,hate=1',
+      }).error,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    { MODERATION_PROVIDER: 'acme' },
+    { MODERATION_MODE: 'loud' },
+    { MODERATION_THRESHOLDS: 'sexual=1.5' },
+    { MODERATION_THRESHOLDS: 'sexual' },
+  ])('rejects %o', (value) => {
+    expect(Joi.object(generalAiSchema).validate(value).error).toBeDefined();
+  });
+});

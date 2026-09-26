@@ -21,7 +21,12 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ExecutionContext } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  type ExecutionContext,
+  HttpException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 const orgId = testId('org');
@@ -181,6 +186,122 @@ describe('CreditsGuard', () => {
     expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
       amount: 0,
       skipWhenBodyAttribute: 'isSkipEnhancement',
+    });
+  });
+
+  it('bills the fixed amount when the body model is only the target model (#5270)', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+      key === CREDITS_KEY
+        ? {
+            amount: 1,
+            description: 'Prompt enhancement',
+            isBodyModelIgnored: true,
+            skipWhenBodyAttribute: 'isSkipEnhancement',
+          }
+        : undefined,
+    );
+    const context = createContext({
+      isSkipEnhancement: false,
+      model: 'studio/unregistered-image-model',
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+
+    expect(modelsService.findOne).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 1);
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 1, organizationId: orgId }),
+    );
+    expect(
+      context.switchToHttp().getRequest().creditsConfig.modelKey,
+    ).toBeUndefined();
+  });
+
+  it('admits a zero-cost request without consulting the wallet (#5270)', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({ cost: 0, key: 'free-model' });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
+      new ConflictException('Billing account could not be resolved'),
+    );
+    const context = createContext({ model: 'free-model' });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      amount: 0,
+      modelKey: 'free-model',
+    });
+  });
+
+  describe('error reporting (#5270)', () => {
+    beforeEach(() => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 5 });
+    });
+
+    it('rejects an unknown pricing model as a bad request naming the model', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+      modelsService.findOne.mockResolvedValue(null);
+
+      const rejection = guard.canActivate(
+        createContext({ model: 'missing-model' }),
+      );
+
+      await expect(rejection).rejects.toBeInstanceOf(BadRequestException);
+      await expect(rejection).rejects.toThrow('Unknown model: missing-model');
+    });
+
+    it('surfaces an HTTP error from the wallet lookup unchanged', async () => {
+      const conflict = new ConflictException(
+        'Billing account could not be resolved',
+      );
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
+        conflict,
+      );
+
+      await expect(guard.canActivate(createContext())).rejects.toBe(conflict);
+    });
+
+    it('surfaces an unexpected failure instead of reporting 0 of 0 credits', async () => {
+      const failure = new Error('connection terminated');
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
+        failure,
+      );
+
+      await expect(guard.canActivate(createContext())).rejects.toBe(failure);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Credits guard: Error checking credits',
+        failure,
+      );
+    });
+
+    it('keeps the real balance in an insufficient-credits refusal', async () => {
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        false,
+      );
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(3);
+
+      await expect(guard.canActivate(createContext())).rejects.toThrow(
+        new InsufficientCreditsException(5, 3),
+      );
+    });
+
+    it('returns 403 when the caller has no organization', async () => {
+      const context = createContext();
+      context.switchToHttp().getRequest().user = { id: 'user-1' };
+
+      const rejection = guard.canActivate(context);
+
+      await expect(rejection).rejects.toBeInstanceOf(HttpException);
+      await expect(rejection).rejects.not.toBeInstanceOf(
+        InsufficientCreditsException,
+      );
+      await expect(rejection).rejects.toMatchObject({ status: 403 });
     });
   });
 

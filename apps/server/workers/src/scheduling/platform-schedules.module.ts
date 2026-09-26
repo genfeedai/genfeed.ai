@@ -1,5 +1,6 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
+import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -17,6 +18,7 @@ import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
 import { CronLifecycleEmailsModule } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.module';
 import { CronLlmIdleModule } from '@workers/crons/llm-idle/cron.llm-idle.module';
+import { CronMediaPerceptionModule } from '@workers/crons/media-perception/cron.media-perception.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
 import { CronOAuthClientCleanupModule } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.module';
@@ -34,6 +36,7 @@ import { CronXRepliesModule } from '@workers/crons/x-replies/cron.x-replies.modu
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
+import { PendingWorkflowExecutionReconcileService } from '@workers/scheduling/pending-workflow-execution-reconcile.service';
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
@@ -46,6 +49,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     LibsConfigModule,
     LoggerModule,
     WorkflowsModule,
+    WorkflowExecutionsModule,
     IngredientsModule,
     ReferralsModule,
     VideoCompletionCoreModule,
@@ -66,6 +70,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronIngredientsModule,
     CronLifecycleEmailsModule,
     CronLlmIdleModule,
+    CronMediaPerceptionModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,
     CronOAuthClientCleanupModule,
@@ -89,6 +94,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     PlatformScheduleRegistryService,
     PlatformSchedulesProcessor,
     PlatformWorkflowSchedulesService,
+    PendingWorkflowExecutionReconcileService,
     WorkflowContinuationReconcileService,
   ],
 })

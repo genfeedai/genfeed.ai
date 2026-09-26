@@ -1,27 +1,26 @@
 import { timingSafeEqual } from 'node:crypto';
+import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 
 /**
  * Extract the credential from an `Authorization: Bearer <token>` header.
- * Returns undefined for any other scheme so a stray `Basic`/`Digest` header
- * never gets compared against the webhook secret.
+ * Returns undefined for any other scheme, and for a header with zero, one,
+ * or three-or-more whitespace-separated fields, so a stray `Basic`/`Digest`
+ * header or a surplus-field header never gets compared against the webhook
+ * secret — see https://github.com/genfeedai/genfeed.ai/issues/5206.
  */
 function resolveBearerToken(
   authorizationHeader: string | undefined,
 ): string | undefined {
-  if (!authorizationHeader) {
+  const parsed = parseAuthorizationHeader(authorizationHeader);
+
+  if (parsed?.normalizedScheme !== 'bearer') {
     return undefined;
   }
 
-  const [scheme, token] = authorizationHeader.split(' ');
-
-  if (scheme?.toLowerCase() !== 'bearer') {
-    return undefined;
-  }
-
-  return token?.trim() || undefined;
+  return parsed.token;
 }
 
 /**

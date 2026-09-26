@@ -178,11 +178,14 @@
     "bench:typed-decisions": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/benchmark.ts",
     "build:typed-decision-fixture:model-discovery": "bun --tsconfig-override=scripts/typed-decisions/tsconfig.json scripts/typed-decisions/build-model-discovery-category-fixture.ts",
     "eval:agent": "cd scripts/agent-eval && bun run run.ts",
+    "eval:content": "cd apps/server && bun ../../scripts/content-eval/run.ts",
+    "test:content-eval": "vitest run --config scripts/content-eval/vitest.config.ts",
     "test:agent-eval": "vitest run --config scripts/agent-eval/vitest.config.ts",
     "verify:agent-smoke-evidence": "bun run scripts/agent-eval/verify-live-evidence.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@genfeedai/contracts": "workspace:*",
     "@google/design.md": "0.4.0",
     "@nestjs/cli": "12.0.6",
     "@nestjs/testing": "12.1.0",
@@ -205,6 +208,7 @@
     "@typescript/native": "npm:typescript@7.0.2",
     "@vitejs/plugin-react": "6.1.1",
     "acorn": "8.18.0",
+    "autoevals": "0.3.0",
     "clsx": "2.1.1",
     "esbuild": "0.28.2",
     "fork-ts-checker-webpack-plugin": "9.1.0",
@@ -226,8 +230,7 @@
     "unplugin-swc": "2.0.0",
     "vitest": "5.0.1",
     "webpack": "5.111.1",
-    "webpack-node-externals": "3.0.0",
-    "@genfeedai/contracts": "workspace:*"
+    "webpack-node-externals": "3.0.0"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1139.0",

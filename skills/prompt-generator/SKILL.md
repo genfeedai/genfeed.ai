@@ -4,7 +4,7 @@ description: Generate optimized prompts for AI image and video generation. Trigg
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Prompt Generator

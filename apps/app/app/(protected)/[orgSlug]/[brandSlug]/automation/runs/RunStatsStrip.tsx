@@ -21,35 +21,45 @@ function formatStat(value: number | undefined): string {
 /** Same KPI cards as the other overviews; five stats on one row at desktop. */
 export default function RunStatsStrip({
   isLoading,
+  isStatsDegraded = false,
   stats,
 }: RunStatsStripProps) {
   const translate = useTranslations('common.automation.workflowExecutions');
+  const degradedDescription = isStatsDegraded
+    ? translate('statsDegraded')
+    : undefined;
   return (
     <KPISection
       gridCols={{ desktop: 5, mobile: 2, tablet: 3 }}
       isLoading={isLoading}
       items={[
         {
+          description: degradedDescription,
           icon: ListChecks,
           label: translate('statsTotal'),
           value: formatStat(stats.total),
         },
         {
+          // Not marked degraded: `active` is always recomputed from the
+          // execution list just fetched, never a stale fallback.
           icon: Activity,
           label: translate('statsActive'),
           value: formatStat(stats.active),
         },
         {
+          description: degradedDescription,
           icon: CheckCircle2,
           label: translate('statsCompleted'),
           value: formatStat(stats.completed),
         },
         {
+          description: degradedDescription,
           icon: CircleAlert,
           label: translate('statsFailed'),
           value: formatStat(stats.failed),
         },
         {
+          description: degradedDescription,
           icon: Coins,
           label: translate('statsCredits'),
           value: formatStat(stats.totalCredits),
