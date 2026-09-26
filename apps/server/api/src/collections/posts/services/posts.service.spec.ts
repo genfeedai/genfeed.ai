@@ -774,7 +774,11 @@ describe('PostsService batchSchedule', () => {
       'user-1',
     );
 
-    expect(result).toEqual({ missingPostIds: [], posts: [] });
+    expect(result).toEqual({
+      invalidTargetPostIds: [],
+      missingPostIds: [],
+      posts: [],
+    });
     expect(post.findMany).not.toHaveBeenCalled();
     expect($transaction).not.toHaveBeenCalled();
   });
@@ -806,7 +810,14 @@ describe('PostsService batchSchedule', () => {
 
     expect(post.findMany).toHaveBeenCalledTimes(1);
     expect(post.findMany).toHaveBeenCalledWith({
-      select: { id: true, parentId: true, publishApprovalId: true },
+      select: {
+        category: true,
+        id: true,
+        parentId: true,
+        publishApprovalId: true,
+        targetSettings: true,
+        visibility: true,
+      },
       where: {
         id: { in: ['post-1', 'post-2'] },
         isDeleted: false,
@@ -874,7 +885,11 @@ describe('PostsService batchSchedule', () => {
 
     expect($transaction).not.toHaveBeenCalled();
     expect(cacheService.invalidateByTags).not.toHaveBeenCalled();
-    expect(result).toEqual({ missingPostIds: ['post-foreign'], posts: [] });
+    expect(result).toEqual({
+      invalidTargetPostIds: [],
+      missingPostIds: ['post-foreign'],
+      posts: [],
+    });
   });
 
   it('queues each root post cascade immediately before its own update', async () => {
