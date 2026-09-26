@@ -1,6 +1,7 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -28,6 +29,7 @@ export type KnowledgeToolName =
 
 const SEARCH_DEFAULT_LIMIT = 6;
 const SEARCH_MAX_LIMIT = 12;
+const SEARCH_MIN_RELEVANCE = 0.6;
 const LIST_DEFAULT_LIMIT = 25;
 const LIST_MAX_LIMIT = 100;
 const PREVIEW_LENGTH = 1500;
@@ -208,7 +210,10 @@ export class AgentKnowledgeToolHandler {
         SEARCH_DEFAULT_LIMIT,
         SEARCH_MAX_LIMIT,
       ),
-      minRelevance: 0.6,
+      minRelevance: resolveKnowledgeMinRelevance(
+        sourceIds,
+        SEARCH_MIN_RELEVANCE,
+      ),
       organizationId: ctx.organizationId,
       query,
     });

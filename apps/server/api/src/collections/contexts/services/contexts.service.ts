@@ -498,6 +498,11 @@ export class ContextsService {
   async retrieveBrandContentMemory(
     params: BrandContentMemoryRetrievalParams,
   ): Promise<BrandContentMemoryHit[]> {
+    // An explicit selection that resolved to no sources (an empty space)
+    // matches nothing; it must never fall through to the brand's whole memory.
+    if (params.knowledgeSourceIds?.length === 0) {
+      return [];
+    }
     const { bases, entries } = await this.findBrandScopedEntries(
       params,
       buildBrandContentMemoryBaseWhere,

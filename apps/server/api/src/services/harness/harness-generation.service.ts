@@ -2,6 +2,7 @@ import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
+import { resolveKnowledgeMinRelevance } from '@api/collections/contexts/utils/knowledge-source.util';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
@@ -27,6 +28,7 @@ import { ModuleRef } from '@nestjs/core';
 
 export const HARNESS_MEMORY_LIMIT = 5;
 export const HARNESS_SELECTED_KNOWLEDGE_LIMIT = 8;
+export const HARNESS_MEMORY_MIN_RELEVANCE = 0.65;
 
 export type ResolveHarnessBriefParams = {
   /**
@@ -217,18 +219,22 @@ export class HarnessGenerationService {
     const limit = params.filters
       ? HARNESS_SELECTED_KNOWLEDGE_LIMIT
       : HARNESS_MEMORY_LIMIT;
+    const minRelevance = resolveKnowledgeMinRelevance(
+      params.filters?.knowledgeSourceIds,
+      HARNESS_MEMORY_MIN_RELEVANCE,
+    );
     try {
       const hits = await contextsService.retrieveBrandContentMemory({
         brandId: params.brandId,
         limit,
-        minRelevance: 0.65,
+        minRelevance,
         organizationId: params.organizationId,
         query: params.topic,
         ...(params.filters ?? {}),
       });
       return brandMemoryHitsToHarnessSources(hits, {
         limit,
-        minRelevance: 0.65,
+        minRelevance,
       });
     } catch (error: unknown) {
       this.logger.warn(

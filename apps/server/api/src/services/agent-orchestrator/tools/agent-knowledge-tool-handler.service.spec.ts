@@ -121,7 +121,7 @@ describe('AgentKnowledgeToolHandler', () => {
       knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
       knowledgeSourceIds: ['source-1'],
       limit: 12,
-      minRelevance: 0.6,
+      minRelevance: 0,
       organizationId: 'org-1',
       query: 'pricing',
     });
@@ -133,6 +133,16 @@ describe('AgentKnowledgeToolHandler', () => {
         relevance: 0.9,
       }),
     ]);
+  });
+
+  it('keeps the relevance floor when no sources are named', async () => {
+    const { contexts, handler } = buildHandler();
+
+    await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+    expect(contexts.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect.objectContaining({ minRelevance: 0.6 }),
+    );
   });
 
   it('refuses to search without a brand or a query', async () => {
