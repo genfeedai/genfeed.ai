@@ -119,8 +119,15 @@ export class SocialReplyNotificationService {
     // behind. A bell item created here would cover only already-read
     // threads and nothing would ever mark it read (markConversationRepliesRead
     // only fires on a future read/reply/resolve). Skip creating it instead.
+    // This is a fast-path exit for the common case; the same check runs
+    // again inside the write transaction below, since a member could read
+    // the thread in the gap between this check and that one.
     if (
-      await this.everyConversationIsRead(input.organizationId, conversationIds)
+      await this.everyConversationIsRead(
+        this.prisma,
+        input.organizationId,
+        conversationIds,
+      )
     ) {
       return null;
     }
@@ -161,6 +168,20 @@ export class SocialReplyNotificationService {
     };
 
     return this.prisma.$transaction(async (transaction) => {
+      // Authoritative check: re-read inside the same transaction as the
+      // write below, closing the gap between the fast-path check above and
+      // this create — a member reading the thread in that gap must still
+      // stop the bell item from being created.
+      if (
+        await this.everyConversationIsRead(
+          transaction,
+          input.organizationId,
+          conversationIds,
+        )
+      ) {
+        return null;
+      }
+
       const event = await transaction.notificationEvent.upsert({
         create: {
           actorUserId: null,
@@ -308,16 +329,20 @@ export class SocialReplyNotificationService {
 
   /**
    * True when none of the given conversations has an unread message, so a
-   * notification covering only them would never clear.
+   * notification covering only them would never clear. Takes an explicit
+   * client so the caller can run it either as a cheap fast-path check
+   * (`this.prisma`) or as the authoritative check inside the same
+   * transaction as the write it gates (a `Prisma.TransactionClient`).
    */
   private async everyConversationIsRead(
+    client: Pick<Prisma.TransactionClient, 'socialConversation'>,
     organizationId: string,
     conversationIds: readonly string[],
   ): Promise<boolean> {
     if (conversationIds.length === 0) {
       return true;
     }
-    const stillUnread = await this.prisma.socialConversation.findFirst({
+    const stillUnread = await client.socialConversation.findFirst({
       select: { id: true },
       where: scopedWhere(organizationId, {
         id: { in: [...conversationIds] },

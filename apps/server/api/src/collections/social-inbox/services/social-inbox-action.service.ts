@@ -23,6 +23,7 @@ import {
   SOCIAL_INBOX_OUTBOUND_ACTION_IDS,
 } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import {
   type SystemWorkflowActionRequest,
@@ -75,6 +76,7 @@ export class SocialInboxActionService implements OnModuleInit {
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
     private readonly queryService: SocialInboxQueryService,
+    private readonly readStateService: SocialInboxReadStateService,
     private readonly realtimeService: SocialInboxRealtimeService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
@@ -299,10 +301,7 @@ export class SocialInboxActionService implements OnModuleInit {
     );
 
     const data: Prisma.SocialConversationUpdateInput = {};
-    // Resolving or archiving closes the thread for everyone, so its unread
-    // counter clears too — but only what this call actually saw as unread.
-    // A reply landing in the same instant must not vanish from the badge, so
-    // the clear below is a conditional, atomic decrement, never a hard reset.
+    // Resolving/archiving clears unread too, atomically bounded by what was seen (see clearSeenUnreadCount).
     let seenUnreadCount = 0;
 
     if (patch.status !== undefined) {
@@ -327,27 +326,18 @@ export class SocialInboxActionService implements OnModuleInit {
       throw new BadRequestException('No conversation fields to update');
     }
 
-    let updated = await this.prisma.socialConversation.update({
+    const updated = await this.prisma.socialConversation.update({
       data,
       where: { id: conversationId },
     });
 
+    // Shared with mark-read (clearSeenUnreadCount); it emits its own realtime update.
     if (seenUnreadCount > 0) {
-      const cleared = await this.prisma.socialConversation.updateMany({
-        data: { unreadCount: { decrement: seenUnreadCount } },
-        where: scopedWhere(scope.organizationId, {
-          id: conversationId,
-          unreadCount: { gte: seenUnreadCount },
-        }),
-      });
-      if (cleared.count > 0) {
-        updated = await findOrThrow(
-          this.prisma.socialConversation,
-          { where: { id: conversationId } },
-          'Social conversation',
-          conversationId,
-        );
-      }
+      return this.readStateService.clearSeenUnreadCount(
+        scope,
+        updated,
+        seenUnreadCount,
+      );
     }
 
     await this.realtimeService.emit(

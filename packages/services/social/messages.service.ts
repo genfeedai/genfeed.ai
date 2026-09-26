@@ -82,17 +82,26 @@ export class SocialMessagesService extends BaseService<
     );
   }
 
-  /** Marks the conversation read for the current user. */
+  /**
+   * Marks the conversation read for the current user. `unreadCountSeen` is
+   * the unread count the caller actually rendered before deciding to mark
+   * it read — the server clears exactly that many, atomically, so a reply
+   * landing after the caller's view stays unread instead of being cleared
+   * by a fresh (and by then stale) server-side count.
+   */
   markRead(
     conversationId: string,
+    unreadCountSeen?: number,
     signal?: AbortSignal,
   ): Promise<SocialConversationModel> {
     return this.executeWithErrorHandling(
       `PATCH ${this.baseURL}/${conversationId}/read`,
       this.instance
-        .patch<JsonApiResponseDocument>(`/${conversationId}/read`, undefined, {
-          signal,
-        })
+        .patch<JsonApiResponseDocument>(
+          `/${conversationId}/read`,
+          typeof unreadCountSeen === 'number' ? { unreadCountSeen } : {},
+          { signal },
+        )
         .then((response) => this.mapOne(response.data)),
     );
   }

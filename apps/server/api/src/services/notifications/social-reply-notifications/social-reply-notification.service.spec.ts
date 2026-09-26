@@ -6,11 +6,24 @@ import { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function setup() {
+  // Shared by `prisma.socialConversation` and `transaction.socialConversation`
+  // (the everyConversationIsRead check runs against whichever client is
+  // passed to it — the plain client for the fast-path check outside the
+  // transaction, the transaction client for the authoritative check inside
+  // it) so a test only has to configure one mock to drive both call sites.
+  const socialConversation = {
+    // Defaults to "at least one covered thread is still unread" so every
+    // existing recordNewReplies test keeps creating a notification; tests
+    // for the skip path override this to an empty result.
+    findFirst: vi.fn().mockResolvedValue({ id: 'conversation-a' }),
+    findMany: vi.fn().mockResolvedValue([]),
+  };
   const transaction = {
     notificationDelivery: {
       upsert: vi.fn().mockResolvedValue({ id: 'delivery-1' }),
     },
     notificationEvent: { upsert: vi.fn().mockResolvedValue({ id: 'event-1' }) },
+    socialConversation,
   };
   const prisma = {
     $transaction: vi.fn(
@@ -29,13 +42,7 @@ function setup() {
     organization: {
       findFirst: vi.fn().mockResolvedValue({ userId: 'user-owner' }),
     },
-    socialConversation: {
-      // Defaults to "at least one covered thread is still unread" so every
-      // existing recordNewReplies test keeps creating a notification; tests
-      // for the skip path override this to an empty result.
-      findFirst: vi.fn().mockResolvedValue({ id: 'conversation-a' }),
-      findMany: vi.fn().mockResolvedValue([]),
-    },
+    socialConversation,
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const service = new SocialReplyNotificationService(
@@ -183,6 +190,27 @@ describe('SocialReplyNotificationService', () => {
       'delivery-1',
     );
     expect(context.prisma.$transaction).toHaveBeenCalledOnce();
+  });
+
+  it('re-checks inside the write transaction, closing the gap a read between the fast-path check and the write could open', async () => {
+    // The fast-path check (outside the transaction) sees a still-unread
+    // thread; by the time the transaction runs its own check, a concurrent
+    // read has cleared it. The authoritative, in-transaction check must
+    // catch this and skip the write — the fast-path check alone cannot.
+    context.prisma.socialConversation.findFirst
+      .mockResolvedValueOnce({ id: 'conversation-a' })
+      .mockResolvedValueOnce(null);
+
+    await expect(context.service.recordNewReplies(input)).resolves.toBeNull();
+
+    expect(context.prisma.$transaction).toHaveBeenCalledOnce();
+    expect(context.transaction.notificationEvent.upsert).not.toHaveBeenCalled();
+    expect(
+      context.transaction.notificationDelivery.upsert,
+    ).not.toHaveBeenCalled();
+    expect(context.prisma.socialConversation.findFirst).toHaveBeenCalledTimes(
+      2,
+    );
   });
 
   it('is idempotent when the same batch is recorded again', async () => {

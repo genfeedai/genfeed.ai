@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
+  SocialConversationReadDto,
   SocialConversationUpdateDto,
   SocialDmDto,
   SocialDraftDto,
@@ -260,11 +261,13 @@ export class SocialInboxController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('conversationId') conversationId: string,
+    @Body() body: SocialConversationReadDto,
   ): Promise<JsonApiSingleResponse> {
     const scope = this.buildScope(user);
     const data = await this.socialInboxService.markConversationRead(
       scope,
       conversationId,
+      body.unreadCountSeen,
     );
     return serializeSingle(request, SocialConversationSerializer, data);
   }

@@ -545,6 +545,7 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.markRead).toHaveBeenCalledWith(
         'conversation-linked',
+        2,
         expect.any(AbortSignal),
       ),
     );

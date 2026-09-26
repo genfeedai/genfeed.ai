@@ -78,13 +78,13 @@
     "symbol": "PostsService.patch"
   },
   {
-    "actual": 1085,
+    "actual": 1101,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
   },
   {
-    "actual": 1500,
+    "actual": 1511,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"

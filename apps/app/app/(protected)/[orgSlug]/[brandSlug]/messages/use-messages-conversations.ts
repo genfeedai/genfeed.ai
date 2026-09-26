@@ -230,7 +230,9 @@ export function useMessagesConversations({
 
     const controller = new AbortController();
     getMessagesService()
-      .then((service) => service.markRead(selectedId, controller.signal))
+      .then((service) =>
+        service.markRead(selectedId, selectedUnreadCount, controller.signal),
+      )
       .then((readConversation) => {
         if (controller.signal.aborted) {
           return;

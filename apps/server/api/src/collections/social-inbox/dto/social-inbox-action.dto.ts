@@ -9,9 +9,11 @@ import {
   IsArray,
   IsEnum,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -92,4 +94,17 @@ export class SocialConversationUpdateDto {
   @IsOptional()
   @IsEntityId()
   assignedOwnerId?: string | null;
+}
+
+/**
+ * The client sends what it actually saw as unread when it decided to mark
+ * the thread read — never re-derived from a fresh server read, which would
+ * still race a reply landing between the client's render and this request.
+ */
+export class SocialConversationReadDto {
+  @ApiProperty({ minimum: 0, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  unreadCountSeen?: number;
 }

@@ -285,6 +285,17 @@ export class SocialInboxIngestionService {
       });
     }
 
+    // A new reply reopens an archived thread (common inbox behavior), which
+    // keeps unreadCount > 0 and status === 'archived' mutually exclusive —
+    // the invariant unreadFilter() and the bell's checks rely on.
+    await this.prisma.socialConversation.updateMany({
+      data: { status: 'open', updatedAt: new Date() },
+      where: scopedWhere(input.organizationId, {
+        id: conversation.id,
+        status: 'archived',
+      }),
+    });
+
     await this.queueCommentTrigger(input, message, conversation);
 
     await this.realtimeService.emit(
