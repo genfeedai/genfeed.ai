@@ -5,12 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug[
-  'facebook-growth'
-] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.threads as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function FacebookGrowthPage() {
-  return <ServiceLandingPage slug="facebook-growth" />;
+export default function ThreadsGrowthPage() {
+  return <ServiceLandingPage slug="threads" />;
 }

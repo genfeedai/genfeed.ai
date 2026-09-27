@@ -174,35 +174,35 @@ export default function ServicesContent() {
                 label: 'Founder Content',
               },
               {
-                href: '/x-growth',
+                href: '/x',
                 label: 'X Growth',
               },
               {
-                href: '/linkedin-growth',
+                href: '/linkedin',
                 label: 'LinkedIn Growth',
               },
               {
-                href: '/instagram-growth',
+                href: '/instagram',
                 label: 'Instagram Growth',
               },
               {
-                href: '/tiktok-growth',
+                href: '/tiktok',
                 label: 'TikTok Growth',
               },
               {
-                href: '/youtube-growth',
+                href: '/youtube',
                 label: 'YouTube Growth',
               },
               {
-                href: '/threads-growth',
+                href: '/threads',
                 label: 'Threads Growth',
               },
               {
-                href: '/facebook-growth',
+                href: '/facebook',
                 label: 'Facebook Growth',
               },
               {
-                href: '/pinterest-growth',
+                href: '/pinterest',
                 label: 'Pinterest Growth',
               },
               {
