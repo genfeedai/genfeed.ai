@@ -3,6 +3,8 @@ import {
   AgentApiDecodeError,
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import { getRequestOrganizationId } from '@genfeedai/services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
@@ -56,6 +58,11 @@ export class AgentBaseApiService {
 
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+    }
+
+    const organizationId = getRequestOrganizationId();
+    if (organizationId) {
+      headers[ORGANIZATION_CONTEXT_HEADER] = organizationId;
     }
 
     return headers;
