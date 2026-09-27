@@ -260,9 +260,10 @@ export class BrandRelocationService {
     new Set([MemberRole.OWNER, MemberRole.ADMIN]);
 
   /**
-   * Brand scalar columns that may be co-updated during a relocation PATCH. Relation
-   * fields (voice/music/user/organization) are intentionally excluded — they need
-   * their own handling and would break a raw scalar update.
+   * Brand scalar columns co-updatable during a relocation PATCH. Relation
+   * fields (voice/music/user/organization) are intentionally excluded — they
+   * need their own handling. `isDeleted` is excluded too (#5295): it would
+   * bypass remove()'s last-brand guard.
    */
   private static readonly RELOCATION_PASSTHROUGH_FIELDS: readonly string[] = [
     'label',
@@ -278,7 +279,6 @@ export class BrandRelocationService {
     'isHighlighted',
     'isFleetEnabled',
     'isSocialHistoryImportEnabled',
-    'isDeleted',
     'defaultVideoModel',
     'defaultImageModel',
     'defaultImageToVideoModel',
