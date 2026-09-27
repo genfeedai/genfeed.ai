@@ -110,7 +110,7 @@ export class MediaVisionEvaluationService {
     }
 
     const sibling = await this.prisma.mediaPerception.findFirst({
-      select: { visionEvaluationId: true },
+      select: { id: true, visionEvaluationId: true },
       where: scopedWhere(job.organizationId, {
         assetHash: perception.assetHash,
         ingredientId: { not: job.ingredientId },
@@ -118,8 +118,27 @@ export class MediaVisionEvaluationService {
       }),
     });
     if (sibling?.visionEvaluationId) {
-      await this.linkEvaluation(job, link.id, sibling.visionEvaluationId);
-      return 'reused';
+      if (
+        await this.hasValidEvaluation(
+          job.organizationId,
+          sibling.visionEvaluationId,
+        )
+      ) {
+        await this.linkEvaluation(job, link.id, sibling.visionEvaluationId);
+        return 'reused';
+      }
+      // `visionEvaluationId` is a plain string, not a DB foreign key, so a
+      // soft-deleted (or otherwise gone) Evaluation leaves a dangling
+      // reference behind. Reusing it would mark this asset "no flags" from a
+      // result that no longer exists. Clear the sibling's dangling link too
+      // — otherwise it stays permanently excluded from
+      // `findUnevaluatedAssets` (which skips any non-null
+      // `visionEvaluationId`) and never gets a real evaluation again. This
+      // job falls through to score fresh frames below.
+      await this.prisma.mediaPerception.updateMany({
+        data: { visionEvaluationId: null },
+        where: scopedWhere(job.organizationId, { id: sibling.id }),
+      });
     }
 
     const ingredient = await this.prisma.ingredient.findFirst({
@@ -243,6 +262,18 @@ export class MediaVisionEvaluationService {
         ? [{ ingredientId: row.id, organizationId: row.organizationId }]
         : [],
     );
+  }
+
+  /** Whether an organization-scoped, non-deleted evaluation still exists. */
+  private async hasValidEvaluation(
+    organizationId: string,
+    evaluationId: string,
+  ): Promise<boolean> {
+    const evaluation = await this.prisma.evaluation.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: evaluationId }),
+    });
+    return evaluation !== null;
   }
 
   private async linkEvaluation(

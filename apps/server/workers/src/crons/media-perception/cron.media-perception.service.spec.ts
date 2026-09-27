@@ -124,4 +124,54 @@ describe('CronMediaPerceptionService', () => {
     });
     expect(logger.error).toHaveBeenCalledOnce();
   });
+
+  it('continues scheduling other discovery candidates when one discovery query rejects (#5316)', async () => {
+    const { logger, moderationQueue, perception } = makeHarness();
+    perception.findUnperceivedAssets.mockResolvedValueOnce([]);
+    perception.findDueRetries.mockResolvedValueOnce([]);
+    const vision = {
+      findUnevaluatedAssets: vi
+        .fn()
+        .mockRejectedValue(new Error('vision discovery outage')),
+    };
+    const brokenService = new CronMediaPerceptionService(
+      perception as unknown as MediaPerceptionService,
+      {
+        enqueue: vi.fn().mockResolvedValue(undefined),
+      } as unknown as MediaPerceptionQueueService,
+      {
+        findUnmoderatedAssets: vi
+          .fn()
+          .mockResolvedValue([
+            { ingredientId: 'asset-3', organizationId: 'org-1' },
+          ]),
+      } as unknown as MediaModerationService,
+      moderationQueue as unknown as MediaModerationQueueService,
+      vision as unknown as MediaVisionEvaluationService,
+      {
+        findUndecidedAssets: vi
+          .fn()
+          .mockResolvedValue([
+            { ingredientId: 'asset-5', organizationId: 'org-1' },
+          ]),
+      } as unknown as MediaTextDecisionService,
+      logger as unknown as LoggerService,
+    );
+
+    await expect(brokenService.queueDuePerceptions()).resolves.toMatchObject({
+      queuedModerations: 2,
+    });
+    expect(moderationQueue.enqueue).toHaveBeenCalledWith({
+      ingredientId: 'asset-3',
+      organizationId: 'org-1',
+    });
+    expect(moderationQueue.enqueue).toHaveBeenCalledWith({
+      ingredientId: 'asset-5',
+      organizationId: 'org-1',
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      'CronMediaPerceptionService discovery query failed',
+      expect.objectContaining({ source: 'vision' }),
+    );
+  });
 });

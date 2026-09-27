@@ -1,4 +1,5 @@
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
+import { MAX_VISION_ATTEMPTS } from '@api/services/media-assessment/media-vision-evaluation.service';
 import {
   hasPendingArtefacts,
   MEDIA_PERCEPTION_SELECT,
@@ -55,6 +56,9 @@ function captionWarning(confidence: string, summary?: string): string {
 
 const CHECKS_PENDING_MESSAGE =
   'Media checks are still running for this asset; it needs review until they finish.';
+
+const VISION_UNAVAILABLE_MESSAGE =
+  'Vision review could not complete after repeated attempts; this asset needs manual review.';
 
 /** The slice of an assessment the publish policy consumes. */
 export function toPolicyMediaAssessment(
@@ -375,7 +379,11 @@ export class MediaAssessmentService implements IMediaPublishGate {
     perceptions: Map<string, IMediaPerception>,
   ): Promise<boolean> {
     const rows = await this.prisma.mediaPerception.findMany({
-      select: { ...MEDIA_PERCEPTION_SELECT, visionEvaluationId: true },
+      select: {
+        ...MEDIA_PERCEPTION_SELECT,
+        visionAttempts: true,
+        visionEvaluationId: true,
+      },
       where: scopedWhere(organizationId, {
         ingredientId: { in: [...assetIds] },
       }),
@@ -383,6 +391,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     const settled = new Set<string>();
     const evaluationByAsset = new Map<string, string>();
     const needsVision = new Set<string>();
+    const visionExhausted = new Set<string>();
     for (const row of rows) {
       const perception = toMediaPerception(row);
       if (perception) {
@@ -394,13 +403,29 @@ export class MediaAssessmentService implements IMediaPublishGate {
       if (row.visionEvaluationId) {
         evaluationByAsset.set(row.ingredientId, row.visionEvaluationId);
       } else if (perception?.framesStatus !== 'unavailable') {
-        needsVision.add(row.ingredientId);
+        if (row.visionAttempts >= MAX_VISION_ATTEMPTS) {
+          visionExhausted.add(row.ingredientId);
+        } else {
+          needsVision.add(row.ingredientId);
+        }
       }
     }
 
     const isVisionLive = resolveVisionGateMode(this.configService) === 'live';
     if (isVisionLive) {
       for (const assetId of assetIds) {
+        if (visionExhausted.has(assetId)) {
+          // The sweep has given up on this asset (paid attempts exhausted).
+          // It will never finish on its own, so this must not read as "still
+          // running" like an ordinary in-progress check.
+          reasons.push({
+            assetId,
+            code: 'vision:unavailable',
+            message: VISION_UNAVAILABLE_MESSAGE,
+            source: 'vision',
+          });
+          continue;
+        }
         if (!settled.has(assetId) || needsVision.has(assetId)) {
           unchecked.add(assetId);
         }
@@ -414,6 +439,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
           id: { in: Array.from(new Set(evaluationByAsset.values())) },
         }),
       });
+      const validEvaluationIds = new Set(
+        evaluations.map((evaluation) => evaluation.id),
+      );
       const flagsById = new Map(
         evaluations.map((evaluation) => [
           evaluation.id,
@@ -421,6 +449,13 @@ export class MediaAssessmentService implements IMediaPublishGate {
         ]),
       );
       for (const [assetId, evaluationId] of evaluationByAsset) {
+        if (!validEvaluationIds.has(evaluationId)) {
+          // The linked evaluation no longer resolves (soft-deleted, or the
+          // id never existed) — a stale reference must never read as "no
+          // flags"; hold the asset for review like any other unsettled gate.
+          unchecked.add(assetId);
+          continue;
+        }
         const flags = flagsById.get(evaluationId);
         if (!flags?.isFlagged) {
           continue;
