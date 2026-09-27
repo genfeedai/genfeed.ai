@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class BillingAccount extends BaseEntity implements IBillingAccount {
+  declare public kind: 'account';
   declare public label: string | null;
   declare public status: BillingAccountStatus;
   declare public planTier: string | null;

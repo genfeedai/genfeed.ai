@@ -43,6 +43,7 @@ describe('BillingAccountsService', () => {
       updateMany: vi.fn(),
     },
     creditTransaction: {
+      aggregate: vi.fn(),
       groupBy: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -410,6 +411,132 @@ describe('BillingAccountsService', () => {
         organizationId: 'org_1',
         status: BillingAccountOrganizationStatus.LINKED,
       },
+    });
+  });
+
+  describe('getSnapshot (#5374)', () => {
+    beforeEach(() => {
+      prisma.organization.findFirst.mockResolvedValue({
+        billingAccountId: 'ba_1',
+        id: 'org_1',
+      });
+      prisma.billingAccount.findFirst.mockResolvedValue({
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        id: 'ba_1',
+        isDeleted: false,
+        label: 'Shared Account',
+        planTier: 'pro',
+        status: BillingAccountStatus.ACTIVE,
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      });
+    });
+
+    it('returns the full snapshot, including another linked organization, to a VIEWER', async () => {
+      prisma.billingAccountMember.findFirst.mockResolvedValue({
+        role: BillingAccountMemberRole.VIEWER,
+      });
+      prisma.billingAccountOrganization.findMany.mockResolvedValue([
+        {
+          budgetPolicy: null,
+          monthlyBudgetCredits: null,
+          organization: { label: 'Org One' },
+          organizationId: 'org_1',
+          status: BillingAccountOrganizationStatus.LINKED,
+        },
+        {
+          budgetPolicy: null,
+          monthlyBudgetCredits: null,
+          organization: { label: 'Org Two' },
+          organizationId: 'org_2',
+          status: BillingAccountOrganizationStatus.LINKED,
+        },
+      ]);
+      prisma.creditBalance.findFirst.mockResolvedValue({
+        balance: 100,
+        heldAmount: 10,
+      });
+      prisma.creditTransaction.groupBy.mockResolvedValue([
+        { _sum: { amount: 5 }, organizationId: 'org_1' },
+        { _sum: { amount: 9 }, organizationId: 'org_2' },
+      ]);
+      prisma.subscription.findFirst.mockResolvedValue({
+        currentPeriodEnd: null,
+        status: 'active',
+      });
+
+      const snapshot = await service.getSnapshot('org_1', 'user_viewer');
+
+      expect(snapshot.kind).toBe('account');
+      expect(snapshot.callerRole).toBe(BillingAccountMemberRole.VIEWER);
+      if (snapshot.kind !== 'account') {
+        throw new Error('expected full account snapshot');
+      }
+      expect(snapshot.wallet).toEqual({
+        available: 90,
+        held: 10,
+        settled: 100,
+      });
+      expect(
+        snapshot.linkedOrganizations.map((link) => link.organizationId),
+      ).toEqual(['org_1', 'org_2']);
+    });
+
+    it('returns only the caller organization usage/budget/link status to a caller with no billing role', async () => {
+      prisma.billingAccountMember.findFirst.mockResolvedValue(null);
+      prisma.billingAccountOrganization.findFirst.mockResolvedValue({
+        billingAccountId: 'ba_1',
+        budgetPolicy: 'WARNING',
+        monthlyBudgetCredits: 500,
+        organizationId: 'org_1',
+        status: BillingAccountOrganizationStatus.LINKED,
+      });
+      prisma.creditTransaction.aggregate.mockResolvedValue({
+        _sum: { amount: 12 },
+      });
+
+      const snapshot = await service.getSnapshot('org_1', 'user_plain_member');
+
+      expect(snapshot).toEqual({
+        budgetPolicy: 'WARNING',
+        callerRole: null,
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isLinked: true,
+        kind: 'organization',
+        monthlyBudgetCredits: 500,
+        organizationId: 'org_1',
+        usage: 12,
+      });
+
+      // No cross-organization or wallet/subscription reads at all — this is
+      // the enforcement point, not just the returned shape (#5374).
+      expect(prisma.billingAccountOrganization.findMany).not.toHaveBeenCalled();
+      expect(prisma.creditBalance.findFirst).not.toHaveBeenCalled();
+      expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
+      expect(prisma.creditTransaction.groupBy).not.toHaveBeenCalled();
+
+      expect(prisma.billingAccountOrganization.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            billingAccountId: 'ba_1',
+            organizationId: 'org_1',
+          }),
+        }),
+      );
+      expect(prisma.creditTransaction.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            billingAccountId: 'ba_1',
+            organizationId: 'org_1',
+          }),
+        }),
+      );
     });
   });
 });

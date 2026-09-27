@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IBillingAccount } from '@genfeedai/contracts/interfaces';
+import type { IBillingAccountSnapshot } from '@genfeedai/contracts/interfaces';
 import { BillingAccount } from '@genfeedai/models/billing/billing-account.model';
 import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
@@ -22,8 +22,8 @@ export class BillingAccountsService extends BaseService<BillingAccount> {
     return BaseService.getDataServiceInstance(BillingAccountsService, token);
   }
 
-  public async getCurrent(): Promise<IBillingAccount> {
+  public async getCurrent(): Promise<IBillingAccountSnapshot> {
     const res = await this.instance.get<JsonApiResponseDocument>('current');
-    return deserializeResource<IBillingAccount>(res.data);
+    return deserializeResource<IBillingAccountSnapshot>(res.data);
   }
 }

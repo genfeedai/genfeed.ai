@@ -11,6 +11,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import PlansCard from './plans-card';
@@ -62,6 +63,7 @@ function getApiAccessLabel(
 
 /** Plan, entitlements, Stripe portal — not credit top-ups. */
 export default function SettingsSubscriptionPage() {
+  const translate = useTranslations('common');
   const { isReady, settings } = useBrand();
   const { subscription, isLoading, isSubscriptionActive, openBillingPortal } =
     useSubscription();
@@ -181,7 +183,7 @@ export default function SettingsSubscriptionPage() {
         </div>
       </SectionCard>
 
-      {billingAccount ? (
+      {billingAccount?.kind === 'account' ? (
         <SectionCard title="Billing account">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -242,6 +244,44 @@ export default function SettingsSubscriptionPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {billingAccount?.kind === 'organization' ? (
+        <SectionCard title={translate('subscription.billingAccount.title')}>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Text size="sm" color="muted">
+                {translate('subscription.billingAccount.linkedHeading')}
+              </Text>
+              <Badge variant={billingAccount.isLinked ? 'success' : 'warning'}>
+                {billingAccount.isLinked
+                  ? translate('subscription.billingAccount.linked')
+                  : translate('subscription.billingAccount.notLinked')}
+              </Badge>
+            </div>
+            <Text size="sm" color="muted">
+              {translate('subscription.billingAccount.sharedDescription')}
+            </Text>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                {translate('subscription.billingAccount.usageLabel')}
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {billingAccount.usage.toLocaleString('en-US')}
+              </Text>
+            </div>
+            {billingAccount.monthlyBudgetCredits !== null ? (
+              <div className="p-3 bg-muted/50 rounded">
+                <Text size="sm" color="muted">
+                  {translate('subscription.billingAccount.monthlyBudgetLabel')}
+                </Text>
+                <Text as="p" size="lg" weight="bold">
+                  {billingAccount.monthlyBudgetCredits.toLocaleString('en-US')}
+                </Text>
+              </div>
+            ) : null}
           </div>
         </SectionCard>
       ) : null}

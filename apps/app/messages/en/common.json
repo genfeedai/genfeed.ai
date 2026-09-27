@@ -1663,6 +1663,15 @@
     "title": "Refer & earn"
   },
   "subscription": {
+    "billingAccount": {
+      "linked": "Linked",
+      "linkedHeading": "Linked to a shared billing account",
+      "monthlyBudgetLabel": "Monthly budget",
+      "notLinked": "Not linked",
+      "sharedDescription": "This organization shares billing with other organizations. Ask a billing account owner or administrator for wallet and cross-org details.",
+      "title": "Billing account",
+      "usageLabel": "This organization's usage"
+    },
     "plans": {
       "changeErrorTitle": "Plan change",
       "confirmChange": "Confirm change",
