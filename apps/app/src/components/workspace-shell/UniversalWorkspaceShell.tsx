@@ -1185,15 +1185,19 @@ function UniversalWorkspaceShellContent({
               <aside
                 aria-label="Workspace inspector"
                 className={cn(
-                  'fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
-                  isInspectorOpen && 'border-l border-border',
+                  'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+                  // Its own inset panel beside the content panel (the shell
+                  // reserves one --shell-inset gap while it is open).
+                  isInspectorOpen && 'rounded-lg border border-border',
                 )}
                 id="workspace-context-inspector"
                 inert={!isInspectorOpen}
                 ref={inspectorRef}
                 style={{
+                  bottom: 'var(--shell-inset, 0px)',
                   minWidth: inspectorRailWidth,
-                  top: 'var(--desktop-titlebar-height)',
+                  right: 'var(--shell-inset, 0px)',
+                  top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px))',
                   transition: INSPECTOR_RAIL_TRANSITION,
                   width: inspectorRailWidth,
                 }}

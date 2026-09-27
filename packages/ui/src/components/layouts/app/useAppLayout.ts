@@ -1,6 +1,7 @@
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
+import { usePathname } from 'next/navigation';
 import {
   type CSSProperties,
   cloneElement,
@@ -69,6 +70,20 @@ export function useAppLayout({
   });
   /** Layout root for CSS-var drag updates (no React re-render per pixel). */
   const layoutRootRef = useRef<HTMLDivElement | null>(null);
+  /** The inset panel's scroll container (desktop chrome). */
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  const pathname = usePathname();
+
+  // Next.js resets window scroll on navigation, but only scrolls a nested
+  // container when the new segment's top is out of view. The inset panel owns
+  // scroll on desktop, so start every route at the top (hash links excepted).
+  useEffect(() => {
+    const main = mainScrollRef.current;
+    if (!main || !pathname || window.location.hash) {
+      return;
+    }
+    main.scrollTop = 0;
+  }, [pathname]);
   const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
   const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
 
@@ -392,6 +407,7 @@ export function useAppLayout({
     isSidebarOpen,
     isSidebarResizing,
     layoutRootRef: layoutRootRef as RefObject<HTMLDivElement | null>,
+    mainScrollRef: mainScrollRef as RefObject<HTMLElement | null>,
     layoutStyle,
     mobileMenuContent,
     mobileRailContent,

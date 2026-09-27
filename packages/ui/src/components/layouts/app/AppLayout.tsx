@@ -45,6 +45,7 @@ export default function AppLayout({
     isSidebarResizing,
     layoutRootRef,
     layoutStyle,
+    mainScrollRef,
     mobileMenuContent,
     mobileRailContent,
     mobileSidebarWidth,
@@ -59,6 +60,10 @@ export default function AppLayout({
     topbarComponent,
   });
 
+  // Codex/Slack chrome: rail + sidebar share one surface and the page sits in
+  // an inset, bordered panel that owns its own scroll (desktop only; mobile
+  // keeps document scrolling under the fixed topbar).
+  const hasChrome = Boolean(railComponent);
   const TopbarComponent = topbarComponent;
   const topbarContent =
     TopbarComponent && topbarProps ? (
@@ -75,7 +80,10 @@ export default function AppLayout({
         <div
           ref={layoutRootRef}
           className={cn(
-            'overflow-x-hidden bg-background',
+            'overflow-x-hidden',
+            hasChrome
+              ? 'bg-gray-100 [--shell-inset:0px] md:[--shell-inset:0.5rem]'
+              : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
@@ -129,7 +137,7 @@ export default function AppLayout({
 
                 <div
                   className={cn(
-                    'relative flex h-full max-w-[85vw] border-r border-border bg-background transition-transform duration-200',
+                    'relative flex h-full max-w-[85vw] border-r border-border bg-gray-100 transition-transform duration-200',
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                   )}
                   style={{
@@ -142,7 +150,7 @@ export default function AppLayout({
                     <div
                       // The drawer starts under the fixed topbar (z-50), so the
                       // rail begins below that band or its first app is hidden.
-                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border bg-background-secondary pt-12"
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col pt-12"
                       data-testid="mobile-app-rail"
                     >
                       {mobileRailContent}
@@ -161,51 +169,91 @@ export default function AppLayout({
           <section
             data-testid="app-content-shell"
             className={cn(
-              'relative flex flex-col bg-background md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:pr-[var(--workspace-inspector-width,0px)]',
-              lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
+              'relative flex flex-col',
+              hasChrome
+                ? cn(
+                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] md:pr-[var(--shell-inset)] md:pb-[var(--shell-inset)]',
+                    // The inspector floats as its own panel: reserve its width
+                    // plus one inset gap, and no gap while it is collapsed.
+                    'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px)+min(var(--workspace-inspector-width,0px),var(--shell-inset)))]',
+                    lockViewportHeight
+                      ? 'h-dvh overflow-hidden'
+                      : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
+                  )
+                : cn(
+                    'bg-background md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:pr-[var(--workspace-inspector-width,0px)]',
+                    lockViewportHeight
+                      ? 'h-dvh overflow-hidden'
+                      : 'min-h-screen',
+                  ),
             )}
             style={{ transition: sidebarOffsetTransition }}
           >
-            {topbarContent ? (
-              <div
-                data-testid="app-topbar-shell"
-                className={cn(
-                  'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
-                )}
-                style={{
-                  top: 'var(--desktop-titlebar-height)',
-                  transition: sidebarOffsetTransition,
-                }}
-              >
-                {topbarContent}
-              </div>
-            ) : null}
-
-            <main
-              data-testid="app-main-content"
+            <div
+              data-testid="app-content-panel"
               className={cn(
-                'relative z-0 flex flex-1 flex-col bg-background',
-                lockViewportHeight && 'min-h-0 overflow-hidden',
+                'flex flex-1 flex-col bg-background',
+                hasChrome &&
+                  'md:min-h-0 md:overflow-hidden md:rounded-lg md:border md:border-border',
               )}
-              style={{
-                paddingTop: topbarContent
-                  ? 'calc(var(--desktop-titlebar-height) + 3rem)'
-                  : 'var(--desktop-titlebar-height)',
-              }}
             >
-              {bannerComponent ? (
-                <div className="shrink-0" data-testid="app-banner-shell">
-                  {bannerComponent}
+              {topbarContent ? (
+                <div
+                  data-testid="app-topbar-shell"
+                  className={cn(
+                    'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background',
+                    hasChrome
+                      ? 'md:static md:z-auto md:shrink-0'
+                      : 'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
+                  )}
+                  style={{
+                    top: 'var(--desktop-titlebar-height)',
+                    transition: hasChrome ? undefined : sidebarOffsetTransition,
+                  }}
+                >
+                  {topbarContent}
                 </div>
               ) : null}
-              {lockViewportHeight ? (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  {children}
-                </div>
-              ) : (
-                children
-              )}
-            </main>
+
+              <main
+                ref={mainScrollRef}
+                data-testid="app-main-content"
+                className={cn(
+                  'relative z-0 flex flex-1 flex-col bg-background',
+                  hasChrome &&
+                    (topbarContent
+                      ? 'pt-[calc(var(--desktop-titlebar-height)+3rem)] md:pt-0'
+                      : 'pt-[var(--desktop-titlebar-height)] md:pt-0'),
+                  hasChrome &&
+                    !lockViewportHeight &&
+                    'md:min-h-0 md:overflow-y-auto',
+                  lockViewportHeight && 'min-h-0 overflow-hidden',
+                )}
+                data-scroll-container={hasChrome ? 'shell' : undefined}
+                style={
+                  hasChrome
+                    ? undefined
+                    : {
+                        paddingTop: topbarContent
+                          ? 'calc(var(--desktop-titlebar-height) + 3rem)'
+                          : 'var(--desktop-titlebar-height)',
+                      }
+                }
+              >
+                {bannerComponent ? (
+                  <div className="shrink-0" data-testid="app-banner-shell">
+                    {bannerComponent}
+                  </div>
+                ) : null}
+                {lockViewportHeight ? (
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    {children}
+                  </div>
+                ) : (
+                  children
+                )}
+              </main>
+            </div>
           </section>
         </div>
       </PageHelpProvider>

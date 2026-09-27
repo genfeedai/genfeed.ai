@@ -371,7 +371,7 @@ function AppRailItem({
           onMouseLeave={intent.onMouseLeave}
           className={cn(
             'relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-[background-color,color] duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background-secondary',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-100',
             // Codex-style selection: a filled tile two steps above the rail,
             // hover one step. The icon is the only foreground either way.
             isActive
@@ -382,7 +382,7 @@ function AppRailItem({
         >
           <Icon aria-hidden="true" className="size-[1.125rem]" />
           {isLocked ? (
-            <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-background-secondary text-foreground/70 shadow-border">
+            <span className="absolute -right-0.5 -top-0.5 inline-flex size-4 items-center justify-center rounded-full bg-gray-100 text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />
             </span>
           ) : hasBadge ? (

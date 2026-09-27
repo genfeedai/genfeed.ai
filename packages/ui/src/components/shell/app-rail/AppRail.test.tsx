@@ -223,7 +223,7 @@ describe('AppRail', () => {
     expect(workspace).toHaveClass(
       'focus-visible:ring-2',
       'focus-visible:ring-ring/60',
-      'focus-visible:ring-offset-background-secondary',
+      'focus-visible:ring-offset-gray-100',
       'rounded-lg',
       'bg-foreground/[0.12]',
       'text-foreground',

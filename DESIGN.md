@@ -288,7 +288,7 @@ components:
     rounded: "{rounded.md}"
     height: 32px
   sidebar:
-    backgroundColor: "{colors.bg-primary}"
+    backgroundColor: "{colors.gray-100}"
     textColor: "{colors.text-secondary}"
   table-head:
     backgroundColor: "{colors.bg-secondary}"
@@ -505,7 +505,8 @@ solid step everywhere else. They are interchangeable by design.
 
 Four planes, one step apart, and no fifth:
 
-1. `bg-primary` — the page canvas and the sidebar (`background-100`).
+1. `bg-primary` — the page canvas (`background-100`). The app chrome (rail and
+   sidebar) sits on the `gray-100` sidebar plane around it — see Shell Layout.
 2. `bg-secondary` / `card` / `bg-elevated` — the raised content plane: cards,
    panels, dropdowns, dialogs, the composer (`gray-100` in Dark,
    `background-200` in Light).
@@ -673,8 +674,10 @@ The docked composer is the exception: a 1px ring on the glass prompt bar reads a
 a slab on `#0A0A0A`. `shadow-composer` / `shadow-composer-strong` lift with
 `--shadow-lg` only — no inset or outer hairline.
 
-Reserve plain `border` for structural dividers (sidebar edges, header separators)
-where there is no elevation to express.
+Reserve plain `border` for structural dividers (the content panel edge, header
+separators) where there is no elevation to express. Chrome columns (rail,
+sidebar) are never divided from each other — the panel they surround carries
+the border.
 
 ### Focus
 
@@ -715,17 +718,29 @@ lower. Focus applies `--focus-ring` and lifts the border to `border-strong`.
 inset `mx-1` from the panel edge, and hover to `accent` (`gray-200`). Popovers use
 the same overlay surface — never `bg-hover`, never the page canvas.
 
+### Shell Layout
+
+Codex/Slack chrome. The app rail and the sidebar share one continuous surface —
+the `gray-100` sidebar plane (`#161616` dark, `#F5F5F5` light) — with no border
+between them or under the sidebar header. The page sits in a single **content
+panel** inset from the window by `--shell-inset` (8px, desktop): `bg-primary`,
+`rounded-lg`, `border border-border`, and it owns scrolling — the topbar is its
+first row (static) and the page scrolls beneath it, so `sticky top-0` inside a
+page sticks under the topbar. The workspace inspector floats as its own inset
+panel to the right with one `--shell-inset` gap. Every route starts at the top of
+the panel scroll. Mobile has no inset: document scroll under a fixed topbar, and
+the rail + menu live in the navigation drawer.
+
 ### Sidebar
 
-`bg-primary` with a `border-r border-border` structural divider. Menu items use
+On the shared chrome surface (see Shell Layout), no border. Menu items use
 ghost semantics: transparent, `hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, on the raised
-`bg-secondary` plane (one step above the canvas the topbar and sidebar sit on)
-with a `border-r border-border` divider. It picks the app; the sidebar to its right
+Persistent top-level navigation at the far left, 52px wide, on the shared
+chrome surface with no divider. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
 Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled

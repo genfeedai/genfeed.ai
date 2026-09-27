@@ -167,7 +167,9 @@ export default function MenuShared({
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
       data-shell-section-label={sectionLabel ?? ''}
-      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-background"
+      // Transparent: the host (desktop sidebar / mobile drawer) paints the
+      // shared chrome surface.
+      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-transparent"
       style={
         // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
         sidebarWidth
@@ -178,7 +180,7 @@ export default function MenuShared({
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           data-testid="sidebar-header-shell"
-          className="flex h-12 flex-shrink-0 items-center gap-1.5 border-b border-border px-3"
+          className="flex h-12 flex-shrink-0 items-center gap-1.5 px-3"
         >
           <div className="md:hidden">
             <TopbarLogo logoHref={config.logoHref} size="compact" />

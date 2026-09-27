@@ -5,6 +5,13 @@ import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const navigationState = vi.hoisted(() => ({
+  pathname: '/acme/brand/workspace',
+}));
+vi.mock('next/navigation', () => ({
+  usePathname: () => navigationState.pathname,
+}));
+
 function MenuComponent(): ReactElement {
   return <div data-testid="menu-component">Menu</div>;
 }
@@ -159,8 +166,9 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    expect(rail).toHaveClass('border-r', 'border-border');
-    expect(rail).toHaveClass('bg-background');
+    // Chrome surface shared with the app rail; the content panel owns the border.
+    expect(rail).toHaveClass('bg-gray-100');
+    expect(rail).not.toHaveClass('border-r');
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
@@ -191,20 +199,94 @@ describe('AppLayout', () => {
       'left-0',
       'bottom-0',
       'w-[var(--desktop-rail-width)]',
-      'border-r',
-      'border-border',
-      // Raised one step above the canvas-level topbar and sidebar.
-      'bg-background-secondary',
+      // The sidebar-plane chrome shared with the sidebar, no divider.
+      'bg-gray-100',
     );
+    expect(appRail).not.toHaveClass('border-r');
     expect(appRail).toContainElement(
       screen.getAllByTestId('rail-component')[0],
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
       '--desktop-rail-width': '52px',
     });
+    // Desktop: the topbar lives inside the inset panel instead of floating.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+      'fixed',
+      'md:static',
     );
+  });
+
+  it('insets the page in one bordered panel that owns desktop scrolling', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    const contentShell = screen.getByTestId('app-content-shell');
+    const panel = screen.getByTestId('app-content-panel');
+    const mainContent = screen.getByTestId('app-main-content');
+
+    expect(layoutRoot).toHaveClass(
+      'bg-gray-100',
+      '[--shell-inset:0px]',
+      'md:[--shell-inset:0.5rem]',
+    );
+    expect(contentShell).toHaveClass(
+      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+      'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
+      'md:pr-[var(--shell-inset)]',
+      'md:pb-[var(--shell-inset)]',
+      'md:h-dvh',
+      'md:overflow-hidden',
+      'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px)+min(var(--workspace-inspector-width,0px),var(--shell-inset)))]',
+    );
+    expect(panel).toHaveClass(
+      'bg-background',
+      'md:rounded-lg',
+      'md:border',
+      'md:border-border',
+      'md:overflow-hidden',
+    );
+    expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
+    expect(mainContent).toHaveClass(
+      'md:overflow-y-auto',
+      'md:pt-0',
+      'pt-[calc(var(--desktop-titlebar-height)+3rem)]',
+    );
+    expect(mainContent).toHaveAttribute('data-scroll-container', 'shell');
+  });
+
+  it('starts every route at the top of the panel scroll', () => {
+    const { rerender } = render(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+    const mainContent = screen.getByTestId('app-main-content');
+    // jsdom has no layout, so give scrollTop real state to observe the reset.
+    let scrollTop = 240;
+    Object.defineProperty(mainContent, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+
+    navigationState.pathname = '/acme/brand/library/assets';
+    rerender(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(scrollTop).toBe(0);
   });
 
   it('keeps the app rail when the sidebar collapses', async () => {
