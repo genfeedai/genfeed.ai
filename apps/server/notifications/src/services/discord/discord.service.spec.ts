@@ -1,4 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -719,17 +720,18 @@ describe('DiscordService', () => {
   });
 
   describe('sendRevenueNotification (genfeedai/genfeed.ai#5313)', () => {
-    interface RevenueEmbed {
-      description: string;
-      fields: { inline?: boolean; name: string; value: string }[];
+    function lastEmbed(): IDiscordEmbed {
+      const embed = lastSendPayload().embeds?.[0] as IDiscordEmbed;
+      expect(embed).toBeDefined();
+      expect(embed.fields).toBeDefined();
+      return embed;
     }
 
-    function lastEmbed(): RevenueEmbed {
-      return lastSendPayload().embeds?.[0] as unknown as RevenueEmbed;
-    }
-
-    function fieldValue(embed: RevenueEmbed, name: string): string | undefined {
-      return embed.fields.find((field) => field.name === name)?.value;
+    function fieldValue(
+      embed: IDiscordEmbed,
+      name: string,
+    ): string | undefined {
+      return embed.fields?.find((field) => field.name === name)?.value;
     }
 
     it('formats a USD amount by dividing by 100 minor units', async () => {
