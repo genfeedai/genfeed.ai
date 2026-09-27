@@ -23,7 +23,7 @@ import {
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReviewGrid from './ReviewGrid';
 import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
@@ -83,6 +83,19 @@ export default function ReviewQueueView({
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
   const translate = useTranslations('pages.publishing.review.approvalQueue');
   const { href } = useOrgUrl();
+  // Rows the operator tapped, as opposed to the first item the queue picks
+  // for them: only a tap opens the mobile drawer, and every tap reveals it.
+  const [rowTap, setRowTap] = useState<{
+    readonly count: number;
+    readonly itemId: string | null;
+  }>({ count: 0, itemId: null });
+  const handleSelectRow = useCallback(
+    (itemId: string) => {
+      setRowTap((current) => ({ count: current.count + 1, itemId }));
+      onSelectItem(itemId);
+    },
+    [onSelectItem],
+  );
   const searchParams = useSearchParams();
   const postsHref = href(
     buildPostsHrefFromApprovalQueue(searchParams.toString()),
@@ -238,6 +251,12 @@ export default function ReviewQueueView({
         <>
           <ReviewWorkspaceSurfaceAdapter
             activeItem={activeItem}
+            activeItemOrigin={
+              activeItem && activeItem.id === rowTap.itemId
+                ? 'user'
+                : 'automatic'
+            }
+            revealRequest={rowTap.count}
             isActioning={isActioning}
             isSelected={activeItem ? selectedIds.has(activeItem.id) : false}
             onApprove={onApprove}
@@ -258,7 +277,7 @@ export default function ReviewQueueView({
             onBulkApprove={onBulkApprove}
             onBulkReject={onBulkReject}
             onBulkRewrite={onBulkRewrite}
-            onSelectItem={onSelectItem}
+            onSelectItem={handleSelectRow}
             onToggleSelect={onToggleSelect}
           />
         </>

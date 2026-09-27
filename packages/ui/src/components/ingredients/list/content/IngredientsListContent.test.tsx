@@ -1,4 +1,9 @@
 import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@genfeedai/contexts/ui/context-sidebar-context';
+import {
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -15,7 +20,7 @@ import {
 } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ComponentType, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { setSelectedAsset } = vi.hoisted(() => ({
@@ -99,6 +104,7 @@ const baseIngredient = {
 
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
+  options: { readonly wrapper?: ComponentType<{ children: ReactNode }> } = {},
 ) {
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
@@ -140,6 +146,7 @@ function renderContent(
       onReprompt={vi.fn()}
       {...overrides}
     />,
+    options,
   );
 
   return { onOpenIngredientModal, onOpenLightbox, unmount };
@@ -547,11 +554,46 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(setSelectedAsset).toHaveBeenCalledWith(null);
   });
 
-  it('renders no inspector of its own', () => {
+  it('paints no inspector beside the grid', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
     expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('renders a single selection into the context sidebar and clears it on close', () => {
+    function CloseControl() {
+      const contextSidebar = useContextSidebar();
+      return (
+        <button type="button" onClick={contextSidebar?.close}>
+          Close sidebar
+        </button>
+      );
+    }
+    function Shell({ children }: { readonly children: ReactNode }) {
+      return (
+        <ContextSidebarProvider>
+          <CloseControl />
+          <ContextSidebarOutlet testId="context-sidebar-outlet" />
+          {children}
+        </ContextSidebarProvider>
+      );
+    }
+    const onSelectionChange = vi.fn();
+
+    renderContent(
+      { onSelectionChange, selectedIngredientIds: [baseIngredient.id] },
+      { wrapper: Shell },
+    );
+
+    expect(
+      within(screen.getByTestId('context-sidebar-outlet')).getByLabelText(
+        'Asset details',
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+    expect(onSelectionChange).toHaveBeenCalledWith([]);
   });
 });
 

@@ -17,15 +17,7 @@ import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  Bookmark,
-  ChartColumn,
-  ExternalLink,
-  Rocket,
-  Sparkles,
-  Wrench,
-  X,
-} from 'lucide-react';
+import { Bookmark, ExternalLink, Rocket, Sparkles, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -228,7 +220,6 @@ type DetailSidebarProps = {
   detailLoading: boolean;
   href: (path: string) => string;
   selectedAd: SelectedAdRef;
-  onClose: () => void;
   onOpenRemix: () => void;
   onRunAction: (action: 'ad_pack' | 'workflow' | 'launch_prep') => void;
   busyAction: 'ad_pack' | 'workflow' | 'launch_prep' | null;
@@ -250,7 +241,6 @@ export function DetailSidebar({
   detail,
   detailLoading,
   href,
-  onClose,
   onOpenRemix,
   onRunAction,
   busyAction,
@@ -274,279 +264,247 @@ export function DetailSidebar({
   }, [detail?.savedAdId, detail?.savedNote]);
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className={
-          'fixed inset-0 z-40 bg-black/50 transition-opacity' // design-system-allow-content-color
-        }
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <div className="space-y-5 p-5" data-testid="ads-research-detail">
+      {detailLoading ? (
+        <p className="text-sm text-muted-foreground">Loading ad detail…</p>
+      ) : !detail ? (
+        <p className="text-sm text-muted-foreground">
+          {translate('unavailable')}
+        </p>
+      ) : (
+        <>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="ghost">
+                {detail.platform === AdsPlatform.META
+                  ? 'Meta Ads'
+                  : detail.platform === AdsPlatform.TIKTOK
+                    ? 'TikTok Ads'
+                    : detail.platform === AdsPlatform.X
+                      ? 'X Ads'
+                      : 'Google Ads'}
+              </Badge>
+              {detail.channel !== AdsChannel.ALL && (
+                <Badge variant="ghost">{detail.channel}</Badge>
+              )}
+              {detail.status && <Badge status={detail.status} />}
+              {detail.isSavedSnapshot && (
+                <Badge variant="success">{translate('snapshotBadge')}</Badge>
+              )}
+            </div>
 
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-border bg-background shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-5 py-4">
-          <div className="flex items-center gap-2">
-            <ChartColumn className="size-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
-          </div>
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            icon={<X className="size-4" />}
-            onClick={onClose}
-            ariaLabel="Close detail"
-          />
-        </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">
+                {detail.title}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {detail.accountName || detail.campaignName || 'Ad detail'}
+              </p>
+            </div>
 
-        <div className="space-y-5 p-5">
-          {detailLoading ? (
-            <p className="text-sm text-muted-foreground">Loading ad detail…</p>
-          ) : !detail ? (
-            <p className="text-sm text-muted-foreground">
-              {translate('unavailable')}
+            <p className="text-sm leading-6 text-foreground/85">
+              {detail.explanation}
             </p>
-          ) : (
-            <>
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="ghost">
-                    {detail.platform === AdsPlatform.META
-                      ? 'Meta Ads'
-                      : detail.platform === AdsPlatform.TIKTOK
-                        ? 'TikTok Ads'
-                        : detail.platform === AdsPlatform.X
-                          ? 'X Ads'
-                          : 'Google Ads'}
-                  </Badge>
-                  {detail.channel !== AdsChannel.ALL && (
-                    <Badge variant="ghost">{detail.channel}</Badge>
-                  )}
-                  {detail.status && <Badge status={detail.status} />}
-                  {detail.isSavedSnapshot && (
-                    <Badge variant="success">
-                      {translate('snapshotBadge')}
-                    </Badge>
-                  )}
-                </div>
 
-                <div>
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {detail.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {detail.accountName || detail.campaignName || 'Ad detail'}
-                  </p>
+            {detail.creative.headline && (
+              <div>
+                <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+                  Headline
                 </div>
-
-                <p className="text-sm leading-6 text-foreground/85">
-                  {detail.explanation}
+                <p className="text-sm text-foreground/85">
+                  {detail.creative.headline}
                 </p>
-
-                {detail.creative.headline && (
-                  <div>
-                    <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-                      Headline
-                    </div>
-                    <p className="text-sm text-foreground/85">
-                      {detail.creative.headline}
-                    </p>
-                  </div>
-                )}
-
-                {detail.creative.body && (
-                  <div>
-                    <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-                      Primary Text
-                    </div>
-                    <p className="whitespace-pre-wrap text-sm text-foreground/85">
-                      {detail.creative.body}
-                    </p>
-                  </div>
-                )}
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <SummaryMetricCard
-                    label="CTR"
-                    value={formatMetric(detail.metrics.ctr)}
-                  />
-                  <SummaryMetricCard
-                    label="ROAS"
-                    value={formatMetric(detail.metrics.roas)}
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-                    Detected Patterns
-                  </div>
-                  {detail.patternSummary && detail.patternSummary.length > 0 ? (
-                    <div className="space-y-2">
-                      {detail.patternSummary.map((pattern) => (
-                        <div
-                          key={`${pattern.id}-${pattern.label}`}
-                          className="rounded-md bg-background-tertiary p-3"
-                        >
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className="text-sm font-medium text-foreground">
-                              {pattern.label}
-                            </span>
-                            {typeof pattern.score === 'number' && (
-                              <Badge variant="ghost">
-                                {formatMetric(pattern.score)}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs leading-5 text-muted-foreground">
-                            {pattern.summary}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No reusable pattern summary was attached to this ad yet.
-                    </p>
-                  )}
-                </div>
-
-                {detail.landingPageUrl && (
-                  <a
-                    href={detail.landingPageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Open landing page
-                    <ExternalLink className="size-4" />
-                  </a>
-                )}
               </div>
+            )}
 
-              {actionError && (
-                <Alert type={AlertCategory.ERROR}>
-                  <div className="text-xs">{actionError}</div>
-                </Alert>
-              )}
+            {detail.creative.body && (
+              <div>
+                <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+                  Primary Text
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-foreground/85">
+                  {detail.creative.body}
+                </p>
+              </div>
+            )}
 
-              <div className="grid gap-2">
-                <Button
-                  variant={
-                    detail.savedAdId
-                      ? ButtonVariant.SECONDARY
-                      : ButtonVariant.GHOST
-                  }
-                  size={ButtonSize.SM}
-                  disabled={
-                    savedMutating || detail.usagePolicy === 'disclosure_only'
-                  }
-                  onClick={() => onToggleSaved([detail])}
-                  icon={
-                    <Bookmark
-                      className={
-                        detail.savedAdId ? 'size-4 fill-current' : 'size-4'
-                      }
-                    />
-                  }
-                >
-                  {detail.savedAdId
-                    ? translate('unsaveAction')
-                    : translate('saveAction')}
-                </Button>
-                {detail.savedAdId ? (
-                  <div className="space-y-2 rounded-md border border-border p-3">
-                    <label
-                      className="text-xs font-medium text-foreground"
-                      htmlFor="saved-ad-note"
+            <div className="grid gap-3 md:grid-cols-2">
+              <SummaryMetricCard
+                label="CTR"
+                value={formatMetric(detail.metrics.ctr)}
+              />
+              <SummaryMetricCard
+                label="ROAS"
+                value={formatMetric(detail.metrics.roas)}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+                Detected Patterns
+              </div>
+              {detail.patternSummary && detail.patternSummary.length > 0 ? (
+                <div className="space-y-2">
+                  {detail.patternSummary.map((pattern) => (
+                    <div
+                      key={`${pattern.id}-${pattern.label}`}
+                      className="rounded-md bg-background-tertiary p-3"
                     >
-                      {translate('noteLabel')}
-                    </label>
-                    <Textarea
-                      id="saved-ad-note"
-                      value={note}
-                      maxLength={1000}
-                      placeholder={translate('notePlaceholder')}
-                      onChange={(event) => setNote(event.target.value)}
-                    />
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      disabled={savedMutating}
-                      onClick={() =>
-                        onUpdateSavedNote(detail.savedAdId as string, note)
-                      }
-                    >
-                      {translate('saveNote')}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="grid gap-2">
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  onClick={onOpenRemix}
-                  icon={<Sparkles className="size-4" />}
-                >
-                  Remix for my brand
-                </Button>
-                {!detail.isSavedSnapshot ? (
-                  <Button
-                    variant={ButtonVariant.DEFAULT}
-                    size={ButtonSize.SM}
-                    isLoading={busyAction === 'workflow'}
-                    onClick={() => onRunAction('workflow')}
-                    icon={<Wrench className="size-4" />}
-                  >
-                    Create workflow
-                  </Button>
-                ) : null}
-                {!detail.isSavedSnapshot ? (
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    isLoading={busyAction === 'launch_prep'}
-                    onClick={() => onRunAction('launch_prep')}
-                    icon={<Rocket className="size-4" />}
-                  >
-                    Build launch plan
-                  </Button>
-                ) : null}
-              </div>
-
-              {workflowResult && (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Badge variant="primary">Workflow Created</Badge>
-                    <span className="text-sm font-medium text-foreground">
-                      {workflowResult.workflowName}
-                    </span>
-                  </div>
-                  {workflowResult.description && (
-                    <p className="mb-3 text-sm text-foreground/75">
-                      {workflowResult.description}
-                    </p>
-                  )}
-                  <Link
-                    href={href(
-                      `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowResult.workflowId}`,
-                    )}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Open workflow editor
-                    <ExternalLink className="size-4" />
-                  </Link>
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-foreground">
+                          {pattern.label}
+                        </span>
+                        {typeof pattern.score === 'number' && (
+                          <Badge variant="ghost">
+                            {formatMetric(pattern.score)}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {pattern.summary}
+                      </p>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No reusable pattern summary was attached to this ad yet.
+                </p>
               )}
+            </div>
 
-              {adPackResult && <AdPackPanel adPack={adPackResult} />}
-              {launchPrepResult && <LaunchPrepPanel prep={launchPrepResult} />}
-            </>
+            {detail.landingPageUrl && (
+              <a
+                href={detail.landingPageUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                Open landing page
+                <ExternalLink className="size-4" />
+              </a>
+            )}
+          </div>
+
+          {actionError && (
+            <Alert type={AlertCategory.ERROR}>
+              <div className="text-xs">{actionError}</div>
+            </Alert>
           )}
-        </div>
-      </aside>
-    </>
+
+          <div className="grid gap-2">
+            <Button
+              variant={
+                detail.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+              }
+              size={ButtonSize.SM}
+              disabled={
+                savedMutating || detail.usagePolicy === 'disclosure_only'
+              }
+              onClick={() => onToggleSaved([detail])}
+              icon={
+                <Bookmark
+                  className={
+                    detail.savedAdId ? 'size-4 fill-current' : 'size-4'
+                  }
+                />
+              }
+            >
+              {detail.savedAdId
+                ? translate('unsaveAction')
+                : translate('saveAction')}
+            </Button>
+            {detail.savedAdId ? (
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <label
+                  className="text-xs font-medium text-foreground"
+                  htmlFor="saved-ad-note"
+                >
+                  {translate('noteLabel')}
+                </label>
+                <Textarea
+                  id="saved-ad-note"
+                  value={note}
+                  maxLength={1000}
+                  placeholder={translate('notePlaceholder')}
+                  onChange={(event) => setNote(event.target.value)}
+                />
+                <Button
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
+                  disabled={savedMutating}
+                  onClick={() =>
+                    onUpdateSavedNote(detail.savedAdId as string, note)
+                  }
+                >
+                  {translate('saveNote')}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2">
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={onOpenRemix}
+              icon={<Sparkles className="size-4" />}
+            >
+              Remix for my brand
+            </Button>
+            {!detail.isSavedSnapshot ? (
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.SM}
+                isLoading={busyAction === 'workflow'}
+                onClick={() => onRunAction('workflow')}
+                icon={<Wrench className="size-4" />}
+              >
+                Create workflow
+              </Button>
+            ) : null}
+            {!detail.isSavedSnapshot ? (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                isLoading={busyAction === 'launch_prep'}
+                onClick={() => onRunAction('launch_prep')}
+                icon={<Rocket className="size-4" />}
+              >
+                Build launch plan
+              </Button>
+            ) : null}
+          </div>
+
+          {workflowResult && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <Badge variant="primary">Workflow Created</Badge>
+                <span className="text-sm font-medium text-foreground">
+                  {workflowResult.workflowName}
+                </span>
+              </div>
+              {workflowResult.description && (
+                <p className="mb-3 text-sm text-foreground/75">
+                  {workflowResult.description}
+                </p>
+              )}
+              <Link
+                href={href(
+                  `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowResult.workflowId}`,
+                )}
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+              >
+                Open workflow editor
+                <ExternalLink className="size-4" />
+              </Link>
+            </div>
+          )}
+
+          {adPackResult && <AdPackPanel adPack={adPackResult} />}
+          {launchPrepResult && <LaunchPrepPanel prep={launchPrepResult} />}
+        </>
+      )}
+    </div>
   );
 }

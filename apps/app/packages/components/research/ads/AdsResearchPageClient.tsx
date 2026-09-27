@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import {
   AlertCategory,
   ButtonSize,
@@ -89,6 +90,7 @@ export default function AdsResearchPageClient() {
     effectivePlatform,
     handleCloseDetail,
     handleSelectAd,
+    selectedAdOrigin,
     href,
     isLoading,
     launchPrepResult,
@@ -408,26 +410,40 @@ export default function AdsResearchPageClient() {
         />
       )}
       {pagination ? <div className="mt-5">{pagination}</div> : null}
-      {selectedAd ? (
-        <DetailSidebar
-          detail={detail ?? null}
-          detailLoading={detailLoading}
-          href={href}
-          selectedAd={selectedAd}
-          onClose={handleCloseDetail}
-          onOpenRemix={openBrandRemix}
-          onToggleSaved={toggleSaved}
-          onUpdateSavedNote={updateSavedNote}
-          savedMutating={savedMutating}
-          onRunAction={runAction}
-          busyAction={busyAction}
-          actionError={actionError}
-          adPackResult={adPackResult}
-          launchPrepResult={launchPrepResult}
-          workflowResult={workflowResult}
-          brandLabel={brandLabel}
-        />
-      ) : null}
+      <ContextSidebarPanel
+        onClose={handleCloseDetail}
+        selection={
+          selectedAd && selectedKey
+            ? {
+                id: selectedKey,
+                kind: 'finding',
+                origin: selectedAdOrigin,
+                subtitle: detail?.title,
+                title: translate('detail.title'),
+              }
+            : null
+        }
+      >
+        {selectedAd ? (
+          <DetailSidebar
+            detail={detail ?? null}
+            detailLoading={detailLoading}
+            href={href}
+            selectedAd={selectedAd}
+            onOpenRemix={openBrandRemix}
+            onToggleSaved={toggleSaved}
+            onUpdateSavedNote={updateSavedNote}
+            savedMutating={savedMutating}
+            onRunAction={runAction}
+            busyAction={busyAction}
+            actionError={actionError}
+            adPackResult={adPackResult}
+            launchPrepResult={launchPrepResult}
+            workflowResult={workflowResult}
+            brandLabel={brandLabel}
+          />
+        ) : null}
+      </ContextSidebarPanel>
     </Container>
   );
 }

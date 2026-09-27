@@ -1,6 +1,7 @@
 'use client';
 
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
+import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -35,6 +36,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
@@ -661,12 +663,15 @@ export default function IngredientsListContent({
   }, [filteredIngredients, selectedIngredientIds]);
 
   /**
-   * The grid owns the selection, the workspace shell owns the inspector.
-   * Publishing into the shared asset selection is the whole handoff: the
-   * library surface adapter reads it back and renders the inspector as a rail
-   * pane, so the canvas never carries a second inspector of its own.
+   * The grid owns the selection. It publishes the inspected asset into the
+   * shared asset selection (the composer cites it) and renders its detail
+   * into the shell's context sidebar below.
    */
   const { setSelectedAsset } = useAssetSelection();
+  const translateInspector = useTranslations('pages.library.inspector');
+  const handleCloseInspector = useCallback(() => {
+    onSelectionChange([]);
+  }, [onSelectionChange]);
 
   useEffect(() => {
     setSelectedAsset(inspectedIngredient);
@@ -698,6 +703,26 @@ export default function IngredientsListContent({
       ) : (
         content
       )}
+      <ContextSidebarPanel
+        onClose={handleCloseInspector}
+        selection={
+          inspectedIngredient
+            ? {
+                id: inspectedIngredient.id,
+                kind: 'asset',
+                // Only a click or checkbox toggles the grid selection.
+                origin: 'user',
+                title:
+                  inspectedIngredient.metadataLabel ||
+                  translateInspector('untitled'),
+              }
+            : null
+        }
+      >
+        {inspectedIngredient ? (
+          <IngredientInspectorRail ingredient={inspectedIngredient} />
+        ) : null}
+      </ContextSidebarPanel>
     </div>
   );
 }

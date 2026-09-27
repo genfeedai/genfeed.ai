@@ -1,14 +1,14 @@
-import { act, render, waitFor } from '@testing-library/react';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
+import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const setInspectorOpen = vi.fn();
 const setPageContext = vi.fn();
-const useRegisterWorkspaceSurfaceAdapter = vi.fn();
-const useRegisterWorkspaceSurfacePresentationAdapter = vi.fn();
-
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1', organizationId: 'org-1' }),
-}));
 
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: Object.assign(
@@ -29,23 +29,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/brand/publishing/review',
 }));
 
-vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
-  useWorkspaceInspector: () => ({
-    isOpen: false,
-    setIsOpen: setInspectorOpen,
-  }),
-}));
-
-vi.mock('@/components/workspace-shell/WorkspaceSurfaceAdapterContext', () => ({
-  useRegisterWorkspaceSurfaceAdapter: (...args: unknown[]) =>
-    useRegisterWorkspaceSurfaceAdapter(...args),
-  useRegisterWorkspaceSurfacePresentationAdapter: (...args: unknown[]) =>
-    useRegisterWorkspaceSurfacePresentationAdapter(...args),
-}));
-
 vi.mock('./ReviewDetailPanel', () => ({
-  default: function MockReviewDetailPanel() {
-    return <div data-testid="review-detail-panel" />;
+  default: function MockReviewDetailPanel({
+    item,
+  }: {
+    item: { caption: string } | null;
+  }) {
+    return <div data-testid="review-detail-panel">{item?.caption}</div>;
   },
 }));
 
@@ -61,108 +51,99 @@ const baseItem = {
   status: 'COMPLETED',
 };
 
+function ShellControls() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <>
+      <p data-testid="sidebar-state">
+        {contextSidebar?.isOpen ? 'open' : 'closed'}
+      </p>
+      <button type="button" onClick={contextSidebar?.close}>
+        Close sidebar
+      </button>
+    </>
+  );
+}
+
+function Shell({ children }: { readonly children: ReactNode }) {
+  return (
+    <ContextSidebarProvider>
+      <ShellControls />
+      <ContextSidebarOutlet testId="context-sidebar-outlet" />
+      {children}
+    </ContextSidebarProvider>
+  );
+}
+
+function renderAdapter(overrides: Partial<ReviewWorkspaceSurfaceAdapterProps>) {
+  const props: ReviewWorkspaceSurfaceAdapterProps = {
+    activeItem: baseItem as never,
+    activeItemOrigin: 'automatic',
+    isActioning: false,
+    isSelected: false,
+    onApprove: vi.fn(),
+    onAssign: vi.fn(),
+    onReject: vi.fn(),
+    onRequestChanges: vi.fn(),
+    onToggleSelect: vi.fn(),
+    onUnassign: vi.fn(),
+    revealRequest: 0,
+    ...overrides,
+  };
+
+  const view = render(
+    <Shell>
+      <ReviewWorkspaceSurfaceAdapter {...props} />
+    </Shell>,
+  );
+
+  return {
+    ...view,
+    rerenderAdapter: (next: Partial<ReviewWorkspaceSurfaceAdapterProps>) =>
+      view.rerender(
+        <Shell>
+          <ReviewWorkspaceSurfaceAdapter {...props} {...next} />
+        </Shell>,
+      ),
+  };
+}
+
 describe('ReviewWorkspaceSurfaceAdapter', () => {
   beforeEach(() => {
-    setInspectorOpen.mockReset();
     setPageContext.mockReset();
-    useRegisterWorkspaceSurfaceAdapter.mockReset();
-    useRegisterWorkspaceSurfacePresentationAdapter.mockReset();
   });
 
-  it('opens Context when the selected review row changes', async () => {
-    const { rerender } = render(
-      <ReviewWorkspaceSurfaceAdapter
-        activeItem={null}
-        isActioning={false}
-        isSelected={false}
-        onApprove={vi.fn()}
-        onAssign={vi.fn()}
-        onReject={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onToggleSelect={vi.fn()}
-        onUnassign={vi.fn()}
-      />,
-    );
+  it('renders the active review item in the context sidebar', () => {
+    renderAdapter({});
 
-    rerender(
-      <ReviewWorkspaceSurfaceAdapter
-        activeItem={baseItem as never}
-        isActioning={false}
-        isSelected
-        onApprove={vi.fn()}
-        onAssign={vi.fn()}
-        onReject={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onToggleSelect={vi.fn()}
-        onUnassign={vi.fn()}
-      />,
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Ship the review rail',
     );
-
-    await waitFor(() => {
-      expect(setInspectorOpen).toHaveBeenCalledWith(true);
-    });
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
   });
 
-  it('does not re-open Context when the same row stays selected', async () => {
-    const { rerender } = render(
-      <ReviewWorkspaceSurfaceAdapter
-        activeItem={baseItem as never}
-        isActioning={false}
-        isSelected
-        onApprove={vi.fn()}
-        onAssign={vi.fn()}
-        onReject={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onToggleSelect={vi.fn()}
-        onUnassign={vi.fn()}
-      />,
-    );
+  it('only collapses on close, because the queue always keeps an active row', () => {
+    renderAdapter({});
 
-    await waitFor(() => {
-      expect(setInspectorOpen).toHaveBeenCalledWith(true);
-    });
-    setInspectorOpen.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
-    rerender(
-      <ReviewWorkspaceSurfaceAdapter
-        activeItem={{ ...baseItem, caption: 'same id, new caption' } as never}
-        isActioning={false}
-        isSelected
-        onApprove={vi.fn()}
-        onAssign={vi.fn()}
-        onReject={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onToggleSelect={vi.fn()}
-        onUnassign={vi.fn()}
-      />,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(setInspectorOpen).not.toHaveBeenCalled();
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('closed');
+    expect(screen.getByTestId('review-detail-panel')).toBeInTheDocument();
   });
 
-  it('force-opens Context on workspace:force-open-review-context', async () => {
-    render(
-      <ReviewWorkspaceSurfaceAdapter
-        activeItem={baseItem as never}
-        isActioning={false}
-        isSelected
-        onApprove={vi.fn()}
-        onAssign={vi.fn()}
-        onReject={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onToggleSelect={vi.fn()}
-        onUnassign={vi.fn()}
-      />,
-    );
+  it('reveals the collapsed sidebar on every row tap, including the active row', () => {
+    const { rerenderAdapter } = renderAdapter({});
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
-    await waitFor(() => {
-      expect(setInspectorOpen).toHaveBeenCalled();
-    });
-    setInspectorOpen.mockClear();
+    rerenderAdapter({ activeItemOrigin: 'user', revealRequest: 1 });
+
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
+  });
+
+  it('reveals the sidebar on workspace:force-open-review-context', () => {
+    renderAdapter({});
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
     act(() => {
       window.dispatchEvent(
@@ -170,6 +151,17 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
       );
     });
 
-    expect(setInspectorOpen).toHaveBeenCalledWith(true);
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
+  });
+
+  it('keeps the review item in the agent page context', () => {
+    renderAdapter({});
+
+    expect(setPageContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftType: 'review-item',
+        postContent: 'Ship the review rail',
+      }),
+    );
   });
 });

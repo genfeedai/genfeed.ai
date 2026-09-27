@@ -34,6 +34,13 @@ export function getResearchFindingReferenceKey(
   return `${reference.kind}:${reference.id}`;
 }
 
+/** Ads findings carry their own richer detail on the Ads page. */
+export function isAdsResearchFindingReference(
+  reference: ResearchFindingReference,
+): boolean {
+  return reference.kind.startsWith('research-ad-');
+}
+
 export function isSameResearchFindingReference(
   left: ResearchFindingReference | null,
   right: ResearchFindingReference | null,
