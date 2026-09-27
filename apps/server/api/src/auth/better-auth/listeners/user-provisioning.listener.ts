@@ -120,7 +120,7 @@ export class UserProvisioningListener {
   ): Promise<void> {
     try {
       await this.notificationsService.sendUserCreatedNotification({
-        email: event.email,
+        email: event.email ?? undefined,
         id: event.userId,
       });
     } catch (error: unknown) {
