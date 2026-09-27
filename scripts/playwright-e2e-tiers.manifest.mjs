@@ -240,6 +240,7 @@ export const PLAYWRIGHT_E2E_CORE_PATHS = [
   'playwright/e2e/tests/smoke',
   'playwright/e2e/tests/core',
   'playwright/e2e/tests/chat/onboarding.spec.ts',
+  'playwright/e2e/tests/shell/context-sidebar.spec.ts',
   'playwright/e2e/tests/shell/page-context-contract.spec.ts',
   'playwright/e2e/tests/studio/clips.spec.ts',
 ];

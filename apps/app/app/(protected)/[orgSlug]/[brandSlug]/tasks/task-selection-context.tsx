@@ -1,4 +1,5 @@
 import type { TaskSelectionContextValue } from '@props/tasks/task-selection-context.props';
+import type { ContextSidebarSelectionOrigin } from '@props/ui/context-sidebar.props';
 import type { Task } from '@services/management/tasks.service';
 import {
   createContext,
@@ -23,21 +24,46 @@ export function TaskSelectionProvider({
 }: {
   readonly children: ReactNode;
 }) {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selection, setSelection] = useState<{
+    readonly origin: ContextSidebarSelectionOrigin;
+    readonly task: Task | null;
+  }>({ origin: 'automatic', task: null });
   const [revision, setRevision] = useState(0);
+  const selectedTask = selection.task;
+  const selectionOrigin = selection.origin;
 
-  const selectTask = useCallback((task: Task | null) => {
-    setSelectedTask(task);
-  }, []);
+  // Resolving `?taskId=` after a click re-selects the same task automatically;
+  // that must not downgrade the click to an automatic selection.
+  const selectTask = useCallback(
+    (
+      task: Task | null,
+      origin: ContextSidebarSelectionOrigin = 'automatic',
+    ) => {
+      setSelection((current) => ({
+        origin:
+          origin === 'automatic' && task && current.task?.id === task.id
+            ? current.origin
+            : origin,
+        task,
+      }));
+    },
+    [],
+  );
 
   const commitTask = useCallback((task: Task) => {
-    setSelectedTask(task);
+    setSelection((current) => ({ origin: current.origin, task }));
     setRevision((current) => current + 1);
   }, []);
 
   const value = useMemo(
-    () => ({ commitTask, revision, selectTask, selectedTask }),
-    [commitTask, revision, selectTask, selectedTask],
+    () => ({
+      commitTask,
+      revision,
+      selectedTask,
+      selectionOrigin,
+      selectTask,
+    }),
+    [commitTask, revision, selectTask, selectedTask, selectionOrigin],
   );
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type ConversationComposerContextReference,
@@ -8,8 +9,9 @@ import {
 import type { ScopedResearchFindingReference } from '@genfeedai/contracts/interfaces';
 import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindingInspector';
 import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import { getResearchFindingReferenceKey } from '@pages/research/work-surface/research-work-surface.types';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   type ResearchWorkspaceSurfaceAdapterRegistration,
   useRegisterResearchWorkspaceSurfaceAdapter,
@@ -78,7 +80,6 @@ export default function ResearchWorkspaceSurfaceAdapter() {
 
   const adapter = useMemo<ResearchWorkspaceSurfaceAdapterRegistration>(
     () => ({
-      inspectorContent: <ResearchFindingInspector />,
       references,
       surfaceKey: 'discovery',
     }),
@@ -86,5 +87,29 @@ export default function ResearchWorkspaceSurfaceAdapter() {
   );
 
   useRegisterResearchWorkspaceSurfaceAdapter(adapter);
-  return null;
+
+  // Rendered from the Discovery layout, inside ResearchWorkSurfaceProvider, so
+  // the panel reads the live work surface rather than a detached copy.
+  const finding = surface?.authorizedFinding ?? null;
+  const clearFinding = surface?.clearFinding;
+  const handleClose = useCallback(() => clearFinding?.(), [clearFinding]);
+
+  return (
+    <ContextSidebarPanel
+      onClose={handleClose}
+      selection={
+        finding
+          ? {
+              id: getResearchFindingReferenceKey(finding.reference),
+              kind: 'finding',
+              origin: surface?.authorizedFindingOrigin ?? 'automatic',
+              subtitle: finding.reference.kind.replaceAll('-', ' '),
+              title: finding.title,
+            }
+          : null
+      }
+    >
+      {finding ? <ResearchFindingInspector finding={finding} /> : null}
+    </ContextSidebarPanel>
+  );
 }

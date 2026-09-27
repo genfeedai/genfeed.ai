@@ -4,9 +4,11 @@ import {
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
+  StudioGenerateAssetFacts,
   StudioGenerateJob,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
+import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/studio-generate-types';
 
 const CATEGORY_TO_TYPE = new Map<IngredientCategory, StudioGenerateType>(
@@ -60,6 +62,56 @@ export function resolveStudioAssetDimensions(
   return {
     height: metadata?.height || ingredient.height || undefined,
     width: metadata?.width || ingredient.width || undefined,
+  };
+}
+
+function toValidDate(value: number | string | undefined): Date | undefined {
+  if (value === undefined || value === '' || value === 0) {
+    return undefined;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/**
+ * The facts the asset panel lists for a generation. Only persisted metadata
+ * and the recipe that actually left Studio count: the `Ingredient` model's
+ * getters invent defaults (8s, 1080×1920) that must never read as real facts.
+ */
+export function resolveStudioAssetFacts(
+  job: StudioGenerateJob,
+): StudioGenerateAssetFacts {
+  const ingredient = job.ingredient ?? null;
+  const metadata =
+    ingredient && typeof ingredient.metadata === 'object'
+      ? ingredient.metadata
+      : undefined;
+  const submittedRecipe = job.recipe;
+  const { height, width } = resolveStudioAssetDimensions(ingredient);
+  const resolvedWidth = width ?? job.width;
+  const resolvedHeight = height ?? job.height;
+  const brand = ingredient?.brand;
+  const durationSeconds = submittedRecipe?.duration ?? metadata?.duration;
+
+  return {
+    aspectRatio:
+      submittedRecipe?.aspectRatio ||
+      (resolvedWidth && resolvedHeight
+        ? (resolveAspectRatioFromDimensions(resolvedWidth, resolvedHeight) ??
+          `${resolvedWidth}×${resolvedHeight}`)
+        : undefined),
+    brandLabel:
+      brand && typeof brand === 'object' ? brand.label || undefined : undefined,
+    createdAt: toValidDate(ingredient?.createdAt) ?? toValidDate(job.createdAt),
+    durationSeconds:
+      durationSeconds && durationSeconds > 0 ? durationSeconds : undefined,
+    modelLabel:
+      metadata?.modelLabel ||
+      metadata?.model ||
+      job.modelKey ||
+      submittedRecipe?.modelKey ||
+      undefined,
   };
 }
 
