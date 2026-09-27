@@ -98,7 +98,7 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('app switcher opens and exposes content and tools entries', async ({
+  test('app rail lists every app with Agent first and navigates', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
@@ -106,20 +106,26 @@ test.describe('Shell — navigation interactions', () => {
     });
     await settle(authenticatedPage);
 
-    const opened = await tryClick(
-      authenticatedPage,
-      'button[aria-label="Switch app"]',
-    );
-    await settle(authenticatedPage);
+    // Mandatory: the rail is the only app navigation. Never soft-skip it.
+    const rail = authenticatedPage
+      .getByTestId('desktop-app-rail')
+      .getByRole('navigation', { name: 'Apps' });
+    await expect(rail, 'app rail should be visible').toBeVisible({
+      timeout: 10_000,
+    });
 
-    if (opened) {
-      // Pick an item from the switcher (Library is a content app entry).
-      await tryClick(
-        authenticatedPage,
-        '[role="menuitem"]:has-text("Library")',
-      );
-      await settle(authenticatedPage);
-    }
+    const firstLink = rail.getByRole('link').first();
+    await expect(firstLink).toHaveAttribute('aria-label', /^Agent/);
+    await expect(
+      rail.getByRole('link', { name: /^Workspace/ }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    await rail.getByRole('link', { name: /^Library/ }).click();
+    await authenticatedPage.waitForURL(/\/library\//, { timeout: 30_000 });
+    await expect(rail.getByRole('link', { name: /^Library/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
 
     await assertHealthy(authenticatedPage);
   });

@@ -82,8 +82,8 @@ Clerk-shaped `publicMetadata`.
 - `isSuperAdmin` comes from `users.platformRole` and is **org-independent**:
   a superadmin keeps `/admin` access whatever org/brand the URL points at
   (`apps/app/app/(protected)/admin/layout.tsx` gates on
-  `accessState.isSuperAdmin`; the app-switcher shows the Administration
-  section on the same flag).
+  `accessState.isSuperAdmin`; the app rail shows the Admin item on the
+  same flag).
 - Soft deletes are `isDeleted: boolean`; every tenant query filters it.
 
 ## Production runtime access (for debugging sessions)
