@@ -111,11 +111,18 @@ function parseTurboAffectedNames(dryRunJson: string): string[] {
   );
 }
 
-function runTurboAffectedDryRun(
+/** Injectable so spec-typecheck-scope.test.ts can stub turbo without shelling out. */
+export type RunTurboAffectedDryRun = (
   rootDir: string,
   baseSha: string,
   filter?: string,
-): string[] {
+) => string[];
+
+const runTurboAffectedDryRun: RunTurboAffectedDryRun = (
+  rootDir,
+  baseSha,
+  filter,
+) => {
   const args = ['turbo', 'run', 'build', '--affected'];
   if (filter) {
     args.push(`--filter=${filter}`);
@@ -141,6 +148,30 @@ function runTurboAffectedDryRun(
   }
 
   return parseTurboAffectedNames(result.stdout);
+};
+
+/**
+ * Queries turbo's affected-workspace graph twice: once narrowed to
+ * `./packages/*` (drives `affectedPackagesOnly`, used only for the "Build
+ * packages" filter list) and once completely unfiltered (drives
+ * `allAffectedNames`, apps included). Re-narrowing the SECOND call is the
+ * exact regression #5315 fixed — it throws away a dependent app's edge
+ * before `resolveSpecTypecheckScope` ever sees it, so the app's own spec
+ * typecheck silently runs against a stale package assumption.
+ *
+ * `main()` always goes through this seam instead of calling
+ * `runTurboAffectedDryRun` directly so spec-typecheck-scope.test.ts can stub
+ * the runner and assert both that the unfiltered call actually carries no
+ * filter, and that the merge still surfaces the dependent app end-to-end.
+ */
+export function queryTurboAffectedScope(
+  rootDir: string,
+  baseSha: string,
+  runQuery: RunTurboAffectedDryRun = runTurboAffectedDryRun,
+): { affectedPackagesOnly: string[]; allAffectedNames: string[] } {
+  const affectedPackagesOnly = runQuery(rootDir, baseSha, './packages/*');
+  const allAffectedNames = runQuery(rootDir, baseSha);
+  return { affectedPackagesOnly, allAffectedNames };
 }
 
 function discoverWorkspaceInventory(rootDir: string): {
@@ -196,12 +227,10 @@ function main(): void {
     .filter((value) => value.length > 0);
 
   const { allWorkspaces, appWorkspaces } = discoverWorkspaceInventory(rootDir);
-  const affectedPackagesOnly = runTurboAffectedDryRun(
+  const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
     rootDir,
     baseSha,
-    './packages/*',
   );
-  const allAffectedNames = runTurboAffectedDryRun(rootDir, baseSha);
 
   const result = resolveSpecTypecheckScope({
     affectedPackagesOnly,

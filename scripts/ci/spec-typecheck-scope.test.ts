@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { resolveSpecTypecheckScope } from './spec-typecheck-scope';
+import {
+  queryTurboAffectedScope,
+  type RunTurboAffectedDryRun,
+  resolveSpecTypecheckScope,
+} from './spec-typecheck-scope';
 
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -177,5 +181,72 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
     // nowhere: the ratchet's own program excluded them and nothing else ran
     // in their place (#5315).
     expect(config.exclude ?? []).not.toContain('src/components');
+  });
+});
+
+describe('queryTurboAffectedScope (#5372 regression guard)', () => {
+  // A stubbed turbo runner standing in for the two real
+  // `bunx turbo run build --affected --dry=json` invocations: filtered to
+  // `./packages/*` returns packages-only names, and truly unfiltered
+  // (`filter === undefined`) additionally reports a dependent app that only
+  // turbo's own graph — not the file-based classifier — knows changed.
+  function stubTurboRunner(): {
+    calls: (string | undefined)[];
+    runQuery: RunTurboAffectedDryRun;
+  } {
+    const calls: (string | undefined)[] = [];
+    const runQuery: RunTurboAffectedDryRun = (_rootDir, _baseSha, filter) => {
+      calls.push(filter);
+      return filter === './packages/*'
+        ? ['contracts']
+        : ['contracts', 'api', 'app'];
+    };
+    return { calls, runQuery };
+  }
+
+  it('queries turbo once packages-only and once with no filter at all', () => {
+    const { calls, runQuery } = stubTurboRunner();
+
+    const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
+      '/repo',
+      'base-sha',
+      runQuery,
+    );
+
+    expect(affectedPackagesOnly).toEqual(['contracts']);
+    expect(allAffectedNames).toEqual(['contracts', 'api', 'app']);
+    expect(calls).toEqual(['./packages/*', undefined]);
+    // The exact regression #5315 fixed and #5372 guards against: narrowing
+    // BOTH turbo queries to `./packages/*` throws away a dependent app's
+    // edge before this module ever sees it. At least one recorded call must
+    // carry no filter at all — this fails the moment a packages-only filter
+    // is reintroduced on the second (allAffectedNames) call.
+    expect(calls).toContain(undefined);
+  });
+
+  it('feeds a stubbed unfiltered turbo query through to resolveSpecTypecheckScope so a dependent app enters scope', () => {
+    const { runQuery } = stubTurboRunner();
+    const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
+      '/repo',
+      'base-sha',
+      runQuery,
+    );
+
+    // Neither app's OWN files changed here (appsAffectedFromFiles is empty)
+    // — only a package did, and turbo's unfiltered graph is the only reason
+    // `api`/`app` show up at all.
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly,
+      allAffectedNames,
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result.workspaces.slice().sort()).toEqual(
+      ['api', 'app', 'contracts'].sort(),
+    );
+    expect(result.buildFilters).toEqual([]);
+    expect(result.runAny).toBe(true);
   });
 });
