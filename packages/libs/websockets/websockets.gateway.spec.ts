@@ -184,7 +184,7 @@ describe('WebSocketGateway', () => {
           auth: { token: 'header.payload.signature' },
           headers: { authorization },
           query: {},
-        } as Socket['handshake'],
+        } as unknown as Socket['handshake'],
       });
 
       await gateway.handleConnection(socket as Socket);
@@ -213,7 +213,7 @@ describe('WebSocketGateway', () => {
           auth: { token: 'auth.payload.signature' },
           headers: authorization ? { authorization } : {},
           query: {},
-        } as Socket['handshake'],
+        } as unknown as Socket['handshake'],
       });
 
       await gateway.handleConnection(socket as Socket);
