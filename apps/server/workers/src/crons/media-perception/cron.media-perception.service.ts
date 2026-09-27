@@ -90,7 +90,8 @@ export class CronMediaPerceptionService {
     // without a moderation record. Empty when no provider is active.
     // Vision flags (#4881) run in the same gates job; the shared job id
     // dedupes an asset that needs both.
-    const [unmoderated, unevaluated, undecided] = await Promise.all([
+    const discoverySources = ['moderation', 'vision', 'text-decision'] as const;
+    const discoveries = await Promise.allSettled([
       this.mediaModerationService.findUnmoderatedAssets(
         since,
         MEDIA_PERCEPTION_SWEEP_BATCH_SIZE,
@@ -105,7 +106,20 @@ export class CronMediaPerceptionService {
         now,
       ),
     ]);
-    for (const candidate of [...unmoderated, ...unevaluated, ...undecided]) {
+    const discoveredCandidates = discoveries.flatMap((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      // One discovery query failing (e.g. a provider outage) must not drop
+      // the candidates the other, independent queries already found.
+      this.logger.error('CronMediaPerceptionService discovery query failed', {
+        context: this.context,
+        error: getErrorMessage(result.reason),
+        source: discoverySources[index],
+      });
+      return [];
+    });
+    for (const candidate of discoveredCandidates) {
       if (
         await this.tryEnqueue(() =>
           this.moderationQueueService.enqueue(candidate),

@@ -14,6 +14,7 @@ export function ErrorFallback({
   compact = false,
   title = 'Something went wrong',
   description = 'An unexpected error occurred. Please try again.',
+  'data-testid': dataTestId,
 }: ErrorFallbackProps) {
   const [isRetrying, setIsRetrying] = useState(false);
   const handleRetry = async () => {
@@ -30,6 +31,7 @@ export function ErrorFallback({
   return (
     <div
       role="alert"
+      data-testid={dataTestId}
       className={cn(
         'flex items-center gap-3',
         compact

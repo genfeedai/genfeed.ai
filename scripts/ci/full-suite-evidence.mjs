@@ -24,7 +24,9 @@ function exactReleaseRun(run, releaseSha) {
   return (
     run?.head_sha === releaseSha &&
     run?.head_branch === 'master' &&
-    (run?.event === 'push' || run?.event === 'workflow_dispatch')
+    // The hourly master run or a manual dispatch; a release's own nested
+    // call (`workflow_call`) is not independent evidence.
+    (run?.event === 'schedule' || run?.event === 'workflow_dispatch')
   );
 }
 
@@ -44,9 +46,13 @@ export function selectFullSuiteRun(runs, releaseSha) {
   const matching = (runs ?? [])
     .filter((run) => exactReleaseRun(run, releaseSha))
     .sort(newestFirst);
+  // A cancelled run (a superseded run, or an hourly run that skipped an
+  // already-validated head) never outranks a real verdict for the same SHA:
+  // otherwise a skip that followed a red run would hide that failure.
   return (
     matching.find((run) => run.conclusion === 'success') ??
     matching.find((run) => ACTIVE_STATUSES.has(run.status)) ??
+    matching.find((run) => run.conclusion !== 'cancelled') ??
     matching[0] ??
     null
   );

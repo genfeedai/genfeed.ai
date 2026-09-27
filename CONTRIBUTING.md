@@ -336,9 +336,9 @@ are enforced by repository code and which remain GitHub administrator settings.
   the thread.
 - The maintainer applies `run-ci` and approves the workflow run after a first
   read.
-- Once CI is green and review is approved, the maintainer adds the PR to the
-  `master` merge queue; it squash-merges with your PR title as the commit
-  subject after CI passes again on top of the current `master`.
+- Draft PRs run no CI. Mark the PR ready for review to start it.
+- Once CI is green and review is approved, the maintainer squash-merges it with
+  your PR title as the commit subject.
 - Merged work ships in the next Community release cut from `master`
   ([RELEASING.md](RELEASING.md)); the generated release notes credit the PR
   by number and title.

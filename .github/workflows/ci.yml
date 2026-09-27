@@ -1,39 +1,27 @@
 name: CI
 
-# No standalone `push` trigger: master pushes are validated by full-suite.yml,
-# which calls this workflow with `run_heavy_tests: true`. A push trigger here
-# ran the same commit twice per merge (standalone affected tier + the nested
-# heavy tier under Full Suite). The push-gated jobs below (the tests-gate push
-# arm, the master failure tracker, the merge-queue janitor) still fire on every
-# master push inside that nested run, because a reusable workflow inherits the
-# CALLER's originating event — `github.event_name` is `push` there.
+# Two callers, one graph:
+#   - pull_request: the affected tier. Draft pull requests run nothing; CI runs
+#     once when the PR is marked ready (`ready_for_review`) and on every push
+#     after that.
+#   - workflow_call: full-suite.yml (hourly master validation and the release
+#     QA path) and pr-full-suite.yml (the `full-suite` PR label) pass
+#     `run_heavy_tests: true` for the complete matrix.
+#
+# There is no push or merge-queue trigger. Master is validated by the hourly
+# Full Suite, which inherits the `schedule` event here; the master failure
+# tracker keys off that event.
 on:
   pull_request:
     branches: [master]
-    types: [opened, synchronize, reopened]
-  # GitHub merge queue (#3143). Every PR that reaches `master` re-runs this
-  # gate on the queue's temporary `gh-readonly-queue/master/...` merge commit
-  # (its head is the *current* master + the PR), so a PR that went green on a
-  # stale base can no longer red master. Required contexts must report on that
-  # commit or the queue times out and drops the entry.
-  merge_group:
-    types: [checks_requested]
-  # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
-  # which chains CI → E2E on demand). Secrets are inherited.
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
     inputs:
       run_heavy_tests:
-        # Gate for the heavy test matrix (packages, server services,
-        # web/mobile, app + api shards). Desktop and extension checks are
-        # temporarily dormant while those surfaces are not being delivered.
-        # Callers on the release path (full-suite.yml) pass `true` to run the
-        # remaining full suite.
-        #
-        # This is an explicit input — NOT a `github.event_name == 'workflow_call'`
-        # check — because a reusable workflow inherits the CALLER's originating
-        # event (e.g. `workflow_dispatch` from release.yml), so `event_name`
-        # is never `workflow_call` here and the old gate silently skipped every
-        # heavy test job on the release QA path.
+        # Gate for the heavy test matrix. An explicit input, NOT a
+        # `github.event_name == 'workflow_call'` check: a reusable workflow
+        # inherits the CALLER's originating event, so `event_name` is never
+        # `workflow_call` here.
         description: 'Run the full heavy test matrix (release QA path).'
         type: boolean
         required: false
@@ -42,28 +30,10 @@ on:
 # The `ci-` prefix is REQUIRED. `github.workflow` resolves to the top-level
 # workflow name even inside a `workflow_call`, so without a distinct prefix this
 # group collides with a caller that uses the same `${{ github.workflow }}-${{
-# github.ref }}` shape (release.yml → full-suite.yml). On the release
-# path `ci` runs UNDER full-suite, both computed the same group with
-# cancel-in-progress, and the nested `ci` cancelled itself at startup (0 jobs) —
-# tripping cancel-doomed-run and silently killing every stable release. The
-# prefix guarantees this group never matches a caller's group.
+# github.ref }}` shape and the nested run cancels itself at startup.
 #
-# `cancel-in-progress` is PULL-REQUEST ONLY. On a PR, a new push makes the
-# running validation obsolete, so cancelling is free. Nested runs (merge queue,
-# full-suite/release workflow_call) are never cancelled from HERE:
-#   - `merge_group` entries each get their own `gh-readonly-queue/...` ref, so
-#     the group is already unique per entry, and a cancelled run would time the
-#     entry out of the queue.
-#   - master pushes reach this workflow only via full-suite.yml's call, where
-#     the group is `ci-<caller workflow>-refs/heads/master` and the event is
-#     `push` (inherited) → cancel-in-progress false. Master-push supersession
-#     is owned by full-suite.yml's OWN top-level group (master is cumulative,
-#     newest run validates a superset), which cancels the whole caller run —
-#     nested jobs included. History: on 2026-07-31, when this workflow still
-#     had its own push trigger with unconditional cancel, NINE consecutive
-#     master runs were cancelled mid-burst and a non-booting API (#2270) rode
-#     master unreported for twenty minutes. Supersession must live at the
-#     full-suite level, never here.
+# `cancel-in-progress` is PULL-REQUEST ONLY: a new push makes the running
+# validation obsolete. Nested master/release runs are never cancelled from here.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -74,40 +44,40 @@ permissions:
   statuses: write
 
 env:
-  # Diff base for every "changed since base" step (secretlint scope, turbo
-  # `--affected`, vitest `--changed`, the PR test plan). One expression, so a
-  # new event type is wired in one place:
-  #   pull_request → PR base (master at PR-head time)
-  #   merge_group  → queue base (current master the entry is being tested on)
-  #   push         → previous master head (`github.event.before`); arrives via
-  #                  full-suite.yml's master-push call (event payload inherited)
-  #   workflow_dispatch → '' → callers fall back to full runs / HEAD~1
-  CI_BASE_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha || github.event.before || '' }}
-  # True when the run validates a proposed change against a base (PR or queue
-  # entry) rather than a landed master commit; gates the "affected only" paths.
-  CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+  # Diff base for every "changed since base" step (turbo `--affected`, vitest
+  # `--changed`, the PR test plan). Only pull requests have one; every other
+  # event runs the full paths.
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+  CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TZ: UTC
 
 jobs:
-  trust:
-    name: Trust Check
+  # Trust, heavy tier, test plan, and spec-typecheck scope in one runner slot.
+  # Every job below needs this one, so an untrusted fork PR (the trust step
+  # fails the job) skips the whole graph and the Tests Gate fails closed.
+  plan:
+    name: Plan
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     outputs:
-      is-trusted: ${{ steps.non_pr.outputs.trusted || steps.check.outputs.trusted }}
-      # Single source of truth for "run the full heavy matrix on this run".
-      # Every heavy gate below reads this instead of re-deriving the escalation
-      # signals, so the tier can never disagree between jobs.
       heavy-tier: ${{ steps.tier.outputs.heavy }}
+      app: ${{ steps.plan.outputs.app }}
+      api: ${{ steps.plan.outputs.api }}
+      app_tests: ${{ steps.plan.outputs.app_tests }}
+      api_tests: ${{ steps.plan.outputs.api_tests }}
+      app_matrix: ${{ steps.plan.outputs.app_matrix }}
+      api_matrix: ${{ steps.plan.outputs.api_matrix }}
+      force_full: ${{ steps.plan.outputs.force_full }}
+      workspace_tests: ${{ steps.plan.outputs.workspace_tests }}
+      workspace_filters: ${{ steps.plan.outputs.workspace_filters }}
+      spec_run: ${{ steps.spec-matrix.outputs.run }}
+      spec_matrix: ${{ steps.spec-matrix.outputs.matrix }}
+      spec_build_filters: ${{ steps.turbo-scope.outputs.build_filters }}
     steps:
-      - name: Allow non-PR events
-        id: non_pr
-        if: github.event_name != 'pull_request'
-        run: echo "trusted=true" >> "$GITHUB_OUTPUT"
-
       - name: Check contributor trust
         id: check
         if: github.event_name == 'pull_request'
@@ -137,32 +107,20 @@ jobs:
                 ? 'same-repo PR'
                 : `trusted contributor (${association})`;
               core.info(`${trustReason} - CI allowed`);
-              core.setOutput('trusted', 'true');
             } else if (hasLabel) {
               core.info('External contributor with run-ci label - CI allowed');
-              core.setOutput('trusted', 'true');
             } else {
-              core.setOutput('trusted', 'false');
               core.setFailed(
                 `External contributor (${association}) - add the \`run-ci\` label to allow CI. ` +
                 'A maintainer must review the code and add the label.'
               );
             }
 
-      # Trust-tiered heavy matrix (open-source PR policy).
-      #
-      # Maintainer and same-repo PRs run the affected tier: the planner picks
-      # the shards the diff can actually break, and full-suite.yml runs the
-      # complete matrix on the master push a few minutes later, so a maintainer
-      # mistake is caught at most one merge behind.
-      #
-      # A fork PR from an external contributor gets no such safety net — nobody
-      # is watching the post-merge signal on their behalf, and the affected-tier
-      # planner trusts the diff to describe its own blast radius. Those PRs run
-      # the full heavy matrix on the PR itself.
-      #
-      # `run_heavy_tests` (full-suite / release path) and the `full-suite` label
-      # keep working as before, for anyone.
+      # Trust-tiered heavy matrix (open-source PR policy). Maintainer and
+      # same-repo PRs run the affected tier; the hourly Full Suite runs the
+      # complete matrix on master. A fork PR from an external contributor gets
+      # the full heavy matrix on the PR itself. `run_heavy_tests` (full-suite /
+      # release path) and the `full-suite` label escalate for anyone.
       - name: Resolve heavy test tier
         id: tier
         env:
@@ -186,68 +144,187 @@ jobs:
           echo "heavy=${heavy}" >>"${GITHUB_OUTPUT}"
           echo "Heavy test tier: ${heavy} (${reason})"
 
-  gitleaks:
-    name: Gitleaks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    # gitleaks-action does not support the `release` event ("The [release] event is
-    # not yet supported") and hard-fails on it. Release-triggered runs (self-hosted
-    # publish) skip it — the same commit was already secret-scanned on push to master.
-    #
-    # Dependabot runs read the Dependabot secret store, not the Actions one, so
-    # `secrets.GITLEAKS_LICENSE` arrives empty and the action hard-fails with
-    # "[genfeedai] is an organization. License key is required." It has failed on
-    # every Dependabot PR, which is zero signal, not added safety: the diff is a
-    # bot-authored manifest/lockfile bump, `Secretlint (changed files)` still runs,
-    # and the history this job scans was already scanned on push to master.
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && github.event_name != 'release'
-      && github.actor != 'dependabot[bot]'
-    steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Setup Bun environment
+        if: steps.tier.outputs.heavy != 'true'
+        uses: ./.github/actions/setup-bun-env
+      # Vitest supplies the exact affected app/API files; Turbo supplies the
+      # affected workspace tasks. Lockfile, turbo, vitest config, bun-setup, and
+      # the planner itself escalate to the full sharded path.
+      - name: Compute affected test plan
+        id: plan
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ steps.tier.outputs.heavy }}"
+      - name: Upload pull-request test plan
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: ${{ steps.plan.outputs.manifest }}
+          retention-days: 7
 
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        # gitleaks-action also hard-fails on `merge_group` ("The [merge_group]
-        # event is not yet supported"), and Gitleaks is a required context on
-        # the queue commit (#3143). Queue runs scan the same range below.
-        if: github.event_name != 'merge_group'
+      # Spec files are invisible to the Typecheck step inside Static Checks:
+      # every workspace tsconfig excludes them. The spec-typecheck ratchet
+      # checks them per workspace (tsconfig.typecheck.specs.json). On change
+      # runs this narrows the ratchet to the workspaces the diff can affect; a
+      # `packages/**` change resolves through turbo's dependency graph below.
+      # Anything genuinely global (root configs, scripts, the lockfile, this
+      # workflow, shared apps/server files) escalates to every workspace, as do
+      # heavy runs and runs without a diff base.
+      - name: Determine spec typecheck scope
+        id: scope
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-
-      - name: Scan the queue entry with the gitleaks CLI
-        if: github.event_name == 'merge_group'
-        # The queue commit is master + the PR's commits, so `CI_BASE_SHA..HEAD`
-        # is exactly what gitleaks-action scanned on the PR (minus the merge
-        # commit itself, which carries no new content). The image is root with
-        # `safe.directory '*'`; `.gitleaks.toml` and `.gitleaksignore` are read
-        # from the mounted repo root, same as the action.
+          RUN_HEAVY: ${{ steps.tier.outputs.heavy == 'true' }}
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/repo" \
-            ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo \
-            --log-opts="--no-merges ${CI_BASE_SHA}..HEAD" \
-            --redact --verbose --exit-code=1
+          set -euo pipefail
+          shopt -s nullglob
+          all_workspaces=()
+          for config in apps/server/*/tsconfig.typecheck.specs.json \
+            apps/*/tsconfig.typecheck.specs.json \
+            packages/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            all_workspaces+=("${workspace##*/}")
+          done
+          shopt -u nullglob
 
-  # Format, secretlint, lint, typecheck, and the executable contracts run
-  # sequentially in one runner slot (#1969). As five separate jobs each paid
-  # its own checkout + Bun setup (~40s of a ~1-minute job) and together they
-  # held four queue slots per run while the org pool was saturated. Build no
-  # longer waits on them — the Tests Gate holds their failure semantics via
-  # STATIC_CHECKS_RESULT, so the merge bar is unchanged.
+          emit() {
+            echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
+            echo "needs_turbo=false" >>"${GITHUB_OUTPUT}"
+            echo "Spec typecheck scope: ${1:-<none>} ($2)"
+          }
+
+          if [ "${RUN_HEAVY}" = "true" ] || [ "${CI_IS_CHANGE_RUN}" != "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            emit "${all_workspaces[*]}" "full: heavy tier or no diff base"
+            exit 0
+          fi
+
+          if ! changed="$(git diff --name-only "${CI_BASE_SHA}...HEAD")"; then
+            emit "${all_workspaces[*]}" "full: diff base unresolvable"
+            exit 0
+          fi
+
+          declare -A affected=()
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+            case "${file}" in
+              apps/server/*/*)
+                workspace="${file#apps/server/}"
+                workspace="${workspace%%/*}"
+                # A changed workspace without its own ratchet config feeds
+                # every program.
+                if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                else
+                  emit "${all_workspaces[*]}" "full: shared server surface ${file}"
+                  exit 0
+                fi
+                ;;
+              apps/server/*)
+                # Shallow files under apps/server are the shared configs every
+                # program extends. `case` globs span `/`, so these fall through
+                # apps/server/*/* and would otherwise be swallowed by apps/*.
+                emit "${all_workspaces[*]}" "full: shared server config ${file}"
+                exit 0
+                ;;
+              apps/*/*)
+                # Not every app is enrolled in the ratchet, so a missing config
+                # means "not part of this guard" rather than "escalate".
+                workspace="${file#apps/}"
+                workspace="${workspace%%/*}"
+                if [ -f "apps/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                fi
+                ;;
+              docs/*|.agents/*|*.md)
+                ;;
+              apps/*)
+                ;;
+              packages/*/*)
+                # Which package(s) and their dependents is turbo's job below.
+                packages_touched=1
+                ;;
+              *)
+                # Root tsconfigs, scripts, the lockfile, this workflow: no
+                # dependency graph to consult, so escalate.
+                emit "${all_workspaces[*]}" "full: shared surface ${file}"
+                exit 0
+                ;;
+            esac
+          done <<<"${changed}"
+
+          scoped=()
+          for workspace in "${all_workspaces[@]}"; do
+            if [ -n "${affected[${workspace}]:-}" ]; then
+              scoped+=("${workspace}")
+            fi
+          done
+
+          if [ "${packages_touched:-0}" = "1" ]; then
+            echo "needs_turbo=true" >>"${GITHUB_OUTPUT}"
+            echo "apps_affected=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
+            echo "Spec typecheck scope: apps=${scoped[*]:-<none>}, packages touched — resolving affected packages via turbo"
+          else
+            emit "${scoped[*]-}" "affected only"
+          fi
+      # turbo's own dependency graph (package.json dependencies) is the
+      # "cheaply derivable" affected-set turbo already computes for every
+      # other --affected call in this workflow (lint, type-check, test
+      # sharding above). `--affected` returns each changed package under
+      # packages/** plus every workspace — app or package — that
+      # (transitively) depends on it, so a leaf utility change stays small
+      # while a widely-imported package (e.g. contracts) still fans out to
+      # most of the monorepo — correctly, since that IS what could break.
+      # The merge logic (which workspaces end up in scope, and whether the
+      # "Build packages" step below can narrow itself to just the affected
+      # packages) lives in scripts/ci/spec-typecheck-scope.ts, unit-tested
+      # directly in scripts/ci/spec-typecheck-scope.test.ts (#5315) instead
+      # of only through assertions on this workflow's own YAML.
+      - name: Resolve turbo-affected packages
+        id: turbo-scope
+        if: steps.scope.outputs.needs_turbo == 'true'
+        env:
+          APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
+        run: bun run scripts/ci/spec-typecheck-scope.ts
+      # Each of the solo workspaces typechecks most of the frontend graph
+      # through source-pointing path aliases and takes ~10 minutes on its own
+      # (measured 2026-09-27: app 679s, agent 627s, pages 614s, props 605s,
+      # hooks 561s; the other ~30 workspaces total ~5 minutes). Run in one job
+      # they made the full ratchet a 57-minute serial walk. Each solo workspace
+      # gets its own matrix leg; everything else shares one leg. A workspace
+      # missing from this list is only slower, never unchecked.
+      - name: Build spec typecheck matrix
+        id: spec-matrix
+        env:
+          SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
+          SOLO_WORKSPACES: app agent hooks pages props
+        run: node scripts/ci/spec-typecheck-matrix.mjs
+
+  # Gitleaks, format, secretlint, lint, typecheck, and the executable contracts
+  # run sequentially in one runner slot (#1969). Each separate job paid its own
+  # checkout + Bun setup and held a queue slot while the runner pool was
+  # saturated. The Tests Gate holds their failure semantics.
   static-checks:
     name: Static Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    needs: plan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      # Pull requests scan their own commits; the release path scans history.
+      # The hourly Full Suite skips it: every master commit arrived through a
+      # scanned pull request. Dependabot runs read the Dependabot secret store,
+      # where GITLEAKS_LICENSE is empty and the action hard-fails; their
+      # manifest/lockfile diffs still pass through secretlint below.
+      - name: Scan for secrets with gitleaks
+        if: github.event_name != 'schedule' && github.actor != 'dependabot[bot]'
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Check pinned product skill catalog
@@ -301,22 +378,14 @@ jobs:
         if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
         continue-on-error: true
         run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
-      # `.changes/` only means something if something reads it. The guard diffs
-      # each packages/* workspace's exported type surface against the base and
-      # asks for a version bump or a changenote when it moved.
+      # The guard diffs each packages/* workspace's exported type surface
+      # against the base and asks for a version bump or a changenote when it
+      # moved. Pull requests read the base from the checked-out merge commit's
+      # first parent (event payloads can retain an older base SHA).
       - name: Check package API surface
-        env:
-          # Queue/push events supply their comparison base directly. PR builds
-          # use the checked-out merge commit's first parent below.
-          API_SURFACE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            # Event payloads can retain an older base SHA. The merge commit
-            # records the actual base used by this checkout as its first parent.
-            API_SURFACE_BASE_SHA=$(git rev-parse HEAD^1)
-          fi
-          if [ -n "$API_SURFACE_BASE_SHA" ] && [ "$API_SURFACE_BASE_SHA" != "0000000000000000000000000000000000000000" ]; then
-            bun run check:package-api-surface --base-ref "$API_SURFACE_BASE_SHA"
+            bun run check:package-api-surface --base-ref "$(git rev-parse HEAD^1)"
           else
             bun run check:package-api-surface --base-ref HEAD~1
           fi
@@ -324,240 +393,48 @@ jobs:
         run: bun run test:executable-contracts
       # Repo-wide UI guards. lint-staged runs the raw-control scanner on staged
       # files pre-commit, but that is skipped by --no-verify and never sees code
-      # arriving via merge, rebase or a web edit, so the guards had no gate.
+      # arriving via merge, rebase or a web edit.
       - name: Run UI guards
         run: bun run check:ui-guards
       - name: Check architecture guards
         run: bun run check:architecture
 
-  # The Typecheck job above cannot see spec/test files: every backend
-  # workspace's tsconfig.typecheck.json excludes them, and every frontend or
-  # package workspace's own tsconfig.json does the same for `.spec.ts(x)` /
-  # `.test.ts(x)`. No vitest config enables `typecheck` either. #2369 shipped a
-  # spec calling a deleted method straight through that hole, and #5244 found
-  # the same gap in apps/app and packages/*. This job typechecks them against
-  # the same compiler options via each workspace's tsconfig.typecheck.specs.json
-  # and ratchets the pre-existing debt. Workspaces are discovered under
-  # apps/server, apps (currently only apps/app has opted in), and packages —
-  # enrolling one is purely a matter of adding that file, nothing here.
-  #
-  # On change runs (PR / merge queue) the scope step below narrows the ratchet
-  # to the workspaces the diff can actually affect, and skips the whole tail
-  # (Bun setup, package build, loop) when nothing relevant changed — the common
-  # single-app PR. A `packages/**` change resolves through turbo's own
-  # dependency graph (`turbo run build --affected`, keyed off each package's
-  # declared `package.json` dependencies) to the changed package(s) plus their
-  # dependents, instead of escalating every packages/** touch to a full run —
-  # CI capacity is the bottleneck, and most package changes (leaf utilities,
-  # a single feature package) have a small, cheaply-derivable dependent set.
-  # Anything genuinely global (root configs, scripts, the lockfile, this
-  # workflow, apps/server files outside a single workspace) still escalates to
-  # every workspace, as does a heavy run, the full-suite label, or a missing
-  # diff base. Heavy full-suite runs on master push (and any scheduled/nightly
-  # run, which is a non-change run) always cover all workspaces regardless of
-  # scoping, so any cross-workspace drift a scoped PR run misses lands at most
-  # one merge behind. Each workspace is still checked in a fresh Bun process so
-  # TypeScript can release the previous program's memory before loading the
-  # next workspace; the CLI scopes the repo-wide baseline to the requested
-  # workspace on each invocation.
+  # Typechecks spec/test files against each workspace's compiler options and
+  # ratchets the pre-existing debt. The Plan job decides the scope and splits
+  # it into legs (see "Build spec typecheck matrix"). Each workspace is checked
+  # in a fresh Bun process so TypeScript releases the previous program's
+  # memory, and every workspace in a leg runs even after one fails so one
+  # baseline fix never costs a CI round-trip per workspace.
   spec-typecheck:
-    name: Spec Typecheck
+    name: Spec Typecheck (${{ matrix.name }})
     runs-on: ubuntu-latest
-    # #5244 added apps/app and 24 packages/* workspaces. A scoped PR run still
-    # checks only what changed, but a full run (heavy tier, master push,
-    # release) walks every workspace sequentially, and several of the new
-    # ones pull most of the monorepo's type graph in transitively through
-    # source-pointing path aliases (see the rootDir comment in
-    # scripts/architecture/check-spec-typecheck.ts) — apps/app alone took
-    # ~9 minutes standalone during #5244's own baseline generation. 45 minutes
-    # was sized for the original 8 backend-only workspaces.
-    timeout-minutes: 90
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
+    timeout-minutes: 30
+    needs: plan
+    if: needs.plan.outputs.spec_run == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.spec_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Determine spec typecheck scope
-        id: scope
-        env:
-          RUN_HEAVY: ${{ needs.trust.outputs.heavy-tier == 'true' }}
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          all_workspaces=()
-          # apps/server/<workspace> and packages/<workspace> each hold many
-          # ratchet workspaces one directory deep; apps/<app> holds several
-          # frontend/desktop apps but today only apps/app has opted in — the
-          # glob simply finds nothing for the others.
-          for config in apps/server/*/tsconfig.typecheck.specs.json \
-            apps/*/tsconfig.typecheck.specs.json \
-            packages/*/tsconfig.typecheck.specs.json; do
-            workspace="${config%/tsconfig.typecheck.specs.json}"
-            all_workspaces+=("${workspace##*/}")
-          done
-          shopt -u nullglob
-
-          emit() {
-            echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
-            echo "needs_turbo=false" >>"${GITHUB_OUTPUT}"
-            if [ -n "$1" ]; then
-              echo "run_any=true" >>"${GITHUB_OUTPUT}"
-            else
-              echo "run_any=false" >>"${GITHUB_OUTPUT}"
-            fi
-            echo "Spec typecheck scope: ${1:-<none>} ($2)"
-          }
-
-          # Heavy tier, non-change runs (master push / release), and runs with
-          # no usable diff base always check every workspace.
-          if [ "${RUN_HEAVY}" = "true" ] || [ "${CI_IS_CHANGE_RUN}" != "true" ] || [ -z "${CI_BASE_SHA}" ]; then
-            emit "${all_workspaces[*]}" "full: heavy tier or no diff base"
-            exit 0
-          fi
-
-          if ! changed="$(git diff --name-only "${CI_BASE_SHA}...HEAD")"; then
-            emit "${all_workspaces[*]}" "full: diff base unresolvable"
-            exit 0
-          fi
-
-          declare -A affected=()
-          while IFS= read -r file; do
-            [ -n "${file}" ] || continue
-            case "${file}" in
-              apps/server/*/*)
-                workspace="${file#apps/server/}"
-                workspace="${workspace%%/*}"
-                # A changed workspace without its own ratchet config feeds
-                # every program.
-                if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
-                  affected["${workspace}"]=1
-                else
-                  emit "${all_workspaces[*]}" "full: shared server surface ${file}"
-                  exit 0
-                fi
-                ;;
-              apps/server/*)
-                # Shallow files under apps/server are the shared configs every
-                # program extends (tsconfig.json, tsconfig.typecheck.base.json).
-                # `case` globs span `/`, so these fall through apps/server/*/*
-                # and would otherwise be swallowed by the apps/* branch below.
-                emit "${all_workspaces[*]}" "full: shared server config ${file}"
-                exit 0
-                ;;
-              apps/*/*)
-                # Any other app (apps/app, apps/desktop, ...) owns its own
-                # files the same way a backend workspace owns its own — but
-                # unlike apps/server, not every app is enrolled in the
-                # ratchet, so a missing config here means "not part of this
-                # guard" (skip) rather than "escalate": apps/desktop churning
-                # cannot affect apps/app's spec program.
-                workspace="${file#apps/}"
-                workspace="${workspace%%/*}"
-                if [ -f "apps/${workspace}/tsconfig.typecheck.specs.json" ]; then
-                  affected["${workspace}"]=1
-                fi
-                ;;
-              docs/*|.agents/*|*.md)
-                ;;
-              apps/*)
-                # Shallow files directly under apps/ (rare) feed no program.
-                ;;
-              packages/*/*)
-                # A package's own files never escalate immediately: packages
-                # commonly import each other, but turbo already knows the
-                # declared (package.json) dependency graph, so the follow-up
-                # "Resolve turbo-affected packages" step below asks it for the
-                # changed package(s) plus their dependents instead of running
-                # every enrolled package on every packages/** touch. This
-                # loop only needs to know that at least one packages/** file
-                # changed; which package(s) is turbo's job.
-                packages_touched=1
-                ;;
-              *)
-                # Root tsconfigs, scripts, the lockfile, this workflow —
-                # anything outside apps/ and packages/ can reshape every
-                # program with no dependency graph to consult: escalate.
-                emit "${all_workspaces[*]}" "full: shared surface ${file}"
-                exit 0
-                ;;
-            esac
-          done <<<"${changed}"
-
-          scoped=()
-          for workspace in "${all_workspaces[@]}"; do
-            if [ -n "${affected[${workspace}]:-}" ]; then
-              scoped+=("${workspace}")
-            fi
-          done
-
-          if [ "${packages_touched:-0}" = "1" ]; then
-            # Defer the final workspace list to the turbo-affected step: it
-            # still needs to fold in whatever packages turbo resolves as
-            # affected before this job knows what to actually run.
-            echo "needs_turbo=true" >>"${GITHUB_OUTPUT}"
-            echo "apps_affected=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
-            echo "Spec typecheck scope: apps=${scoped[*]:-<none>}, packages touched — resolving affected packages via turbo"
-          else
-            emit "${scoped[*]-}" "affected only"
-          fi
       - name: Setup Bun environment
-        if: steps.scope.outputs.run_any == 'true' || steps.scope.outputs.needs_turbo == 'true'
         uses: ./.github/actions/setup-bun-env
-      # turbo's own dependency graph (package.json dependencies) is the
-      # "cheaply derivable" affected-set turbo already computes for every
-      # other --affected call in this workflow (lint, type-check, test
-      # sharding above). `--affected` returns each changed package under
-      # packages/** plus every workspace — app or package — that
-      # (transitively) depends on it, so a leaf utility change stays small
-      # while a widely-imported package (e.g. contracts) still fans out to
-      # most of the monorepo — correctly, since that IS what could break.
-      # The merge logic (which workspaces end up in scope, and whether the
-      # "Build packages" step below can narrow itself to just the affected
-      # packages) lives in scripts/ci/spec-typecheck-scope.ts, unit-tested
-      # directly in scripts/ci/spec-typecheck-scope.test.ts (#5315) instead
-      # of only through assertions on this workflow's own YAML.
-      - name: Resolve turbo-affected packages
-        id: turbo-scope
-        if: steps.scope.outputs.needs_turbo == 'true'
-        env:
-          APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
-        run: bun run scripts/ci/spec-typecheck-scope.ts
-      - name: Spec Typecheck Guard Tests
-        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
-        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
-      # The typecheck base config resolves @genfeedai/contracts and
-      # @genfeedai/contracts/constants to their dist output, so the package graph has to
-      # exist before any program is created. A scoped, packages-touched run builds
-      # only the turbo-affected packages (which already pulls in each one's own
-      # dependencies via turbo's `dependsOn: ["^build"]` graph — the same graph
-      # `Resolve turbo-affected packages` just queried); every other run (full,
-      # or scoped to apps only) still builds every package, since a bare
-      # apps/app change gives no cheap signal about which packages it needs.
+      # The typecheck base config resolves @genfeedai/contracts to its dist
+      # output, so the package graph has to exist before any program is
+      # created. A packages-only scope builds just the turbo-affected packages.
       - name: Build packages
-        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
+        env:
+          BUILD_FILTERS: ${{ needs.plan.outputs.spec_build_filters }}
         run: |
           set -euo pipefail
-          if [ -n "${{ steps.turbo-scope.outputs.build_filters }}" ]; then
-            # shellcheck disable=SC2086 # intentional word-splitting of pre-built --filter args
-            bunx turbo run build ${{ steps.turbo-scope.outputs.build_filters }} --concurrency=1
+          if [ -n "${BUILD_FILTERS}" ]; then
+            # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+            bunx turbo run build ${BUILD_FILTERS} --concurrency=1
           else
             bunx turbo run build --filter='./packages/*' --concurrency=1
           fi
       - name: Spec Typecheck Ratchet
-        if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
-        # Keep each TypeScript program in its own process. A single repo-wide
-        # process retained enough compiler state to hit the runner shutdown
-        # window without emitting a diagnostic.
-        #
-        # Every workspace runs even after one fails. `api` sorts first and holds
-        # most of the debt, so a bare `set -e` loop aborted there and hid the
-        # other eleven: #2758 reported 7 drifted entries in `api` while `files`
-        # and `mcp` held 2 more that only a local regeneration surfaced. One
-        # baseline fix would otherwise cost a CI round-trip per workspace.
-        # Failures are collected and their diagnostics replayed together below.
         env:
-          SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
+          SCOPED_WORKSPACES: ${{ matrix.workspaces }}
         run: |
           set -euo pipefail
           log_dir="$(mktemp -d)"
@@ -566,8 +443,6 @@ jobs:
           for workspace in ${SCOPED_WORKSPACES}; do
             checked=$((checked + 1))
             echo "::group::Spec typecheck: ${workspace}"
-            # `if !` keeps `set -e` from aborting the loop on a failing
-            # workspace; `pipefail` keeps `tee` from masking the real status.
             if ! bun run check:spec-typecheck --workspace "${workspace}" 2>&1 \
               | tee "${log_dir}/${workspace}.log"; then
               failed+=("${workspace}")
@@ -580,8 +455,6 @@ jobs:
             exit 0
           fi
 
-          # Replay outside the collapsed groups so every workspace's
-          # diagnostics are visible without expanding the log by hand.
           echo "::error::Spec typecheck ratchet failed in ${#failed[@]} of ${checked} workspace(s): ${failed[*]}"
           for workspace in "${failed[@]}"; do
             echo "----- ${workspace} -----"
@@ -589,67 +462,12 @@ jobs:
           done
           exit 1
 
-  # Heavy test jobs key off this planner's outputs on every event: on pull
-  # requests the diff base is the PR base, on merge-queue runs it is the queue
-  # base (current master), on master pushes it is `github.event.before` (the
-  # previous trunk tip) — all via `CI_BASE_SHA` — and the full-suite release
-  # path escalates everything via the explicit `run_heavy_tests` input —
-  # workflow_call inherits the CALLER's originating event, so an event-name
-  # gate can never stand in for that input. Fast PR/master-push checks
-  # (format, lint, typecheck, design, build) stay ungated above.
-  test-scope:
-    name: Test Plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    # Plan before allocating test runners. Vitest supplies the exact affected
-    # app/API files; Turbo supplies affected workspace tasks. Lockfile, turbo,
-    # vitest config, bun-setup, and the planner itself escalate to the full
-    # sharded path. Editing ci.yml, package.json scripts, or docs does not.
-    if: needs.trust.outputs.is-trusted == 'true'
-    outputs:
-      app: ${{ steps.plan.outputs.app }}
-      api: ${{ steps.plan.outputs.api }}
-      app_tests: ${{ steps.plan.outputs.app_tests }}
-      api_tests: ${{ steps.plan.outputs.api_tests }}
-      app_count: ${{ steps.plan.outputs.app_count }}
-      api_count: ${{ steps.plan.outputs.api_count }}
-      app_matrix: ${{ steps.plan.outputs.app_matrix }}
-      api_matrix: ${{ steps.plan.outputs.api_matrix }}
-      force_full: ${{ steps.plan.outputs.force_full }}
-      packages: ${{ steps.plan.outputs.packages }}
-      server_services: ${{ steps.plan.outputs.server_services }}
-      web_desktop_mobile: ${{ steps.plan.outputs.web_desktop_mobile }}
-      extensions: ${{ steps.plan.outputs.extensions }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Setup Bun environment
-        if: needs.trust.outputs.heavy-tier != 'true'
-        uses: ./.github/actions/setup-bun-env
-      - name: Compute affected test plan
-        id: plan
-        # Merge-queue runs stay on the affected tier against the queue base
-        # (current master) — the documented queue design in full-suite.yml.
-        # The heavy matrix escalates only via the Trust Check's `heavy-tier`
-        # verdict (`run_heavy_tests` on the full-suite / release path, the
-        # explicit `full-suite` PR label, or an external-contributor PR);
-        # master pushes get the complete heavy pass from full-suite.yml
-        # immediately after the queue merges, so re-running it per queue entry
-        # only serialized the queue (~20 min/entry) without adding coverage.
-        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ needs.trust.outputs.heavy-tier }}"
-      - name: Upload pull-request test plan
-        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
-          path: ${{ steps.plan.outputs.manifest }}
-          retention-days: 7
-
-  test-packages:
-    name: Test Packages
+  # Packages, server services (everything under apps/server except the API),
+  # and web/mobile in one turbo invocation: turbo already parallelizes the
+  # tasks, and three jobs paid three setups and three queue slots for it. The
+  # planner owns the filter list, including dormant-surface exclusion.
+  test-workspaces:
+    name: Test Workspaces
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -663,239 +481,58 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      # #5252 review: the real-Redis pending-execution-reconciler integration
+      # spec (apps/server/workers) otherwise skips silently in CI.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && (needs.trust.outputs.heavy-tier == 'true'
-        || needs.test-scope.outputs.packages == 'true')
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Run tests
-        run: |
-          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --continue --filter='./packages/*'
-          else
-            BASE="$CI_BASE_SHA"
-            # Force-push / new-branch pushes report an all-zero "before"; fall back
-            # to the previous commit so --affected always has a valid diff base.
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-              BASE="HEAD~1"
-            fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter='./packages/*'
-          fi
-
-  test-server-services:
-    name: Test Server Services
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    # #5252 review: the real-Redis pending-execution-reconciler integration
-    # spec (apps/server/workers) otherwise skips silently in CI.
-    services:
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
       REDIS_URL: redis://localhost:6379
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && (needs.trust.outputs.heavy-tier == 'true'
-        || needs.test-scope.outputs.server_services == 'true')
+    needs: plan
+    if: needs.plan.outputs.workspace_tests == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-      - name: Run server service tests
-        run: |
-          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --continue --filter='./apps/server/*' --filter='!@genfeedai/api'
-          else
-            BASE="$CI_BASE_SHA"
-            # Force-push / new-branch pushes report an all-zero "before"; fall back
-            # to the previous commit so --affected always has a valid diff base.
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-              BASE="HEAD~1"
-            fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
-          fi
-
-  test-web-desktop-mobile:
-    name: Test Web and Mobile
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && (needs.trust.outputs.heavy-tier == 'true'
-        || needs.test-scope.outputs.web_desktop_mobile == 'true')
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Run web and mobile tests
-        run: |
-          # Temporarily disabled while desktop is not an active delivery surface:
-          # --filter=@genfeedai/desktop
-          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --continue --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
-          else
-            BASE="$CI_BASE_SHA"
-            # Force-push / new-branch pushes report an all-zero "before"; fall back
-            # to the previous commit so --affected always has a valid diff base.
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-              BASE="HEAD~1"
-            fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
-          fi
-
-  test-extensions:
-    name: Test Extensions
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [trust, test-scope]
-    # Temporarily disabled while extensions are not active delivery surfaces.
-    # Re-enable by setting ENABLE_EXTENSION_CI=true and removing `extensions`
-    # from TEMPORARILY_DISABLED_TEST_GROUPS in scripts/ci/pr-test-plan.mjs.
-    #
-    # BOTH gates are load-bearing, and neither is a `full-suite` bug (#2486):
-    # the label escalates the other heavy jobs by way of the planner's
-    # --run-heavy flag, but the planner forces a dormant group inapplicable, and
-    # the vars gate below short-circuits this job regardless. Tests Gate reports
-    # the skip as "dormant (paused surface)" so the pause stays visible.
-    if: >-
-      vars.ENABLE_EXTENSION_CI == 'true'
-      && needs.trust.outputs.is-trusted == 'true'
-      && (needs.trust.outputs.heavy-tier == 'true'
-        || needs.test-scope.outputs.extensions == 'true')
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Run extension tests
-        run: |
-          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --continue --filter=@genfeedai/extension-browser --filter=extension-ide
-          else
-            BASE="$CI_BASE_SHA"
-            # Force-push / new-branch pushes report an all-zero "before"; fall back
-            # to the previous commit so --affected always has a valid diff base.
-            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-              BASE="HEAD~1"
-            fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter=@genfeedai/extension-browser --filter=extension-ide
-          fi
-
-  test-app:
-    name: Test App (Shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [trust, test-scope]
-    # Full sharded suite is explicit: release/deploy QA or a planner escalation
-    # for validation machinery and root dependency changes.
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.app == 'true'
-      && needs.test-scope.outputs.force_full == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Build app workspace
-        run: bunx turbo run build --filter='@genfeedai/app^...'
-      - name: Mark test start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run app test shard
-        id: tests
-        run: |
-          COVERAGE_ARGS=()
-          if [ "$WITH_COVERAGE" = "true" ]; then
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json)
-          fi
-          cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4 "${COVERAGE_ARGS[@]}"
+      - name: Run workspace tests
         env:
-          NODE_ENV: test
-          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
-          CHANGED_CODE_COVERAGE: '1'
-      - name: Stage app coverage shard
-        if: always() && github.event_name == 'pull_request'
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          WORKSPACE_FILTERS: ${{ needs.plan.outputs.workspace_filters }}
         run: |
-          mkdir -p coverage-shard
-          # Seconds cover the shard's full test+coverage wall clock: the
-          # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take. A shard cancelled
-          # before "Mark test start" has no clock: it stages no latency and
-          # the report reads the missing file as null instead of the epoch.
-          if [ -n "${COVERAGE_STARTED:-}" ]; then
-            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          set -euo pipefail
+          # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test --continue ${WORKSPACE_FILTERS}
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --affected ${WORKSPACE_FILTERS}
           fi
-          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
-          shopt -s nullglob
-          reports=(apps/app/.vitest-reports/blob-*.json)
-          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
-            echo "::error::Changed app shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
-            exit 1
-          fi
-          if [ "${#reports[@]}" -gt 0 ]; then
-            cp "${reports[@]}" coverage-shard/
-          fi
-      - name: Upload app coverage blob
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-blob-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
 
-
-  # Focused, blocking app tests on master push and every ordinary PR. The
-  # planner counts the exact Vitest changed graph and selects one, two, or four
-  # shards. Full-suite workflow calls and validation-machinery changes use the
-  # static full matrix above.
-  test-app-changed:
-    name: Test App (changed shard ${{ matrix.shard }}/${{ matrix.total }})
+  # App tests. The planner emits the shard matrix: on the affected tier it
+  # counts the exact Vitest changed graph and picks one, two, or four shards;
+  # on the full tier it emits four shards over the whole suite.
+  test-app:
+    name: Test App (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
-    # Setup/build currently consume ~3 minutes before the changed Vitest graph
-    # starts. Keep parity with the API changed-test job so a healthy app suite
-    # is not cancelled while its assertions are still running.
     timeout-minutes: 30
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.app_tests == 'true'
-      && needs.test-scope.outputs.force_full != 'true'
+    needs: plan
+    if: needs.plan.outputs.app_tests == 'true'
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.test-scope.outputs.app_matrix) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.app_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -904,72 +541,25 @@ jobs:
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
         run: bunx turbo run build --filter='@genfeedai/app^...'
-      - name: Mark test start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run changed app tests
-        id: tests
+      - name: Run app tests
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          NODE_ENV: test
         run: |
-          BASE="$CI_BASE_SHA"
-          # Force-push / new-branch pushes report an all-zero "before"; fall back
-          # to the previous commit so --changed always has a valid diff base.
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="HEAD~1"
-          fi
-          echo "Running app tests changed since $BASE"
-          # Pull requests instrument this same run for the #1849 observation
-          # ratchet (folded from the standalone Changed Coverage jobs, #1969);
-          # master pushes and merge-queue runs skip the instrumentation cost.
-          COVERAGE_ARGS=()
-          if [ "$WITH_COVERAGE" = "true" ]; then
-            # Vitest does not finalize LCOV inside a sharded run. Persist its
-            # blob report and merge all shards in Changed Coverage Report.
-            # Vitest 5 moved the default blob path to .vitest/blob/, so pin the
-            # .vitest-reports/ location the shard assertion and merge job read.
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-${{ matrix.total }}.json)
+          set -euo pipefail
+          SELECTION=()
+          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
+            echo "Running app tests changed since ${CI_BASE_SHA}"
+            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
           fi
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
-            "${COVERAGE_ARGS[@]}"
-        env:
-          NODE_ENV: test
-          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
-      - name: Stage app coverage shard
-        if: always() && github.event_name == 'pull_request'
-        run: |
-          mkdir -p coverage-shard
-          # Seconds cover the shard's full test+coverage wall clock: the
-          # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take. A shard cancelled
-          # before "Mark test start" has no clock: it stages no latency and
-          # the report reads the missing file as null instead of the epoch.
-          if [ -n "${COVERAGE_STARTED:-}" ]; then
-            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
-          fi
-          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
-          shopt -s nullglob
-          reports=(apps/app/.vitest-reports/blob-*.json)
-          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
-            echo "::error::Changed app shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
-            exit 1
-          fi
-          if [ "${#reports[@]}" -gt 0 ]; then
-            cp "${reports[@]}" coverage-shard/
-          fi
-      - name: Upload app coverage blob
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-blob-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
+            --maxWorkers=2 "${SELECTION[@]}" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }}
 
-  # Focused, blocking API tests mirror the app planner. Large changed graphs are
-  # sharded rather than serialized on one two-worker runner; full-suite workflow
-  # calls and validation-machinery changes use the static full matrix below.
-  test-api-changed:
-    name: Test API (changed shard ${{ matrix.shard }}/${{ matrix.total }})
+  # API tests mirror the app job: the planner's matrix, changed selection on
+  # the affected tier, the whole suite on the full tier.
+  test-api:
+    name: Test API (shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -1000,46 +590,30 @@ jobs:
     env:
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       # Separate, fully-migrated databases on the same Postgres service
-      # (#5217 / #5191) — unlike the shared `test` database above, these run
-      # `prisma migrate deploy` for real, so the billing-account-scope and
-      # credit-balance *.postgres.spec.ts suites get an actual schema instead
-      # of self-skipping.
+      # (#5217 / #5191): these run `prisma migrate deploy` for real, so the
+      # billing-account-scope and credit-balance *.postgres.spec.ts suites get
+      # an actual schema instead of self-skipping.
       BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
       CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
       REDIS_URL: redis://localhost:6379
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.api_tests == 'true'
-      && needs.test-scope.outputs.force_full != 'true'
+    needs: plan
+    if: needs.plan.outputs.api_tests == 'true'
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.test-scope.outputs.api_matrix) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.api_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-      # `bunx prisma` from the repo root doesn't find the workspace-local,
-      # pinned `prisma` (it isn't hoisted there) and can silently fetch an
-      # unpinned version instead; and Prisma 7's datasource URL comes only
-      # from packages/prisma/prisma.config.mjs's own `process.env.DATABASE_URL`
-      # read; a bare `bunx prisma migrate deploy` here fails with
-      # "datasource.url property is required". `working-directory:
-      # packages/prisma` + `bun x` (not `bunx`) matches e2e.yml's existing,
-      # working pattern for this same schema/config pair.
-      #
-      # Cost: fully migrate billing_scope_test once, then `CREATE DATABASE
-      # ... TEMPLATE` credit_balance_test from it — a near-instant file-level
-      # copy — instead of running the full ~260-migration deploy twice per
-      # shard. Every shard still gets both databases fully migrated (matrix
-      # shards are separate runners/containers, so this can't be skipped on
-      # "some" shards without knowing which ones vitest's file-count-based
-      # sharding will hand a *.postgres.spec.ts file — verified this isn't
-      # knowable ahead of time: `vitest list --shard=N/M` does not actually
-      # respect `--shard`, it lists the whole suite regardless of N/M).
+      # `working-directory: packages/prisma` + `bun x` (not root `bunx`): the
+      # pinned `prisma` is workspace-local and Prisma 7 reads the datasource URL
+      # only from packages/prisma/prisma.config.mjs. Migrate once, then copy the
+      # second database with `CREATE DATABASE ... TEMPLATE` (a file-level copy).
+      # Every shard provisions both: `vitest list --shard` ignores the shard, so
+      # which shard gets a *.postgres.spec.ts file is not knowable ahead of time.
       - name: Provision billing-account-scope and credit-balance test databases
         working-directory: packages/prisma
         env:
@@ -1050,236 +624,31 @@ jobs:
           psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
-      - name: Mark test start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run changed API tests
-        id: tests
+      - name: Run API tests
+        env:
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+          NODE_ENV: test
         run: |
-          BASE="$CI_BASE_SHA"
-          # Force-push / new-branch pushes report an all-zero "before"; fall back
-          # to the previous commit so --changed always has a valid diff base.
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="HEAD~1"
-          fi
-          echo "Running API tests changed since $BASE"
-          # Pull requests instrument this same run for the #1849 observation
-          # ratchet (folded from the standalone Changed Coverage jobs, #1969);
-          # master pushes and merge-queue runs skip the instrumentation cost.
-          COVERAGE_ARGS=()
-          if [ "$WITH_COVERAGE" = "true" ]; then
-            # Shards emit mergeable Vitest blobs. LCOV is finalized once in
-            # Changed Coverage Report after every successful shard arrives.
-            # Pass the same explicit flags the app lane uses: a bare --coverage
-            # left the API shards reporting `All files | 0 | 0 | 0 | 0`, so the
-            # merge job had nothing to turn into LCOV and failed the report.
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-${{ matrix.total }}.json)
+          set -euo pipefail
+          SELECTION=()
+          if [ "${FORCE_FULL}" != "true" ] && [ -n "${CI_BASE_SHA}" ]; then
+            echo "Running API tests changed since ${CI_BASE_SHA}"
+            SELECTION=(--passWithNoTests --changed "${CI_BASE_SHA}")
           fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
-            "${COVERAGE_ARGS[@]}"
-        env:
-          NODE_ENV: test
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
-          # Suppresses the API suite's whole-repository coverage thresholds. They
-          # describe the full suite; a diff-scoped subset would trip every one of
-          # them and the failure would carry no information. Harmless on runs
-          # without instrumentation — the config also suppresses them for any
-          # sharded run, and this job always shards.
-          CHANGED_CODE_COVERAGE: '1'
-      - name: Stage api coverage shard
-        if: always() && github.event_name == 'pull_request'
-        run: |
-          mkdir -p coverage-shard
-          # Seconds cover the shard's full test+coverage wall clock: the
-          # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take. A shard cancelled
-          # before "Mark test start" has no clock: it stages no latency and
-          # the report reads the missing file as null instead of the epoch.
-          if [ -n "${COVERAGE_STARTED:-}" ]; then
-            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
-          fi
-          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
-          shopt -s nullglob
-          reports=(apps/server/api/.vitest-reports/blob-*.json)
-          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
-            echo "::error::Changed API shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
-            exit 1
-          fi
-          if [ "${#reports[@]}" -gt 0 ]; then
-            cp "${reports[@]}" coverage-shard/
-          fi
-      - name: Upload api coverage blob
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-blob-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
+            --maxWorkers=2 "${SELECTION[@]}" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }}
 
-  test-api:
-    name: Test API (Shard ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env:
-          POSTGRES_DB: test
-          POSTGRES_PASSWORD: genfeed_local
-          POSTGRES_USER: genfeed
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U genfeed -d test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      # #5252 review: the real-Redis integration specs (queue isolation,
-      # pending-execution reconciler) otherwise skip silently in CI.
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
-      # Separate, fully-migrated databases on the same Postgres service
-      # (#5217 / #5191) — unlike the shared `test` database above, these run
-      # `prisma migrate deploy` for real, so the billing-account-scope and
-      # credit-balance *.postgres.spec.ts suites get an actual schema instead
-      # of self-skipping.
-      BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
-      CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
-      REDIS_URL: redis://localhost:6379
-    needs: [trust, test-scope]
-    # Full sharded suite is explicit: release/deploy QA or a planner escalation
-    # for validation machinery and root dependency changes.
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.api == 'true'
-      && needs.test-scope.outputs.force_full == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      # See the identical step in test-api-changed above for why this needs
-      # working-directory + `bun x` (not root `bunx`) and why it templates
-      # the second database instead of running the full migration twice.
-      - name: Provision billing-account-scope and credit-balance test databases
-        working-directory: packages/prisma
-        env:
-          PGPASSWORD: genfeed_local
-        run: |
-          psql -h localhost -U genfeed -d test -c "CREATE DATABASE billing_scope_test;"
-          DATABASE_URL="$BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL" bun x prisma migrate deploy
-          psql -h localhost -U genfeed -d test -c "CREATE DATABASE credit_balance_test TEMPLATE billing_scope_test;"
-      - name: Build API dependencies
-        run: bunx turbo run build --filter=./packages/**
-      - name: Mark test start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run API test shard
-        id: tests
-        run: |
-          COVERAGE_ARGS=()
-          if [ "$WITH_COVERAGE" = "true" ]; then
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json)
-          fi
-          cd apps/server/api && bunx vitest run --config vitest.config.ts --maxWorkers=2 --shard=${{ matrix.shard }}/4 "${COVERAGE_ARGS[@]}"
-        env:
-          NODE_ENV: test
-          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
-          CHANGED_CODE_COVERAGE: '1'
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-      - name: Stage api coverage shard
-        if: always() && github.event_name == 'pull_request'
-        run: |
-          mkdir -p coverage-shard
-          # Seconds cover the shard's full test+coverage wall clock: the
-          # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take. A shard cancelled
-          # before "Mark test start" has no clock: it stages no latency and
-          # the report reads the missing file as null instead of the epoch.
-          if [ -n "${COVERAGE_STARTED:-}" ]; then
-            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
-          fi
-          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
-          shopt -s nullglob
-          reports=(apps/server/api/.vitest-reports/blob-*.json)
-          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
-            echo "::error::Changed API shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
-            exit 1
-          fi
-          if [ "${#reports[@]}" -gt 0 ]; then
-            cp "${reports[@]}" coverage-shard/
-          fi
-      - name: Upload api coverage blob
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-blob-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
-
-
-  # OpenAPI documentation gate (#1247). The spec is a generated artifact and is
-  # NOT committed (gitignored): this job emits it fresh from the compiled bundle
-  # (headless emit — no DB/Redis, exits before the listener), fails when the
-  # emit is non-deterministic or invalid, and uploads the result for review.
-  # The live API serves /v1/openapi.json dynamically, so nothing consumes a
-  # committed copy.
-  openapi-drift:
-    name: OpenAPI Spec Drift
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    needs: [trust, test-scope]
-    if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-      - name: Build api (compiled bundle)
-        run: bunx turbo run build --filter=@genfeedai/api
-      - name: Emit spec twice — must be byte-identical
-        run: |
-          cd apps/server/api
-          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
-          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
-          cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
-      - name: Upload generated OpenAPI spec
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
-          path: /tmp/openapi-emit-1.json
-          retention-days: 7
-      - name: Validate spec (operationId coverage/uniqueness + allowlist)
-        run: cd apps/server/api && bun run openapi:validate -- --spec=/tmp/openapi-emit-1.json
-
+  # Build, plus the OpenAPI documentation gate (#1247) whenever the API is in
+  # scope. The spec is a generated artifact and is NOT committed: it is emitted
+  # fresh from the compiled bundle (headless — no DB/Redis), must be
+  # byte-identical across two emits, must validate, and is uploaded for review.
   build:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Build no longer queues behind the static checks (#1969): they gate the
-    # merge through the Tests Gate, not through this job's dependency edge, so
-    # the build starts as soon as trust clears instead of after the slowest
-    # static job.
-    needs: [trust]
-    if: needs.trust.outputs.is-trusted == 'true'
+    needs: plan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -1293,53 +662,58 @@ jobs:
           else
             bun run build
           fi
+      - name: Build api (compiled bundle)
+        if: needs.plan.outputs.api == 'true'
+        run: bunx turbo run build --filter=@genfeedai/api
+      - name: Emit OpenAPI spec twice — must be byte-identical
+        if: needs.plan.outputs.api == 'true'
+        run: |
+          cd apps/server/api
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
+          bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
+          cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
+      - name: Upload generated OpenAPI spec
+        if: needs.plan.outputs.api == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/openapi-emit-1.json
+          retention-days: 7
+      - name: Validate OpenAPI spec (operationId coverage/uniqueness + allowlist)
+        if: needs.plan.outputs.api == 'true'
+        run: cd apps/server/api && bun run openapi:validate -- --spec=/tmp/openapi-emit-1.json
 
-  # Stable aggregate for the test/build portion of CI. Every upstream job is
+  # Stable aggregate and the required status check. Every upstream job is
   # declared explicitly so an expression error that leaves an applicable job
-  # skipped cannot produce a false-green gate. Full-suite and changed-test jobs
-  # are mutually exclusive; plan-filtered skips are accepted only when the
-  # exact test plan marked them non-applicable.
+  # skipped cannot produce a false-green gate; plan-filtered skips are accepted
+  # only when the exact plan marked them non-applicable.
   #
-  # Runs on pull requests AND master pushes (#2510): the push event only fires
-  # for `branches: [master]`, so the second arm is exactly the trunk. Without
-  # it a merge train could go red with no conclusive aggregate — eight green
-  # shard jobs made run 31200491364 look complete while the heavy tier was
-  # absent. The release path (workflow_call inherits the caller's originating
-  # event, e.g. workflow_dispatch) stays gated by its own callers, unchanged.
-  #
-  # `spec-typecheck` belongs here for the same reason: this aggregate is what
-  # the master failure tracker below keys off, so a job missing from `needs`
-  # cannot raise the alarm. Run 32971423541 went red on Spec Typecheck with a
-  # green Tests Gate, which skipped the reporter and let the resolve arm close
-  # the open trackers on a red trunk.
+  # Runs on ready pull requests and on the hourly Full Suite (`schedule`,
+  # inherited through workflow_call), whose verdict drives the master failure
+  # tracker below. The release path (workflow_dispatch) is gated by its caller.
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
+      - plan
       - static-checks
       - spec-typecheck
-      - test-scope
-      - test-packages
-      - test-server-services
-      - test-web-desktop-mobile
-      - test-extensions
+      - test-workspaces
       - test-app
-      - test-app-changed
       - test-api
-      - test-api-changed
-      - openapi-drift
       - build
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
+    if: >-
+      ${{ always()
+      && !github.event.pull_request.draft
+      && (github.event_name == 'pull_request' || github.event_name == 'schedule') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # A pull request run is cancelled when a newer push supersedes it
-      # (cancel-in-progress above). Its jobs then read "cancelled" and, without
-      # this, the gate paints the old commit red although nothing failed. Only
-      # a run whose PR head has since moved counts as superseded; a manual
-      # cancel on the current head, merge-queue runs and master pushes keep
-      # failing closed. A failed lookup also fails closed.
+      # A pull request run is cancelled when a newer push supersedes it. Its
+      # jobs then read "cancelled" and, without this, the gate paints the old
+      # commit red although nothing failed. Only a run whose PR head has since
+      # moved counts as superseded; a failed lookup fails closed.
       - name: Detect a pull request run superseded by a newer push
         id: supersession
         if: ${{ github.event_name == 'pull_request' }}
@@ -1361,173 +735,34 @@ jobs:
         env:
           RUN_SUPERSEDED: ${{ steps.supersession.outputs.superseded }}
           SUPERSEDED_BY: ${{ steps.supersession.outputs.superseded_by }}
-          TEST_SCOPE_APP: ${{ needs.test-scope.outputs.app }}
-          TEST_SCOPE_API: ${{ needs.test-scope.outputs.api }}
-          TEST_SCOPE_APP_TESTS: ${{ needs.test-scope.outputs.app_tests }}
-          TEST_SCOPE_API_TESTS: ${{ needs.test-scope.outputs.api_tests }}
-          TEST_SCOPE_PACKAGES: ${{ needs.test-scope.outputs.packages }}
-          TEST_SCOPE_SERVER_SERVICES: ${{ needs.test-scope.outputs.server_services }}
-          TEST_SCOPE_WEB_DESKTOP_MOBILE: ${{ needs.test-scope.outputs.web_desktop_mobile }}
-          TEST_SCOPE_EXTENSIONS: ${{ needs.test-scope.outputs.extensions }}
-          FULL_SUITE: ${{ needs.test-scope.outputs.force_full }}
-          TEST_SCOPE_RESULT: ${{ needs.test-scope.result }}
-          TEST_PACKAGES_RESULT: ${{ needs.test-packages.result }}
-          TEST_SERVER_SERVICES_RESULT: ${{ needs.test-server-services.result }}
-          TEST_WEB_DESKTOP_MOBILE_RESULT: ${{ needs.test-web-desktop-mobile.result }}
-          TEST_EXTENSIONS_RESULT: ${{ needs.test-extensions.result }}
-          TEST_APP_RESULT: ${{ needs.test-app.result }}
-          TEST_APP_CHANGED_RESULT: ${{ needs.test-app-changed.result }}
-          TEST_API_RESULT: ${{ needs.test-api.result }}
-          TEST_API_CHANGED_RESULT: ${{ needs.test-api-changed.result }}
-          OPENAPI_DRIFT_RESULT: ${{ needs.openapi-drift.result }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+          PLAN_APP_TESTS: ${{ needs.plan.outputs.app_tests }}
+          PLAN_API_TESTS: ${{ needs.plan.outputs.api_tests }}
+          PLAN_WORKSPACE_TESTS: ${{ needs.plan.outputs.workspace_tests }}
+          PLAN_SPEC_TYPECHECK: ${{ needs.plan.outputs.spec_run }}
           STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
           SPEC_TYPECHECK_RESULT: ${{ needs.spec-typecheck.result }}
+          TEST_WORKSPACES_RESULT: ${{ needs.test-workspaces.result }}
+          TEST_APP_RESULT: ${{ needs.test-app.result }}
+          TEST_API_RESULT: ${{ needs.test-api.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
-  # ── Changed-code coverage — OBSERVATION ONLY (#1849) ────────────────────────
-  #
-  # Coverage rides the changed-test shards above (#1969): on pull requests the
-  # Test App/API (changed) jobs run their exact same Vitest graph with lcov
-  # instrumentation enabled, so the measurement costs zero extra runners and
-  # zero extra wall clock beyond the instrumentation overhead itself. The
-  # report job below aggregates the shards' staged lcov and stays deliberately
-  # absent from `tests-gate.needs` while the committed baseline says
-  # `mode: "observation"` — it measures, it never gates. Promotion to a merge
-  # requirement is a separate reviewed change (flip the baseline `mode`, then
-  # add "Changed Coverage Report" to the branch ruleset) — see
-  # scripts/ci/changed-code-coverage.baseline.json.
-  #
-  # Full-repository coverage stays in the weekly Coverage workflow: its matrix
-  # costs 21-24 minutes and must never enter pull-request CI.
-  #
-  # Both selected tiers emit blobs on PRs. A force_full escalation reuses its
-  # existing full test matrix rather than dropping the coverage measurement or
-  # launching another suite. A surface with no selected tests remains unmeasured.
-  coverage-changed-report:
-    name: Changed Coverage Report
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [trust, test-app-changed, test-api-changed, test-app, test-api]
-    if: >-
-      always() && github.event_name == 'pull_request'
-      && needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-bun-env
-      # One download per surface so each surface resolves to a directory holding
-      # only its own shards. Both surfaces can legitimately be skipped (a
-      # docs-only or packages-only diff), leaving nothing to download; a missing
-      # artifact is a surface state the report already models, not a step failure.
-      - name: Download app coverage shards
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: changed-code-coverage-blob-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-*
-          path: .changed-coverage/app
-      - name: Download api coverage shards
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: changed-code-coverage-blob-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-*
-          path: .changed-coverage/api
-      - name: Intersect coverage with the pull-request diff
-        env:
-          # Only distinguishes "surface ran at all" from "surface was skipped".
-          # Whether the measurement is usable, and how long it took, come from
-          # the shards' own staged outcome/seconds — a matrix job's outputs are
-          # last-writer-wins, so the job result alone cannot say which shard
-          # produced what.
-          APP_RESULT: ${{ needs.test-app-changed.result != 'skipped' && needs.test-app-changed.result || needs.test-app.result }}
-          API_RESULT: ${{ needs.test-api-changed.result != 'skipped' && needs.test-api-changed.result || needs.test-api.result }}
-          CHANGED_CODE_COVERAGE: '1'
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-
-          merge_surface() {
-            local surface="$1"
-            local workspace="$2"
-            local config="$3"
-            local job_result="$4"
-            local reports=(.changed-coverage/"$surface"/*/blob-*.json)
-
-            # A red/cancelled matrix can leave partial blobs behind. Preserve
-            # its shard outcomes for the normalized report, but never merge a
-            # partial test selection into a misleading coverage percentage.
-            if [ "$job_result" != 'success' ] || [ "${#reports[@]}" -eq 0 ]; then
-              return
-            fi
-
-            local has_changed_code
-            has_changed_code=$(node scripts/ci/changed-code-coverage.mjs \
-              --base "$CI_BASE_SHA" --head HEAD --has-changed-code "$surface") || return 1
-            mkdir -p "$workspace/.vitest-reports" || return 1
-            cp "${reports[@]}" "$workspace/.vitest-reports/" || return 1
-            (
-              cd "$workspace" || exit 1
-              bunx vitest --merge-reports .vitest-reports \
-                --coverage \
-                --coverage.all=false \
-                --coverage.reporter=lcovonly \
-                --config "$config"
-            ) || return 1
-            cp "$workspace/coverage/lcov.info" ".changed-coverage/$surface/lcov.info" || return 1
-            if [ ! -s ".changed-coverage/$surface/lcov.info" ]; then
-              if [ "$has_changed_code" = 'false' ]; then
-                echo "$surface: no changed code on this surface"
-                return
-              fi
-              echo "::error::$surface changed-code coverage merge produced no LCOV"
-              return 1
-            fi
-          }
-
-          MERGE_FAILED=false
-          merge_surface app apps/app ./vitest.config.mts "$APP_RESULT" || { APP_RESULT=failure; MERGE_FAILED=true; }
-          merge_surface api apps/server/api vitest.config.ts "$API_RESULT" || { API_RESULT=failure; MERGE_FAILED=true; }
-
-          node scripts/ci/changed-code-coverage.mjs \
-            --base "$CI_BASE_SHA" \
-            --head HEAD \
-            --surface "app=${APP_RESULT}=.changed-coverage/app" \
-            --surface "api=${API_RESULT}=.changed-coverage/api" \
-            --out changed-code-coverage.json \
-            --annotate
-          if [ "$MERGE_FAILED" = true ]; then exit 1; fi
-      - name: Upload changed-code coverage report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
-          path: changed-code-coverage.json
-          if-no-files-found: warn
-          # Observation evidence: the first ratchet is derived by aggregating
-          # these artifacts, so they outlive the usual 7-day CI retention.
-          retention-days: 90
-
-  # ── Master push failure tracker (#2510) ─────────────────────────────────────
+  # ── Master failure tracker (#2510) ──────────────────────────────────────────
   #
   # A red trunk must not depend on someone opening the Actions tab. When the
-  # Tests Gate fails on a master push, file (or update) ONE `master-ci-failure`
-  # tracking issue at native issue Priority P0; when the next push is green, close
-  # every open tracker automatically — same contract as the self-hosted release
-  # E2E tracker. Push-only by construction: these fire inside full-suite.yml's
-  # master-push run (workflow_call inherits the caller's originating `push`
-  # event). Pull requests surface a red gate on the PR itself, and the release
-  # path (workflow_dispatch) never matches `push`.
+  # hourly Full Suite's Tests Gate fails, file (or update) ONE
+  # `master-ci-failure` tracking issue at native issue Priority P0; when a later
+  # hourly run is green, close every open tracker. `schedule` reaches this
+  # workflow only through full-suite.yml's call; pull requests surface a red gate
+  # on the PR itself, and the release path (workflow_dispatch) never matches.
   #
-  # `!cancelled()` is load-bearing on the failure arm twice over: an `if:`
-  # without a status function implicitly ANDs `success()`, which is false the
-  # moment tests-gate fails — and `always()` would fire on a cancelled run,
-  # filing a phantom tracker for jobs that never got to report.
-  master-failure-report:
-    name: Report master CI failure
+  # `!cancelled()` is load-bearing: an `if:` without a status function
+  # implicitly ANDs `success()` over the (routinely partly skipped) graph, and
+  # `always()` would act on a cancelled run that never got to report.
+  master-failure-tracker:
+    name: Master CI failure tracker
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
@@ -1536,8 +771,8 @@ jobs:
     needs: [tests-gate]
     if: >-
       !cancelled()
-      && github.event_name == 'push'
-      && needs.tests-gate.result == 'failure'
+      && github.event_name == 'schedule'
+      && (needs.tests-gate.result == 'failure' || needs.tests-gate.result == 'success')
     permissions:
       contents: read
       issues: write
@@ -1547,11 +782,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Read the validated commit subject
+        id: head
+        run: echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
       - name: Open or update tracking issue (Priority P0)
+        if: needs.tests-gate.result == 'failure'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           REPOSITORY_TOKEN: ${{ github.token }}
-          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          HEAD_COMMIT_MESSAGE: ${{ steps.head.outputs.subject }}
         with:
           # This trusted master-only job reuses the existing maintainer PAT so
           # Native org issue-field and Project #12 writes are possible;
@@ -1573,9 +813,7 @@ jobs:
             );
 
             const date = new Date().toISOString().slice(0, 10);
-            const headline =
-              (process.env.HEAD_COMMIT_MESSAGE || '').split('\n')[0] ||
-              'unresolved';
+            const headline = process.env.HEAD_COMMIT_MESSAGE || 'unresolved';
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = buildMasterCiFailureBody({
               date,
@@ -1595,44 +833,11 @@ jobs:
             });
             core.info(JSON.stringify(result));
 
-  # Auto-close open master-ci-failure trackers when a master push is green so a
-  # recovered trunk cannot keep a stale P0 on the board.
-  #
-  # `!cancelled()` is load-bearing HERE TOO, and for a less obvious reason than
-  # on the failure arm: skip propagation is transitive. `tests-gate` runs under
-  # `always()` and reports `success`, but its own needs include lanes that are
-  # routinely skipped (extensions, the app/api full shards) —
-  # and a dependent whose `if:` carries no status function inherits the implicit
-  # `success()` over that graph, so this job was skipped on EVERY green master
-  # push from #2580 until 2026-08-09. #2625 stayed open through five green
-  # pushes because of it. Do not drop the status function to "simplify" this
-  # condition; `always()` is the wrong one (a cancelled run would close a
-  # tracker that nothing re-verified).
-  master-failure-resolve:
-    name: Resolve master CI failure
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    concurrency:
-      group: master-ci-failure-tracker
-      cancel-in-progress: false
-    needs: [tests-gate]
-    if: >-
-      !cancelled()
-      && github.event_name == 'push'
-      && needs.tests-gate.result == 'success'
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Checkout failure reporter
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: Close open master-ci-failure trackers
+        if: needs.tests-gate.result == 'success'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          HEAD_COMMIT_MESSAGE: ${{ steps.head.outputs.subject }}
         with:
           script: |
             const path = require('node:path');
@@ -1647,9 +852,7 @@ jobs:
             );
 
             const date = new Date().toISOString().slice(0, 10);
-            const headline =
-              (process.env.HEAD_COMMIT_MESSAGE || '').split('\n')[0] ||
-              'unresolved';
+            const headline = process.env.HEAD_COMMIT_MESSAGE || 'unresolved';
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
               `**Tests Gate is green on \`master\`** on \`${date}\`.`,
@@ -1657,7 +860,7 @@ jobs:
               `- Commit: \`${context.sha}\` — ${headline}`,
               `- Green run: ${runUrl}`,
               ``,
-              `Closing automatically. A future red master push will file a new tracker at Priority P0.`,
+              `Closing automatically. A future red master run will file a new tracker at Priority P0.`,
             ].join('\n');
 
             const result = await resolveMasterCiFailure({
@@ -1665,55 +868,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body,
-              core,
-            });
-            core.info(JSON.stringify(result));
-
-  # ── Merge-queue zombie-run janitor (#1969) ──────────────────────────────────
-  #
-  # When a queue entry merges, GitHub deletes its temporary
-  # `gh-readonly-queue/master/...` ref — but `merge_group` workflow runs still
-  # queued or in progress on that ref are not cancelled with it. Each zombie
-  # held a runner slot until the 6-hour workflow timeout, which starved the
-  # org-wide runner pool at peak (measured while auditing #1850). Every queue
-  # merge lands on `master` as a push (reaching this workflow through
-  # full-suite.yml's call, which inherits the `push` event), so this job sweeps
-  # on exactly that signal: cancel active merge_group runs whose queue ref no
-  # longer resolves, and leave runs on live queue refs alone. Independent of
-  # the test graph by design — a red gate must not keep zombies alive.
-  merge-queue-janitor:
-    name: Merge Queue Janitor
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: github.event_name == 'push'
-    permissions:
-      actions: write
-      contents: read
-    steps:
-      - name: Checkout janitor
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Cancel zombie merge-queue runs
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const path = require('node:path');
-            const { pathToFileURL } = require('node:url');
-            const { cleanMergeQueueRuns } = await import(
-              pathToFileURL(
-                path.join(
-                  process.env.GITHUB_WORKSPACE,
-                  'scripts/ci/merge-queue-janitor.mjs',
-                ),
-              ).href,
-            );
-
-            const result = await cleanMergeQueueRuns({
-              github,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
               core,
             });
             core.info(JSON.stringify(result));

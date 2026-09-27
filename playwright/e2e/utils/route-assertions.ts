@@ -20,6 +20,42 @@ interface AssertRouteOptions {
 }
 
 /**
+ * Selector for the marker shared by every application ErrorBoundary fallback:
+ * `packages/ui/src/components/error/ErrorBoundary` (and the components that
+ * delegate to it, e.g. `@ui/display/error-boundary/ErrorBoundary`), the
+ * Next.js `error.tsx` / `global-error.tsx` route boundaries, and the two
+ * boundary-like gates that render `ErrorFallback` directly for an
+ * unrecoverable, page-blocking failure (`routed-organization-boundary.tsx`'s
+ * `failed` status and the workspace segment's `error.tsx`).
+ *
+ * Deliberately NOT present on a component's own handled loading, empty, or
+ * recoverable request-error UI (e.g. a list's "could not load, retry"
+ * state) — those are valid product states, not a caught render exception.
+ */
+export const ERROR_BOUNDARY_FALLBACK_SELECTOR =
+  '[data-testid="error-boundary-fallback"]';
+
+/**
+ * Asserts the current page did not render an application ErrorBoundary
+ * fallback. The framework's own error overlay only fires for a raw, uncaught
+ * exception — a React ErrorBoundary catches the same exception and renders a
+ * normal-looking page, so a route smoke that checks only for the overlay and
+ * a non-blank body can stay green while the app is actually broken (#5070).
+ *
+ * @param page - Playwright page, already navigated to `route`
+ * @param route - The route being checked, used only for the failure message
+ */
+export async function assertNoErrorBoundaryFallback(
+  page: Page,
+  route: string,
+): Promise<void> {
+  await expect(
+    page.locator(ERROR_BOUNDARY_FALLBACK_SELECTOR),
+    `${route} rendered an application error boundary`,
+  ).toHaveCount(0, { timeout: 1_000 });
+}
+
+/**
  * Navigates to a route and asserts it renders without errors.
  *
  * @param page - Playwright page (use authenticatedPage / adminPage fixtures)

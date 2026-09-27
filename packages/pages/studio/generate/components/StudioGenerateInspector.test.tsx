@@ -180,6 +180,26 @@ describe('StudioGenerateInspector', () => {
     expect(receipts).toHaveTextContent('Version 1');
   });
 
+  it('keeps the header on the 48px band and the tabs inside the panel gutter', () => {
+    render(
+      <StudioGenerateInspector
+        job={recipeJob}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+
+    const inspector = screen.getByTestId('studio-generate-inspector');
+    const header = inspector.firstElementChild;
+    const tabList = screen.getByRole('tablist');
+
+    expect(header).toHaveClass('h-12', 'items-center', 'border-b', 'px-4');
+    expect(tabList).toHaveClass('mx-4', 'mt-3');
+    expect(tabList).not.toHaveClass('ml-auto');
+  });
+
   it('shows the enriched recipe instead of the raw composer text', () => {
     render(
       <StudioGenerateInspector

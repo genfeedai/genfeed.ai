@@ -1,3 +1,4 @@
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import {
   buildExecutionJsonApiResource,
   mockActiveSubscription,
@@ -104,12 +105,14 @@ test.describe('Workflow accounting display', () => {
       ).toBeVisible();
       if (actualCredits === null)
         await expect(
-          authenticatedPage.getByText('Known subtotal: 0.27'),
+          authenticatedPage.getByText(
+            `Known subtotal: ${formatCreditCost(accounting.knownActualCredits)}`,
+          ),
         ).toBeVisible();
       else
         await expect(
           authenticatedPage.getByText(
-            actualCredits === 0 ? 'Variance: -0.3' : 'Variance: -0.03',
+            `Variance: ${formatCreditCost(accounting.varianceCredits)}`,
           ),
         ).toBeVisible();
       if (actualCredits !== null)

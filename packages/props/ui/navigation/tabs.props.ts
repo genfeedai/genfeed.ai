@@ -29,6 +29,8 @@ export interface TabsProps {
   onTabChange?: (tabId: string) => void;
   className?: string;
   contentClassName?: string;
+  /** Placement of the tab list inside its root; defaults to `ml-auto` (right-aligned). */
+  listClassName?: string;
   fullWidth?: boolean;
   stopClickPropagation?: boolean;
   testId?: string;

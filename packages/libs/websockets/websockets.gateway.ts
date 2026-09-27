@@ -1,4 +1,7 @@
-import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
+import {
+  isBearerScheme,
+  parseAuthorizationHeader,
+} from '@libs/auth/authorization-header';
 import {
   BetterAuthJwksVerifier,
   createBetterAuthJwksVerifierOptions,
@@ -186,6 +189,14 @@ export class WebSocketGateway
     userId?: string;
     organizationId?: string;
   }> {
+    if (this.hasMalformedBearerHeader(client)) {
+      this.logger.warn(
+        `Rejected malformed Bearer authorization header for client ${client.id}`,
+        this.context,
+      );
+      return {};
+    }
+
     const token = this.extractToken(client);
     if (!token) {
       return {};
@@ -275,6 +286,27 @@ export class WebSocketGateway
       );
     }
     return this.betterAuthVerifier;
+  }
+
+  /**
+   * A presented Authorization header that attempts the Bearer scheme but
+   * fails strict parsing (blank token, or surplus whitespace-separated
+   * fields — see `parseAuthorizationHeader`) is a malformed credential, not
+   * an absent one. It must reject the socket rather than be silently
+   * ignored in favor of `handshake.auth.token`. Non-Bearer schemes carry no
+   * Bearer credential and stay on the normal path. Mirrors
+   * `TerminalGateway.hasMalformedBearerHeader` and `CombinedAuthGuard`.
+   */
+  private hasMalformedBearerHeader(client: Socket): boolean {
+    const headerToken = client.handshake.headers.authorization;
+    if (typeof headerToken !== 'string') {
+      return false;
+    }
+
+    return (
+      isBearerScheme(headerToken) &&
+      parseAuthorizationHeader(headerToken)?.normalizedScheme !== 'bearer'
+    );
   }
 
   private extractToken(client: Socket): string | undefined {

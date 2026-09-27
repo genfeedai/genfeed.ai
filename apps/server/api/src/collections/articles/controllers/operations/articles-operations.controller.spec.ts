@@ -1,11 +1,14 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import type { Article } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -92,6 +95,18 @@ describe('ArticlesOperationsController', () => {
     findOne: vi.fn(),
   };
 
+  const mockApiKeysService = {
+    findOne: vi.fn(),
+  };
+
+  const mockBrandsService = {
+    findOne: vi.fn(),
+  };
+
+  const mockMembersService = {
+    findOne: vi.fn(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
@@ -100,6 +115,19 @@ describe('ArticlesOperationsController', () => {
       isGenerateArticlesEnabled: true,
       organizationId: mockPublicMetadata.organization,
     });
+    mockMembersService.findOne.mockResolvedValue(null);
+    // Permissive by default (org-scoped, matching `BaseService.findOne`'s
+    // real org + non-deleted filter): resolves any brandId for this org, so
+    // existing tests keep exercising `mockUser.brandId` /
+    // `GenerateArticlesDto.brandId` unchanged. The dedicated "brand
+    // resolution" tests below override this with stricter stubs.
+    mockBrandsService.findOne.mockImplementation(
+      async (query: { id?: unknown; organizationId?: unknown }) =>
+        query.organizationId === mockPublicMetadata.organization &&
+        typeof query.id === 'string'
+          ? { id: query.id }
+          : null,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesOperationsController],
@@ -109,8 +137,16 @@ describe('ArticlesOperationsController', () => {
           useValue: mockActivitiesService,
         },
         {
+          provide: ApiKeysService,
+          useValue: mockApiKeysService,
+        },
+        {
           provide: ArticlesService,
           useValue: mockArticlesService,
+        },
+        {
+          provide: BrandsService,
+          useValue: mockBrandsService,
         },
         {
           provide: CreditsUtilsService,
@@ -118,6 +154,10 @@ describe('ArticlesOperationsController', () => {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
           },
+        },
+        {
+          provide: MembersService,
+          useValue: mockMembersService,
         },
         {
           provide: ModelsService,
@@ -400,6 +440,136 @@ describe('ArticlesOperationsController', () => {
       expect(service.resolveArticleCycleModelConfig).not.toHaveBeenCalled();
       expect(service.generateArticles).not.toHaveBeenCalled();
       expect(mockActivitiesService.create).not.toHaveBeenCalled();
+    });
+
+    describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {
+      beforeEach(() => {
+        mockArticlesService.generateArticles.mockResolvedValue({
+          articles: [mockArticle],
+          billedCredits: 0,
+        });
+        mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+          generationModel: 'default-text-model',
+          reviewModel: 'default-text-model',
+          updateModel: 'default-text-model',
+        });
+        mockActivitiesService.create.mockResolvedValue({ id: activityId });
+        mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
+          undefined,
+        );
+      });
+
+      it('resolves an API-key caller\'s brand from the key\'s validated defaultBrandId, never the ambient "any org brand" convenience', async () => {
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          // Ambient ApiKeyAuthGuard convenience value — must not be trusted
+          // as the generation brand for an API-key caller.
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        mockApiKeysService.findOne.mockResolvedValue({
+          defaultBrandId: 'key-default-brand',
+        });
+        const dto: GenerateArticlesDto = { prompt: 'AI Technology' };
+
+        await controller.generateArticles(mockRequest, dto, apiKeyUser);
+
+        expect(mockApiKeysService.findOne).toHaveBeenCalledWith({
+          id: 'apikey-1',
+        });
+        expect(service.generateArticles).toHaveBeenCalledWith(
+          dto,
+          mockPublicMetadata.user,
+          mockPublicMetadata.organization,
+          'key-default-brand',
+        );
+      });
+
+      it("falls back to the key owner's member currentBrandId when the key has no valid default brand", async () => {
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        mockMembersService.findOne.mockResolvedValue({
+          currentBrandId: 'owner-current-brand',
+        });
+        const dto: GenerateArticlesDto = { prompt: 'AI Technology' };
+
+        await controller.generateArticles(mockRequest, dto, apiKeyUser);
+
+        expect(mockMembersService.findOne).toHaveBeenCalledWith({
+          organizationId: mockPublicMetadata.organization,
+          userId: mockPublicMetadata.user,
+        });
+        expect(service.generateArticles).toHaveBeenCalledWith(
+          dto,
+          mockPublicMetadata.user,
+          mockPublicMetadata.organization,
+          'owner-current-brand',
+        );
+      });
+
+      it('rejects an API-key caller whose key has no valid default brand and whose owner has no current brand — never widens to "any brand in the org"', async () => {
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        mockMembersService.findOne.mockResolvedValue(null);
+        const dto: GenerateArticlesDto = { prompt: 'AI Technology' };
+
+        await expect(
+          controller.generateArticles(mockRequest, dto, apiKeyUser),
+        ).rejects.toThrow(
+          'brandId is required to generate articles. Configure a default brand for this API key, or pass brandId explicitly.',
+        );
+        expect(service.generateArticles).not.toHaveBeenCalled();
+      });
+
+      it('rejects an API-key caller whose explicit brandId belongs to another organization', async () => {
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+        } as unknown as User;
+        mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        mockMembersService.findOne.mockResolvedValue(null);
+        // No stub matches 'other-org-brand' for this organization, so the
+        // permissive default `mockBrandsService.findOne` still correctly
+        // rejects — override it explicitly here to make the intent obvious.
+        mockBrandsService.findOne.mockResolvedValue(null);
+        const dto: GenerateArticlesDto = {
+          brandId: 'other-org-brand',
+          prompt: 'AI Technology',
+        };
+
+        await expect(
+          controller.generateArticles(mockRequest, dto, apiKeyUser),
+        ).rejects.toThrow(
+          'brandId is required to generate articles. Configure a default brand for this API key, or pass brandId explicitly.',
+        );
+        expect(service.generateArticles).not.toHaveBeenCalled();
+      });
+
+      it('rejects a session/app caller when no brandId resolves at all', async () => {
+        const brandlessUser = {
+          ...mockUser,
+          brandId: undefined,
+        } as unknown as User;
+        mockMembersService.findOne.mockResolvedValue(null);
+        const dto: GenerateArticlesDto = { prompt: 'AI Technology' };
+
+        await expect(
+          controller.generateArticles(mockRequest, dto, brandlessUser),
+        ).rejects.toThrow('brandId is required to generate articles.');
+        expect(service.generateArticles).not.toHaveBeenCalled();
+      });
     });
   });
 
