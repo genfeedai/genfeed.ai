@@ -44,6 +44,18 @@ vi.mock('@genfeedai/contracts', () => ({
 }));
 
 vi.mock('@genfeedai/contracts/constants', () => ({
+  APP_DISPLAY_LABELS: {
+    admin: 'Admin',
+    agent: 'Agent',
+    analytics: 'Analytics',
+    automation: 'Automation',
+    discovery: 'Discovery',
+    library: 'Library',
+    messages: 'Messages',
+    publishing: 'Publishing',
+    studio: 'Studio',
+    workspace: 'Workspace',
+  },
   APP_ROUTE_PREFIXES: {
     ADMIN: '/admin',
     SETTINGS: '/settings',
