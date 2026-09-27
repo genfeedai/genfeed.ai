@@ -236,17 +236,41 @@ describe('proactive organization to strategy run and attributed draft integratio
       { reconcile: vi.fn() } as never,
       { reconcile: vi.fn() } as never,
     );
-    // PlatformSchedulesProcessor's constructor has 33 positional params;
-    // workflowSchedules sits at index 31, followed by xReplyWatch at index 32
-    // -- pad to the full length so schedules lands in its real slot instead
-    // of a trailing push overwriting whatever param happens to be last.
-    const processorArgs = Array.from({ length: 33 }, () => ({}));
-    processorArgs[0] = { isDevSchedulersEnabled: true };
-    processorArgs[31] = schedules;
+    // List every constructor argument so an arity change fails typecheck
+    // instead of shifting workflowSchedules into the wrong slot.
     const processor = new PlatformSchedulesProcessor(
-      ...(processorArgs as ConstructorParameters<
-        typeof PlatformSchedulesProcessor
-      >),
+      { isDevSchedulersEnabled: true } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      schedules as never,
+      {} as never,
     );
 
     await prisma.organization.create({
