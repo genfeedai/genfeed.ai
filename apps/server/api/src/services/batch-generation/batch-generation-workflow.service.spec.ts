@@ -96,7 +96,7 @@ describe('BatchGenerationWorkflowService', () => {
   });
 
   it('queues the batch under a deterministic job id so a retry replaces it', async () => {
-    await service.queueBatch(REQUEST);
+    await service.queueBatch(REQUEST, SystemWorkflowDispatchClass.INTERACTIVE);
 
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -115,9 +115,21 @@ describe('BatchGenerationWorkflowService', () => {
       batchGenerationJobId('batch-1'),
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
+    );
+  });
+
+  it('threads a background dispatchClass from a caller like the reconcile cron', async () => {
+    await service.queueBatch(REQUEST, SystemWorkflowDispatchClass.BACKGROUND);
+
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
     );
   });
 

@@ -72,7 +72,7 @@ export class BatchWorkflowExecutionService implements OnModuleInit {
         source: 'WorkflowBatchController.startBatchExecution',
         userId: input.userId,
       },
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
 
     return executionId;

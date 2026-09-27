@@ -25,7 +25,7 @@ export class ClipAnalysisWorkflowQueueService {
       `clip-analysis-${data.projectId}`,
       {
         attempts: 2,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: CLIP_ANALYSIS_FAILURE_WORKFLOW_ID,
           inputValues: { job: data },

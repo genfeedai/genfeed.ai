@@ -91,7 +91,7 @@ describe('email digest durable workflow results', () => {
       expect.stringMatching(/^email-digest-org-1-brand-1-[a-f0-9]{64}$/),
       {
         attempts: 3,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

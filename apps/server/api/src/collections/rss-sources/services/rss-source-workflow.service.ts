@@ -113,7 +113,7 @@ export class RssSourceWorkflowService implements OnModuleInit {
       `rss-source-${request.sourceId}-${Date.now()}`,
       {
         attempts: 3,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

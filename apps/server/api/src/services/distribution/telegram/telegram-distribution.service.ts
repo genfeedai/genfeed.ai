@@ -227,7 +227,7 @@ export class TelegramDistributionService implements OnModuleInit {
       {
         attempts: 3,
         delayMs,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

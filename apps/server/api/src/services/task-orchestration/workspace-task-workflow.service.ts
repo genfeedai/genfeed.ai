@@ -234,7 +234,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
           source: 'WorkspaceTaskWorkflowService.enqueueAgentExecution',
           userId: item.userId,
         },
-        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
       );
       return { ...item, executionId };
     });

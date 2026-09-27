@@ -268,7 +268,7 @@ export class AdBulkUploadWorkflowService {
       `ad-bulk-upload-${request.jobId}`,
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
     return { jobId: request.jobId, workflowJobId };

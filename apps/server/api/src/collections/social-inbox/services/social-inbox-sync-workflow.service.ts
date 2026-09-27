@@ -101,7 +101,7 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
         userId: input.userId,
       },
       `social-inbox-sync-${input.organizationId}-${input.platform ?? Platform.YOUTUBE}-${input.conversationType ?? SocialConversationType.COMMENT}-${input.credentialId ?? 'all'}-${Date.now()}`,
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   }
 

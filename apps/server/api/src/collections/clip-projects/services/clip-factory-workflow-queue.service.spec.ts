@@ -39,7 +39,7 @@ describe('ClipFactoryWorkflowQueueService', () => {
       'clip-factory-project-1',
       {
         attempts: 2,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: 'clip.factory.failure',
           inputValues: { job: { ...job, mode: 'avatar' } },

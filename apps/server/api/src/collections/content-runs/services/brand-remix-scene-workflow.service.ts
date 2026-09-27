@@ -90,7 +90,7 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
       {
         attempts: 1,
         delayMs,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
   }

@@ -146,7 +146,7 @@ describe('scene step chain ownership', () => {
       {
         attempts: 1,
         delayMs: 10_000,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
   });
@@ -173,7 +173,7 @@ describe('scene step chain ownership', () => {
       {
         attempts: 1,
         delayMs: 10_000,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
   });
@@ -192,7 +192,7 @@ describe('scene step chain ownership', () => {
       {
         attempts: 1,
         delayMs: 60_000,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
   });

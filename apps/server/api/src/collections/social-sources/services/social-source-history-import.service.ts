@@ -183,7 +183,7 @@ export class SocialSourceHistoryImportService {
       `social-source-history-import-${source.id}`,
       {
         attempts: 2,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

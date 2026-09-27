@@ -39,7 +39,7 @@ describe('ClipAnalysisWorkflowQueueService', () => {
       'clip-analysis-project-1',
       {
         attempts: 2,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: 'clip.analysis.failure',
           inputValues: { job: request },

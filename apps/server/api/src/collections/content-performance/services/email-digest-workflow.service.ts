@@ -204,7 +204,7 @@ export class EmailDigestWorkflowService implements OnModuleInit {
       `email-digest-${request.organizationId}-${request.brandId}-${dispatchKey}`,
       {
         attempts: 3,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

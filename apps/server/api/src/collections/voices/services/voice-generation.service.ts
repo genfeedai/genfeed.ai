@@ -211,7 +211,7 @@ export class VoiceGenerationService implements OnModuleInit {
         source: 'VoiceGenerationService.generate',
         userId: params.userId,
       },
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   }
 

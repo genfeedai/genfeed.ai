@@ -30,7 +30,7 @@ export class WorkspaceTaskWorkflowQueueService {
         userId: request.userId,
       },
       `workspace-task-${request.taskId}`,
-      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   }
 }

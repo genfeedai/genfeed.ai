@@ -226,7 +226,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         trigger: WorkflowExecutionTrigger.API,
       },
       `reply-bot-poll-${organizationId}-${credentialId}-${Date.now()}`,
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   }
 

@@ -8,6 +8,7 @@ import { BatchGenerationWorkflowService } from '@api/services/batch-generation/b
 import { ContentFormat, formatPlatformLabel } from '@genfeedai/contracts';
 import { estimateBatchGenerationCredits } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
@@ -485,13 +486,16 @@ export class AgentMediaBatchGenerationService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     try {
-      await this.batchGenerationWorkflowService.queueBatch({
-        batchId: execution.batchId,
-        organizationId: ctx.organizationId,
-        runId: ctx.runId,
-        threadId: ctx.threadId,
-        userId: ctx.userId,
-      });
+      await this.batchGenerationWorkflowService.queueBatch(
+        {
+          batchId: execution.batchId,
+          organizationId: ctx.organizationId,
+          runId: ctx.runId,
+          threadId: ctx.threadId,
+          userId: ctx.userId,
+        },
+        SystemWorkflowDispatchClass.INTERACTIVE,
+      );
     } catch (queueError) {
       // The queue owns durable execution: without ownership nothing will ever
       // process the batch, so unwind the items and the pinned charge here.

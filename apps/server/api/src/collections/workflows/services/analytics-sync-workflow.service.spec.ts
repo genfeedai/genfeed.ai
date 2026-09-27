@@ -294,7 +294,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       expect.stringContaining('analytics-sync-org-1-all-'),
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

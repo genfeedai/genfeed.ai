@@ -249,7 +249,7 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
         },
       }),
       expect.stringMatching(/^reply-bot-poll-org-1-credential-1-/),
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 

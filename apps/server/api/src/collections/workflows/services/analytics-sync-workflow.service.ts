@@ -134,7 +134,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       `analytics-sync-${input.organizationId}-${input.brandId ?? 'all'}-${this.windowKey(5 * 60 * 1000)}`,
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );
@@ -158,7 +158,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       `analytics-refresh-${input.organizationId}-${this.windowKey(HOUR_MS)}`,
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
     return { jobId, workflowId: definition.canonicalId };
@@ -184,7 +184,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       `analytics-post-refresh-${input.postId}-${this.windowKey(HOUR_MS)}`,
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       },
     );
     return { jobId, workflowId: canonicalId };

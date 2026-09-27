@@ -188,7 +188,7 @@ describe('warm-up preparation orchestration', () => {
         },
       }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
     expect(workflows.enqueueWorkflow).toHaveBeenCalledTimes(1);
@@ -289,7 +289,7 @@ describe('warm-up preparation orchestration', () => {
     expect(workflows.enqueueWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ idempotencyKey: 'starter-key' }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
     expect(data.diagnostics.preparation).toHaveProperty(

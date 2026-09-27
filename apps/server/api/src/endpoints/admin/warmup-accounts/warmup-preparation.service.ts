@@ -483,7 +483,7 @@ export class WarmupPreparationService {
           preparedByUserId: actorUserId,
         },
       },
-      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     await this.update(
       account,

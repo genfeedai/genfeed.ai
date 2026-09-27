@@ -79,7 +79,7 @@ export class BatchContentService implements OnModuleInit {
         userId,
       },
       `batch-content-${randomUUID()}`,
-      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     return { jobId, status: 'queued' };
   }

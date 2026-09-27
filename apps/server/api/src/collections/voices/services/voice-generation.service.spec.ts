@@ -230,7 +230,7 @@ describe('VoiceGenerationService', () => {
         userId,
       }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
     expect(result).toMatchObject({
@@ -288,7 +288,7 @@ describe('VoiceGenerationService', () => {
         }),
       }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
   });
@@ -326,7 +326,7 @@ describe('VoiceGenerationService', () => {
         },
       }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
   });

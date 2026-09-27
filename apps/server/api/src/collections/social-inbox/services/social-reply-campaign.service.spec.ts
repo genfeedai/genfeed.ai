@@ -392,7 +392,7 @@ describe('SocialReplyCampaignService', () => {
         }),
         `social-reply-campaign-${campaign.id}-1`,
         {
-          dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           replaceTerminalJob: true,
         },
       );
@@ -468,7 +468,7 @@ describe('SocialReplyCampaignService', () => {
         }),
         `social-reply-campaign-${campaign.id}-2`,
         {
-          dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           replaceTerminalJob: true,
         },
       );

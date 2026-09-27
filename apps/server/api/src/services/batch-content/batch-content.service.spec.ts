@@ -55,7 +55,7 @@ describe('BatchContentService', () => {
         userId: 'user-1',
       }),
       expect.stringMatching(/^batch-content-/),
-      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 

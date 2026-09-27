@@ -107,7 +107,7 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
       `knowledge-source-ingest-${request.sourceId}-${request.versionId}`,
       {
         attempts: 3,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );
@@ -128,7 +128,7 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
       `knowledge-source-backfill-${request.organizationId}`,
       {
         attempts: 1,
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         replaceTerminalJob: true,
       },
     );

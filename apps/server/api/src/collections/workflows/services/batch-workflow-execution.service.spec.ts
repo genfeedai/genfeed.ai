@@ -67,7 +67,7 @@ describe('BatchWorkflowExecutionService', () => {
         userId: 'user-1',
       }),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
   });

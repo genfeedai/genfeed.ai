@@ -22,7 +22,7 @@ describe('WorkspaceTaskWorkflowQueueService', () => {
         organizationId: 'org-1',
       }),
       'workspace-task-task-1',
-      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 
@@ -45,7 +45,7 @@ describe('WorkspaceTaskWorkflowQueueService', () => {
         canonicalId: WORKSPACE_TASK_WORKFLOW_IDS.FACECAM,
       }),
       'workspace-task-task-facecam',
-      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 });
