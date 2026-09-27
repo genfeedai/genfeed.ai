@@ -324,7 +324,11 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(
         mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(DEFAULT_MINI_TEXT_MODEL, expect.any(Object));
+      ).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.any(Object),
+        undefined,
+      );
     });
     it('uses the Admin default TEXT model over the seed fallback', async () => {
       const adminDefaultModel = 'anthropic/claude-sonnet-5';
@@ -351,7 +355,37 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(
         mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(adminDefaultModel, expect.any(Object));
+      ).toHaveBeenCalledWith(adminDefaultModel, expect.any(Object), undefined);
+    });
+    it('settles BYOK once for the resolved Admin default and dispatches every attempt with that key', async () => {
+      const adminDefaultModel = 'anthropic/claude-sonnet-5';
+      mockAgentChatModelRegistry.resolveModelKey.mockResolvedValueOnce(
+        adminDefaultModel,
+      );
+      mockReplicateService.generateTextCompletionSync
+        .mockResolvedValueOnce('x'.repeat(400))
+        .mockResolvedValueOnce('A new tweet');
+      const resolveApiKey = vi.fn().mockResolvedValue('org-openrouter-key');
+
+      await service.generateDraftText(
+        { brandId, prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
+        identity,
+        resolveApiKey,
+      );
+
+      expect(resolveApiKey).toHaveBeenCalledTimes(1);
+      expect(resolveApiKey).toHaveBeenCalledWith(adminDefaultModel);
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledTimes(2);
+      for (const call of mockReplicateService.generateTextCompletionSync.mock
+        .calls) {
+        expect(call).toEqual([
+          adminDefaultModel,
+          expect.any(Object),
+          'org-openrouter-key',
+        ]);
+      }
     });
     it('rejects a blank prompt before calling the model', async () => {
       await expect(

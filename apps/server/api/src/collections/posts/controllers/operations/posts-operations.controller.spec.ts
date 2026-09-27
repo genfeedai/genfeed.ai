@@ -46,6 +46,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -355,6 +356,14 @@ Tweet 3: Tech innovation is changing the world.`,
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PostsGenerationController, PostsOperationsController],
       providers: [
+        {
+          provide: TextGenerationCreditsService,
+          useValue: {
+            deferredKeyResolver: vi.fn(() => async () => undefined),
+            ensureDeferredCredits: vi.fn().mockResolvedValue(undefined),
+            guardResolvedDispatch: vi.fn().mockReturnValue(undefined),
+          },
+        },
         {
           provide: AccountPublishingContextService,
           useValue: mockAccountPublishingContextService,

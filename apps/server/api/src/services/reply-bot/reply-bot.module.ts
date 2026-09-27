@@ -21,6 +21,7 @@ import { ProcessedTweetsModule } from '@api/collections/processed-tweets/process
 import { ReplyBotConfigsCoreModule } from '@api/collections/reply-bot-configs/reply-bot-configs-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -67,6 +68,7 @@ import { Module } from '@nestjs/common';
     LoggerModule,
 
     BotActivitiesModule,
+    ByokModule,
     CreditsModule,
     CredentialsCoreModule,
     ModelsModule,

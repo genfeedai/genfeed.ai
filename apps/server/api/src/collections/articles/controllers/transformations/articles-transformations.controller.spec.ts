@@ -5,13 +5,20 @@ import type { Article } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ByokService } from '@api/services/byok/byok.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { ArticleCategory, AssetScope } from '@genfeedai/contracts';
+import {
+  ArticleCategory,
+  AssetScope,
+  ByokProvider,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -87,6 +94,8 @@ describe('ArticlesTransformationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesTransformationsController],
       providers: [
+        TextGenerationCreditsService,
+        { provide: ByokService, useValue: { resolveApiKey: vi.fn() } },
         {
           provide: ArticlesService,
           useValue: mockArticlesService,
@@ -225,12 +234,45 @@ describe('ArticlesTransformationsController', () => {
       );
 
       await expect(
-        controller.generatePrompt(articleId, mockUser),
+        controller.generatePrompt({} as Request, articleId, mockUser),
       ).resolves.toEqual({ prompt: 'Editorial header prompt' });
       expect(mockArticlesService.generateHeaderPrompt).toHaveBeenCalledWith(
         articleId,
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
+        undefined,
+      );
+    });
+
+    it('opts into the OpenRouter BYOK bypass that its dispatch honours', () => {
+      expect(
+        Reflect.getMetadata(
+          CREDITS_KEY,
+          ArticlesTransformationsController.prototype.generatePrompt,
+        ),
+      ).toMatchObject({
+        allowByokBypass: true,
+        provider: ByokProvider.OPENROUTER,
+      });
+    });
+
+    it('hands the guard-resolved key to the workflow as a BYOK dispatch', async () => {
+      mockArticlesService.generateHeaderPrompt.mockResolvedValue('Prompt');
+      const request = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-or-key',
+          isByokBypass: true,
+          provider: ByokProvider.OPENROUTER,
+        },
+      } as unknown as Request;
+
+      await controller.generatePrompt(request, articleId, mockUser);
+
+      expect(mockArticlesService.generateHeaderPrompt).toHaveBeenCalledWith(
+        articleId,
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        { keys: { [ByokProvider.OPENROUTER]: 'org-or-key' } },
       );
     });
   });

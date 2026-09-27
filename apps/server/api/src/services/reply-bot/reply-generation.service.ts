@@ -9,6 +9,11 @@ import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import {
+  type TextByokDispatch,
+  textDispatchApiKey,
+} from '@api/services/byok/text-dispatch-byok.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -116,6 +121,7 @@ export class ReplyGenerationService {
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly templatesService: TemplatesService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
     @Optional()
@@ -130,7 +136,7 @@ export class ReplyGenerationService {
     if (!options.userId) {
       throw new Error('Reply generation billing user is required');
     }
-    await this.assertCreditsAvailable(options.organizationId);
+    const byok = await this.admitCredits(options.organizationId);
 
     try {
       const harnessBlock = await this.resolveHarnessContext(options);
@@ -202,6 +208,7 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
+        textDispatchApiKey(byok, DEFAULT_TEXT_MODEL),
       );
 
       const replyText = result.trim();
@@ -211,6 +218,7 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
         input,
         replyText,
         'Reply bot text generation',
+        byok,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -247,7 +255,7 @@ Body: ${escapeConversationData(options.tweetContent.slice(0, CONVERSATION_MESSAG
     if (!options.userId) {
       throw new Error('DM generation billing user is required');
     }
-    await this.assertCreditsAvailable(options.organizationId);
+    const byok = await this.admitCredits(options.organizationId);
 
     try {
       // Build a DM-specific prompt
@@ -292,6 +300,7 @@ DM text:`;
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
+        textDispatchApiKey(byok, DEFAULT_TEXT_MODEL),
       );
 
       const dmText = result.trim();
@@ -301,6 +310,7 @@ DM text:`;
         input,
         dmText,
         'Reply bot DM generation',
+        byok,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -391,11 +401,34 @@ DM text:`;
     return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
+  /**
+   * Admission preflight for callers that gate before generating (e.g.
+   * SuggestedReplyCreditsGuard). A BYOK org is admitted without the credit
+   * floor; generateReply/generateDm still make their own single decision.
+   */
   async assertCreditsAvailable(organizationId: string): Promise<void> {
+    await this.admitCredits(organizationId);
+  }
+
+  /**
+   * The single BYOK decision for a reply/DM (#5380): an org whose own key
+   * pays for DEFAULT_TEXT_MODEL's dispatch is neither floor-checked nor
+   * charged; everyone else must hold the minimum text credits.
+   */
+  private async admitCredits(
+    organizationId: string,
+  ): Promise<TextByokDispatch | undefined> {
+    const byok = await this.textGenerationCreditsService.resolveDispatch(
+      organizationId,
+      [DEFAULT_TEXT_MODEL],
+    );
+    if (byok) {
+      return byok;
+    }
     const model = await this.getDefaultTextModel();
     const requiredCredits = getMinimumTextCredits(model);
     if (requiredCredits <= 0) {
-      return;
+      return undefined;
     }
 
     const hasCredits =
@@ -405,7 +438,7 @@ DM text:`;
       );
 
     if (hasCredits) {
-      return;
+      return undefined;
     }
 
     const currentBalance =
@@ -421,7 +454,11 @@ DM text:`;
     input: Record<string, unknown>,
     output: string,
     description: string,
+    byok: TextByokDispatch | undefined,
   ): Promise<void> {
+    if (byok) {
+      return;
+    }
     const model = await this.getDefaultTextModel();
     const amount = calculateEstimatedTextCredits(model, input, output);
     if (amount <= 0) {

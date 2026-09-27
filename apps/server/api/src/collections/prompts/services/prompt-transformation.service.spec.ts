@@ -406,6 +406,20 @@ describe('PromptTransformationService', () => {
     expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
       DEFAULT_MINI_TEXT_MODEL,
       expect.anything(),
+      undefined,
+    );
+  });
+
+  it('dispatches enhancement with the key settled for the resolved model', async () => {
+    const resolveApiKey = vi.fn().mockResolvedValue('org-replicate-key');
+
+    await service.enhanceExisting(promptId, user, resolveApiKey);
+
+    expect(resolveApiKey).toHaveBeenCalledWith(DEFAULT_MINI_TEXT_MODEL);
+    expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+      DEFAULT_MINI_TEXT_MODEL,
+      expect.anything(),
+      'org-replicate-key',
     );
   });
 

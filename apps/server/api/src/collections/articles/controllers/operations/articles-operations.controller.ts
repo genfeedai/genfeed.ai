@@ -18,9 +18,9 @@ import {
   GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { ReviewArticleDto } from '@api/collections/articles/dto/review-article.dto';
+import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -36,10 +36,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import {
-  assertOrganizationCreditsAvailable,
-  resolveTextModelMinimumCredits,
-} from '@api/helpers/utils/credits/organization-credits-gate.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -91,9 +87,9 @@ export class ArticlesOperationsController {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly apiKeysService: ApiKeysService,
+    private readonly articleGenerationCreditsService: ArticleGenerationCreditsService,
     private readonly articlesService: ArticlesService,
     private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly membersService: MembersService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -131,32 +127,10 @@ export class ArticlesOperationsController {
 
     await this.assertGenerationModelOverrideSupported(dto.model);
 
-    const modelConfig =
-      await this.articlesService.resolveArticleCycleModelConfig(
-        user.organizationId,
-        dto.model,
-      );
-    const minimumRequiredCredits = (
-      await Promise.all([
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.generationModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.reviewModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.updateModel,
-        ),
-      ])
-    ).reduce((sum, amount) => sum + amount, 0);
-
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
+    const byok = await this.articleGenerationCreditsService.admitGeneration(
+      request,
       user.organizationId,
-      minimumRequiredCredits,
+      dto,
     );
 
     // Create activity for article generation start
@@ -193,6 +167,7 @@ export class ArticlesOperationsController {
           user.userId ?? user.id,
           user.organizationId,
           brandId,
+          byok,
         );
 
       this.settleDeferredCredits(request, billedCredits);
@@ -264,18 +239,9 @@ export class ArticlesOperationsController {
     @Body() dto: ReviewArticleDto,
     @CurrentUser() user: User,
   ) {
-    const modelConfig =
-      await this.articlesService.resolveArticleCycleModelConfig(
-        user.organizationId,
-      );
-
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
+    const byok = await this.articleGenerationCreditsService.admitReview(
+      request,
       user.organizationId,
-      await resolveTextModelMinimumCredits(
-        this.modelsService,
-        modelConfig.reviewModel,
-      ),
     );
 
     const { billedCredits, review } = await this.articlesService.reviewArticle(
@@ -283,6 +249,7 @@ export class ArticlesOperationsController {
       user.userId ?? user.id,
       user.organizationId,
       dto.focus,
+      byok,
     );
 
     this.settleDeferredCredits(request, billedCredits);
