@@ -415,6 +415,8 @@ describe('BatchGenerationRewriteRunnerService', () => {
     prisma.post.findFirst.mockImplementation(
       ({ where }: { where: { id: string } }) => ({
         id: where.id,
+        description: 'Shipped',
+        platform: 'linkedin',
         targetExecutionState: 'published',
         updatedAt,
       }),
