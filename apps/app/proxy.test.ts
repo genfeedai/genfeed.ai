@@ -508,6 +508,35 @@ describe('proxy', () => {
     );
   });
 
+  it('lets signed-out users render the agent-auth claim step', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest(
+        '/agent-auth/claim',
+        `?claim_attempt_token=${'a'.repeat(32)}`,
+      ),
+      {} as never,
+    );
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('does not expose similarly prefixed agent-auth routes without a session', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest('/agent-auth/claim-preview'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+      '/login',
+    );
+  });
+
   it.each(['/forgot-password', '/reset-password'])(
     'lets signed-out users render public reset route %s',
     async (pathname) => {
