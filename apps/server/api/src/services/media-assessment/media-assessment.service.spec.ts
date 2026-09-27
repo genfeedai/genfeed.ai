@@ -257,6 +257,32 @@ describe('MediaAssessmentService', () => {
     expect(assessment.reasons).toEqual([
       expect.objectContaining({
         code: 'vision:unavailable',
+        message:
+          'Vision review could not complete after repeated attempts; this asset needs manual review.',
+        source: 'vision',
+      }),
+    ]);
+  });
+
+  it('holds an asset with exhausted retries and a dangling evaluation link as unavailable, not still running (#5316)', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      evaluations: [],
+      perceptions: [
+        perceptionRow('asset-1', {
+          visionAttempts: 3,
+          visionEvaluationId: 'evaluation-deleted',
+        }),
+      ],
+    });
+
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        code: 'vision:unavailable',
+        message:
+          'Vision review could not complete after repeated attempts; this asset needs manual review.',
         source: 'vision',
       }),
     ]);

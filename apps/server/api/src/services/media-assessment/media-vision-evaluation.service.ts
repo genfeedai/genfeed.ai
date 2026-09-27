@@ -135,9 +135,16 @@ export class MediaVisionEvaluationService {
       // `findUnevaluatedAssets` (which skips any non-null
       // `visionEvaluationId`) and never gets a real evaluation again. This
       // job falls through to score fresh frames below.
+      // Compare-and-clear on the exact id we just validated: a concurrent
+      // job could have already re-evaluated this sibling and linked a fresh
+      // evaluation between our read and this write, and that newer valid
+      // link must not be erased.
       await this.prisma.mediaPerception.updateMany({
         data: { visionEvaluationId: null },
-        where: scopedWhere(job.organizationId, { id: sibling.id }),
+        where: scopedWhere(job.organizationId, {
+          id: sibling.id,
+          visionEvaluationId: sibling.visionEvaluationId,
+        }),
       });
     }
 

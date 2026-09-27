@@ -182,12 +182,16 @@ describe('MediaVisionEvaluationService', () => {
     expect(h.scoreVisionFrames).toHaveBeenCalled();
     // The sibling's dangling link is cleared so it re-enters
     // findUnevaluatedAssets, instead of staying invisibly linked forever.
+    // The clear is compare-and-swap on the exact id read: a concurrent job
+    // that already relinked this sibling to a fresh evaluation must not have
+    // that newer, valid link erased.
     expect(h.updateMany).toHaveBeenCalledWith({
       data: { visionEvaluationId: null },
       where: {
         id: 'sibling-perception-1',
         isDeleted: false,
         organizationId: 'org-1',
+        visionEvaluationId: 'evaluation-deleted',
       },
     });
     // The job's own perception row is still linked to the freshly created

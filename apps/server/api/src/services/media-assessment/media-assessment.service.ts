@@ -38,6 +38,7 @@ import {
 import type { AgentPublishMediaAssessment } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type {
   IEvaluationData,
+  IEvaluationFlags,
   IMediaAssessmentRequest,
   IMediaPerception,
   IMediaPublishGate,
@@ -390,8 +391,8 @@ export class MediaAssessmentService implements IMediaPublishGate {
     });
     const settled = new Set<string>();
     const evaluationByAsset = new Map<string, string>();
-    const needsVision = new Set<string>();
-    const visionExhausted = new Set<string>();
+    const visionAttemptsByAsset = new Map<string, number>();
+    const skipsVision = new Set<string>();
     for (const row of rows) {
       const perception = toMediaPerception(row);
       if (perception) {
@@ -400,38 +401,19 @@ export class MediaAssessmentService implements IMediaPublishGate {
       if (perception && !hasPendingArtefacts(perception)) {
         settled.add(row.ingredientId);
       }
+      visionAttemptsByAsset.set(row.ingredientId, row.visionAttempts);
       if (row.visionEvaluationId) {
         evaluationByAsset.set(row.ingredientId, row.visionEvaluationId);
-      } else if (perception?.framesStatus !== 'unavailable') {
-        if (row.visionAttempts >= MAX_VISION_ATTEMPTS) {
-          visionExhausted.add(row.ingredientId);
-        } else {
-          needsVision.add(row.ingredientId);
-        }
+      } else if (perception?.framesStatus === 'unavailable') {
+        // Frames were never extracted, so vision can never run for this
+        // asset; it must not be held for review on that account.
+        skipsVision.add(row.ingredientId);
       }
     }
 
     const isVisionLive = resolveVisionGateMode(this.configService) === 'live';
-    if (isVisionLive) {
-      for (const assetId of assetIds) {
-        if (visionExhausted.has(assetId)) {
-          // The sweep has given up on this asset (paid attempts exhausted).
-          // It will never finish on its own, so this must not read as "still
-          // running" like an ordinary in-progress check.
-          reasons.push({
-            assetId,
-            code: 'vision:unavailable',
-            message: VISION_UNAVAILABLE_MESSAGE,
-            source: 'vision',
-          });
-          continue;
-        }
-        if (!settled.has(assetId) || needsVision.has(assetId)) {
-          unchecked.add(assetId);
-        }
-      }
-    }
-
+    let validEvaluationIds: ReadonlySet<string> = new Set();
+    let flagsById = new Map<string, IEvaluationFlags | undefined>();
     if (isVisionLive && evaluationByAsset.size > 0) {
       const evaluations = await this.prisma.evaluation.findMany({
         select: { data: true, id: true },
@@ -439,24 +421,55 @@ export class MediaAssessmentService implements IMediaPublishGate {
           id: { in: Array.from(new Set(evaluationByAsset.values())) },
         }),
       });
-      const validEvaluationIds = new Set(
+      validEvaluationIds = new Set(
         evaluations.map((evaluation) => evaluation.id),
       );
-      const flagsById = new Map(
+      flagsById = new Map(
         evaluations.map((evaluation) => [
           evaluation.id,
           (evaluation.data as IEvaluationData | null)?.flags,
         ]),
       );
-      for (const [assetId, evaluationId] of evaluationByAsset) {
-        if (!validEvaluationIds.has(evaluationId)) {
-          // The linked evaluation no longer resolves (soft-deleted, or the
-          // id never existed) — a stale reference must never read as "no
-          // flags"; hold the asset for review like any other unsettled gate.
+    }
+
+    if (isVisionLive) {
+      for (const assetId of assetIds) {
+        if (!settled.has(assetId)) {
           unchecked.add(assetId);
+        }
+        if (skipsVision.has(assetId)) {
           continue;
         }
-        const flags = flagsById.get(evaluationId);
+        const evaluationId = evaluationByAsset.get(assetId);
+        const hasValidEvaluation = evaluationId
+          ? validEvaluationIds.has(evaluationId)
+          : false;
+        if (!hasValidEvaluation) {
+          // No usable vision result — either it never ran, or the linked
+          // evaluation no longer resolves (soft-deleted, or never existed).
+          // Either way this must never read as "no flags". Classify by
+          // attempt count regardless of which case it is: exhausted retries
+          // get a distinct "unavailable" reason instead of the generic
+          // "still running" message a dangling-but-not-yet-exhausted link
+          // would otherwise be conflated with.
+          if (
+            (visionAttemptsByAsset.get(assetId) ?? 0) >= MAX_VISION_ATTEMPTS
+          ) {
+            // The sweep has given up on this asset (paid attempts
+            // exhausted). It will never finish on its own, so this must not
+            // read as "still running" like an ordinary in-progress check.
+            reasons.push({
+              assetId,
+              code: 'vision:unavailable',
+              message: VISION_UNAVAILABLE_MESSAGE,
+              source: 'vision',
+            });
+          } else {
+            unchecked.add(assetId);
+          }
+          continue;
+        }
+        const flags = flagsById.get(evaluationId as string);
         if (!flags?.isFlagged) {
           continue;
         }
