@@ -6,6 +6,7 @@ import {
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
@@ -86,7 +87,11 @@ describe('CronTrendsService', () => {
         trigger: WorkflowExecutionTrigger.SCHEDULED,
       }),
       'trends-refresh-41387',
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
     expect(trends.fetchAndCacheTrends).not.toHaveBeenCalled();
   });

@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mock = vi.hoisted(() => ({
   organizationId: 'alpha',
   userId: 'alice',
+  connectionState: 'connected',
+  handlers: new Map<string, (payload: unknown) => void>(),
   service: {
     notificationInboxCount: vi.fn(),
     findNotificationInbox: vi.fn(),
@@ -24,12 +26,27 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => mock.service,
 }));
+vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+  useSocketManager: () => ({
+    isReady: true,
+    connectionState: mock.connectionState,
+    subscribe: (name: string, handler: (payload: unknown) => void) => {
+      mock.handlers.set(name, handler);
+      return () => mock.handlers.delete(name);
+    },
+  }),
+}));
 
-import { useNotificationInbox } from './use-notification-inbox';
+import {
+  NOTIFICATION_INBOX_EVENT,
+  useNotificationInbox,
+} from './use-notification-inbox';
 
 beforeEach(() => {
   mock.organizationId = 'alpha';
   mock.userId = 'alice';
+  mock.connectionState = 'connected';
+  mock.handlers.clear();
   mock.service.notificationInboxCount.mockResolvedValue({
     id: 'alpha',
     unreadCount: 1,
@@ -98,6 +115,40 @@ describe('useNotificationInbox', () => {
         expect.any(AbortSignal),
       ),
     );
+    client.clear();
+  });
+  it('re-reads the bell when the server says this organization inbox changed', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, unmount } = renderHook(() => useNotificationInbox(false), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.count.data?.unreadCount).toBe(1));
+    mock.service.notificationInboxCount.mockResolvedValue({
+      id: 'alpha',
+      unreadCount: 2,
+    });
+    const reads = mock.service.notificationInboxCount.mock.calls.length;
+
+    act(() =>
+      mock.handlers.get(NOTIFICATION_INBOX_EVENT)?.({
+        organizationId: 'bravo',
+      }),
+    );
+    expect(mock.service.notificationInboxCount).toHaveBeenCalledTimes(reads);
+
+    act(() =>
+      mock.handlers.get(NOTIFICATION_INBOX_EVENT)?.({
+        organizationId: 'alpha',
+      }),
+    );
+    await waitFor(() => expect(result.current.count.data?.unreadCount).toBe(2));
+    unmount();
+    expect(mock.handlers.has(NOTIFICATION_INBOX_EVENT)).toBe(false);
     client.clear();
   });
 });

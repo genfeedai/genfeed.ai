@@ -26,7 +26,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -45,6 +44,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -156,7 +156,7 @@ describe('BatchInterpolationController', () => {
   const byokService = { resolveApiKey: vi.fn() };
   const creditQueue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
 
-  let activitiesService: { create: ReturnType<typeof vi.fn> };
+  let activitiesService: { record: ReturnType<typeof vi.fn> };
   let assetsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let creditsUtilsService: {
@@ -190,7 +190,7 @@ describe('BatchInterpolationController', () => {
       .mockResolvedValue({ apiKey: 'org-replicate-key' });
     creditQueue.queueDeduction.mockReset().mockResolvedValue(undefined);
     creditQueue.queueByokUsage.mockReset().mockResolvedValue(undefined);
-    activitiesService = { create: vi.fn().mockResolvedValue(mockActivity) };
+    activitiesService = { record: vi.fn().mockResolvedValue(mockActivity) };
     assetsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     creditsUtilsService = {
@@ -240,7 +240,7 @@ describe('BatchInterpolationController', () => {
         { provide: CreditTransactionsService, useValue: transactions },
         { provide: ByokService, useValue: byokService },
         { provide: CreditDeductionQueueService, useValue: creditQueue },
-        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: ActivityRecorderService, useValue: activitiesService },
         { provide: AssetsService, useValue: assetsService },
         BatchInterpolationReferenceService,
         { provide: BrandsService, useValue: brandsService },
@@ -438,7 +438,7 @@ describe('BatchInterpolationController', () => {
           });
           expect(promptsService.create).not.toHaveBeenCalled();
           expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
-          expect(activitiesService.create).not.toHaveBeenCalled();
+          expect(activitiesService.record).not.toHaveBeenCalled();
           expect(
             websocketService.publishBackgroundTaskUpdate,
           ).not.toHaveBeenCalled();

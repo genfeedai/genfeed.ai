@@ -1,6 +1,6 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DevController } from '@api/endpoints/dev/dev.controller';
-import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
@@ -15,7 +15,7 @@ describe('DevController', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let notificationsService: { sendNotification: ReturnType<typeof vi.fn> };
+  let notificationsService: { dispatch: ReturnType<typeof vi.fn> };
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
@@ -25,14 +25,14 @@ describe('DevController', () => {
     };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     notificationsService = {
-      sendNotification: vi.fn().mockResolvedValue(undefined),
+      dispatch: vi.fn().mockResolvedValue(undefined),
     };
     ingredientsService = { findOne: vi.fn() };
 
     controller = new DevController(
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
-      notificationsService as unknown as NotificationsService,
+      notificationsService as unknown as ActivityRecorderService,
       ingredientsService as unknown as IngredientsService,
     );
   });
@@ -50,7 +50,7 @@ describe('DevController', () => {
     controller = new DevController(
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
-      notificationsService as unknown as NotificationsService,
+      notificationsService as unknown as ActivityRecorderService,
       ingredientsService as unknown as IngredientsService,
     );
 
@@ -86,10 +86,17 @@ describe('DevController', () => {
 
     expect(result.success).toBe(true);
     expect(result.data.category).toBe('image');
-    expect(notificationsService.sendNotification).toHaveBeenCalledWith(
+    expect(notificationsService.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'ingredient_notification',
-        type: 'discord',
+        messages: [
+          expect.objectContaining({
+            destination: null,
+            message: expect.objectContaining({
+              action: 'ingredient_notification',
+              type: 'discord',
+            }),
+          }),
+        ],
       }),
     );
   });
@@ -151,9 +158,7 @@ describe('DevController', () => {
       metadata: {},
       prompt: 'test',
     });
-    notificationsService.sendNotification.mockRejectedValue(
-      new Error('Redis down'),
-    );
+    notificationsService.dispatch.mockRejectedValue(new Error('Redis down'));
 
     await expect(controller.debugDiscordCard({ ingredientId })).rejects.toThrow(
       HttpException,
@@ -166,7 +171,7 @@ describe('DevController', () => {
     new DevController(
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
-      notificationsService as unknown as NotificationsService,
+      notificationsService as unknown as ActivityRecorderService,
       ingredientsService as unknown as IngredientsService,
     );
     expect(loggerService.warn).toHaveBeenCalled();

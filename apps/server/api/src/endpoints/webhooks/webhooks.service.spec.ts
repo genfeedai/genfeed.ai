@@ -17,11 +17,11 @@ import { MediaUploadService } from '@api/endpoints/webhooks/services/media-uploa
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   AssetCategory,
@@ -44,7 +44,7 @@ describe('WebhooksService', () => {
   let service: WebhooksService;
   let loggerService: vi.Mocked<LoggerService>;
   let filesClientService: vi.Mocked<FilesClientService>;
-  let _notificationsService: vi.Mocked<NotificationsService>;
+  let _notificationsService: vi.Mocked<ActivityRecorderService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
@@ -163,9 +163,9 @@ describe('WebhooksService', () => {
           },
         },
         {
-          provide: NotificationsService,
+          provide: ActivityRecorderService,
           useValue: {
-            sendIngredientNotification: vi.fn(),
+            dispatch: vi.fn(),
           },
         },
         {
@@ -274,7 +274,7 @@ describe('WebhooksService', () => {
     service = module.get<WebhooksService>(WebhooksService);
     loggerService = module.get(LoggerService);
     filesClientService = module.get(FilesClientService);
-    _notificationsService = module.get(NotificationsService);
+    _notificationsService = module.get(ActivityRecorderService);
     websocketService = module.get(NotificationsPublisherService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);

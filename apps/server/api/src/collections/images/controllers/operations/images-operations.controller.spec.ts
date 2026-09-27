@@ -42,7 +42,6 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -79,6 +78,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
@@ -120,7 +120,7 @@ describe('ImagesOperationsController', () => {
   let _promptsService: vi.Mocked<PromptsService>;
   let sharedService: vi.Mocked<SharedService>;
   let metadataService: vi.Mocked<MetadataService>;
-  let activitiesService: vi.Mocked<ActivitiesService>;
+  let activitiesService: vi.Mocked<ActivityRecorderService>;
   let klingAIService: vi.Mocked<KlingAIService>;
   let leonardoaiService: vi.Mocked<LeonardoAIService>;
   let replicateService: vi.Mocked<ReplicateService>;
@@ -283,9 +283,9 @@ describe('ImagesOperationsController', () => {
           },
         },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: {
-            create: vi.fn().mockResolvedValue(mockActivity),
+            record: vi.fn().mockResolvedValue(mockActivity),
           },
         },
         {
@@ -581,7 +581,7 @@ describe('ImagesOperationsController', () => {
 
     controller = new ImagesOperationsController(
       module.get(ConfigService),
-      module.get(ActivitiesService),
+      module.get(ActivityRecorderService),
       module.get(FilesClientService),
       module.get(ImagesService),
       module.get(LoggerService),
@@ -594,7 +594,7 @@ describe('ImagesOperationsController', () => {
     _promptsService = module.get(PromptsService);
     sharedService = module.get(SharedService);
     metadataService = module.get(MetadataService);
-    activitiesService = module.get(ActivitiesService);
+    activitiesService = module.get(ActivityRecorderService);
     klingAIService = module.get(KlingAIService);
     leonardoaiService = module.get(LeonardoAIService);
     replicateService = module.get(ReplicateService);
@@ -1155,7 +1155,7 @@ describe('ImagesOperationsController', () => {
         mockUser,
       );
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           value: expect.stringContaining('contact-sheet-split'),
         }),

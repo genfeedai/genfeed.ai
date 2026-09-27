@@ -1,10 +1,11 @@
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type {
   AgentChatContext,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { formatAgentError } from '@genfeedai/agent/server';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import {
   type AgentDashboardOperation,
   type AgentUIBlocksEvent,
@@ -20,7 +21,7 @@ export class AgentStreamEffectsService {
   constructor(
     private readonly streamPublisher: AgentStreamPublisherService,
     private readonly loggerService: LoggerService,
-    private readonly prisma: PrismaService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {}
 
   async publishTurnPhase(
@@ -525,23 +526,17 @@ export class AgentStreamEffectsService {
       { failure, runId: context.executionId, threadId: threadId },
     );
     const sourceId = context.executionId ?? threadId;
-    const deduplicationKey = `agent.failure.delivery_failed/${sourceId}`;
-    // tenant-scope-ignore: internally generated idempotency key is qualified by organization; no user-controlled cross-tenant lookup
-    await this.prisma.notificationEvent.upsert({
-      create: {
-        actorUserId: context.userId,
-        deduplicationKey: `${context.organizationId}/${deduplicationKey}`,
-        eventKey: 'agent.failure.delivery_failed',
-        occurredAt: new Date(),
-        organizationId: context.organizationId,
-        payload: { channel: 'stream', failure, threadId: threadId },
-        sourceId,
-        sourceType: 'agent_run',
-      },
-      update: {},
-      where: {
-        deduplicationKey: `${context.organizationId}/${deduplicationKey}`,
-      },
+    // The deterministic id makes a repeated failure for the same run a no-op.
+    await this.activityRecorder.record({
+      data: { channel: 'stream', failure, threadId },
+      entityId: sourceId,
+      entityModel: context.executionId ? 'AgentRun' : 'AgentThread',
+      id: `${ActivityKey.AGENT_RUN_DELIVERY_FAILED}:${context.organizationId}:${sourceId}`,
+      key: ActivityKey.AGENT_RUN_DELIVERY_FAILED,
+      organizationId: context.organizationId,
+      source: ActivitySource.AGENT_RUN,
+      userId: context.userId,
+      value: failure.summary,
     });
   }
 }

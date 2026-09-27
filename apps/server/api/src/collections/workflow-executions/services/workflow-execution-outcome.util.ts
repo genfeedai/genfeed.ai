@@ -3,7 +3,7 @@ import {
   getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
 } from '@api/collections/workflows/system-workflow.contract';
-import type { RecordWorkflowOutcomeInput } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import type { RecordWorkflowOutcomeInput } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import type { FormattedAgentError } from '@genfeedai/agent/server';
 
 export type WorkflowExecutionCompletionRow = {

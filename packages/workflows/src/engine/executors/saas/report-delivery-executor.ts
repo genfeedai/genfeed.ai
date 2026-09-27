@@ -14,6 +14,8 @@ export interface ReportDeliveryResult {
 }
 
 export type ReportNotificationSender = (params: {
+  /** Stable per execution and node, so a retried step reports once. */
+  idempotencyKey?: string;
   organizationId: string;
   userId: string;
   title: string;
@@ -21,6 +23,8 @@ export type ReportNotificationSender = (params: {
 }) => Promise<void>;
 
 export type ReportEmailSender = (params: {
+  idempotencyKey?: string;
+  organizationId: string;
   to: string;
   subject: string;
   html: string;
@@ -109,6 +113,10 @@ export class ReportDeliveryExecutor extends BaseExecutor {
       `<pre style="white-space:pre-wrap;font-family:system-ui,sans-serif">${escapeHtml(String(content))}</pre>`;
 
     const destinations: string[] = [];
+    // Durable runs retry a step under the same key; a preview run has none.
+    const idempotencyKey = context.executionId
+      ? `workflow:${context.executionId}:${node.id}`
+      : undefined;
 
     if (channel === 'notification' || channel === 'both') {
       if (!this.notificationSender) {
@@ -116,6 +124,7 @@ export class ReportDeliveryExecutor extends BaseExecutor {
       }
       await this.notificationSender({
         body: String(content).slice(0, 4000),
+        idempotencyKey,
         organizationId: context.organizationId,
         title: String(subject).slice(0, 200),
         userId: context.userId,
@@ -148,6 +157,8 @@ export class ReportDeliveryExecutor extends BaseExecutor {
 
       await this.emailSender({
         html: String(html),
+        idempotencyKey,
+        organizationId: context.organizationId,
         subject: String(subject),
         to: String(to).trim(),
       });

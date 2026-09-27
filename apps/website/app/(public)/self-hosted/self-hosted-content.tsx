@@ -143,7 +143,7 @@ export default function SelfHostedContent() {
           <SectionHeader
             title="Why self-host"
             description="Full control over your infrastructure, data, and models, with no platform fees and no lock-in."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={3} className="gsap-grid">
@@ -164,7 +164,7 @@ export default function SelfHostedContent() {
           <SectionHeader
             title="Up and running in four steps"
             description="A standard Docker deployment. Full instructions live in the docs."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={4}>
@@ -199,7 +199,7 @@ export default function SelfHostedContent() {
           <SectionHeader
             title="Self-host or managed cloud"
             description="Same product. Self-host for control; move to cloud when you would rather not run the infrastructure."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={2}>
@@ -258,7 +258,7 @@ export default function SelfHostedContent() {
           <SectionHeader
             title="Common Questions"
             description="Open source for control, managed cloud for convenience."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <FaqGrid items={FAQ_ITEMS} />

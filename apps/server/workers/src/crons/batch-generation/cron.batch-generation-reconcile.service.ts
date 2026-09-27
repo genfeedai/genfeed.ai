@@ -1,5 +1,6 @@
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -44,12 +45,15 @@ export class CronBatchGenerationReconcileService {
         // The deterministic job id makes this a no-op when the original job is
         // still queued, so a sweep firing next to a live job cannot fork a
         // second run of the same batch.
-        await this.workflowService.queueBatch({
-          batchId: batch.batchId,
-          isResume: true,
-          organizationId: batch.organizationId,
-          userId: batch.userId,
-        });
+        await this.workflowService.queueBatch(
+          {
+            batchId: batch.batchId,
+            isResume: true,
+            organizationId: batch.organizationId,
+            userId: batch.userId,
+          },
+          SystemWorkflowDispatchClass.BACKGROUND,
+        );
         resumedCount += 1;
       } catch (error: unknown) {
         // One bad batch must not stop the sweep from recovering the rest.

@@ -27,7 +27,10 @@ function transaction(
 
 function client() {
   return {
-    activity: { create: vi.fn().mockResolvedValue({}) },
+    activity: {
+      create: vi.fn().mockResolvedValue({}),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     brand: { findFirst: vi.fn().mockResolvedValue(null) },
   };
 }

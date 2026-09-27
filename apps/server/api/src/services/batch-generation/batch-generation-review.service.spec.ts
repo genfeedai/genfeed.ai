@@ -38,6 +38,7 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
         recordReviewDecision: vi.fn(),
         resolveForPost: vi.fn(),
       } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
     );
   });
 
@@ -183,6 +184,7 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
         recordReviewDecision: vi.fn(),
         resolveForPost: vi.fn(),
       } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
     );
   });
 
@@ -280,6 +282,7 @@ describe('BatchGenerationReviewService harness review feedback', () => {
         recordReviewDecision: vi.fn(),
         resolveForPost: vi.fn(),
       } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
       harnessReviewFeedbackService as never,
     );
   });
@@ -401,6 +404,7 @@ describe('BatchGenerationReviewService harness review feedback', () => {
         recordReviewDecision: vi.fn(),
         resolveForPost: vi.fn(),
       } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
     );
 
     await expect(
@@ -461,6 +465,7 @@ describe('BatchGenerationReviewService assignment', () => {
         recordReviewDecision: vi.fn(),
         resolveForPost: vi.fn(),
       } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
     );
   });
 

@@ -27,6 +27,7 @@ import {
   SocialReplyCampaignStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -355,7 +356,10 @@ export class SocialReplyCampaignService {
         userId: campaign.userId ?? undefined,
       },
       `social-reply-campaign-${campaign.id}-${dispatchCursor}`,
-      { replaceTerminalJob: true },
+      {
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
 
     return this.get(

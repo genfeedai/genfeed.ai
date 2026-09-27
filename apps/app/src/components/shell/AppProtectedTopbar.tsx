@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 
@@ -107,6 +108,7 @@ function AppProtectedTopbarContent({
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}
+          {!isAdminChrome ? <GenerationToasts /> : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 

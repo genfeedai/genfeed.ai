@@ -10,6 +10,7 @@ import { ArticlesOperationsController } from '@api/collections/articles/controll
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
+import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
 import { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
@@ -52,7 +53,12 @@ import { Module } from '@nestjs/common';
     ArticlesTransformationsController,
     ArticlesController,
   ],
-  exports: [ArticleAnalyticsService, ArticlesContentService, ArticlesService],
+  exports: [
+    ArticleAnalyticsService,
+    ArticleGenerationCreditsService,
+    ArticlesContentService,
+    ArticlesService,
+  ],
   imports: [
     ActivitiesModule,
     AgentChatModelRegistryModule,
@@ -82,6 +88,7 @@ import { Module } from '@nestjs/common';
   providers: [
     ArticleAnalyticsService,
     ArticleContentPersistenceService,
+    ArticleGenerationCreditsService,
     ArticleInsightsService,
     ArticleRemixService,
     ArticleReviewService,

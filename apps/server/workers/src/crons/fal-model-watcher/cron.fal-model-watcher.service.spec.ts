@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ServerModelRecord } from '@api/index';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -27,7 +27,7 @@ describe('CronFalModelWatcherService', () => {
   let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
-  let notificationsService: vi.Mocked<NotificationsService>;
+  let activityRecorder: { dispatch: ReturnType<typeof vi.fn> };
 
   /** An operator-approved, active fal row already in the registry. */
   const mockExistingModels = [
@@ -109,12 +109,9 @@ describe('CronFalModelWatcherService', () => {
           },
         },
         {
-          provide: NotificationsService,
+          provide: ActivityRecorderService,
           useValue: {
-            sendModelDiscoveryNotification: vi
-              .fn()
-              .mockResolvedValue(undefined),
-            sendNotification: vi.fn(),
+            dispatch: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -143,7 +140,7 @@ describe('CronFalModelWatcherService', () => {
       FalPlatformClient,
     ) as unknown as typeof falPlatformClient;
     configService = module.get(ConfigService);
-    notificationsService = module.get(NotificationsService);
+    activityRecorder = module.get(ActivityRecorderService);
     loggerService = module.get(LoggerService);
   });
 
@@ -464,19 +461,28 @@ describe('CronFalModelWatcherService', () => {
     it('notification payload contains required fields', async () => {
       await service.discoverNewModels();
 
-      expect(
-        notificationsService.sendModelDiscoveryNotification,
-      ).toHaveBeenCalledWith({
-        category: ModelCategory.IMAGE,
-        estimatedCost: 30,
-        modelKey: 'fal-ai/notif-model',
-        provider: ModelProvider.FAL,
-        providerCostUsd: 0,
-      });
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                action: 'model_discovery',
+                payload: expect.objectContaining({
+                  category: ModelCategory.IMAGE,
+                  estimatedCost: 30,
+                  modelKey: 'fal-ai/notif-model',
+                  provider: ModelProvider.FAL,
+                  providerCostUsd: 0,
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
     });
 
     it('handles notification failure without failing the watcher', async () => {
-      notificationsService.sendModelDiscoveryNotification.mockRejectedValueOnce(
+      activityRecorder.dispatch.mockRejectedValueOnce(
         new Error('Discord webhook failed'),
       );
 

@@ -1,5 +1,6 @@
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentAutopilotWorkflowService atomic actions', () => {
@@ -272,6 +273,9 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       expect.objectContaining({
         inputValues: { request: expect.objectContaining({ creditBudget: 25 }) },
       }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
     );
   });
   it('does not double-record a failure after the current dispatch has persisted', async () => {
@@ -307,6 +311,9 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
         source: 'proactive',
         metadata: expect.objectContaining({ strategyId: 'strategy' }),
         inputValues: { request: expect.objectContaining({ creditBudget: 10 }) },
+      }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       }),
     );
   });

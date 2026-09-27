@@ -1,5 +1,6 @@
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
@@ -62,12 +63,15 @@ describe('CronBatchGenerationReconcileService', () => {
     await service.resumeStrandedBatches();
 
     expect(queueService.queueBatch).toHaveBeenCalledTimes(2);
-    expect(queueService.queueBatch).toHaveBeenCalledWith({
-      batchId: 'batch-1',
-      isResume: true,
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    expect(queueService.queueBatch).toHaveBeenCalledWith(
+      {
+        batchId: 'batch-1',
+        isResume: true,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      SystemWorkflowDispatchClass.BACKGROUND,
+    );
   });
 
   it('keeps sweeping after one batch fails to enqueue', async () => {

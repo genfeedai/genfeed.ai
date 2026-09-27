@@ -2,8 +2,12 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { CreditTransactionCategory } from '@genfeedai/contracts';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import {
+  ActivityKey,
+  ActivitySource,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
 import {
   CREDIT_DEDUCTION_QUEUE,
   CreditDeductionJobData,
@@ -25,7 +29,7 @@ export class CreditDeductionProcessor extends WorkerHost {
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly creditTransactionsService: CreditTransactionsService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
@@ -304,10 +308,28 @@ export class CreditDeductionProcessor extends WorkerHost {
         return;
       }
 
-      await this.notificationsService.sendLowCreditsAlert(
-        organizationId,
-        balance,
+      // The alert policy puts CREDITS_LOW in the owner's bell and the
+      // operator Discord. The debounce window keys the alert, so a lost
+      // Redis marker cannot double-alert within one window.
+      const window = Math.floor(
+        Date.now() / (LOW_CREDITS_DEBOUNCE_TTL_SECONDS * 1000),
       );
+      await this.activityRecorder.record({
+        alert: {
+          deduplicationKey: `${ActivityKey.CREDITS_LOW}/${organizationId}/${window}`,
+          operatorMessages: {
+            discord: {
+              action: 'low_credits_alert',
+              payload: { balance, organizationId },
+              type: 'discord',
+            },
+          },
+        },
+        key: ActivityKey.CREDITS_LOW,
+        organizationId,
+        source: ActivitySource.SCRIPT,
+        value: JSON.stringify({ balance, threshold: LOW_CREDITS_THRESHOLD }),
+      });
 
       this.logger.log(
         `${this.constructorName} low-credits alert sent for ${organizationId}`,

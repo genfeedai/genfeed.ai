@@ -2,6 +2,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   buildReviewGateTimeoutResolveDefinition,
@@ -95,7 +96,11 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `review-gate-timeout-sweep-${Math.floor(now / REVIEW_GATE_SWEEP_INTERVAL_MS)}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 }

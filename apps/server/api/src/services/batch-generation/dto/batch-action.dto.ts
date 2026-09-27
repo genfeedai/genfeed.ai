@@ -8,7 +8,6 @@ import {
 
 export enum BatchAction {
   APPROVE = 'approve',
-  REWRITE = 'rewrite',
   REJECT = 'reject',
   REQUEST_CHANGES = 'request_changes',
 }
@@ -18,7 +17,7 @@ export enum BatchAction {
  * at most `CreateBatchDto.count` (`@Max(100)`) items — so 100 covers every real
  * select-all while keeping the per-item write loop bounded.
  */
-const MAX_BATCH_ACTION_ITEMS = 100;
+export const MAX_BATCH_ACTION_ITEMS = 100;
 
 export class BatchActionDto {
   @IsArray()

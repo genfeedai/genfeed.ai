@@ -58,6 +58,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -4423,13 +4424,16 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     // Generation runs in the batch workflow now — the tool only reserves credits
     // and hands over the identity the workflow streams progress back through.
-    expect(batchGenerationWorkflowService.queueBatch).toHaveBeenCalledWith({
-      batchId: testId('batch'),
-      organizationId: testId('org'),
-      runId: 'run-1',
-      threadId: 'thread-1',
-      userId: testId('user'),
-    });
+    expect(batchGenerationWorkflowService.queueBatch).toHaveBeenCalledWith(
+      {
+        batchId: testId('batch'),
+        organizationId: testId('org'),
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: testId('user'),
+      },
+      SystemWorkflowDispatchClass.INTERACTIVE,
+    );
     expect(batchGenerationService.processBatch).not.toHaveBeenCalled();
   });
 

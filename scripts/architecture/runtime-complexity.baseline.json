@@ -12,7 +12,7 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1214,
+    "actual": 1181,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
@@ -126,7 +126,7 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 218,
+    "actual": 216,
     "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.ts",
     "metric": "method-lines",
     "symbol": "AutoMergeService.createAndQueueMerge"
@@ -142,12 +142,6 @@
     "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
     "metric": "method-lines",
     "symbol": "PublishApprovalsService.createForPost"
-  },
-  {
-    "actual": 1029,
-    "file": "apps/server/api/src/services/agent-campaign/content-engine.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/agent-campaign/content-engine.service.ts"
   },
   {
     "actual": 188,
@@ -288,7 +282,7 @@
     "symbol": "AuthorReplyLoopService.getInbox"
   },
   {
-    "actual": 1156,
+    "actual": 1132,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"

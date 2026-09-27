@@ -1,5 +1,5 @@
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -7,10 +7,14 @@ import {
 } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const reviewActivity = { key: 'agent-review-changed' };
 vi.mock(
-  '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service',
-  () => ({ recordAgentReviewOutcome: vi.fn().mockResolvedValue('delivery-1') }),
+  '@api/services/notifications/workflow-notifications/workflow-outcome-activity',
+  () => ({
+    buildAgentReviewActivity: vi.fn(async () => reviewActivity),
+  }),
 );
+const activityRecorder = { recordInTransaction: vi.fn() };
 
 describe('AutonomousPublishPolicyService', () => {
   const post = {
@@ -66,7 +70,10 @@ describe('AutonomousPublishPolicyService', () => {
       id: 'credential-1',
       platform: 'INSTAGRAM',
     });
-    service = new AutonomousPublishPolicyService(db as never);
+    service = new AutonomousPublishPolicyService(
+      db as never,
+      activityRecorder as never,
+    );
   });
   it('keeps supervised drafts denied even with a connected channel', async () => {
     expect(
@@ -103,6 +110,7 @@ describe('AutonomousPublishPolicyService', () => {
     });
     const gated = new AutonomousPublishPolicyService(
       { ...db, ingredient } as never,
+      activityRecorder as never,
       { assessPublishMedia } as never,
     );
 
@@ -211,12 +219,16 @@ describe('AutonomousPublishPolicyService', () => {
       ).result.decision,
     ).toBe(AgentPublishDecision.DENIED);
     expect(db.agentPublishAudit.create).toHaveBeenCalledTimes(2);
-    expect(recordAgentReviewOutcome).toHaveBeenCalledWith(
+    expect(buildAgentReviewActivity).toHaveBeenCalledWith(
       db,
       expect.objectContaining({
         strategyId: 'strategy-1',
         autoPublishEnabled: false,
       }),
+    );
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
+      db,
+      reviewActivity,
     );
   });
   it('does not count edited captions or previous change requests as pristine', async () => {

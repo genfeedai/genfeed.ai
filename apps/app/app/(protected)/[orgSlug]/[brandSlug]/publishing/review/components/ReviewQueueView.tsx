@@ -59,6 +59,8 @@ export default function ReviewQueueView({
   isBatchLoading,
   isRefreshing = false,
   selectedIds,
+  isRewriteStarting,
+  rewriteProgress,
   rewritingIds,
   selectedPostId,
   visibleItems,
@@ -250,6 +252,8 @@ export default function ReviewQueueView({
             isActioning={isActioning}
             items={visibleItems}
             selectedIds={selectedIds}
+            isRewriteStarting={isRewriteStarting}
+            rewriteProgress={rewriteProgress}
             rewritingIds={rewritingIds}
             onBulkApprove={onBulkApprove}
             onBulkReject={onBulkReject}

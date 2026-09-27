@@ -149,8 +149,8 @@ function setup() {
     logger as never,
     webhook as never,
     {
-      recordWorkflowOutcome: vi.fn().mockResolvedValue(null),
-      enqueueAfterCommit: vi.fn(),
+      afterCommit: vi.fn(),
+      recordInTransaction: vi.fn().mockResolvedValue(null),
     } as never,
     strategies,
   );

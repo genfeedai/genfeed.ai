@@ -9,10 +9,10 @@ import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   categoryToMediaType,
@@ -62,7 +62,7 @@ export class WebhooksService {
     private readonly mediaUploadService: MediaUploadService,
     private readonly metadataLookupService: MetadataLookupService,
     private readonly metadataService: MetadataService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly postProcessingOrchestrator: PostProcessingOrchestratorService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
@@ -515,20 +515,35 @@ export class WebhooksService {
       }
     }
 
-    await this.notificationsService.sendIngredientNotification(
-      categoryValue as IngredientCategory,
-      cdnUrl,
-      {
-        brand,
-        id: ingredient.id,
-        metadata: {
-          ...metadata,
-          model: metadata?.model || integration,
+    await this.activityRecorder.dispatch({
+      deduplicationKey: `message.ingredient/${ingredient.id}`,
+      messages: [
+        {
+          destination: null,
+          message: {
+            action: 'ingredient_notification',
+            payload: {
+              category: String(categoryValue),
+              cdnUrl,
+              ingredient: {
+                brand,
+                id: ingredient.id,
+                metadata: {
+                  ...metadata,
+                  model: metadata?.model || integration,
+                },
+                prompt,
+                thumbnailUrl,
+              },
+            },
+            type: 'discord',
+          },
         },
-        prompt,
-        thumbnailUrl,
-      },
-    );
+      ],
+      organizationId: ingredient.organizationId,
+      source: { id: ingredient.id, type: 'ingredient' },
+      topic: 'operator.alerts',
+    });
   }
 
   async processAssetFromWebhook(

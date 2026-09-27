@@ -146,7 +146,7 @@ describe('PostsController.create account-health warmup gate', () => {
   } as never;
 
   it('holds scheduled posts as pending when account warmup is not ready', async () => {
-    const activitiesService = { create: vi.fn().mockResolvedValue({}) };
+    const activitiesService = { record: vi.fn().mockResolvedValue({}) };
     const accountHealthService = {
       evaluateScheduledPublishGate: vi.fn().mockResolvedValue({
         holdPublishing: true,

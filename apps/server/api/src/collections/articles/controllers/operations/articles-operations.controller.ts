@@ -9,8 +9,6 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import {
@@ -18,9 +16,9 @@ import {
   GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { ReviewArticleDto } from '@api/collections/articles/dto/review-article.dto';
+import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -37,13 +35,11 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
-  assertOrganizationCreditsAvailable,
-  resolveTextModelMinimumCredits,
-} from '@api/helpers/utils/credits/organization-credits-gate.util';
-import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ActivityRef } from '@api/services/activity-recording/activity-recording.types';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -89,11 +85,11 @@ export class ArticlesOperationsController {
   private static readonly ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly apiKeysService: ApiKeysService,
+    private readonly articleGenerationCreditsService: ArticleGenerationCreditsService,
     private readonly articlesService: ArticlesService,
     private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly membersService: MembersService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -131,49 +127,25 @@ export class ArticlesOperationsController {
 
     await this.assertGenerationModelOverrideSupported(dto.model);
 
-    const modelConfig =
-      await this.articlesService.resolveArticleCycleModelConfig(
-        user.organizationId,
-        dto.model,
-      );
-    const minimumRequiredCredits = (
-      await Promise.all([
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.generationModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.reviewModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.updateModel,
-        ),
-      ])
-    ).reduce((sum, amount) => sum + amount, 0);
-
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
+    const byok = await this.articleGenerationCreditsService.admitGeneration(
+      request,
       user.organizationId,
-      minimumRequiredCredits,
+      dto,
     );
 
     // Create activity for article generation start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        key: ActivityKey.ARTICLE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.ARTICLE_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          count: dto.count || 1,
-          prompt: dto.prompt?.substring(0, 100),
-          type: generationType,
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.ARTICLE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.ARTICLE_GENERATION,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        count: dto.count || 1,
+        prompt: dto.prompt?.substring(0, 100),
+        type: generationType,
       }),
-    );
+    });
 
     // Emit background-task-update WebSocket event
     await this.websocketService.publishBackgroundTaskUpdate({
@@ -193,6 +165,7 @@ export class ArticlesOperationsController {
           user.userId ?? user.id,
           user.organizationId,
           brandId,
+          byok,
         );
 
       this.settleDeferredCredits(request, billedCredits);
@@ -211,12 +184,9 @@ export class ArticlesOperationsController {
           isRead: false,
         };
         if (index === 0) {
-          await this.activitiesService.patch(
-            activity.id.toString(),
-            completion,
-          );
+          await this.activityRecorder.update(activity, completion);
         } else {
-          await this.activitiesService.create(completion);
+          await this.activityRecorder.record(completion);
         }
 
         await this.websocketService.publishBackgroundTaskUpdate({
@@ -239,12 +209,7 @@ export class ArticlesOperationsController {
         docs: articles,
       });
     } catch (error: unknown) {
-      await this.recordGenerationFailure(
-        activity.id.toString(),
-        error,
-        isXArticle,
-        user.id,
-      );
+      await this.recordGenerationFailure(activity, error, isXArticle, user.id);
 
       throw error;
     }
@@ -264,18 +229,9 @@ export class ArticlesOperationsController {
     @Body() dto: ReviewArticleDto,
     @CurrentUser() user: User,
   ) {
-    const modelConfig =
-      await this.articlesService.resolveArticleCycleModelConfig(
-        user.organizationId,
-      );
-
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
+    const byok = await this.articleGenerationCreditsService.admitReview(
+      request,
       user.organizationId,
-      await resolveTextModelMinimumCredits(
-        this.modelsService,
-        modelConfig.reviewModel,
-      ),
     );
 
     const { billedCredits, review } = await this.articlesService.reviewArticle(
@@ -283,6 +239,7 @@ export class ArticlesOperationsController {
       user.userId ?? user.id,
       user.organizationId,
       dto.focus,
+      byok,
     );
 
     this.settleDeferredCredits(request, billedCredits);
@@ -311,7 +268,7 @@ export class ArticlesOperationsController {
   }
 
   private async recordGenerationFailure(
-    activityId: string,
+    activity: ActivityRef,
     error: unknown,
     isXArticle: boolean,
     userId: string,
@@ -319,7 +276,8 @@ export class ArticlesOperationsController {
     const errorMessage =
       (error as Error)?.message || 'Article generation failed';
 
-    await this.activitiesService.patch(activityId, {
+    const activityId = activity.id;
+    await this.activityRecorder.update(activity, {
       key: ActivityKey.ARTICLE_FAILED,
       value: JSON.stringify({
         error: errorMessage,

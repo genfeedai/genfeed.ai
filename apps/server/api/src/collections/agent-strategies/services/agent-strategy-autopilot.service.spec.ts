@@ -92,7 +92,7 @@ describe('AgentStrategyAutopilotService', () => {
       listByStrategy: vi.fn().mockResolvedValue([]),
     };
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: 'activity-id' }),
+      record: vi.fn().mockResolvedValue({ id: 'activity-id' }),
     };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
@@ -464,8 +464,8 @@ describe('AgentStrategyAutopilotService', () => {
       draftId,
       expect.objectContaining({ targetSettings: expect.any(Object) }),
     );
-    expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
-    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+    expect(deps.activitiesService.record).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId,
         entityId: reviewPostId,
@@ -560,8 +560,8 @@ describe('AgentStrategyAutopilotService', () => {
       draftId,
       expect.objectContaining({ targetSettings: expect.any(Object) }),
     );
-    expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
-    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+    expect(deps.activitiesService.record).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId,
         entityId: reviewPostId,
@@ -649,8 +649,8 @@ describe('AgentStrategyAutopilotService', () => {
       draftId,
       expect.objectContaining({ targetSettings: expect.any(Object) }),
     );
-    expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
-    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+    expect(deps.activitiesService.record).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId,
         entityId: reviewPostId,

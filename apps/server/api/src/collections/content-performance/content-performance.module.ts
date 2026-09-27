@@ -22,7 +22,6 @@ import { SERVER_TOKENS } from '@api/server.dependencies';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -73,10 +72,6 @@ import { Module } from '@nestjs/common';
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,
-    },
-    {
-      provide: SERVER_TOKENS.notifications,
-      useExisting: NotificationsService,
     },
     {
       provide: SERVER_TOKENS.prisma,

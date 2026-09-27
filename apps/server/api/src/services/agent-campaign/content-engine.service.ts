@@ -11,6 +11,13 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import {
+  getStrategyPlatforms,
+  getStrategyTopics,
+  normalizeDate,
+  normalizeModel,
+  requireAgentType,
+} from '@api/services/agent-campaign/content-engine-parsing.util';
+import {
   type ContentRotationSelection,
   ContentRotationService,
 } from '@api/services/agent-campaign/content-rotation.service';
@@ -24,6 +31,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { type AgentType, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { IAgentCampaignContentRotation } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
@@ -138,45 +146,6 @@ export class ContentEngineService {
     @Inject(forwardRef(() => AgentRuntimeService))
     private readonly agentRuntimeService: AgentRuntimeService,
   ) {}
-
-  private requireAgentType(
-    agentType: AgentStrategyDocument['agentType'],
-  ): AgentType {
-    if (!agentType) {
-      throw new Error('Agent strategy type is missing');
-    }
-
-    return agentType as AgentType;
-  }
-
-  private normalizeModel(model: string | null | undefined): string | undefined {
-    return model ?? undefined;
-  }
-
-  private normalizeDate(value: unknown): Date | null {
-    if (!value) {
-      return null;
-    }
-
-    if (value instanceof Date) {
-      return value;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    return null;
-  }
-
-  private getStrategyTopics(strategy: AgentStrategyDocument): string[] {
-    return strategy.topics ?? [];
-  }
-
-  private getStrategyPlatforms(strategy: AgentStrategyDocument): string[] {
-    return strategy.platforms ?? [];
-  }
 
   async loadOrchestrationContext(
     campaignId: string,
@@ -356,11 +325,13 @@ export class ContentEngineService {
   ): Promise<OrchestrationDispatchPlan> {
     const campaignId = String(item.campaign.id);
     const handle = await this.agentRuntimeService.startTurn({
-      agentType: this.requireAgentType(item.strategy.agentType),
+      agentType: requireAgentType(item.strategy.agentType),
       autonomyMode: item.strategy.autonomyMode,
       brandId: item.campaign.brandId ?? undefined,
       campaignId,
       creditBudget: item.creditBudget,
+      // Automated due-orchestration sweep, not a live click — #5271.
+      dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       label: `Campaign orchestrator: ${item.campaign.label} -> ${item.strategy.label}`,
       metadata: {
         campaignId,
@@ -369,7 +340,7 @@ export class ContentEngineService {
         dispatchedStrategyId: String(item.strategy.id),
         reason: item.reason,
       },
-      model: this.normalizeModel(item.strategy.model),
+      model: normalizeModel(item.strategy.model),
       objective: item.objective,
       organizationId: item.organizationId,
       strategyId: String(item.strategy.id),
@@ -377,7 +348,7 @@ export class ContentEngineService {
       userId: item.userId,
     });
     return {
-      agentType: this.requireAgentType(item.strategy.agentType),
+      agentType: requireAgentType(item.strategy.agentType),
       objective: item.objective,
       reason: item.reason,
       executionId: handle.executionId,
@@ -482,8 +453,7 @@ export class ContentEngineService {
         input,
         items: [],
         nextOrchestratedAt:
-          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
-          null,
+          normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
         skippedReason: `Campaign is ${campaign.status}, skipping trigger dispatch.`,
         summary: `Skipped trigger dispatch because campaign status is ${campaign.status}.`,
       };
@@ -495,8 +465,7 @@ export class ContentEngineService {
         input,
         items: [],
         nextOrchestratedAt:
-          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
-          null,
+          normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
         skippedReason: 'No strategies selected for trigger dispatch.',
         summary:
           'Skipped trigger dispatch because no strategies were selected.',
@@ -518,8 +487,7 @@ export class ContentEngineService {
         input,
         items: [],
         nextOrchestratedAt:
-          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
-          null,
+          normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
         skippedReason: 'Campaign credit budget is exhausted.',
         summary:
           'Skipped trigger dispatch because the campaign budget is exhausted.',
@@ -566,7 +534,7 @@ export class ContentEngineService {
       input,
       items,
       nextOrchestratedAt:
-        this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
+        normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
     };
   }
 
@@ -574,11 +542,13 @@ export class ContentEngineService {
     item: TriggeredCampaignDispatchItem,
   ): Promise<OrchestrationDispatchPlan> {
     const handle = await this.agentRuntimeService.startTurn({
-      agentType: this.requireAgentType(item.strategy.agentType),
+      agentType: requireAgentType(item.strategy.agentType),
       autonomyMode: item.strategy.autonomyMode,
       brandId: item.campaign.brandId ?? undefined,
       campaignId: item.input.campaignId,
       creditBudget: item.creditBudget,
+      // Automated trigger-evaluation sweep, not a live click — #5271.
+      dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       label: `Campaign trigger: ${item.campaign.label} -> ${item.strategy.label}`,
       metadata: {
         campaignId: item.input.campaignId,
@@ -587,7 +557,7 @@ export class ContentEngineService {
         triggerMetadata: item.input.triggerMetadata,
         triggerType: item.input.triggerType,
       },
-      model: this.normalizeModel(item.strategy.model),
+      model: normalizeModel(item.strategy.model),
       objective: item.objective,
       organizationId: item.input.organizationId,
       strategyId: String(item.strategy.id),
@@ -595,7 +565,7 @@ export class ContentEngineService {
       userId: item.userId,
     });
     return {
-      agentType: this.requireAgentType(item.strategy.agentType),
+      agentType: requireAgentType(item.strategy.agentType),
       objective: item.objective,
       reason: item.reason,
       executionId: handle.executionId,
@@ -756,7 +726,7 @@ export class ContentEngineService {
       analyticsOverview.avgEngagementRate ?? 0,
     ).toFixed(2);
     const totalViews = Math.round(analyticsOverview.totalViews ?? 0);
-    const topicsList = this.getStrategyTopics(strategy);
+    const topicsList = getStrategyTopics(strategy);
     const topics =
       topicsList.length > 0 ? topicsList.join(', ') : 'campaign priorities';
 
@@ -776,7 +746,7 @@ export class ContentEngineService {
     analyticsOverview: AnalyticsOverview,
     rotationSelection?: ContentRotationSelection,
   ): string {
-    const topics = this.getStrategyTopics(strategy);
+    const topics = getStrategyTopics(strategy);
     const lines = [
       `Campaign: ${campaign.label}`,
       `Campaign brief: ${campaign.brief || 'No campaign brief provided.'}`,
@@ -810,7 +780,7 @@ export class ContentEngineService {
     analyticsOverview: AnalyticsOverview,
     input: TriggeredCampaignDispatchInput,
   ): string {
-    const strategyPlatforms = this.getStrategyPlatforms(strategy);
+    const strategyPlatforms = getStrategyPlatforms(strategy);
     const recommendedPostingTimes = input.postingRecommendations
       .filter((recommendation) =>
         strategyPlatforms.length > 0

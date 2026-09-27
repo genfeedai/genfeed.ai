@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
@@ -25,6 +23,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -59,7 +58,7 @@ import type { Request } from 'express';
 export class PostsOperationsController {
   private readonly serializer = PostSerializer;
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly credentialsService: CredentialsService,
     private readonly ingredientsService: IngredientsService,
     private readonly logger: LoggerService,
@@ -239,21 +238,18 @@ export class PostsOperationsController {
         });
       }
 
-      // One insert for every activity instead of one per scheduled post.
-      await this.activitiesService.createMany(
-        updatedPosts.map(
-          (updatedPost) =>
-            new ActivityEntity({
-              brandId: user.brandId,
-              entityId: updatedPost.id,
-              entityModel: ActivityEntityModel.POST,
-              key: ActivityKey.VIDEO_SCHEDULED,
-              organizationId: user.organizationId,
-              source: ActivitySource.SCRIPT,
-              userId: user.userId ?? user.id,
-              value: (updatedPost.id as string).toString(),
-            }),
-        ),
+      // One transaction for every scheduled post's activity.
+      await this.activityRecorder.recordMany(
+        updatedPosts.map((updatedPost) => ({
+          brandId: user.brandId,
+          entityId: updatedPost.id,
+          entityModel: ActivityEntityModel.POST,
+          key: ActivityKey.VIDEO_SCHEDULED,
+          organizationId: user.organizationId,
+          source: ActivitySource.SCRIPT,
+          userId: user.userId ?? user.id,
+          value: (updatedPost.id as string).toString(),
+        })),
       );
 
       return serializeCollection(request, PostListSerializer, {
@@ -442,18 +438,16 @@ export class PostsOperationsController {
       );
 
       // Create activity log
-      await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: user.brandId,
-          entityId: remixPost.id,
-          entityModel: ActivityEntityModel.POST,
-          key: ActivityKey.POST_CREATED,
-          organizationId: user.organizationId,
-          source: ActivitySource.WEB,
-          userId: user.userId ?? user.id,
-          value: (remixPost.id as string).toString(),
-        }),
-      );
+      await this.activityRecorder.record({
+        brandId: user.brandId,
+        entityId: remixPost.id,
+        entityModel: ActivityEntityModel.POST,
+        key: ActivityKey.POST_CREATED,
+        organizationId: user.organizationId,
+        source: ActivitySource.WEB,
+        userId: user.userId ?? user.id,
+        value: (remixPost.id as string).toString(),
+      });
 
       return serializeSingle(request, this.serializer, remixPost);
     } catch (error: unknown) {

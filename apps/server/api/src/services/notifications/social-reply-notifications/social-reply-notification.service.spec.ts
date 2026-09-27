@@ -1,7 +1,9 @@
+import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import {
   formatSocialReplySummary,
   SocialReplyNotificationService,
 } from '@api/services/notifications/social-reply-notifications/social-reply-notification.service';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,12 +20,16 @@ function setup() {
     findFirst: vi.fn().mockResolvedValue({ id: 'conversation-a' }),
     findMany: vi.fn().mockResolvedValue([]),
   };
-  const transaction = {
-    notificationDelivery: {
-      upsert: vi.fn().mockResolvedValue({ id: 'delivery-1' }),
-    },
-    notificationEvent: { upsert: vi.fn().mockResolvedValue({ id: 'event-1' }) },
-    socialConversation,
+  const transaction = { socialConversation };
+  const commit = { activities: [], inbox: [], pendingDeliveryIds: [] };
+  const activityRecorder = {
+    afterCommit: vi.fn(),
+    recordInTransaction: vi.fn(
+      async (_transaction: unknown, _input: RecordActivityInput) => ({
+        activity: { id: 'activity-1' },
+        commit,
+      }),
+    ),
   };
   const prisma = {
     $transaction: vi.fn(
@@ -47,9 +53,10 @@ function setup() {
   const logger = { error: vi.fn(), warn: vi.fn() };
   const service = new SocialReplyNotificationService(
     prisma as never,
+    activityRecorder as never,
     logger as never,
   );
-  return { logger, prisma, service, transaction };
+  return { activityRecorder, commit, logger, prisma, service, transaction };
 }
 
 const input = {
@@ -88,64 +95,46 @@ describe('SocialReplyNotificationService', () => {
     expect(context.prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('aggregates one run into a single event and in-app delivery', async () => {
+  it('records one run as a single activity the policy raises in the bell', async () => {
     await expect(context.service.recordNewReplies(input)).resolves.toBe(
-      'delivery-1',
+      'activity-1',
     );
 
     const dedupKey =
-      'social.reply.received/org-1/credential-1/1800000000000000010';
-    expect(context.transaction.notificationEvent.upsert).toHaveBeenCalledOnce();
-    expect(context.transaction.notificationEvent.upsert).toHaveBeenCalledWith({
-      create: expect.objectContaining({
-        deduplicationKey: dedupKey,
-        eventKey: 'social.reply.received',
-        organizationId: 'org-1',
-        payload: expect.objectContaining({
-          accountHandle: 'acme',
-          brandId: 'brand-1',
-          conversationIds: ['conversation-b', 'conversation-a'],
-          kind: 'social_reply',
-          newestConversationId: 'conversation-b',
-          newestReplyId: '1800000000000000010',
-          replyCount: 3,
-          version: 2,
-          summary: '3 new replies on @acme',
-        }),
-        sourceId: 'credential-1',
-        sourceType: 'social_credential',
-      }),
-      update: {},
-      where: {
-        deduplicationKey: dedupKey,
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
-    expect(
-      context.transaction.notificationDelivery.upsert,
-    ).toHaveBeenCalledWith({
-      create: expect.objectContaining({
-        channel: 'in_app',
-        deliveredAt: input.occurredAt,
-        eventId: 'event-1',
-        idempotencyKey: `${dedupKey}/user-credential/in_app`,
-        organizationId: 'org-1',
-        status: 'delivered',
-        topic: 'social.reply',
-        userId: 'user-credential',
-      }),
-      update: {},
-      where: {
-        eventId_userId_channel: {
-          channel: 'in_app',
-          eventId: 'event-1',
-          userId: 'user-credential',
+      'social-replies-received/org-1/credential-1/1800000000000000010';
+    expect(context.activityRecorder.recordInTransaction).toHaveBeenCalledOnce();
+    expect(context.activityRecorder.recordInTransaction).toHaveBeenCalledWith(
+      context.transaction,
+      {
+        alert: {
+          deduplicationKey: dedupKey,
+          occurredAt: input.occurredAt,
+          payload: expect.objectContaining({
+            accountHandle: 'acme',
+            brandId: 'brand-1',
+            conversationIds: ['conversation-b', 'conversation-a'],
+            kind: 'social_reply',
+            newestConversationId: 'conversation-b',
+            newestReplyId: '1800000000000000010',
+            replyCount: 3,
+            summary: '3 new replies on @acme',
+            version: 2,
+          }),
+          source: { id: 'credential-1', type: 'social_credential' },
         },
-        isDeleted: false,
+        brandId: 'brand-1',
+        entityId: 'credential-1',
+        entityModel: 'Credential',
+        key: ActivityKey.SOCIAL_REPLIES_RECEIVED,
         organizationId: 'org-1',
+        source: ActivitySource.SOCIAL_INTEGRATION,
+        userId: 'user-credential',
+        value: '3 new replies on @acme',
       },
-    });
+    );
+    expect(context.activityRecorder.afterCommit).toHaveBeenCalledWith(
+      context.commit,
+    );
     expect(context.prisma.member.findFirst).toHaveBeenCalledWith({
       select: { id: true },
       where: {
@@ -187,7 +176,7 @@ describe('SocialReplyNotificationService', () => {
     });
 
     await expect(context.service.recordNewReplies(input)).resolves.toBe(
-      'delivery-1',
+      'activity-1',
     );
     expect(context.prisma.$transaction).toHaveBeenCalledOnce();
   });
@@ -204,16 +193,14 @@ describe('SocialReplyNotificationService', () => {
     await expect(context.service.recordNewReplies(input)).resolves.toBeNull();
 
     expect(context.prisma.$transaction).toHaveBeenCalledOnce();
-    expect(context.transaction.notificationEvent.upsert).not.toHaveBeenCalled();
-    expect(
-      context.transaction.notificationDelivery.upsert,
-    ).not.toHaveBeenCalled();
+    expect(context.activityRecorder.recordInTransaction).not.toHaveBeenCalled();
+    expect(context.activityRecorder.afterCommit).not.toHaveBeenCalled();
     expect(context.prisma.socialConversation.findFirst).toHaveBeenCalledTimes(
       2,
     );
   });
 
-  it('is idempotent when the same batch is recorded again', async () => {
+  it('keys a re-run of the same batch to the same deduplication key', async () => {
     await context.service.recordNewReplies(input);
     await context.service.recordNewReplies({
       ...input,
@@ -221,15 +208,10 @@ describe('SocialReplyNotificationService', () => {
     });
 
     const [first, second] =
-      context.transaction.notificationEvent.upsert.mock.calls;
-    expect(second[0].where).toEqual(first[0].where);
-    expect(second[0].update).toEqual({});
-    const [firstDelivery, secondDelivery] =
-      context.transaction.notificationDelivery.upsert.mock.calls;
-    expect(secondDelivery[0].create.idempotencyKey).toBe(
-      firstDelivery[0].create.idempotencyKey,
+      context.activityRecorder.recordInTransaction.mock.calls;
+    expect(second[1].alert?.deduplicationKey).toBe(
+      first[1].alert?.deduplicationKey,
     );
-    expect(secondDelivery[0].update).toEqual({});
   });
 
   it('falls back to the organization owner when the connector left', async () => {
@@ -240,8 +222,7 @@ describe('SocialReplyNotificationService', () => {
     await context.service.recordNewReplies(input);
 
     expect(
-      context.transaction.notificationDelivery.upsert.mock.calls[0][0].create
-        .userId,
+      context.activityRecorder.recordInTransaction.mock.calls[0][1].userId,
     ).toBe('user-owner');
   });
 
@@ -251,25 +232,6 @@ describe('SocialReplyNotificationService', () => {
     await expect(context.service.recordNewReplies(input)).resolves.toBeNull();
     expect(context.prisma.$transaction).not.toHaveBeenCalled();
     expect(context.logger.warn).toHaveBeenCalledOnce();
-  });
-
-  it('honours an explicit opt-out and defaults to enabled', async () => {
-    context.prisma.notificationPreference.findFirst.mockResolvedValue({
-      isEnabled: false,
-    });
-    await expect(context.service.recordNewReplies(input)).resolves.toBeNull();
-    expect(
-      context.prisma.notificationPreference.findFirst,
-    ).toHaveBeenCalledWith({
-      select: { isEnabled: true },
-      where: {
-        channel: 'in_app',
-        isDeleted: false,
-        topic: 'social.reply',
-        userId: 'user-credential',
-      },
-    });
-    expect(context.prisma.$transaction).not.toHaveBeenCalled();
   });
 
   describe('markConversationRepliesRead', () => {

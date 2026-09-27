@@ -35,6 +35,7 @@ import {
   SocialReplyCampaignStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -784,6 +785,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       `social-reply-campaign-${campaign.id}-${dispatchCursor}`,
       {
         delayMs: delaySeconds * 1000,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         replaceTerminalJob: true,
       },
     );
