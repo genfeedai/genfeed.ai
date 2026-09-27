@@ -430,60 +430,79 @@ export const products: Product[] = [
   {
     benefits: [
       {
-        problem: 'AI agents cannot access your Genfeed data',
+        problem: 'Your AI agent can write a post but cannot publish it',
         solution:
-          'MCP server gives any compatible AI full read/write access to your workspace',
+          'Genfeed MCP gives the agent real tools: generate media, schedule, publish, and read analytics',
       },
       {
-        problem: 'Building custom integrations takes weeks',
+        problem: 'Every agent needs its own custom integration',
         solution:
-          'MCP protocol is standard. Works with Claude, ChatGPT, and more.',
+          'One hosted MCP URL works in Claude, ChatGPT, Codex, Cursor, Gemini, Meta Muse, Grok Bot, and any Streamable HTTP client',
       },
       {
-        problem: 'Manual data sharing between AI tools',
-        solution: 'AI agents automatically sync with Genfeed via MCP protocol',
+        problem: 'Pasting API keys into chats and config files',
+        solution:
+          'Browser OAuth by default. Scoped API keys stay an advanced fallback for clients without OAuth',
       },
       {
-        problem: 'Limited AI automation capabilities',
+        problem: 'An agent publishing something you never saw',
         solution:
-          'AI agents can execute complex Genfeed workflows programmatically',
+          'Drafts wait in review. You approve before anything goes to a connected channel',
       },
     ],
     category: 'Developer Tools',
-    cta: 'Enable MCP Server',
+    cta: 'Connect your agent',
     description:
-      'Integrate Genfeed with AI agents using the Model Context Protocol (MCP). Let any MCP-compatible AI access your content, analytics, and workflows.',
+      'Connect any AI agent to Genfeed with the Model Context Protocol. One hosted MCP URL, browser OAuth, and tools to generate, schedule, publish, and measure content.',
     features: [
       {
-        description: 'MCP server exposing Genfeed capabilities to AI agents.',
+        description:
+          'Hosted Streamable HTTP server at https://mcp.genfeed.ai/mcp. No local install.',
         icon: '',
-        title: 'MCP Server',
+        title: 'One Hosted Endpoint',
       },
       {
         description:
-          'AI agents can read, create, and manage your Genfeed content.',
+          'Sign in and approve access in the browser. No API key in chats or config files.',
         icon: '',
-        title: 'Content Access',
+        title: 'Browser OAuth',
       },
       {
         description:
-          'Give AI agents access to performance data and trend insights.',
+          'Generate images and video, draft posts, schedule, and publish to connected channels.',
         icon: '',
-        title: 'Analytics Access',
+        title: 'Create and Publish',
       },
       {
-        description: 'AI agents can trigger Genfeed workflows and automation.',
+        description:
+          'Read performance data and run the workflows your account is allowed to use.',
         icon: '',
-        title: 'Workflow Execution',
+        title: 'Analytics and Workflows',
+      },
+      {
+        description:
+          'Load only the toolsets an agent needs with ?toolsets=, or every tool with ?profile=full.',
+        icon: '',
+        title: 'Scoped Toolsets',
+      },
+      {
+        description:
+          'Posts wait for your approval before they publish, unless a workflow allows direct publishing.',
+        icon: '',
+        title: 'Review Gates',
       },
     ],
-    headline: 'Connect AI Agents to Genfeed',
+    headline: 'Connect Any AI Agent to Genfeed',
     icon: '',
     integrations: [
-      'Anthropic Claude',
-      'OpenAI',
-      'MCP Protocol',
-      'Custom AI Agents',
+      'Claude',
+      'Claude Code',
+      'ChatGPT',
+      'Codex',
+      'Cursor',
+      'Gemini',
+      'Meta Muse',
+      'Grok Bot',
     ],
     name: 'MCP Server',
     pricing: {
@@ -491,10 +510,10 @@ export const products: Product[] = [
       why: 'Includes MCP server access, unlimited API calls, and priority support for developers.',
     },
     relatedProducts: ['chatgpt', 'hire-agents', 'studio'],
-    seoTitle: 'MCP Server for AI Content Tools',
+    seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',
     slug: 'mcp',
     status: 'alpha',
-    tagline: 'AI Model Context Protocol integration',
+    tagline: 'One hosted MCP server for every AI agent',
     targetAudience: [
       'AI engineers building agents',
       'Developers creating automations',
@@ -504,22 +523,23 @@ export const products: Product[] = [
     ],
     useCases: [
       {
-        description: 'Use Claude to manage Genfeed content',
+        description:
+          'Schedule posts from the terminal with Claude Code or Codex',
         example:
-          'Claude accesses your analytics → Suggests content improvements → Creates optimized content',
-        title: 'Claude Desktop Integration',
+          '"Turn this changelog into five X posts and schedule them tomorrow" → Drafts in review → Approved → Scheduled',
+        title: 'Coding Agents',
       },
       {
-        description: 'Build AI agents that work with Genfeed',
+        description: 'Create content from chat in Claude, ChatGPT, or Gemini',
         example:
-          'Custom agent monitors trends → Generates content → Publishes to Genfeed automatically',
-        title: 'Custom AI Workflows',
+          '"Make a vertical product video for TikTok" → Generated with brand context → Held for review',
+        title: 'Chat Assistants',
       },
       {
-        description: 'Connect multiple AIs to your Genfeed workspace',
+        description: 'Let Meta Muse or Grok Bot run recurring content routines',
         example:
-          'Research agent finds trends → Writer agent creates content → Publishing agent schedules posts',
-        title: 'Multi-Agent Systems',
+          'Weekly routine drafts LinkedIn posts from your blog → You approve → Genfeed publishes',
+        title: 'Personal Agents',
       },
     ],
   },
