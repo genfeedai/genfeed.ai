@@ -274,7 +274,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       const recentCursor =
         staleExecutionFinder.findMany.mock.calls[1][2].cursor;
       const ancientCursor =
-        staleExecutionFinder.findManyAncient.mock.calls[1][2].cursor;
+        staleExecutionFinder.findManyAncient.mock.calls[1][1].cursor;
       expect(recentCursor).toEqual({
         createdAt: recentPage[recentPage.length - 1].createdAt,
         id: recentPage[recentPage.length - 1].id,
