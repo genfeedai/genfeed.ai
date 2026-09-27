@@ -237,4 +237,143 @@ describe('StalePendingSystemExecutionFinderService', () => {
       });
     });
   });
+
+  describe('lap upper-boundary snapshot (#5319 second review)', () => {
+    it('findUpperBoundary returns the last matching row ordered createdAt/id descending', async () => {
+      const boundaryRow = {
+        createdAt: new Date('2026-09-26T11:50:00.000Z'),
+        id: 'execution-199',
+      };
+      const findMany = vi.fn().mockResolvedValue([boundaryRow]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+      const staleBefore = new Date('2026-09-26T11:55:00.000Z');
+      const createdAfter = new Date('2026-09-25T12:00:00.000Z');
+
+      const result = await service.findUpperBoundary(staleBefore, createdAfter);
+
+      expect(result).toEqual(boundaryRow);
+      expect(findMany).toHaveBeenCalledWith({
+        select: { createdAt: true, id: true },
+        take: 1,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        where: {
+          createdAt: { gte: createdAfter, lt: staleBefore },
+          isDeleted: false,
+          result: { path: ['metadata', 'isSystemAction'], equals: true },
+          status: 'PENDING',
+        },
+      });
+    });
+
+    it('findUpperBoundary returns undefined when the cohort currently has no candidates', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+
+      const result = await service.findUpperBoundary(new Date(), new Date(0));
+
+      expect(result).toBeUndefined();
+    });
+
+    it('findUpperBoundaryAncient queries the ancient cohort with no lower bound', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+      const createdBefore = new Date('2026-09-25T11:55:00.000Z');
+
+      await service.findUpperBoundaryAncient(createdBefore);
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          where: expect.objectContaining({ createdAt: { lt: createdBefore } }),
+        }),
+      );
+    });
+
+    it('caps a page to rows at or before the upper boundary tuple', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+      const staleBefore = new Date('2026-09-26T00:00:00.000Z');
+      const createdAfter = new Date(0);
+      const upperBoundary = {
+        createdAt: new Date('2026-09-25T18:00:00.000Z'),
+        id: 'execution-199',
+      };
+
+      await service.findMany(staleBefore, createdAfter, { upperBoundary });
+
+      const where = findMany.mock.calls[0][0].where;
+      expect(where.AND).toEqual([
+        expect.objectContaining({
+          createdAt: { gte: createdAfter, lt: staleBefore },
+        }),
+        {
+          OR: [
+            { createdAt: { lt: upperBoundary.createdAt } },
+            {
+              AND: [
+                { createdAt: upperBoundary.createdAt },
+                { id: { lte: upperBoundary.id } },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('combines cursor and upperBoundary as two independent AND conditions', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const prisma = { workflowExecution: { findMany } };
+      const service = new StalePendingSystemExecutionFinderService(
+        prisma as never,
+      );
+      const cursor = {
+        createdAt: new Date('2026-09-25T10:00:00.000Z'),
+        id: 'execution-050',
+      };
+      const upperBoundary = {
+        createdAt: new Date('2026-09-25T18:00:00.000Z'),
+        id: 'execution-199',
+      };
+
+      await service.findMany(new Date(), new Date(0), {
+        cursor,
+        upperBoundary,
+      });
+
+      const where = findMany.mock.calls[0][0].where;
+      expect(where.AND).toHaveLength(3);
+      expect(where.AND[1]).toEqual({
+        OR: [
+          { createdAt: { gt: cursor.createdAt } },
+          {
+            AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }],
+          },
+        ],
+      });
+      expect(where.AND[2]).toEqual({
+        OR: [
+          { createdAt: { lt: upperBoundary.createdAt } },
+          {
+            AND: [
+              { createdAt: upperBoundary.createdAt },
+              { id: { lte: upperBoundary.id } },
+            ],
+          },
+        ],
+      });
+    });
+  });
 });
