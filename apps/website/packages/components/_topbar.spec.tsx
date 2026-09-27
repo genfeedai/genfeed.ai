@@ -1,5 +1,5 @@
 // biome-ignore assist/source/organizeImports: External packages precede project aliases.
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
@@ -65,7 +65,9 @@ describe('WebsiteTopbar', () => {
   it('leads with the audience question, then what it is and how to buy it', () => {
     render(<WebsiteTopbar />);
 
-    const menus = screen
+    // Scoped to the desktop nav: the mobile menu toggle also reports
+    // `aria-expanded`, but it is not one of the bar's menus.
+    const menus = within(screen.getByRole('navigation'))
       .getAllByRole('button', { expanded: false })
       .map((trigger) => trigger.textContent?.trim());
 

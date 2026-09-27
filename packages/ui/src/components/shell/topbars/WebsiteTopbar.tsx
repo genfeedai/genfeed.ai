@@ -162,8 +162,52 @@ const NAV_LINKS = [
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
 
+  // The desktop bar hides Log in and Book a Demo to fit, so on a phone they
+  // live in the menu. Without them a returning visitor had no way to sign in.
+  const mobileActions = isSignedIn ? (
+    <ButtonTracked
+      asChild
+      size={ButtonSize.PUBLIC}
+      className="h-12 w-full text-sm uppercase"
+      trackingData={{ action: 'open_app_mobile_menu' }}
+      trackingName="topbar_cta_click"
+    >
+      <a href={EnvironmentService.apps.app}>Open Genfeed</a>
+    </ButtonTracked>
+  ) : (
+    <div className="grid grid-cols-2 gap-3">
+      <ButtonTracked
+        asChild
+        size={ButtonSize.PUBLIC}
+        variant={ButtonVariant.SECONDARY}
+        className="h-12 w-full text-sm uppercase"
+        trackingData={{ action: 'log_in_mobile_menu' }}
+        trackingName="topbar_cta_click"
+      >
+        <a href={`${EnvironmentService.apps.app}/login`}>Log in</a>
+      </ButtonTracked>
+      <ButtonTracked
+        asChild
+        size={ButtonSize.PUBLIC}
+        variant={ButtonVariant.SECONDARY}
+        className="h-12 w-full text-sm uppercase"
+        trackingData={{ action: 'book_demo_mobile_menu' }}
+        trackingName="topbar_cta_click"
+      >
+        <a
+          href={EnvironmentService.calendly}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Book a Demo
+        </a>
+      </ButtonTracked>
+    </div>
+  );
+
   return (
     <TopbarPublic
+      mobileActions={mobileActions}
       dropdowns={[
         {
           footer: {
@@ -236,7 +280,7 @@ export default function WebsiteTopbar() {
           ) : (
             <a
               href={EnvironmentService.apps.app}
-              className="hidden text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface lg:block"
+              className="text-xs font-bold uppercase tracking-[0.1em] text-surface/60 transition-colors hover:text-surface"
             >
               App
             </a>
