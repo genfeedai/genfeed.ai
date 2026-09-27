@@ -21,7 +21,9 @@ import Link from 'next/link';
 
 import InstallCommand from './install-command';
 import SkillsBundleCta from './skills-bundle-cta';
-import SkillsCheckoutButton from './skills-checkout-button';
+import SkillsCheckoutButton, {
+  SkillsCheckoutProvider,
+} from './skills-checkout-button';
 import SkillsHowItWorks from './skills-how-it-works';
 import SkillsStatsBar from './skills-stats-bar';
 import TerminalDemo from './terminal-demo';
@@ -164,79 +166,82 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           </WebSection>
         )}
 
-        {/* Bundle CTA */}
-        {registry && registry.skills.length > 0 && (
-          <SkillsBundleCta bundlePrice={registry.bundlePrice} />
-        )}
-
-        {/* How It Works */}
-        <SkillsHowItWorks />
-
-        {/* Terminal Demo */}
-        <WebSection maxWidth="lg" className="gsap-section">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="flex flex-col justify-center">
-              <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
-                Quick Start
-              </div>
-              <h2 className="text-4xl font-semibold mb-4">One Command</h2>
-              <p className="text-surface/65 text-sm leading-relaxed mb-6">
-                Install all {FREE_SKILL_COUNT} free skills with a single
-                command. Your agent learns each skill and activates it at
-                exactly the right moment.
-              </p>
-              <div className="space-y-3 text-sm text-surface/65">
-                <p>
-                  <span className="text-surface/60 font-medium">
-                    Install all:
-                  </span>{' '}
-                  <Code className="text-surface/50 bg-fill/5">
-                    bunx skills add genfeedai/skills
-                  </Code>
-                </p>
-                <p>
-                  <span className="text-surface/60 font-medium">
-                    Install one:
-                  </span>{' '}
-                  <Code className="text-surface/50 bg-fill/5">
-                    bunx skills add genfeedai/skills/x-content-creator
-                  </Code>
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col justify-center">
-              <TerminalDemo />
-            </div>
-          </div>
-        </WebSection>
-
-        {/* Final CTA */}
-        <CtaSection
-          bg="subtle"
-          title="Start Creating"
-          description={`${FREE_SKILL_COUNT} free skills. Every platform. One install. Upgrade to Pro for warmup and deep operating systems.`}
-        >
+        {/* Both buy buttons share one checkout, so a second click can't open a second session. */}
+        <SkillsCheckoutProvider>
+          {/* Bundle CTA */}
           {registry && registry.skills.length > 0 && (
-            <SkillsCheckoutButton>
-              <Sparkles className="size-4" />
-              Get Pro Skills: ${registry.bundlePrice}
-            </SkillsCheckoutButton>
+            <SkillsBundleCta bundlePrice={registry.bundlePrice} />
           )}
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.PUBLIC}
-            asChild
+
+          {/* How It Works */}
+          <SkillsHowItWorks />
+
+          {/* Terminal Demo */}
+          <WebSection maxWidth="lg" className="gsap-section">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="flex flex-col justify-center">
+                <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
+                  Quick Start
+                </div>
+                <h2 className="text-4xl font-semibold mb-4">One Command</h2>
+                <p className="text-surface/65 text-sm leading-relaxed mb-6">
+                  Install all {FREE_SKILL_COUNT} free skills with a single
+                  command. Your agent learns each skill and activates it at
+                  exactly the right moment.
+                </p>
+                <div className="space-y-3 text-sm text-surface/65">
+                  <p>
+                    <span className="text-surface/60 font-medium">
+                      Install all:
+                    </span>{' '}
+                    <Code className="text-surface/50 bg-fill/5">
+                      bunx skills add genfeedai/skills
+                    </Code>
+                  </p>
+                  <p>
+                    <span className="text-surface/60 font-medium">
+                      Install one:
+                    </span>{' '}
+                    <Code className="text-surface/50 bg-fill/5">
+                      bunx skills add genfeedai/skills/x-content-creator
+                    </Code>
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col justify-center">
+                <TerminalDemo />
+              </div>
+            </div>
+          </WebSection>
+
+          {/* Final CTA */}
+          <CtaSection
+            bg="subtle"
+            title="Start Creating"
+            description={`${FREE_SKILL_COUNT} free skills. Every platform. One install. Upgrade to Pro for warmup and deep operating systems.`}
           >
-            <Link
-              href="https://github.com/genfeedai/skills"
-              target="_blank"
-              rel="noopener noreferrer"
+            {registry && registry.skills.length > 0 && (
+              <SkillsCheckoutButton>
+                <Sparkles className="size-4" />
+                Get Pro Skills: ${registry.bundlePrice}
+              </SkillsCheckoutButton>
+            )}
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.PUBLIC}
+              asChild
             >
-              <GithubIcon className="size-4" />
-              Free Skills on GitHub
-            </Link>
-          </Button>
-        </CtaSection>
+              <Link
+                href="https://github.com/genfeedai/skills"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <GithubIcon className="size-4" />
+                Free Skills on GitHub
+              </Link>
+            </Button>
+          </CtaSection>
+        </SkillsCheckoutProvider>
       </PageLayout>
     </MarketingEntrance>
   );

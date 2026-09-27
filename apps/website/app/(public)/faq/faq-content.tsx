@@ -63,8 +63,10 @@ export default function FAQContent() {
                 <div
                   key={category.category}
                   id={categorySlug(category.category)}
-                  // Clears the fixed 80px topbar when a "Jump to" link lands.
-                  className="gsap-card scroll-mt-28"
+                  // Focusable (not tabbable) so a "Jump to" link also moves
+                  // keyboard focus here; the margin clears the fixed topbar.
+                  tabIndex={-1}
+                  className="gsap-card scroll-mt-28 focus:outline-none"
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-primary/10 text-primary">

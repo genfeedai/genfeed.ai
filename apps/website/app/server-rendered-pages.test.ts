@@ -55,7 +55,8 @@ function readSource(path: string): string {
 
 describe('server-rendered marketing pages', () => {
   it.each(SERVER_RENDERED_PAGES)('%s stays a server component', (path) => {
-    expect(readSource(path)).not.toMatch(/^\s*['"]use client['"]/);
+    // Multiline: a directive after a leading comment still counts.
+    expect(readSource(path)).not.toMatch(/^\s*['"]use client['"]/m);
   });
 
   it('never sanitizes article HTML in the browser', () => {

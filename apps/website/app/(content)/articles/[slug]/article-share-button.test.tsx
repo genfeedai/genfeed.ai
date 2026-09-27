@@ -10,12 +10,15 @@ vi.mock('@services/core/clipboard.service', () => ({
   },
 }));
 
+const logError = vi.fn();
+
 vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: (...args: unknown[]) => logError(...args) },
 }));
 
 beforeEach(() => {
   copyToClipboard.mockReset();
+  logError.mockReset();
 });
 
 describe('ArticleShareButton', () => {
@@ -37,7 +40,9 @@ describe('ArticleShareButton', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Share' }));
 
-    await waitFor(() => expect(copyToClipboard).toHaveBeenCalled());
+    // Wait for the rejection handler itself, not just the call, before
+    // asserting the label never flipped.
+    await waitFor(() => expect(logError).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
   });
 });

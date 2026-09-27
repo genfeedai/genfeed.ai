@@ -41,6 +41,8 @@ describe('FAQContent jump links', () => {
 
     const general = screen.getByRole('link', { name: /^General/ });
     expect(general).toHaveAttribute('href', '#general');
-    expect(document.getElementById('general')).toHaveClass('scroll-mt-28');
+    const target = document.getElementById('general');
+    expect(target).toHaveClass('scroll-mt-28');
+    expect(target).toHaveAttribute('tabindex', '-1');
   });
 });

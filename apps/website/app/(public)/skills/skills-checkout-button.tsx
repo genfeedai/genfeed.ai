@@ -1,24 +1,32 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { LayoutProps } from '@props/layout/layout.props';
 import type { SkillsCheckoutButtonProps } from '@props/website/skills-checkout-button.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Loader } from 'lucide-react';
-import { useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
+
+interface SkillsCheckoutState {
+  isLoading: boolean;
+  startCheckout: () => Promise<void>;
+}
+
+const SkillsCheckoutContext = createContext<SkillsCheckoutState | null>(null);
 
 /**
- * Starts a Skills Pro checkout session and sends the browser to it. The only
- * stateful part of /skills: it owns its own loading state so the rest of the
- * page renders on the server.
+ * One checkout for every CTA on /skills. The page renders two buy buttons;
+ * with a loading state each, the second stayed clickable while the first
+ * request was in flight and could open a second Stripe Checkout Session.
+ * The provider is a client island, so the page around it stays on the server.
  */
-export default function SkillsCheckoutButton({
+export function SkillsCheckoutProvider({
   children,
-  className,
-}: SkillsCheckoutButtonProps): React.ReactElement {
+}: LayoutProps): React.ReactElement {
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleCheckout(): Promise<void> {
+  const startCheckout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
 
     try {
@@ -40,12 +48,36 @@ export default function SkillsCheckoutButton({
 
       const data = await response.json();
 
-      if (data.url) {
-        window.location.href = data.url;
+      // The API answers `{ url: '' }` when Stripe returns no session URL; treat
+      // it as a failure so the buttons do not stay disabled forever.
+      if (!data.url) {
+        throw new Error('Checkout session URL missing');
       }
+
+      // Stays loading while the browser leaves for Stripe.
+      window.location.href = data.url;
     } catch {
       setIsLoading(false);
     }
+  }, []);
+
+  return (
+    <SkillsCheckoutContext.Provider value={{ isLoading, startCheckout }}>
+      {children}
+    </SkillsCheckoutContext.Provider>
+  );
+}
+
+/** A buy button; every button under one provider shares its pending state. */
+export default function SkillsCheckoutButton({
+  children,
+  className,
+}: SkillsCheckoutButtonProps): React.ReactElement {
+  const checkout = useContext(SkillsCheckoutContext);
+  if (!checkout) {
+    throw new Error(
+      'SkillsCheckoutButton must be rendered inside SkillsCheckoutProvider',
+    );
   }
 
   return (
@@ -53,10 +85,14 @@ export default function SkillsCheckoutButton({
       variant={ButtonVariant.DEFAULT}
       size={ButtonSize.PUBLIC}
       className={className}
-      disabled={isLoading}
-      onClick={handleCheckout}
+      disabled={checkout.isLoading}
+      onClick={checkout.startCheckout}
     >
-      {isLoading ? <Loader className="size-4 animate-spin" /> : children}
+      {checkout.isLoading ? (
+        <Loader className="size-4 animate-spin" />
+      ) : (
+        children
+      )}
     </Button>
   );
 }
