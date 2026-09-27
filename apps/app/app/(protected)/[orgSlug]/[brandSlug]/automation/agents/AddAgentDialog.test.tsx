@@ -81,6 +81,14 @@ describe('AddAgentDialog', () => {
     expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
   });
   beforeEach(() => {
+    class MockResizeObserver {
+      disconnect = vi.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+    }
+
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
     vi.clearAllMocks();
     mocks.onCreated.mockResolvedValue(undefined);
   });
