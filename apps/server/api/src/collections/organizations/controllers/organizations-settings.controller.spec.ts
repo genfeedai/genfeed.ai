@@ -18,9 +18,9 @@ vi.mock(
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
+import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('OrganizationsSettingsController', () => {
@@ -79,8 +80,9 @@ describe('OrganizationsSettingsController', () => {
     findAvatarImageById: vi.fn(),
   };
 
-  const mockModelsService = {
-    findAvailableModels: vi.fn().mockResolvedValue([]),
+  const mockAgentPolicyOverridesService = {
+    normalizeOverrides: vi.fn((settingsDto) => settingsDto),
+    validateOverrides: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockSubscriptionsService = {
@@ -134,8 +136,8 @@ describe('OrganizationsSettingsController', () => {
           useValue: mockIngredientsService,
         },
         {
-          provide: ModelsService,
-          useValue: mockModelsService,
+          provide: AgentPolicyOverridesService,
+          useValue: mockAgentPolicyOverridesService,
         },
         {
           provide: SUBSCRIPTIONS_SERVICE,
@@ -414,31 +416,58 @@ describe('OrganizationsSettingsController', () => {
       expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     });
 
-    describe('agent policy model override validation (#5228)', () => {
+    describe('agent policy model override delegation (#5228, #5317)', () => {
       const organizationId = testId('org');
-      const textModelId = testId('text-model');
-      const imageModelId = testId('image-model');
-
-      const settingsWithAllowlist = {
-        ...mockOrganizationSettings,
-        agentPolicy: { thinkingModelOverride: null },
-        enabledModelIds: [textModelId, imageModelId],
-        organizationId,
-      };
 
       beforeEach(() => {
         mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-          settingsWithAllowlist,
+          mockOrganizationSettings,
         );
         mockOrganizationSettingsService.patch.mockResolvedValue(
-          settingsWithAllowlist,
+          mockOrganizationSettings,
         );
       });
 
-      it('rejects an override key that is not an enabled model for its category', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'text', id: textModelId, key: 'provider/text-model' },
-        ]);
+      // Normalization and catalog-validation behavior (whitespace preserve
+      // rule, category checks, stale-override preserve rule, etc.) is unit
+      // tested against AgentPolicyOverridesService directly in
+      // agent-policy-overrides.service.spec.ts. This controller only needs to
+      // prove it wires the extracted service correctly.
+      it('normalizes the incoming settings before validating and persisting them', async () => {
+        const rawSettingsDto = {
+          agentPolicy: { thinkingModelOverride: '  provider/text-model  ' },
+        };
+        const normalizedSettingsDto = {
+          agentPolicy: { thinkingModelOverride: 'provider/text-model' },
+        };
+        mockAgentPolicyOverridesService.normalizeOverrides.mockReturnValue(
+          normalizedSettingsDto,
+        );
+
+        await controller.updateSettings(
+          mockReq,
+          organizationId,
+          rawSettingsDto,
+        );
+
+        expect(
+          mockAgentPolicyOverridesService.normalizeOverrides,
+        ).toHaveBeenCalledWith(rawSettingsDto);
+        expect(
+          mockAgentPolicyOverridesService.validateOverrides,
+        ).toHaveBeenCalledWith(mockOrganizationSettings, normalizedSettingsDto);
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          mockOrganizationSettings.id,
+          normalizedSettingsDto,
+        );
+      });
+
+      it('rejects the save when override validation fails, without persisting', async () => {
+        mockAgentPolicyOverridesService.validateOverrides.mockRejectedValueOnce(
+          new BadRequestException(
+            'thinkingModelOverride "unknown/not-enabled" is not an enabled model for its category',
+          ),
+        );
 
         await expect(
           controller.updateSettings(mockReq, organizationId, {
@@ -447,140 +476,6 @@ describe('OrganizationsSettingsController', () => {
         ).rejects.toMatchObject({ status: 400 });
 
         expect(organizationSettingsService.patch).not.toHaveBeenCalled();
-      });
-
-      it('rejects a key that is only enabled for a different override category', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'image', id: imageModelId, key: 'provider/image-model' },
-        ]);
-
-        await expect(
-          controller.updateSettings(mockReq, organizationId, {
-            // A real, enabled model — but IMAGE, not TEXT — must not satisfy
-            // the thinking override's category filter.
-            agentPolicy: { thinkingModelOverride: 'provider/image-model' },
-          }),
-        ).rejects.toMatchObject({ status: 400 });
-
-        expect(organizationSettingsService.patch).not.toHaveBeenCalled();
-      });
-
-      it('accepts an override key that matches an enabled model for its category', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'text', id: textModelId, key: 'provider/text-model' },
-        ]);
-
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: { thinkingModelOverride: 'provider/text-model' },
-        });
-
-        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-          settingsWithAllowlist.id,
-          { agentPolicy: { thinkingModelOverride: 'provider/text-model' } },
-        );
-      });
-
-      it('accepts an override key matched by id instead of key', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'text', id: textModelId, key: 'provider/text-model' },
-        ]);
-
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: { thinkingModelOverride: textModelId },
-        });
-
-        expect(organizationSettingsService.patch).toHaveBeenCalled();
-      });
-
-      it('preserves an unchanged stored override without re-validating it against the catalog', async () => {
-        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-          {
-            ...settingsWithAllowlist,
-            agentPolicy: {
-              thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
-            },
-          },
-        );
-
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: {
-            thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
-          },
-        });
-
-        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
-        expect(organizationSettingsService.patch).toHaveBeenCalled();
-      });
-
-      it('preserves a stored override that only differs in surrounding whitespace', async () => {
-        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-          {
-            ...settingsWithAllowlist,
-            agentPolicy: {
-              thinkingModelOverride: '  provider/text-model  ',
-            },
-          },
-        );
-
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: { thinkingModelOverride: 'provider/text-model' },
-        });
-
-        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
-        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-          settingsWithAllowlist.id,
-          { agentPolicy: { thinkingModelOverride: 'provider/text-model' } },
-        );
-      });
-
-      it('persists a newly validated override trimmed of surrounding whitespace', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'text', id: textModelId, key: 'provider/text-model' },
-        ]);
-
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: { thinkingModelOverride: '  provider/text-model  ' },
-        });
-
-        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-          settingsWithAllowlist.id,
-          { agentPolicy: { thinkingModelOverride: 'provider/text-model' } },
-        );
-      });
-
-      it('clears an override that trims to empty instead of persisting whitespace', async () => {
-        await controller.updateSettings(mockReq, organizationId, {
-          agentPolicy: { thinkingModelOverride: '   ' },
-        });
-
-        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
-        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-          settingsWithAllowlist.id,
-          { agentPolicy: { thinkingModelOverride: null } },
-        );
-      });
-
-      it('does not validate when agentPolicy is not part of the patch', async () => {
-        await controller.updateSettings(mockReq, organizationId, {
-          isWhitelabelEnabled: true,
-        });
-
-        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
-        expect(organizationSettingsService.patch).toHaveBeenCalled();
-      });
-
-      it('validates against the enabledModelIds being saved in the same request, not the stored allowlist', async () => {
-        mockModelsService.findAvailableModels.mockResolvedValue([
-          { category: 'text', id: textModelId, key: 'provider/text-model' },
-        ]);
-
-        await expect(
-          controller.updateSettings(mockReq, organizationId, {
-            // The new allowlist no longer includes the text model.
-            agentPolicy: { thinkingModelOverride: 'provider/text-model' },
-            enabledModelIds: [imageModelId],
-          }),
-        ).rejects.toMatchObject({ status: 400 });
       });
     });
   });
