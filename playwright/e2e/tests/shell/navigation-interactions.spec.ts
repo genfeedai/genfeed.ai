@@ -130,6 +130,31 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
+  test('mobile drawer exposes the app rail below the topbar', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 812, width: 375 });
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await settle(authenticatedPage);
+
+    await authenticatedPage
+      .getByRole('button', { name: 'Open navigation menu' })
+      .click();
+
+    const mobileRail = authenticatedPage.getByTestId('mobile-app-rail');
+    const agent = mobileRail.getByRole('link', { name: /^Agent/ });
+    await expect(agent).toBeVisible();
+
+    // A real click (no force): fails if the fixed topbar still covers it.
+    await agent.click();
+    await authenticatedPage.waitForURL(/\/agent/, { timeout: 30_000 });
+    await expect(mobileRail).toBeHidden();
+
+    await assertHealthy(authenticatedPage);
+  });
+
   test('brand switcher opens and shows per-brand settings actions', async ({
     authenticatedPage,
   }) => {

@@ -258,6 +258,8 @@ describe('AppLayout', () => {
     const mobileRail = screen.getByTestId('mobile-app-rail');
     const drawer = mobileRail.parentElement?.parentElement;
 
+    // Clears the 48px fixed topbar that overlaps the top of the drawer.
+    expect(mobileRail).toHaveClass('pt-12');
     expect(drawer).toHaveClass('hidden');
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));

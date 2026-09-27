@@ -140,7 +140,9 @@ export default function AppLayout({
                 >
                   {mobileRailContent ? (
                     <div
-                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border bg-background-secondary"
+                      // The drawer starts under the fixed topbar (z-50), so the
+                      // rail begins below that band or its first app is hidden.
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border bg-background-secondary pt-12"
                       data-testid="mobile-app-rail"
                     >
                       {mobileRailContent}
