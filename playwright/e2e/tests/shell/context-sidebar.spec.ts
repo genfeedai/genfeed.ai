@@ -45,7 +45,7 @@ async function mockStudioGallery(page: Page): Promise<void> {
               createdAt: '2026-09-20T10:00:00.000Z',
               height: 1024,
               metadata: { model: 'flux-dev' },
-              promptText: ASSET_PROMPT,
+              prompt: ASSET_PROMPT,
               status: 'GENERATED',
               width: 1024,
             },
@@ -69,7 +69,7 @@ async function openStudioList(page: Page): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
   // List rows expose the prompt as plain text, a stable non-control target.
-  await page.getByRole('button', { name: 'List' }).click();
+  await page.getByRole('radio', { name: 'List' }).click();
   await expect(page.getByText(ASSET_PROMPT)).toBeVisible();
 }
 
