@@ -13,8 +13,7 @@ import type {
   PlatformFeatureSettingsFieldsProps,
   PlatformNumericFeatureSettingKey,
 } from '@props/admin/platform-settings.props';
-import PlatformModeSettingField from '@protected/administration/platform-settings/platform-mode-setting-field';
-import PlatformNumberSettingField from '@protected/administration/platform-settings/platform-number-setting-field';
+
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
@@ -28,6 +27,8 @@ import { Switch } from '@ui/primitives/switch';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { useFormatter, useTranslations } from 'next-intl';
+import PlatformModeSettingField from './platform-mode-setting-field';
+import PlatformNumberSettingField from './platform-number-setting-field';
 
 const { confidence, mediaPerceptionFrameCount, mediaPerceptionLookbackHours } =
   PLATFORM_FEATURE_SETTING_BOUNDS;

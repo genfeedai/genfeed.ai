@@ -3,10 +3,12 @@ import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import { parsePlatformFeatureSettings } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 
-type FeatureOverrides = Partial<IPlatformFeatureSettings>;
+type RawFeatureOverrides = Partial<
+  Record<keyof IPlatformFeatureSettings, unknown>
+>;
 
 describe('TaskRoutingService', () => {
   let service: TaskRoutingService;
@@ -17,16 +19,21 @@ describe('TaskRoutingService', () => {
    * The Jev provider is mocked everywhere: no spec may depend on a live
    * decision provider, and the service contract is that a `null` answer is
    * indistinguishable from a sub-threshold one.
+   *
+   * Overrides go through `parsePlatformFeatureSettings`, exactly like a
+   * persisted row: `taskRoutingDecisionMode` is shadow-capped, so a
+   * hand-edited `live` here resolves to `shadow`, the same as production.
    */
   const buildService = (
-    overrides: FeatureOverrides = {},
+    overrides: RawFeatureOverrides = {},
   ): TaskRoutingService => {
     const platformSettingsService = {
-      getFeatureSettings: vi.fn(async () => ({
-        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-        taskRoutingDecisionMode: 'off',
-        ...overrides,
-      })),
+      getFeatureSettings: vi.fn(async () =>
+        parsePlatformFeatureSettings({
+          taskRoutingDecisionMode: 'off',
+          ...overrides,
+        }),
+      ),
     };
 
     return new TaskRoutingService(

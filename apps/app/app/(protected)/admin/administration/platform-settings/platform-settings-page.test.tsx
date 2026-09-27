@@ -127,6 +127,34 @@ vi.mock('@ui/primitives/field', () => ({
   ),
 }));
 
+vi.mock('@ui/primitives/switch', () => ({
+  Switch: ({
+    'aria-label': ariaLabel,
+    description,
+    isChecked,
+    isDisabled,
+    onCheckedChange,
+  }: {
+    'aria-label'?: string;
+    description?: string;
+    isChecked?: boolean;
+    isDisabled?: boolean;
+    onCheckedChange?: (isChecked: boolean) => void;
+  }) => (
+    <div>
+      <button
+        aria-checked={isChecked}
+        aria-label={ariaLabel}
+        disabled={isDisabled}
+        onClick={() => onCheckedChange?.(!isChecked)}
+        role="switch"
+        type="button"
+      />
+      {description ? <p>{description}</p> : null}
+    </div>
+  ),
+}));
+
 vi.mock('@ui/primitives/input', () => ({
   Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
@@ -440,26 +468,21 @@ describe('PlatformSettingsPage', () => {
     });
 
     it('starts system-event recording now when switched on', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-      vi.setSystemTime(new Date('2026-09-28T08:00:00.000Z'));
-      try {
-        render(<PlatformSettingsPage />);
+      const before = Date.now();
+      render(<PlatformSettingsPage />);
 
-        fireEvent.click(
-          await screen.findByRole('switch', { name: /record system events/i }),
-        );
-        fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+      fireEvent.click(
+        await screen.findByRole('switch', { name: /record system events/i }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
-        await waitFor(() => {
-          expect(mocks.updateSettings).toHaveBeenCalledWith(
-            expect.objectContaining({
-              systemEventsEnabledAt: '2026-09-28T08:00:00.000Z',
-            }),
-          );
-        });
-      } finally {
-        vi.useRealTimers();
-      }
+      await waitFor(() => {
+        expect(mocks.updateSettings).toHaveBeenCalled();
+      });
+      const [payload] = mocks.updateSettings.mock.calls[0] ?? [];
+      const startedAt = Date.parse(payload?.systemEventsEnabledAt ?? '');
+      expect(startedAt).toBeGreaterThanOrEqual(before);
+      expect(startedAt).toBeLessThanOrEqual(Date.now());
     });
   });
 });

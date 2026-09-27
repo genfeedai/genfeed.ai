@@ -25,7 +25,7 @@ import {
   sellPriceForOneDollar,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import PlatformFeatureSettingsFields from '@protected/administration/platform-settings/platform-feature-settings-fields';
+
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -47,6 +47,7 @@ import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
 
 /** Percent an operator would type for a multiplier, in the given input mode. */
 function percentInputFor(multiplier: number, mode: MarginInputMode): string {
