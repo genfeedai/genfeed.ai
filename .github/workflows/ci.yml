@@ -327,6 +327,8 @@ jobs:
       # arriving via merge, rebase or a web edit, so the guards had no gate.
       - name: Run UI guards
         run: bun run check:ui-guards
+      - name: Check architecture guards
+        run: bun run check:architecture
 
   # The Typecheck job above cannot see spec/test files: every backend
   # workspace's tsconfig.typecheck.json excludes them, and every frontend or
