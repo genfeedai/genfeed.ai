@@ -511,6 +511,43 @@ test.describe('Tasks', () => {
       ),
     ).toBeVisible();
   });
+
+  test('following "Back to issues" from the detail page still activates the inspector', async ({
+    authenticatedPage,
+  }) => {
+    // Root-cause regression coverage for #5397: `issue-detail.tsx`'s back
+    // link used to build a bare `APP_ROUTES.WORKSPACE.TASKS` href. The
+    // workspace-shell registry only recognizes the scoped
+    // `/:orgSlug/~/workspace/tasks` pathname (`resolveWorkspaceShellRoute`),
+    // so following that link left a real user on a pathname where selecting
+    // a row would never open the inspector rail. The fix scopes the link via
+    // `useOrgUrl()`'s `href()` — this proves the round trip through the
+    // product's own link, not just a direct navigation to the scoped route.
+    const detailRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`);
+    await authenticatedPage.goto(detailRoute, {
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, detailRoute);
+
+    await authenticatedPage
+      .getByRole('link', { name: 'Back to issues' })
+      .click();
+
+    const tasksUrl = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await expect(authenticatedPage).toHaveURL(new RegExp(`${tasksUrl}$`));
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksUrl);
+
+    await authenticatedPage
+      .getByRole('button', { name: 'Regression in task orchestration' })
+      .click();
+    await expect(authenticatedPage).toHaveURL(/[?&]taskId=task-101(&|$)/);
+
+    const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
+    await expect(inspector).toBeVisible();
+    await expect(
+      inspector.getByText('Regression in task orchestration'),
+    ).toBeVisible();
+  });
 });
 
 test.describe('Tasks — Unauthenticated Access', () => {
@@ -527,12 +564,20 @@ test.describe('Tasks — Unauthenticated Access', () => {
         timeout: 5000,
       });
       expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+      await assertNoErrorBoundaryFallback(
+        unauthenticatedPage,
+        unauthenticatedPage.url(),
+      );
       return;
     } catch {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
     expect(new URL(unauthenticatedPage.url()).pathname).toBe(
+      APP_ROUTES.WORKSPACE.TASKS,
+    );
+    await assertNoErrorBoundaryFallback(
+      unauthenticatedPage,
       APP_ROUTES.WORKSPACE.TASKS,
     );
   });

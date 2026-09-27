@@ -70,17 +70,21 @@ async function mockEmptyAgentThreads(page: Page): Promise<void> {
   });
 }
 
+type ProposedPlan = {
+  awaitingApproval?: boolean;
+  content?: string;
+  createdAt: string;
+  id: string;
+  lastReviewAction?: string;
+  revisionNote?: string;
+  status?: string;
+  updatedAt: string;
+};
+
 async function mockThreadView(
   page: Page,
   threadId: string,
-  proposedPlan: {
-    awaitingApproval?: boolean;
-    content?: string;
-    createdAt: string;
-    id: string;
-    status?: string;
-    updatedAt: string;
-  },
+  proposedPlan: ProposedPlan,
 ): Promise<void> {
   await page.route(`**/threads/${threadId}`, async (route) => {
     await route.fulfill({
@@ -142,10 +146,12 @@ async function mockThreadView(
  * The real send path is async: `POST /agent/threads/turns/stream` only
  * acknowledges the turn (`AgentChatStreamResponse` — no message content), the
  * client pushes to the thread route on `response.threadId`, and the
- * assistant's proposed plan is delivered over the run's socket channel. E2E
- * has no socket double — like `chat/onboarding.spec.ts`, this pre-seeds the
- * thread's REST endpoints (snapshot's `latestProposedPlan`) with the final
- * state and navigates there directly after the URL promotes.
+ * assistant's proposed plan is normally delivered over the run's socket
+ * channel. E2E has no socket double, so every spec here pre-seeds the
+ * thread's REST endpoints with the final state and either reloads to hydrate
+ * from the snapshot (the "(reload)" test), or waits for the app's own
+ * reconciliation watchdog to poll `GET .../messages` and apply the result
+ * with no navigation at all (the "(live, no navigation)" test).
  */
 function mockTurnAck(
   page: Page,
@@ -179,6 +185,36 @@ function mockTurnAck(
     .then(() => captured);
 }
 
+/**
+ * Sends `prompt` from `/agent/new` and asserts the turn ack promoted the URL
+ * to exactly the org-scoped `threadId` route — not just a suffix match. Under
+ * concurrent workers `activeHref`'s brand-scope resolution can occasionally
+ * pick a stale/loading brand (tracked in #5395); starting every test from an
+ * already org-scoped route (`AgentPage.url`) removes the ambiguity that would
+ * otherwise cause it, and asserting the exact destination here — rather than
+ * accepting any `/agent/{threadId}` suffix and silently re-navigating to the
+ * expected URL — means a wrong destination fails the test instead of being
+ * quietly repaired.
+ */
+async function sendAndAwaitThreadRoute(
+  authenticatedPage: Page,
+  agentPage: AgentPage,
+  threadId: string,
+  prompt: string,
+): Promise<string> {
+  await agentPage.goto();
+  await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
+  await agentPage.enablePlanMode();
+  await agentPage.sendPrompt(prompt);
+
+  const expectedThreadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+  await expect(authenticatedPage).toHaveURL(
+    new RegExp(`${expectedThreadUrl}$`),
+  );
+  await assertNoErrorBoundaryFallback(authenticatedPage, expectedThreadUrl);
+  return expectedThreadUrl;
+}
+
 test.describe('Agent Plan Mode', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockAgentCredits(authenticatedPage);
@@ -186,7 +222,7 @@ test.describe('Agent Plan Mode', () => {
     await mockEmptyAgentThreads(authenticatedPage);
   });
 
-  test('proposes a plan, waits for approval, then executes after approve', async ({
+  test('proposes a plan, waits for approval, then executes after approve (reload)', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -239,17 +275,11 @@ test.describe('Agent Plan Mode', () => {
       },
     );
 
-    await agentPage.goto();
-    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-    await agentPage.enablePlanMode();
-    await agentPage.sendPrompt('Add plan mode to the agent workspace');
-
-    // Assert on the thread-route suffix only: `activeHref` picks a
-    // brand-scoped vs. org-only prefix depending on brand-context timing,
-    // which is orthogonal to what this test verifies (the turn ack promoted
-    // the URL to the thread the app just created).
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    const threadUrl = await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'Add plan mode to the agent workspace',
     );
 
     expect(turnAck.request?.agentMode).toBe(AgentThreadMode.PLAN);
@@ -257,12 +287,12 @@ test.describe('Agent Plan Mode', () => {
       'Add plan mode to the agent workspace',
     );
 
-    // The proposed plan is delivered over the run's socket channel, which has
-    // no E2E double — navigate to the known-good org-scoped thread URL (the
-    // client's own `activeHref` push above may have resolved a stale/loading
-    // brand slug) to hydrate it from the pre-seeded snapshot instead.
-    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    // The proposed plan normally arrives over the run's socket channel,
+    // which has no E2E double — reload in place (never re-navigate: the URL
+    // is already asserted exact above) to hydrate it from the pre-seeded
+    // snapshot instead. The live, no-navigation path is covered separately
+    // below.
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     await expect(agentPage.planReviewCard).toBeVisible();
@@ -290,7 +320,78 @@ test.describe('Agent Plan Mode', () => {
     });
   });
 
-  test('requests plan changes and keeps execution paused', async ({
+  test('proposes a plan and renders it live, without navigating', async ({
+    authenticatedPage,
+  }) => {
+    const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-plan-mode-live-e2e';
+    const proposedPlan = {
+      awaitingApproval: true,
+      content:
+        '1. Add a visible thread-level plan mode toggle.\n2. Pause execution after the plan is proposed.\n3. Add approve and revise controls.',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'plan-e2e-live-1',
+      status: 'awaiting_approval',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+
+    await mockThreadView(authenticatedPage, threadId, proposedPlan);
+    await mockTurnAck(authenticatedPage, threadId);
+
+    // Override `mockThreadView`'s empty messages list: the reconciliation
+    // watchdog (see below) only ever refetches messages, so the recovered
+    // assistant message — not the snapshot — is what must carry the plan.
+    // `agent-chat.store.ts`'s `setMessages` derives `latestProposedPlan` from
+    // the last message with `metadata.proposedPlan`
+    // (`deriveLatestProposedPlanFromMessages`).
+    await authenticatedPage.route(
+      `**/threads/${threadId}/messages**`,
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify(
+            wrapCollectionInJsonApi(
+              [
+                {
+                  content:
+                    'I drafted a plan and paused here for your approval. Review it, then approve or request changes.',
+                  createdAt: proposedPlan.createdAt,
+                  metadata: { proposedPlan, reviewRequired: true },
+                  role: 'assistant',
+                  threadId,
+                },
+              ],
+              'messages',
+              'message',
+            ),
+          ),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+
+    await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'Add plan mode to the agent workspace',
+    );
+
+    // No reload, no re-navigation: this exercises the app's own
+    // reconciliation path. `scheduleCompletionWatchdog` (armed right after
+    // the turn ack) polls `GET .../messages` after
+    // `STREAM_COMPLETION_POLL_INTERVAL_MS` (10s) and applies the result via
+    // `setMessages` when it finds a new assistant message — the same
+    // mechanism production relies on when a socket reconnect is needed. A
+    // regression in that reconciliation path fails only this test, not the
+    // "(reload)" one above, which bypasses it entirely.
+    await expect(agentPage.planReviewCard).toBeVisible({ timeout: 15_000 });
+    await expect(agentPage.planReviewCard).toContainText(
+      'Pause execution after the plan is proposed',
+    );
+  });
+
+  test('requests plan changes and keeps execution paused (reload)', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -353,17 +454,14 @@ test.describe('Agent Plan Mode', () => {
       },
     );
 
-    await agentPage.goto();
-    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-    await agentPage.enablePlanMode();
-    await agentPage.sendPrompt('Add plan mode to the agent workspace');
-
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    const threadUrl = await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'Add plan mode to the agent workspace',
     );
 
-    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     await expect(agentPage.planReviewCard).toBeVisible();

@@ -63,11 +63,17 @@ function mockActiveRuns(page: Page): Promise<void> {
  * The real send path is async: `POST /agent/threads/turns/stream` only
  * acknowledges the turn (`AgentChatStreamResponse` — no message content), the
  * client pushes to the org-scoped thread route on `response.threadId`, and
- * the assistant reply is delivered over the run's socket channel. E2E has no
- * socket double, so — like `chat/onboarding.spec.ts`'s
- * `bootstraps onboarding chat...` test — every spec here pre-seeds the
- * thread's REST endpoints (messages/snapshot) with the final state and
- * reloads after the URL promotes, instead of asserting on the ack response.
+ * the assistant reply is normally delivered over the run's socket channel.
+ * E2E has no socket double, so every spec here pre-seeds the thread's REST
+ * endpoints (messages/snapshot) with the final state and either:
+ *  - reloads to hydrate the transcript from those endpoints (fast, exercises
+ *    the same GET contract as a page refresh — see the "(reload)" tests), or
+ *  - waits for the app's own reconciliation watchdog
+ *    (`agent-chat-stream.entry.ts`'s `scheduleCompletionWatchdog`, armed
+ *    right after the ack) to poll `GET .../messages` on its own and apply
+ *    the result, with no navigation at all — see the "(live, no navigation)"
+ *    tests, which are the ones that would fail if `agent:done`/completion
+ *    handling broke.
  */
 function mockTurnAck(
   page: Page,
@@ -205,13 +211,42 @@ async function mockThreadReplay(
   });
 }
 
+/**
+ * Sends `prompt` from `/agent/new` and asserts the turn ack promoted the URL
+ * to exactly the org-scoped `threadId` route — not just a suffix match. Under
+ * concurrent workers `activeHref`'s brand-scope resolution can occasionally
+ * pick a stale/loading brand (tracked in #5395); starting every test from an
+ * already org-scoped route (`AgentPage.url`) removes the ambiguity that would
+ * otherwise cause it, and asserting the exact destination here — rather than
+ * accepting any `/agent/{threadId}` suffix and silently re-navigating to the
+ * expected URL — means a wrong destination fails the test instead of being
+ * quietly repaired.
+ */
+async function sendAndAwaitThreadRoute(
+  authenticatedPage: Page,
+  agentPage: AgentPage,
+  threadId: string,
+  prompt: string,
+): Promise<string> {
+  await agentPage.goto();
+  await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
+  await agentPage.sendPrompt(prompt);
+
+  const expectedThreadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+  await expect(authenticatedPage).toHaveURL(
+    new RegExp(`${expectedThreadUrl}$`),
+  );
+  await assertNoErrorBoundaryFallback(authenticatedPage, expectedThreadUrl);
+  return expectedThreadUrl;
+}
+
 test.describe('Agent Chat', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockAgentCredits(authenticatedPage);
     await mockActiveRuns(authenticatedPage);
   });
 
-  test('publishes from chat and renders follow-up CTAs', async ({
+  test('publishes from chat and renders follow-up CTAs (reload)', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -305,26 +340,19 @@ test.describe('Agent Chat', () => {
       },
     );
 
-    await agentPage.goto();
-    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-    await agentPage.sendPrompt('publish this');
-
-    // Assert on the thread-route suffix only: `activeHref` picks a
-    // brand-scoped vs. org-only prefix depending on brand-context timing,
-    // which is orthogonal to what this test verifies (the turn ack promoted
-    // the URL to the thread the app just created).
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    const threadUrl = await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'publish this',
     );
-    // Navigate to the known-good org-scoped thread URL instead of
-    // reloading in place: the client's own `activeHref` push above may
-    // have resolved a stale/loading brand slug, and the assistant reply
-    // arrives over the run's socket channel, which has no E2E double —
-    // hydrate the transcript from the pre-seeded messages/snapshot REST
-    // endpoints instead (same durable-route pattern as
-    // `chat/onboarding.spec.ts`).
-    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+
+    // The assistant reply normally arrives over the run's socket channel,
+    // which has no E2E double — reload in place (never re-navigate: the URL
+    // is already asserted exact above) to hydrate the transcript from the
+    // pre-seeded messages/snapshot REST endpoints instead. The live,
+    // no-navigation path is covered separately below.
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     const conversation = authenticatedPage.getByTestId(
@@ -379,7 +407,65 @@ test.describe('Agent Chat', () => {
     });
   });
 
-  test('renders normalized analytics snapshot metrics for a published post', async ({
+  test('publishes from chat and renders the reply live, without navigating', async ({
+    authenticatedPage,
+  }) => {
+    const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-agent-live-e2e';
+    const assistantContent = 'Ready to publish this post from chat.';
+    const publishUiActions = [
+      {
+        contentId: 'ingredient-42',
+        data: {
+          availablePlatforms: ['linkedin', 'twitter'],
+        },
+        description: 'Review caption, platforms, and timing.',
+        id: 'publish-card-e2e',
+        platforms: ['linkedin'],
+        textContent: 'Launching this from the agent.',
+        title: 'Publish selected content',
+        type: 'publish_post_card',
+      },
+    ];
+
+    await mockThreadReplay(authenticatedPage, {
+      assistantContent,
+      threadId,
+      title: 'Publish flow thread (live)',
+      uiActions: publishUiActions,
+      userContent: 'publish this',
+    });
+    await mockTurnAck(authenticatedPage, threadId);
+
+    await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'publish this',
+    );
+
+    // No reload, no re-navigation: this exercises the app's own
+    // reconciliation path. `scheduleCompletionWatchdog` (armed right after
+    // the turn ack) polls `GET .../messages` after
+    // `STREAM_COMPLETION_POLL_INTERVAL_MS` (10s) and applies the result via
+    // `setMessages` when it finds a new assistant message — the same
+    // mechanism production relies on when a socket reconnect is needed. A
+    // regression in that reconciliation path fails only this test, not the
+    // "(reload)" one above, which bypasses it entirely.
+    const conversation = authenticatedPage.getByTestId(
+      'agent-conversation-column',
+    );
+    await expect(
+      conversation.getByText('Ready to publish this post from chat.'),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(
+      conversation.getByRole('heading', {
+        name: 'Publish selected content',
+      }),
+    ).toBeVisible();
+  });
+
+  test('renders normalized analytics snapshot metrics for a published post (reload)', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -416,26 +502,14 @@ test.describe('Agent Chat', () => {
     });
     await mockTurnAck(authenticatedPage, threadId);
 
-    await agentPage.goto();
-    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-    await agentPage.sendPrompt('show analytics');
-
-    // Assert on the thread-route suffix only: `activeHref` picks a
-    // brand-scoped vs. org-only prefix depending on brand-context timing,
-    // which is orthogonal to what this test verifies (the turn ack promoted
-    // the URL to the thread the app just created).
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    const threadUrl = await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'show analytics',
     );
-    // Navigate to the known-good org-scoped thread URL instead of
-    // reloading in place: the client's own `activeHref` push above may
-    // have resolved a stale/loading brand slug, and the assistant reply
-    // arrives over the run's socket channel, which has no E2E double —
-    // hydrate the transcript from the pre-seeded messages/snapshot REST
-    // endpoints instead (same durable-route pattern as
-    // `chat/onboarding.spec.ts`).
-    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     const conversation = authenticatedPage.getByTestId(
@@ -452,7 +526,7 @@ test.describe('Agent Chat', () => {
     await expect(conversation.getByText('24')).toBeVisible();
   });
 
-  test('shows publish fallback when selected content has no post analytics yet', async ({
+  test('shows publish fallback when selected content has no post analytics yet (reload)', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
@@ -487,26 +561,14 @@ test.describe('Agent Chat', () => {
     });
     await mockTurnAck(authenticatedPage, threadId);
 
-    await agentPage.goto();
-    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-    await agentPage.sendPrompt('show analytics');
-
-    // Assert on the thread-route suffix only: `activeHref` picks a
-    // brand-scoped vs. org-only prefix depending on brand-context timing,
-    // which is orthogonal to what this test verifies (the turn ack promoted
-    // the URL to the thread the app just created).
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    const threadUrl = await sendAndAwaitThreadRoute(
+      authenticatedPage,
+      agentPage,
+      threadId,
+      'show analytics',
     );
-    // Navigate to the known-good org-scoped thread URL instead of
-    // reloading in place: the client's own `activeHref` push above may
-    // have resolved a stale/loading brand slug, and the assistant reply
-    // arrives over the run's socket channel, which has no E2E double —
-    // hydrate the transcript from the pre-seeded messages/snapshot REST
-    // endpoints instead (same durable-route pattern as
-    // `chat/onboarding.spec.ts`).
-    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     const conversation = authenticatedPage.getByTestId(

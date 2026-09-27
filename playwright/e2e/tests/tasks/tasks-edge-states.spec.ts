@@ -1,3 +1,4 @@
+import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
@@ -276,7 +277,13 @@ test.describe('Tasks Edge States', () => {
       taskExists: false,
     });
 
-    const taskRoute = `${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`;
+    // Org-scoped (#5397): the "Back to issues" link is built from
+    // `useOrgUrl()`'s `href()`, which resolves the org (and brand, if any)
+    // scope from the route itself. A bare-path visit leaves that resolution
+    // to a client-side fallback that can land on a non-existent scope
+    // (#5395); starting from a scoped route keeps the asserted href
+    // deterministic.
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`);
     await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
@@ -288,6 +295,6 @@ test.describe('Tasks Edge States', () => {
     await expect(authenticatedPage.getByText('Issue not found')).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: 'Back to issues' }),
-    ).toHaveAttribute('href', APP_ROUTES.WORKSPACE.TASKS);
+    ).toHaveAttribute('href', orgPath(APP_ROUTES.WORKSPACE.TASKS));
   });
 });
