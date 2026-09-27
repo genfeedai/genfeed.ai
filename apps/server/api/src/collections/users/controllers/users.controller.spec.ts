@@ -28,6 +28,7 @@ describe('UsersController', () => {
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let notificationPreferenceService: Record<string, ReturnType<typeof vi.fn>>;
+  let serverFunnelCaptureService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = testId('user');
   const orgId = userId;
@@ -111,6 +112,9 @@ describe('UsersController', () => {
         userId,
       }),
     };
+    serverFunnelCaptureService = {
+      capture: vi.fn().mockResolvedValue(undefined),
+    };
     // The real fan-out over mocked caches, so the assertions below still prove
     // each individual cache is busted rather than just that the facade was hit.
     const userAccessCacheService = new UserAccessCacheService(
@@ -124,6 +128,7 @@ describe('UsersController', () => {
       subscriptionsService as unknown as ISubscriptionsService,
       filesClientService as unknown as FilesClientService,
       userAccessCacheService,
+      serverFunnelCaptureService as never,
     );
     relationshipsController = new UsersRelationshipsController(
       brandsService as unknown as BrandsService,
@@ -565,6 +570,13 @@ describe('UsersController', () => {
         id: 'user_canonical_1',
       });
       expect(result).toBeDefined();
+      // genfeedai/genfeed.ai#5311: the funnel event is captured server-side,
+      // gated on actually winning the atomic claim (modifiedCount === 1).
+      expect(serverFunnelCaptureService.capture).toHaveBeenCalledTimes(1);
+      expect(serverFunnelCaptureService.capture).toHaveBeenCalledWith({
+        distinctId: 'user_canonical_1',
+        event: 'onboarding_completed',
+      });
     });
 
     it('rejects onboarding completion when the canonical user is missing', async () => {
@@ -578,9 +590,10 @@ describe('UsersController', () => {
 
       expect(usersService.patch).not.toHaveBeenCalled();
       expect(usersService.patchAll).not.toHaveBeenCalled();
+      expect(serverFunnelCaptureService.capture).not.toHaveBeenCalled();
     });
 
-    it('leaves the prior completion untouched on a repeated onboarding-completion call', async () => {
+    it('leaves the prior completion untouched and does not re-emit on a repeated onboarding-completion call', async () => {
       usersService.findOne.mockResolvedValue({
         id: 'user_canonical_1',
         isOnboardingCompleted: true,
@@ -599,6 +612,45 @@ describe('UsersController', () => {
         { id: 'user_canonical_1', isOnboardingCompleted: false },
         expect.objectContaining({ isOnboardingCompleted: true }),
       );
+      expect(serverFunnelCaptureService.capture).not.toHaveBeenCalled();
+    });
+
+    it('emits onboarding_completed at most once when two wizard tabs race to complete the same user (genfeedai/genfeed.ai#5311)', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'user_canonical_1',
+        isOnboardingCompleted: false,
+      });
+
+      // Model the real Postgres guarantee: `isOnboardingCompleted: false` is
+      // part of the WHERE clause, so only the first of two racing updateMany
+      // calls (e.g. two browser tabs both finishing the wizard) can match the
+      // still-false row.
+      let claimed = false;
+      usersService.patchAll.mockImplementation(
+        async (filter: { isOnboardingCompleted?: boolean }) => {
+          if (filter.isOnboardingCompleted === false && !claimed) {
+            claimed = true;
+            return { modifiedCount: 1 };
+          }
+          return { modifiedCount: 0 };
+        },
+      );
+
+      await Promise.all([
+        controller.updateMe(mockRequest, mockUser, {
+          isOnboardingCompleted: true,
+        } as never),
+        controller.updateMe(mockRequest, mockUser, {
+          isOnboardingCompleted: true,
+        } as never),
+      ]);
+
+      expect(usersService.patchAll).toHaveBeenCalledTimes(2);
+      expect(serverFunnelCaptureService.capture).toHaveBeenCalledTimes(1);
+      expect(serverFunnelCaptureService.capture).toHaveBeenCalledWith({
+        distinctId: 'user_canonical_1',
+        event: 'onboarding_completed',
+      });
     });
   });
 

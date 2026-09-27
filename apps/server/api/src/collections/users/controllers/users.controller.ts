@@ -24,6 +24,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import {
+  captureOnboardingCompletedBestEffort,
+  ServerFunnelCaptureService,
+} from '@api/services/analytics/server-funnel-capture.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SubscriptionStatus } from '@genfeedai/contracts';
@@ -39,6 +43,7 @@ import {
   Get,
   HttpCode,
   Inject,
+  Optional,
   Param,
   Patch,
   Post,
@@ -64,6 +69,12 @@ export class UsersController {
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly filesClientService: FilesClientService,
     private readonly userAccessCacheService: UserAccessCacheService,
+    // Depends on the leaf-level ServerFunnelCaptureService rather than
+    // OnboardingCreditGrantsService: importing CreditsModule into UsersModule
+    // to reach it would risk the same circular dependency UserSetupModule
+    // was split out to avoid (see user-setup.module.ts).
+    @Optional()
+    private readonly serverFunnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
   private isActiveSubscriptionStatus(value: unknown): boolean {
@@ -297,6 +308,13 @@ export class UsersController {
    * Idempotent onboarding-funnel completion. Atomically claims the false->true
    * transition on the User row (see below), then invalidates the access
    * caches so `OnboardingGuard` sees the new state on the next request.
+   *
+   * The `onboarding_completed` funnel event is captured here, server-side,
+   * gated on actually winning the claim (genfeedai/genfeed.ai#5311) — it is
+   * NOT captured by the client hook that calls this endpoint
+   * (`useCompleteOnboarding`), which would otherwise double-emit whenever two
+   * wizard tabs race, or the agent-first path completes first and this
+   * endpoint later finds the user already onboarded.
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
     const canonicalUserId = (user.userId ?? user.id) || user.id;
@@ -309,13 +327,15 @@ export class UsersController {
       throw new UnauthorizedException('User account not found');
     }
 
+    const dbUserId = dbUser.id.toString();
+
     // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
     // clause, so the false->true transition itself is the concurrency fence
     // (mirrors the agent-first completion path in
     // AgentOnboardingToolHandler). A racing completion call — a second tab
     // finishing this same wizard, or the agent-first path completing first —
     // matches 0 rows and leaves the already-persisted transition untouched.
-    await this.usersService.patchAll(
+    const { modifiedCount } = await this.usersService.patchAll(
       { id: dbUser.id, isOnboardingCompleted: false },
       {
         isOnboardingCompleted: true,
@@ -324,7 +344,13 @@ export class UsersController {
       } as Partial<UpdateUserDto>,
     );
 
-    const dbUserId = dbUser.id.toString();
+    if (modifiedCount === 1) {
+      captureOnboardingCompletedBestEffort(
+        this.serverFunnelCaptureService,
+        dbUserId,
+      );
+    }
+
     await this.userAccessCacheService.invalidateAll(dbUserId);
 
     const completed = await this.usersService.findOne({

@@ -874,23 +874,51 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     ).toHaveBeenCalledWith('user-1');
   });
 
-  it('leaves the prior completion unchanged and does not re-emit on a repeated call', async () => {
+  it('leaves the prior completion timestamp unchanged and never calls patch on a repeated call', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =
       createHandler();
     const completedAt = new Date('2026-01-01T00:00:00.000Z');
-    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+    // A stateful persistence mock, not a hardcoded return value: `patchAll`
+    // only "writes" when its WHERE filter actually matches the current
+    // row, exactly like the real atomic claim. This is what lets the
+    // assertions below prove the timestamp survives, rather than merely
+    // asserting on a return value the mock was told to produce regardless of
+    // input.
+    const persistedUser: {
+      id: string;
+      isOnboardingCompleted: boolean;
+      onboardingCompletedAt: Date;
+    } = {
       id: 'user-1',
       isOnboardingCompleted: true,
       onboardingCompletedAt: completedAt,
-    });
-    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
-      modifiedCount: 0,
-    });
+    };
+
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockImplementation(
+      async () => ({ ...persistedUser }),
+    );
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockImplementation(
+      async (
+        filter: { isOnboardingCompleted?: boolean },
+        update: Record<string, unknown>,
+      ) => {
+        if (
+          filter.isOnboardingCompleted !== persistedUser.isOnboardingCompleted
+        ) {
+          return { modifiedCount: 0 };
+        }
+        Object.assign(persistedUser, update);
+        return { modifiedCount: 1 };
+      },
+    );
 
     await handler.completeOnboarding(CONTEXT);
     await handler.completeOnboarding(CONTEXT);
 
+    expect(usersService.patch).not.toHaveBeenCalled();
     expect(usersService.patchAll).toHaveBeenCalledTimes(2);
+    expect(persistedUser.isOnboardingCompleted).toBe(true);
+    expect(persistedUser.onboardingCompletedAt).toBe(completedAt);
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).not.toHaveBeenCalled();
