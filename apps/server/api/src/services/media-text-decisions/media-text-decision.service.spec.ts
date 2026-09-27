@@ -1,3 +1,4 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MediaTextDecisionService,
@@ -5,8 +6,11 @@ import {
 } from '@api/services/media-text-decisions/media-text-decision.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import type { IMediaPerception } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type {
+  IMediaPerception,
+  TypedDecisionMode,
+} from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -46,7 +50,7 @@ function makeHarness(
     brand?: { description: string | null; label: string } | null;
     existing?: boolean;
     isBound?: boolean;
-    mode?: string;
+    mode?: TypedDecisionMode;
     perception?: IMediaPerception | null;
     posts?: Array<{ description: string }>;
   } = {},
@@ -57,8 +61,11 @@ function makeHarness(
   const findFirst = vi
     .fn()
     .mockResolvedValue(options.existing ? { id: 'decision-1' } : null);
-  const config: Record<string, unknown> = {
-    MEDIA_TEXT_GATE_DECISION_MODE: options.mode ?? 'live',
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      mediaTextGateDecisionMode: options.mode ?? 'live',
+    })),
   };
   const service = new MediaTextDecisionService(
     {
@@ -92,7 +99,7 @@ function makeHarness(
       decide,
       isProviderBound: vi.fn().mockResolvedValue(options.isBound ?? true),
     } as unknown as TypedDecisionService,
-    { get: (key: string) => config[key] } as unknown as ConfigService,
+    platformSettingsService as unknown as PlatformSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
   );
   return { decide, ingredientFindMany, service, upsert };
