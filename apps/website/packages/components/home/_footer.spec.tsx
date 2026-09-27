@@ -61,6 +61,18 @@ describe('Footer Component', () => {
     expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
+  it('leads Solutions with Pricing and links the blog', () => {
+    const solutions = WEBSITE_SECTIONS.find(
+      (section) => section.title === 'Solutions',
+    );
+    const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
+      section.links.map((link) => link.href),
+    );
+
+    expect(solutions?.links[0]?.href).toBe('/pricing');
+    expect(hrefs).toContain('/articles');
+  });
+
   it('leaves the legal links to the bottom bar', () => {
     const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
       section.links.map((link) => link.href),
