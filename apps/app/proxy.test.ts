@@ -115,6 +115,49 @@ function makeSignedOutRequest(pathname: string, search?: string) {
   } as never;
 }
 
+/**
+ * Build a Playwright-bypass request: the `__playwright_test` cookie and, when
+ * given, the workspace scope the mocked bootstrap serves. No Better Auth
+ * session cookie is present.
+ */
+function makePlaywrightBypassRequest(
+  pathname: string,
+  opts: { search?: string; workspace?: string } = {},
+) {
+  const cookieMap: Record<string, string> = { __playwright_test: 'true' };
+  if (opts.workspace !== undefined) {
+    cookieMap.__playwright_workspace = opts.workspace;
+  }
+  const rawCookieHeader = Object.entries(cookieMap)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('; ');
+  const search = opts.search ?? '';
+
+  return {
+    cookies: {
+      get: vi.fn((name: string) => {
+        const value = cookieMap[name];
+        return value !== undefined ? { value } : undefined;
+      }),
+    },
+    headers: {
+      get: vi.fn((name: string) =>
+        name.toLowerCase() === 'cookie' ? rawCookieHeader : null,
+      ),
+    },
+    method: 'GET',
+    nextUrl: {
+      origin: 'http://localhost:3000',
+      pathname,
+      search,
+      searchParams: new URLSearchParams(
+        search.startsWith('?') ? search.slice(1) : search,
+      ),
+    },
+    url: `http://localhost:3000${pathname}${search}`,
+  } as never;
+}
+
 interface DesktopRequestOptions {
   desktopToken?: string;
   desktopVersion?: string | null;
@@ -669,6 +712,129 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/onboarding/brand',
     );
+  });
+
+  describe('Playwright bypass', () => {
+    beforeEach(() => {
+      vi.stubEnv('PLAYWRIGHT_TEST', 'true');
+    });
+
+    // The default fetch mock resolves a signed-in session to acme/moonrise-studio.
+    // Declaring that scope for the bypass must yield the production redirect.
+    it.each([
+      ['/', ''],
+      ['/workspace', ''],
+      ['/workspace/tasks', ''],
+      ['/publishing/calendar', ''],
+      ['/publishing/calendar', '?view=week'],
+      ['/analytics', ''],
+      ['/settings', ''],
+      [APP_ROUTES.SETTINGS.GENERAL, ''],
+      ['/api/stale-brand/workspace/inbox/unread', ''],
+    ])(
+      'canonicalizes %s%s exactly as a signed-in production request',
+      async (pathname, search) => {
+        const { default: proxy } = await import('./proxy');
+
+        const production = await proxy(
+          makeSignedInRequest(pathname, { search }),
+        );
+        fetchMock.mockClear();
+        const bypass = await proxy(
+          makePlaywrightBypassRequest(pathname, {
+            search,
+            workspace: '/acme/moonrise-studio',
+          }),
+        );
+
+        expect(production.status).toBe(307);
+        expect(bypass.status).toBe(production.status);
+        expect(bypass.headers.get('location')).toBe(
+          production.headers.get('location'),
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
+
+    it('redirects a bare brand path into the declared mock scope without auth', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makePlaywrightBypassRequest('/publishing/calendar', {
+          workspace: '/test-org/brand-1',
+        }),
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/test-org/brand-1/publishing/calendar',
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('redirects a bare path into an org-only declared scope', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makePlaywrightBypassRequest('/workspace/tasks', {
+          workspace: '/test-org/~',
+        }),
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/test-org/~/workspace/tasks',
+      );
+    });
+
+    it('serves a scoped path without redirecting', async () => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makePlaywrightBypassRequest('/test-org/brand-1/publishing/calendar', {
+          workspace: '/test-org/brand-1',
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no declared scope', undefined],
+      ['an invalid declared scope', '//attacker.example'],
+    ])(
+      'passes a bare path through with %s, as production does when no scope resolves',
+      async (_label, workspace) => {
+        const { default: proxy } = await import('./proxy');
+
+        const response = await proxy(
+          makePlaywrightBypassRequest('/publishing/calendar', { workspace }),
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('location')).toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps the bypass cookie inert outside a Playwright test build', async () => {
+      vi.stubEnv('PLAYWRIGHT_TEST', undefined);
+      vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', undefined);
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makePlaywrightBypassRequest('/publishing/calendar', {
+          workspace: '/test-org/brand-1',
+        }),
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/login?callbackUrl=%2Fpublishing%2Fcalendar',
+      );
+    });
   });
 
   describe('agent-first onboarding', () => {
