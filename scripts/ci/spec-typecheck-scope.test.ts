@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   queryTurboAffectedScope,
-  type RunTurboAffectedDryRun,
+  type RunTurboProcess,
   resolveSpecTypecheckScope,
 } from './spec-typecheck-scope';
 
@@ -185,51 +185,73 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
 });
 
 describe('queryTurboAffectedScope (#5372 regression guard)', () => {
-  // A stubbed turbo runner standing in for the two real
-  // `bunx turbo run build --affected --dry=json` invocations: filtered to
-  // `./packages/*` returns packages-only names, and truly unfiltered
-  // (`filter === undefined`) additionally reports a dependent app that only
-  // turbo's own graph — not the file-based classifier — knows changed.
-  function stubTurboRunner(): {
-    calls: (string | undefined)[];
-    runQuery: RunTurboAffectedDryRun;
+  // Stubs ONE LEVEL BELOW argument construction: it receives the exact argv
+  // `runTurboAffectedDryRun`'s real (unmodified) code built and only fakes
+  // the process result. This exercises the real "does this call get a
+  // `--filter=...` entry or not" logic instead of bypassing it — a stub
+  // placed at `queryTurboAffectedScope`'s own level (returning names
+  // directly, keyed off a `filter` parameter the test controls) would keep
+  // passing even if the filter were hardcoded inside the real argv-building
+  // function, which is exactly the regression #5315 fixed and #5372 guards.
+  function stubTurboProcess(): {
+    calls: readonly (readonly string[])[];
+    runProcess: RunTurboProcess;
   } {
-    const calls: (string | undefined)[] = [];
-    const runQuery: RunTurboAffectedDryRun = (_rootDir, _baseSha, filter) => {
-      calls.push(filter);
-      return filter === './packages/*'
-        ? ['contracts']
-        : ['contracts', 'api', 'app'];
+    const calls: (readonly string[])[] = [];
+    const runProcess: RunTurboProcess = (args) => {
+      calls.push(args);
+      const isPackagesOnly = args.includes('--filter=./packages/*');
+      const packages = isPackagesOnly
+        ? ['@genfeedai/contracts']
+        : ['@genfeedai/contracts', '@genfeedai/api', '@genfeedai/app'];
+      return { status: 0, stdout: JSON.stringify({ packages }) };
     };
-    return { calls, runQuery };
+    return { calls, runProcess };
   }
 
-  it('queries turbo once packages-only and once with no filter at all', () => {
-    const { calls, runQuery } = stubTurboRunner();
+  it('builds turbo argv with exactly one --filter=./packages/* call and one call with no --filter at all', () => {
+    const { calls, runProcess } = stubTurboProcess();
 
     const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
       '/repo',
       'base-sha',
-      runQuery,
+      runProcess,
     );
 
     expect(affectedPackagesOnly).toEqual(['contracts']);
     expect(allAffectedNames).toEqual(['contracts', 'api', 'app']);
-    expect(calls).toEqual(['./packages/*', undefined]);
-    // The exact regression #5315 fixed and #5372 guards against: narrowing
-    // BOTH turbo queries to `./packages/*` throws away a dependent app's
-    // edge before this module ever sees it. At least one recorded call must
-    // carry no filter at all — this fails the moment a packages-only filter
-    // is reintroduced on the second (allAffectedNames) call.
-    expect(calls).toContain(undefined);
+    expect(calls).toHaveLength(2);
+
+    // Packages-only call: exactly `--filter=./packages/*`.
+    expect(calls[0]).toEqual([
+      'turbo',
+      'run',
+      'build',
+      '--affected',
+      '--filter=./packages/*',
+      '--dry=json',
+    ]);
+    // The exact regression #5315 fixed and #5372 guards against: this
+    // second (allAffectedNames) call's argv must carry NO `--filter=...`
+    // entry at all — narrowing it, whether at the call site or inside
+    // runTurboAffectedDryRun's own argv construction, throws away a
+    // dependent app's edge before this module ever sees it.
+    expect(calls[1]).toEqual([
+      'turbo',
+      'run',
+      'build',
+      '--affected',
+      '--dry=json',
+    ]);
+    expect(calls[1].some((arg) => arg.startsWith('--filter='))).toBe(false);
   });
 
-  it('feeds a stubbed unfiltered turbo query through to resolveSpecTypecheckScope so a dependent app enters scope', () => {
-    const { runQuery } = stubTurboRunner();
+  it('feeds the real argv-built unfiltered turbo query through to resolveSpecTypecheckScope so a dependent app enters scope', () => {
+    const { runProcess } = stubTurboProcess();
     const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
       '/repo',
       'base-sha',
-      runQuery,
+      runProcess,
     );
 
     // Neither app's OWN files changed here (appsAffectedFromFiles is empty)

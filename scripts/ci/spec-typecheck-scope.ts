@@ -111,29 +111,52 @@ function parseTurboAffectedNames(dryRunJson: string): string[] {
   );
 }
 
-/** Injectable so spec-typecheck-scope.test.ts can stub turbo without shelling out. */
-export type RunTurboAffectedDryRun = (
+/** The subset of `spawnSync`'s return shape this module reads. */
+export type TurboProcessResult = {
+  error?: Error;
+  status: number | null;
+  stderr?: string;
+  stdout: string;
+};
+
+/**
+ * Injectable ONE LEVEL BELOW argument construction: it receives the exact
+ * argv `runTurboAffectedDryRun` built (e.g. with or without a `--filter=...`
+ * entry) and only runs the process. Stubbing here — instead of stubbing
+ * `runTurboAffectedDryRun` itself — means spec-typecheck-scope.test.ts
+ * exercises the REAL argument-construction logic below and can assert on
+ * the argv it actually produced. A stub placed at `runTurboAffectedDryRun`'s
+ * own level would miss a regression where the filter is hardcoded inside
+ * that function's argv-building instead of passed in by the caller.
+ */
+export type RunTurboProcess = (
+  args: readonly string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv },
+) => TurboProcessResult;
+
+const runTurboProcess: RunTurboProcess = (args, options) =>
+  spawnSync('bunx', args, {
+    cwd: options.cwd,
+    encoding: 'utf8',
+    env: options.env,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+
+function runTurboAffectedDryRun(
   rootDir: string,
   baseSha: string,
-  filter?: string,
-) => string[];
-
-const runTurboAffectedDryRun: RunTurboAffectedDryRun = (
-  rootDir,
-  baseSha,
-  filter,
-) => {
+  filter: string | undefined,
+  runProcess: RunTurboProcess,
+): string[] {
   const args = ['turbo', 'run', 'build', '--affected'];
   if (filter) {
     args.push(`--filter=${filter}`);
   }
   args.push('--dry=json');
 
-  const result = spawnSync('bunx', args, {
+  const result = runProcess(args, {
     cwd: rootDir,
-    encoding: 'utf8',
     env: { ...process.env, TURBO_SCM_BASE: baseSha },
-    maxBuffer: 64 * 1024 * 1024,
   });
 
   if (result.error) {
@@ -148,29 +171,41 @@ const runTurboAffectedDryRun: RunTurboAffectedDryRun = (
   }
 
   return parseTurboAffectedNames(result.stdout);
-};
+}
 
 /**
  * Queries turbo's affected-workspace graph twice: once narrowed to
  * `./packages/*` (drives `affectedPackagesOnly`, used only for the "Build
  * packages" filter list) and once completely unfiltered (drives
- * `allAffectedNames`, apps included). Re-narrowing the SECOND call is the
- * exact regression #5315 fixed — it throws away a dependent app's edge
- * before `resolveSpecTypecheckScope` ever sees it, so the app's own spec
- * typecheck silently runs against a stale package assumption.
+ * `allAffectedNames`, apps included). Re-narrowing the SECOND call — whether
+ * at this call site or inside `runTurboAffectedDryRun`'s own argv
+ * construction — is the exact regression #5315 fixed: it throws away a
+ * dependent app's edge before `resolveSpecTypecheckScope` ever sees it, so
+ * the app's own spec typecheck silently runs against a stale package
+ * assumption.
  *
- * `main()` always goes through this seam instead of calling
- * `runTurboAffectedDryRun` directly so spec-typecheck-scope.test.ts can stub
- * the runner and assert both that the unfiltered call actually carries no
- * filter, and that the merge still surfaces the dependent app end-to-end.
+ * `main()` always goes through this seam with the real `runTurboProcess`;
+ * spec-typecheck-scope.test.ts injects a stub AT THE PROCESS LEVEL (see
+ * `RunTurboProcess`) so the real argument-construction code above still
+ * runs, and asserts on the exact argv each call produced.
  */
 export function queryTurboAffectedScope(
   rootDir: string,
   baseSha: string,
-  runQuery: RunTurboAffectedDryRun = runTurboAffectedDryRun,
+  runProcess: RunTurboProcess = runTurboProcess,
 ): { affectedPackagesOnly: string[]; allAffectedNames: string[] } {
-  const affectedPackagesOnly = runQuery(rootDir, baseSha, './packages/*');
-  const allAffectedNames = runQuery(rootDir, baseSha);
+  const affectedPackagesOnly = runTurboAffectedDryRun(
+    rootDir,
+    baseSha,
+    './packages/*',
+    runProcess,
+  );
+  const allAffectedNames = runTurboAffectedDryRun(
+    rootDir,
+    baseSha,
+    undefined,
+    runProcess,
+  );
   return { affectedPackagesOnly, allAffectedNames };
 }
 
