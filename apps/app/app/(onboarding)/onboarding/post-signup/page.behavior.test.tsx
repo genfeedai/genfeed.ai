@@ -402,6 +402,15 @@ describe('PostSignupPage behavior', () => {
       'Acme',
     );
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+    // genfeedai/genfeed.ai#4969: the free payg handoff must never count as
+    // plan intent, or the signup->checkout funnel alert skews toward a
+    // near-zero conversion rate.
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('signup_completed', {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: false,
+      hasCreditsIntent: false,
+      hasPlanIntent: false,
+    });
   });
 
   it('claims and clears referral attribution before starting a PAYG checkout', async () => {
@@ -733,6 +742,14 @@ describe('PostSignupPage behavior', () => {
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
+    // genfeedai/genfeed.ai#4969: a real paid plan handoff must still count
+    // as plan intent — the payg fix must not also silence genuine intent.
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('signup_completed', {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: false,
+      hasCreditsIntent: false,
+      hasPlanIntent: true,
+    });
   });
 
   it('keeps cloud-connected desktop signups on the classic wizard', async () => {

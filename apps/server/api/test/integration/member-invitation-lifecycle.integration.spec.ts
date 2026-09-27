@@ -8,6 +8,7 @@ import { InvitationService } from '@api/collections/members/services/invitation.
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  createTestBrand,
   createTestOrganization,
   createTestUser,
   generateIdString,
@@ -101,6 +102,12 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
         slug: `invitation-${organizationId}`,
         userId: inviterId,
       }),
+    });
+    // #5219: findOrCreateAcceptedMember defaults a newly accepted member's
+    // currentBrandId to the org's oldest non-deleted brand -- every org
+    // accepting an invitation needs at least one.
+    await prisma.brand.create({
+      data: createTestBrand({ organizationId, userId: inviterId }),
     });
     await prisma.role.createMany({
       data: [

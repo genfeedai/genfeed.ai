@@ -5,8 +5,7 @@
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
  *   Pay As You Go (free)                   → FREE               → no API, solo, 1 org
- *   BYOK (free, bring-your-own-key)        → BYOK               → no API, solo, 1 org
- *   Pro                                    → PRO                → API, unlimited seats, 1 org
+ *   Pro                                    → PRO                → API, BYOK, unlimited seats, 1 org
  *   Scale                                  → SCALE              → API, unlimited seats/orgs
  *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
@@ -14,6 +13,7 @@
  *   - seat gate:    apps/server/api/src/helpers/guards/member-credits/member-credits.guard.ts
  *   - issuance gate:  apps/server/api/src/helpers/guards/api-access/api-access.guard.ts
  *   - rate limiting:  apps/server/api/src/collections/api-keys/services/api-keys.service.ts
+ *   - BYOK gate:      apps/server/api/src/services/byok/byok.service.ts (paid subscription grant)
  *
  * The map is keyed on the canonical runtime enum `SubscriptionTier`
  * (@genfeedai/contracts) — the same value persisted on
@@ -39,11 +39,17 @@ export type ApiTierEntitlement = {
 export type TierPlanEntitlement = ApiTierEntitlement & {
   /** Connected brand kits. `null` means no platform-enforced product cap. */
   brandLimit: TierLimit;
+  /**
+   * Whether the tier may bring its own provider keys (BYOK). Paid cloud only;
+   * BYOK usage never draws credits and carries no per-usage fee. Self-hosted
+   * is not gated by this flag.
+   */
+  byokAccess: boolean;
   /** Connected publishing/integration channels. `null` means unlimited. */
   channelLimit: TierLimit;
   /**
    * Whether the tier may download clean (unwatermarked) ingredient exports.
-   * Cloud SaaS only; free tiers (PAYG/BYOK) get platform-branded exports.
+   * Cloud SaaS only; the free tier gets platform-branded exports.
    * Self-hosted is not gated by this flag — it is always unrestricted.
    */
   cleanExportAccess: boolean;
@@ -67,7 +73,7 @@ export type LimitedPlanResource =
 /** Sentinel for product limits that are unlimited for a tier. */
 export const PLAN_LIMIT_UNLIMITED = null;
 
-/** PAYG/BYOK solo workspace seat cap. */
+/** PAYG solo workspace seat cap. */
 export const FREE_SEAT_LIMIT = 1;
 /** Free/Creator single-organization workspace cap. */
 export const SINGLE_ORGANIZATION_LIMIT = 1;
@@ -78,8 +84,8 @@ export const HIGHER_API_RATE_LIMIT = 300;
 export const SCALE_API_RATE_LIMIT = 600;
 
 /**
- * Exhaustive tier → cloud entitlement map. Free tiers (FREE, BYOK) are solo
- * workspaces with no managed API access; every tier has unlimited brands and
+ * Exhaustive tier → cloud entitlement map. The free tier is a solo workspace
+ * with no managed API access or BYOK; every tier has unlimited brands and
  * channels so credits remain the output meter instead of account topology.
  * Multi-organization workflows start at Scale.
  */
@@ -91,16 +97,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiAccess: false,
     apiRateLimit: 0,
     brandLimit: PLAN_LIMIT_UNLIMITED,
-    channelLimit: PLAN_LIMIT_UNLIMITED,
-    cleanExportAccess: false,
-    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
-    seatLimit: FREE_SEAT_LIMIT,
-    trainingAccess: false,
-  },
-  [SubscriptionTier.BYOK]: {
-    apiAccess: false,
-    apiRateLimit: 0,
-    brandLimit: PLAN_LIMIT_UNLIMITED,
+    byokAccess: false,
     channelLimit: PLAN_LIMIT_UNLIMITED,
     cleanExportAccess: false,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
@@ -111,6 +108,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiAccess: true,
     apiRateLimit: HIGHER_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
+    byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
     cleanExportAccess: true,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
@@ -121,6 +119,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiAccess: true,
     apiRateLimit: SCALE_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
+    byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
     cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
@@ -131,6 +130,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiAccess: true,
     apiRateLimit: null,
     brandLimit: PLAN_LIMIT_UNLIMITED,
+    byokAccess: true,
     channelLimit: PLAN_LIMIT_UNLIMITED,
     cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
@@ -196,6 +196,11 @@ export function hasApiAccess(tier: string | null | undefined): boolean {
   return getApiEntitlementForTier(tier).apiAccess;
 }
 
+/** Whether a tier may bring its own provider keys (BYOK). Pro and above. */
+export function hasByokAccess(tier: string | null | undefined): boolean {
+  return getPlanEntitlementForTier(tier).byokAccess;
+}
+
 /** Whether a tier may create custom model trainings (LoRA). Pro and above. */
 export function hasTrainingAccess(tier: string | null | undefined): boolean {
   return getPlanEntitlementForTier(tier).trainingAccess;
@@ -203,8 +208,8 @@ export function hasTrainingAccess(tier: string | null | undefined): boolean {
 
 /**
  * Whether a tier may download clean (unwatermarked) ingredient exports.
- * Pro and above on cloud SaaS; free tiers (PAYG/BYOK) only get
- * platform-branded exports. Callers must separately allow self-hosted
+ * Pro and above on cloud SaaS; the free tier only gets platform-branded
+ * exports. Callers must separately allow self-hosted
  * deployments, which are always unrestricted regardless of tier.
  */
 export function hasCleanExportAccess(tier: string | null | undefined): boolean {

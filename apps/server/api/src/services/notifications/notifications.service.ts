@@ -7,6 +7,7 @@ import type {
   IIngredientNotificationData,
   IModelDiscoveryNotificationPayload,
   INotificationEvent,
+  IRevenueNotificationPayload,
   ITelegramMessageOptions,
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
@@ -540,6 +541,14 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     return this.sendNotification({
       action: 'user_notification',
       payload: user,
+      type: 'discord',
+    });
+  }
+
+  sendRevenueNotification(revenue: IRevenueNotificationPayload): Promise<void> {
+    return this.sendNotification({
+      action: 'revenue_notification',
+      payload: revenue,
       type: 'discord',
     });
   }

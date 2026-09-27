@@ -4402,9 +4402,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'agentPolicy',
       'agentReplyStyle',
       'brandsLimit',
-      'byokBillingRollover',
-      'byokBillingStatus',
-      'byokFreeThresholdOverride',
       'byokKeys',
       'byokOpenrouterApiKey',
       'createdAt',
@@ -4465,7 +4462,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['enabledModelIds', 'webhookEventTypes'],
     enumFields: {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
-      byokBillingStatus: { enumType: 'ByokBillingStatus', isRequired: true },
     },
     relationIdFields: {
       organization: 'organizationId',

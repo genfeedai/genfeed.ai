@@ -1,6 +1,6 @@
 'use client';
 
-import { BYOK_CREDIT_VALUE_DOLLARS } from '@genfeedai/pricing';
+import { CREDIT_VALUE_DOLLARS } from '@genfeedai/pricing';
 import { NodeStatusEnum } from '@genfeedai/workflows/nodes';
 import { calculateWorkflowCost } from '@genfeedai/workflows/ui/lib';
 import {
@@ -60,7 +60,7 @@ export function CloudCreditsIndicator() {
 
   const displayCostUsd =
     isRunning && actualCostUsd > 0 ? actualCostUsd : breakdown.total;
-  const displayCredits = Math.ceil(displayCostUsd / BYOK_CREDIT_VALUE_DOLLARS);
+  const displayCredits = Math.ceil(displayCostUsd / CREDIT_VALUE_DOLLARS);
 
   return (
     <div

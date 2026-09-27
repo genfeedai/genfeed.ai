@@ -15,6 +15,7 @@ import {
   TwitterBrandOAuthProvider,
 } from '@api/services/source-collector/providers/twitter-official.provider';
 import { YoutubeOfficialProvider } from '@api/services/source-collector/providers/youtube-official.provider';
+import { YoutubePublicProvider } from '@api/services/source-collector/providers/youtube-public.provider';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
     InstagramBusinessDiscoveryProvider,
     TiktokOfficialProvider,
     YoutubeOfficialProvider,
+    YoutubePublicProvider,
     LinkedinOfficialProvider,
     ApifySocialProvider,
     SourceCollectorService,

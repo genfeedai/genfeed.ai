@@ -1,5 +1,6 @@
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
@@ -37,6 +38,7 @@ export const WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS = {
     HttpModule,
     OrganizationSettingsModule,
     PostsCoreModule,
+    ServerFunnelCaptureModule,
     BullModule.registerQueue({
       defaultJobOptions: WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS,
       name: WEBHOOK_CLIENT_QUEUE,

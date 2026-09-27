@@ -343,7 +343,12 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         hasCreditsIntent: Boolean(
           requestedCreditsParam?.trim() || selectedCredits?.trim(),
         ),
-        hasPlanIntent: Boolean(selectedPlan?.trim()),
+        // `?plan=payg` is the free pay-as-you-go handoff, not a paid-plan
+        // signal — counting it as plan intent skews the signup->checkout
+        // funnel alert toward a near-zero conversion rate by design
+        // (genfeedai/genfeed.ai#4969).
+        hasPlanIntent:
+          Boolean(selectedPlan?.trim()) && !isFreePlanHandoff(selectedPlan),
       });
 
       const brandOsToken = parseBrandOsPreviewToken(requestedBrandOsTokenParam);

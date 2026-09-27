@@ -9,8 +9,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
-import { getCreditSummary, getCreditUsage } from '@/api/credits';
-import { getAppUrl } from '@/config/store';
+import { getCreditUsage } from '@/api/credits';
 import {
   parseCreditQuantity,
   readCreditBalance,
@@ -224,38 +223,6 @@ export function createCreditsCommand(): Command {
             print(formatLabel(`${row.source} (${row.count})`, String(row.amount)));
           }
         }
-      } catch (error) {
-        handleError(error);
-      }
-    });
-
-  creditsCommand
-    .command('summary')
-    .description('Show BYOK billing summary')
-    .option('--json', 'Output as JSON')
-    .action(async (_options, command: Command) => {
-      try {
-        await requireAuth();
-
-        const json = wantsJson(command);
-        const spinner = json ? undefined : ora('Fetching billing summary...').start();
-        const summary = await getCreditSummary();
-        spinner?.stop();
-
-        if (json) {
-          printJson(summary);
-          return;
-        }
-
-        print(formatHeader('\nBilling Summary:\n'));
-        print(formatLabel('Total Usage', String(summary.totalUsage)));
-        print(formatLabel('Billable Usage', String(summary.billableUsage)));
-        print(formatLabel('Free Remaining', String(summary.freeRemaining)));
-        if (summary.projectedFee !== undefined) {
-          print(formatLabel('Projected Fee', `$${summary.projectedFee.toFixed(2)}`));
-        }
-        print();
-        print(chalk.dim(`Manage billing at ${await getAppUrl()}/settings/credits`));
       } catch (error) {
         handleError(error);
       }

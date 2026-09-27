@@ -1,11 +1,96 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import { ForbiddenException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
+
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => `decrypted:${value}`),
+    encrypt: vi.fn((value: string) => `encrypted:${value}`),
+  },
+}));
+
+describe('ByokService subscription entitlement', () => {
+  const organizationSettingsService = { findOne: vi.fn() };
+  const organizationPaidAccessService = { isSubscriptionGated: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const service = new ByokService(
+    organizationSettingsService as never,
+    organizationPaidAccessService as never,
+    {} as never,
+    logger as never,
+    {} as never,
+  );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    organizationSettingsService.findOne.mockResolvedValue({
+      byokKeys: {
+        [ByokProvider.REPLICATE]: {
+          apiKey: 'stored-key',
+          isEnabled: true,
+          provider: ByokProvider.REPLICATE,
+        },
+      },
+    });
+  });
+
+  it('resolves a stored key for an entitled organization', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
+
+    await expect(
+      service.resolveApiKey('org-1', ByokProvider.REPLICATE),
+    ).resolves.toEqual({
+      apiKey: 'decrypted:stored-key',
+      apiSecret: undefined,
+    });
+    await expect(
+      service.isByokActiveForProvider('org-1', ByokProvider.REPLICATE),
+    ).resolves.toBe(true);
+  });
+
+  it('ignores a stored key while the organization has no paid subscription', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(true);
+
+    await expect(
+      service.resolveApiKey('org-1', ByokProvider.REPLICATE),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.isByokActiveForProvider('org-1', ByokProvider.REPLICATE),
+    ).resolves.toBe(false);
+  });
+
+  it('skips the subscription read when no key is stored', async () => {
+    await expect(
+      service.resolveApiKey('org-1', ByokProvider.OPENAI),
+    ).resolves.toBeUndefined();
+    expect(
+      organizationPaidAccessService.isSubscriptionGated,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('refuses to store a key without a paid subscription', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(true);
+
+    await expect(
+      service.saveKey('org-1', ByokProvider.REPLICATE, 'new-key'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.saveOAuthKey('org-1', ByokProvider.OPENAI, {
+        apiKey: 'token',
+        isEnabled: true,
+        provider: ByokProvider.OPENAI,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
+  });
+});
 
 describe('ByokService Argil validation', () => {
   const httpService = { get: vi.fn() };
   const logger = { error: vi.fn() };
   const service = new ByokService(
+    {} as never,
     {} as never,
     httpService as never,
     logger as never,
@@ -43,6 +128,7 @@ describe('ByokService OpenRouter validation', () => {
   const httpService = { post: vi.fn() };
   const logger = { error: vi.fn() };
   const service = new ByokService(
+    {} as never,
     {} as never,
     httpService as never,
     logger as never,

@@ -22,7 +22,6 @@ export const CACHE_PATTERNS = {
   ARTICLES_SINGLE: (id: string) => `articles:single:${id}`,
   BRANDS_LIST: (orgId: string) => `brands:list:${orgId}`,
   BRANDS_SINGLE: (id: string) => `brands:single:${id}`,
-  CREDITS_BYOK: (orgId: string) => `credits:byok:${orgId}`,
   CREDITS_LAST_PURCHASE_BASELINE: (orgId: string) =>
     `credits:last-purchase-baseline:${orgId}`,
   CREDITS_USAGE: (orgId: string) => `credits:usage:${orgId}`,

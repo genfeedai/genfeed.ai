@@ -8,18 +8,6 @@ import {
 
 const TOPBAR_BALANCES_TIMEOUT_MS = 5_000;
 
-export interface ByokUsageSummary {
-  totalUsage: number;
-  freeThreshold: number;
-  freeRemaining: number;
-  billableUsage: number;
-  projectedFee: number;
-  billingStatus: string;
-  rollover: number;
-  periodStart: string;
-  periodEnd: string;
-}
-
 export interface CreditUsageSeriesPoint {
   date: string;
   amount: number;
@@ -68,14 +56,6 @@ export class CreditsService extends HTTPBaseService {
       CreditsService,
       token,
     ) as CreditsService;
-  }
-
-  public async getByokUsageSummary(): Promise<ByokUsageSummary> {
-    const response = await this.instance.get<JsonApiResponseDocument>(
-      '/byok-usage-summary',
-    );
-
-    return deserializeResource<ByokUsageSummary>(response.data);
   }
 
   public async getUsageMetrics(): Promise<CreditUsageMetrics> {

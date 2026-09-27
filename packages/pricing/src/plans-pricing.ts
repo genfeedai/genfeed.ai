@@ -1,7 +1,7 @@
 /**
  * Genfeed.ai Pricing Configuration
  *
- * Canonical source for plan, credit, and BYOK pricing.
+ * Canonical source for plan and credit pricing.
  * See: https://github.com/genfeedai/genfeed.ai/issues/486
  *
  * Pricing Strategy:
@@ -10,10 +10,12 @@
  * - Subscriptions sell a better credit rate, not access: included monthly
  *   credits carry a ~20% bonus over the pay-as-you-go rate (Pro $49 → 5,900
  *   credits ≈ $59 of PAYG output; Scale $499 → 60,000 credits ≈ $600).
- * - Seats are never a usage meter: FREE/BYOK is solo (1 seat); every paid tier
+ * - Seats are never a usage meter: FREE is solo (1 seat); every paid tier
  *   (Pro, Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
  *   the only output meter (account-sharing can't dodge a usage meter).
+ * - BYOK (bring your own provider keys) is a Pro+ subscription feature: BYOK
+ *   generations draw no credits and carry no per-usage fee.
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
@@ -61,7 +63,7 @@ export interface PricingPlanProps {
   /** Stripe price ID for checkout */
   stripePriceId?: string;
   /** Plan type */
-  type: 'subscription' | 'payg' | 'self-hosted' | 'enterprise' | 'byok';
+  type: 'subscription' | 'payg' | 'self-hosted' | 'enterprise';
   /** Short description */
   description: string;
   /** Billing interval */
@@ -192,14 +194,8 @@ export function parseIncludedMonthlyCredits(value: unknown): number | null {
   return parsed;
 }
 
-/**
- * BYOK Platform Fee Configuration
- * 5% fee on BYOK usage after a free monthly threshold.
- * Exchange rate: 1 credit = $0.01
- */
-export const BYOK_FEE_PERCENTAGE = 5;
-export const BYOK_FREE_THRESHOLD_CREDITS = 500;
-export const BYOK_CREDIT_VALUE_DOLLARS = 0.01;
+/** Exchange rate: 1 credit = $0.01 (the pay-as-you-go credit price). */
+export const CREDIT_VALUE_DOLLARS = 0.01;
 export const BASE_PROVIDER_COST_FRACTION = 0.3;
 export const BASE_MARGIN_PERCENT = 70;
 /**
@@ -214,8 +210,6 @@ export const BASE_MARGIN_PERCENT = 70;
 export const DEFAULT_GENERATION_MARGIN_MULTIPLIER = 3.33;
 /** Shared operator safety cap for every stored margin multiplier. */
 export const MAX_MARGIN_MULTIPLIER = 10;
-export const BYOK_FEE_PER_CREDIT =
-  BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100);
 
 function formatPricingNumber(value: number): string {
   return value.toLocaleString('en-US');
@@ -267,7 +261,7 @@ export function getRuntimeMarginMultiplier(): number {
  * cost and return the sell price in credits (1 credit = $0.01).
  *
  * Formula: Sell Price (USD) = providerCostUsd * marginMultiplier
- * Credits = Sell Price / BYOK_CREDIT_VALUE_DOLLARS
+ * Credits = Sell Price / CREDIT_VALUE_DOLLARS
  *
  * @param providerCostUsd Raw provider cost in USD.
  * @param marginMultiplier Sell/cost ratio configured by platform operators in
@@ -289,7 +283,7 @@ export function applyMargin(
     DEFAULT_GENERATION_MARGIN_MULTIPLIER,
   );
   const sellPriceUsd = providerCostUsd * safeMultiplier;
-  const credits = Math.ceil(sellPriceUsd / BYOK_CREDIT_VALUE_DOLLARS);
+  const credits = Math.ceil(sellPriceUsd / CREDIT_VALUE_DOLLARS);
   return Math.max(credits, 2); // absolute minimum floor
 }
 
@@ -349,7 +343,7 @@ export const AVATAR_CREDIT_COSTS = {
  */
 function includedCreditsFeature(tier: 'pro' | 'scale'): string {
   const credits = TIER_INCLUDED_MONTHLY_CREDITS[tier];
-  const paygValue = credits * BYOK_CREDIT_VALUE_DOLLARS;
+  const paygValue = credits * CREDIT_VALUE_DOLLARS;
 
   return `${formatPricingNumber(credits)} credits included monthly (≈ $${formatPricingNumber(paygValue)} of pay-as-you-go output)`;
 }
@@ -399,6 +393,7 @@ export const websitePlans: WebsitePlanProps[] = [
       '1 organization',
       'Unlimited brands and connected channels',
       'API access (standard rate limits)',
+      'Bring your own provider keys (BYOK), no usage fee',
       'Best model auto-routed for every job',
       'Top up with credit packs anytime',
       'Email support',
@@ -429,6 +424,7 @@ export const websitePlans: WebsitePlanProps[] = [
       'Multiple organizations, one shared credit pool',
       'Unlimited brands and connected channels',
       'API access (higher rate limits)',
+      'Bring your own provider keys (BYOK), no usage fee',
       'Roles, budgets, and shared approvals',
       'Advanced analytics',
       'Priority support (24hr)',
@@ -576,7 +572,7 @@ export function formatPlanIncludedCreditsValue(tier: PlanTier): string {
     return '';
   }
 
-  return `$${formatPricingNumber(includedCredits * BYOK_CREDIT_VALUE_DOLLARS)}`;
+  return `$${formatPricingNumber(includedCredits * CREDIT_VALUE_DOLLARS)}`;
 }
 
 /**
@@ -593,7 +589,7 @@ export function formatPlanCreditRateAdvantage(tier: PlanTier): string {
   }
 
   const effectiveRate = price / includedCredits;
-  const advantage = 1 - effectiveRate / BYOK_CREDIT_VALUE_DOLLARS;
+  const advantage = 1 - effectiveRate / CREDIT_VALUE_DOLLARS;
 
   return `~${Math.round(advantage * 100)}%`;
 }
