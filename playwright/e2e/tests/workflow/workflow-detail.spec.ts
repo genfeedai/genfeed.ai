@@ -11,6 +11,7 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Workflow Detail (parameterized /automation/workflows/[id])
@@ -36,13 +37,29 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
-    await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+    // `canvas.or(canvasEmpty)` alone still passes when the workflow fetch
+    // fails: `loadFromCloud` clears `isCloudLoading` on failure (leaving the
+    // shared workflow store's pre-load — effectively empty — state in
+    // place) and `WorkflowDetailPageClient` renders `WorkflowEditorShell`
+    // right alongside `cloudError`, not instead of it. Assert the real
+    // mocked workflow loaded: its name in the toolbar title (falls back to
+    // "Untitled Workflow" on failure) and its exact node count (0 on
+    // failure), and that the cloud-error banner never appeared.
+    await expect(
+      authenticatedPage.getByRole('button', { name: workflow.name }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(() => workflowPage.getNodeCount())
+      .toBe(workflow.nodes.length);
+    await expect(
+      authenticatedPage.locator('.border-destructive\\/20.bg-destructive\\/10'),
+    ).toHaveCount(0);
   });
 
   test('should not redirect away from workflow detail', async ({
@@ -50,12 +67,14 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
     // Verify we stay on the workflow detail page, not redirected to list or login
     const url = authenticatedPage.url();
-    expect(url).toContain(`automation/workflows/${workflow.id}`);
+    expect(url).toContain(route);
     expect(url).not.toContain('/login');
   });
 
@@ -64,13 +83,24 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[1];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
-    await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+    // See "should load workflow detail page by ID" above for why this
+    // asserts the real name/node count/no-error-banner instead of the
+    // canvas-or-empty-state OR, which also passes on a failed fetch.
+    await expect(
+      authenticatedPage.getByRole('button', { name: workflow.name }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(() => workflowPage.getNodeCount())
+      .toBe(workflow.nodes.length);
+    await expect(
+      authenticatedPage.locator('.border-destructive\\/20.bg-destructive\\/10'),
+    ).toHaveCount(0);
   });
 
   test('should display editor canvas or empty state for workflow', async ({
@@ -78,22 +108,20 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-    const hasCanvas = await workflowPage.canvas
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasEmpty = await workflowPage.canvasEmpty
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasMain = await workflowPage.mainContent
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasCanvas || hasEmpty || hasMain).toBe(true);
+    // This fixture always has nodes, so the real, non-vacuous assertion is
+    // that they actually rendered — not "canvas or its empty state", which
+    // also passes on a failed fetch (see the by-ID tests above).
+    await expect(
+      authenticatedPage.getByRole('button', { name: workflow.name }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(() => workflowPage.getNodeCount())
+      .toBe(workflow.nodes.length);
   });
 
   test('should render on mobile viewport without crash', async ({
@@ -103,22 +131,18 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
 
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-    // On mobile, a desktop gate or the main content should be visible
-    const hasDesktopGate = await workflowPage.desktopGate
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasMain = await workflowPage.mainContent
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasDesktopGate || hasMain).toBe(true);
+    // `DesktopGate.tsx` unconditionally gates any viewport under 1024px —
+    // there is no legitimate case where the canvas renders instead at
+    // 375px. An OR against the canvas would silently accept a broken gate
+    // (e.g. its `isMobile` check regressing) as long as *something* showed.
+    await expect(workflowPage.desktopGate).toBeVisible();
+    await expect(workflowPage.canvas).toHaveCount(0);
   });
 });

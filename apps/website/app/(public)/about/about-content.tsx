@@ -1,8 +1,5 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { PLAN_COPY } from '@genfeedai/pricing';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -18,6 +15,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 import type { ComponentProps } from 'react';
@@ -282,11 +280,10 @@ const FAQ_ITEMS = [
 ] as const;
 
 export default function AboutContent() {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         title="About Genfeed"
         description="Genfeed is an open-source AI content platform that generates, publishes, and measures video, image, voice, and written content for creators, agencies, and founders."
@@ -450,6 +447,6 @@ export default function AboutContent() {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

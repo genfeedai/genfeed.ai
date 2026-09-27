@@ -1,8 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Cookie, Eye, Lock, Mail, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -83,10 +81,8 @@ const privacyRights = [
 ];
 
 export default function PrivacyContent() {
-  const containerRef = useMarketingEntrance({ cards: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <PageLayout
         badge="Legal"
         badgeIcon={Shield}
@@ -222,6 +218,6 @@ export default function PrivacyContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

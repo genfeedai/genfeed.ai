@@ -1,10 +1,9 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   type TaskComment,
@@ -19,16 +18,9 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Cpu, ExternalLink, User } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import {
-  type ProductWorkspaceSurfaceAdapter,
-  useRegisterWorkspaceSurfaceAdapter,
-  useRegisterWorkspaceSurfacePresentationAdapter,
-  type WorkspaceSurfacePresentationAdapter,
-} from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
-import { dispatchOpenContextTab } from '@/lib/workspace/agent-composer-events';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlanningConversation } from '../workspace/use-planning-conversation';
 import { WorkspaceTaskDetail } from '../workspace/workspace-task-inspector';
 
@@ -169,18 +161,22 @@ function TaskDetailComments({ task }: { task: Task }) {
 }
 
 /**
- * Projects the task opened from the list into the workspace inspector rail,
- * the same way the library projects its selected asset. The list only sets
- * `?taskId=`; this adapter owns everything rendered on the right.
+ * Renders the task opened from the list into the shell's context sidebar. The
+ * detail is portaled from here, inside `TaskSelectionProvider`, so its edits
+ * commit back through the shared selection. The list owns `?taskId=`; the
+ * sidebar shows only while it names the resolved task, so the full task page
+ * never gets a duplicate panel.
  */
 export default function TaskInspectorAdapter() {
-  const translate = useTranslations('pages.tasks.inspector');
-  const { brandId, organizationId } = useBrand();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const selection = useTaskSelection();
-  const selectedTask = selection?.selectedTask ?? null;
-  const inspector = useWorkspaceInspector();
-  const setInspectorOpen = inspector?.setIsOpen;
-  const previousTaskIdRef = useRef<string | null>(null);
+  const taskIdParam = searchParams.get('taskId');
+  const selectedTask =
+    selection?.selectedTask && selection.selectedTask.id === taskIdParam
+      ? selection.selectedTask
+      : null;
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -265,82 +261,45 @@ export default function TaskInspectorAdapter() {
     [mutateTask],
   );
 
-  // Open the rail when a *different* task is selected; never fight a collapse.
-  useEffect(() => {
-    const nextId = selectedTask?.id ?? null;
-    const previousId = previousTaskIdRef.current;
-    previousTaskIdRef.current = nextId;
-    if (!nextId || nextId === previousId || !setInspectorOpen) return;
-    setInspectorOpen(true);
-    dispatchOpenContextTab();
-  }, [selectedTask?.id, setInspectorOpen]);
+  const handleClose = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('taskId');
+    router.replace(`${pathname}${params.size ? `?${params}` : ''}`, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams]);
 
-  const detailProps = useMemo<WorkspaceTaskDetailProps | null>(
-    () =>
-      selectedTask
-        ? {
-            busyTaskId,
-            leading: <TaskDetailLeading task={selectedTask} />,
-            onApprove,
-            onDismiss,
-            onKeepOutput,
-            onPlanNextSteps: openPlanningConversation,
-            onRequestChanges,
-            onTrashOutput,
-            onUnkeepOutput,
-            task: selectedTask,
-            trailing: <TaskDetailComments task={selectedTask} />,
-          }
-        : null,
-    [
-      busyTaskId,
-      onApprove,
-      onDismiss,
-      onKeepOutput,
-      onRequestChanges,
-      onTrashOutput,
-      onUnkeepOutput,
-      openPlanningConversation,
-      selectedTask,
-    ],
+  return (
+    <ContextSidebarPanel
+      onClose={handleClose}
+      selection={
+        selectedTask
+          ? {
+              id: selectedTask.id,
+              kind: 'task',
+              origin: selection?.selectionOrigin ?? 'automatic',
+              subtitle: selectedTask.identifier,
+              title: selectedTask.title,
+            }
+          : null
+      }
+    >
+      {selectedTask ? (
+        <WorkspaceTaskDetail
+          key={selectedTask.id}
+          busyTaskId={busyTaskId}
+          leading={<TaskDetailLeading task={selectedTask} />}
+          onApprove={onApprove}
+          onDismiss={onDismiss}
+          onKeepOutput={onKeepOutput}
+          onPlanNextSteps={openPlanningConversation}
+          onRequestChanges={onRequestChanges}
+          onTrashOutput={onTrashOutput}
+          onUnkeepOutput={onUnkeepOutput}
+          task={selectedTask}
+          trailing={<TaskDetailComments task={selectedTask} />}
+        />
+      ) : null}
+    </ContextSidebarPanel>
   );
-
-  const inspectorNode = useMemo(
-    () =>
-      detailProps && selectedTask ? (
-        <WorkspaceTaskDetail key={selectedTask.id} {...detailProps} />
-      ) : (
-        <p
-          className="px-4 py-6 text-sm text-foreground/55"
-          data-testid="workspace-task-inspector"
-        >
-          {translate('empty')}
-        </p>
-      ),
-    [detailProps, selectedTask, translate],
-  );
-  const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
-  const contextLabel = selectedTask ? `Tasks · ${selectedTask.title}` : 'Tasks';
-
-  const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
-    () => ({
-      contextLabel,
-      references: [],
-      renderInspector,
-      scope: {
-        ...(brandId ? { brandId } : {}),
-        organizationId: organizationId ?? '',
-      },
-      surfaceKey: 'workspace',
-    }),
-    [brandId, contextLabel, organizationId, renderInspector],
-  );
-  const presentation = useMemo<WorkspaceSurfacePresentationAdapter>(
-    () => ({ contextLabel, inspector: inspectorNode, surfaceKey: 'workspace' }),
-    [contextLabel, inspectorNode],
-  );
-
-  useRegisterWorkspaceSurfaceAdapter(registration);
-  useRegisterWorkspaceSurfacePresentationAdapter(presentation);
-  return null;
 }

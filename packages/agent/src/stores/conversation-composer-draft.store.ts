@@ -193,3 +193,33 @@ export function clearConversationComposerDraft(scopeKey: string | null): void {
     // The sent message still succeeds when storage is unavailable.
   }
 }
+
+/** The composer draft scope the workspace shell binds to a conversation. */
+export function buildConversationComposerDraftScopeKey(
+  orgSlug: string,
+  threadId: string | null,
+  contextVersion = 0,
+): string {
+  return `${orgSlug || 'unknown'}:${threadId ?? 'new'}:${contextVersion}`;
+}
+
+/**
+ * Puts a Library item on the attachment tray of the organization's next new
+ * conversation, so a page can hand an asset to the Agent without sending a
+ * message on the user's behalf.
+ */
+export function attachContentToNewConversationDraft(
+  orgSlug: string,
+  reference: PersistedConversationComposerContentReference,
+): void {
+  const scopeKey = buildConversationComposerDraftScopeKey(orgSlug, null);
+  const { contentReferences } = readConversationComposerDraft(scopeKey);
+  if (contentReferences.some((item) => item.id === reference.id)) {
+    return;
+  }
+
+  writeConversationComposerContentReferences(scopeKey, [
+    ...contentReferences,
+    reference,
+  ]);
+}

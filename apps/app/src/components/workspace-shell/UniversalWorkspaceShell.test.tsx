@@ -1,4 +1,14 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  ContextSidebarPanel,
+  ContextSidebarProvider,
+} from '@contexts/ui/context-sidebar-context';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   type AnchorHTMLAttributes,
@@ -6,6 +16,7 @@ import {
   type ReactNode,
   useEffect,
   useMemo,
+  useState,
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -677,6 +688,65 @@ describe('UniversalWorkspaceShell', () => {
     fireEvent(window, new Event('workspace:open-conversation-tab'));
     expect(conversation).toBeVisible();
     expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
+  });
+
+  it('replaces the legacy panes with the selection until the page deselects', () => {
+    navigation.pathname = '/acme/moonrise/library/assets';
+    function SelectionSurface() {
+      const [isSelected, setIsSelected] = useState(true);
+
+      return (
+        <>
+          <ContextSidebarPanel
+            onClose={() => setIsSelected(false)}
+            selection={
+              isSelected
+                ? {
+                    id: 'asset-1',
+                    kind: 'asset',
+                    origin: 'user',
+                    subtitle: 'flux-dev',
+                    title: 'Image',
+                  }
+                : null
+            }
+          >
+            <p>Asset detail</p>
+          </ContextSidebarPanel>
+          <div>Library grid</div>
+        </>
+      );
+    }
+
+    render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <SelectionSurface />
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Selection details',
+    });
+    expect(sidebar).not.toHaveAttribute('inert');
+    expect(
+      within(sidebar).getByTestId('context-sidebar-title'),
+    ).toHaveTextContent('Image');
+    expect(
+      within(sidebar).getByTestId('context-sidebar-outlet'),
+    ).toHaveTextContent('Asset detail');
+    expect(screen.getByTestId('workspace-inspector-panes')).not.toBeVisible();
+
+    fireEvent.click(
+      within(sidebar).getByRole('button', { name: 'Close details' }),
+    );
+
+    expect(screen.queryByText('Asset detail')).toBeNull();
+    expect(
+      screen.getByRole('complementary', { name: 'Workspace inspector' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-inspector-panes')).toBeVisible();
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {

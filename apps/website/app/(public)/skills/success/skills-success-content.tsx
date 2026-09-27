@@ -1,29 +1,19 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import { CtaSection, WebSection } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { Check, Copy, Terminal } from 'lucide-react';
+import { Check, Terminal } from 'lucide-react';
 import Link from 'next/link';
+
+import CopyCommandButton from './copy-command-button';
 
 const INSTALL_COMMAND = 'npx @genfeedai/skills-pro install sk_rcpt_xxx';
 
-async function handleCopy() {
-  try {
-    await navigator.clipboard.writeText(INSTALL_COMMAND);
-  } catch {
-    // Clipboard write failed — silent fallback
-  }
-}
-
 export default function SkillsSuccessContent() {
-  const containerRef = useMarketingEntrance({ cards: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <PageLayout
         badge="Complete"
         badgeIcon={Check}
@@ -63,16 +53,7 @@ export default function SkillsSuccessContent() {
                   <span className="text-surface/55">$</span>
                   <span className="text-surface/80">{INSTALL_COMMAND}</span>
                 </div>
-                <Button
-                  variant={ButtonVariant.GHOST}
-                  onClick={handleCopy}
-                  type="button"
-                  aria-label="Copy install command"
-                  title="Copy install command"
-                  className="shrink-0 p-2 text-surface/55 hover:text-surface transition-colors"
-                >
-                  <Copy className="size-4" />
-                </Button>
+                <CopyCommandButton command={INSTALL_COMMAND} />
               </div>
             </div>
           </div>
@@ -121,6 +102,6 @@ export default function SkillsSuccessContent() {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

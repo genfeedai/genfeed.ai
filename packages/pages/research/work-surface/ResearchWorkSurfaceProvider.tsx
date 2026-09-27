@@ -1,5 +1,6 @@
 'use client';
 
+import type { ContextSidebarSelectionOrigin } from '@props/ui/context-sidebar.props';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -37,6 +38,8 @@ interface UpdateResearchSearchParamsOptions {
 
 interface ResearchWorkSurfaceContextValue {
   readonly authorizedFinding: AuthorizedResearchFinding | null;
+  /** `user` after a click; `automatic` when restored from the URL. */
+  readonly authorizedFindingOrigin: ContextSidebarSelectionOrigin;
   readonly clearFinding: (history?: ResearchUrlHistory) => void;
   readonly isEmbedded: boolean;
   readonly pathname: string;
@@ -66,8 +69,29 @@ export function ResearchWorkSurfaceProvider({
   const searchParamsStringRef = useRef(searchParamsString);
   searchParamsStringRef.current = searchParamsString;
   const { push, replace } = useRouter();
-  const [authorizedFinding, setAuthorizedFinding] =
-    useState<AuthorizedResearchFinding | null>(null);
+  const [authorizedFindingState, setAuthorizedFindingState] = useState<{
+    readonly finding: AuthorizedResearchFinding | null;
+    readonly origin: ContextSidebarSelectionOrigin;
+  }>({ finding: null, origin: 'automatic' });
+  const authorizedFinding = authorizedFindingState.finding;
+  const authorizedFindingOrigin = authorizedFindingState.origin;
+  // Restoring the URL re-resolves the finding a click just selected; that must
+  // not downgrade the click to an automatic selection.
+  const setAuthorizedFinding = useCallback(
+    (finding: AuthorizedResearchFinding | null) => {
+      setAuthorizedFindingState((current) => ({
+        finding,
+        origin:
+          finding &&
+          current.finding &&
+          getResearchFindingReferenceKey(current.finding.reference) ===
+            getResearchFindingReferenceKey(finding.reference)
+            ? current.origin
+            : 'automatic',
+      }));
+    },
+    [],
+  );
   const [isEmbedded, setEmbedded] = useState(false);
   const urlState = useMemo(
     () => parseResearchWorkSurfaceUrl(new URLSearchParams(searchParamsString)),
@@ -130,7 +154,7 @@ export function ResearchWorkSurfaceProvider({
         replace(nextHref, { scroll: false });
       }
     },
-    [pathname, push, replace],
+    [pathname, push, replace, setAuthorizedFinding],
   );
 
   const clearFinding = useCallback(
@@ -141,12 +165,12 @@ export function ResearchWorkSurfaceProvider({
         { clearFinding: false, history, resetPage: false },
       );
     },
-    [updateSearchParams],
+    [updateSearchParams, setAuthorizedFinding],
   );
 
   const selectFinding = useCallback(
     (finding: AuthorizedResearchFinding) => {
-      setAuthorizedFinding(finding);
+      setAuthorizedFindingState({ finding, origin: 'user' });
       updateSearchParams(
         {
           [RESEARCH_WORK_SURFACE_QUERY_KEYS.FINDING]:
@@ -161,6 +185,7 @@ export function ResearchWorkSurfaceProvider({
   const value = useMemo<ResearchWorkSurfaceContextValue>(
     () => ({
       authorizedFinding,
+      authorizedFindingOrigin,
       clearFinding,
       isEmbedded,
       pathname,
@@ -172,12 +197,14 @@ export function ResearchWorkSurfaceProvider({
     }),
     [
       authorizedFinding,
+      authorizedFindingOrigin,
       clearFinding,
       isEmbedded,
       pathname,
       selectFinding,
       updateSearchParams,
       urlState,
+      setAuthorizedFinding,
     ],
   );
 

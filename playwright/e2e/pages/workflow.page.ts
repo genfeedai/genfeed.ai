@@ -268,10 +268,8 @@ export class WorkflowPage {
     );
     this.skeleton = page.locator('[data-testid="skeleton"],' + ' .skeleton');
 
-    // Desktop gate
-    this.desktopGate = page.locator(
-      '[data-testid="desktop-gate"],' + ' [data-testid="desktop-only"]',
-    );
+    // Desktop gate — DesktopGate.tsx renders no testid, only this heading.
+    this.desktopGate = page.getByRole('heading', { name: 'Desktop Required' });
   }
 
   // ---- Navigation ----

@@ -1,5 +1,3 @@
-'use client';
-
 import { integrations } from '@data/integrations.data';
 import { ButtonSize } from '@genfeedai/contracts';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
@@ -25,12 +23,12 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, Newspaper, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -101,10 +99,8 @@ const HERO_VISUAL = (
 );
 
 export default function IntegrationsContent() {
-  const containerRef = useMarketingEntrance();
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         heroActions={
           <ButtonTracked
@@ -187,6 +183,6 @@ export default function IntegrationsContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

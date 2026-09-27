@@ -1,5 +1,3 @@
-'use client';
-
 import {
   AGENT_CLIENT_CAPABILITIES,
   AGENT_CLIENT_EXAMPLE_PROMPTS,
@@ -12,7 +10,6 @@ import {
   getAgentClientManualBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
@@ -24,6 +21,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
@@ -35,13 +33,12 @@ export default function AgentClientContent({
   channels: readonly AgentClientChannel[];
   client: AgentClient;
 }): React.ReactElement {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
   const others = agentClients.filter((entry) => entry.slug !== client.slug);
   const manualBlocks = getAgentClientManualBlocks(client);
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         badge={`Genfeed MCP · ${client.name}`}
         badgeIcon={Terminal}
@@ -224,6 +221,6 @@ export default function AgentClientContent({
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

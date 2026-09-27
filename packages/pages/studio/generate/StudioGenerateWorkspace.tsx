@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
@@ -1128,6 +1129,24 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [applyTypeSettings, brandId, models, setType],
   );
 
+  const handleSelectJob = useCallback((job: StudioGenerateJob) => {
+    setSelectedJobId(job.id);
+  }, []);
+  const handleCloseInspector = useCallback(() => {
+    setSelectedJobId(null);
+  }, []);
+  // Remix feeds a finished image back into the composer as an image
+  // reference. Videos are not offered: a video reference is dropped again by
+  // any model without video-reference support, including Auto.
+  const handleRemixJob = useCallback(
+    (job: StudioGenerateJob) => {
+      if (job.ingredient && job.type === 'image') {
+        handleAttachGeneratedReference(job.ingredient, 'image');
+      }
+    },
+    [handleAttachGeneratedReference],
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <SectionTopbar
@@ -1219,7 +1238,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 isLoading={isLoadingGallery}
                 jobs={visibleJobs}
                 onReprompt={handleVaryRecipe}
-                onSelect={(job) => setSelectedJobId(job.id)}
+                onSelect={handleSelectJob}
                 selectedJobId={selectedJobId}
                 view={resultsView}
               />
@@ -1278,16 +1297,35 @@ export default function StudioGenerateWorkspace(): ReactElement {
             </div>
           </PromptBarContainer>
         </div>
+      </div>
+
+      <ContextSidebarPanel
+        onClose={handleCloseInspector}
+        selection={
+          selectedJob
+            ? {
+                id: selectedJob.id,
+                kind: 'asset',
+                // Only a card click or a run-sibling pick selects a job.
+                origin: 'user',
+                subtitle:
+                  selectedJob.modelKey || translate('inspector.autoModel'),
+                title: getStudioGenerateTypeConfig(selectedJob.type).label,
+              }
+            : null
+        }
+      >
         {selectedJob ? (
           <StudioGenerateInspector
             job={selectedJob}
-            onClose={() => setSelectedJobId(null)}
-            onSelect={(job) => setSelectedJobId(job.id)}
+            onRemix={handleRemixJob}
+            onSelect={handleSelectJob}
+            onUseInPost={assetActions.onPublishIngredient}
             onVary={handleVaryRecipe}
             runJobs={selectedRunJobs}
           />
         ) : null}
-      </div>
+      </ContextSidebarPanel>
 
       <ContentLibraryPicker
         isLoading={isContentLibraryLoading}
