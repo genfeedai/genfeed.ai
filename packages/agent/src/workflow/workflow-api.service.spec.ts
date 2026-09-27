@@ -16,8 +16,12 @@ const FORCE_ADVANCE_RESPONSE: TransitionResponse = {
     agentId: 'agent-1',
     approaches: [],
     currentPhase: 'clarifying',
+    // An unlocked workflow always meets the exploring and implementing gates.
     gateStatus: Object.fromEntries(
-      WORKFLOW_PHASES.map((phase) => [phase, false]),
+      WORKFLOW_PHASES.map((phase) => [
+        phase,
+        phase === 'exploring' || phase === 'implementing',
+      ]),
     ) as TransitionResponse['workflow']['gateStatus'],
     id: 'workflow-1',
     isLocked: false,
