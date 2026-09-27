@@ -1,7 +1,7 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
 import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -258,6 +258,156 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       },
       generationSource: expect.stringContaining('generation-brief:v1:'),
     });
+  });
+
+  // #5294 imageGen/videoGen dispatched to Replicate with no key override, so
+  // a BYOK credit bypass on the enclosing generation charge paid nothing
+  // while Genfeed's platform key still ran the job. Resolve the org's key
+  // the same way the lip-sync/TTS executors already do.
+  it('forwards a resolved BYOK apiKeyOverride to the imageGen Replicate dispatch (#5294)', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-1', 'continuation-1');
+        return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+      },
+    );
+    const helper = {
+      buildImageIngredientUrl: (ingredientId: string) =>
+        `https://api.test/images/${ingredientId}`,
+      createAndLinkProcessingOutput,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const promptBuilderService = { buildPrompt: vi.fn() };
+    const replicateService = {
+      runModel: vi.fn().mockResolvedValue('prediction-byok'),
+    };
+    const byokService = {
+      resolveApiKey: vi.fn().mockResolvedValue({ apiKey: 'org-replicate-key' }),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      promptBuilderService as never,
+      undefined,
+      undefined,
+      replicateService as never,
+      undefined,
+      byokService as never,
+    ).register(engine);
+
+    await getActionExecutor(engine, 'imageGen')?.(
+      {
+        config: {
+          brandId: 'brand-1',
+          height: 1024,
+          model: QWEN_IMAGE_MODEL_KEY,
+          prompt: 'A launch poster',
+          width: 1024,
+        },
+        id: 'image-gen-byok',
+        inputs: [],
+        label: 'Generate image',
+        type: 'imageGen',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
+      },
+    );
+
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      QWEN_IMAGE_MODEL_KEY,
+      expect.any(Object),
+      'org-replicate-key',
+      'continuation-1',
+    );
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the videoGen Replicate dispatch (#5294)', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-1', 'continuation-1');
+        return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+      },
+    );
+    const helper = {
+      buildVideoIngredientUrl: (ingredientId: string) =>
+        `https://api.test/videos/${ingredientId}`,
+      createAndLinkProcessingOutput,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const replicateService = {
+      runModel: vi.fn().mockResolvedValue('prediction-byok-video'),
+    };
+    const byokService = {
+      resolveApiKey: vi.fn().mockResolvedValue({ apiKey: 'org-replicate-key' }),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      { buildPrompt: vi.fn() } as never,
+      undefined,
+      undefined,
+      replicateService as never,
+      undefined,
+      byokService as never,
+    ).register(engine);
+
+    await getActionExecutor(engine, 'videoGen')?.(
+      {
+        config: {
+          brandId: 'brand-1',
+          duration: 5,
+          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+          prompt: 'A cinematic pan',
+        },
+        id: 'video-gen-byok',
+        inputs: [],
+        label: 'Generate video',
+        type: 'videoGen',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
+      },
+    );
+
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      expect.any(Object),
+      'org-replicate-key',
+      'continuation-1',
+    );
   });
 
   it('does not create an output or dispatch a provider request when the required compiler is unavailable', async () => {

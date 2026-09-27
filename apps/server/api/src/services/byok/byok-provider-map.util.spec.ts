@@ -28,6 +28,16 @@ describe('byok-provider-map.util', () => {
     it('should return undefined for unknown provider', () => {
       expect(modelProviderToByokProvider('unknown')).toBeUndefined();
     });
+
+    // #5294 GENFEED_AI dispatches through Genfeed's own hosted fleet, never
+    // through a caller-supplied key — mapping it to REPLICATE let an org's
+    // own Replicate BYOK key bypass credits for generation Genfeed still paid
+    // to run.
+    it('should not map GENFEED_AI to any BYOK provider', () => {
+      expect(
+        modelProviderToByokProvider(ModelProvider.GENFEED_AI),
+      ).toBeUndefined();
+    });
   });
 
   describe('modelKeyToByokProvider', () => {
@@ -51,6 +61,11 @@ describe('byok-provider-map.util', () => {
 
     it('should return undefined for unknown prefix', () => {
       expect(modelKeyToByokProvider('unknown/model')).toBeUndefined();
+    });
+
+    // #5294 see the GENFEED_AI note above.
+    it('should not map the genfeed-ai/ prefix to any BYOK provider', () => {
+      expect(modelKeyToByokProvider('genfeed-ai/some-model')).toBeUndefined();
     });
   });
 
@@ -80,6 +95,17 @@ describe('byok-provider-map.util', () => {
           ModelProvider.OPENROUTER,
         ),
       ).toBe(ByokProvider.OPENROUTER);
+    });
+
+    // #5294 GENFEED_AI hosted models dispatch through Genfeed's own fleet;
+    // no BYOK key should ever bypass credits for them.
+    it('never resolves a BYOK provider for GENFEED_AI hosted models', () => {
+      expect(
+        resolveModelByokProvider(
+          'genfeed-ai/some-model',
+          ModelProvider.GENFEED_AI,
+        ),
+      ).toBeUndefined();
     });
   });
 });

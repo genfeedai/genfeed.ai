@@ -16,12 +16,9 @@ import {
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
-import { ByokService } from '@api/services/byok/byok.service';
-import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
-  type ByokProvider,
   LiveSessionStatus,
   LiveSessionTerminateReason,
 } from '@genfeedai/contracts';
@@ -48,7 +45,6 @@ export class LiveSessionCreditsService {
     private readonly prisma: PrismaService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
-    private readonly byokService: ByokService,
   ) {}
 
   async openSession(params: {
@@ -67,14 +63,12 @@ export class LiveSessionCreditsService {
       modelKey,
       resolution: params.dto.resolution,
     });
-    const byokProvider = await this.resolveActiveByokProvider(
-      params.user.organizationId,
-      modelKey,
-      resolvedModelDoc?.provider,
-    );
-
+    // #5294 no backend call establishes the live streaming session with a
+    // provider — the session row here is a credit ceiling/reservation shell,
+    // so there is nowhere to thread an org's BYOK key. A bypass here would
+    // charge nothing while the platform (or the org, out of band) still
+    // pays for the session, so this route never bypasses credits.
     if (
-      !byokProvider &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         params.user.organizationId,
         requiredCredits,
@@ -100,22 +94,13 @@ export class LiveSessionCreditsService {
     };
 
     const ceilingEndsAt = new Date(now.getTime() + ceilingSeconds * 1000);
-    let reservationId: string | null = null;
-    if (byokProvider) {
-      params.request.creditsConfig = {
-        ...params.request.creditsConfig,
-        isByokBypass: true,
-        provider: byokProvider,
-      };
-    } else {
-      reservationId = await this.reserveCeiling({
-        amount: requiredCredits,
-        ceilingEndsAt,
-        organizationId: params.user.organizationId,
-        request: params.request,
-        userId: params.user.userId,
-      });
-    }
+    const reservationId = await this.reserveCeiling({
+      amount: requiredCredits,
+      ceilingEndsAt,
+      organizationId: params.user.organizationId,
+      request: params.request,
+      userId: params.user.userId,
+    });
 
     try {
       return await this.prisma.liveSession.create({
@@ -123,7 +108,6 @@ export class LiveSessionCreditsService {
           brandId: params.user.brandId || null,
           ceilingEndsAt,
           ceilingSeconds,
-          isByokBypass: Boolean(byokProvider),
           modelKey,
           organizationId: params.user.organizationId,
           reservationId,
@@ -135,12 +119,10 @@ export class LiveSessionCreditsService {
         },
       });
     } catch (error: unknown) {
-      if (reservationId) {
-        await this.creditsUtilsService.releaseReservation({
-          organizationId: params.user.organizationId,
-          reservationId,
-        });
-      }
+      await this.creditsUtilsService.releaseReservation({
+        organizationId: params.user.organizationId,
+        reservationId,
+      });
       throw error;
     }
   }
@@ -358,23 +340,5 @@ export class LiveSessionCreditsService {
       }
       throw error;
     }
-  }
-
-  private async resolveActiveByokProvider(
-    organizationId: string,
-    modelKey: string,
-    modelProvider?: string,
-  ): Promise<ByokProvider | undefined> {
-    const provider = resolveModelByokProvider(modelKey, modelProvider);
-    if (
-      !provider ||
-      !(await this.byokService.isByokActiveForProvider(
-        organizationId,
-        provider,
-      ))
-    ) {
-      return undefined;
-    }
-    return provider;
   }
 }

@@ -44,6 +44,36 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         prompt: 'slow camera push',
         resolution: '1080p',
       },
+      undefined,
+    );
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the Fal dispatch call (#5294)', async () => {
+    const falService = {
+      generateVideo: vi
+        .fn()
+        .mockResolvedValue({ url: 'https://cdn.test/out.mp4' }),
+    };
+    const adapter = new FalVideoGenerationProviderAdapter(
+      falService as unknown as FalService,
+    );
+
+    await adapter.generate({
+      apiKeyOverride: 'org-fal-key',
+      duration: 5,
+      height: 1080,
+      imageUrl: 'https://cdn.test/start.png',
+      model: 'fal/fal-ai/modern-video/image-to-video',
+      modelEndpoint: 'fal-ai/modern-video/image-to-video',
+      prompt: 'slow camera push',
+      promptParams: { prompt: 'old', resolution: '1080p' },
+      width: 1920,
+    });
+
+    expect(falService.generateVideo).toHaveBeenCalledWith(
+      'fal-ai/modern-video/image-to-video',
+      expect.anything(),
+      'org-fal-key',
     );
   });
 
@@ -115,6 +145,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       expect(falService.generateVideo).toHaveBeenCalledWith(
         endpoint,
         expectedInput,
+        undefined,
       );
     },
   );
@@ -199,6 +230,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       expect(falService.generateVideo).toHaveBeenCalledWith(
         endpoint,
         expectedInput,
+        undefined,
       );
     },
   );
@@ -230,6 +262,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         expect.objectContaining({
           resolution: '768P',
         }),
+        undefined,
       );
     },
   );

@@ -91,6 +91,13 @@ export interface ImageGenerationCompletionPlan {
 
 export interface ImageGenerationProviderRequest {
   providerInput?: Record<string, unknown>;
+  /**
+   * The org's own resolved BYOK key (#5294), set only when the credits
+   * decision actually bypassed platform credits for this dispatch. Replicate
+   * and Fal adapters must forward it as `apiKeyOverride`; providers that
+   * cannot honor it always charge credits (see `resolveModelByokProvider`).
+   */
+  apiKeyOverride?: string;
   brandPromptBranding: ImageGenerationContext['brandPromptBranding'];
   compiledDispatch?: ImageGenerationBriefDispatch;
   createImageDto: CreateImageDto;

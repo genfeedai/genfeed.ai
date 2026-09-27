@@ -4,7 +4,9 @@ import { ReplicateProviderError } from '@api/services/integrations/replicate/err
 import { AgentFailureReason } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-function buildContext(): VideoGenerationContext {
+function buildContext(
+  overrides: Partial<VideoGenerationContext> = {},
+): VideoGenerationContext {
   return {
     brand: { id: 'brand-1', organizationId: 'org-1' },
     createVideoDto: { outputs: 1 },
@@ -20,6 +22,7 @@ function buildContext(): VideoGenerationContext {
     referenceIds: [],
     user: { id: 'user-1', organizationId: 'org-1', userId: 'user-1' },
     width: 1920,
+    ...overrides,
   } as unknown as VideoGenerationContext;
 }
 
@@ -89,5 +92,47 @@ describe('VideoGenerationExecutionService', () => {
     providerDispatchService.dispatch.mockRejectedValue(genericError);
 
     await expect(service.execute(buildContext())).rejects.toBe(genericError);
+  });
+
+  // #5294 the resolved BYOK key set on `request.creditsConfig` by
+  // VideoGenerationCreditsService must reach the provider dispatch call —
+  // otherwise the credit bypass and the actual dispatch key disagree.
+  it('forwards the resolved BYOK apiKeyOverride from creditsConfig into the dispatch call', async () => {
+    const { providerDispatchService, service } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'ext-byok-1',
+      provider: 'replicate',
+    });
+    const context = buildContext({
+      request: {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-replicate-key',
+          isByokBypass: true,
+          provider: 'replicate',
+        },
+      } as never,
+    });
+
+    await service.execute(context);
+
+    expect(providerDispatchService.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyOverride: 'org-replicate-key' }),
+    );
+  });
+
+  it('dispatches with no apiKeyOverride when the request carries no BYOK bypass', async () => {
+    const { providerDispatchService, service } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'ext-platform-1',
+      provider: 'replicate',
+    });
+
+    await service.execute(buildContext());
+
+    expect(providerDispatchService.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyOverride: undefined }),
+    );
   });
 });

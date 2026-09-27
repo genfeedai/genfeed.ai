@@ -16,6 +16,7 @@ import {
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
@@ -311,7 +312,11 @@ export class VideoGenerationExecutionService {
         new MetadataEntity({ externalProvider }),
       );
     }
+    const byokApiKeyOverride = (
+      context.request as unknown as DeferredCreditsRequest | undefined
+    )?.creditsConfig?.byokApiKeyOverride;
     const result = await this.providerDispatchService.dispatch({
+      apiKeyOverride: byokApiKeyOverride,
       duration: context.createVideoDto.duration,
       height: context.height,
       imageUrl: context.referenceImageUrls[0],

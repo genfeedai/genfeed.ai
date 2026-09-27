@@ -22,6 +22,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -264,6 +265,13 @@ export class ByokService {
     apiSecret?: string,
   ): Promise<void> {
     await this.assertByokEntitled(orgId);
+
+    const validation = await this.validateKey(provider, apiKey, apiSecret);
+    if (!validation.isValid) {
+      throw new BadRequestException(
+        validation.error ?? `Invalid ${provider} API key`,
+      );
+    }
 
     try {
       const encryptedEntry: IByokKeyEntry = {
