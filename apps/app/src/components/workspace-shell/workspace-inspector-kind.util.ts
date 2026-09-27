@@ -7,7 +7,6 @@ export type WorkspaceInspectorPaneKind =
 export type WorkspaceInspectorBodyKind =
   | 'empty'
   | 'presentation-adapter'
-  | 'research-adapter'
   | 'surface-adapter'
   | 'workflow'
   | 'workspace-adapter';
@@ -35,7 +34,6 @@ export function resolveWorkspaceInspectorPaneKind(input: {
 export function resolveWorkspaceInspectorBodyKind(input: {
   hasEffectiveSurfaceAdapter: boolean;
   hasPresentationAdapter: boolean;
-  hasResearchAdapter: boolean;
   hasWorkspaceAdapter: boolean;
   isWorkflowInspectorSurface: boolean;
 }): WorkspaceInspectorBodyKind {
@@ -52,13 +50,8 @@ export function resolveWorkspaceInspectorBodyKind(input: {
 
 function resolveFallbackInspectorBodyKind(input: {
   hasPresentationAdapter: boolean;
-  hasResearchAdapter: boolean;
   hasWorkspaceAdapter: boolean;
 }): WorkspaceInspectorBodyKind {
-  if (input.hasResearchAdapter) {
-    return 'research-adapter';
-  }
-
   if (input.hasPresentationAdapter) {
     return 'presentation-adapter';
   }

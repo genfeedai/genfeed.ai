@@ -1,11 +1,9 @@
-'use client';
-
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
@@ -145,10 +143,8 @@ const HERO_VISUAL = (
 /* ------------------------------------------------------------------ */
 
 export default function PublishingContent() {
-  const containerRef = useMarketingEntrance();
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         heroActions={<AgentFirstActions trackingName="publishing_hero_click" />}
         heroProof={HERO_PROOF}
@@ -326,6 +322,6 @@ export default function PublishingContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

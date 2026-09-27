@@ -1,4 +1,5 @@
 import type { Ingredient } from '@models/content/ingredient.model';
+import type { ContextSidebarSelectionOrigin } from '@props/ui/context-sidebar.props';
 import type { Task } from '@services/management/tasks.service';
 import type { ReactNode } from 'react';
 
@@ -42,4 +43,5 @@ export interface WorkspaceTaskDetailProps {
 export interface WorkspaceTaskRailAdapterProps
   extends WorkspaceTaskDetailProps {
   onClose: () => void;
+  selectionOrigin: ContextSidebarSelectionOrigin;
 }

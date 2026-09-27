@@ -189,6 +189,7 @@ describe('BatchGenerationRewriteRunnerService', () => {
       'user-1',
       new Map([['item-1', 'Rewritten Draft post-1']]),
       new Map([['post-1', updatedAt]]),
+      'job-1',
     );
     expect(deductions.queueDeduction).toHaveBeenCalledTimes(2);
     expect(deductions.queueDeduction).toHaveBeenCalledWith({
@@ -370,6 +371,116 @@ describe('BatchGenerationRewriteRunnerService', () => {
     });
     expect(generation.enhanceDescription).toHaveBeenCalledOnce();
     expect(deductions.queueDeduction).toHaveBeenCalledOnce();
+  });
+
+  describe('when the worker stopped after committing a caption', () => {
+    const editedAt = new Date('2026-09-27T10:05:00Z');
+
+    function markItemOne(rewriteJobId: string) {
+      return {
+        id: 'batch-1',
+        brandId: 'brand-1',
+        items: [
+          {
+            ...items[0],
+            reviewEvents: [
+              {
+                decision: ReviewDecision.REQUEST_CHANGES,
+                feedback: 'Content rewritten',
+                reviewedAt: editedAt.toISOString(),
+                reviewerId: 'user-1',
+                rewriteJobId,
+              },
+            ],
+          },
+          items[1],
+        ],
+        updatedAt,
+      };
+    }
+
+    function bumpPostOne(prisma: ReturnType<typeof setup>['prisma']) {
+      // The committed rewrite bumped post-1 past the queued version.
+      prisma.post.findFirst.mockImplementation(
+        ({ where }: { where: { id: string } }) => ({
+          id: where.id,
+          description: `Draft ${where.id}`,
+          platform: 'linkedin',
+          targetExecutionState: 'draft',
+          updatedAt: where.id === 'post-1' ? editedAt : updatedAt,
+        }),
+      );
+    }
+
+    it('settles the committed item once instead of reading it as an edit', async () => {
+      const { credits, deductions, generation, prisma, review, run } = setup();
+      prisma.batch.findFirst.mockResolvedValue(markItemOne('job-1'));
+      bumpPostOne(prisma);
+
+      await expect(run()).resolves.toEqual({
+        completedItemIds: ['item-1', 'item-2'],
+        failedItems: [],
+        status: BatchRewriteJobStatus.COMPLETED,
+      });
+      // Only item-2 is generated and applied; item-1 is only billed.
+      expect(generation.enhanceDescription).toHaveBeenCalledOnce();
+      expect(review.applyRewrites).toHaveBeenCalledOnce();
+      expect(deductions.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: 'batch-rewrite-job-1-item-1',
+          reservationId: 'reservation:batch-rewrite:job-1:item-1',
+        }),
+      );
+      expect(deductions.queueDeduction).toHaveBeenCalledTimes(2);
+      expect(credits.releaseReservation).not.toHaveBeenCalled();
+    });
+
+    it("still treats another job's rewrite as a reviewer's edit", async () => {
+      const { credits, deductions, prisma, run } = setup();
+      prisma.batch.findFirst.mockResolvedValue(markItemOne('job-0'));
+      bumpPostOne(prisma);
+
+      const result = await run();
+
+      expect(result.failedItems).toEqual([
+        { itemId: 'item-1', reason: BatchRewriteItemFailureReason.CONFLICT },
+      ]);
+      expect(deductions.queueDeduction).toHaveBeenCalledOnce();
+      expect(credits.releaseReservation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reservationId: 'reservation:batch-rewrite:job-1:item-1',
+        }),
+      );
+    });
+
+    it('retries a settlement that could not be queued and bills it exactly once', async () => {
+      const first = setup();
+      first.deductions.queueDeduction.mockRejectedValueOnce(
+        new Error('Redis unavailable'),
+      );
+
+      await expect(first.run()).rejects.toThrow('Redis unavailable');
+      // The caption committed, so its hold is kept for the retry.
+      expect(first.credits.releaseReservation).not.toHaveBeenCalled();
+      expect(first.job.updateProgress).not.toHaveBeenCalled();
+
+      // BullMQ retries the job: item-1 now carries this job's marker.
+      const retry = setup();
+      retry.prisma.batch.findFirst.mockResolvedValue(markItemOne('job-1'));
+      bumpPostOne(retry.prisma);
+
+      await expect(retry.run()).resolves.toMatchObject({
+        completedItemIds: ['item-1', 'item-2'],
+        status: BatchRewriteJobStatus.COMPLETED,
+      });
+      expect(retry.generation.enhanceDescription).toHaveBeenCalledOnce();
+      expect(retry.deductions.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: 'batch-rewrite-job-1-item-1',
+          reservationId: 'reservation:batch-rewrite:job-1:item-1',
+        }),
+      );
+    });
   });
 
   it('opens a fresh hold when an earlier attempt released the item', async () => {

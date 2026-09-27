@@ -1,8 +1,5 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -12,6 +9,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
   Apple,
@@ -88,7 +86,6 @@ export default function DownloadContent({
   fileSize,
   version,
 }: DownloadContentProps) {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const releasesHref = `${EnvironmentService.github.core}/releases`;
   const appHref = EnvironmentService.apps.app;
 
@@ -105,7 +102,7 @@ export default function DownloadContent({
     : 'macOS build coming soon';
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         badge="Desktop"
         badgeIcon={MonitorDown}
@@ -366,6 +363,6 @@ export default function DownloadContent({
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

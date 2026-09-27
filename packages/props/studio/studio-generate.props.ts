@@ -104,8 +104,10 @@ export interface StudioGenerateCardProps {
 
 export interface StudioGenerateInspectorProps {
   job: StudioGenerateJob;
-  onClose: () => void;
+  /** Attaches a finished image to the composer as an image reference. */
+  onRemix: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioGenerateJob) => void;
   runJobs: readonly StudioGenerateJob[];
 }

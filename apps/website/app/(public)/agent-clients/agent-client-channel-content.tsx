@@ -1,5 +1,3 @@
-'use client';
-
 import {
   type AgentClientChannelPage,
   getAgentClientChannels,
@@ -10,7 +8,6 @@ import {
   getAgentClientCommandBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
@@ -22,6 +19,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
@@ -36,7 +34,6 @@ export default function AgentClientChannelContent({
   client: AgentClient;
   page: AgentClientChannelPage;
 }): React.ReactElement {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
   const lowerNoun = page.noun.toLowerCase();
   const otherChannels = getAgentClientChannels().filter(
@@ -47,7 +44,7 @@ export default function AgentClientChannelContent({
   );
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         badge={`${client.name} · ${page.channelName}`}
         badgeIcon={Terminal}
@@ -213,6 +210,6 @@ export default function AgentClientChannelContent({
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

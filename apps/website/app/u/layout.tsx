@@ -10,8 +10,9 @@ export default function PublicProfileLayout({ children }: LayoutProps) {
     <ErrorBoundary>
       <ElementsProvider>
         <PromptBarProvider>
+          {/* One landmark: a <main> nested in a <main> is invalid HTML. */}
           <main className="min-h-screen flex flex-col">
-            <main className="flex-grow">{children}</main>
+            <div className="flex-grow">{children}</div>
           </main>
         </PromptBarProvider>
       </ElementsProvider>

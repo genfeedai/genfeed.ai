@@ -1,6 +1,3 @@
-'use client';
-
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
@@ -9,6 +6,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Layers, LayoutDashboard, LifeBuoy, Users } from 'lucide-react';
 import Image from 'next/image';
@@ -63,11 +61,10 @@ const TEAMS = [
 ];
 
 export default function CloudContent() {
-  const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         title="One studio for your team"
         description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
@@ -179,6 +176,6 @@ export default function CloudContent() {
           />
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

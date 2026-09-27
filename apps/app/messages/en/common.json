@@ -671,6 +671,15 @@
       "pagePreview": "Preview of {host}"
     }
   },
+  "contextSidebar": {
+    "close": "Close details",
+    "collapse": "Collapse details",
+    "drawerDescription": "Details for the selected item.",
+    "expand": "Expand details",
+    "label": "Selection details",
+    "open": "Open details",
+    "resize": "Resize details"
+  },
   "desktop": {
     "local": {
       "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",

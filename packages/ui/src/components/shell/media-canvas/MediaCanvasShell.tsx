@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MediaCanvasShellProps } from '@genfeedai/props/layout/media-canvas-shell.props';
 import AmbientColorWash from '@ui/ambient/AmbientColorWash';

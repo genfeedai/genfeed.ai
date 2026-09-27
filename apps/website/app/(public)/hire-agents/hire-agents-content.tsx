@@ -1,12 +1,10 @@
-'use client';
-
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Cpu, RefreshCw, Rocket, Sparkles, Users, Zap } from 'lucide-react';
 
@@ -87,11 +85,10 @@ const HERO_VISUAL = (
 );
 
 export default function HireAgentsContent() {
-  const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         heroActions={
           <AgentFirstActions
@@ -242,6 +239,6 @@ export default function HireAgentsContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

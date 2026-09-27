@@ -1,15 +1,13 @@
-'use client';
-
 import { agentClients, getAgentClient } from '@data/agent-clients.data';
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Blocks, BookOpen, Plug, Terminal } from 'lucide-react';
 import Link from 'next/link';
@@ -102,11 +100,10 @@ const HERO_VISUAL = (
 );
 
 export default function AgentContent() {
-  const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         compact
         description="Tell it what you want. It makes the content, keeps it on brand, and schedules it — and shows you everything before it goes out."
@@ -385,6 +382,6 @@ export default function AgentContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

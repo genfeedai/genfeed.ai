@@ -1,24 +1,18 @@
-'use client';
-
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives/button';
 import {
   NeuralGrid,
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
-import { ArrowRight, Loader, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
+
+import SkillsCheckoutButton from './skills-checkout-button';
 
 type SkillsBundleCtaProps = {
   bundlePrice: number | string;
-  checkoutLoading: boolean;
-  onCheckout: () => void;
 };
 
 export default function SkillsBundleCta({
   bundlePrice,
-  checkoutLoading,
-  onCheckout,
 }: SkillsBundleCtaProps): React.ReactElement {
   return (
     <WebSection bg="subtle" className="gsap-section">
@@ -38,23 +32,11 @@ export default function SkillsBundleCta({
             <div className="text-6xl font-semibold text-surface mb-8">
               ${bundlePrice}
             </div>
-            <Button
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.PUBLIC}
-              className="min-w-skill-col"
-              disabled={checkoutLoading}
-              onClick={onCheckout}
-            >
-              {checkoutLoading ? (
-                <Loader className="size-4 animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="size-4" />
-                  Buy Bundle
-                  <ArrowRight className="size-4" />
-                </>
-              )}
-            </Button>
+            <SkillsCheckoutButton className="min-w-skill-col">
+              <Sparkles className="size-4" />
+              Buy Bundle
+              <ArrowRight className="size-4" />
+            </SkillsCheckoutButton>
           </div>
         </NeuralGridItem>
       </NeuralGrid>

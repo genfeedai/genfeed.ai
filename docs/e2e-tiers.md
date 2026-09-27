@@ -37,7 +37,7 @@ Expired quarantines fail CI. API exclusions live in
 
 The `PLAYWRIGHT_E2E_CORE_PATHS` list in the tier manifest owns core selection
 for both the local tier CLI and the CI shard runner. Core includes smoke, core,
-onboarding, the shell page-context contract, and clips. Changed and failed-only
+onboarding, the shell page-context contract and context sidebar, and clips. Changed and failed-only
 commands apply their Playwright filters to this same selector set. Missing files
 or emptied selector directories fail before Playwright starts. The changed
 command compares against `origin/master` by default.
