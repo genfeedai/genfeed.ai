@@ -17,6 +17,7 @@ import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import {
+  hasPaidPlanIntent,
   persistOnboardingHandoffParams,
   persistSignupAttribution,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -50,16 +51,6 @@ function getLoginHref(callbackURL: string) {
 
   const params = new URLSearchParams({ callbackUrl: callbackURL });
   return `/login?${params.toString()}`;
-}
-
-/**
- * `?plan=payg` is the free pay-as-you-go handoff, not a paid-plan signal —
- * counting it as plan intent skews the signup->checkout funnel alert toward
- * a near-zero conversion rate by design (genfeedai/genfeed.ai#4969).
- */
-function hasPaidPlanIntent(rawPlan: string | null): boolean {
-  const plan = rawPlan?.trim().toLowerCase();
-  return Boolean(plan) && plan !== 'payg';
 }
 
 function getSignupFunnelIntentProperties(

@@ -2,6 +2,7 @@ import {
   appendCheckoutReturnParams,
   buildOnboardingResumeHref,
   deriveBrandNameFromDomain,
+  hasPaidPlanIntent,
   isFreePlanHandoff,
   parseSelectedCredits,
   resolvePostSignupIntent,
@@ -106,6 +107,25 @@ describe('isFreePlanHandoff', () => {
     expect(isFreePlanHandoff('payg')).toBe(true);
     expect(isFreePlanHandoff(' FREE ')).toBe(true);
     expect(isFreePlanHandoff('price_123')).toBe(false);
+  });
+});
+
+describe('hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', () => {
+  it('never counts a free or payg handoff as paid intent', () => {
+    expect(hasPaidPlanIntent('payg')).toBe(false);
+    expect(hasPaidPlanIntent('free')).toBe(false);
+    expect(hasPaidPlanIntent(' FREE ')).toBe(false);
+  });
+
+  it('treats an empty or missing plan as no intent', () => {
+    expect(hasPaidPlanIntent(null)).toBe(false);
+    expect(hasPaidPlanIntent(undefined)).toBe(false);
+    expect(hasPaidPlanIntent('   ')).toBe(false);
+  });
+
+  it('counts a real paid plan as intent', () => {
+    expect(hasPaidPlanIntent('price_123')).toBe(true);
+    expect(hasPaidPlanIntent('hosted')).toBe(true);
   });
 });
 

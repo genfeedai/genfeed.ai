@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -41,7 +43,12 @@ describe('GenerateController', () => {
     };
     let apiKeysService: {
       findOne: ReturnType<typeof vi.fn>;
-      resolveValidDefaultBrandId: ReturnType<typeof vi.fn>;
+    };
+    let brandsService: {
+      findOne: ReturnType<typeof vi.fn>;
+    };
+    let membersService: {
+      findOne: ReturnType<typeof vi.fn>;
     };
 
     const mockUser = {
@@ -49,6 +56,27 @@ describe('GenerateController', () => {
       organizationId: testId('org'),
       userId: testId('user'),
     } as unknown as User;
+
+    /**
+     * `brandsService.findOne` is org-scoped in real life (`BaseService`
+     * excludes soft-deleted rows and requires a matching `organizationId`).
+     * This stub mirrors that: it only "finds" a brand whose id is in
+     * `validBrandIds` for the given mockUser's organization.
+     */
+    function stubValidBrands(validBrandIds: readonly string[]): void {
+      brandsService.findOne.mockImplementation(
+        async (query: { id?: unknown; organizationId?: unknown }) => {
+          if (
+            typeof query.id === 'string' &&
+            validBrandIds.includes(query.id) &&
+            query.organizationId === mockUser.organizationId
+          ) {
+            return { id: query.id };
+          }
+          return null;
+        },
+      );
+    }
 
     beforeEach(async () => {
       contentGeneratorService = {
@@ -66,7 +94,12 @@ describe('GenerateController', () => {
       };
       apiKeysService = {
         findOne: vi.fn(),
-        resolveValidDefaultBrandId: vi.fn(),
+      };
+      brandsService = {
+        findOne: vi.fn().mockResolvedValue(null),
+      };
+      membersService = {
+        findOne: vi.fn().mockResolvedValue(null),
       };
 
       const module = await Test.createTestingModule({
@@ -81,6 +114,14 @@ describe('GenerateController', () => {
             useValue: apiKeysService,
           },
           {
+            provide: BrandsService,
+            useValue: brandsService,
+          },
+          {
+            provide: MembersService,
+            useValue: membersService,
+          },
+          {
             provide: LoggerService,
             useValue: { debug: vi.fn(), error: vi.fn(), log: vi.fn() },
           },
@@ -91,6 +132,8 @@ describe('GenerateController', () => {
     });
 
     it('should return JSON:API formatted collection', async () => {
+      stubValidBrands(['b1']);
+
       const result = await controller.generate({} as Request, mockUser, {
         brandId: 'b1',
       } as never);
@@ -101,6 +144,8 @@ describe('GenerateController', () => {
     });
 
     it('should include meta with pagination info', async () => {
+      stubValidBrands(['b1']);
+
       const result = await controller.generate({} as Request, mockUser, {
         brandId: 'b1',
       } as never);
@@ -110,6 +155,8 @@ describe('GenerateController', () => {
     });
 
     it('should pass organizationId as ObjectId to service', async () => {
+      stubValidBrands(['b1']);
+
       await controller.generate({} as Request, mockUser, {
         brandId: 'b1',
       } as never);
@@ -123,8 +170,9 @@ describe('GenerateController', () => {
       );
     });
 
-    describe('brand resolution (#5219 — generation always has an explicit brand)', () => {
-      it('rejects with 400 when no brandId, apiKey default, or user.brandId resolves', async () => {
+    describe('brand resolution (#5219/#5292 — generation always has an explicit brand)', () => {
+      it('rejects with 400 when no brandId, apiKey default, user.brandId, or member currentBrandId resolves', async () => {
+        // brandsService/membersService already stubbed to resolve nothing.
         await expect(
           controller.generate({} as Request, mockUser, {} as never),
         ).rejects.toBeInstanceOf(BadRequestException);
@@ -137,6 +185,7 @@ describe('GenerateController', () => {
       });
 
       it("falls back to the acting member's currentBrandId (user.brandId) for app/agent callers", async () => {
+        stubValidBrands(['member-current-brand']);
         const appUser = { ...mockUser, brandId: 'member-current-brand' };
 
         await controller.generate({} as Request, appUser as User, {} as never);
@@ -151,6 +200,7 @@ describe('GenerateController', () => {
       });
 
       it("prefers the request's explicit brandId over user.brandId", async () => {
+        stubValidBrands(['explicit-brand', 'member-current-brand']);
         const appUser = { ...mockUser, brandId: 'member-current-brand' };
 
         await controller.generate(
@@ -170,7 +220,29 @@ describe('GenerateController', () => {
         );
       });
 
+      it("falls back to the acting member's currentBrandId when user.brandId is stale (deleted/relocated since auth)", async () => {
+        // Simulates a brand deleted just after the request's identity was
+        // cached: user.brandId is no longer a valid brand, but the member row
+        // itself now points at a different, valid, current brand.
+        stubValidBrands(['fresh-current-brand']);
+        membersService.findOne.mockResolvedValue({
+          currentBrandId: 'fresh-current-brand',
+        });
+        const appUser = { ...mockUser, brandId: 'stale-deleted-brand' };
+
+        await controller.generate({} as Request, appUser as User, {} as never);
+
+        expect(
+          contentGeneratorService.generateContentWorkflow,
+        ).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({ brandId: 'fresh-current-brand' }),
+        );
+      });
+
       it("resolves an API-key caller's brand from the key's validated defaultBrandId", async () => {
+        stubValidBrands(['key-default-brand']);
         const apiKeyUser = {
           ...mockUser,
           apiKeyId: 'apikey-1',
@@ -179,9 +251,6 @@ describe('GenerateController', () => {
         apiKeysService.findOne.mockResolvedValue({
           defaultBrandId: 'key-default-brand',
         });
-        apiKeysService.resolveValidDefaultBrandId.mockResolvedValue(
-          'key-default-brand',
-        );
 
         await controller.generate(
           {} as Request,
@@ -189,10 +258,9 @@ describe('GenerateController', () => {
           {} as never,
         );
 
-        expect(apiKeysService.resolveValidDefaultBrandId).toHaveBeenCalledWith(
-          mockUser.organizationId,
-          'key-default-brand',
-        );
+        expect(apiKeysService.findOne).toHaveBeenCalledWith({
+          id: 'apikey-1',
+        });
         expect(
           contentGeneratorService.generateContentWorkflow,
         ).toHaveBeenCalledWith(
@@ -202,7 +270,38 @@ describe('GenerateController', () => {
         );
       });
 
-      it('rejects an API-key caller whose key has no valid default brand — never widens to "any brand in the org"', async () => {
+      it("falls back to the key owner's member currentBrandId when the key has no valid default brand", async () => {
+        stubValidBrands(['owner-current-brand']);
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+        };
+        apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        membersService.findOne.mockResolvedValue({
+          currentBrandId: 'owner-current-brand',
+        });
+
+        await controller.generate(
+          {} as Request,
+          apiKeyUser as User,
+          {} as never,
+        );
+
+        expect(membersService.findOne).toHaveBeenCalledWith({
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
+        });
+        expect(
+          contentGeneratorService.generateContentWorkflow,
+        ).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.objectContaining({ brandId: 'owner-current-brand' }),
+        );
+      });
+
+      it('rejects an API-key caller whose key has no valid default brand and whose owner has no current brand — never widens to "any brand in the org"', async () => {
         const apiKeyUser = {
           ...mockUser,
           apiKeyId: 'apikey-1',
@@ -212,10 +311,37 @@ describe('GenerateController', () => {
           brandId: 'should-not-be-used',
         };
         apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
-        apiKeysService.resolveValidDefaultBrandId.mockResolvedValue(undefined);
+        membersService.findOne.mockResolvedValue(null);
 
         await expect(
           controller.generate({} as Request, apiKeyUser as User, {} as never),
+        ).rejects.toThrow(
+          'brandId is required to generate content. Configure a default brand for this API key, or pass brandId explicitly.',
+        );
+        expect(
+          contentGeneratorService.generateContentWorkflow,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('rejects an API-key caller whose explicit brandId belongs to another organization, never trusting it unvalidated', async () => {
+        // 'other-org-brand' never appears in stubValidBrands, so it never
+        // resolves for this organizationId — the request must reject rather
+        // than pass the cross-org id straight through.
+        stubValidBrands([]);
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+        };
+        apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        membersService.findOne.mockResolvedValue(null);
+
+        await expect(
+          controller.generate(
+            {} as Request,
+            apiKeyUser as User,
+            { brandId: 'other-org-brand' } as never,
+          ),
         ).rejects.toThrow(
           'brandId is required to generate content. Configure a default brand for this API key, or pass brandId explicitly.',
         );

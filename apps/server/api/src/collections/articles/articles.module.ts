@@ -4,6 +4,7 @@
 Twitter thread conversion, virality analysis, and public link sharing.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
@@ -20,6 +21,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -54,6 +56,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ActivitiesModule,
     AgentChatModelRegistryModule,
+    ApiKeysModule,
     BrandsCoreModule,
     ByokModule,
     ConfigModule,
@@ -61,6 +64,7 @@ import { Module } from '@nestjs/common';
     CredentialsCoreModule,
     ModelsModule,
     HarnessProfilesModule,
+    MembersModule,
     NotificationsModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,

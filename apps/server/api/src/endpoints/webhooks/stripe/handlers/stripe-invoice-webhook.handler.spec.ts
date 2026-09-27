@@ -193,7 +193,19 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
     });
 
-    it('records the invoice net of tax in the revenue ledger', async () => {
+    it('records the invoice net of tax in the revenue ledger, using the Pro product tier as the plan label', async () => {
+      billingService.resolve.mockResolvedValue({
+        billingAccountId: 'ba_1',
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          stripePriceId: 'price_pro',
+        },
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.PRO,
+      );
+
       await handler.handleInvoicePaid(
         invoiceWith({
           amount_paid: 4_900,
@@ -207,16 +219,97 @@ describe('StripeInvoiceWebhookHandler', () => {
         'test',
       );
 
+      expect(supportService.resolveTierFromPriceId).toHaveBeenCalledWith(
+        'price_pro',
+      );
       expect(supportService.recordRevenueEvent).toHaveBeenCalledWith({
         amountMinor: 4_500,
         currency: 'usd',
         occurredAt: new Date(1_790_000_000 * 1000),
         organizationId: 'org_1',
-        planLabel: SubscriptionPlan.MONTHLY,
+        planLabel: 'Pro',
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
         stripeObjectId: 'in_123',
         userId: 'user_1',
       });
+    });
+
+    it('records the invoice using the Scale product tier as the plan label, never the billing interval', async () => {
+      billingService.resolve.mockResolvedValue({
+        billingAccountId: 'ba_1',
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          plan: SubscriptionPlan.MONTHLY,
+          stripePriceId: 'price_scale',
+        },
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.SCALE,
+      );
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          amount_paid: 60_000,
+          currency: 'usd',
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ planLabel: 'Scale' }),
+      );
+    });
+
+    it('records the invoice with no plan label when the subscription has no price id', async () => {
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          amount_paid: 4_900,
+          currency: 'usd',
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(supportService.resolveTierFromPriceId).not.toHaveBeenCalled();
+      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ planLabel: undefined }),
+      );
+    });
+
+    it('records the invoice with no plan label when the price id resolves to no tier', async () => {
+      billingService.resolve.mockResolvedValue({
+        billingAccountId: 'ba_1',
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          stripePriceId: 'price_unknown',
+        },
+      });
+      supportService.resolveTierFromPriceId.mockReturnValue(null);
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          amount_paid: 4_900,
+          currency: 'usd',
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(supportService.resolveTierFromPriceId).toHaveBeenCalledWith(
+        'price_unknown',
+      );
+      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ planLabel: undefined }),
+      );
     });
 
     it('warns and skips a subscription_cycle invoice that carries no subscription id', async () => {

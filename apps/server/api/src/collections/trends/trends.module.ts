@@ -1,3 +1,4 @@
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -61,6 +62,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     ApifyModule,
+    ApiKeysModule,
     BrandsCoreModule,
     ByokModule,
     CacheModule,

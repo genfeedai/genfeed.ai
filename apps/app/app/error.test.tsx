@@ -7,4 +7,9 @@ describe('app/error.tsx', () => {
     const source = readFileSync(join(process.cwd(), 'app/error.tsx'), 'utf8');
     expect(source).toContain('export ');
   });
+
+  it('marks its fallback for the route smoke suite (#5070)', () => {
+    const source = readFileSync(join(process.cwd(), 'app/error.tsx'), 'utf8');
+    expect(source).toContain('data-testid="error-boundary-fallback"');
+  });
 });

@@ -1,10 +1,11 @@
 import { cn } from '@genfeedai/helpers';
 import { controlHeightClassName } from '@ui/primitives/field-control';
 
+/** Placement is the caller's: pass `ml-auto` to right-align in a row. */
 export function getTabsListClassName(className?: string) {
   return cn(
     controlHeightClassName,
-    'ml-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted/50 p-0.5 text-foreground/70',
+    'flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted/50 p-0.5 text-foreground/70',
     className,
   );
 }
