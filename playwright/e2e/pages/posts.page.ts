@@ -5,6 +5,7 @@ import {
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { brandPath } from '../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../utils/route-assertions';
 
 /**
  * Page Object Model for the Posts Management Page
@@ -75,8 +76,6 @@ export class PostsPage {
   readonly breadcrumb: Locator;
   readonly postDetailContent: Locator;
   readonly postDetailSidebar: Locator;
-  readonly scheduleDatePicker: Locator;
-  readonly saveScheduleButton: Locator;
 
   // Confirm delete modal
   readonly confirmDeleteModal: Locator;
@@ -221,14 +220,10 @@ export class PostsPage {
     this.postDetailSidebar = page.locator(
       '[data-testid="post-detail-sidebar"],' + ' [class*="PostDetailSidebar"]',
     );
-    this.scheduleDatePicker = page.locator(
-      'input[type="datetime-local"],' + ' [data-testid="schedule-picker"]',
-    );
-    this.saveScheduleButton = page.locator(
-      'button:has-text("Save Schedule"),' +
-        ' button:has-text("Save"),' +
-        ' [data-testid="save-schedule"]',
-    );
+    // The real sidebar schedule control (Date popover + Time combobox +
+    // "Schedule" button) is driven directly in specs via role locators --
+    // there is no `datetime-local` input or generic "Save" button. See
+    // #5381.
 
     // Confirm delete modal
     this.confirmDeleteModal = page.locator(
@@ -293,6 +288,12 @@ export class PostsPage {
         timeout: 30000,
       });
     }
+    // A URL assertion alone can pass while the route rendered a caught
+    // ErrorBoundary fallback instead of the real surface. See #5381.
+    await assertNoErrorBoundaryFallback(
+      this.page,
+      new URL(this.page.url()).pathname,
+    );
   }
 
   // ── Lifecycle filter navigation ─────────────────────────

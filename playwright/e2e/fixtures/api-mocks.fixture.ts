@@ -5,7 +5,10 @@ import {
   PostStatus,
 } from '@genfeedai/contracts';
 import type { Page, Route } from '@playwright/test';
-import { playwrightApiEndpoint } from '../config/environment';
+import {
+  playwrightApiEndpoint,
+  playwrightApiOrigin,
+} from '../config/environment';
 import {
   generateMockIngredient,
   generateMockOrganization,
@@ -3603,6 +3606,15 @@ export async function mockLibraryData(page: Page): Promise<void> {
 /**
  * Mock for network errors
  */
+/** True only for a request actually bound for the mocked backend API. */
+function isApiRequest(url: string): boolean {
+  try {
+    return new URL(url).origin === playwrightApiOrigin;
+  } catch {
+    return false;
+  }
+}
+
 export async function mockNetworkError(
   page: Page,
   urlPattern: string,
@@ -3611,15 +3623,12 @@ export async function mockNetworkError(
     const request = route.request();
     // The glob (e.g. "**/posts**") also matches two request shapes besides
     // the intended background API call: the page's own document navigation,
-    // and the App Router's RSC payload fetch for that same route (tagged
-    // with the `rsc` header). Aborting either forces Next's own "failed to
-    // fetch RSC payload -> fall back to a hard reload" recovery loop instead
-    // of letting the surface render its own handled error/empty state. See
-    // #5381.
-    if (
-      request.resourceType() === 'document' ||
-      (await request.headerValue('rsc')) !== null
-    ) {
+    // and the App Router's RSC payload fetch for that same route -- both go
+    // to the app's own origin, never the API's. Aborting either forces
+    // net::ERR_FAILED or Next's own "failed to fetch RSC payload -> fall
+    // back to a hard reload" recovery loop instead of letting the surface
+    // render its own handled error/empty state. See #5381.
+    if (!isApiRequest(request.url())) {
       await route.continue();
       return;
     }
@@ -3636,6 +3645,16 @@ export async function mockServerError(
   statusCode = 500,
 ): Promise<void> {
   await page.route(urlPattern, async (route) => {
+    const request = route.request();
+    // Same scoping as mockNetworkError: the glob also matches the page's own
+    // document navigation and RSC fetch when the route path shares the
+    // keyword (e.g. /publishing/posts). Fulfilling those with an error JSON
+    // body would let the document "succeed" with the wrong content instead
+    // of exercising the app's own handled API-error state. See #5381.
+    if (!isApiRequest(request.url())) {
+      await route.continue();
+      return;
+    }
     await route.fulfill({
       body: JSON.stringify({
         errors: [
@@ -3759,7 +3778,7 @@ export async function mockPostsList(
     await route.fulfill({
       body: JSON.stringify(
         buildJsonApiCollection(
-          'posts',
+          'post',
           filtered.map((post) => ({
             attributes: buildPostAttributes(post),
             id: String(post.id),
@@ -3798,7 +3817,7 @@ export async function mockPostDetail(
       const payload = buildPostAttributes(mockPost);
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiDocument('posts', String(mockPost.id), payload),
+          buildJsonApiDocument('post', String(mockPost.id), payload),
         ),
         contentType: 'application/json',
         status: 200,
@@ -3812,7 +3831,7 @@ export async function mockPostDetail(
       };
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiDocument('posts', String(mockPost.id), payload),
+          buildJsonApiDocument('post', String(mockPost.id), payload),
         ),
         contentType: 'application/json',
         status: 200,
@@ -3832,26 +3851,106 @@ export async function mockPostDetail(
 }
 
 /**
- * Mock for calendar posts endpoint
+ * Post lifecycle status -> release/target status. `ReleaseStatus` and
+ * `TargetExecutionState` share the same string values for every state a
+ * mocked calendar item needs; PostStatus.PUBLIC is the one label that
+ * diverges from its release-group equivalent ('published').
+ */
+function toReleaseStatus(status: unknown): string {
+  return status === PostStatus.PUBLIC ? 'published' : String(status ?? 'draft');
+}
+
+/**
+ * Builds a JSON:API `release-group` attributes payload from the same
+ * `generateMockPost`-shaped fixture the rest of this file uses, so calendar
+ * tests can keep authoring fixtures as flat posts. `ContentCalendarPage`
+ * reads releases from `ReleaseGroupsService` (`GET /post-groups`), never
+ * `/posts` -- the calendar has no post-level data source. See #5381.
+ */
+function buildReleaseGroupAttributes(
+  post: Record<string, unknown>,
+): Record<string, unknown> {
+  const id = String(post.id);
+  const status = toReleaseStatus(post.status);
+  const scheduledAt = (post.scheduledDate as string | null) ?? null;
+  const target = {
+    attachments: [],
+    category: 'text',
+    credentialId: `mock-credential-${id}`,
+    executionState: status,
+    id,
+    order: 0,
+    platform: (post.platform as string) ?? 'twitter',
+    releaseId: id,
+    scheduledAt,
+    source: 'manual',
+    statusTransitions: [],
+    timezone: 'America/New_York',
+    // ReleaseDetailDrawer reads `target.validationIssues.length`
+    // unconditionally -- the real serializer always includes the field
+    // (channel-target.attributes.ts), so an incomplete mock target crashes
+    // the drawer's ErrorBoundary on click. See #5381.
+    validationIssues: [],
+  };
+
+  return {
+    analyticsComparison: {
+      metricDefinitions: [],
+      releaseId: id,
+      state: 'empty',
+      targets: [],
+    },
+    attachments: [],
+    baseContent: (post.description as string) || '',
+    brandId: 'mock-brand-id',
+    campaignId: null,
+    media: [],
+    organizationId: 'mock-org-id-e2e-test',
+    ownerId: 'mock-user-id-e2e-test',
+    publishedAt: status === 'published' ? scheduledAt : null,
+    recurrence: null,
+    scheduledAt,
+    status,
+    statusTransitions: [],
+    targetSummary: { total: 1, [status]: 1 },
+    targets: [target],
+    timezone: 'America/New_York',
+    title: (post.label as string) || 'Untitled post',
+  };
+}
+
+/**
+ * Mock for the calendar's release-group endpoint (`GET /post-groups`).
+ *
+ * Defaults schedule across Monday/Wednesday/Friday of the *current* week so
+ * they land inside `ContentCalendarPage`'s default week view without the
+ * caller needing to know today's date. Pass `posts` (same
+ * `generateMockPost` fixtures used elsewhere) to control exact placement --
+ * e.g. compute dates from the browser's own `Date` (see
+ * `currentWeekBrowserDates` in scheduling.spec.ts) so they always agree with
+ * whatever "now" the app itself resolves to.
  */
 export async function mockCalendarPosts(
   page: Page,
   posts?: Record<string, unknown>[],
 ): Promise<void> {
   const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const at = (offsetDays: number, hour: number) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + offsetDays);
+    d.setHours(hour, 0, 0, 0);
+    return d.toISOString();
+  };
+
   const mockPosts = posts || [
     generateMockPost({
       description: 'Monday morning post',
       id: 'cal-post-001',
       label: 'Calendar Post 1',
       platform: 'twitter',
-      scheduledDate: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        15,
-        9,
-        0,
-      ).toISOString(),
+      scheduledDate: at(0, 9),
       status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
@@ -3859,54 +3958,36 @@ export async function mockCalendarPosts(
       id: 'cal-post-002',
       label: 'Calendar Post 2',
       platform: 'instagram',
-      scheduledDate: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        18,
-        14,
-        0,
-      ).toISOString(),
+      scheduledDate: at(2, 14),
       status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
-      description: 'Published last week',
+      description: 'Published earlier this week',
       id: 'cal-post-003',
       label: 'Calendar Post 3',
       platform: 'youtube',
-      scheduledDate: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        10,
-        12,
-        0,
-      ).toISOString(),
+      scheduledDate: at(0, 12),
       status: PostStatus.PUBLIC,
     }),
     generateMockPost({
-      description: 'Draft with no schedule',
+      description: 'Draft scheduled for Friday',
       id: 'cal-post-004',
       label: 'Calendar Post 4',
       platform: 'linkedin',
-      scheduledDate: new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        22,
-        10,
-        0,
-      ).toISOString(),
+      scheduledDate: at(4, 10),
       status: PostStatus.DRAFT,
     }),
   ];
 
-  await routeApiPattern(page, '/posts**', async (route) => {
+  await routeApiPattern(page, '/post-groups**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
           buildJsonApiCollection(
-            'posts',
+            'release-group',
             mockPosts.map((post) => ({
-              attributes: buildPostAttributes(post),
+              attributes: buildReleaseGroupAttributes(post),
               id: String(post.id),
             })),
           ),
@@ -3933,7 +4014,15 @@ export async function mockCalendarPosts(
 }
 
 /**
- * Mock for post publishing / scheduling
+ * Mock for post publishing / scheduling.
+ *
+ * A lone draft post has no release group yet: `usePostDetail`'s
+ * `handleScheduleSave` / `handlePublishNow` first call
+ * `ReleaseGroupsService.ensureFromPost(postId)` (`POST /post-groups/from-post`)
+ * to get one, then mutate the target via `scheduleTarget` / `publishTargetNow`
+ * (`PATCH /post-groups/:groupId/targets/:targetId`, body
+ * `{ action, scheduledDate? }`). There is no `/posts/:id/status` or
+ * `/posts/:id/schedule` endpoint. See #5381.
  */
 export async function mockPostPublishing(
   page: Page,
@@ -3941,45 +4030,61 @@ export async function mockPostPublishing(
 ): Promise<void> {
   const { delay = 0 } = options;
 
-  // Mock status update endpoint
-  await page.route('**/api.genfeed.ai/v1/posts/*/status', async (route) => {
+  await routeApiPattern(page, '/post-groups/from-post', async (route) => {
     if (delay > 0) {
       await new Promise((r) => setTimeout(r, delay));
     }
+    const body = route.request().postDataJSON() as
+      | { postId?: string }
+      | undefined;
+    const postId = body?.postId || 'mock-post-id';
+    const groupId = `mock-release-${postId}`;
     await route.fulfill({
-      body: JSON.stringify({
-        ...generateMockPost({
-          status: PostStatus.SCHEDULED,
+      body: JSON.stringify(
+        buildJsonApiDocument('release-group', groupId, {
+          scheduledAt: null,
+          status: 'draft',
+          targets: [
+            { executionState: 'draft', id: postId, platform: 'twitter' },
+          ],
+          title: 'Untitled post',
         }),
-        updatedAt: new Date().toISOString(),
-      }),
+      ),
       contentType: 'application/json',
-      status: 200,
+      status: 201,
     });
   });
 
-  // Mock schedule update
-  await page.route('**/api.genfeed.ai/v1/posts/*/schedule', async (route) => {
+  await routeApiPattern(page, '/post-groups/*/targets/*', async (route) => {
     if (delay > 0) {
       await new Promise((r) => setTimeout(r, delay));
     }
+    const body = route.request().postDataJSON() as
+      | { action?: string; scheduledDate?: string }
+      | undefined;
+    const status =
+      body?.action === 'schedule'
+        ? 'scheduled'
+        : body?.action?.startsWith('publish')
+          ? 'published'
+          : 'draft';
+    const segments = new URL(route.request().url()).pathname.split('/');
+    const groupId = segments.at(-3) || 'mock-release-group';
     await route.fulfill({
-      body: JSON.stringify({
-        ...generateMockPost({
-          scheduledDate: new Date(
-            Date.now() + 24 * 60 * 60 * 1000,
-          ).toISOString(),
-          status: PostStatus.SCHEDULED,
+      body: JSON.stringify(
+        buildJsonApiDocument('release-group', groupId, {
+          scheduledAt: body?.scheduledDate ?? null,
+          status,
+          targets: [],
         }),
-        updatedAt: new Date().toISOString(),
-      }),
+      ),
       contentType: 'application/json',
       status: 200,
     });
   });
 
   // Mock tweet generation
-  await page.route('**/api.genfeed.ai/v1/posts/generate**', async (route) => {
+  await routeApiPattern(page, '/posts/generate**', async (route) => {
     if (delay > 0) {
       await new Promise((r) => setTimeout(r, delay));
     }

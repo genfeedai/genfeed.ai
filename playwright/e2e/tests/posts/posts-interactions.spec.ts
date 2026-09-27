@@ -44,13 +44,20 @@ test.describe('Posts — deep interactions', () => {
   test('navigates status filters through canonical routes', async ({
     authenticatedPage,
   }) => {
-    for (const destination of ['scheduled', 'published']) {
-      await authenticatedPage.goto(`${PUBLISHING_BASE}/${destination}`, {
-        waitUntil: 'domcontentloaded',
-      });
+    // `/publishing/scheduled` and `/publishing/published` are not real
+    // routes -- there is no dedicated path per lifecycle state, only the
+    // unified Posts desk with a `publicationState`/`status` query filter
+    // (createPublishingPostsFilterRoute). A stale destination 404s, which
+    // keeps the requested URL and renders a legitimate (healthy-looking)
+    // not-found page, so this loop was passing vacuously. See #5381.
+    for (const destination of ['not-posted', 'posted']) {
+      await authenticatedPage.goto(
+        `${POSTS_ROUTE}?publicationState=${destination}`,
+        { waitUntil: 'domcontentloaded' },
+      );
       await settle(authenticatedPage);
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`/publishing/${destination}$`),
+        new RegExp(`publicationState=${destination}$`),
       );
       await assertHealthy(authenticatedPage);
     }
@@ -194,63 +201,56 @@ test.describe('Posts — deep interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('newsletters page filters, searches, and generates proposals', async ({
+  test('content library filters to newsletters and search narrows results', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${PUBLISHING_BASE}/newsletters`, {
+    // A dedicated `/publishing/newsletters` desk no longer exists (404s) --
+    // newsletters are a `type=newsletter` filter on the unified Posts
+    // content library toolbar now. See #5381.
+    await authenticatedPage.goto(POSTS_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
 
+    await authenticatedPage
+      .locator('button[role="combobox"][aria-label="Content type"]')
+      .click();
+    await authenticatedPage
+      .getByRole('option', { name: 'Newsletters', exact: true })
+      .click();
+    await settle(authenticatedPage);
+    await expect(authenticatedPage).toHaveURL(/type=newsletter/);
+
     const search = authenticatedPage
-      .locator('input[placeholder*="Search newsletters" i]')
+      .locator('input[placeholder*="Search posts" i]')
       .first();
     if (await search.isVisible().catch(() => false)) {
       await search.fill('weekly').catch(() => {});
       await settle(authenticatedPage);
     }
 
-    await tryClick(authenticatedPage, 'button:has-text("Review")');
-    await settle(authenticatedPage);
-    await tryClick(authenticatedPage, 'button:has-text("Published")');
-    await settle(authenticatedPage);
-    await tryClick(authenticatedPage, 'button:has-text("All")');
-    await settle(authenticatedPage);
-
-    const instructions = authenticatedPage
-      .locator('textarea[placeholder*="Audience" i]')
-      .first();
-    if (await instructions.isVisible().catch(() => false)) {
-      await instructions.fill('Keep it concise.').catch(() => {});
-    }
-
-    await tryClick(authenticatedPage, 'button:has-text("Generate Proposals")');
-    await settle(authenticatedPage);
-
     await assertHealthy(authenticatedPage);
   });
 
-  test('newsletters manual topic input accepts text', async ({
+  test('the new-post menu opens the newsletter composer modal', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${PUBLISHING_BASE}/newsletters`, {
+    // Newsletter creation is a modal (`ModalEnum.NEWSLETTER`) opened from
+    // the "New post" menu, not a page of its own. See #5381.
+    await authenticatedPage.goto(POSTS_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
 
-    const manualTopic = authenticatedPage
-      .locator('input[placeholder*="bypass proposals" i]')
-      .first();
-    if (await manualTopic.isVisible().catch(() => false)) {
-      await manualTopic.fill('Q3 product recap').catch(() => {});
-    }
-
-    await tryClick(
-      authenticatedPage,
-      'button:has-text("Generate Review Draft")',
-    );
+    await authenticatedPage
+      .getByRole('button', { name: 'New post', exact: true })
+      .click();
+    await authenticatedPage
+      .getByRole('menuitem', { name: 'Newsletter', exact: true })
+      .click();
     await settle(authenticatedPage);
 
+    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
     await assertHealthy(authenticatedPage);
   });
 

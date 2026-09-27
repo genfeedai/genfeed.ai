@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsOverviewPerformanceDataset from './analytics-overview-performance-dataset';
@@ -99,6 +99,17 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
   it('renders nothing while there is no summary yet', () => {
     requestState.summary = null;
     const { container } = render(<AnalyticsOverviewPerformanceDataset />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders nothing instead of crashing when the summary has no dataset', async () => {
+    // A generic/unhandled API-error fallback can resolve as an empty object
+    // instead of rejecting -- this must degrade to the same "nothing yet"
+    // state as no summary, not throw reading `dataset.confidence`. #5381.
+    requestState.summary = { topPerformers: [] };
+    const { container } = render(<AnalyticsOverviewPerformanceDataset />);
+
+    await waitFor(() => expect(mocks.getWeeklySummary).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });
 

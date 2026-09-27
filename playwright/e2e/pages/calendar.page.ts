@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { brandPath } from '../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../utils/route-assertions';
 
 /**
  * Page Object Model for the Calendar Page
@@ -115,15 +116,17 @@ export class CalendarPage {
       `a[href$="${APP_ROUTES.PUBLISHING.POSTS}"]`,
     );
 
-    // Post modal
+    // ReleaseDetailDrawer (a Radix Dialog/Sheet, role="dialog"). It has no
+    // "View Details" control -- the drawer *is* the detail view; its one
+    // navigation affordance is a link to the target's editor, labelled
+    // "Open editor" (`pages.publishing.release.openEditor`). See #5381.
     this.postModal = page.locator('[role="dialog"]');
     this.modalCloseButton = page.locator(
       '[role="dialog"] button[aria-label="Close"],' +
         ' [role="dialog"] button:has-text("Close")',
     );
     this.viewDetailsButton = page.locator(
-      '[role="dialog"] button:has-text("View Details"),' +
-        ' [role="dialog"] a:has-text("View Details")',
+      '[role="dialog"] a:has-text("Open editor")',
     );
   }
 
@@ -152,6 +155,12 @@ export class CalendarPage {
         timeout: 30000,
       });
     }
+    // A URL assertion alone can pass while the route rendered a caught
+    // ErrorBoundary fallback instead of the real surface. See #5381.
+    await assertNoErrorBoundaryFallback(
+      this.page,
+      new URL(this.page.url()).pathname,
+    );
   }
 
   // ── Content-type filter interactions ───────────────────
@@ -217,6 +226,11 @@ export class CalendarPage {
 
   async getEventText(index = 0): Promise<string> {
     return (await this.calendarEvent.nth(index).textContent()) || '';
+  }
+
+  /** Locates a specific rendered event by its title, not by fragile index. */
+  getEventByText(title: string): Locator {
+    return this.calendarEvent.filter({ hasText: title }).first();
   }
 
   // ── Modal interactions ─────────────────────────────────
