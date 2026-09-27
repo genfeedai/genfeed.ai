@@ -1,7 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Response } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { brandPath, currentRoute } from '../../utils/app-chrome';
+import {
+  brandPath,
+  currentRoute,
+  E2E_BRAND_BASE,
+} from '../../utils/app-chrome';
 import {
   assertNoErrorBoundaryFallback,
   expectNoErrorOverlay,
@@ -12,7 +17,22 @@ import {
  * Playwright bypass, as they do in production (#5395): the server redirects
  * them into the mocked `test-org/brand-1` scope before the page renders, so the
  * client never resolves scope on its own.
+ *
+ * `canonical` is the proxy's hop. `next.config` redirects may run before it
+ * (`/workspace` → `/workspace/overview`) and pages may redirect after it
+ * (calendar → posts), so the whole server redirect chain is checked.
  */
+function serverRedirectChain(response: Response | null): string[] {
+  const chain: string[] = [];
+  let request = response?.request() ?? null;
+  while (request) {
+    const { pathname, search } = new URL(request.url());
+    chain.unshift(`${pathname}${search}`);
+    request = request.redirectedFrom();
+  }
+  return chain;
+}
+
 const CANONICALIZED_ROUTES = [
   {
     bare: APP_ROUTES.ROOT,
@@ -48,19 +68,26 @@ test.describe('Unscoped route canonicalization', () => {
         waitUntil: 'domcontentloaded',
       });
 
-      const redirectedFrom = response?.request().redirectedFrom();
+      const chain = serverRedirectChain(response);
+      expect(chain[0]).toBe(bare);
       expect(
-        redirectedFrom ? new URL(redirectedFrom.url()).pathname : null,
+        chain,
         'the proxy, not the client, must move the request into scope',
-      ).toBe(new URL(bare, 'http://localhost').pathname);
-      expect(currentRoute(authenticatedPage)).toBe(canonical);
+      ).toContain(canonical);
+      expect(
+        chain
+          .slice(0, chain.indexOf(canonical))
+          .every((route) => !route.startsWith(`${E2E_BRAND_BASE}/`)),
+      ).toBe(true);
 
       await expectNoErrorOverlay(authenticatedPage);
       await assertNoErrorBoundaryFallback(authenticatedPage, bare);
       await expect(
         authenticatedPage.getByText('Organization unavailable'),
       ).toHaveCount(0);
-      expect(currentRoute(authenticatedPage)).toBe(canonical);
+      expect(currentRoute(authenticatedPage)).toMatch(
+        new RegExp(`^${E2E_BRAND_BASE}/`),
+      );
     });
   }
 });
