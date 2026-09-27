@@ -403,6 +403,7 @@ export class PromptTransformationService {
       userPrompt,
     } = options;
     const url = `${LEGACY_CONTROLLER_NAME} postRemixResponse`;
+    const activity = { id: activityId, organizationId };
 
     try {
       const { input } = await this.promptBuilderService.buildPrompt(
@@ -428,36 +429,30 @@ export class PromptTransformationService {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activityRecorder.update(
-        { id: activityId, organizationId },
-        {
-          key: ActivityKey.PROMPT_REMIX_COMPLETED,
-          value: JSON.stringify({
-            progress: 100,
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        },
-      );
+      await this.activityRecorder.update(activity, {
+        key: ActivityKey.PROMPT_REMIX_COMPLETED,
+        value: JSON.stringify({
+          progress: 100,
+          promptId: data.id.toString(),
+          sourcePromptId: promptId,
+          type: 'remix',
+        }),
+      });
       await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
         result,
         status: Status.COMPLETED,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      await this.activityRecorder.update(
-        { id: activityId, organizationId },
-        {
-          key: ActivityKey.PROMPT_REMIX_FAILED,
-          value: JSON.stringify({
-            error: errorMessage(error),
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        },
-      );
+      await this.activityRecorder.update(activity, {
+        key: ActivityKey.PROMPT_REMIX_FAILED,
+        value: JSON.stringify({
+          error: errorMessage(error),
+          promptId: data.id.toString(),
+          sourcePromptId: promptId,
+          type: 'remix',
+        }),
+      });
       await this.refundRemixCredits(organizationId, userId, chargedCredits);
       await this.promptsService.patch(data.id, {
         status: PromptStatus.FAILED,
