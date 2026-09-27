@@ -5,10 +5,12 @@ import {
   type PrismaTransactionClient,
   TransactionUtil,
 } from '@api/helpers/utils/transaction/transaction.util';
-import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
+import {
+  captureOnboardingCompletedBestEffort as captureOnboardingCompletedEvent,
+  ServerFunnelCaptureService,
+} from '@api/services/analytics/server-funnel-capture.service';
 import { isSelfHostedDeployment, usesMeteredCredits } from '@genfeedai/config';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
-import { ONBOARDING_COMPLETED_EVENT } from '@genfeedai/contracts/constants';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
@@ -34,23 +36,18 @@ export class OnboardingCreditGrantsService {
    * Fire-and-forget PostHog capture for the `onboarding_completed` funnel
    * event (genfeedai/genfeed.ai#4969), added here — an existing dependency of
    * `AgentOnboardingToolHandler`, already at its constructor-dependency limit
-   * — rather than as a new dependency of that handler. Agent-first onboarding
-   * is the SaaS default and completes entirely server-side, so without this
-   * capture the event never lands; the wizard hook only fires for the legacy
-   * client flow. Callers gate on the user's prior `isOnboardingCompleted`
-   * value so this fires exactly once per user. Never throws:
+   * — rather than as a new dependency of that handler. Delegates to the
+   * shared `captureOnboardingCompletedBestEffort` in
+   * `server-funnel-capture.service.ts`, the single emission point every
+   * onboarding-completion surface (agent-first here, the classic wizard via
+   * `UsersController#completeOnboardingFunnel`) shares (genfeedai/genfeed.ai#5311).
+   * Callers gate on their own atomic false->true claim so this fires exactly
+   * once per user, never on a repeat or losing side of a race. Never throws:
    * `ServerFunnelCaptureService.capture` already catches and reports its own
    * failures.
    */
   captureOnboardingCompletedBestEffort(userId: string): void {
-    if (!this.funnelCaptureService) {
-      return;
-    }
-
-    void this.funnelCaptureService.capture({
-      distinctId: userId,
-      event: ONBOARDING_COMPLETED_EVENT,
-    });
+    captureOnboardingCompletedEvent(this.funnelCaptureService, userId);
   }
 
   async grantSignupGift(organizationId: string, userId: string): Promise<void> {

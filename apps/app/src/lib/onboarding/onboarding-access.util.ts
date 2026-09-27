@@ -174,6 +174,22 @@ export function resolveSelectedPlanParam(
   return resolved ?? trimmed;
 }
 
+/**
+ * `?plan=payg` and `?plan=free` are free handoffs, not a paid-plan signal.
+ * Signup and onboarding-completion funnel events must classify a plan the
+ * same way, or the signup->checkout funnel alert skews toward a near-zero
+ * conversion rate (genfeedai/genfeed.ai#4969, #5311).
+ */
+export function isFreePlanHandoff(rawPlan?: string | null): boolean {
+  const normalizedPlan = rawPlan?.trim().toLowerCase();
+  return normalizedPlan === 'payg' || normalizedPlan === 'free';
+}
+
+/** Canonical paid-plan-intent predicate shared by SIGNUP_STARTED and SIGNUP_COMPLETED. */
+export function hasPaidPlanIntent(rawPlan?: string | null): boolean {
+  return Boolean(rawPlan?.trim()) && !isFreePlanHandoff(rawPlan);
+}
+
 export function getSelectedOnboardingAccessMode(
   settings?: Pick<ISetting, 'dashboardPreferences'> | null,
 ): OnboardingAccessMode | null {
