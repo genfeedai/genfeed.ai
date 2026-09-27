@@ -206,6 +206,7 @@
       },
       "devDependencies": {
         "@formatjs/icu-messageformat-parser": "3.5.17",
+        "@genfeedai/tsconfig": "workspace:*",
         "@testing-library/jest-dom": "7.0.1",
         "@testing-library/react": "16.3.3",
         "@testing-library/user-event": "14.6.7",
@@ -602,6 +603,7 @@
         "tailwind-merge": "3.7.0",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "@testing-library/jest-dom": "7.0.1",
         "@testing-library/react": "16.3.3",
         "@types/node": "24.13.3",
@@ -653,6 +655,7 @@
         "zustand": "5.0.15",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "@tanstack/react-query": "5.103.2",
         "@testing-library/jest-dom": "7.0.1",
         "@testing-library/react": "16.3.3",
@@ -823,6 +826,7 @@
         "prisma-pglite": "3.0.1",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "prisma": "7.10.0",
       },
     },
@@ -842,6 +846,9 @@
     "packages/fonts": {
       "name": "@genfeedai/fonts",
       "version": "1.0.0",
+      "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
+      },
       "peerDependencies": {
         "next": ">=14.0.0",
       },
@@ -903,6 +910,7 @@
         "gsap": "3.15.0",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "@testing-library/jest-dom": "7.0.1",
         "@testing-library/react": "16.3.3",
         "jsdom": "29.1.1",
@@ -946,6 +954,7 @@
         "@genfeedai/services": "workspace:*",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "vitest": "5.0.1",
       },
     },
@@ -978,6 +987,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "@testing-library/jest-dom": "7.0.1",
         "@testing-library/react": "16.3.3",
         "@testing-library/user-event": "14.6.7",
@@ -1024,6 +1034,7 @@
         "@tiptap/core": "3.31.3",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "vitest": "5.0.1",
       },
     },
@@ -1052,6 +1063,7 @@
         "zod": "4.6.5",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "vitest": "5.0.1",
       },
     },
@@ -1190,6 +1202,7 @@
         "@genfeedai/services": "workspace:*",
       },
       "devDependencies": {
+        "@genfeedai/tsconfig": "workspace:*",
         "vitest": "5.0.1",
       },
     },

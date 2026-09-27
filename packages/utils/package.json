@@ -8,6 +8,7 @@
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {
+    "@genfeedai/tsconfig": "workspace:*",
     "vitest": "5.0.1"
   },
   "exports": {
