@@ -203,7 +203,7 @@ describe('SectionTopbar', () => {
     expect(topbar).toHaveClass('border-b', 'border-border');
   });
 
-  it('gives a forced-visible empty bar the same minimum height as a populated row', () => {
+  it('gives every action row, empty or populated, the 48px shell band', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     const { rerender } = render(
@@ -211,10 +211,10 @@ describe('SectionTopbar', () => {
     );
 
     // The empty row must not be a thin sliver that then jumps once real
-    // actions mount — match a populated row's height (size-8 action inside
-    // this row's own py-1.5) via the same min-h-11 token.
+    // actions mount, and both must match the 48px topbar/inspector header
+    // band so dividers line up across columns.
     expect(screen.getByTestId('section-topbar').lastElementChild).toHaveClass(
-      'min-h-11',
+      'min-h-12',
     );
 
     rerender(
@@ -227,9 +227,21 @@ describe('SectionTopbar', () => {
     );
 
     expect(screen.getByTestId('section-topbar').lastElementChild).toHaveClass(
-      'min-h-11',
+      'min-h-12',
     );
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+
+    rerender(
+      <SectionTopbar
+        title="Library"
+        titleVisibility="sr-only"
+        actions={<button type="button">Refresh</button>}
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar').lastElementChild).toHaveClass(
+      'min-h-12',
+    );
   });
 
   it('clusters Help immediately left of chrome-only actions on the right', () => {

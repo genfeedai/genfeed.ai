@@ -94,4 +94,12 @@ describe('CloudSyncIndicator', () => {
       screen.getByRole('button', { name: 'Cloud disconnected' }),
     ).toBeInTheDocument();
   });
+
+  it('matches the 32px size of the other topbar controls', () => {
+    render(<CloudSyncIndicator />);
+
+    expect(
+      screen.getByRole('button', { name: 'Cloud disconnected' }),
+    ).toHaveClass('size-8');
+  });
 });
