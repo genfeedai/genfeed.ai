@@ -152,7 +152,6 @@ describe('TerminalGateway', () => {
 
   it.each([
     ['surplus fields', 'Bearer session-token extra'],
-    ['wrong scheme', 'Basic session-token'],
     ['single field', 'Bearer'],
   ])(
     // #5318: a malformed presented Bearer header must be rejected outright,
@@ -188,9 +187,41 @@ describe('TerminalGateway', () => {
     },
   );
 
-  it(// #5318: a well-formed Bearer header that fails verification must keep
+  // #5318: a header presenting a non-Bearer scheme entirely (e.g. an
+  // nginx reverse-proxy adding its own `Basic` auth in front of the app)
+  // carries no Bearer credential at all, so it must be treated the same
+  // as an absent header and still allow the cookie fallback -- unlike a
+  // malformed *Bearer* attempt, which is rejected outright above.
+  it('falls back to the session cookie when a non-Bearer scheme header is presented', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = {
+      disconnect: vi.fn(),
+      emit: vi.fn(),
+      handshake: {
+        address: '127.0.0.1',
+        auth: {},
+        headers: {
+          authorization: 'Basic session-token',
+          cookie: 'better-auth.session_token=session-123',
+          origin: 'http://localhost:3000',
+        },
+      },
+      id: 'socket-1',
+    } as unknown as Socket;
+
+    await gateway.handleConnection(socket);
+
+    expect(verifyMock).toHaveBeenCalledWith('cookie-token');
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  // #5318: a well-formed Bearer header that fails verification must keep
   // the documented session-cookie fallback (unlike a malformed header).
-  'falls back to the session cookie when a well-formed Bearer header fails verification', async () => {
+  it('falls back to the session cookie when a well-formed Bearer header fails verification', async () => {
     verifyMock
       .mockRejectedValueOnce(new Error('invalid signature'))
       .mockResolvedValueOnce({ sub: TEST_USER_ID });
