@@ -11,7 +11,6 @@ import {
   PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
-  toPersistedReviewDecision,
 } from '@genfeedai/contracts';
 import type {
   IBatchSummary,
@@ -19,12 +18,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type ApproveBatchItemsContext = {
   batchId: string;
@@ -54,6 +48,11 @@ import {
   pinApprovedDrafts,
   scheduleApprovedReviewPost,
 } from '@api/services/batch-generation/batch-generation-review-approval';
+import {
+  applyBatchRewrites,
+  assertExpectedPostSet,
+  assertExpectedPostVersion,
+} from '@api/services/batch-generation/batch-generation-review-rewrite';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
   batchItemRowsInclude,
@@ -229,7 +228,7 @@ export class BatchGenerationReviewService {
       async (transaction, batchRecord) => {
         const batchItems = resolveBatchItems(batchRecord);
         const itemIdSet = new Set(itemIds);
-        this.assertExpectedPostSet(batchItems, itemIds, expectedPostVersions);
+        assertExpectedPostSet(batchItems, itemIds, expectedPostVersions);
         return this.approveItemsInTransaction(transaction, {
           batchId,
           batchItems,
@@ -271,8 +270,7 @@ export class BatchGenerationReviewService {
     } = params;
     const { publishApprovals, versionPinIds } = await pinApprovedDrafts({
       agentArtifactReferenceService: this.agentArtifactReferenceService,
-      assertExpectedPostVersion: (postId, updatedAt, expected) =>
-        this.assertExpectedPostVersion(postId, updatedAt, expected),
+      assertExpectedPostVersion,
       autonomous,
       autonomousPublishPolicy: this.autonomousPublishPolicy,
       batchId,
@@ -521,7 +519,7 @@ export class BatchGenerationReviewService {
       orgId,
       async (transaction, batch) => {
         const items = resolveBatchItems(batch);
-        this.assertExpectedPostSet(items, itemIds, expectedPostVersions);
+        assertExpectedPostSet(items, itemIds, expectedPostVersions);
         const reviewedAt = new Date().toISOString();
         for (const item of items) {
           if (
@@ -539,7 +537,7 @@ export class BatchGenerationReviewService {
               post.targetExecutionState === TargetExecutionState.CANCELLED
             )
               continue;
-            this.assertExpectedPostVersion(
+            assertExpectedPostVersion(
               post.id,
               post.updatedAt,
               expectedPostVersions,
@@ -712,41 +710,6 @@ export class BatchGenerationReviewService {
     });
   }
 
-  private assertExpectedPostSet(
-    items: BatchItemFull[],
-    itemIds: string[],
-    expected?: Record<string, string>,
-  ): void {
-    if (!expected) return;
-    const selected = items.filter((item) => itemIds.includes(item.id));
-    if (
-      selected.length !== new Set(itemIds).size ||
-      selected.some(
-        (item) => !item.postId || !Object.hasOwn(expected, item.postId),
-      )
-    ) {
-      throw new BadRequestException(
-        'This review action no longer refers to the expected draft',
-      );
-    }
-  }
-
-  private assertExpectedPostVersion(
-    postId: string,
-    updatedAt: Date,
-    expected?: Record<string, string>,
-  ): void {
-    if (
-      expected &&
-      (!Object.hasOwn(expected, postId) ||
-        updatedAt.toISOString() !== expected[postId])
-    ) {
-      throw new BadRequestException(
-        'This review action refers to an older draft version',
-      );
-    }
-  }
-
   async applyRewrites(
     batchId: string,
     organizationId: string,
@@ -757,93 +720,19 @@ export class BatchGenerationReviewService {
     const updated = await this.withLockedBatch(
       batchId,
       organizationId,
-      async (transaction, batch) => {
-        const items = resolveBatchItems(batch);
-        const reviewedAt = new Date().toISOString();
-        for (const item of items) {
-          const caption = captions.get(item.id);
-          if (caption === undefined) continue;
-          if (item.postId) {
-            const post = await transaction.post.findFirst({
-              where: { id: item.postId, organizationId, isDeleted: false },
-            });
-            if (
-              !post ||
-              post.updatedAt.getTime() !==
-                postVersions.get(item.postId)?.getTime()
-            ) {
-              throw new ConflictException(
-                'Post changed during rewrite. Refresh and try again.',
-              );
-            }
-            await this.autonomousPublishPolicy.recordReviewDecision(
-              {
-                organizationId,
-                postId: item.postId,
-                userId,
-                decision: ReviewDecision.REQUEST_CHANGES,
-                previousDecision: item.reviewDecision,
-                generatedCaption: item.caption,
-                hasRewriteHistory: true,
-              },
-              transaction,
-            );
-            await this.publishApprovalsService.invalidatePost(
-              organizationId,
-              item.postId,
-              'Content rewritten',
-              userId,
-              transaction,
-            );
-            const transition = await this.postLifecycleService.transition(
-              {
-                actorId: userId,
-                organizationId,
-                postId: item.postId,
-                nextState: TargetExecutionState.DRAFT,
-                mutation: {
-                  description: caption,
-                  reviewFeedback: null,
-                  reviewVersionPinId: null,
-                  reviewDecision: toPersistedReviewDecision(
-                    ReviewDecision.UNSET,
-                  ),
-                  reviewedAt: new Date(reviewedAt),
-                },
-                reason: 'Content rewritten',
-              },
-              transaction,
-            );
-            if (transition.kind === 'stale') {
-              throw new ConflictException(
-                'Post changed during rewrite. Refresh and try again.',
-              );
-            }
-          }
-          item.caption = caption;
-          item.reviewDecision = ReviewDecision.UNSET;
-          item.reviewFeedback = undefined;
-          item.reviewedAt = reviewedAt;
-          item.versionPinId = undefined;
-          item.publishApproval = undefined;
-          item.reviewEvents = [
-            ...(item.reviewEvents ?? []),
-            {
-              decision: ReviewDecision.REQUEST_CHANGES,
-              feedback: 'Content rewritten',
-              reviewedAt,
-              reviewerId: userId,
-            },
-          ];
-        }
-        await writeBatchJsonAndItemRows(transaction, {
+      (transaction, batch) =>
+        applyBatchRewrites({
+          autonomousPublishPolicy: this.autonomousPublishPolicy,
+          batch,
           batchId,
-          brandId: batch.brandId,
-          items,
+          captions,
           organizationId,
-        });
-        return { ...batch, items };
-      },
+          postLifecycleService: this.postLifecycleService,
+          postVersions,
+          publishApprovalsService: this.publishApprovalsService,
+          transaction,
+          userId,
+        }),
     );
     return this.getBatch(updated.id, organizationId);
   }
