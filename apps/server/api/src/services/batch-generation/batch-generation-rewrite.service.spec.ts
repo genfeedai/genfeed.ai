@@ -1,4 +1,4 @@
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -93,14 +93,14 @@ function setup() {
     getJob: vi.fn().mockResolvedValue(undefined),
   };
   const activities = {
-    create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
-    patch: vi.fn(),
+    record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+    update: vi.fn(),
   };
   const websocket = { publishBackgroundTaskUpdate: vi.fn() };
   const service = new BatchGenerationRewriteService(
     queue as unknown as Queue<BatchRewriteJobData, BatchRewriteJobResult>,
     prisma as unknown as PrismaService,
-    activities as unknown as ActivitiesService,
+    activities as unknown as ActivityRecorderService,
     websocket as unknown as NotificationsPublisherService,
   );
   return { activities, prisma, queue, service, websocket };
@@ -157,7 +157,7 @@ describe('BatchGenerationRewriteService', () => {
       itemIds: ['item-1', 'item-2'],
       status: BatchRewriteJobStatus.QUEUED,
     });
-    expect(activities.create).toHaveBeenCalledOnce();
+    expect(activities.record).toHaveBeenCalledOnce();
     expect(websocket.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'pending', taskId: job.id }),
     );
@@ -177,7 +177,7 @@ describe('BatchGenerationRewriteService', () => {
       }),
     ).rejects.toThrow();
     expect(queue.add).not.toHaveBeenCalled();
-    expect(activities.create).not.toHaveBeenCalled();
+    expect(activities.record).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -250,7 +250,7 @@ describe('BatchGenerationRewriteService', () => {
       }),
     ).rejects.toThrow('A rewrite is already running for this batch');
     expect(queue.add).not.toHaveBeenCalled();
-    expect(activities.create).not.toHaveBeenCalled();
+    expect(activities.record).not.toHaveBeenCalled();
   });
 
   it('fails the activity when a concurrent request won the deduplication race', async () => {
@@ -266,9 +266,13 @@ describe('BatchGenerationRewriteService', () => {
         userId: 'user-1',
       }),
     ).rejects.toThrow('A rewrite is already running for this batch');
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
-      expect.objectContaining({ key: ActivityKey.POST_FAILED }),
+    // The losing request never ran: history keeps the row, no alert fires.
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
+      expect.objectContaining({
+        alert: { channels: [] },
+        key: ActivityKey.POST_FAILED,
+      }),
     );
     expect(websocket.publishBackgroundTaskUpdate).not.toHaveBeenCalled();
   });

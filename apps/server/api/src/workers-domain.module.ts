@@ -184,7 +184,6 @@ import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
-import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { QuotaService } from '@api/services/quota/quota.service';
@@ -422,7 +421,6 @@ const WORKER_DOMAIN_SERVICES = [
   WorkflowFormatConverterService,
   WorkflowGenerationService,
   WorkflowNotificationDeliveryService,
-  WorkflowNotificationOutboxService,
   WorkflowNotificationQueueService,
   WorkflowRunControlService,
   WorkflowSchedulerService,

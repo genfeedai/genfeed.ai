@@ -2,7 +2,7 @@ import { TargetExecutionState } from '@genfeedai/contracts';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 
 function createHarness() {
-  const activitiesService = { create: vi.fn().mockResolvedValue(undefined) };
+  const activitiesService = { record: vi.fn().mockResolvedValue(undefined) };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const schedulerPublishStateService = {
     transitionPost: vi.fn().mockResolvedValue(true),
@@ -29,12 +29,12 @@ describe('ScheduledPostFailureService', () => {
 
       await service.notifyPublishFailed(post as never, activity as never);
 
-      expect(activitiesService.create).toHaveBeenCalledWith(activity);
+      expect(activitiesService.record).toHaveBeenCalledWith(activity);
     });
 
     it('logs instead of throwing when recording the activity fails', async () => {
       const { activitiesService, logger, service } = createHarness();
-      activitiesService.create.mockRejectedValue(
+      activitiesService.record.mockRejectedValue(
         new Error('activity store unavailable'),
       );
       const post = { id: { toString: () => 'post-1' } };

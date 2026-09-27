@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationProviderDispatchService', () => {
   const activitiesService = {
-    create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+    record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
   };
   const comfyUIService = {
     generateImage: vi.fn(),
@@ -385,7 +385,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       'ingredient-1',
       'ingredient-2',
     ]);
-    expect(activitiesService.create).toHaveBeenCalledTimes(1);
+    expect(activitiesService.record).toHaveBeenCalledTimes(1);
     expect(plan?.kind).toBe('background-only');
   });
 

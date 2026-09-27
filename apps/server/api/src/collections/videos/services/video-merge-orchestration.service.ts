@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -10,6 +8,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -39,7 +38,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 @Injectable()
 export class VideoMergeOrchestrationService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly captionsService: CaptionsService,
     private readonly configService: ConfigService,
     private readonly fileQueueService: FileQueueService,
@@ -102,23 +101,21 @@ export class VideoMergeOrchestrationService {
 
     const ingredientId = String(ingredientData.id);
     const websocketURL = WebSocketPaths.video(ingredientId);
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: user.brandId,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.WEB,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          frameCount: ingredientIds.length,
-          ingredientId,
-          label: `Merging ${ingredientIds.length} videos`,
-          type: 'merge',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: user.brandId,
+      entityId: ingredientData.id,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.WEB,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        frameCount: ingredientIds.length,
+        ingredientId,
+        label: `Merging ${ingredientIds.length} videos`,
+        type: 'merge',
       }),
-    );
+    });
     const activityId = activity.id.toString();
 
     void this.processMerge({
@@ -354,10 +351,13 @@ export class VideoMergeOrchestrationService {
       resultType: 'VIDEO',
       type: 'merge',
     });
-    await this.activitiesService.patch(activityId, {
-      key: ActivityKey.VIDEO_COMPLETED,
-      value: completionValue,
-    });
+    await this.activityRecorder.update(
+      { id: activityId, organizationId: ingredientData.organizationId },
+      {
+        key: ActivityKey.VIDEO_COMPLETED,
+        value: completionValue,
+      },
+    );
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId,
       label: `Merged ${ingredientIds.length} videos`,
@@ -403,16 +403,19 @@ export class VideoMergeOrchestrationService {
       user.id,
       getUserRoomName(user.id),
     );
-    await this.activitiesService.patch(activityId, {
-      key: ActivityKey.VIDEO_FAILED,
-      value: JSON.stringify({
-        error: errorMessage,
-        frameCount: ingredientIds.length,
-        ingredientId,
-        label: 'Merge failed',
-        type: 'merge',
-      }),
-    });
+    await this.activityRecorder.update(
+      { id: activityId, organizationId: ingredientData.organizationId },
+      {
+        key: ActivityKey.VIDEO_FAILED,
+        value: JSON.stringify({
+          error: errorMessage,
+          frameCount: ingredientIds.length,
+          ingredientId,
+          label: 'Merge failed',
+          type: 'merge',
+        }),
+      },
+    );
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId,
       error: errorMessage,

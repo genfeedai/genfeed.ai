@@ -1,6 +1,5 @@
 import type {
   MediaFailedEvent,
-  NotificationData,
   VideoCompleteEvent,
   VideoProgressEvent,
 } from '@libs/interfaces/websockets.interface';
@@ -70,19 +69,6 @@ export class WebSocketService {
       userId,
     };
     await this.publish('media-failed', payload);
-  }
-
-  async publishNotification(
-    notification: unknown,
-    userId?: string,
-    organizationId?: string,
-  ): Promise<void> {
-    const payload: NotificationData = {
-      notification,
-      organizationId,
-      userId,
-    };
-    await this.publish('notifications', payload);
   }
 
   async publishIngredientStatus(

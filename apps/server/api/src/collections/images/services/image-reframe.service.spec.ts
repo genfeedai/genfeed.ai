@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -7,6 +6,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -79,7 +79,7 @@ describe('ImageReframeService', () => {
   };
 
   let service: ImageReframeService;
-  let activitiesService: { create: ReturnType<typeof vi.fn> };
+  let activitiesService: { record: ReturnType<typeof vi.fn> };
   let failedGenerationService: {
     handleFailedImageGeneration: ReturnType<typeof vi.fn>;
   };
@@ -102,7 +102,7 @@ describe('ImageReframeService', () => {
 
   beforeEach(() => {
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: activityId }),
+      record: vi.fn().mockResolvedValue({ id: activityId }),
     };
     failedGenerationService = {
       handleFailedImageGeneration: vi.fn(),
@@ -142,7 +142,7 @@ describe('ImageReframeService', () => {
     };
 
     service = new ImageReframeService(
-      activitiesService as unknown as ActivitiesService,
+      activitiesService as unknown as ActivityRecorderService,
       {
         ingredientsEndpoint: 'https://api.example.com/ingredients',
       } as ConfigService,
@@ -212,7 +212,7 @@ describe('ImageReframeService', () => {
     expect(imagesService.patch).toHaveBeenCalledWith(reframedImageId, {
       promptId,
     });
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: parent.brandId,
         entityId: reframedImageId,

@@ -53,7 +53,9 @@ export type ActivityOperation =
   | 'connect'
   | 'import'
   | 'moderate'
-  | 'relocate';
+  | 'relocate'
+  | 'run'
+  | 'deliver';
 
 export interface ActivityKeyParts {
   key: string;
@@ -82,6 +84,14 @@ export type ActivityMessageId =
   | 'activity.credits.reset'
   | 'activity.credits.remove_all'
   | 'activity.post.ready'
+  | 'activity.agent.review_changed'
+  | 'activity.agent.review_expired'
+  | 'activity.social.replies'
+  | 'activity.credits.low'
+  | 'activity.review.requested'
+  | 'activity.report.delivered'
+  | 'activity.trends.ready'
+  | 'activity.approval.requested'
   | 'activity.fallback';
 
 export interface ActivityMessageDescriptor {
@@ -167,6 +177,25 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.VOICE_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.VOICE_GENERATED]: 'activity.lifecycle.completed',
   [ActivityKey.VOICE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.WORKFLOW_EXECUTION_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.WORKFLOW_EXECUTION_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.AGENT_RUN_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.AGENT_RUN_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.AGENT_RUN_DELIVERY_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.AGENT_REVIEW_CHANGED]: 'activity.agent.review_changed',
+  [ActivityKey.AGENT_REVIEW_EXPIRED]: 'activity.agent.review_expired',
+  [ActivityKey.SOCIAL_REPLIES_RECEIVED]: 'activity.social.replies',
+  [ActivityKey.CREDITS_LOW]: 'activity.credits.low',
+  [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: 'activity.review.requested',
+  [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
+  [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
+  [ActivityKey.MCP_APPROVAL_REQUESTED]: 'activity.approval.requested',
+  // Audit rows keep their humanized fallback label.
+  [ActivityKey.POST_LIFECYCLE_TRANSITION]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_DOWNLOAD]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLISH]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_REVOKE]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ]: 'activity.fallback',
 } as const satisfies Readonly<Record<ActivityKey, ActivityMessageId>>;
 
 const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
@@ -220,6 +249,7 @@ function pickLifecycle(
 
 /** Subject display labels (English defaults; i18n keys use machine `subject`). */
 const SUBJECT_LABELS: Record<string, string> = {
+  'agent-run': 'agent run',
   article: 'article',
   brand: 'brand',
   content: 'content',
@@ -233,6 +263,7 @@ const SUBJECT_LABELS: Record<string, string> = {
   prompt: 'prompt',
   video: 'video',
   voice: 'voice',
+  'workflow-run': 'workflow run',
 };
 
 const OPERATION_LABELS: Record<ActivityOperation, string> = {
@@ -244,8 +275,10 @@ const OPERATION_LABELS: Record<ActivityOperation, string> = {
   moderate: 'moderate',
   publish: 'publish',
   reframe: 'reframe',
+  deliver: 'deliver',
   relocate: 'relocate',
   remix: 'remix',
+  run: 'run',
   train: 'train',
   upscale: 'upscale',
 };
@@ -341,6 +374,55 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
         operation: 'relocate',
         subject: 'brand',
       };
+    }
+    return null;
+  },
+  (key) => {
+    if (key === 'credits-low') {
+      return {
+        key,
+        lifecycle: 'completed',
+        operation: 'credit',
+        subject: 'credits',
+      };
+    }
+    if (key === 'social-replies-received') {
+      return {
+        key,
+        lifecycle: 'completed',
+        operation: 'connect',
+        subject: 'integration',
+      };
+    }
+    if (key === 'agent-run-delivery-failed') {
+      return {
+        key,
+        lifecycle: 'failed',
+        operation: 'deliver',
+        subject: 'agent-run',
+      };
+    }
+    if (key.startsWith('agent-review-')) {
+      return {
+        key,
+        lifecycle: 'completed',
+        operation: 'run',
+        subject: 'agent-run',
+      };
+    }
+    for (const [prefix, subject] of [
+      ['workflow-execution-', 'workflow-run'],
+      ['agent-run-', 'agent-run'],
+    ] as const) {
+      if (key.startsWith(prefix)) {
+        return {
+          key,
+          lifecycle:
+            key.slice(prefix.length) === 'failed' ? 'failed' : 'completed',
+          operation: 'run',
+          subject,
+        };
+      }
     }
     return null;
   },
@@ -670,6 +752,9 @@ export function formatActivityMessage(
       if (operation === 'relocate') {
         return `${descriptor.params.capitalizedSubject} relocated`;
       }
+      if (operation === 'run') {
+        return `${descriptor.params.capitalizedSubject} completed`;
+      }
       return `Generated ${articleSubject}`;
 
     case 'activity.lifecycle.failed':
@@ -691,8 +776,11 @@ export function formatActivityMessage(
       if (operation === 'publish') {
         return `Failed to publish ${subject}`;
       }
-      if (operation === 'connect') {
+      if (operation === 'connect' || operation === 'run') {
         return `${descriptor.params.capitalizedSubject} failed`;
+      }
+      if (operation === 'deliver') {
+        return `Couldn't deliver the ${subject} update`;
       }
       return `Failed to generate ${subject}`;
 
@@ -765,6 +853,30 @@ export function formatActivityMessage(
 
     case 'activity.post.ready':
       return 'Content is ready for review';
+
+    case 'activity.agent.review_changed':
+      return 'Agent review updated';
+
+    case 'activity.agent.review_expired':
+      return 'Agent review expired';
+
+    case 'activity.social.replies':
+      return 'New replies to your posts';
+
+    case 'activity.credits.low':
+      return 'Credits are running low';
+
+    case 'activity.review.requested':
+      return 'Review needed';
+
+    case 'activity.report.delivered':
+      return 'Workflow report ready';
+
+    case 'activity.trends.ready':
+      return 'Trend summary ready';
+
+    case 'activity.approval.requested':
+      return 'Tool approval needed';
 
     default:
       return descriptor.params.fallbackSubject;

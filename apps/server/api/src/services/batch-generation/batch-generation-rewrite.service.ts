@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { resolveBatchItems } from '@api/services/batch-generation/batch-generation.types';
 import { batchItemRowsInclude } from '@api/services/batch-generation/batch-item-rows';
 import {
@@ -48,7 +47,7 @@ export class BatchGenerationRewriteService {
     @InjectQueue(BATCH_REWRITE_QUEUE)
     private readonly queue: Queue<BatchRewriteJobData, BatchRewriteJobResult>,
     private readonly prisma: PrismaService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -72,16 +71,14 @@ export class BatchGenerationRewriteService {
       );
     }
 
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        organizationId,
-        userId,
-        key: ActivityKey.POST_PROCESSING,
-        source: ActivitySource.POST_ENHANCEMENT,
-        value: JSON.stringify({ batchId, itemIds, type: 'batch-rewrite' }),
-      }),
-    );
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.POST_PROCESSING,
+      organizationId,
+      source: ActivitySource.POST_ENHANCEMENT,
+      userId,
+      value: JSON.stringify({ batchId, itemIds, type: 'batch-rewrite' }),
+    });
     const jobId = `batch-rewrite-${batchId}-${randomUUID()}`;
     const job = await this.queue.add(
       'rewrite-items',
@@ -99,10 +96,11 @@ export class BatchGenerationRewriteService {
     );
     if (job.id !== jobId) {
       // Another request queued a rewrite between the check above and add().
-      await this.activitiesService.patch(activity.id, {
+      // The duplicate request never ran: keep the history row, raise no alert.
+      await this.activityRecorder.update(activity, {
+        alert: { channels: [] },
         key: ActivityKey.POST_FAILED,
         source: ActivitySource.POST_ENHANCEMENT,
-        organizationId,
       });
       throw new ConflictException(
         'A rewrite is already running for this batch',

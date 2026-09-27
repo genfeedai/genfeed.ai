@@ -1,8 +1,8 @@
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import type { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationRewriteRunnerService } from '@api/services/batch-generation/batch-generation-rewrite-runner.service';
 import type { BatchRewriteJob } from '@api/services/batch-generation/batch-rewrite-job.util';
@@ -99,7 +99,7 @@ function setup(progress: unknown = 0) {
     ),
   };
   const review = { applyRewrites: vi.fn().mockResolvedValue({}) };
-  const activities = { patch: vi.fn() };
+  const activities = { update: vi.fn() };
   const websocket = { publishBackgroundTaskUpdate: vi.fn() };
   const credits = {
     releaseReservation: vi.fn(),
@@ -117,7 +117,7 @@ function setup(progress: unknown = 0) {
     prisma as unknown as PrismaService,
     generation as unknown as PostGenerationService,
     review as unknown as BatchGenerationReviewService,
-    activities as unknown as ActivitiesService,
+    activities as unknown as ActivityRecorderService,
     websocket as unknown as NotificationsPublisherService,
     credits as unknown as CreditsUtilsService,
     deductions as unknown as CreditDeductionQueueService,
@@ -206,8 +206,8 @@ describe('BatchGenerationRewriteRunnerService', () => {
       completedItemIds: ['item-1', 'item-2'],
       failedItems: [],
     });
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
       expect.objectContaining({ key: ActivityKey.POST_GENERATED }),
     );
     expect(
@@ -316,8 +316,8 @@ describe('BatchGenerationRewriteRunnerService', () => {
       status: BatchRewriteJobStatus.FAILED,
     });
     expect(generation.enhanceDescription).not.toHaveBeenCalled();
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
       expect.objectContaining({ key: ActivityKey.POST_FAILED }),
     );
     expect(websocket.publishBackgroundTaskUpdate).toHaveBeenLastCalledWith(
@@ -398,8 +398,8 @@ describe('BatchGenerationRewriteRunnerService', () => {
     await expect(run()).rejects.toThrow('Database unavailable');
     expect(credits.releaseReservation).toHaveBeenCalledOnce();
     expect(deductions.queueDeduction).not.toHaveBeenCalled();
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
       expect.objectContaining({ key: ActivityKey.POST_FAILED }),
     );
     expect(websocket.publishBackgroundTaskUpdate).toHaveBeenLastCalledWith(

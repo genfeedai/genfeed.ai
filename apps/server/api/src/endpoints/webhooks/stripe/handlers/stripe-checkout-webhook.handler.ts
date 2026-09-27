@@ -903,8 +903,8 @@ export class StripeCheckoutWebhookHandler {
 
         // Balance is persisted to the credit-balance table above (epic #735,
         // Phase C — no legacy auth provider identity write-back).
+        // A credit purchase belongs to the organization, not a brand.
         await this.supportService.recordCreditsActivity({
-          brandId: organizationId,
           organizationId,
           source: ActivitySource.PAY_AS_YOU_GO,
           userId,

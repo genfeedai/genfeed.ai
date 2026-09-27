@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
@@ -10,6 +9,7 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -67,8 +67,8 @@ describe('PromptTransformationService', () => {
   };
 
   const activitiesService = {
-    create: vi.fn(),
-    patch: vi.fn(),
+    record: vi.fn(),
+    update: vi.fn(),
   };
   const brandsService = { findOne: vi.fn() };
   const creditsUtilsService = { refundOrganizationCredits: vi.fn() };
@@ -91,7 +91,7 @@ describe('PromptTransformationService', () => {
   const templatesService = { getRenderedPrompt: vi.fn() };
 
   const service = new PromptTransformationService(
-    activitiesService as unknown as ActivitiesService,
+    activitiesService as unknown as ActivityRecorderService,
     {} as ConfigService,
     brandsService as unknown as BrandsService,
     creditsUtilsService as unknown as CreditsUtilsService,
@@ -105,8 +105,8 @@ describe('PromptTransformationService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    activitiesService.create.mockResolvedValue({ id: activityId });
-    activitiesService.patch.mockResolvedValue({});
+    activitiesService.record.mockResolvedValue({ id: activityId });
+    activitiesService.update.mockResolvedValue({});
     brandsService.findOne.mockResolvedValue(brand);
     creditsUtilsService.refundOrganizationCredits.mockResolvedValue({});
     replicateService.generateTextCompletionSync.mockResolvedValue(
@@ -173,7 +173,7 @@ describe('PromptTransformationService', () => {
         userId,
       }),
     );
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
         organizationId,
@@ -195,8 +195,8 @@ describe('PromptTransformationService', () => {
         status: PromptStatus.GENERATED,
       }),
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(
-      activityId,
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
       expect.objectContaining({ key: ActivityKey.PROMPT_REMIX_COMPLETED }),
     );
     expect(websocketService.emit).toHaveBeenCalledWith(
@@ -290,8 +290,8 @@ describe('PromptTransformationService', () => {
         expect.any(Date),
       ),
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(
-      activityId,
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
       expect.objectContaining({ key: ActivityKey.PROMPT_REMIX_FAILED }),
     );
     expect(promptsService.patch).toHaveBeenCalledWith(remixId, {
@@ -318,7 +318,7 @@ describe('PromptTransformationService', () => {
       },
       status: HttpStatus.NOT_FOUND,
     });
-    expect(activitiesService.create).not.toHaveBeenCalled();
+    expect(activitiesService.record).not.toHaveBeenCalled();
     expect(replicateService.generateTextCompletionSync).not.toHaveBeenCalled();
   });
 
@@ -336,14 +336,17 @@ describe('PromptTransformationService', () => {
       }),
       organizationId,
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(activityId, {
-      key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
-      value: JSON.stringify({
-        progress: 100,
-        promptId,
-        type: 'enhance',
-      }),
-    });
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
+      {
+        key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
+        value: JSON.stringify({
+          progress: 100,
+          promptId,
+          type: 'enhance',
+        }),
+      },
+    );
     expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         activityId,
@@ -377,8 +380,8 @@ describe('PromptTransformationService', () => {
         status: HttpStatus.BAD_REQUEST,
       },
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(
-      activityId,
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
       expect.objectContaining({ key: ActivityKey.PROMPT_ENHANCE_FAILED }),
     );
     expect(promptsService.patch).toHaveBeenCalledWith(promptId, {
@@ -427,7 +430,7 @@ describe('PromptTransformationService', () => {
     const adminDefaultModel = 'anthropic/claude-sonnet-5';
     const resolveModelKey = vi.fn().mockResolvedValue(adminDefaultModel);
     const serviceWithRegistry = new PromptTransformationService(
-      activitiesService as unknown as ActivitiesService,
+      activitiesService as unknown as ActivityRecorderService,
       {} as ConfigService,
       brandsService as unknown as BrandsService,
       creditsUtilsService as unknown as CreditsUtilsService,

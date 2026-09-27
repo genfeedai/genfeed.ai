@@ -1,10 +1,10 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   billingAccountScopedWhere,
   resolveBillingAccountAccess,
 } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
@@ -92,7 +92,7 @@ export class ReferralsService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {}
 
   async getMine(actor: ReferralActor): Promise<IReferralProgram> {
@@ -578,7 +578,7 @@ export class ReferralsService {
         throw new Error('Referral reward settlement lease was lost');
       }
       try {
-        await this.activitiesService.create({
+        await this.activityRecorder.record({
           key: ActivityKey.CREDITS_ADD,
           organizationId: transaction.organizationId,
           source: ActivitySource.REFERRAL,

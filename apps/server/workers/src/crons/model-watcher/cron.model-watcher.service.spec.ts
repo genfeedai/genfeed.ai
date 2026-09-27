@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ServerModelRecord } from '@api/index';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -17,7 +17,7 @@ describe('CronModelWatcherService', () => {
   let modelDiscoveryService: Mocked<ModelDiscoveryService>;
   let configService: Mocked<ConfigService>;
   let loggerService: Mocked<LoggerService>;
-  let notificationsService: Mocked<NotificationsService>;
+  let notificationsService: Mocked<ActivityRecorderService>;
   let replicateContractSyncService: Mocked<ReplicateModelContractSyncService>;
 
   const mockExistingModels = [
@@ -118,12 +118,9 @@ describe('CronModelWatcherService', () => {
           },
         },
         {
-          provide: NotificationsService,
+          provide: ActivityRecorderService,
           useValue: {
-            sendModelDiscoveryNotification: vi
-              .fn()
-              .mockResolvedValue(undefined),
-            sendNotification: vi.fn(),
+            dispatch: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -158,7 +155,7 @@ describe('CronModelWatcherService', () => {
     service = module.get<CronModelWatcherService>(CronModelWatcherService);
     modelDiscoveryService = module.get(ModelDiscoveryService);
     configService = module.get(ConfigService);
-    notificationsService = module.get(NotificationsService);
+    notificationsService = module.get(ActivityRecorderService);
     replicateContractSyncService = module.get(
       ReplicateModelContractSyncService,
     );
@@ -534,9 +531,7 @@ describe('CronModelWatcherService', () => {
 
       await service.discoverNewModels();
 
-      expect(
-        notificationsService.sendModelDiscoveryNotification,
-      ).toHaveBeenCalled();
+      expect(notificationsService.dispatch).toHaveBeenCalled();
     });
 
     it('should handle notification failure without failing watcher', async () => {
@@ -548,7 +543,7 @@ describe('CronModelWatcherService', () => {
         key: 'meta/notif-model',
       } as unknown as ServerModelRecord);
 
-      notificationsService.sendModelDiscoveryNotification.mockRejectedValueOnce(
+      notificationsService.dispatch.mockRejectedValueOnce(
         new Error('Discord webhook failed'),
       );
 
@@ -570,9 +565,7 @@ describe('CronModelWatcherService', () => {
 
       await service.discoverNewModels();
 
-      expect(
-        notificationsService.sendModelDiscoveryNotification,
-      ).toHaveBeenCalledWith(
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
           category: expect.any(String),
           estimatedCost: expect.any(Number),

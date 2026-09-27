@@ -1,5 +1,5 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -60,7 +60,7 @@ export class CronModelWatcherService {
     private readonly modelDiscoveryService: ModelDiscoveryService,
     private readonly modelPricingService: ModelPricingService,
     private readonly configService: ConfigService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly platformMarginService: PlatformMarginService,
     private readonly replicateContractSyncService: ReplicateModelContractSyncService,
   ) {}
@@ -389,12 +389,28 @@ export class CronModelWatcherService {
     provider: string,
   ): Promise<void> {
     try {
-      await this.notificationsService.sendModelDiscoveryNotification({
-        category,
-        estimatedCost,
-        modelKey,
-        provider,
-        providerCostUsd,
+      // Platform event: no tenant. A model is announced once.
+      await this.activityRecorder.dispatch({
+        deduplicationKey: `message.model-discovery/${modelKey}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'model_discovery',
+              payload: {
+                category,
+                estimatedCost,
+                modelKey,
+                provider,
+                providerCostUsd,
+              },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: null,
+        source: { id: modelKey, type: 'model' },
+        topic: 'operator.alerts',
       });
     } catch (error: unknown) {
       this.logger.error(

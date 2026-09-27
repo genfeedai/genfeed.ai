@@ -38,6 +38,7 @@ describe('SocialReplyNotificationService.findUnreadInboxItemsCoveringConversatio
   const logger = { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService;
   const service = new SocialReplyNotificationService(
     client as unknown as PrismaService,
+    {} as never,
     logger,
   );
 

@@ -1,4 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -6,9 +5,9 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
@@ -22,7 +21,6 @@ import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as Sentry from '@sentry/nestjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
@@ -33,6 +31,9 @@ describe('StripeWebhookSupportService', () => {
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const prisma = {
+    $transaction: vi.fn(async (callback: (client: unknown) => unknown) =>
+      callback(prisma),
+    ),
     billingRevenueEvent: {
       createMany: vi.fn(),
     },
@@ -45,7 +46,16 @@ describe('StripeWebhookSupportService', () => {
       update: vi.fn(),
     },
   };
-  const activitiesService = { create: vi.fn() };
+  const revenueCommit = {
+    activities: [],
+    inbox: [],
+    pendingDeliveryIds: ['delivery-1'],
+  };
+  const activityRecorder = {
+    afterCommit: vi.fn(),
+    dispatchInTransaction: vi.fn().mockResolvedValue(revenueCommit),
+    record: vi.fn(),
+  };
   const cacheService = {
     exists: vi.fn(),
     generateKey: vi.fn(),
@@ -75,9 +85,6 @@ describe('StripeWebhookSupportService', () => {
     resolveMonthlyCredits: vi.fn(),
     resolvePlanCredits: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
-  };
-  const notificationsService = {
-    sendRevenueNotification: vi.fn().mockResolvedValue(undefined),
   };
 
   const priceConfig: Record<string, string> = {
@@ -112,7 +119,7 @@ describe('StripeWebhookSupportService', () => {
         { provide: CacheService, useValue: cacheService },
         { provide: LoggerService, useValue: loggerService },
         { provide: PrismaService, useValue: prisma },
-        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: ActivityRecorderService, useValue: activityRecorder },
         {
           provide: SubscriptionCreditGrantService,
           useValue: creditGrantService,
@@ -132,7 +139,6 @@ describe('StripeWebhookSupportService', () => {
           provide: AccessBootstrapCacheService,
           useValue: accessBootstrapCacheService,
         },
-        { provide: NotificationsService, useValue: notificationsService },
       ],
     }).compile();
 
@@ -412,7 +418,7 @@ describe('StripeWebhookSupportService', () => {
         value: '100',
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith({
+      expect(activityRecorder.record).toHaveBeenCalledWith({
         brandId: 'brand_1',
         key: ActivityKey.CREDITS_ADD,
         organizationId: 'org_1',
@@ -422,16 +428,14 @@ describe('StripeWebhookSupportService', () => {
       });
     });
 
-    it('omits the user field when none is given', async () => {
+    it('records an organization-wide entry without user or brand', async () => {
       await service.recordCreditsActivity({
-        brandId: 'org_1',
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
         value: 'Subscription credits granted',
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith({
-        brandId: 'org_1',
+      expect(activityRecorder.record).toHaveBeenCalledWith({
         key: ActivityKey.CREDITS_ADD,
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
@@ -853,24 +857,40 @@ describe('StripeWebhookSupportService', () => {
       userId: 'user_1',
     };
 
-    it('notifies the operator exactly once when the ledger row is newly inserted', async () => {
+    const revenueMessage = (payload: Record<string, unknown>) =>
+      expect.objectContaining({
+        deduplicationKey: 'message.revenue/cs_test_1',
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'revenue_notification',
+              payload: expect.objectContaining(payload),
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: 'org_1',
+        topic: 'operator.alerts',
+      });
+
+    it('records the operator alert in the ledger transaction when the row is new', async () => {
       prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
 
       await service.recordRevenueEvent(baseInput);
 
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).toHaveBeenCalledTimes(1);
-      expect(notificationsService.sendRevenueNotification).toHaveBeenCalledWith(
-        {
+      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledTimes(1);
+      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledWith(
+        prisma,
+        revenueMessage({
           amountMinor: 4900,
           currency: 'usd',
           organizationId: 'org_1',
-          planLabel: undefined,
           source: BillingRevenueSource.CREDIT_PURCHASE,
           userId: 'user_1',
-        },
+        }),
       );
+      expect(activityRecorder.afterCommit).toHaveBeenCalledWith(revenueCommit);
     });
 
     it('is skipped on a webhook replay — the unique stripeObjectId skips the insert', async () => {
@@ -881,48 +901,11 @@ describe('StripeWebhookSupportService', () => {
       await service.recordRevenueEvent(baseInput);
 
       expect(prisma.billingRevenueEvent.createMany).toHaveBeenCalledTimes(1);
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).not.toHaveBeenCalled();
+      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
+      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
     });
 
-    it('does not throw when the notifier fails, and reports it to Sentry', async () => {
-      notificationsService.sendRevenueNotification.mockRejectedValue(
-        new Error('redis publish failed'),
-      );
-
-      await expect(
-        service.recordRevenueEvent(baseInput),
-      ).resolves.toBeUndefined();
-
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).toHaveBeenCalledTimes(1);
-      await vi.waitFor(() =>
-        expect(loggerService.error).toHaveBeenCalledWith(
-          expect.stringContaining('failed to notify operator of revenue event'),
-          expect.objectContaining({ organizationId: 'org_1' }),
-        ),
-      );
-      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not wait for a stalled operator notification (genfeedai/genfeed.ai#5313)', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-      notificationsService.sendRevenueNotification.mockReturnValue(
-        new Promise<void>(() => undefined),
-      );
-
-      await expect(
-        service.recordRevenueEvent(baseInput),
-      ).resolves.toBeUndefined();
-
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).toHaveBeenCalledTimes(1);
-    });
-
-    it('never notifies when the ledger write itself fails', async () => {
+    it('never alerts when the ledger write itself fails', async () => {
       prisma.billingRevenueEvent.createMany.mockRejectedValue(
         new Error('db down'),
       );
@@ -931,12 +914,27 @@ describe('StripeWebhookSupportService', () => {
         service.recordRevenueEvent(baseInput),
       ).resolves.toBeUndefined();
 
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).not.toHaveBeenCalled();
+      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed to record revenue event'),
         expect.objectContaining({ organizationId: 'org_1' }),
+      );
+    });
+
+    it('rolls the ledger row back with a failed alert write and never throws', async () => {
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
+      activityRecorder.dispatchInTransaction.mockRejectedValueOnce(
+        new Error('outbox down'),
+      );
+
+      await expect(
+        service.recordRevenueEvent(baseInput),
+      ).resolves.toBeUndefined();
+
+      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to record revenue event'),
+        expect.objectContaining({ stripeObjectId: 'cs_test_1' }),
       );
     });
 
@@ -949,21 +947,20 @@ describe('StripeWebhookSupportService', () => {
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
       });
 
-      expect(notificationsService.sendRevenueNotification).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledWith(
+        prisma,
+        revenueMessage({
           planLabel: 'pro',
           source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
         }),
       );
     });
 
-    it('never records or notifies for a non-positive amount', async () => {
+    it('never records or alerts for a non-positive amount', async () => {
       await service.recordRevenueEvent({ ...baseInput, amountMinor: 0 });
 
       expect(prisma.billingRevenueEvent.createMany).not.toHaveBeenCalled();
-      expect(
-        notificationsService.sendRevenueNotification,
-      ).not.toHaveBeenCalled();
+      expect(activityRecorder.dispatchInTransaction).not.toHaveBeenCalled();
     });
   });
 });

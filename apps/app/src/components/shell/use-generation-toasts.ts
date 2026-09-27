@@ -28,7 +28,6 @@ export const LIVE_ACTIVITY_LIMIT = 50;
 export const ACTIVITY_RECONCILE_MS = 15_000;
 const REFRESH_EVENTS = [
   'background-task-update',
-  'notification',
   'ingredient-status',
   'article-status',
   'publication-status',
@@ -37,7 +36,14 @@ const REFRESH_EVENTS = [
   'training-status',
 ];
 
-export function useLiveActivityFeed() {
+/**
+ * Toasts the signed-in user's own generation completions and failures. The
+ * bell shows alerts only (#5197); the full history lives on the activities
+ * pages. This hook reads the scoped activity records the socket and focus
+ * refreshes, and polls only while a generation is running or the socket is
+ * down.
+ */
+export function useGenerationToasts(): void {
   const { organizationId, isReady: scopeReady } = useCollectionScope();
   const { userId, isSignedIn } = useAuthIdentity();
   const { brands } = useBrand();
@@ -90,9 +96,6 @@ export function useLiveActivityFeed() {
           query.queryKey.includes(organizationId) &&
           query.queryKey.includes(userId),
       });
-      void client.invalidateQueries({
-        queryKey: ['notification-inbox', userId, organizationId],
-      });
     };
     // Socket payloads only trigger authenticated reads; they never become UI data.
     const scheduleRefresh = () => {
@@ -108,8 +111,7 @@ export function useLiveActivityFeed() {
     const reconcileVisible = () => {
       if (document.visibilityState !== 'hidden') refresh();
     };
-    // The bell is mounted on every page, so an unconditional interval polled
-    // three endpoints forever. Reconcile on a timer only while something is
+    // Mounted on every page: reconcile on a timer only while something is
     // running or the socket cannot deliver updates; focus, visibility, and
     // socket events still refresh on demand.
     const needsPolling = activeCount > 0 || connectionState !== 'connected';
@@ -201,15 +203,4 @@ export function useLiveActivityFeed() {
     translateActivity,
     userId,
   ]);
-
-  return {
-    ...activity,
-    isError: activity.isError || active.isError,
-    isLoading: activity.isLoading || active.isLoading,
-    filteredActivities: scopedActivities,
-    activeCount,
-    connectionState,
-    getActivityHref: (item: (typeof scopedActivities)[number]) =>
-      getGenerationActivityHref(item, { organizationId, orgSlug, brands }),
-  };
 }

@@ -109,7 +109,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'updatedAt',
       'userId',
     ],
-    listFields: [],
+    listFields: ['notificationEvents', 'notificationInboxItems'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -4042,6 +4042,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'channel',
       'createdAt',
       'deliveredAt',
+      'destination',
       'emailMessage',
       'event',
       'eventId',
@@ -4050,6 +4051,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'lastError',
       'lockedAt',
+      'message',
       'nextAttemptAt',
       'organization',
       'organizationId',
@@ -4072,6 +4074,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   NotificationEvent: {
     allFields: [
+      'activity',
+      'activityId',
       'actorUserId',
       'createdAt',
       'deduplicationKey',
@@ -4089,11 +4093,14 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['deliveries', 'inboxItems'],
     enumFields: {},
     relationIdFields: {
+      activity: 'activityId',
       organization: 'organizationId',
     },
   },
   NotificationInboxItem: {
     allFields: [
+      'activity',
+      'activityId',
       'createdAt',
       'event',
       'eventId',
@@ -4111,6 +4118,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {},
     relationIdFields: {
+      activity: 'activityId',
       event: 'eventId',
       organization: 'organizationId',
       user: 'userId',
