@@ -248,7 +248,7 @@ export class WorkflowExecutionQueueService {
   async queueSystemWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     jobId: string,
-    options: QueueSystemWorkflowOptions = {},
+    options: QueueSystemWorkflowOptions,
   ): Promise<string> {
     // BullMQ's `add(name, data, { jobId })` silently no-ops when a job with
     // that id already exists in Redis, in ANY state — waiting/active/delayed
