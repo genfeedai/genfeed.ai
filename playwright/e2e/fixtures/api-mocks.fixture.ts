@@ -5,11 +5,16 @@ import {
   PostCategory,
   PostStatus,
   SocialSourceType,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
 } from '@genfeedai/contracts';
+import { buildReleaseAnalyticsComparison } from '@genfeedai/contracts/api-types/contracts/scheduler-analytics-comparison.contract';
 import type {
   AdsResearchFilters,
   AdsResearchItem,
   AdsResearchResponse,
+  IChannelTarget,
   ISocialSource,
   ISourcePost,
   SocialSourcesResponse,
@@ -3955,6 +3960,20 @@ function buildChannelTargetResource(
       source: 'manual',
       statusTransitions: [],
       timezone: 'America/New_York',
+      // A supported platform with nothing collected yet, as
+      // `PostGroupContractService.toTargetAnalytics` emits it.
+      analytics: {
+        collection: {
+          capability: TargetAnalyticsCapability.SUPPORTED,
+          error: null,
+          freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+          lastCollectedAt: null,
+          requestedAt: null,
+          state: TargetAnalyticsCollectionState.UNAVAILABLE,
+        },
+        snapshot: null,
+        state: 'unavailable',
+      },
       // ReleaseDetailDrawer reads `target.validationIssues.length`
       // unconditionally -- the real serializer always includes the field,
       // so an incomplete mock target crashes the drawer's ErrorBoundary on
@@ -3975,6 +3994,7 @@ function buildChannelTargetResource(
 function buildReleaseGroupAttributes(
   post: Record<string, unknown>,
   groupId: string,
+  targets: Array<{ id: string; attributes: Record<string, unknown> }>,
   overrides: { status?: string; scheduledAt?: string | null } = {},
 ): Record<string, unknown> {
   const status = overrides.status ?? toReleaseStatus(post.status);
@@ -3989,17 +4009,19 @@ function buildReleaseGroupAttributes(
   // `data.relationships` by `buildReleaseGroupDocument` /
   // `buildReleaseGroupCollectionDocument` instead.
   return {
-    analyticsComparison: {
-      metricDefinitions: [],
-      releaseId: groupId,
-      state: 'empty',
-      targets: [],
-    },
+    analyticsComparison: buildReleaseAnalyticsComparison(
+      groupId,
+      targets.map(
+        (target) =>
+          ({
+            ...target.attributes,
+            id: target.id,
+          }) as unknown as IChannelTarget,
+      ),
+    ),
     baseContent: (post.description as string) || '',
-    brandId: 'mock-brand-id',
     campaignId: null,
     media: [],
-    organizationId: 'mock-org-id-e2e-test',
     ownerId: 'mock-user-id-e2e-test',
     publishedAt: status === 'published' ? scheduledAt : null,
     scheduledAt,
@@ -4170,10 +4192,15 @@ export async function mockCalendarPosts(
           buildReleaseGroupCollectionDocument(
             mockPosts.map((post) => {
               const releaseId = String(post.id);
+              const targets = [buildChannelTargetResource(post, releaseId)];
               return {
-                attributes: buildReleaseGroupAttributes(post, releaseId),
+                attributes: buildReleaseGroupAttributes(
+                  post,
+                  releaseId,
+                  targets,
+                ),
                 id: releaseId,
-                targets: [buildChannelTargetResource(post, releaseId)],
+                targets,
               };
             }),
           ),
@@ -4237,22 +4264,17 @@ export async function mockPostPublishing(
       | undefined;
     const requestedPostId = body?.postId || postId || 'mock-post-id';
     const resolvedGroupId = groupId ?? `mock-release-${requestedPostId}`;
-    const attributes = post
-      ? buildReleaseGroupAttributes(post, resolvedGroupId, state)
-      : {
-          scheduledAt: null,
-          status: 'draft',
-          title: 'Untitled post',
-        };
-    const target = post
-      ? buildChannelTargetResource(post, resolvedGroupId, {
-          id: requestedPostId,
-          ...state,
-        })
-      : {
-          attributes: { executionState: 'draft', platform: 'twitter' },
-          id: requestedPostId,
-        };
+    const source = post ?? { id: requestedPostId, status: 'draft' };
+    const target = buildChannelTargetResource(source, resolvedGroupId, {
+      id: requestedPostId,
+      ...state,
+    });
+    const attributes = buildReleaseGroupAttributes(
+      source,
+      resolvedGroupId,
+      [target],
+      state,
+    );
     await route.fulfill({
       body: JSON.stringify(
         buildReleaseGroupDocument(resolvedGroupId, attributes, [target]),
@@ -4280,21 +4302,17 @@ export async function mockPostPublishing(
     const segments = new URL(route.request().url()).pathname.split('/');
     const requestedGroupId = segments.at(-3) || groupId || 'mock-release-group';
     const requestedTargetId = segments.at(-1) || postId || 'mock-target-id';
-    const attributes = post
-      ? buildReleaseGroupAttributes(post, requestedGroupId, state)
-      : { scheduledAt: state.scheduledAt, status: state.status };
-    const target = post
-      ? buildChannelTargetResource(post, requestedGroupId, {
-          id: requestedTargetId,
-          ...state,
-        })
-      : {
-          attributes: {
-            executionState: state.status,
-            scheduledAt: state.scheduledAt,
-          },
-          id: requestedTargetId,
-        };
+    const source = post ?? { id: requestedTargetId, status: state.status };
+    const target = buildChannelTargetResource(source, requestedGroupId, {
+      id: requestedTargetId,
+      ...state,
+    });
+    const attributes = buildReleaseGroupAttributes(
+      source,
+      requestedGroupId,
+      [target],
+      state,
+    );
     await route.fulfill({
       body: JSON.stringify(
         buildReleaseGroupDocument(requestedGroupId, attributes, [target]),

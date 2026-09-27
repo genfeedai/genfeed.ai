@@ -6,7 +6,11 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
-import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
+import {
+  isPlaywrightAuthBypassed,
+  PLAYWRIGHT_AUTH_BYPASS_SKIP,
+} from '../../utils/playwright-auth-bypass';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
@@ -49,11 +53,16 @@ test.describe('Posts — Content Types', () => {
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),
     ).toBeVisible();
   });
+});
+
+// Outside the authenticated describe: its beforeEach shares the page with
+// `unauthenticatedPage`, and the skip must run before any fixture sets up.
+test.describe('Posts — Content Types (unauthenticated)', () => {
+  test.skip(isPlaywrightAuthBypassed(), PLAYWRIGHT_AUTH_BYPASS_SKIP);
 
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
-    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.PUBLISHING.ROOT);
 
     // Should redirect to login
@@ -61,5 +70,9 @@ test.describe('Posts — Content Types', () => {
       timeout: 15000,
     });
     expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    await assertNoErrorBoundaryFallback(
+      unauthenticatedPage,
+      APP_ROUTES.PUBLISHING.ROOT,
+    );
   });
 });
