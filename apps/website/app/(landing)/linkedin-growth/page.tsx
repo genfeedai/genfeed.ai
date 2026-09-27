@@ -6,11 +6,11 @@ import {
 } from '@web-components/landing/service-landings.data';
 
 const config = serviceLandingConfigBySlug[
-  'linkedin-content'
+  'linkedin-growth'
 ] as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function LinkedInContentPage() {
-  return <ServiceLandingPage slug="linkedin-content" />;
+export default function LinkedInGrowthPage() {
+  return <ServiceLandingPage slug="linkedin-growth" />;
 }

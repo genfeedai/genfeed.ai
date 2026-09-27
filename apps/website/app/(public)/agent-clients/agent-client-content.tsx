@@ -6,7 +6,6 @@ import {
   AGENT_CLIENT_MANUAL_KEY_HEADING,
   type AgentClient,
   type AgentClientChannel,
-  type AgentClientCommandBlock,
   agentClients,
   GENFEED_MCP_DOCS_URL,
   getAgentClientCommandBlocks,
@@ -14,11 +13,10 @@ import {
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
-import { Code } from '@ui/primitives/code';
-import { Pre } from '@ui/primitives/pre';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
   CtaSection,
@@ -29,24 +27,6 @@ import {
 import PageLayout from '@web-components/PageLayout';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
-
-function CommandBlock({
-  label,
-  value,
-}: AgentClientCommandBlock): React.ReactElement {
-  return (
-    <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-      <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-2xs font-bold uppercase tracking-[0.14em] text-surface/45">
-        {label}
-      </p>
-      <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">
-        <Code className="whitespace-pre-wrap bg-transparent text-surface/70 [overflow-wrap:anywhere]">
-          {value}
-        </Code>
-      </Pre>
-    </div>
-  );
-}
 
 export default function AgentClientContent({
   channels,
@@ -189,7 +169,7 @@ export default function AgentClientContent({
               <li key={channel.slug}>
                 <Link
                   className="text-sm text-surface/75 transition-colors hover:text-primary"
-                  href={`/integrations/${channel.slug}`}
+                  href={`/${client.slug}/${channel.slug}`}
                 >
                   {channel.name}
                 </Link>
