@@ -27,6 +27,7 @@ import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.u
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -452,7 +453,10 @@ export function useAgentCliTerminal(
 
       socket = io(`${resolveTerminalEndpoint()}/terminal`, {
         auth: { token },
-        extraHeaders: { Authorization: `Bearer ${token}` },
+        extraHeaders: {
+          ...getRequestOrganizationHeaders(),
+          Authorization: `Bearer ${token}`,
+        },
         reconnectionAttempts: 3,
         timeout: 8_000,
         transports: ['websocket', 'polling'],

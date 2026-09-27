@@ -1,3 +1,8 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@services/core/interceptor.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, apiClient, registerApiAuthTokenGetter } from './client';
 
@@ -180,6 +185,26 @@ describe('apiClient', () => {
 describe('authorization', () => {
   afterEach(() => {
     registerApiAuthTokenGetter(null);
+    clearRequestOrganizationId();
+  });
+
+  it('sends the routed organization header with the bearer token', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    setRequestOrganizationId('org-a');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows', {
+      headers: { [ORGANIZATION_CONTEXT_HEADER.toUpperCase()]: 'org-stale' },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+        [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+      },
+      method: 'GET',
+    });
   });
 
   it('attaches the session bearer token once a resolver is registered', async () => {

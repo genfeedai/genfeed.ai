@@ -16,6 +16,10 @@ export class WorkflowsService extends BaseService<Workflow> {
     return BaseService.getDataServiceInstance(WorkflowsService, token);
   }
 
+  /**
+   * Schedules are workflow fields: `PATCH /workflows/:id` with only schedule
+   * fields re-registers the cron job (see `WorkflowCrudController.update`).
+   */
   async setSchedule(
     workflowId: string,
     body: {
@@ -24,6 +28,17 @@ export class WorkflowsService extends BaseService<Workflow> {
       timezone?: string;
     },
   ): Promise<void> {
-    await this.instance.post(`/${workflowId}/schedule`, body);
+    await this.instance.patch(`/${workflowId}`, {
+      isScheduleEnabled: body.enabled ?? false,
+      schedule: body.schedule,
+      timezone: body.timezone ?? 'UTC',
+    });
+  }
+
+  async removeSchedule(workflowId: string): Promise<void> {
+    await this.instance.patch(`/${workflowId}`, {
+      isScheduleEnabled: false,
+      schedule: null,
+    });
   }
 }

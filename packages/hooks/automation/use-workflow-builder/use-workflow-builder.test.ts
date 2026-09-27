@@ -1,7 +1,13 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import { useWorkflowBuilder } from '@hooks/automation/use-workflow-builder/use-workflow-builder';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -84,6 +90,7 @@ describe('useWorkflowBuilder', () => {
   });
 
   afterEach(() => {
+    clearRequestOrganizationId();
     if (typeof originalFetch === 'undefined') {
       Reflect.deleteProperty(globalThis, 'fetch');
     } else {
@@ -224,6 +231,49 @@ describe('useWorkflowBuilder', () => {
           (options as { method?: string })?.method === 'POST',
       ),
     ).toBe(true);
+  });
+
+  it('sends the routed organization header on every builder request', async () => {
+    mockFetch.mockImplementation(async (input: string) => {
+      if (input.includes('/workflows/nodes/registry')) {
+        return createNodeRegistryResponse();
+      }
+      if (input.endsWith('/validate')) {
+        return { json: async () => ({ errors: [], isValid: true }), ok: true };
+      }
+      return { json: async () => ({}), ok: true };
+    });
+    setRequestOrganizationId('org-a');
+
+    const { result } = renderHook(() =>
+      useWorkflowBuilder({ workflowId: 'workflow-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    await act(async () => {
+      await result.current.saveWorkflow();
+      await result.current.validateWorkflow();
+      await result.current.runWorkflow();
+    });
+
+    const requests = mockFetch.mock.calls.map(([url, init]) => ({
+      headers: (init as RequestInit).headers as Record<string, string>,
+      path: (url as string).replace(EnvironmentService.apiEndpoint, ''),
+    }));
+    expect(new Set(requests.map(({ path }) => path))).toEqual(
+      new Set([
+        '/workflows/nodes/registry',
+        '/workflows/workflow-1',
+        '/workflows/workflow-1/validate',
+        '/workflow-executions',
+      ]),
+    );
+    for (const { headers } of requests) {
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
+      expect(headers.Authorization).toBe('Bearer token-123');
+    }
   });
 
   it('saves and validates workflows', async () => {
