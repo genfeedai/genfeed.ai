@@ -4,6 +4,7 @@ import {
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { ClipAnalysisWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class ClipAnalysisWorkflowQueueService {
       `clip-analysis-${data.projectId}`,
       {
         attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: CLIP_ANALYSIS_FAILURE_WORKFLOW_ID,
           inputValues: { job: data },

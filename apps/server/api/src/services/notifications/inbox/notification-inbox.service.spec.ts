@@ -16,7 +16,7 @@ function fixture(index: number, overrides = {}) {
     event: {
       sourceId: `run-${index}`,
       sourceType: 'workflow_execution',
-      eventKey: 'workflow.execution.failed',
+      eventKey: 'workflow-execution-failed',
       payload: { error: 'secret_api_key', workflowLabel: 'private title' },
     },
     ...overrides,
@@ -124,7 +124,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'run-1',
           sourceType: 'agent_run',
-          eventKey: 'workflow.execution.failed',
+          eventKey: 'agent-run-failed',
           payload: {
             failure: {
               title: 'Run failed',
@@ -156,7 +156,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'run-1',
           sourceType: 'agent_run',
-          eventKey: 'workflow.execution.failed',
+          eventKey: 'agent-run-failed',
           payload: {},
         },
       }),
@@ -227,7 +227,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'run-1',
           sourceType: 'agent_run',
-          eventKey: 'workflow.execution.failed',
+          eventKey: 'agent-run-failed',
           payload: {},
         },
       }),
@@ -288,7 +288,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'run-1',
           sourceType: 'agent_run',
-          eventKey: 'workflow.execution.failed',
+          eventKey: 'agent-run-failed',
           payload: {},
         },
       }),
@@ -325,7 +325,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'run-1',
           sourceType: 'agent_run',
-          eventKey: 'workflow.execution.completed',
+          eventKey: 'agent-run-completed',
           payload: {
             strategyId: 'strategy',
             sourcePath: '//untrusted.example',
@@ -374,7 +374,7 @@ describe('NotificationInboxService', () => {
           event: {
             sourceId: 'strategy',
             sourceType: 'agent_strategy',
-            eventKey: expired ? 'agent.review.expired' : 'agent.review.changed',
+            eventKey: expired ? 'agent-review-expired' : 'agent-review-changed',
             payload: { kind: 'agent_review', strategyId: 'strategy' },
           },
         }),
@@ -412,7 +412,7 @@ describe('NotificationInboxService', () => {
         event: {
           sourceId: 'strategy',
           sourceType: 'agent_strategy',
-          eventKey: 'agent.review.changed',
+          eventKey: 'agent-review-changed',
           payload: {
             strategyId: 'strategy',
             sourcePath: '/secret/main/automation/agents/strategy',

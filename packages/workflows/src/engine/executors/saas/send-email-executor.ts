@@ -26,6 +26,7 @@ export interface SendEmailResult {
 export type EmailSender = (params: {
   html: string;
   idempotencyKey?: string;
+  organizationId: string;
   subject: string;
   to: string;
 }) => Promise<void>;
@@ -107,7 +108,13 @@ export class SendEmailExecutor extends BaseExecutor {
       nodeId: node.id,
     });
 
-    await this.sender({ html, idempotencyKey, subject, to });
+    await this.sender({
+      html,
+      idempotencyKey,
+      organizationId: context.organizationId,
+      subject,
+      to,
+    });
 
     const result: SendEmailResult = { sent: true, to };
     return {

@@ -159,10 +159,6 @@ const shouldRunAuthedProject =
 export default defineConfig({
   expect: {
     timeout: expectTimeout, // Dev-route content can take longer to hydrate in this app
-    toHaveScreenshot: {
-      maxDiffPixels: 100,
-      threshold: 0.2,
-    },
   },
   forbidOnly: isCI,
 
@@ -258,14 +254,6 @@ export default defineConfig({
   ],
   retries: retryCount,
 
-  // Snapshot configuration
-  snapshotPathTemplate: path.join(
-    e2eRoot,
-    'tests',
-    '__screenshots__',
-    '{testFilePath}',
-    '{arg}{ext}',
-  ),
   // Test directory structure
   testDir: path.join(e2eRoot, 'tests'),
   testMatch: /e2e\/tests\/.+\.spec\.ts/,

@@ -2,7 +2,6 @@ import { Status } from '@genfeedai/contracts';
 import type {
   IBackgroundTaskUpdatePayload,
   IMediaResult,
-  INotificationData,
 } from '@genfeedai/contracts/interfaces';
 import { RedisService } from '@libs/redis/redis.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -75,14 +74,15 @@ export class NotificationsPublisherService {
   }
 
   /**
-   * Publish notification event
+   * Tell each recipient's open sessions that their notification inbox gained
+   * an item. The payload only triggers an authenticated re-read of the bell.
    */
-  async publishNotification(data: {
-    userId?: string;
-    organizationId?: string;
-    notification: INotificationData;
-  }) {
-    await this.redisService.publish('notifications', data);
+  async publishInboxUpdate(organizationId: string, userIds: string[]) {
+    if (userIds.length === 0) return;
+    await this.redisService.publish('notification-inbox', {
+      organizationId,
+      userIds,
+    });
   }
 
   /**

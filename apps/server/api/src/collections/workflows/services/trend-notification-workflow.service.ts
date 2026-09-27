@@ -2,11 +2,15 @@ import { createHash } from 'node:crypto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ParseMode, TrendNotificationFrequency } from '@genfeedai/contracts';
-import type { ITrendSummaryPayload } from '@genfeedai/contracts/interfaces';
+import {
+  ActivityKey,
+  ActivitySource,
+  ParseMode,
+  TrendNotificationFrequency,
+} from '@genfeedai/contracts';
 import {
   buildTrendDigestHtml,
   buildTrendDigestItems,
@@ -65,7 +69,7 @@ export class TrendNotificationWorkflowService {
     private readonly prisma: PrismaService,
     private readonly trendsService: TrendsService,
     private readonly cacheService: CacheService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
   ) {}
@@ -228,36 +232,78 @@ export class TrendNotificationWorkflowService {
       'organizationId',
     );
     try {
+      const markerKey = this.requiredString(state.markerKey, 'markerKey');
+      const trends = Array.isArray(state.trends)
+        ? (state.trends as TrendDigestItem[])
+        : [];
       if (channel === 'telegram') {
-        await this.notificationsService.sendTelegramMessage(
-          this.requiredString(state.telegramChatId, 'telegramChatId'),
-          this.requiredString(state.summaryMessage, 'summaryMessage'),
-          { parse_mode: ParseMode.MARKDOWN },
+        const chatId = this.requiredString(
+          state.telegramChatId,
+          'telegramChatId',
         );
+        await this.activityRecorder.dispatch({
+          deduplicationKey: `message.trend-summary/${markerKey}/telegram`,
+          messages: [
+            {
+              destination: chatId,
+              message: {
+                action: 'send_message',
+                payload: {
+                  chatId,
+                  message: this.requiredString(
+                    state.summaryMessage,
+                    'summaryMessage',
+                  ),
+                  options: { parse_mode: ParseMode.MARKDOWN },
+                },
+                type: 'telegram',
+              },
+            },
+          ],
+          organizationId,
+          source: { id: markerKey, type: 'trend_summary' },
+          topic: 'trends.summary',
+        });
       } else if (channel === 'email') {
-        const trends = Array.isArray(state.trends) ? state.trends : [];
-        await this.notificationsService.sendEmail(
-          this.requiredString(state.emailAddress, 'emailAddress'),
-          `Your Trend Summary - ${trends.length} Trending Topics`,
-          this.requiredString(state.summaryHtml, 'summaryHtml'),
-        );
+        const to = this.requiredString(state.emailAddress, 'emailAddress');
+        await this.activityRecorder.dispatch({
+          deduplicationKey: `message.trend-summary/${markerKey}/email`,
+          messages: [
+            {
+              destination: to,
+              message: {
+                action: 'send_email',
+                payload: {
+                  html: this.requiredString(state.summaryHtml, 'summaryHtml'),
+                  subject: `Your Trend Summary - ${trends.length} Trending Topics`,
+                  to,
+                },
+                type: 'email',
+              },
+            },
+          ],
+          organizationId,
+          source: { id: markerKey, type: 'trend_summary' },
+          topic: 'trends.summary',
+        });
       } else {
-        const trends = Array.isArray(state.trends)
-          ? (state.trends as TrendDigestItem[])
-          : [];
-        await this.notificationsService.sendNotification({
-          action: 'trend_summary',
-          payload: {
-            cadence,
-            minViralScore:
-              typeof state.minViralScore === 'number'
-                ? state.minViralScore
-                : 70,
-            organizationId,
-            trends: trends.slice(0, 10),
-          } satisfies ITrendSummaryPayload,
-          type: 'discord',
+        await this.activityRecorder.record({
+          alert: {
+            deduplicationKey: `${ActivityKey.TREND_SUMMARY_READY}/${markerKey}`,
+            payload: {
+              cadence,
+              minViralScore:
+                typeof state.minViralScore === 'number'
+                  ? state.minViralScore
+                  : 70,
+              trends: trends.slice(0, 10),
+            },
+          },
+          key: ActivityKey.TREND_SUMMARY_READY,
+          organizationId,
+          source: ActivitySource.TREND_SCAN,
           userId: this.requiredString(state.ownerUserId, 'ownerUserId'),
+          value: `${trends.length} trending topics`,
         });
       }
       return { channel, sent: 1 };

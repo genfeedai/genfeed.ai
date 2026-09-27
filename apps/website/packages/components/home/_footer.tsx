@@ -4,6 +4,10 @@ import { SiteFooter } from '@ui/footers';
 /**
  * A navigation aid, not a sitemap: one destination per row, no duplicates, and
  * legal links only in the bottom bar. Guarded by `_footer.spec.tsx`.
+ *
+ * Product and Solutions mirror the topbar's groups, so a page lives under the
+ * same heading at the top and the bottom of the site. The six personas stay in
+ * the topbar's Use Cases menu; the footer points at their hub instead.
  */
 export const WEBSITE_SECTIONS: FooterSection[] = [
   {
@@ -13,26 +17,26 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/publishing', label: 'Publishing' },
       { href: '/workflows', label: 'Workflows' },
       { href: '/analytics', label: 'Analytics' },
-      { href: '/hire-agents', label: 'Hire Agents' },
       { href: '/integrations', label: 'Integrations' },
     ],
     title: 'Product',
   },
   {
     links: [
-      { href: '/use-cases/creators', label: 'For Creators' },
-      { href: '/use-cases/agencies', label: 'For Agencies' },
-      { href: '/use-cases', label: 'All Use Cases' },
-      { href: '/cloud', label: 'Teams' },
+      // First: the most asked-for destination on the site.
       { href: '/pricing', label: 'Pricing' },
+      { href: '/use-cases', label: 'Use Cases' },
+      { href: '/cloud', label: 'Teams' },
+      { href: '/hire-agents', label: 'Hire Agents' },
+      { href: '/done-for-you', label: 'Done For You' },
     ],
     title: 'Solutions',
   },
   {
     links: [
       { href: 'https://docs.genfeed.ai', label: 'Docs' },
-      { href: '/agent', label: 'Genfeed Agent' },
       { href: '/mcp', label: 'MCP Server' },
+      { href: '/agent', label: 'Genfeed Agent' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/claude', label: 'Claude' },
       { href: '/claude-code', label: 'Claude Code' },
@@ -43,6 +47,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/about', label: 'About' },
+      { href: '/articles', label: 'Blog' },
       { href: '/contact', label: 'Contact' },
     ],
     title: 'Company',

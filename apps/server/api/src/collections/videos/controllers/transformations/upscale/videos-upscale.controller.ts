@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -23,6 +21,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -66,7 +65,7 @@ export class VideosUpscaleController {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
@@ -204,25 +203,23 @@ export class VideosUpscaleController {
       );
 
       // Create activity for video upscale start
-      const activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: video.brandId ?? user.brandId,
-          entityId: ingredientData.id,
-          entityModel: ActivityEntityModel.INGREDIENT,
-          key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
-          organizationId: user.organizationId,
-          source: ActivitySource.VIDEO_UPSCALE,
-          userId: user.userId ?? user.id,
-          value: JSON.stringify({
-            ingredientId: ingredientData.id.toString(),
-            actionVerb: 'upscale',
-            dispatchMode: 'native',
-            model,
-            sourceId: videoId,
-            type: 'transformation',
-          }),
+      const activity = await this.activityRecorder.record({
+        brandId: video.brandId ?? user.brandId,
+        entityId: ingredientData.id,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
+        organizationId: user.organizationId,
+        source: ActivitySource.VIDEO_UPSCALE,
+        userId: user.userId ?? user.id,
+        value: JSON.stringify({
+          ingredientId: ingredientData.id.toString(),
+          actionVerb: 'upscale',
+          dispatchMode: 'native',
+          model,
+          sourceId: videoId,
+          type: 'transformation',
         }),
-      );
+      });
 
       // Emit background-task-update WebSocket event for activities dropdown
       await this.websocketService.publishBackgroundTaskUpdate({

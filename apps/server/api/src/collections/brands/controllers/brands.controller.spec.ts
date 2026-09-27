@@ -7,7 +7,6 @@ import type {
   AuthenticatedUser,
   AuthenticatedUser as User,
 } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
@@ -29,6 +28,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { IBrandOsDraftHandoff } from '@genfeedai/contracts/interfaces';
 import {
   BrandKitApplySerializer,
@@ -65,7 +65,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 describe('BrandsController', () => {
   let agentConfigController: BrandsAgentConfigController;
-  let activitiesService: vi.Mocked<ActivitiesService>;
+  let activitiesService: vi.Mocked<ActivityRecorderService>;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -138,8 +138,8 @@ describe('BrandsController', () => {
           },
         },
         {
-          provide: ActivitiesService,
-          useValue: { create: vi.fn(), findAll: vi.fn(), findOne: vi.fn() },
+          provide: ActivityRecorderService,
+          useValue: { record: vi.fn(), findAll: vi.fn(), findOne: vi.fn() },
         },
         {
           provide: VideosService,
@@ -221,7 +221,7 @@ describe('BrandsController', () => {
     agentConfigController = module.get<BrandsAgentConfigController>(
       BrandsAgentConfigController,
     );
-    activitiesService = module.get(ActivitiesService);
+    activitiesService = module.get(ActivityRecorderService);
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
@@ -366,7 +366,7 @@ describe('BrandsController', () => {
         userId: mockUser.userId,
       },
     );
-    expect(activitiesService.create).toHaveBeenCalledOnce();
+    expect(activitiesService.record).toHaveBeenCalledOnce();
     expect(result.meta).toEqual(summary);
   });
 

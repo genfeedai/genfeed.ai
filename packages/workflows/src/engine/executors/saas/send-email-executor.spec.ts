@@ -82,6 +82,7 @@ describe('SendEmailExecutor', () => {
     expect(mockSender).toHaveBeenCalledWith({
       html: '<p>Hello</p>',
       idempotencyKey: 'workflow:execution-1:email-1',
+      organizationId: 'org-1',
       subject: 'Daily trends',
       to: 'owner@org.com',
     });
@@ -95,6 +96,7 @@ describe('SendEmailExecutor', () => {
     expect(mockSender).toHaveBeenCalledWith({
       html: '<p>cfg</p>',
       idempotencyKey: 'workflow:execution-1:email-1',
+      organizationId: 'org-1',
       subject: 'cfg',
       to: 'cfg@org.com',
     });

@@ -1,3 +1,4 @@
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 /**
  * Additive coverage spec for TwitterService.
  * Covers methods and branches NOT exercised by twitter.service.spec.ts.
@@ -132,7 +133,7 @@ describe('TwitterService (coverage)', () => {
     patch: ReturnType<typeof vi.fn>;
     resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
-  let activitiesService: { create: ReturnType<typeof vi.fn> };
+  let activitiesService: { record: ReturnType<typeof vi.fn> };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -159,7 +160,7 @@ describe('TwitterService (coverage)', () => {
     };
 
     activitiesService = {
-      create: vi.fn().mockResolvedValue({}),
+      record: vi.fn().mockResolvedValue({}),
     };
 
     loggerService = {
@@ -176,7 +177,7 @@ describe('TwitterService (coverage)', () => {
       providers: [
         TwitterService,
         TwitterResponseMapper,
-        { provide: SERVER_TOKENS.activities, useValue: activitiesService },
+        { provide: ActivityRecorderService, useValue: activitiesService },
         { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg-val') } },
         { provide: SERVER_TOKENS.credentials, useValue: credentialsService },
         { provide: HttpService, useValue: httpService },
@@ -357,7 +358,7 @@ describe('TwitterService (coverage)', () => {
         expect.objectContaining({ isConnected: false }),
       );
       // Activity logged
-      expect(activitiesService.create).toHaveBeenCalled();
+      expect(activitiesService.record).toHaveBeenCalled();
     });
   });
 

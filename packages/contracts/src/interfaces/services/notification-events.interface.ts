@@ -39,20 +39,6 @@ export interface IMediaResult {
   [key: string]: unknown;
 }
 
-export interface INotificationPayload {
-  userId?: string;
-  organizationId?: string;
-  notification: INotificationData;
-}
-
-export interface INotificationData {
-  type: string;
-  title: string;
-  message: string;
-  link?: string;
-  metadata?: Record<string, unknown>;
-}
-
 export interface IIngredientStatusPayload {
   ingredientId: string;
   status: string;

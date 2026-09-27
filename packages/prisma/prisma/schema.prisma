@@ -3169,10 +3169,14 @@ model LifecycleEmailDelivery {
 }
 
 /// Immutable product event used as the durable source for notification fan-out.
+/// `organizationId` is null only for platform (operator) events with no tenant.
 model NotificationEvent {
   id               String                 @id @default(cuid())
-  organizationId   String
-  organization     Organization           @relation(fields: [organizationId], references: [id])
+  organizationId   String?
+  organization     Organization?          @relation(fields: [organizationId], references: [id])
+  /// The activity this alert was derived from by the activity alert policy (#5197).
+  activityId       String?
+  activity         Activity?              @relation(fields: [activityId], references: [id], onDelete: SetNull)
   eventKey         String
   deduplicationKey String                 @unique
   sourceType       String
@@ -3188,6 +3192,7 @@ model NotificationEvent {
 
   @@index([organizationId, eventKey, occurredAt(sort: Desc)], map: "notification_events_org_key_occurred_idx")
   @@index([sourceType, sourceId], map: "notification_events_source_idx")
+  @@index([activityId], map: "notification_events_activity_idx")
   @@map("notification_events")
 }
 
@@ -3209,18 +3214,24 @@ model NotificationPreference {
 }
 
 /// Durable per-recipient delivery state. Redis jobs only wake this record up.
+/// A user delivery sets `userId`; a channel delivery to an explicit or operator
+/// destination leaves it null and carries the rendered `message` instead.
 model NotificationDelivery {
   emailMessage      EmailMessage?
   id                String            @id @default(cuid())
   eventId           String
   event             NotificationEvent @relation(fields: [eventId], references: [id])
-  userId            String
-  user              User              @relation(fields: [userId], references: [id])
-  organizationId    String
-  organization      Organization      @relation(fields: [organizationId], references: [id])
+  userId            String?
+  user              User?             @relation(fields: [userId], references: [id])
+  organizationId    String?
+  organization      Organization?     @relation(fields: [organizationId], references: [id])
   topic             String
   channel           String
   provider          String
+  /// Explicit destination (email address, chat or channel id); null for a user or the operator.
+  destination       String?
+  /// Rendered channel message `{ type, action, payload }` for a channel delivery.
+  message           Json?
   status            String            @default("pending")
   attemptCount      Int               @default(0)
   nextAttemptAt     DateTime          @default(now())
@@ -5667,6 +5678,8 @@ model Activity {
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  notificationEvents     NotificationEvent[]
+  notificationInboxItems NotificationInboxItem[]
 
   @@index([isDeleted, createdAt(sort: Desc)], map: "activities_deleted_created_at_idx")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "activities_org_deleted_created_at_idx")
@@ -7546,6 +7559,9 @@ model NotificationInboxItem {
   id             String @id @default(cuid())
   eventId        String
   event          NotificationEvent @relation(fields: [eventId], references: [id])
+  /// Source activity, copied from the event by the materialization trigger (#5197).
+  activityId     String?
+  activity       Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
   userId         String
   user           User @relation(fields: [userId], references: [id])
   organizationId String
@@ -7560,6 +7576,7 @@ model NotificationInboxItem {
   @@unique([eventId, userId], map: "notification_inbox_event_user_key")
   @@index([organizationId, userId, isDeleted, occurredAt(sort: Desc), id(sort: Desc)], map: "notification_inbox_history_idx")
   @@index([organizationId, userId, isDeleted, readAt], map: "notification_inbox_unread_idx")
+  @@index([activityId], map: "notification_inbox_activity_idx")
   @@map("notification_inbox_items")
 }
 

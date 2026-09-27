@@ -31,6 +31,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { RouterService } from '@api/services/router/router.service';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
@@ -80,6 +81,7 @@ export class ArticlesTransformationsController {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly routerService: RouterService,
     private readonly seoScorerService: SeoScorerService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
   ) {}
 
   @Post(':articleId/thread-conversions')
@@ -223,12 +225,17 @@ export class ArticlesTransformationsController {
   @Post(':articleId/prompts')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    // DEFAULT_MINI_TEXT_MODEL completes through OpenRouter; the guard-resolved
+    // key reaches dispatch via the workflow's non-persisted runtimeContext.
+    allowByokBypass: true,
     description: 'Media prompt generation (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.ARTICLE_PROMPT_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generatePrompt(
+    @Req() request: Request,
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
@@ -236,6 +243,7 @@ export class ArticlesTransformationsController {
       articleId,
       user.userId ?? user.id,
       user.organizationId,
+      this.textGenerationCreditsService.guardResolvedDispatch(request),
     );
 
     return { prompt };

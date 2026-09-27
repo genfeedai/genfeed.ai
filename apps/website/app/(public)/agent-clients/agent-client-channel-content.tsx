@@ -77,7 +77,7 @@ export default function AgentClientChannelContent({
       >
         <WebSection className="gsap-section" maxWidth="lg" py="sm">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={`${client.connectInstruction} Then connect your ${page.channelName} account in Genfeed once.`}
             title={`How to post to ${page.channelName} from ${client.name}`}
           />
@@ -99,7 +99,7 @@ export default function AgentClientChannelContent({
           py="md"
         >
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={`Ask in plain language. Genfeed holds ${lowerNoun} for review before anything goes to ${page.channelName}.`}
             title={`What can you ask ${client.name} to do on ${page.channelName}?`}
           />
@@ -116,7 +116,7 @@ export default function AgentClientChannelContent({
 
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={`Everything ${client.name} can make for ${page.channelName} through Genfeed.`}
             title={`${page.channelName} content Genfeed creates`}
           />
@@ -146,7 +146,7 @@ export default function AgentClientChannelContent({
           py="md"
         >
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             title={`Other channels ${client.name} can post to`}
           />
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -165,7 +165,7 @@ export default function AgentClientChannelContent({
 
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             title={`Schedule ${page.channelName} ${lowerNoun} from other AI agents`}
           />
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -189,7 +189,7 @@ export default function AgentClientChannelContent({
           py="md"
         >
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             title={`${client.name} and ${page.channelName}: frequently asked questions`}
           />
           <FaqGrid items={[...page.faq]} />

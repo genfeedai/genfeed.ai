@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ConfigService } from '@libs/config/config.service';
 import { VercelWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -27,6 +27,8 @@ type VercelWebhookBody = {
   deployment?: VercelWebhookDeployment;
   environment?: string;
   event?: string;
+  /** Vercel's webhook event id, unique per delivery attempt's event. */
+  id?: string;
   meta?: VercelWebhookMeta;
   name?: string;
   payload?: VercelWebhookBody;
@@ -41,7 +43,7 @@ type VercelWebhookBody = {
 export class VercelWebhookService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -153,10 +155,30 @@ export class VercelWebhookService {
     });
 
     try {
-      await this.notificationsService.sendVercelNotification({
-        embed,
+      // One card per deployment event: a redelivered webhook dedupes.
+      // Vercel retries an event under the same id. Without one, a deployment
+      // URL is unique per deployment; a bare project name is not.
+      const deliveryKey =
+        typeof body.id === 'string' && body.id
+          ? body.id
+          : `${typeLabel}/${deploymentUrl ?? `${project}@${Date.now()}`}/${commitSha ?? ''}`;
+      await this.activityRecorder.dispatch({
+        deduplicationKey: `message.vercel/${deliveryKey}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'vercel_notification',
+              payload: { embed },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: null,
+        source: { id: deploymentUrl ?? project, type: 'vercel_deployment' },
+        topic: 'operator.alerts',
       });
-      this.loggerService.log('Vercel webhook published to Redis', {
+      this.loggerService.log('Vercel webhook recorded for delivery', {
         project,
       });
     } catch (error: unknown) {

@@ -58,7 +58,7 @@ describe('ServiceLandingPage', () => {
   );
 
   it('renders the X growth page with both paths spelled out', () => {
-    render(<ServiceLandingPage slug="x-growth" />);
+    render(<ServiceLandingPage slug="x" />);
 
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Grow your X account.');
@@ -71,13 +71,13 @@ describe('ServiceLandingPage', () => {
   });
 
   it.each([
-    ['linkedin-growth', 'Grow your LinkedIn audience.'],
-    ['instagram-growth', 'Grow your Instagram.'],
-    ['tiktok-growth', 'Grow your TikTok.'],
-    ['youtube-growth', 'Grow your YouTube channel.'],
-    ['threads-growth', 'Grow on Threads.'],
-    ['facebook-growth', 'Grow your Facebook Page.'],
-    ['pinterest-growth', 'Grow your Pinterest traffic.'],
+    ['linkedin', 'Grow your LinkedIn audience.'],
+    ['instagram', 'Grow your Instagram.'],
+    ['tiktok', 'Grow your TikTok.'],
+    ['youtube', 'Grow your YouTube channel.'],
+    ['threads', 'Grow on Threads.'],
+    ['facebook', 'Grow your Facebook Page.'],
+    ['pinterest', 'Grow your Pinterest traffic.'],
   ])('renders the %s bio-link page headline', (slug, headline) => {
     render(<ServiceLandingPage slug={slug} />);
 

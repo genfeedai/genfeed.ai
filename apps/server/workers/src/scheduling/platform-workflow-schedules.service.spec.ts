@@ -1,3 +1,4 @@
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,6 +57,9 @@ describe('PlatformWorkflowSchedulesService', () => {
         organizationId: 'org-1',
         userId: 'owner-1',
         trigger: 'scheduled',
+      }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       }),
     );
     expect(runner.enqueueWorkflow.mock.calls[0]).toEqual(

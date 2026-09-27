@@ -1,5 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ActivityKey, IngredientCategory } from '@genfeedai/contracts';
 import { Test } from '@nestjs/testing';
@@ -9,8 +10,8 @@ describe('ActivityUpdateService', () => {
   let service: ActivityUpdateService;
   let activitiesService: {
     findByActionValue: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
+    record: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
   let websocketService: {
     publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
@@ -20,9 +21,9 @@ describe('ActivityUpdateService', () => {
 
   beforeEach(async () => {
     activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
+      record: vi.fn().mockResolvedValue({ id: mockObjectId }),
       findByActionValue: vi.fn(),
-      patch: vi.fn().mockResolvedValue({ id: mockObjectId }),
+      update: vi.fn().mockResolvedValue({ id: mockObjectId }),
     };
     websocketService = {
       publishBackgroundTaskUpdate: vi.fn(),
@@ -32,6 +33,7 @@ describe('ActivityUpdateService', () => {
       providers: [
         ActivityUpdateService,
         { provide: ActivitiesService, useValue: activitiesService },
+        { provide: ActivityRecorderService, useValue: activitiesService },
         { provide: NotificationsPublisherService, useValue: websocketService },
       ],
     }).compile();
@@ -58,8 +60,8 @@ describe('ActivityUpdateService', () => {
 
       await service.updateSuccessActivity(baseParams);
 
-      expect(activitiesService.patch).toHaveBeenCalledWith(
-        mockObjectId.toString(),
+      expect(activitiesService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: mockObjectId }),
         expect.objectContaining({
           key: ActivityKey.VIDEO_GENERATED,
         }),
@@ -71,7 +73,7 @@ describe('ActivityUpdateService', () => {
 
       await service.updateSuccessActivity(baseParams);
 
-      expect(activitiesService.create).toHaveBeenCalled();
+      expect(activitiesService.record).toHaveBeenCalled();
     });
 
     it('should publish background task update when userId available', async () => {
@@ -96,7 +98,7 @@ describe('ActivityUpdateService', () => {
         transformations: ['reframed'],
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_REFRAME_COMPLETED,
         }),
@@ -111,7 +113,7 @@ describe('ActivityUpdateService', () => {
         transformations: ['upscaled'],
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_UPSCALE_COMPLETED,
         }),
@@ -126,7 +128,7 @@ describe('ActivityUpdateService', () => {
         category: IngredientCategory.IMAGE,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.IMAGE_GENERATED,
         }),
@@ -141,7 +143,7 @@ describe('ActivityUpdateService', () => {
         category: IngredientCategory.MUSIC,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.MUSIC_GENERATED,
         }),
@@ -155,7 +157,7 @@ describe('ActivityUpdateService', () => {
       });
 
       expect(activitiesService.findByActionValue).not.toHaveBeenCalled();
-      expect(activitiesService.create).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
     });
 
     it('should not publish websocket when userId is missing', async () => {
@@ -193,8 +195,8 @@ describe('ActivityUpdateService', () => {
 
       await service.updateFailureActivity(baseParams);
 
-      expect(activitiesService.patch).toHaveBeenCalledWith(
-        mockObjectId.toString(),
+      expect(activitiesService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: mockObjectId }),
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
         }),
@@ -206,7 +208,7 @@ describe('ActivityUpdateService', () => {
 
       await service.updateFailureActivity(baseParams);
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
         }),
@@ -234,7 +236,7 @@ describe('ActivityUpdateService', () => {
         category: IngredientCategory.IMAGE,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.IMAGE_FAILED,
         }),

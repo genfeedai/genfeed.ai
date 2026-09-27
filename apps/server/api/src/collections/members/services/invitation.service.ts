@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { claimWarmupWorkspace } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   buildSystemEmailHtml,
@@ -163,7 +163,7 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -744,11 +744,23 @@ export class InvitationService {
       organizationLabel,
     });
 
-    await this.notificationsService.sendEmail(
-      input.invitation.email,
-      subject,
-      html,
-    );
+    // Each create or resend is a deliberate send with a fresh token.
+    await this.activityRecorder.dispatch({
+      deduplicationKey: `message.invitation/${input.invitation.id}/${Date.now()}`,
+      messages: [
+        {
+          destination: input.invitation.email,
+          message: {
+            action: 'send_email',
+            payload: { html, subject, to: input.invitation.email },
+            type: 'email',
+          },
+        },
+      ],
+      organizationId: input.invitation.organizationId,
+      source: { id: input.invitation.id, type: 'invitation' },
+      topic: 'lifecycle.onboarding',
+    });
 
     this.logger.log('Invitation email dispatched', {
       ...this.context,

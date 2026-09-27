@@ -25,10 +25,10 @@ export interface MediaFailedEvent {
   room?: string;
 }
 
-export interface NotificationData {
-  userId?: string;
-  notification: unknown;
-  organizationId?: string;
+/** A recipient's notification inbox gained an item; clients re-read it. */
+export interface NotificationInboxUpdateData {
+  organizationId: string;
+  userIds: string[];
 }
 
 export interface IngredientStatusData {

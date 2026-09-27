@@ -14,6 +14,7 @@ import {
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
@@ -89,7 +90,11 @@ export class RssSourceWorkflowService implements OnModuleInit {
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `rss-sweep-${Math.floor(now.getTime() / RSS_SWEEP_INTERVAL_MS)}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 
@@ -106,7 +111,11 @@ export class RssSourceWorkflowService implements OnModuleInit {
         userId: request.userId,
       },
       `rss-source-${request.sourceId}-${Date.now()}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
   }
 

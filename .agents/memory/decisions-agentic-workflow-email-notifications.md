@@ -3,7 +3,7 @@ name: Agentic workflow email notification decisions
 description: Use a transactional notification outbox with durable preferences and Resend delivery state.
 type: project
 status: active
-last_verified: 2026-08-22
+last_verified: 2026-09-27
 topics: [agent, workflows, notifications, email, outbox, resend]
 ---
 
@@ -93,3 +93,19 @@ this change wires only real events that have real producers and consumers.
 - The execution actor is not always the workflow owner.
 - Adding unused event names is not a useful event catalog; new keys ship with a
   producer, preference policy, delivery behavior, and tests.
+
+## One Event Record (#5197, 2026-09-27)
+
+- A user-facing event is one `Activity`, recorded through
+  `ActivityRecorderService`. `ACTIVITY_ALERT_POLICIES` (contracts) maps an
+  `ActivityKey` to its alert topic, recipients, default channels and severity.
+- The recorder writes the notification event (linked by `activityId`) and its
+  deliveries in the activity's transaction; the inbox trigger copies the
+  activity id onto the bell item.
+- Transport-only messages (operator Discord, invitation and workflow email,
+  Telegram/Slack node sends) use `dispatch`: outbox channel deliveries with the
+  same atomicity, deduplication and retry. The Redis `notifications` channel is
+  gone.
+- The bell shows alerts only; the activities pages keep the full history.
+- `check:architecture` (activity recording boundary) fails on a direct
+  activity, outbox or Redis-notifications write outside the recording API.

@@ -1,4 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -11,9 +10,9 @@ import type {
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { scopedWhere } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
@@ -31,7 +30,6 @@ import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const CHECKOUT_SESSION_NAMESPACE = 'stripe-checkout-session';
@@ -112,7 +110,7 @@ export class StripeWebhookSupportService {
     private readonly loggerService: LoggerService,
     private readonly prisma: PrismaService,
 
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -121,7 +119,6 @@ export class StripeWebhookSupportService {
     private readonly usersService: UsersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -335,23 +332,52 @@ export class StripeWebhookSupportService {
     try {
       // The unique Stripe object id is the replay guard: a duplicate webhook
       // delivery is skipped by the constraint instead of read-then-written.
-      const { count } = await this.prisma.billingRevenueEvent.createMany({
-        data: [
-          {
-            amountMinor,
-            currency: input.currency.trim().toLowerCase() || 'usd',
-            occurredAt: input.occurredAt,
-            organizationId: input.organizationId,
-            source: input.source,
-            stripeObjectId: input.stripeObjectId,
-            userId: input.userId ?? null,
-          },
-        ],
-        skipDuplicates: true,
+      // The operator alert commits in the same transaction as the ledger row,
+      // so a replay can never double-alert and a new row is never silent.
+      const currency = input.currency.trim().toLowerCase() || 'usd';
+      const commit = await this.prisma.$transaction(async (transaction) => {
+        const { count } = await transaction.billingRevenueEvent.createMany({
+          data: [
+            {
+              amountMinor,
+              currency,
+              occurredAt: input.occurredAt,
+              organizationId: input.organizationId,
+              source: input.source,
+              stripeObjectId: input.stripeObjectId,
+              userId: input.userId ?? null,
+            },
+          ],
+          skipDuplicates: true,
+        });
+        if (count === 0) return null;
+        return this.activityRecorder.dispatchInTransaction(transaction, {
+          deduplicationKey: `message.revenue/${input.stripeObjectId}`,
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'revenue_notification',
+                payload: {
+                  amountMinor,
+                  currency,
+                  organizationId: input.organizationId,
+                  planLabel: input.planLabel,
+                  source: input.source,
+                  userId: input.userId,
+                },
+                type: 'discord',
+              },
+            },
+          ],
+          occurredAt: input.occurredAt,
+          organizationId: input.organizationId,
+          source: { id: input.stripeObjectId, type: 'stripe_revenue' },
+          topic: 'operator.alerts',
+        });
       });
-
-      if (count > 0) {
-        this.notifyOperatorOfRevenueEvent(input, amountMinor);
+      if (commit) {
+        await this.activityRecorder.afterCommit(commit);
       }
     } catch (error: unknown) {
       this.loggerService.error(
@@ -364,47 +390,6 @@ export class StripeWebhookSupportService {
         },
       );
     }
-  }
-
-  /**
-   * Fire-and-forget operator Discord alert for a newly-recorded revenue
-   * event. Never awaited by the caller (a slow or failing Redis publish must
-   * never delay or fail the webhook that already succeeded), and isolated in
-   * its own `.catch` (rather than relying on the caller's) so a publish
-   * failure here is never mistaken for a failure to record the ledger row
-   * above.
-   */
-  private notifyOperatorOfRevenueEvent(
-    input: BillingRevenueEventInput,
-    amountMinor: number,
-  ): void {
-    void this.notificationsService
-      .sendRevenueNotification({
-        amountMinor,
-        currency: input.currency.trim().toLowerCase() || 'usd',
-        organizationId: input.organizationId,
-        planLabel: input.planLabel,
-        source: input.source,
-        userId: input.userId,
-      })
-      .catch((error: unknown) => {
-        this.loggerService.error(
-          `${this.constructorName} failed to notify operator of revenue event`,
-          {
-            error,
-            organizationId: input.organizationId,
-            source: input.source,
-            stripeObjectId: input.stripeObjectId,
-          },
-        );
-        Sentry.captureException(error, {
-          extra: {
-            organizationId: input.organizationId,
-            source: input.source,
-            stripeObjectId: input.stripeObjectId,
-          },
-        });
-      });
   }
 
   async addPurchasedCredits(
@@ -471,7 +456,7 @@ export class StripeWebhookSupportService {
 
   /** Record the credits-added/reset activity entry. */
   async recordCreditsActivity(activity: CreditsActivity): Promise<void> {
-    await this.activitiesService.create({
+    await this.activityRecorder.record({
       ...(activity.brandId ? { brandId: activity.brandId } : {}),
       key: activity.key ?? ActivityKey.CREDITS_ADD,
       organizationId: activity.organizationId,

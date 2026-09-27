@@ -16,8 +16,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 
-vi.mock('@api/collections/activities/services/activities.service', () => ({
-  ActivitiesService: class {},
+vi.mock('@api/services/activity-recording/activity-recorder.service', () => ({
+  ActivityRecorderService: class {},
 }));
 vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class {},
@@ -49,7 +49,6 @@ vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
   FilesClientService: class {},
 }));
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -57,6 +56,7 @@ import { VideosUpscaleController } from '@api/collections/videos/controllers/tra
 import type { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -109,7 +109,7 @@ describe('VideosUpscaleController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ id: activityId }),
+      record: vi.fn().mockResolvedValue({ id: activityId }),
     },
     configService: {
       get: vi.fn().mockReturnValue('https://api.example.com'),
@@ -156,7 +156,7 @@ describe('VideosUpscaleController', () => {
       controllers: [VideosUpscaleController],
       providers: [
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: mockServices.activitiesService,
         },
         { provide: ConfigService, useValue: mockServices.configService },
@@ -397,7 +397,7 @@ describe('VideosUpscaleController', () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
     await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
-    expect(mockServices.activitiesService.create).toHaveBeenCalledWith(
+    expect(mockServices.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'video-upscale-processing' }),
     );
   });

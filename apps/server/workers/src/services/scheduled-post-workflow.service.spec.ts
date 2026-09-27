@@ -15,7 +15,7 @@ type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 function createHarness() {
   const registeredActions = new Map<string, RegisteredAction>();
   const activitiesService = {
-    create: vi.fn().mockResolvedValue(undefined),
+    record: vi.fn().mockResolvedValue(undefined),
     findOne: vi.fn().mockResolvedValue(null),
   };
   const discoveryService = {
@@ -124,7 +124,7 @@ describe('ScheduledPostWorkflowService', () => {
         isSuccessful: true,
       }),
     );
-    expect(harness.activitiesService.create).not.toHaveBeenCalled();
+    expect(harness.activitiesService.record).not.toHaveBeenCalled();
     expect(harness.repeatScheduler.scheduleNextRepeat).not.toHaveBeenCalled();
   });
 
@@ -133,7 +133,7 @@ describe('ScheduledPostWorkflowService', () => {
 
     await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED);
 
-    expect(harness.activitiesService.create).toHaveBeenCalledOnce();
+    expect(harness.activitiesService.record).toHaveBeenCalledOnce();
     expect(harness.repeatScheduler.scheduleNextRepeat).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1' }),
       'ScheduledPostWorkflowService.finalize',
@@ -148,7 +148,7 @@ describe('ScheduledPostWorkflowService', () => {
       isProviderDraft: true,
     });
 
-    expect(harness.activitiesService.create).not.toHaveBeenCalled();
+    expect(harness.activitiesService.record).not.toHaveBeenCalled();
     expect(harness.repeatScheduler.scheduleNextRepeat).not.toHaveBeenCalled();
   });
 
@@ -179,7 +179,7 @@ describe('ScheduledPostWorkflowService', () => {
       } as never),
     ).resolves.toBe(true);
 
-    expect(harness.activitiesService.create).toHaveBeenCalledWith(
+    expect(harness.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-published:post-1' }),
     );
     expect(harness.repeatScheduler.scheduleNextRepeat).toHaveBeenCalledWith(
@@ -327,7 +327,7 @@ describe('ScheduledPostWorkflowService', () => {
       } as never),
     ).rejects.toThrow('repeat unavailable');
 
-    expect(harness.activitiesService.create).not.toHaveBeenCalled();
+    expect(harness.activitiesService.record).not.toHaveBeenCalled();
     expect(
       harness.prisma.postPublishFinalization.updateMany,
     ).toHaveBeenCalledWith(

@@ -1,6 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -9,6 +11,7 @@ import {
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
 import {
+  ByokProvider,
   ReplyLength,
   ReplyTone,
   SocialConversationType,
@@ -63,9 +66,17 @@ describe('ReplyGenerationService', () => {
     updateMetadata: vi.fn(),
   };
 
+  const mockTextGenerationCreditsService = {
+    resolveDispatch: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: TextGenerationCreditsService,
+          useValue: mockTextGenerationCreditsService,
+        },
         ReplyGenerationService,
         { provide: HarnessGenerationService, useValue: mockHarnessService },
         { provide: CreditsUtilsService, useValue: mockCreditsUtilsService },
@@ -212,6 +223,38 @@ describe('ReplyGenerationService', () => {
       ).toHaveBeenCalled();
     });
 
+    it("dispatches on the org's own key and skips the credit floor and charge for a BYOK org", async () => {
+      mockTextGenerationCreditsService.resolveDispatch.mockResolvedValueOnce({
+        keys: { [ByokProvider.OPENROUTER]: 'org-or-key' },
+      });
+      mockTemplatesService.getRenderedPrompt.mockResolvedValue(
+        'rendered prompt',
+      );
+      mockPromptBuilderService.buildPrompt.mockResolvedValue({ input: {} });
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue(
+        'reply',
+      );
+
+      await service.generateReply({
+        ...baseOptions,
+        length: ReplyLength.SHORT,
+        tone: ReplyTone.PROFESSIONAL,
+      });
+
+      expect(
+        mockTextGenerationCreditsService.resolveDispatch,
+      ).toHaveBeenCalledWith('org-123', [DEFAULT_TEXT_MODEL]);
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(DEFAULT_TEXT_MODEL, {}, 'org-or-key');
+      expect(
+        mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockCreditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should pass custom instructions and context when provided', async () => {
       mockTemplatesService.getRenderedPrompt.mockResolvedValue(
         'rendered prompt',
@@ -247,6 +290,28 @@ describe('ReplyGenerationService', () => {
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
       expect(mockLoggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('assertCreditsAvailable', () => {
+    it('admits a BYOK org without checking the platform-credit floor', async () => {
+      mockTextGenerationCreditsService.resolveDispatch.mockResolvedValueOnce({
+        keys: { [ByokProvider.OPENROUTER]: 'org-or-key' },
+      });
+
+      await service.assertCreditsAvailable('org-123');
+
+      expect(
+        mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('checks the platform-credit floor without an org key', async () => {
+      await service.assertCreditsAvailable('org-123');
+
+      expect(
+        mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-123', expect.any(Number));
     });
   });
 

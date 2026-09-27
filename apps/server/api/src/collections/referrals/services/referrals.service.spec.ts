@@ -1,7 +1,7 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
@@ -100,7 +100,7 @@ describe('ReferralsService', () => {
     deductCreditsFromOrganization: MockFn;
     getOrganizationCreditsBalance: MockFn;
   };
-  let activities: { create: MockFn };
+  let activities: { record: MockFn };
 
   beforeEach(() => {
     configMock.organizationBilling = true;
@@ -163,14 +163,14 @@ describe('ReferralsService', () => {
     };
     const config = { get: vi.fn().mockReturnValue('https://app.example.test') };
     const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-    activities = { create: vi.fn() };
+    activities = { record: vi.fn() };
     service = new ReferralsService(
       prisma as unknown as PrismaService,
       billing as unknown as BillingAccountsService,
       credits as unknown as CreditsUtilsService,
       config as unknown as ConfigService,
       logger as unknown as LoggerService,
-      activities as unknown as ActivitiesService,
+      activities as unknown as ActivityRecorderService,
     );
   });
 
@@ -501,7 +501,7 @@ describe('ReferralsService', () => {
         isDeleted: false,
       },
     });
-    expect(activities.create).toHaveBeenCalledWith(
+    expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org_referrer' }),
     );
   });
@@ -534,7 +534,7 @@ describe('ReferralsService', () => {
       }),
       where: expect.objectContaining({ id: 'reward_1', isDeleted: false }),
     });
-    expect(activities.create).toHaveBeenCalledWith(
+    expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({ organizationId: 'org_original' }),
     );
   });

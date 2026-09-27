@@ -1,6 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -13,6 +12,7 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -48,7 +48,7 @@ const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
 @Injectable()
 export class PostThreadGenerationService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -64,23 +64,21 @@ export class PostThreadGenerationService {
     identity: ThreadGenerationMetadata,
     byokApiKeyOverride?: string,
   ): Promise<void> {
-    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
+    let activity: ActivityDocument | undefined;
 
     try {
-      activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: identity.brandId,
-          key: ActivityKey.POST_PROCESSING,
-          organizationId: identity.organizationId,
-          source: ActivitySource.POST_GENERATION,
-          userId: identity.userId,
-          value: JSON.stringify({
-            count: dto.count,
-            originalPostId: String(originalPost.id),
-            type: 'thread-expansion',
-          }),
+      activity = await this.activityRecorder.record({
+        brandId: identity.brandId,
+        key: ActivityKey.POST_PROCESSING,
+        organizationId: identity.organizationId,
+        source: ActivitySource.POST_GENERATION,
+        userId: identity.userId,
+        value: JSON.stringify({
+          count: dto.count,
+          originalPostId: String(originalPost.id),
+          type: 'thread-expansion',
         }),
-      );
+      });
 
       const additionalCount = dto.count - 1;
       const originalContent =
@@ -127,7 +125,7 @@ export class PostThreadGenerationService {
         identity,
       );
       try {
-        await this.activitiesService.patch(activity.id.toString(), {
+        await this.activityRecorder.update(activity, {
           key:
             completedCount === childPosts.length
               ? ActivityKey.POST_GENERATED
@@ -201,18 +199,16 @@ export class PostThreadGenerationService {
           result: updatedPost,
           status: Status.COMPLETED,
         });
-        await this.activitiesService.create(
-          new ActivityEntity({
-            brandId: identity.brandId,
-            entityId: childId,
-            entityModel: ActivityEntityModel.POST,
-            key: ActivityKey.POST_GENERATED,
-            organizationId: identity.organizationId,
-            source: ActivitySource.POST_GENERATION,
-            userId: identity.userId,
-            value: childId,
-          }),
-        );
+        await this.activityRecorder.record({
+          brandId: identity.brandId,
+          entityId: childId,
+          entityModel: ActivityEntityModel.POST,
+          key: ActivityKey.POST_GENERATED,
+          organizationId: identity.organizationId,
+          source: ActivitySource.POST_GENERATION,
+          userId: identity.userId,
+          value: childId,
+        });
         completedCount++;
       } catch (error) {
         this.logger.error(
@@ -226,7 +222,7 @@ export class PostThreadGenerationService {
   }
 
   private async markActivityFailed(
-    activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined,
+    activity: ActivityDocument | undefined,
     error: unknown,
   ): Promise<void> {
     if (!activity) {
@@ -234,7 +230,7 @@ export class PostThreadGenerationService {
     }
 
     try {
-      await this.activitiesService.patch(activity.id.toString(), {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.POST_FAILED,
         value: JSON.stringify({
           error: (error as Error)?.message || 'Thread expansion failed',

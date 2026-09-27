@@ -5,6 +5,10 @@ import type {
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import {
+  type TextByokDispatch,
+  textDispatchApiKey,
+} from '@api/services/byok/text-dispatch-byok.util';
 import { appendHarnessBriefToPrompt } from '@api/services/harness/harness-brief.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
@@ -44,6 +48,7 @@ export class ArticleTextGenerationService {
     organizationId: string;
     failureMessage: string;
     onBilling?: (charge: TextGenerationCharge) => void;
+    byok?: TextByokDispatch;
   }): Promise<string> {
     const promptWithHarness = appendHarnessBriefToPrompt(
       params.basePrompt,
@@ -68,6 +73,7 @@ export class ArticleTextGenerationService {
       await this.replicateService?.generateTextCompletionSync(
         params.model,
         input,
+        textDispatchApiKey(params.byok, params.model),
       );
 
     if (!responseText) {
@@ -95,6 +101,7 @@ export class ArticleTextGenerationService {
       PromptBuilderParams,
       'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
     >,
+    byok?: TextByokDispatch,
   ): Promise<{ output: string; charge: TextGenerationCharge }> {
     const { input } = (await this.promptBuilderService?.buildPrompt(
       model as string,
@@ -113,6 +120,7 @@ export class ArticleTextGenerationService {
     const output = await this.replicateService?.generateTextCompletionSync(
       model,
       input,
+      textDispatchApiKey(byok, model),
     );
 
     if (!output) {

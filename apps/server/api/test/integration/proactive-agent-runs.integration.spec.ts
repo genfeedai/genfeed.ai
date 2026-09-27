@@ -164,8 +164,8 @@ describe('proactive organization to strategy run and attributed draft integratio
       logger as never,
       { emitExecutionOutcome: vi.fn() } as never,
       {
-        recordWorkflowOutcome: vi.fn().mockResolvedValue(null),
-        enqueueAfterCommit: vi.fn(),
+        afterCommit: vi.fn(),
+        recordInTransaction: vi.fn().mockResolvedValue(null),
       } as never,
       strategies,
     );

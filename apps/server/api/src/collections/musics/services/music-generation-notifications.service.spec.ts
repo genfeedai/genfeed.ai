@@ -15,7 +15,7 @@ describe('MusicGenerationNotificationsService', () => {
 
   const createHarness = () => {
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
     const failedGenerationService = {
       handleFailedMusicGeneration: vi.fn().mockResolvedValue(undefined),
@@ -52,7 +52,7 @@ describe('MusicGenerationNotificationsService', () => {
         user,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: 'brand-1',
           entityId: 'music-1',
@@ -89,7 +89,7 @@ describe('MusicGenerationNotificationsService', () => {
         user,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           entityId: 'music-2',
           key: ActivityKey.MUSIC_PROCESSING,

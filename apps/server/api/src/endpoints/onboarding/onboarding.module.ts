@@ -20,6 +20,7 @@ import { OnboardingStarterAssetsQueueService } from '@api/endpoints/onboarding/s
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
+import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationModule,
     BrandScraperModule,
     BrandsModule,
+    ByokModule,
     ComfyUIModule,
     CommonModule,
     CreditsModule,

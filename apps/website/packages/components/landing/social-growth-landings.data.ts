@@ -257,7 +257,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     processDescription:
       'A daily operating rhythm with your approval at the center.',
     processTitle: 'How It Works',
-    slug: 'x-growth',
+    slug: 'x',
     title: 'X Growth Service',
   },
   {
@@ -362,7 +362,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'linkedin-growth',
+    slug: 'linkedin',
     title: 'LinkedIn Growth Service',
   },
   {
@@ -468,7 +468,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'instagram-growth',
+    slug: 'instagram',
     title: 'Instagram Growth Service',
   },
   {
@@ -573,7 +573,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'tiktok-growth',
+    slug: 'tiktok',
     title: 'TikTok Growth Service',
   },
   {
@@ -678,7 +678,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'youtube-growth',
+    slug: 'youtube',
     title: 'YouTube Growth Service',
   },
   {
@@ -783,7 +783,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'threads-growth',
+    slug: 'threads',
     title: 'Threads Growth Service',
   },
   {
@@ -889,7 +889,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'facebook-growth',
+    slug: 'facebook',
     title: 'Facebook Growth Service',
   },
   {
@@ -995,7 +995,7 @@ export const socialGrowthLandingConfigs: ServiceLandingConfig[] = [
     ),
     processDescription: SOCIAL_GROWTH_PROCESS_DESCRIPTION,
     processTitle: 'How It Works',
-    slug: 'pinterest-growth',
+    slug: 'pinterest',
     title: 'Pinterest Growth Service',
   },
 ];

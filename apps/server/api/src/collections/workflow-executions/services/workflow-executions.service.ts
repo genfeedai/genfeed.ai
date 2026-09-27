@@ -34,7 +34,8 @@ import {
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
-import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { buildWorkflowOutcomeActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -134,7 +135,7 @@ export class WorkflowExecutionsService extends BaseService<
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
     private readonly workflowEventWebhookService: WorkflowEventWebhookService,
-    private readonly workflowNotificationOutboxService: WorkflowNotificationOutboxService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly agentStrategiesService: AgentStrategiesService,
   ) {
     super(prisma, 'workflowExecution', logger);
@@ -495,25 +496,27 @@ export class WorkflowExecutionsService extends BaseService<
           { completedAt, failed: Boolean(error) },
         );
 
-        const durableDeliveryId = suppressWorkflowOutcomeNotification(
+        const outcome = suppressWorkflowOutcomeNotification(
           execution.workflow.metadata,
           Boolean(error),
           updatedExecution.result,
         )
           ? null
-          : await this.workflowNotificationOutboxService.recordWorkflowOutcome(
+          : await this.activityRecorder.recordInTransaction(
               transaction,
-              buildWorkflowOutcomeInput(
-                execution,
-                executionId,
-                completedAt,
-                failure,
-                error,
-                updatedExecution.result,
+              buildWorkflowOutcomeActivity(
+                buildWorkflowOutcomeInput(
+                  execution,
+                  executionId,
+                  completedAt,
+                  failure,
+                  error,
+                  updatedExecution.result,
+                ),
               ),
             );
 
-        return { deliveryId: durableDeliveryId, result: updatedExecution };
+        return { commit: outcome?.commit ?? null, result: updatedExecution };
       },
     );
 
@@ -521,11 +524,9 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
-    const { deliveryId, result } = terminalTransition;
-    if (deliveryId) {
-      await this.workflowNotificationOutboxService.enqueueAfterCommit(
-        deliveryId,
-      );
+    const { commit, result } = terminalTransition;
+    if (commit) {
+      await this.activityRecorder.afterCommit(commit);
     }
 
     const document = this.normalizeDocument(result);

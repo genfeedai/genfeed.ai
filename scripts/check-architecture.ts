@@ -106,6 +106,14 @@ const checks = [
     name: 'Product workflow boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-workflow-dispatch-class.ts',
+    ],
+    name: 'System-workflow dispatch-class boundary',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-route-shadowing.ts'],
     name: 'Controller route shadowing',
   },
@@ -152,6 +160,14 @@ const checks = [
       'scripts/architecture/check-project-reference-deps.ts',
     ],
     name: 'Project reference dependency parity',
+  },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-activity-recording-boundary.ts',
+    ],
+    name: 'Activity recording boundary (#5197)',
   },
 ] as const;
 

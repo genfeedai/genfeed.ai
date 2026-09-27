@@ -42,6 +42,7 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { scopedWhere } from '@api/index';
+import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
@@ -223,7 +224,10 @@ export class ArticlesContentService {
     };
   }
 
-  async generateDrafts(context: ArticleGenerationContext): Promise<{
+  async generateDrafts(
+    context: ArticleGenerationContext,
+    byok?: TextByokDispatch,
+  ): Promise<{
     billedCredits: number;
     context: ArticleGenerationContext;
     items: ArticleGenerationWorkItem[];
@@ -232,6 +236,7 @@ export class ArticlesContentService {
     const responseText =
       await this.articleTextGenerationService.runTextGenerationStep({
         basePrompt: context.prompt,
+        byok,
         buildPromptOptions: {
           maxTokens: this.configService.get('MAX_TOKENS'),
           modelCategory: ModelCategory.TEXT,
@@ -267,8 +272,10 @@ export class ArticlesContentService {
 
   async reviewDraft(
     item: ArticleGenerationWorkItem,
+    byok?: TextByokDispatch,
   ): Promise<ArticleGenerationReviewState> {
     const result = await this.articleReviewService.reviewDraft({
+      byok,
       draft: item.draft,
       harnessContext: item.context.harnessContext,
       modelConfig: item.context.modelConfig,
@@ -284,8 +291,10 @@ export class ArticlesContentService {
 
   async reviseDraft(
     state: ArticleGenerationReviewState,
+    byok?: TextByokDispatch,
   ): Promise<ArticleGenerationRevisionState> {
     const result = await this.articleReviewService.reviseDraft({
+      byok,
       draft: state.draft,
       harnessContext: state.context.harnessContext,
       modelConfig: state.context.modelConfig,
@@ -621,6 +630,7 @@ export class ArticlesContentService {
 
   async reviewExistingPrepared(
     context: ArticleExistingReviewContext,
+    byok?: TextByokDispatch,
   ): Promise<{ billedCredits: number; review: ArticleReviewRubric }> {
     let billedCredits = 0;
     const review = await this.articleReviewService.reviewExistingArticle(
@@ -632,6 +642,7 @@ export class ArticlesContentService {
       (charge) => {
         billedCredits += charge.amount;
       },
+      byok,
     );
     return { billedCredits, review };
   }

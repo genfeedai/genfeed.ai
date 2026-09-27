@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -183,6 +184,23 @@ function buildPrisma(): MockPrisma {
   return prisma;
 }
 
+function emailRecorder(
+  send: (to: string, subject: string, html: string) => unknown,
+) {
+  // The service dispatches the invitation through the outbox; the adapter
+  // exposes the rendered email the way the assertions read it.
+  return {
+    dispatch: vi.fn(async (input: ChannelDispatchInput) => {
+      const payload = input.messages[0]?.message.payload as {
+        html: string;
+        subject: string;
+        to: string;
+      };
+      await send(payload.to, payload.subject, payload.html);
+    }),
+  };
+}
+
 function buildService(prisma = buildPrisma()) {
   const configService = {
     apiUrl: 'https://api.public.test',
@@ -197,9 +215,9 @@ function buildService(prisma = buildPrisma()) {
     }),
   } as unknown as ConfigService;
 
-  const notificationsService = {
-    sendEmail: vi.fn().mockResolvedValue(undefined),
-  } as unknown as NotificationsService;
+  const sendEmail = vi.fn().mockResolvedValue(undefined);
+  const notificationsService = { sendEmail };
+  const activityRecorder = emailRecorder(sendEmail);
 
   const logger = {
     debug: vi.fn(),
@@ -216,7 +234,7 @@ function buildService(prisma = buildPrisma()) {
     service: new InvitationService(
       prisma as unknown as PrismaService,
       configService,
-      notificationsService,
+      activityRecorder as unknown as ActivityRecorderService,
       logger,
     ),
   };
