@@ -1,16 +1,12 @@
-'use client';
-
 import { FAQ_CATEGORIES, type FAQCategory } from '@data/faq.data';
-import { ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@ui/primitives/accordion';
-import { Button } from '@ui/primitives/button';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
   BookOpen,
@@ -38,18 +34,13 @@ const faqs: FAQCategory[] = FAQ_CATEGORIES.map((category) => ({
   icon: CATEGORY_ICONS[category.category],
 }));
 
-function scrollToCategory(categoryId: string) {
-  const element = document.getElementById(categoryId);
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+function categorySlug(category: string): string {
+  return category.toLowerCase().replace(/\s+/g, '-');
 }
 
 export default function FAQContent() {
-  const containerRef = useMarketingEntrance({ sections: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance sections={false}>
       <PageLayout
         title="FAQ"
         description="Pricing, features, and how to get access to Genfeed"
@@ -71,8 +62,9 @@ export default function FAQContent() {
               {faqs.map((category) => (
                 <div
                   key={category.category}
-                  id={category.category.toLowerCase().replace(/\s+/g, '-')}
-                  className="gsap-card"
+                  id={categorySlug(category.category)}
+                  // Clears the fixed 80px topbar when a "Jump to" link lands.
+                  className="gsap-card scroll-mt-28"
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-primary/10 text-primary">
@@ -113,17 +105,11 @@ export default function FAQContent() {
                   </h3>
                   <nav className="space-y-1">
                     {faqs.map((category) => (
-                      <Button
+                      // Plain fragment links: the page stays server-rendered and
+                      // the jump works before any JavaScript loads.
+                      <a
                         key={category.category}
-                        type="button"
-                        variant={ButtonVariant.UNSTYLED}
-                        onClick={() =>
-                          scrollToCategory(
-                            category.category
-                              .toLowerCase()
-                              .replace(/\s+/g, '-'),
-                          )
-                        }
+                        href={`#${categorySlug(category.category)}`}
                         className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-sm text-muted-foreground hover:text-surface hover:bg-fill/10 transition-colors"
                       >
                         {category.icon}
@@ -131,7 +117,7 @@ export default function FAQContent() {
                         <span className="ml-auto text-xs opacity-50">
                           {category.questions.length}
                         </span>
-                      </Button>
+                      </a>
                     ))}
                   </nav>
                 </div>
@@ -184,6 +170,6 @@ export default function FAQContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

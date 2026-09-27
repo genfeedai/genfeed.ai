@@ -1,24 +1,12 @@
-'use client';
-
-import { gsapPresets, useGsapEntrance } from '@hooks/ui/use-gsap-entrance';
 import Card from '@ui/card/Card';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { useMemo } from 'react';
 
 export default function DemoContent() {
-  const animations = useMemo(
-    () => [
-      gsapPresets.fadeUp('.gsap-hero'),
-      gsapPresets.fadeUp('.gsap-section', '.gsap-section'),
-    ],
-    [],
-  );
-
-  const containerRef = useGsapEntrance({ animations });
-
+  // Hero + section fades, no card stagger — the preset MarketingEntrance runs.
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <PageLayout
         title="Demo"
         description="Watch Genfeed create content, publish everywhere, and track revenue in real-time"
@@ -57,6 +45,6 @@ export default function DemoContent() {
           </Card>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

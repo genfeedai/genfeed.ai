@@ -1,16 +1,12 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Code } from '@genfeedai/ui';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
   FREE_SKILL_COUNT,
   SKILL_CATEGORIES,
   type SkillRegistry,
   type SkillRegistryEntry,
 } from '@public/skills/_data';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {
   CtaSection,
@@ -18,13 +14,14 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
-import { ArrowRight, BrainCircuit, Loader, Sparkles } from 'lucide-react';
+import { ArrowRight, BrainCircuit, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
 
 import InstallCommand from './install-command';
 import SkillsBundleCta from './skills-bundle-cta';
+import SkillsCheckoutButton from './skills-checkout-button';
 import SkillsHowItWorks from './skills-how-it-works';
 import SkillsStatsBar from './skills-stats-bar';
 import TerminalDemo from './terminal-demo';
@@ -37,41 +34,9 @@ interface SkillsContentProps {
 
 export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
   const registry = initialRegistry;
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const containerRef = useMarketingEntrance();
-
-  const handleCheckout = useCallback(async () => {
-    setCheckoutLoading(true);
-
-    try {
-      const response = await fetch(
-        `${EnvironmentService.apiEndpoint}/skills-pro/checkout`,
-        {
-          body: JSON.stringify({
-            cancelUrl: `${window.location.origin}/skills`,
-            successUrl: `${window.location.origin}/skills/success?session_id={CHECKOUT_SESSION_ID}`,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Checkout failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      setCheckoutLoading(false);
-    }
-  }, []);
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         badge="Open Source Skills"
         badgeIcon={BrainCircuit}
@@ -201,11 +166,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
 
         {/* Bundle CTA */}
         {registry && registry.skills.length > 0 && (
-          <SkillsBundleCta
-            bundlePrice={registry.bundlePrice}
-            checkoutLoading={checkoutLoading}
-            onCheckout={handleCheckout}
-          />
+          <SkillsBundleCta bundlePrice={registry.bundlePrice} />
         )}
 
         {/* How It Works */}
@@ -256,20 +217,10 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           description={`${FREE_SKILL_COUNT} free skills. Every platform. One install. Upgrade to Pro for warmup and deep operating systems.`}
         >
           {registry && registry.skills.length > 0 && (
-            <Button
-              size={ButtonSize.PUBLIC}
-              onClick={() => handleCheckout()}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? (
-                <Loader className="size-4 animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="size-4" />
-                  Get Pro Skills: ${registry.bundlePrice}
-                </>
-              )}
-            </Button>
+            <SkillsCheckoutButton>
+              <Sparkles className="size-4" />
+              Get Pro Skills: ${registry.bundlePrice}
+            </SkillsCheckoutButton>
           )}
           <Button
             variant={ButtonVariant.SECONDARY}
@@ -287,6 +238,6 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

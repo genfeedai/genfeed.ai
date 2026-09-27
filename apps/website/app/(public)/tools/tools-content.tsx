@@ -1,5 +1,3 @@
-'use client';
-
 import Card from '@ui/card/Card';
 import PageLayout from '@web-components/PageLayout';
 import { FileText, Scissors } from 'lucide-react';

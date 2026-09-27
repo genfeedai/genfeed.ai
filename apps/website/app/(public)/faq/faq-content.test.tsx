@@ -34,3 +34,13 @@ describe('FAQContent headings', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('FAQContent jump links', () => {
+  it('jumps with fragment links, so the page needs no client JavaScript', () => {
+    render(<FAQContent />);
+
+    const general = screen.getByRole('link', { name: /^General/ });
+    expect(general).toHaveAttribute('href', '#general');
+    expect(document.getElementById('general')).toHaveClass('scroll-mt-28');
+  });
+});
