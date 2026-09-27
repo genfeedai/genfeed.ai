@@ -51,6 +51,7 @@ describe('PostGenerationService', () => {
 
   const identity = {
     brandId,
+    id: userId,
     organizationId,
     userId,
   };
