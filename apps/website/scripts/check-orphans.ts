@@ -72,7 +72,6 @@ const ORPHAN_ALLOWLIST = new Set<string>([
   '/llms.txt',
   '/llms-full.txt',
   '/retainer',
-  '/dfy',
   '/fleet',
   '/done-for-you',
   '/founder-content',
