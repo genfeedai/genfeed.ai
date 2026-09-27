@@ -16,6 +16,16 @@ export function brandPath(path: string = APP_ROUTES.ROOT): string {
   return createBrandAppRoute(E2E_ORG_SLUG, E2E_BRAND_SLUG, path);
 }
 
+/**
+ * Current app route as path + query. Library places and asset types are query
+ * filters on `/library/assets` (#5135), so the pathname alone cannot tell
+ * them apart.
+ */
+export function currentRoute(page: Page): string {
+  const { pathname, search } = new URL(page.url());
+  return `${pathname}${search}`;
+}
+
 export function orgPath(path: string = APP_ROUTES.ROOT): string {
   return createOrganizationAppRoute(E2E_ORG_SLUG, path);
 }

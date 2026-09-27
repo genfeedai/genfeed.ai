@@ -5,7 +5,7 @@ import {
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, currentRoute } from '../../utils/app-chrome';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
@@ -61,7 +61,9 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.GIFS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/gifs/);
+      await expect
+        .poll(() => currentRoute(authenticatedPage))
+        .toBe(brandPath(APP_ROUTES.LIBRARY.GIFS));
       await expect(authenticatedPage.getByText(/gif/i).first()).toBeVisible();
     });
 
@@ -89,7 +91,9 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MUSIC));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/music/);
+      await expect
+        .poll(() => currentRoute(authenticatedPage))
+        .toBe(brandPath(APP_ROUTES.LIBRARY.MUSIC));
       await expect(authenticatedPage.getByText(/music/i).first()).toBeVisible();
     });
 
@@ -160,7 +164,7 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
 
       const search = authenticatedPage.getByRole('textbox', {
