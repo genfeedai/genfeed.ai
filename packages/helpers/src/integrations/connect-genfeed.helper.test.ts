@@ -1,4 +1,24 @@
-import { buildConnectGenfeedInstructions } from './connect-genfeed.helper';
+import {
+  buildConnectGenfeedChatPrompt,
+  buildConnectGenfeedInstructions,
+} from './connect-genfeed.helper';
+
+describe('buildConnectGenfeedChatPrompt', () => {
+  it('names the normalized endpoint and OAuth without requesting a secret', () => {
+    const prompt = buildConnectGenfeedChatPrompt('https://mcp.genfeed.ai/mcp/');
+
+    expect(prompt).toContain('MCP server URL: https://mcp.genfeed.ai/mcp\n');
+    expect(prompt).toContain('OAuth');
+    expect(prompt).toContain('list my Genfeed brands');
+    expect(prompt).not.toMatch(/GENFEED_API_KEY|Bearer/);
+  });
+
+  it('rejects non-HTTP endpoints', () => {
+    expect(() => buildConnectGenfeedChatPrompt('file:///tmp/mcp')).toThrow(
+      'The MCP endpoint must use HTTP or HTTPS.',
+    );
+  });
+});
 
 describe('buildConnectGenfeedInstructions', () => {
   it.each(['codex', 'claude-code', 'generic'] as const)(
