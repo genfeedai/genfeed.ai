@@ -167,7 +167,14 @@ describe('useMicrophoneInput', () => {
   it('sends the confirmed routed organization with the transcription request', async () => {
     setRequestOrganizationId('org_alpha');
     vi.mocked(global.fetch).mockResolvedValue({
-      json: async () => ({ text: 'scoped' }),
+      // SpeechTranscriptionSerializer's JSON:API document.
+      json: async () => ({
+        data: {
+          attributes: { language: 'en', text: 'scoped' },
+          id: 'transcription-1',
+          type: 'speech-transcription',
+        },
+      }),
       ok: true,
       status: 200,
     } as unknown as Response);
