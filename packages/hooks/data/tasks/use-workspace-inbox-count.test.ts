@@ -1,4 +1,5 @@
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { useQueryClient } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -66,6 +67,29 @@ describe('useWorkspaceInboxCount', () => {
     });
 
     expect(mockList).toHaveBeenCalledWith({});
+  });
+
+  it('refreshes the shared inbox query every minute with a 30-second stale time', () => {
+    mockList.mockResolvedValue([]);
+    const { result } = renderHook(
+      () => {
+        useWorkspaceInboxCount();
+        return useQueryClient();
+      },
+      { wrapper: createQueryWrapper() },
+    );
+
+    expect(
+      result.current.getQueryCache().find({
+        queryKey: ['workspace-inbox-tasks', 'user-1', 'organization-1'],
+        exact: true,
+      })?.options,
+    ).toEqual(
+      expect.objectContaining({
+        refetchInterval: 60_000,
+        staleTime: 30_000,
+      }),
+    );
   });
 
   it('returns zero without an auth token', async () => {

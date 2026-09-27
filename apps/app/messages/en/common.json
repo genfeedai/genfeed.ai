@@ -1767,36 +1767,48 @@
   "appRail": {
     "apps": "Apps",
     "navigation": "App navigation",
+    "goTo": "Go to {app}",
     "opening": "Opening app.",
     "locked": "{app} — locked. Generate your first asset to unlock.",
+    "workspaceBadge": "{count, plural, one {# unread task needing attention} other {# unread tasks needing attention}}",
     "agent": {
+      "label": "Agent",
       "description": "Ask and execute."
     },
     "workspace": {
+      "label": "Workspace",
       "description": "Command center."
     },
     "studio": {
+      "label": "Studio",
       "description": "Create assets."
     },
     "library": {
+      "label": "Library",
       "description": "Use source assets."
     },
     "publishing": {
+      "label": "Publishing",
       "description": "Drafts and posts."
     },
     "messages": {
+      "label": "Messages",
       "description": "Reply to audience."
     },
     "discovery": {
+      "label": "Discovery",
       "description": "Find winners."
     },
     "analytics": {
+      "label": "Analytics",
       "description": "Measure results."
     },
     "automation": {
+      "label": "Automation",
       "description": "Run workflows."
     },
     "admin": {
+      "label": "Admin",
       "description": "Platform management."
     }
   }

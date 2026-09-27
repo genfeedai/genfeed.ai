@@ -21027,14 +21027,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "packages/ui/src/components/shell/app-rail/AppRail.tsx",
-      "fingerprint": "f5258a9fff3ff543293b",
-      "message": "Cannot find module '@genfeedai/props/ui/app-rail.props' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "packages/ui/src/components/shell/media-canvas/MediaCanvasShell.tsx",
       "fingerprint": "e9e3273b11698501d0aa",
       "message": "Cannot find module '@genfeedai/props/layout/media-canvas-shell.props' or its corresponding type declarations.",
@@ -22806,14 +22798,6 @@
       "file": "packages/ui/src/components/buttons/dropdown/button-dropdown/ButtonDropdown.test.tsx",
       "fingerprint": "ddb2cf849a96db1735e1",
       "message": "Property 'value' is missing in type '{ name: string; options: ({ icon: Element; label: string; value: string; } | { label: string; value: string; icon?: undefined; })[]; onChange: Mock<Procedure>; }' but required in type 'ButtonDropdownProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/ui/src/components/command-palette/command-palette-initializer/CommandPaletteInitializer.test.tsx",
-      "fingerprint": "5e80ed1be9f2b8b71760",
-      "message": "Argument of type '{ registerCommands: Mock<Procedure>; unregisterCommands: Mock<Procedure>; }' is not assignable to parameter of type 'ICommandPaletteContext'.   Type '{ registerCommands: Mock<Procedure>; unregisterCommands: Mock<Procedure>; }' is missing the following properties from type 'ICommandPaletteContext': state, open, close, toggle, and 4 more.",
       "workspace": "ui"
     },
     {

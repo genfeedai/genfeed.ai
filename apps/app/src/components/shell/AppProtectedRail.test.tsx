@@ -1,3 +1,10 @@
+const badgeCounts = vi.hoisted(() => ({ workspace: 0 }));
+vi.mock('@genfeedai/hooks/data/tasks/use-workspace-inbox-count', () => ({
+  useWorkspaceInboxCount: () => badgeCounts.workspace,
+}));
+vi.mock('@/lib/analytics/app-rail-analytics', () => ({
+  captureAppRailNavigation: vi.fn(),
+}));
 const messagesUnread = vi.hoisted(() => ({
   count: 0,
   spy: vi.fn(),
@@ -165,6 +172,27 @@ type RailProps = {
 };
 
 describe('AppProtectedRail', () => {
+  it('uses only Workspace and Messages unread counts', () => {
+    badgeCounts.workspace = 4;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        badges: {
+          workspace: { count: 4, label: 'workspaceBadge' },
+          messages: { count: 0, label: '0 unread conversations' },
+        },
+        surface: 'desktop',
+      }),
+    );
+  });
+
+  it('marks the AppLayout drawer clone as the drawer analytics surface', () => {
+    render(<AppProtectedRail orgSlug="acme" onNavigate={vi.fn()} />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ surface: 'drawer' }),
+    );
+  });
+
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
@@ -174,6 +202,7 @@ describe('AppProtectedRail', () => {
     mockOrgUrl.orgSlug = 'acme';
     appRailSpy.mockClear();
     messagesUnread.count = 0;
+    badgeCounts.workspace = 0;
     messagesUnread.spy.mockClear();
     brandContextState.brands = [
       {
@@ -204,9 +233,9 @@ describe('AppProtectedRail', () => {
     expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand', true);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        badges: {
+        badges: expect.objectContaining({
           messages: { count: 3, label: '3 unread conversations' },
-        },
+        }),
       }),
     );
   });

@@ -4,29 +4,22 @@ import { isPersonalSettingsPage } from '@app-components/app-protected-layout.set
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
+import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
-
 import { resolveShellScope } from '@/components/shell/shell-scope';
 import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
+import { captureAppRailNavigation } from '@/lib/analytics/app-rail-analytics';
 import {
   appendSearchParamsToHref,
   pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
-
-type AppProtectedRailProps = {
-  brandSlug?: string;
-  /** Admin chrome always offers Admin, independent of platform access. */
-  isAdminChrome?: boolean;
-  /** Injected by AppLayout into the mobile drawer copy to close the drawer. */
-  onNavigate?: () => void;
-  orgSlug?: string;
-};
 
 function AppProtectedRailContent({
   brandSlug,
@@ -50,6 +43,8 @@ function AppProtectedRailContent({
       resolvedOrgSlug,
       selectedBrand,
     });
+  const workspaceCount = useWorkspaceInboxCount();
+  const translateRail = useTranslations('common.appRail');
   const translateMessages = useTranslations('common.messages');
   // The Messages item opens the brand in the URL, else the org-wide inbox:
   // the badge counts the same scope. While the route names a brand but
@@ -98,6 +93,8 @@ function AppProtectedRailContent({
 
   return (
     <AppRail
+      surface={onNavigate ? 'drawer' : 'desktop'}
+      onNavigationEvent={captureAppRailNavigation}
       header={
         // Slack workspace icon. Personal-account settings pages have no org
         // context to switch from (#4659).
@@ -106,6 +103,10 @@ function AppProtectedRailContent({
         )
       }
       badges={{
+        workspace: {
+          count: workspaceCount,
+          label: translateRail('workspaceBadge', { count: workspaceCount }),
+        },
         messages: {
           count: messagesUnreadCount,
           label: translateMessages('unreadBadge', {
