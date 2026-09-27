@@ -1,6 +1,9 @@
+import { orgPath } from '@e2e/utils/app-chrome';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AgentPage } from '../../pages/agent.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 function wrapInJsonApi<T>(data: T, type: string, id: string) {
   return {
@@ -56,31 +59,46 @@ function mockActiveRuns(page: Page): Promise<void> {
   });
 }
 
-function buildChatResponse(options: {
-  content: string;
-  creditsRemaining?: number;
-  toolCalls?: Array<{
-    creditsUsed: number;
-    durationMs: number;
-    error?: string;
-    status: 'completed' | 'failed';
-    toolName: string;
-  }>;
-  uiActions?: Array<Record<string, unknown>>;
-}): string {
-  return JSON.stringify({
-    creditsRemaining: options.creditsRemaining ?? 118,
-    creditsUsed: 2,
-    message: {
-      content: options.content,
-      metadata: {
-        uiActions: options.uiActions ?? [],
-      },
-      role: 'assistant',
-    },
-    threadId: 'thread-agent-e2e',
-    toolCalls: options.toolCalls ?? [],
-  });
+/**
+ * The real send path is async: `POST /agent/threads/turns/stream` only
+ * acknowledges the turn (`AgentChatStreamResponse` — no message content), the
+ * client pushes to the org-scoped thread route on `response.threadId`, and
+ * the assistant reply is delivered over the run's socket channel. E2E has no
+ * socket double, so — like `chat/onboarding.spec.ts`'s
+ * `bootstraps onboarding chat...` test — every spec here pre-seeds the
+ * thread's REST endpoints (messages/snapshot) with the final state and
+ * reloads after the URL promotes, instead of asserting on the ack response.
+ */
+function mockTurnAck(
+  page: Page,
+  threadId: string,
+): Promise<{ request: Record<string, unknown> | undefined }> {
+  const captured: { request: Record<string, unknown> | undefined } = {
+    request: undefined,
+  };
+
+  return page
+    .route('**/agent/threads/turns/stream', async (route: Route) => {
+      captured.request = route.request().postDataJSON() as Record<
+        string,
+        unknown
+      >;
+      await route.fulfill({
+        body: JSON.stringify({
+          brandId: null,
+          clientRequestId: captured.request?.clientRequestId ?? 'crid-e2e',
+          contextId: 'ctx-e2e',
+          contextVersion: 1,
+          executionId: `exec-${threadId}`,
+          queuedAt: new Date().toISOString(),
+          status: 'queued',
+          threadId,
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    })
+    .then(() => captured);
 }
 
 async function mockThreadReplay(
@@ -98,6 +116,8 @@ async function mockThreadReplay(
   const userContent = options.userContent ?? 'publish this';
   const now = new Date().toISOString();
   const threadSummary = {
+    brandId: null,
+    contextVersion: 1,
     createdAt: now,
     status: 'active',
     title,
@@ -195,6 +215,7 @@ test.describe('Agent Chat', () => {
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-agent-e2e';
     const assistantContent = 'Ready to publish this post from chat.';
     const publishUiActions = [
       {
@@ -217,34 +238,21 @@ test.describe('Agent Chat', () => {
         }
       | undefined;
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
-      await route.fulfill({
-        body: buildChatResponse({
-          content: assistantContent,
-          toolCalls: [
-            {
-              creditsUsed: 0,
-              durationMs: 180,
-              status: 'completed',
-              toolName: 'create_post',
-            },
-          ],
-          uiActions: publishUiActions,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
     await mockThreadReplay(authenticatedPage, {
       assistantContent,
-      title: 'Publish selected content',
+      threadId,
+      // Distinct from the card's own title ('Publish selected content')
+      // below: the thread title also renders as an sr-only heading in the
+      // conversation column, and an identical string would trip strict mode
+      // against the card's real, visible heading.
+      title: 'Publish flow thread',
       uiActions: publishUiActions,
       userContent: 'publish this',
     });
+    await mockTurnAck(authenticatedPage, threadId);
 
     await authenticatedPage.route(
-      '**/threads/thread-agent-e2e/ui-actions',
+      `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
         uiActionRequest = route.request().postDataJSON() as {
           action: string;
@@ -253,6 +261,8 @@ test.describe('Agent Chat', () => {
 
         await route.fulfill({
           body: JSON.stringify({
+            brandId: null,
+            contextVersion: 1,
             creditsRemaining: 118,
             creditsUsed: 0,
             message: {
@@ -279,7 +289,7 @@ test.describe('Agent Chat', () => {
               },
               role: 'assistant',
             },
-            threadId: 'thread-agent-e2e',
+            threadId,
             toolCalls: [
               {
                 creditsUsed: 0,
@@ -296,13 +306,35 @@ test.describe('Agent Chat', () => {
     );
 
     await agentPage.goto();
+    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
     await agentPage.sendPrompt('publish this');
 
+    // Assert on the thread-route suffix only: `activeHref` picks a
+    // brand-scoped vs. org-only prefix depending on brand-context timing,
+    // which is orthogonal to what this test verifies (the turn ack promoted
+    // the URL to the thread the app just created).
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    );
+    // Navigate to the known-good org-scoped thread URL instead of
+    // reloading in place: the client's own `activeHref` push above may
+    // have resolved a stale/loading brand slug, and the assistant reply
+    // arrives over the run's socket channel, which has no E2E double —
+    // hydrate the transcript from the pre-seeded messages/snapshot REST
+    // endpoints instead (same durable-route pattern as
+    // `chat/onboarding.spec.ts`).
+    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
+
+    const conversation = authenticatedPage.getByTestId(
+      'agent-conversation-column',
+    );
     await expect(
-      authenticatedPage.getByText('Ready to publish this post from chat.'),
+      conversation.getByText('Ready to publish this post from chat.'),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', {
+      conversation.getByRole('heading', {
         name: 'Publish selected content',
       }),
     ).toBeVisible();
@@ -315,23 +347,34 @@ test.describe('Agent Chat', () => {
     await agentPage.publishSchedule.fill('2026-03-12T09:30');
 
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Confirm schedule' }),
+      conversation.getByRole('button', { name: 'Confirm schedule' }),
     ).toBeEnabled();
-    await authenticatedPage
+    await conversation
       .getByRole('button', { name: 'Confirm schedule' })
       .click();
 
     await expect(
-      authenticatedPage.getByText('Publish scheduled from chat.'),
+      conversation.getByText('Publish scheduled from chat.'),
     ).toBeVisible();
+    // respondToUiAction sends the thread's brandId/contextVersion alongside
+    // the action (see agent-chat-container.ui-actions.ts), and the card
+    // normalizes the datetime-local input to an ISO instant in the browser's
+    // own TZ — compute the expectation there too, not in the Node test
+    // process, whose TZ may differ from the browser's configured one.
+    const expectedScheduledAt = await authenticatedPage.evaluate(() =>
+      new Date('2026-03-12T09:30').toISOString(),
+    );
     expect(uiActionRequest).toEqual({
       action: 'confirm_publish_post',
+      brandId: null,
+      expectedContextVersion: 1,
       payload: {
         caption: 'Updated launch caption',
         contentId: 'ingredient-42',
         platforms: ['twitter'],
-        scheduledAt: '2026-03-12T09:30',
+        scheduledAt: expectedScheduledAt,
         sourceActionId: 'publish-card-e2e',
+        visibility: 'public',
       },
     });
   });
@@ -340,6 +383,7 @@ test.describe('Agent Chat', () => {
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-analytics-e2e';
     const assistantContent = 'Here is the latest post performance snapshot.';
     const analyticsUiActions = [
       {
@@ -363,50 +407,56 @@ test.describe('Agent Chat', () => {
       },
     ];
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
-      await route.fulfill({
-        body: buildChatResponse({
-          content: assistantContent,
-          toolCalls: [
-            {
-              creditsUsed: 0,
-              durationMs: 165,
-              status: 'completed',
-              toolName: 'get_analytics',
-            },
-          ],
-          uiActions: analyticsUiActions,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
     await mockThreadReplay(authenticatedPage, {
       assistantContent,
+      threadId,
       title: 'Post analytics snapshot',
       uiActions: analyticsUiActions,
       userContent: 'show analytics',
     });
+    await mockTurnAck(authenticatedPage, threadId);
 
     await agentPage.goto();
+    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
     await agentPage.sendPrompt('show analytics');
 
+    // Assert on the thread-route suffix only: `activeHref` picks a
+    // brand-scoped vs. org-only prefix depending on brand-context timing,
+    // which is orthogonal to what this test verifies (the turn ack promoted
+    // the URL to the thread the app just created).
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    );
+    // Navigate to the known-good org-scoped thread URL instead of
+    // reloading in place: the client's own `activeHref` push above may
+    // have resolved a stale/loading brand slug, and the assistant reply
+    // arrives over the run's socket channel, which has no E2E double —
+    // hydrate the transcript from the pre-seeded messages/snapshot REST
+    // endpoints instead (same durable-route pattern as
+    // `chat/onboarding.spec.ts`).
+    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
+
+    const conversation = authenticatedPage.getByTestId(
+      'agent-conversation-column',
+    );
     await expect(
-      authenticatedPage.getByRole('heading', {
+      conversation.getByRole('heading', {
         name: 'Post analytics snapshot',
       }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText('12.4K')).toBeVisible();
-    await expect(authenticatedPage.getByText('8.2%').first()).toBeVisible();
-    await expect(authenticatedPage.getByText('380')).toBeVisible();
-    await expect(authenticatedPage.getByText('24')).toBeVisible();
+    await expect(conversation.getByText('12.4K')).toBeVisible();
+    await expect(conversation.getByText('8.2%').first()).toBeVisible();
+    await expect(conversation.getByText('380')).toBeVisible();
+    await expect(conversation.getByText('24')).toBeVisible();
   });
 
   test('shows publish fallback when selected content has no post analytics yet', async ({
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-publish-fallback-e2e';
     const assistantContent =
       'No post analytics yet for this ingredient. Publish it first.';
     const fallbackUiActions = [
@@ -424,47 +474,56 @@ test.describe('Agent Chat', () => {
       },
     ];
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
-      await route.fulfill({
-        body: buildChatResponse({
-          content: assistantContent,
-          toolCalls: [
-            {
-              creditsUsed: 0,
-              durationMs: 140,
-              status: 'completed',
-              toolName: 'get_analytics',
-            },
-          ],
-          uiActions: fallbackUiActions,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
     await mockThreadReplay(authenticatedPage, {
       assistantContent,
-      title: 'Publish selected content',
+      threadId,
+      // Distinct from the card's own title ('Publish selected content')
+      // below: the thread title also renders as an sr-only heading in the
+      // conversation column, and an identical string would trip strict mode
+      // against the card's real, visible heading.
+      title: 'Publish fallback thread',
       uiActions: fallbackUiActions,
       userContent: 'show analytics',
     });
+    await mockTurnAck(authenticatedPage, threadId);
 
     await agentPage.goto();
+    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
     await agentPage.sendPrompt('show analytics');
 
+    // Assert on the thread-route suffix only: `activeHref` picks a
+    // brand-scoped vs. org-only prefix depending on brand-context timing,
+    // which is orthogonal to what this test verifies (the turn ack promoted
+    // the URL to the thread the app just created).
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    );
+    // Navigate to the known-good org-scoped thread URL instead of
+    // reloading in place: the client's own `activeHref` push above may
+    // have resolved a stale/loading brand slug, and the assistant reply
+    // arrives over the run's socket channel, which has no E2E double —
+    // hydrate the transcript from the pre-seeded messages/snapshot REST
+    // endpoints instead (same durable-route pattern as
+    // `chat/onboarding.spec.ts`).
+    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
+
+    const conversation = authenticatedPage.getByTestId(
+      'agent-conversation-column',
+    );
     await expect(
-      authenticatedPage.getByText(
+      conversation.getByText(
         'No post analytics yet for this ingredient. Publish it first.',
       ),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', {
+      conversation.getByRole('heading', {
         name: 'Publish selected content',
       }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText(
+      conversation.getByText(
         'Publish this content to start collecting metrics.',
       ),
     ).toBeVisible();

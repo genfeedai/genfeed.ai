@@ -1,7 +1,10 @@
+import { orgPath } from '@e2e/utils/app-chrome';
 import { AgentThreadMode } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AgentPage } from '../../pages/agent.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 function wrapCollectionInJsonApi<T>(
   items: T[],
@@ -84,6 +87,8 @@ async function mockThreadView(
       body: JSON.stringify(
         wrapResourceInJsonApi(
           {
+            brandId: null,
+            contextVersion: 1,
             createdAt: proposedPlan.createdAt,
             id: threadId,
             mode: AgentThreadMode.PLAN,
@@ -133,6 +138,47 @@ async function mockThreadView(
   });
 }
 
+/**
+ * The real send path is async: `POST /agent/threads/turns/stream` only
+ * acknowledges the turn (`AgentChatStreamResponse` — no message content), the
+ * client pushes to the thread route on `response.threadId`, and the
+ * assistant's proposed plan is delivered over the run's socket channel. E2E
+ * has no socket double — like `chat/onboarding.spec.ts`, this pre-seeds the
+ * thread's REST endpoints (snapshot's `latestProposedPlan`) with the final
+ * state and navigates there directly after the URL promotes.
+ */
+function mockTurnAck(
+  page: Page,
+  threadId: string,
+): Promise<{ request: Record<string, unknown> | undefined }> {
+  const captured: { request: Record<string, unknown> | undefined } = {
+    request: undefined,
+  };
+
+  return page
+    .route('**/agent/threads/turns/stream', async (route: Route) => {
+      captured.request = route.request().postDataJSON() as Record<
+        string,
+        unknown
+      >;
+      await route.fulfill({
+        body: JSON.stringify({
+          brandId: null,
+          clientRequestId: captured.request?.clientRequestId ?? 'crid-e2e',
+          contextId: 'ctx-e2e',
+          contextVersion: 1,
+          executionId: `exec-${threadId}`,
+          queuedAt: new Date().toISOString(),
+          status: 'queued',
+          threadId,
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    })
+    .then(() => captured);
+}
+
 test.describe('Agent Plan Mode', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockAgentCredits(authenticatedPage);
@@ -144,6 +190,7 @@ test.describe('Agent Plan Mode', () => {
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-plan-mode-e2e';
     const proposedPlan = {
       awaitingApproval: true,
       content:
@@ -153,12 +200,6 @@ test.describe('Agent Plan Mode', () => {
       status: 'awaiting_approval',
       updatedAt: '2026-03-26T10:00:00.000Z',
     };
-    let capturedChatRequest:
-      | {
-          content: string;
-          agentMode?: AgentThreadMode;
-        }
-      | undefined;
     let capturedUiAction:
       | {
           action: string;
@@ -166,41 +207,11 @@ test.describe('Agent Plan Mode', () => {
         }
       | undefined;
 
-    await authenticatedPage.route('**/agent/chat', async (route: Route) => {
-      capturedChatRequest = route.request().postDataJSON() as {
-        content: string;
-        agentMode?: AgentThreadMode;
-      };
-
-      await route.fulfill({
-        body: JSON.stringify({
-          creditsRemaining: 118,
-          creditsUsed: 2,
-          message: {
-            content:
-              'I drafted a plan and paused here for your approval. Review it, then approve or request changes.',
-            metadata: {
-              proposedPlan,
-              reviewRequired: true,
-            },
-            role: 'assistant',
-          },
-          threadId: 'thread-plan-mode-e2e',
-          toolCalls: [],
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
-    await mockThreadView(
-      authenticatedPage,
-      'thread-plan-mode-e2e',
-      proposedPlan,
-    );
+    await mockThreadView(authenticatedPage, threadId, proposedPlan);
+    const turnAck = await mockTurnAck(authenticatedPage, threadId);
 
     await authenticatedPage.route(
-      '**/threads/thread-plan-mode-e2e/ui-actions',
+      `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
         capturedUiAction = route.request().postDataJSON() as {
           action: string;
@@ -209,6 +220,8 @@ test.describe('Agent Plan Mode', () => {
 
         await route.fulfill({
           body: JSON.stringify({
+            brandId: null,
+            contextVersion: 1,
             creditsRemaining: 116,
             creditsUsed: 2,
             message: {
@@ -217,7 +230,7 @@ test.describe('Agent Plan Mode', () => {
               metadata: {},
               role: 'assistant',
             },
-            threadId: 'thread-plan-mode-e2e',
+            threadId,
             toolCalls: [],
           }),
           contentType: 'application/json',
@@ -227,18 +240,34 @@ test.describe('Agent Plan Mode', () => {
     );
 
     await agentPage.goto();
+    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
     await agentPage.enablePlanMode();
     await agentPage.sendPrompt('Add plan mode to the agent workspace');
-    await expect(authenticatedPage).toHaveURL(/\/agent\/thread-plan-mode-e2e$/);
+
+    // Assert on the thread-route suffix only: `activeHref` picks a
+    // brand-scoped vs. org-only prefix depending on brand-context timing,
+    // which is orthogonal to what this test verifies (the turn ack promoted
+    // the URL to the thread the app just created).
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
+    );
+
+    expect(turnAck.request?.agentMode).toBe(AgentThreadMode.PLAN);
+    expect(turnAck.request?.content).toContain(
+      'Add plan mode to the agent workspace',
+    );
+
+    // The proposed plan is delivered over the run's socket channel, which has
+    // no E2E double — navigate to the known-good org-scoped thread URL (the
+    // client's own `activeHref` push above may have resolved a stale/loading
+    // brand slug) to hydrate it from the pre-seeded snapshot instead.
+    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     await expect(agentPage.planReviewCard).toBeVisible();
     await expect(agentPage.planReviewCard).toContainText(
       'Pause execution after the plan is proposed',
-    );
-
-    expect(capturedChatRequest?.agentMode).toBe(AgentThreadMode.PLAN);
-    expect(capturedChatRequest?.content).toContain(
-      'Add plan mode to the agent workspace',
     );
 
     await agentPage.approvePlanButton.click();
@@ -249,8 +278,12 @@ test.describe('Agent Plan Mode', () => {
       ),
     ).toBeVisible();
 
+    // respondToUiAction sends the thread's brandId/contextVersion alongside
+    // the action (see agent-chat-container.ui-actions.ts).
     expect(capturedUiAction).toEqual({
       action: 'approve_plan',
+      brandId: null,
+      expectedContextVersion: 1,
       payload: {
         planId: 'plan-e2e-1',
       },
@@ -261,6 +294,7 @@ test.describe('Agent Plan Mode', () => {
     authenticatedPage,
   }) => {
     const agentPage = new AgentPage(authenticatedPage);
+    const threadId = 'thread-plan-mode-revise-e2e';
     const initialPlan = {
       awaitingApproval: true,
       content: '1. Add a plan mode toggle.\n2. Add approval controls.',
@@ -276,36 +310,11 @@ test.describe('Agent Plan Mode', () => {
         }
       | undefined;
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          creditsRemaining: 118,
-          creditsUsed: 2,
-          message: {
-            content:
-              'I drafted a plan and paused here for your approval. Review it, then approve or request changes.',
-            metadata: {
-              proposedPlan: initialPlan,
-              reviewRequired: true,
-            },
-            role: 'assistant',
-          },
-          threadId: 'thread-plan-mode-revise-e2e',
-          toolCalls: [],
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
-
-    await mockThreadView(
-      authenticatedPage,
-      'thread-plan-mode-revise-e2e',
-      initialPlan,
-    );
+    await mockThreadView(authenticatedPage, threadId, initialPlan);
+    await mockTurnAck(authenticatedPage, threadId);
 
     await authenticatedPage.route(
-      '**/threads/thread-plan-mode-revise-e2e/ui-actions',
+      `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
         capturedUiAction = route.request().postDataJSON() as {
           action: string;
@@ -314,6 +323,8 @@ test.describe('Agent Plan Mode', () => {
 
         await route.fulfill({
           body: JSON.stringify({
+            brandId: null,
+            contextVersion: 1,
             creditsRemaining: 116,
             creditsUsed: 2,
             message: {
@@ -333,7 +344,7 @@ test.describe('Agent Plan Mode', () => {
               },
               role: 'assistant',
             },
-            threadId: 'thread-plan-mode-revise-e2e',
+            threadId,
             toolCalls: [],
           }),
           contentType: 'application/json',
@@ -343,11 +354,17 @@ test.describe('Agent Plan Mode', () => {
     );
 
     await agentPage.goto();
+    await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
     await agentPage.enablePlanMode();
     await agentPage.sendPrompt('Add plan mode to the agent workspace');
+
     await expect(authenticatedPage).toHaveURL(
-      /\/agent\/thread-plan-mode-revise-e2e$/,
+      new RegExp(`${APP_ROUTES.AGENT.ROOT}/${threadId}$`),
     );
+
+    const threadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
+    await authenticatedPage.goto(threadUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadUrl);
 
     await expect(agentPage.planReviewCard).toBeVisible();
     await agentPage.revisionNoteInput.fill(
@@ -365,8 +382,12 @@ test.describe('Agent Plan Mode', () => {
     ).toBeVisible();
     await expect(agentPage.planReviewCard).toContainText('Awaiting approval');
 
+    // respondToUiAction sends the thread's brandId/contextVersion alongside
+    // the action (see agent-chat-container.ui-actions.ts).
     expect(capturedUiAction).toEqual({
       action: 'revise_plan',
+      brandId: null,
+      expectedContextVersion: 1,
       payload: {
         planId: 'plan-e2e-2',
         revisionNote:
