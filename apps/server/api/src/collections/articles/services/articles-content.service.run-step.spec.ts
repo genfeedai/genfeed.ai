@@ -73,6 +73,7 @@ describe('ArticleTextGenerationService.runTextGenerationStep', () => {
     expect(replicate.generateTextCompletionSync).toHaveBeenCalledWith(
       'test-model',
       { prompt: 'built' },
+      undefined,
     );
   });
 

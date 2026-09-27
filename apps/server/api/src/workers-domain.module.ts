@@ -125,6 +125,7 @@ import { BatchGenerationStreamService } from '@api/services/batch-generation/bat
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
@@ -386,6 +387,7 @@ const WORKER_DOMAIN_SERVICES = [
   TaskQueueClientService,
   TasksService,
   TelegramDistributionService,
+  TextGenerationCreditsService,
   ThreadsPublisherService,
   ThreadsService,
   TikTokAdsService,

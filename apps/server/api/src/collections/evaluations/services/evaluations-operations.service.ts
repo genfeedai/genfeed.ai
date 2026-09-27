@@ -3,6 +3,10 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import {
+  type TextByokDispatch,
+  textDispatchApiKey,
+} from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -125,6 +129,7 @@ export class EvaluationsOperationsService {
     organizationId: string,
     config: EvaluationConfig,
     onBilling?: (amount: number) => void,
+    byok?: TextByokDispatch,
   ): Promise<unknown> {
     this.logger.log(
       `Evaluating ${config.contentType} content`,
@@ -175,15 +180,19 @@ export class EvaluationsOperationsService {
         await this.replicateService.generateTextCompletionSync(
           DEFAULT_TEXT_MODEL,
           finalInput,
+          textDispatchApiKey(byok, DEFAULT_TEXT_MODEL),
         );
 
       if (!responseText) {
         throw new Error('Failed to evaluate content from AI service');
       }
 
-      onBilling?.(
-        await this.calculateDefaultTextCharge(finalInput, responseText),
-      );
+      // A BYOK evaluation ran on the org's own key: nothing to bill.
+      if (!byok) {
+        onBilling?.(
+          await this.calculateDefaultTextCharge(finalInput, responseText),
+        );
+      }
 
       const response = this.parseJsonResponse(responseText);
       return this.formatEvaluationResponse(response, DEFAULT_TEXT_MODEL);
@@ -202,6 +211,7 @@ export class EvaluationsOperationsService {
     context: EvaluationContext = {},
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byok?: TextByokDispatch,
   ): Promise<unknown> {
     return this.evaluate(
       context.prompt || 'No context provided',
@@ -215,6 +225,7 @@ export class EvaluationsOperationsService {
         promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
       },
       onBilling,
+      byok,
     );
   }
 
@@ -223,6 +234,7 @@ export class EvaluationsOperationsService {
     context: EvaluationContext = {},
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byok?: TextByokDispatch,
   ): Promise<unknown> {
     return this.evaluate(
       context.prompt || 'No context provided',
@@ -236,6 +248,7 @@ export class EvaluationsOperationsService {
         promptTemplate: PromptTemplateKey.EVALUATION_IMAGE,
       },
       onBilling,
+      byok,
     );
   }
 
@@ -244,6 +257,7 @@ export class EvaluationsOperationsService {
     context: EvaluationContext = {},
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byok?: TextByokDispatch,
   ): Promise<unknown> {
     return this.evaluate(
       articleContent,
@@ -255,6 +269,7 @@ export class EvaluationsOperationsService {
         promptTemplate: PromptTemplateKey.EVALUATION_ARTICLE,
       },
       onBilling,
+      byok,
     );
   }
 
@@ -263,6 +278,7 @@ export class EvaluationsOperationsService {
     context: EvaluationContext = {},
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byok?: TextByokDispatch,
   ): Promise<unknown> {
     let content = postContent;
 
@@ -289,6 +305,7 @@ Engagement: ${context.previousEvaluation.scores?.engagement?.overall || 'N/A'}
         promptTemplate: PromptTemplateKey.EVALUATION_POST,
       },
       onBilling,
+      byok,
     );
   }
 

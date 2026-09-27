@@ -47,6 +47,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -94,6 +95,7 @@ export class PostsGenerationController {
     private readonly postVariationService: PostVariationService,
     private readonly postsService: PostsService,
     private readonly seoScorerService: SeoScorerService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
   ) {}
 
   /**
@@ -196,6 +198,10 @@ export class PostsGenerationController {
     const result = await this.postGenerationService.generateDraftText(
       dto,
       user,
+      this.textGenerationCreditsService.deferredKeyResolver(
+        request,
+        user.organizationId,
+      ),
     );
     finalizeDeferredTextCredits(
       request,
