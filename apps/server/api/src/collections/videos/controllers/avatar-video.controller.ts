@@ -38,6 +38,9 @@ export class AvatarVideoController {
 
   @Post('avatar')
   @Credits({
+    // #5294 verified safe: AvatarVideoGenerationService independently
+    // resolves and passes the org's HeyGen key at dispatch.
+    allowByokBypass: true,
     description: 'Avatar video generation',
     modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     source: ActivitySource.VIDEO_GENERATION,

@@ -86,8 +86,9 @@ export class VideosUpscaleController {
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video upscaling',
-    // #5294 dispatchUpscale() calls replicateService.runModel with no key override.
-    disallowByokBypass: true,
+    // #5294 no allowByokBypass: dispatchUpscale() calls
+    // replicateService.runModel with no key override, so credits charge
+    // normally by default.
     modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
     source: ActivitySource.VIDEO_UPSCALE,
   })

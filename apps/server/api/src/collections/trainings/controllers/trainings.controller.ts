@@ -235,9 +235,9 @@ export class TrainingsController extends BaseCRUDController<
   @UseGuards(SubscriptionGuard, TrainingAccessGuard, CreditsGuard)
   @Credits({
     description: 'Model training',
-    // #5294 launchTraining() calls replicateService.runTraining with no key
-    // override, asynchronously and decoupled from this request.
-    disallowByokBypass: true,
+    // #5294 no allowByokBypass: launchTraining() calls
+    // replicateService.runTraining with no key override, asynchronously and
+    // decoupled from this request, so credits charge normally by default.
     modelKey: MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER,
     source: ActivitySource.MODELS_TRAINING,
   })

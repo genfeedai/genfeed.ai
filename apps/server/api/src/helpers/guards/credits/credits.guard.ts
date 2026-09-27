@@ -501,19 +501,22 @@ export class CreditsGuard implements CanActivate {
       }
 
       // --- Per-provider BYOK bypass ---
-      // #5294 disallowByokBypass routes never thread the org's key into their
-      // provider call, so a bypass here would let the platform key pay while
-      // the org pays nothing. Skip resolution entirely and fall through to
-      // the normal credit charge below.
-      let byokProvider: ByokProvider | undefined =
-        creditsConfig.disallowByokBypass ? undefined : creditsConfig.provider;
+      // #5294 billing fails safe: a bypass is only allowed where the route
+      // has explicitly opted in with `allowByokBypass`, set only on routes
+      // verified to thread the org's key into their provider call. Every
+      // other route — including every new `@Credits({ modelKey })` route
+      // that never opts in — never resolves a provider here and falls
+      // through to the normal credit charge below, even when the org has an
+      // active key for the model's provider.
+      let byokProvider: ByokProvider | undefined;
 
-      if (!byokProvider && !creditsConfig.disallowByokBypass) {
-        const effectiveModelKey = modelKey || creditsConfig.modelKey;
-        byokProvider = resolveModelByokProvider(
-          effectiveModelKey,
-          resolvedModel?.provider,
-        );
+      if (creditsConfig.allowByokBypass) {
+        byokProvider =
+          creditsConfig.provider ??
+          resolveModelByokProvider(
+            modelKey || creditsConfig.modelKey,
+            resolvedModel?.provider,
+          );
       }
 
       if (byokProvider && user.organizationId) {

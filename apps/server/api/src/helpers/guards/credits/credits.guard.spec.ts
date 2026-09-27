@@ -706,10 +706,11 @@ describe('CreditsGuard', () => {
     });
   });
 
-  it('applies a provider BYOK bypass before returning a deferred request', async () => {
+  it('applies a provider BYOK bypass before returning a deferred request when the route opts in', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
       if (key === CREDITS_KEY) {
         return {
+          allowByokBypass: true,
           description: 'Avatar generation',
           provider: ByokProvider.HEYGEN,
         };
@@ -735,7 +736,9 @@ describe('CreditsGuard', () => {
   });
 
   it('does not let Replicate BYOK bypass credits for a Higgsfield catalog row', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      allowByokBypass: true,
+    });
     modelsService.findOne.mockResolvedValue({
       cost: 10,
       key: MODEL_KEYS.HIGGSFIELD_SOUL,
@@ -759,8 +762,10 @@ describe('CreditsGuard', () => {
     ).toHaveBeenCalledWith(orgId, 10);
   });
 
-  it('bypasses credits exactly once when Higgsfield BYOK is active', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+  it('bypasses credits exactly once when Higgsfield BYOK is active and the route opts in', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      allowByokBypass: true,
+    });
     modelsService.findOne.mockResolvedValue({
       cost: 10,
       key: MODEL_KEYS.HIGGSFIELD_SOUL,
@@ -788,54 +793,73 @@ describe('CreditsGuard', () => {
     });
   });
 
-  // #5294 disallowByokBypass marks routes whose provider dispatch never
-  // receives the org's resolved key (image/video upscale, reframe,
-  // training) — the guard must charge credits normally even though the org
-  // has an active key, since the platform key still pays for dispatch.
-  it('charges credits normally when disallowByokBypass is set, even with an explicit provider and active BYOK', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-      amount: 10,
-      disallowByokBypass: true,
-      provider: ByokProvider.REPLICATE,
+  // #5294 billing fails safe: without an explicit `allowByokBypass: true` on
+  // the route's @Credits config, the guard must never resolve a BYOK
+  // provider and must charge credits normally — even when the org has an
+  // active key for the model's resolved provider and even when the
+  // decorator sets `provider` directly. This is the default for every route,
+  // including any new `@Credits({ modelKey })` route added later.
+  describe('billing fails safe without allowByokBypass (#5294)', () => {
+    it('charges credits normally for an explicit provider when allowByokBypass is not set', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+        amount: 10,
+        provider: ByokProvider.REPLICATE,
+      });
+      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      const context = createContext();
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+
+      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(orgId, 10);
+      expect(
+        context.switchToHttp().getRequest().creditsConfig,
+      ).not.toHaveProperty('isByokBypass');
     });
-    byokService.isByokActiveForProvider.mockResolvedValue(true);
-    const context = createContext();
 
-    await expect(guard.canActivate(context)).resolves.toBe(true);
+    it('charges credits normally for a resolvable modelKey when allowByokBypass is not set', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      });
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        provider: ModelProvider.REPLICATE,
+      });
+      byokService.isByokActiveForProvider.mockResolvedValue(true);
 
-    expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith(orgId, 10);
-    expect(
-      context.switchToHttp().getRequest().creditsConfig,
-    ).not.toHaveProperty('isByokBypass');
-  });
+      const context = createContext({
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      });
+      await guard.canActivate(context);
 
-  it('charges credits normally when disallowByokBypass is set and the model resolves a BYOK provider', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-      disallowByokBypass: true,
-      modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(orgId, 10);
+      expect(
+        context.switchToHttp().getRequest().creditsConfig,
+      ).not.toHaveProperty('isByokBypass');
     });
-    modelsService.findOne.mockResolvedValue({
-      cost: 10,
-      key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-      provider: ModelProvider.REPLICATE,
-    });
-    byokService.isByokActiveForProvider.mockResolvedValue(true);
 
-    const context = createContext({
-      model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-    });
-    await guard.canActivate(context);
+    it('charges credits normally when allowByokBypass is explicitly false', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+        allowByokBypass: false,
+        amount: 10,
+        provider: ByokProvider.REPLICATE,
+      });
+      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      const context = createContext();
 
-    expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith(orgId, 10);
-    expect(
-      context.switchToHttp().getRequest().creditsConfig,
-    ).not.toHaveProperty('isByokBypass');
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+
+      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(orgId, 10);
+    });
   });
 
   it('stores creditsConfig on the request after successful check', async () => {
