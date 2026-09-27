@@ -1,5 +1,3 @@
-'use client';
-
 import type { PlanTier } from '@genfeedai/pricing';
 import { formatPlanPriceLabel, getPlanLabel } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';

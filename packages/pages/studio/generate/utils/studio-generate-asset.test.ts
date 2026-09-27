@@ -6,6 +6,7 @@ import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
   resolveJsonApiIngredientId,
+  resolveStudioAssetFacts,
   resolveStudioAssetUrl,
   resolveStudioTypeFromCategory,
   STUDIO_GENERATE_CATEGORIES,
@@ -314,4 +315,77 @@ describe('resolveJsonApiIngredientId', () => {
       );
     },
   );
+});
+
+describe('resolveStudioAssetFacts', () => {
+  it('prefers the submitted recipe over persisted metadata', () => {
+    const facts = resolveStudioAssetFacts(
+      buildJob({
+        createdAt: Date.UTC(2026, 7, 21, 9),
+        ingredient: buildIngredient({
+          brand: { label: 'Northstar' } as IIngredient['brand'],
+          metadata: {
+            duration: 4,
+            modelLabel: 'Veo 3',
+          } as IIngredient['metadata'],
+        }),
+        recipe: {
+          aspectRatio: '9:16',
+          blacklist: [],
+          duration: 8,
+          isAudioEnabled: false,
+          outputs: 1,
+          references: [],
+          tags: [],
+          text: 'A coastline',
+          type: 'video',
+        },
+        type: 'video',
+      }),
+    );
+
+    expect(facts).toEqual({
+      aspectRatio: '9:16',
+      brandLabel: 'Northstar',
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      durationSeconds: 8,
+      modelLabel: 'Veo 3',
+    });
+  });
+
+  it('falls back to live job fields and omits what it does not know', () => {
+    const facts = resolveStudioAssetFacts(
+      buildJob({
+        createdAt: 0,
+        height: 1024,
+        modelKey: 'flux-dev',
+        width: 768,
+      }),
+    );
+
+    expect(facts).toEqual({
+      aspectRatio: '3:4',
+      brandLabel: undefined,
+      createdAt: undefined,
+      durationSeconds: undefined,
+      modelLabel: 'flux-dev',
+    });
+  });
+
+  it('never reports the Ingredient model getter defaults as facts', () => {
+    // The hydrated model answers 8s and 1080×1920 when metadata is missing.
+    const ingredient = Object.defineProperties(buildIngredient(), {
+      aspectRatio: { get: () => '9:16' },
+      metadataDuration: { get: () => 8 },
+      metadataHeight: { get: () => 1920 },
+      metadataWidth: { get: () => 1080 },
+    });
+
+    const facts = resolveStudioAssetFacts(
+      buildJob({ ingredient, type: 'image' }),
+    );
+
+    expect(facts.aspectRatio).toBeUndefined();
+    expect(facts.durationSeconds).toBeUndefined();
+  });
 });

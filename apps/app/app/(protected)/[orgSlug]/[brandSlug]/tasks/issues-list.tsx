@@ -294,7 +294,7 @@ export default function IssuesList() {
 
   const handleSelectIssue = useCallback(
     (issue: Task) => {
-      selectTask?.(issue);
+      selectTask?.(issue, 'user');
       setTaskUrl(issue.id);
     },
     [selectTask, setTaskUrl],

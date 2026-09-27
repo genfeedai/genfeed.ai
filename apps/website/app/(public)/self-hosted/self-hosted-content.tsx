@@ -1,8 +1,5 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -13,6 +10,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
   Cloud,
@@ -95,12 +93,11 @@ const FAQ_ITEMS = [
 ];
 
 export default function SelfHostedContent() {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const repoHref = EnvironmentService.github.core;
   const cloudSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         badge="Open Source"
         badgeIcon={GitBranch}
@@ -285,6 +282,6 @@ export default function SelfHostedContent() {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

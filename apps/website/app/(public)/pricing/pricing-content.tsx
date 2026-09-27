@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
@@ -18,7 +16,6 @@ import {
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -29,6 +26,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 import { CircleCheck } from 'lucide-react';
@@ -143,13 +141,12 @@ function getPlanSummary(plan: (typeof websitePlans)[number]): string {
 }
 
 export default function PricingContent() {
-  const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
   const proSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=pro`;
   const enterprisePlan = getPlanByTier('enterprise');
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance hero={false} sections={false}>
       <PageLayout
         title={<>Pay for output.</>}
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
@@ -419,6 +416,6 @@ export default function PricingContent() {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

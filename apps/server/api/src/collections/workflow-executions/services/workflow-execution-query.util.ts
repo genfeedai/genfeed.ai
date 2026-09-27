@@ -1,4 +1,5 @@
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { BATCH_WORKFLOW_EXECUTION_ID } from '@api/collections/workflows/services/batch-workflow-execution.definition';
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { Prisma } from '@genfeedai/prisma';
@@ -35,6 +36,27 @@ export function buildCustomerExecutionWhere(
       },
     },
   };
+  // A batch run's parent execution is also a hidden system workflow (#5398)
+  // — the tenant who started it owns the *execution* row (scoped below by
+  // the unconditional top-level `organizationId` + `isDeleted`), but its
+  // `workflow` relation is the shared `workflow.batch.execute` system
+  // workflow, so it matched neither branch above and was invisible to every
+  // real customer. `BatchWorkflowExecutionService.startBatchExecution`
+  // never records a brand (`StartBatchWorkflowExecutionInput` has no
+  // `brandId`, and neither its `inputValues` nor its `metadata.batchExecution`
+  // payload carries one), so — unlike `proactive` — there is no brand to
+  // match against; a brand-filtered query correctly excludes batch runs
+  // rather than guessing one.
+  const batch: Prisma.WorkflowExecutionWhereInput = {
+    workflow: {
+      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      isDeleted: false,
+      metadata: {
+        path: ['systemWorkflow', 'canonicalId'],
+        equals: BATCH_WORKFLOW_EXECUTION_ID,
+      },
+    },
+  };
   return {
     organizationId,
     isDeleted: false,
@@ -52,6 +74,7 @@ export function buildCustomerExecutionWhere(
             },
           },
           proactive,
+          batch,
         ],
       },
       ...(query.brandId

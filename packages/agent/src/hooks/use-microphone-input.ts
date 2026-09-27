@@ -1,3 +1,4 @@
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 interface UseMicrophoneInputOptions {
@@ -82,7 +83,10 @@ export function useMicrophoneInput({
             `${apiBaseUrl}/speech/transcribe/audio`,
             {
               body: formData,
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              headers: {
+                ...getRequestOrganizationHeaders(),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
               method: 'POST',
             },
           );

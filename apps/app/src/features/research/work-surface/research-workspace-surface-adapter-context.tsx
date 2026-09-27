@@ -1,10 +1,9 @@
 'use client';
 
 import type { ConversationComposerContextReference } from '@genfeedai/agent';
-import { createContext, type ReactNode, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 export interface ResearchWorkspaceSurfaceAdapterRegistration {
-  readonly inspectorContent: ReactNode;
   readonly references: readonly ConversationComposerContextReference[];
   readonly surfaceKey: 'discovery';
 }

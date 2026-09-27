@@ -1,3 +1,8 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import type {
   AgentApiDecodeError,
   AgentApiRequestError,
@@ -19,6 +24,7 @@ describe('AgentBaseApiService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetch.mockReset();
+    clearRequestOrganizationId();
   });
 
   describe('constructor', () => {
@@ -61,6 +67,23 @@ describe('AgentBaseApiService', () => {
       const service = new AgentBaseApiService({ ...baseConfig, getToken });
       await service.headers();
       expect(getToken).toHaveBeenCalledOnce();
+    });
+
+    it('should send the confirmed routed organization so the API fails closed on drift', async () => {
+      setRequestOrganizationId('org_alpha');
+      const service = new AgentBaseApiService(baseConfig);
+
+      const headers = await service.headers();
+
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org_alpha');
+    });
+
+    it('should omit the organization header while no organization is confirmed', async () => {
+      const service = new AgentBaseApiService(baseConfig);
+
+      const headers = await service.headers();
+
+      expect(headers).not.toHaveProperty(ORGANIZATION_CONTEXT_HEADER);
     });
   });
 

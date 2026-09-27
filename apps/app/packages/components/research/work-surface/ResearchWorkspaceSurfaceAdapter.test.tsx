@@ -1,4 +1,9 @@
-import { render, waitFor } from '@testing-library/react';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -10,6 +15,7 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    clearFinding: vi.fn(),
     registeredAdapter: null as null | Record<string, unknown>,
     setEmbedded: vi.fn(),
     store,
@@ -37,7 +43,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@pages/research/work-surface/ResearchFindingInspector', () => ({
-  default: () => <div>Research inspector</div>,
+  default: ({ finding }: { finding: { title: string } }) => (
+    <div>Research inspector: {finding.title}</div>
+  ),
 }));
 
 vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
@@ -47,6 +55,7 @@ vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
       reference: { id: 'trend-1', kind: 'research-trend-video' },
       title: 'Selected trend',
     },
+    clearFinding: mocks.clearFinding,
     setEmbedded: mocks.setEmbedded,
   }),
 }));
@@ -65,10 +74,21 @@ vi.mock(
 
 import ResearchWorkspaceSurfaceAdapter from './ResearchWorkspaceSurfaceAdapter';
 
+function ShellCloseControl() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <button type="button" onClick={contextSidebar?.close}>
+      Close sidebar
+    </button>
+  );
+}
+
 describe('ResearchWorkspaceSurfaceAdapter', () => {
   beforeEach(() => {
     mocks.registeredAdapter = null;
     mocks.setEmbedded.mockClear();
+    mocks.clearFinding.mockClear();
     mocks.store.pageContext = null;
     mocks.store.setPageContext.mockClear();
   });
@@ -95,5 +115,25 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
     expect(mocks.registeredAdapter).toMatchObject({
       surfaceKey: 'discovery',
     });
+  });
+
+  it('renders the live finding in the context sidebar and clears it on close', () => {
+    render(
+      <ContextSidebarProvider>
+        <ShellCloseControl />
+        <ContextSidebarOutlet testId="context-sidebar-outlet" />
+        <ResearchWorkspaceSurfaceAdapter />
+      </ContextSidebarProvider>,
+    );
+
+    // Portaled from the Discovery layout's tree, so it reads the provider's
+    // finding rather than a detached, null work surface.
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Research inspector: Selected trend',
+    );
+    expect(mocks.registeredAdapter).not.toHaveProperty('inspectorContent');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+    expect(mocks.clearFinding).toHaveBeenCalledTimes(1);
   });
 });

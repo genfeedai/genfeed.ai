@@ -257,3 +257,16 @@ export interface StudioGenerateRun {
   id: string;
   jobs: StudioGenerateJob[];
 }
+
+/**
+ * What the asset panel states about one generation. Every field is optional:
+ * a live job knows less than a hydrated gallery row, and missing facts are
+ * omitted rather than guessed. Credits wait for an API field.
+ */
+export interface StudioGenerateAssetFacts {
+  aspectRatio?: string;
+  brandLabel?: string;
+  createdAt?: Date;
+  durationSeconds?: number;
+  modelLabel?: string;
+}

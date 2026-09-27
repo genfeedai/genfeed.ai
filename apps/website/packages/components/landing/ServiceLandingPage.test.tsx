@@ -35,7 +35,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-const LANDING_SLUGS = [...serviceLandingSlugs, 'retainer', 'dfy', 'fleet'];
+const LANDING_SLUGS = [...serviceLandingSlugs, 'retainer', 'fleet'];
 
 describe('ServiceLandingPage', () => {
   it.each(LANDING_SLUGS)(

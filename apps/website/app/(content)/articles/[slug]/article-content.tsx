@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { createMarkup } from '@genfeedai/helpers';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -77,11 +76,12 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
  */
 export default function ArticleContent({
   articleLabel,
-  html,
+  sanitizedHtml,
   slug,
 }: {
   articleLabel: string;
-  html: string;
+  /** Already sanitized on the server — this component never sanitizes. */
+  sanitizedHtml: string;
   slug?: string;
 }): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,17 +89,17 @@ export default function ArticleContent({
   const [headings, setHeadings] = useState<ArticleHeading[]>([]);
 
   const contentProps = useMemo(
-    () => ({ dangerouslySetInnerHTML: createMarkup(html) }),
-    [html],
+    () => ({ dangerouslySetInnerHTML: { __html: sanitizedHtml } }),
+    [sanitizedHtml],
   );
 
   useEffect(() => {
     const container = containerRef.current;
 
-    // `html` is read here rather than only in render: the wrappers below are
+    // `sanitizedHtml` is read here rather than only in render: the wrappers below are
     // attached to DOM that React replaces wholesale when the body changes, so
     // this effect genuinely depends on it.
-    if (!container || !html) {
+    if (!container || !sanitizedHtml) {
       return;
     }
 
@@ -152,7 +152,7 @@ export default function ArticleContent({
         }
       }
     };
-  }, [html]);
+  }, [sanitizedHtml]);
 
   const applyHref = useMemo(() => {
     const prompt = `Help me apply the guide "${articleLabel}" to my brand. Ask for any context you need, then turn the article into a concrete content plan and create the first asset.`;
