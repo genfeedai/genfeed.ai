@@ -58,6 +58,11 @@ export const MEDIA_PERCEPTION_QUEUE = 'media-perception';
 /** Moderation classifier (#4880) over perceived frames, transcript and OCR. */
 export const MEDIA_MODERATION_QUEUE = 'media-moderation';
 
+// ---------- Review ----------
+/** Review batch rewrites (#5365): up to 100 sequential LLM rewrites run off the
+ * request path, with per-item credit settlement and progress. */
+export const BATCH_REWRITE_QUEUE = 'batch-rewrite';
+
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -71,6 +76,7 @@ export const ALL_QUEUE_NAMES = [
   ONBOARDING_STARTER_ASSETS_QUEUE,
   MEDIA_PERCEPTION_QUEUE,
   MEDIA_MODERATION_QUEUE,
+  BATCH_REWRITE_QUEUE,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUE_NAMES)[number];

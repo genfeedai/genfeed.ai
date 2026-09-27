@@ -7,7 +7,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import {
@@ -20,6 +19,7 @@ import {
   serializeReviewFilters,
 } from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
+import { useBatchRewriteJob } from './useBatchRewriteJob';
 
 const DEFAULT_STATUS_FILTERS: ReviewStatusFilter[] = ['ready'];
 
@@ -49,8 +49,6 @@ function buildReviewQuery(input: {
 }
 
 export function useReviewQueueContent() {
-  const translate = useTranslations('common.batchRewrite');
-  const [rewritingIds, setRewritingIds] = useState<Set<string>>(new Set());
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
@@ -167,6 +165,12 @@ export function useReviewQueueContent() {
   const refreshBatch = useCallback(async () => {
     await refetchBatch();
   }, [refetchBatch]);
+
+  const { isRewriteStarting, rewriteProgress, rewritingIds, startRewrite } =
+    useBatchRewriteJob({
+      batchId: activeBatchId,
+      onItemsRewritten: refreshBatch,
+    });
 
   const refreshQueue = useCallback(async () => {
     await Promise.all([refetchBatches(), refetchBatch()]);
@@ -397,33 +401,13 @@ export function useReviewQueueContent() {
     ],
   );
 
+  // The rewrite runs in the background: the page stays usable while it does.
   const handleBulkRewrite = useCallback(async () => {
-    if (!activeBatchId || selectedIds.size === 0 || isActioning) return;
-    const itemIds = [...selectedIds];
-    setIsActioning(true);
-    setRewritingIds(new Set(itemIds));
-    try {
-      const service = await getBatchesService();
-      await service.itemAction(activeBatchId, { action: 'rewrite', itemIds });
-      await refreshBatch();
+    if (selectedIds.size === 0 || isActioning) return;
+    if (await startRewrite([...selectedIds])) {
       setSelectedIds(new Set());
-    } catch (error) {
-      logger.error('Batch rewrite failed', error);
-      notifications.error(translate('error'));
-      await refreshBatch();
-    } finally {
-      setIsActioning(false);
-      setRewritingIds(new Set());
     }
-  }, [
-    activeBatchId,
-    selectedIds,
-    isActioning,
-    getBatchesService,
-    refreshBatch,
-    notifications,
-    translate,
-  ]);
+  }, [isActioning, selectedIds, startRewrite]);
 
   const updateBatchCaches = useCallback(
     (batch: IBatchSummary) => {
@@ -734,6 +718,8 @@ export function useReviewQueueContent() {
     handleBatchChange,
     handleBulkAction,
     handleBulkRewrite,
+    isRewriteStarting,
+    rewriteProgress,
     rewritingIds,
     handleDiscardBatch,
     handleFilterChange,

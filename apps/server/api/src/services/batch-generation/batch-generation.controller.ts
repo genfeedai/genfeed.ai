@@ -1,9 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -19,9 +19,10 @@ import {
   BatchActionDto,
 } from '@api/services/batch-generation/dto/batch-action.dto';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
+import { CreateBatchRewriteJobDto } from '@api/services/batch-generation/dto/create-batch-rewrite-job.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
-import { BatchStatus } from '@genfeedai/contracts';
+import { ActivitySource, BatchStatus } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BatchSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,7 +37,6 @@ import {
   Query,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -175,12 +175,97 @@ export class BatchGenerationController {
     }
   }
 
+  @Post(':id/rewrite-jobs')
+  @HttpCode(202)
+  @UseGuards(BatchRewriteCreditsGuard)
+  @ApiOperation({
+    summary: 'Queue a background rewrite of selected batch items',
+  })
+  async createRewriteJob(
+    @Req() req: Request & Pick<CreditsGuardRequest, 'creditsConfig'>,
+    @Param('id') id: string,
+    @Body() dto: CreateBatchRewriteJobDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const itemCount = new Set(dto.itemIds).size;
+      const creditsConfig = req.creditsConfig;
+      return await this.rewriteService.enqueue({
+        batchId: id,
+        credits: {
+          amountPerItem: (creditsConfig?.amount ?? 0) / itemCount,
+          description: creditsConfig?.description ?? 'Batch rewrite',
+          source: creditsConfig?.source ?? ActivitySource.POST_ENHANCEMENT,
+        },
+        itemIds: dto.itemIds,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+      });
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'createRewriteJob',
+      );
+    }
+  }
+
+  @Get(':id/rewrite-jobs/active')
+  @ApiOperation({ summary: 'Get the queued or running rewrite of a batch' })
+  async getActiveRewriteJob(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      return {
+        job: await this.rewriteService.getActiveJob(id, user.organizationId),
+      };
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'getActiveRewriteJob',
+      );
+    }
+  }
+
+  @Get(':id/rewrite-jobs/:jobId')
+  @ApiOperation({ summary: 'Get the progress of a batch rewrite' })
+  async getRewriteJob(
+    @Param('id') id: string,
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      return await this.rewriteService.getJob(id, jobId, user.organizationId);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'getRewriteJob');
+    }
+  }
+
+  @Post(':id/rewrite-jobs/:jobId/cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Stop a batch rewrite before its next item' })
+  async cancelRewriteJob(
+    @Param('id') id: string,
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      return await this.rewriteService.cancel(id, jobId, user.organizationId);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'cancelRewriteJob',
+      );
+    }
+  }
+
   @Post(':id/items/action')
   @HttpCode(200)
-  @UseGuards(BatchRewriteCreditsGuard)
-  @UseInterceptors(CreditsInterceptor)
   @ApiOperation({
-    summary: 'Approve, reject, request changes, or rewrite batch items',
+    summary: 'Approve, reject, or request changes on batch items',
   })
   async itemAction(
     @Req() req: Request,
@@ -193,14 +278,7 @@ export class BatchGenerationController {
       const userId = user.userId ?? user.id;
 
       let data: unknown;
-      if (dto.action === BatchAction.REWRITE) {
-        data = await this.rewriteService.rewriteItems(
-          id,
-          dto.itemIds,
-          organization,
-          userId,
-        );
-      } else if (dto.action === BatchAction.APPROVE) {
+      if (dto.action === BatchAction.APPROVE) {
         data = await this.batchGenerationService.approveItems(
           id,
           dto.itemIds,

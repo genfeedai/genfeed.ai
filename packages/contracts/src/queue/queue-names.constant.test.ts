@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_QUEUE_NAMES,
+  BATCH_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -27,6 +28,7 @@ describe('queue-names.constant', () => {
     expect(WORKFLOW_BACKGROUND_QUEUE).toBe('workflow-background');
     expect(MEDIA_PERCEPTION_QUEUE).toBe('media-perception');
     expect(MEDIA_MODERATION_QUEUE).toBe('media-moderation');
+    expect(BATCH_REWRITE_QUEUE).toBe('batch-rewrite');
   });
 
   it('lists every queue exactly once', () => {

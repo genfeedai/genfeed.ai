@@ -1,4 +1,8 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
+import {
+  BatchItemStatus,
+  BatchRewriteJobStatus,
+  ContentFormat,
+} from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ReviewGrid from './ReviewGrid';
 import {
@@ -164,6 +168,58 @@ describe('ReviewGrid', () => {
     expect(
       screen.getByRole('checkbox', { name: /Deselect item/i }),
     ).toBeDisabled();
+  });
+
+  it('keeps rows outside the running rewrite selectable', () => {
+    const otherItem = { ...mockItems[0], id: 'item-2', postId: 'post-2' };
+    render(
+      <ReviewGrid
+        activeItem={mockItems[0]}
+        isActioning={false}
+        items={[mockItems[0], otherItem]}
+        selectedIds={new Set()}
+        rewritingIds={new Set(['item-1'])}
+        {...baseHandlers}
+      />,
+    );
+    const [rewritingRow, otherRow] = screen.getAllByRole('checkbox', {
+      name: /Select item/i,
+    });
+    expect(rewritingRow).toBeDisabled();
+    expect(otherRow).toBeEnabled();
+  });
+
+  it('shows in-page rewrite progress with a stop control', () => {
+    const onCancel = vi.fn();
+    render(
+      <ReviewGrid
+        activeItem={mockItems[0]}
+        isActioning={false}
+        items={mockItems}
+        selectedIds={new Set(['item-1'])}
+        rewriteProgress={{
+          isCancelling: false,
+          job: {
+            batchId: 'batch-1',
+            completedItemIds: ['item-1'],
+            failedItems: [],
+            id: 'job-1',
+            isCancelRequested: false,
+            itemIds: ['item-1', 'item-2'],
+            status: BatchRewriteJobStatus.PROCESSING,
+          },
+          onCancel,
+        }}
+        {...baseHandlers}
+      />,
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'catalog:batchRewrite.action' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'catalog:cancel' }));
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
   it('counts and filters review statuses', () => {
