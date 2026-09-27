@@ -20,7 +20,7 @@ describe('ArticleContent', () => {
     render(
       <ArticleContent
         articleLabel="A useful guide"
-        html="<h2>First step</h2><p>Read this.</p><pre><code>Generate a useful asset.</code></pre>"
+        sanitizedHtml="<h2>First step</h2><p>Read this.</p><pre><code>Generate a useful asset.</code></pre>"
         slug="a-useful-guide"
       />,
     );
@@ -49,7 +49,7 @@ describe('ArticleContent', () => {
     render(
       <ArticleContent
         articleLabel="How to prompt assets"
-        html="<h2>Video</h2><p>Direct the shot.</p>"
+        sanitizedHtml="<h2>Video</h2><p>Direct the shot.</p>"
         slug="how-to-prompt-ai-images-videos-and-audio"
       />,
     );

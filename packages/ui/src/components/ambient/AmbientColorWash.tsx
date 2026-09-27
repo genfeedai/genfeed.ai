@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AmbientColorWashProps } from '@genfeedai/props/ui/ambient-color-wash.props';
 import type { CSSProperties } from 'react';

@@ -1,5 +1,3 @@
-'use client';
-
 import { STATS } from '@public/skills/_data';
 import { WebSection } from '@web-components/content/NeuralGrid';
 

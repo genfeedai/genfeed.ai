@@ -1,7 +1,4 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import StudioInterfacePreview from '@public/studio/studio-interface-preview';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -10,6 +7,7 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
   ArrowRight,
@@ -118,12 +116,11 @@ function titleCase(value: string): string {
 }
 
 export default function StudioContent({ models }: StudioContentProps) {
-  const containerRef = useMarketingEntrance();
   const categories = [...new Set(models?.map((model) => model.category) ?? [])];
   const heroVisual = <StudioInterfacePreview models={models} />;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         heroActions={
           <>
@@ -352,6 +349,6 @@ export default function StudioContent({ models }: StudioContentProps) {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

@@ -1,16 +1,12 @@
-'use client';
-
 import { competitors } from '@data/competitors.data';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import Card from '@ui/card/Card';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 
 export default function VsHubContent() {
-  const containerRef = useMarketingEntrance({ sections: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance sections={false}>
       <PageLayout
         title="Compare Genfeed"
         description="See how Genfeed compares to other AI content platforms. Choose the right tool for your needs."
@@ -39,6 +35,6 @@ export default function VsHubContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

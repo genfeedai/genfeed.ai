@@ -1,10 +1,8 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { XTwitterIcon } from '@genfeedai/helpers/ui/icons/brands';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
@@ -12,10 +10,8 @@ const TWITTER_INTENT_URL =
   'https://twitter.com/intent/tweet?text=@genfeedai%20I%20want%20$GEN!';
 
 export default function GenContent() {
-  const containerRef = useMarketingEntrance({ cards: false, sections: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false} sections={false}>
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-lg w-full text-center">
           <div className="mb-8 gsap-hero">
@@ -67,6 +63,6 @@ export default function GenContent() {
           </p>
         </div>
       </div>
-    </div>
+    </MarketingEntrance>
   );
 }

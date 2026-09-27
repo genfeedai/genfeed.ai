@@ -1,12 +1,10 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Quote, ShieldCheck, X } from 'lucide-react';
 import Link from 'next/link';
@@ -127,11 +125,10 @@ const HERO_VISUAL = (
 );
 
 export default function ExpertsContent() {
-  const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?accountType=EXPERT`;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         compact
         description="Built for consultants, coaches, founders, and practitioners who know their business cold but never wanted to become an AI-tool operator. You bring the truth and the taste; Genfeed brings the system and the loop."
@@ -325,6 +322,6 @@ export default function ExpertsContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }
