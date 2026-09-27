@@ -45,6 +45,7 @@ type PublishWebhookPostSnapshot = {
   targetExecutionState?: unknown;
   url?: unknown;
   user?: unknown;
+  userId?: unknown;
 };
 
 type PublishOutcomeInput = {
@@ -97,7 +98,18 @@ export class PublishEventWebhookService {
    * them, to stay off the runtime-complexity ratchet those files are already
    * near. `emitLegacyPostPublished` fires once a post is confirmed published
    * by the provider on every platform and delivery path, so this is a
-   * strictly better hook than any single caller alone. Fires once per
+   * strictly better hook than any single caller alone.
+   *
+   * Identity mirrors the client SDK: `identifyAnalyticsUser` (posthog-client.ts)
+   * calls `client.identify(user.id, ...)` — the same canonical user id
+   * `OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort` uses
+   * as `distinctId` — and `AnalyticsOrganizationSync` calls
+   * `client.group('organization', orgId)` rather than putting the org on the
+   * person. A PostHog funnel only joins steps sharing one person's
+   * `distinct_id`, so this must key off the post's owning user, not the
+   * organization, or it can never join `signup_completed` /
+   * `onboarding_completed` into the same funnel. Skips the capture — never
+   * invents an identity — when the post carries no `userId`. Fires once per
    * organization, gated on a `prisma.post.count` "first ever" check — the
    * same best-effort idempotency style `markOnboardingCompleteFromInvoice`
    * uses for its once-per-user flag. Never throws.
@@ -112,7 +124,8 @@ export class PublishEventWebhookService {
 
     const organizationId = readReferenceId(input.post.organizationId);
     const postId = readReferenceId(input.post.id);
-    if (!organizationId || !postId) {
+    const userId = readReferenceId(input.post.userId);
+    if (!organizationId || !postId || !userId) {
       return;
     }
 
@@ -127,9 +140,10 @@ export class PublishEventWebhookService {
         return;
       }
       await funnelCaptureService.capture({
-        distinctId: organizationId,
+        distinctId: userId,
         event: FIRST_SUCCESSFUL_PUBLISH_EVENT,
         properties: {
+          $groups: { organization: organizationId },
           platform: input.platform ?? 'unknown',
           surface: 'social',
         },

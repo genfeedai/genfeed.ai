@@ -472,21 +472,25 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     await new Promise((resolve) => setImmediate(resolve));
   }
 
-  it("captures first_successful_publish exactly once for the org's first published post", async () => {
+  it("captures first_successful_publish, keyed by the post's owning user, exactly once for the org's first published post", async () => {
     const { funnelCaptureService, prisma, service } = buildService();
 
     await service.emitLegacyPostPublished({
       platform: 'twitter',
-      post: { id: 'post_1', organizationId: 'org_1' },
+      post: { id: 'post_1', organizationId: 'org_1', userId: 'user_1' },
     });
     await flushMicrotasks();
 
     expect(prisma.post.count).toHaveBeenCalledTimes(1);
     expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
     expect(funnelCaptureService.capture).toHaveBeenCalledWith({
-      distinctId: 'org_1',
+      distinctId: 'user_1',
       event: 'first_successful_publish',
-      properties: { platform: 'twitter', surface: 'social' },
+      properties: {
+        $groups: { organization: 'org_1' },
+        platform: 'twitter',
+        surface: 'social',
+      },
     });
   });
 
@@ -497,7 +501,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
 
     await service.emitLegacyPostPublished({
       platform: 'twitter',
-      post: { id: 'post_2', organizationId: 'org_1' },
+      post: { id: 'post_2', organizationId: 'org_1', userId: 'user_1' },
     });
     await flushMicrotasks();
 
@@ -517,6 +521,19 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     expect(funnelCaptureService.capture).not.toHaveBeenCalled();
   });
 
+  it('is skipped without a userId, rather than inventing an identity (e.g. the organization)', async () => {
+    const { funnelCaptureService, prisma, service } = buildService();
+
+    await service.emitLegacyPostPublished({
+      platform: 'twitter',
+      post: { id: 'post_4', organizationId: 'org_1' },
+    });
+    await flushMicrotasks();
+
+    expect(prisma.post.count).not.toHaveBeenCalled();
+    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+  });
+
   it('does not throw when the capture call fails, and reports it to Sentry', async () => {
     const funnelCaptureService = {
       capture: vi.fn().mockRejectedValue(new Error('network down')),
@@ -526,7 +543,7 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     await expect(
       service.emitLegacyPostPublished({
         platform: 'twitter',
-        post: { id: 'post_3', organizationId: 'org_1' },
+        post: { id: 'post_3', organizationId: 'org_1', userId: 'user_1' },
       }),
     ).resolves.toBeUndefined();
     await flushMicrotasks();
