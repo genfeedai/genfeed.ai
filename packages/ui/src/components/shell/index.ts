@@ -3,7 +3,6 @@ export {
   default as AppHtmlDocument,
 } from '@ui/shell/AppHtmlDocument';
 export { default as AppShell } from '@ui/shell/AppShell';
-export { AppRail } from '@ui/shell/app-rail/AppRail';
 export { default as MediaCanvasShell } from '@ui/shell/media-canvas/MediaCanvasShell';
 export {
   type CreateAppMetadataOptions,

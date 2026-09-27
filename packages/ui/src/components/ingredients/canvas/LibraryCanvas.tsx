@@ -7,7 +7,7 @@ import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dom
 import type { LibraryCanvasProps } from '@genfeedai/props/content/library-canvas.props';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { Button } from '@ui/primitives/button';
-import { MediaCanvasShell } from '@ui/shell';
+import MediaCanvasShell from '@ui/shell/media-canvas/MediaCanvasShell';
 import {
   Background,
   BackgroundVariant,
