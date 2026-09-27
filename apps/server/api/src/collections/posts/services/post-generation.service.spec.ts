@@ -2,7 +2,6 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
@@ -17,6 +16,7 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -107,8 +107,8 @@ describe('PostGenerationService', () => {
   const mockActivity = { id: activityId };
 
   const mockActivitiesService = {
-    create: vi.fn().mockResolvedValue(mockActivity),
-    patch: vi.fn().mockResolvedValue(mockActivity),
+    record: vi.fn().mockResolvedValue(mockActivity),
+    update: vi.fn().mockResolvedValue(mockActivity),
   };
   const mockAccountPublishingContextService = {
     resolveDraft: vi.fn(),
@@ -195,8 +195,8 @@ Tweet 3: Tech innovation is changing the world.`,
         `${base}\n\n## Brand: Test Brand\n## Brand Voice\n- Tone: direct\n- Target audience: founders`,
     );
 
-    mockActivitiesService.create.mockResolvedValue(mockActivity);
-    mockActivitiesService.patch.mockResolvedValue(mockActivity);
+    mockActivitiesService.record.mockResolvedValue(mockActivity);
+    mockActivitiesService.update.mockResolvedValue(mockActivity);
     mockAccountPublishingContextService.resolve.mockResolvedValue(
       mockPublishingContext,
     );
@@ -226,7 +226,7 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: AccountPublishingContextService,
           useValue: mockAccountPublishingContextService,
         },
-        { provide: ActivitiesService, useValue: mockActivitiesService },
+        { provide: ActivityRecorderService, useValue: mockActivitiesService },
         {
           provide: AgentContextAssemblyService,
           useValue: mockContextAssemblyService,
@@ -629,7 +629,7 @@ Tweet 3: Tech innovation is changing the world.`,
         mockPublishingContext,
       );
 
-      expect(mockActivitiesService.patch).toHaveBeenCalled();
+      expect(mockActivitiesService.update).toHaveBeenCalled();
       expect(mockWebsocketService.emit).toHaveBeenCalled();
     });
 
@@ -638,7 +638,7 @@ Tweet 3: Tech innovation is changing the world.`,
       // The failure-cleanup path marks the activity FAILED; that write itself
       // throwing must NOT short-circuit cleanup and leave placeholder posts
       // stuck in PROCESSING (issue #861).
-      mockActivitiesService.patch.mockRejectedValueOnce(
+      mockActivitiesService.update.mockRejectedValueOnce(
         new Error('activity store down'),
       );
 
@@ -649,7 +649,7 @@ Tweet 3: Tech innovation is changing the world.`,
         mockPublishingContext,
       );
 
-      expect(mockActivitiesService.patch).toHaveBeenCalled();
+      expect(mockActivitiesService.update).toHaveBeenCalled();
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),
         expect.objectContaining({
@@ -659,7 +659,7 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('marks every created post FAILED when activity creation throws (issue #861)', async () => {
-      mockActivitiesService.create.mockRejectedValueOnce(
+      mockActivitiesService.record.mockRejectedValueOnce(
         new Error('activity store down'),
       );
       const secondPost = { ...mockPost, id: secondPostId };
@@ -672,7 +672,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       // No activity exists, so the failure branch must not attempt to patch it.
-      expect(mockActivitiesService.patch).not.toHaveBeenCalled();
+      expect(mockActivitiesService.update).not.toHaveBeenCalled();
       // Both placeholder posts are driven out of PROCESSING into FAILED.
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),

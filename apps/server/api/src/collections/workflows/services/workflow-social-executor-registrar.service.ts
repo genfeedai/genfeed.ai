@@ -3,11 +3,15 @@ import { SocialInboxService } from '@api/collections/social-inbox/services/socia
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { CredentialPlatform, Platform } from '@genfeedai/contracts';
-import type { INotificationPayloadTypes } from '@genfeedai/contracts/interfaces';
+import {
+  ActivityKey,
+  ActivitySource,
+  CredentialPlatform,
+  Platform,
+} from '@genfeedai/contracts';
 import {
   CommentTriggerExecutor,
   type DmSender,
@@ -39,7 +43,7 @@ export class WorkflowSocialExecutorRegistrarService {
     @Optional() private readonly socialInboxService?: SocialInboxService,
     @Optional() private readonly twitterService?: TwitterService,
     @Optional() private readonly credentialsService?: CredentialsService,
-    @Optional() private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly activityRecorder?: ActivityRecorderService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -239,39 +243,66 @@ export class WorkflowSocialExecutorRegistrarService {
   }
 
   private wireReportDeliveryExecutor(executor: ReportDeliveryExecutor): void {
-    const notifications = this.notificationsService;
-    if (!notifications) {
+    const recorder = this.activityRecorder;
+    if (!recorder) {
       this.loggerService.warn(
-        `${this.logContext} NotificationsService unavailable — reportDelivery node will fail until wired`,
+        `${this.logContext} ActivityRecorderService unavailable — reportDelivery node will fail until wired`,
       );
       return;
     }
 
-    executor.setNotificationSender(async ({ userId, title, body }) => {
-      try {
-        await notifications.sendNotification({
-          action: 'workflow_report',
-          payload: {
-            card: {
-              description: body,
-              title,
-            },
-          } satisfies INotificationPayloadTypes,
-          type: 'discord',
-          userId,
-        });
-      } catch (error: unknown) {
-        throw formatReportDeliveryError('notification', error);
-      }
-    });
+    executor.setNotificationSender(
+      async ({ body, idempotencyKey, organizationId, title, userId }) => {
+        try {
+          // The report lands in the owner's bell through the alert policy.
+          await recorder.record({
+            // A preview run has no key; the activity id then dedupes.
+            ...(idempotencyKey
+              ? {
+                  alert: {
+                    deduplicationKey: `${ActivityKey.WORKFLOW_REPORT_DELIVERED}/${idempotencyKey}`,
+                  },
+                }
+              : {}),
+            data: { body },
+            key: ActivityKey.WORKFLOW_REPORT_DELIVERED,
+            organizationId,
+            source: ActivitySource.WORKFLOW_EXECUTION,
+            userId,
+            value: title,
+          });
+        } catch (error: unknown) {
+          throw formatReportDeliveryError('notification', error);
+        }
+      },
+    );
 
-    executor.setEmailSender(async ({ to, subject, html }) => {
-      try {
-        await notifications.sendEmail(to, subject, html);
-      } catch (error: unknown) {
-        throw formatReportDeliveryError(`email:${to}`, error);
-      }
-    });
+    executor.setEmailSender(
+      async ({ html, idempotencyKey, organizationId, subject, to }) => {
+        try {
+          await recorder.dispatch({
+            deduplicationKey: `message.workflow-report/${
+              idempotencyKey ?? `${organizationId}/${to}/${Date.now()}`
+            }`,
+            messages: [
+              {
+                destination: to,
+                message: {
+                  action: 'send_email',
+                  payload: { html, subject, to },
+                  type: 'email',
+                },
+              },
+            ],
+            organizationId,
+            source: { id: to, type: 'workflow_node' },
+            topic: 'workflow.status',
+          });
+        } catch (error: unknown) {
+          throw formatReportDeliveryError(`email:${to}`, error);
+        }
+      },
+    );
 
     executor.setOwnerResolver(async ({ userId }) => {
       // Recipient defaults to the executing user; callers may override email in node config.

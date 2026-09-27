@@ -1,5 +1,8 @@
 import type { CreditTransactionsDocument } from '@api/collections/credits/schemas/credit-transactions.schema';
-import { recordCreditTransactionActivity } from '@api/collections/credits/services/credit-activity.util';
+import {
+  type CreditActivityClient,
+  recordCreditTransactionActivity,
+} from '@api/collections/credits/services/credit-activity.util';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
@@ -166,10 +169,8 @@ export class CreditTransactionsService extends BaseService<
     const created = await (async () => {
       try {
         const persist = async (
-          client: Pick<
-            Prisma.TransactionClient,
-            'creditTransaction' | 'activity' | 'brand'
-          >,
+          client: CreditActivityClient &
+            Pick<Prisma.TransactionClient, 'creditTransaction'>,
         ) => {
           const transaction = await client.creditTransaction.create({ data });
           await recordCreditTransactionActivity(client, transaction);

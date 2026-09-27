@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import {
   approvedEmailDestination,
   emailIdentityHash,
@@ -75,42 +76,40 @@ export class EmailPerformanceService {
     const text = input.text?.replaceAll('{{emailActionUrl}}', trackingUrl);
     const key = `system-email/${input.organizationId}/${input.userId}/${input.idempotencyKey}`;
     const delivery = await this.prisma.$transaction(async (tx) => {
-      // tenant-scope-ignore: compound namespaced idempotency key includes canonical organization and recipient.
-      const event = await tx.notificationEvent.upsert({
-        where: { deduplicationKey: key },
-        update: {},
-        create: {
-          organizationId: input.organizationId,
-          eventKey: `email.${input.templateKey}`,
-          deduplicationKey: key,
-          sourceType: 'system_email',
-          sourceId: input.idempotencyKey,
+      const outbox = await writeNotificationOutbox(
+        tx,
+        {
           actorUserId: input.userId,
+          deduplicationKey: key,
+          eventKey: `email.${input.templateKey}`,
           occurredAt: new Date(),
-          payload: {
-            subject: input.subject,
-            html,
-            text: text ?? null,
-            policyData: input.policyData ?? null,
-            lifecycleDeliveryId: input.lifecycleDeliveryId ?? null,
-          },
-        },
-      });
-      // tenant-scope-ignore: namespaced idempotency key persists organization and user on creation.
-      const row = await tx.notificationDelivery.upsert({
-        where: { idempotencyKey: key },
-        update: {},
-        create: {
-          eventId: event.id,
-          userId: input.userId,
           organizationId: input.organizationId,
-          channel: 'email',
-          provider: 'resend',
-          topic: input.topic,
-          idempotencyKey: key,
-          nextAttemptAt: input.dueAt ?? new Date(),
+          payload: {
+            html,
+            lifecycleDeliveryId: input.lifecycleDeliveryId ?? null,
+            policyData: input.policyData ?? null,
+            subject: input.subject,
+            text: text ?? null,
+          },
+          sourceId: input.idempotencyKey,
+          sourceType: 'system_email',
         },
-      });
+        [
+          {
+            channel: 'email',
+            idempotencyKey: key,
+            nextAttemptAt: input.dueAt ?? new Date(),
+            provider: 'resend',
+            topic: input.topic,
+            userId: input.userId,
+          },
+        ],
+      );
+      const [deliveryId] = outbox.deliveryIds;
+      if (!deliveryId) {
+        throw new Error('System email delivery was not recorded');
+      }
+      const row = { id: deliveryId };
       // tenant-scope-ignore: delivery ID is created within this organization-scoped transaction.
       await tx.emailMessage.upsert({
         where: { deliveryId: row.id },
@@ -149,6 +148,19 @@ export class EmailPerformanceService {
       },
     });
     if (!row) return;
+    const { organizationId, user, userId } = row;
+    if (!organizationId || !user || !userId) {
+      // A system email always targets one member; anything else is corrupt.
+      await this.prisma.notificationDelivery.updateMany({
+        where: { id: deliveryId, isDeleted: false, organizationId },
+        data: {
+          lastError: 'System email has no recipient',
+          lockedAt: null,
+          status: 'failed',
+        },
+      });
+      return;
+    }
     const payload =
       row.event.payload &&
       typeof row.event.payload === 'object' &&
@@ -167,25 +179,25 @@ export class EmailPerformanceService {
         typeof payload.subject !== 'string'
       )
         throw new EmailDeliveryError(false, 400);
-      const recipientHash = row.user.email
-        ? emailIdentityHash(row.user.email.trim().toLowerCase())
+      const recipientHash = user.email
+        ? emailIdentityHash(user.email.trim().toLowerCase())
         : null;
-      const recipientEmail = row.user.email;
+      const recipientEmail = user.email;
       const isDeliverable = await this.isRecipientDeliverable({
         email: recipientEmail,
-        isUserDeleted: row.user.isDeleted,
-        organizationId: row.organizationId,
+        isUserDeleted: user.isDeleted,
+        organizationId: organizationId,
         policyData: payload.policyData,
         recipientHash,
         templateKey: row.emailMessage.templateKey,
         topic: row.topic,
-        userId: row.userId,
+        userId: userId,
       });
       if (!isDeliverable || !recipientEmail) {
         await this.recordDeliverySkipped(
           deliveryId,
-          row.organizationId,
-          row.userId,
+          organizationId,
+          userId,
           legacyId,
         );
         return;
@@ -193,7 +205,7 @@ export class EmailPerformanceService {
       await this.prisma.emailMessage.updateMany({
         where: {
           deliveryId,
-          organizationId: row.organizationId,
+          organizationId: organizationId,
           isDeleted: false,
         },
         data: { recipientHash },
@@ -208,9 +220,9 @@ export class EmailPerformanceService {
       await this.recordDeliveryAccepted({
         deliveryId,
         legacyId,
-        organizationId: row.organizationId,
+        organizationId: organizationId,
         providerMessageId,
-        userId: row.userId,
+        userId: userId,
       });
       await this.reconcileProviderEvents(providerMessageId);
     } catch (error: unknown) {
@@ -221,9 +233,9 @@ export class EmailPerformanceService {
         attemptCount: row.attemptCount,
         deliveryId,
         legacyId,
-        organizationId: row.organizationId,
+        organizationId: organizationId,
         terminal,
-        userId: row.userId,
+        userId: userId,
       });
       this.logger.warn('System email delivery requires recovery', {
         deliveryId,

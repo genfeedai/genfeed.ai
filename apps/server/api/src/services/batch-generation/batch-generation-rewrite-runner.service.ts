@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { resolveBatchItems } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { batchItemRowsInclude } from '@api/services/batch-generation/batch-item-rows';
@@ -60,7 +60,7 @@ export class BatchGenerationRewriteRunnerService {
     private readonly prisma: PrismaService,
     private readonly postGenerationService: PostGenerationService,
     private readonly reviewService: BatchGenerationReviewService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly creditDeductionQueueService: CreditDeductionQueueService,
@@ -96,14 +96,16 @@ export class BatchGenerationRewriteRunnerService {
       }
 
       const status = resolveFinalRewriteStatus(progress, isCancelled);
-      await this.activitiesService.patch(data.activityId, {
-        key: progress.completedItemIds.length
-          ? ActivityKey.POST_GENERATED
-          : ActivityKey.POST_FAILED,
-        source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId: data.organizationId,
-      });
+      await this.activityRecorder.update(
+        { id: data.activityId, organizationId: data.organizationId },
+        {
+          isRead: false,
+          key: progress.completedItemIds.length
+            ? ActivityKey.POST_GENERATED
+            : ActivityKey.POST_FAILED,
+          source: ActivitySource.POST_ENHANCEMENT,
+        },
+      );
       await this.publish(
         data,
         jobId,
@@ -112,12 +114,14 @@ export class BatchGenerationRewriteRunnerService {
       );
       return { ...progress, status };
     } catch (error: unknown) {
-      await this.activitiesService.patch(data.activityId, {
-        key: ActivityKey.POST_FAILED,
-        source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId: data.organizationId,
-      });
+      await this.activityRecorder.update(
+        { id: data.activityId, organizationId: data.organizationId },
+        {
+          isRead: false,
+          key: ActivityKey.POST_FAILED,
+          source: ActivitySource.POST_ENHANCEMENT,
+        },
+      );
       await this.publish(data, jobId, 'failed', progress, error);
       throw error;
     }

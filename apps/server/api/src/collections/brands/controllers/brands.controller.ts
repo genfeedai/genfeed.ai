@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
@@ -27,6 +25,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -67,7 +66,7 @@ export class BrandsController extends BaseCRUDController<
 > {
   constructor(
     public readonly brandsService: BrandsService,
-    public readonly activitiesService: ActivitiesService,
+    public readonly activityRecorder: ActivityRecorderService,
     public readonly videosService: VideosService,
     public readonly imagesService: ImagesService,
     public readonly articlesService: ArticlesService,
@@ -231,16 +230,14 @@ export class BrandsController extends BaseCRUDController<
         userId: user.userId ?? user.id,
       });
 
-    await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: id,
-        key: ActivityKey.BRAND_RELOCATED,
-        organizationId: requestedOrgId,
-        source: ActivitySource.BRAND_RELOCATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify(summary),
-      }),
-    );
+    await this.activityRecorder.record({
+      brandId: id,
+      key: ActivityKey.BRAND_RELOCATED,
+      organizationId: requestedOrgId,
+      source: ActivitySource.BRAND_RELOCATION,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify(summary),
+    });
 
     return {
       ...serializeSingle(

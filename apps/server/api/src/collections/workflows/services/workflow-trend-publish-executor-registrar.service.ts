@@ -11,8 +11,8 @@ import { SocialAdapterFactory } from '@api/collections/workflows/services/adapte
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
@@ -62,7 +62,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     private readonly loggerService: LoggerService,
     @Optional() private readonly socialAdapterFactory?: SocialAdapterFactory,
     @Optional() private readonly trendsService?: TrendsService,
-    @Optional() private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly activityRecorder?: ActivityRecorderService,
     @Optional() private readonly cacheService?: CacheService,
     @Optional() private readonly prismaService?: PrismaService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
@@ -332,17 +332,36 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   }
 
   private registerSendEmailExecutor(engine: WorkflowEngine): void {
-    if (!this.notificationsService) {
+    if (!this.activityRecorder) {
       this.loggerService.warn(
-        `${this.logContext} NotificationsService unavailable — sendEmail node disabled`,
+        `${this.logContext} ActivityRecorderService unavailable — sendEmail node disabled`,
       );
       return;
     }
 
-    const notifications = this.notificationsService;
-    const executor = createSendEmailExecutor(async ({ to, subject, html }) => {
-      await notifications.sendEmail(to, subject, html);
-    });
+    const recorder = this.activityRecorder;
+    const executor = createSendEmailExecutor(
+      async ({ html, idempotencyKey, organizationId, subject, to }) => {
+        // The node's execution-scoped key makes a retried step send once.
+        const key = idempotencyKey ?? `${organizationId}/${to}/${Date.now()}`;
+        await recorder.dispatch({
+          deduplicationKey: `message.workflow-email/${key}`,
+          messages: [
+            {
+              destination: to,
+              message: {
+                action: 'send_email',
+                payload: { html, subject, to },
+                type: 'email',
+              },
+            },
+          ],
+          organizationId,
+          source: { id: key, type: 'workflow_node' },
+          topic: 'workflow.status',
+        });
+      },
+    );
 
     engine.registerExecutor(
       executor.nodeType,

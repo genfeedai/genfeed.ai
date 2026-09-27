@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -26,6 +24,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
@@ -61,7 +60,7 @@ interface RealizedImageDimensions {
 @Injectable()
 export class ImageGenerationProviderDispatchService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
     private readonly generationEventWebhookService: GenerationEventWebhookService,
@@ -155,22 +154,20 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
     ingredientId: string,
   ): Promise<void> {
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: context.brand.id,
-        entityId: ingredientId,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.IMAGE_PROCESSING,
-        organizationId: context.user.organizationId,
-        source: ActivitySource.IMAGE_GENERATION,
-        userId: context.user.userId,
-        value: JSON.stringify({
-          ingredientId: ingredientId.toString(),
-          model: context.model,
-          type: 'generation',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: context.brand.id,
+      entityId: ingredientId,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.IMAGE_PROCESSING,
+      organizationId: context.user.organizationId,
+      source: ActivitySource.IMAGE_GENERATION,
+      userId: context.user.userId,
+      value: JSON.stringify({
+        ingredientId: ingredientId.toString(),
+        model: context.model,
+        type: 'generation',
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),

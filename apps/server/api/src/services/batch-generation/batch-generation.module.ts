@@ -1,4 +1,3 @@
-import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -11,6 +10,7 @@ import { PublishApprovalsModule } from '@api/collections/publish-approvals/publi
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
@@ -49,7 +49,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationWorkflowService,
   ],
   imports: [
-    ActivitiesModule,
+    ActivityRecordingModule,
     PostGenerationModule,
     ModelsModule,
     ByokModule,

@@ -22,13 +22,6 @@
 /** @type {PlaywrightE2eQuarantine[]} */
 export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
-    file: 'playwright/e2e/tests/visual/visual-regression.spec.ts',
-    reason:
-      'Pixel baselines are not stable under the mocked full-tier nightly. Visual goldens need a dedicated job and update process.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/dashboard/analytics.spec.ts',
     reason:
       'Asserts retired dashboard stat widgets. Analytics lives at /analytics/overview. Evidence: run 31991510270.',

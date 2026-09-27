@@ -432,9 +432,6 @@ test('repository plan separates other execution lanes from broken-test quarantin
       plan.quarantinedFiles.length,
   );
   assert.ok(plan.laneExcludedFiles.some(({ lane }) => lane === 'authed'));
-  assert.ok(
-    plan.quarantinedFiles.some(({ file }) => file.includes('/visual/')),
-  );
 });
 
 test('core CLI and CI shard runner launch identical selectors with independent shard args', () => {

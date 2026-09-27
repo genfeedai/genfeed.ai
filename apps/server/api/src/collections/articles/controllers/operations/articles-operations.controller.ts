@@ -9,8 +9,6 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import {
@@ -40,6 +38,8 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ActivityRef } from '@api/services/activity-recording/activity-recording.types';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -85,7 +85,7 @@ export class ArticlesOperationsController {
   private static readonly ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly apiKeysService: ApiKeysService,
     private readonly articleGenerationCreditsService: ArticleGenerationCreditsService,
     private readonly articlesService: ArticlesService,
@@ -134,20 +134,18 @@ export class ArticlesOperationsController {
     );
 
     // Create activity for article generation start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        key: ActivityKey.ARTICLE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.ARTICLE_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          count: dto.count || 1,
-          prompt: dto.prompt?.substring(0, 100),
-          type: generationType,
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.ARTICLE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.ARTICLE_GENERATION,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        count: dto.count || 1,
+        prompt: dto.prompt?.substring(0, 100),
+        type: generationType,
       }),
-    );
+    });
 
     // Emit background-task-update WebSocket event
     await this.websocketService.publishBackgroundTaskUpdate({
@@ -186,12 +184,9 @@ export class ArticlesOperationsController {
           isRead: false,
         };
         if (index === 0) {
-          await this.activitiesService.patch(
-            activity.id.toString(),
-            completion,
-          );
+          await this.activityRecorder.update(activity, completion);
         } else {
-          await this.activitiesService.create(completion);
+          await this.activityRecorder.record(completion);
         }
 
         await this.websocketService.publishBackgroundTaskUpdate({
@@ -214,12 +209,7 @@ export class ArticlesOperationsController {
         docs: articles,
       });
     } catch (error: unknown) {
-      await this.recordGenerationFailure(
-        activity.id.toString(),
-        error,
-        isXArticle,
-        user.id,
-      );
+      await this.recordGenerationFailure(activity, error, isXArticle, user.id);
 
       throw error;
     }
@@ -278,7 +268,7 @@ export class ArticlesOperationsController {
   }
 
   private async recordGenerationFailure(
-    activityId: string,
+    activity: ActivityRef,
     error: unknown,
     isXArticle: boolean,
     userId: string,
@@ -286,7 +276,8 @@ export class ArticlesOperationsController {
     const errorMessage =
       (error as Error)?.message || 'Article generation failed';
 
-    await this.activitiesService.patch(activityId, {
+    const activityId = activity.id;
+    await this.activityRecorder.update(activity, {
       key: ActivityKey.ARTICLE_FAILED,
       value: JSON.stringify({
         error: errorMessage,

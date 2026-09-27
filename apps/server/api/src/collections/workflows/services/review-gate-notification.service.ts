@@ -2,13 +2,18 @@ import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ChannelDestinationMessage } from '@api/services/activity-recording/activity-recording.types';
 import {
   assertSafeWebhookEndpoint,
   createPinnedWebhookAgent,
 } from '@api/services/webhook-client/webhook-endpoint.validator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { NotificationChannel } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  ActivitySource,
+  NotificationChannel,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -31,11 +36,14 @@ export interface ReviewGateNotificationContext {
 const WEBHOOK_POST_TIMEOUT_MS = 8000;
 
 /**
- * Fans a pending review-gate notification out to every channel configured on
- * the node (`notifyChannels`). Isolated from {@link WorkflowReviewGateService}
- * so the heavier cross-module dependencies (tasks, notifications transport,
- * outbound HTTP) stay out of the core gate logic. Each channel is dispatched
- * independently — one failing channel never blocks the pause or the others.
+ * Records the review request and fans it out to every channel configured on
+ * the node (`notifyChannels`). The request is one `WORKFLOW_REVIEW_REQUESTED`
+ * activity: the alert policy puts it in the owner's bell and delivers the
+ * configured email and Slack messages durably (#5197). Webhook and task-inbox
+ * channels stay direct. Isolated from {@link WorkflowReviewGateService} so the
+ * heavier cross-module dependencies stay out of the core gate logic. Each
+ * channel is dispatched independently — one failing channel never blocks the
+ * pause or the others.
  */
 @Injectable()
 export class ReviewGateNotificationService {
@@ -44,7 +52,7 @@ export class ReviewGateNotificationService {
   constructor(
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly httpService: HttpService,
     private readonly moduleRef: ModuleRef,
   ) {}
@@ -68,8 +76,14 @@ export class ReviewGateNotificationService {
     ctx: ReviewGateNotificationContext,
   ): Promise<{ taskId?: string }> {
     const channels = this.normalizeChannels(pending.notifyChannels);
-    if (channels.length === 0) {
-      return {};
+    try {
+      await this.recordReviewRequest(pending, ctx, channels);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Review-gate request could not be recorded',
+        error,
+        this.context,
+      );
     }
 
     let taskId: string | undefined;
@@ -78,10 +92,8 @@ export class ReviewGateNotificationService {
       try {
         switch (channel) {
           case NotificationChannel.EMAIL:
-            await this.dispatchEmail(pending, ctx);
-            break;
           case NotificationChannel.SLACK:
-            await this.dispatchSlack(pending, ctx);
+            // Delivered by the recorded review request above.
             break;
           case NotificationChannel.WEBHOOK:
             await this.dispatchWebhook(pending, ctx);
@@ -134,52 +146,79 @@ export class ReviewGateNotificationService {
     }
   }
 
-  private async dispatchEmail(
+  private async recordReviewRequest(
     pending: PendingReviewGateState,
     ctx: ReviewGateNotificationContext,
+    channels: string[],
   ): Promise<void> {
-    const to = pending.notifyEmail || (await this.resolveOwnerEmail(ctx));
-    if (!to) {
-      this.logger.warn(
-        'Review-gate email skipped — no reviewer email resolved',
-        this.context,
-      );
-      return;
+    const destinations: ChannelDestinationMessage[] = [];
+    if (channels.includes(NotificationChannel.EMAIL)) {
+      const to = pending.notifyEmail || (await this.resolveOwnerEmail(ctx));
+      if (to) {
+        destinations.push({
+          destination: to,
+          message: {
+            action: 'review_gate_pending',
+            payload: {
+              captionPreview: pending.inputCaption ?? undefined,
+              executionId: ctx.executionId,
+              nodeId: pending.nodeId,
+              organizationId: ctx.organizationId,
+              to,
+              userId: ctx.ownerUserId,
+              workflowId: ctx.workflowId,
+              workflowLabel: ctx.workflowLabel,
+            },
+            type: 'email',
+          },
+        });
+      } else {
+        this.logger.warn(
+          'Review-gate email skipped — no reviewer email resolved',
+          this.context,
+        );
+      }
     }
-
-    await this.notificationsService.sendReviewGatePendingEmail({
-      captionPreview: pending.inputCaption ?? undefined,
-      executionId: ctx.executionId,
-      nodeId: pending.nodeId,
-      organizationId: ctx.organizationId,
-      to,
-      userId: ctx.ownerUserId,
-      workflowId: ctx.workflowId,
-      workflowLabel: ctx.workflowLabel,
-    });
-  }
-
-  private async dispatchSlack(
-    pending: PendingReviewGateState,
-    ctx: ReviewGateNotificationContext,
-  ): Promise<void> {
-    const channel = pending.slackChannel?.trim();
-    if (!channel) {
+    const slackChannel = channels.includes(NotificationChannel.SLACK)
+      ? pending.slackChannel?.trim()
+      : undefined;
+    if (slackChannel) {
+      destinations.push({
+        destination: slackChannel,
+        message: {
+          action: 'send_message',
+          payload: {
+            chatId: slackChannel,
+            message: `:eyes: Review needed for *${ctx.workflowLabel}* — a workflow step is awaiting approval.${
+              pending.inputCaption ? `\n> ${pending.inputCaption}` : ''
+            }`,
+          },
+          type: 'slack',
+        },
+      });
+    } else if (channels.includes(NotificationChannel.SLACK)) {
       this.logger.warn(
         'Review-gate slack skipped — no channel configured',
         this.context,
       );
-      return;
     }
 
-    const message = `:eyes: Review needed for *${ctx.workflowLabel}* — a workflow step is awaiting approval.${
-      pending.inputCaption ? `\n> ${pending.inputCaption}` : ''
-    }`;
-
-    await this.notificationsService.sendReviewGatePendingSlack(
-      channel,
-      message,
-    );
+    await this.activityRecorder.record({
+      alert: {
+        deduplicationKey: `${ActivityKey.WORKFLOW_REVIEW_REQUESTED}/${ctx.executionId}/${pending.nodeId}`,
+        destinations,
+        source: { id: ctx.executionId, type: 'workflow_execution' },
+      },
+      brandId: ctx.brandId ?? null,
+      data: { nodeId: pending.nodeId, workflowId: ctx.workflowId },
+      entityId: ctx.executionId,
+      entityModel: 'WorkflowExecution',
+      key: ActivityKey.WORKFLOW_REVIEW_REQUESTED,
+      organizationId: ctx.organizationId,
+      source: ActivitySource.WORKFLOW_EXECUTION,
+      userId: ctx.ownerUserId,
+      value: ctx.workflowLabel,
+    });
   }
 
   private async dispatchWebhook(

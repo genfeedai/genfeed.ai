@@ -648,40 +648,17 @@ describe('WebSocketGateway redis message dispatch', () => {
     );
   });
 
-  it('sends notifications to the organization room when an org is present', () => {
+  it('tells each inbox recipient to re-read the bell, never the organization room', () => {
     dispatch(
-      'notifications',
-      JSON.stringify({
-        notification: { title: 'hello' },
-        organizationId: 'org-1',
-        userId: USER_ID,
-      }),
+      'notification-inbox',
+      JSON.stringify({ organizationId: 'org-1', userIds: [USER_ID] }),
     );
 
-    expect(serverTo).toHaveBeenCalledWith('org-org-1');
-    expect(roomEmit).toHaveBeenCalledWith('notification', { title: 'hello' });
-  });
-
-  it('sends notifications to the user room without an org', () => {
-    dispatch(
-      'notifications',
-      JSON.stringify({
-        notification: { title: 'hello' },
-        userId: USER_ID,
-      }),
-    );
-
+    expect(serverTo).toHaveBeenCalledTimes(1);
     expect(serverTo).toHaveBeenCalledWith(USER_ROOM);
-    expect(roomEmit).toHaveBeenCalledWith('notification', { title: 'hello' });
-  });
-
-  it('drops notifications without a user or org target', () => {
-    dispatch(
-      'notifications',
-      JSON.stringify({ notification: { title: 'hello' } }),
-    );
-
-    expect(serverTo).not.toHaveBeenCalled();
+    expect(roomEmit).toHaveBeenCalledWith('notification-inbox', {
+      organizationId: 'org-1',
+    });
   });
 
   it('routes ingredient status updates', () => {
@@ -1026,7 +1003,7 @@ describe('WebSocketGateway with an unready server', () => {
     ['video-progress', { path: '/p', progress: 1, userId: 'u1' }],
     ['video-complete', { path: '/p', result: {}, userId: 'u1' }],
     ['media-failed', { error: 'x', path: '/p', userId: 'u1' }],
-    ['notifications', { notification: {}, userId: 'u1' }],
+    ['notification-inbox', { organizationId: 'o1', userIds: ['u1'] }],
     ['ingredient-status', { ingredientId: 'i', status: 's', userId: 'u1' }],
     ['post-status', { postId: 'p', status: 's', userId: 'u1' }],
     ['training-status', { status: 's', trainingId: 't', userId: 'u1' }],

@@ -1,9 +1,9 @@
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { NotificationChannel } from '@genfeedai/contracts';
+import { ActivityKey, NotificationChannel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ModuleRef } from '@nestjs/core';
@@ -51,10 +51,7 @@ function pending(
 
 describe('ReviewGateNotificationService', () => {
   let service: ReviewGateNotificationService;
-  let notificationsService: {
-    sendReviewGatePendingEmail: ReturnType<typeof vi.fn>;
-    sendReviewGatePendingSlack: ReturnType<typeof vi.fn>;
-  };
+  let activityRecorder: { record: ReturnType<typeof vi.fn> };
   let httpService: { post: ReturnType<typeof vi.fn> };
   let tasksService: {
     create: ReturnType<typeof vi.fn>;
@@ -65,9 +62,8 @@ describe('ReviewGateNotificationService', () => {
   beforeEach(async () => {
     assertSafeWebhookEndpoint.mockClear();
     createPinnedWebhookAgent.mockClear();
-    notificationsService = {
-      sendReviewGatePendingEmail: vi.fn().mockResolvedValue(undefined),
-      sendReviewGatePendingSlack: vi.fn().mockResolvedValue(undefined),
+    activityRecorder = {
+      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
     httpService = { post: vi.fn().mockReturnValue(of({ data: {} })) };
     tasksService = {
@@ -85,7 +81,7 @@ describe('ReviewGateNotificationService', () => {
         ReviewGateNotificationService,
         { provide: LoggerService, useValue: { error: vi.fn(), warn: vi.fn() } },
         { provide: PrismaService, useValue: prisma },
-        { provide: NotificationsService, useValue: notificationsService },
+        { provide: ActivityRecorderService, useValue: activityRecorder },
         { provide: HttpService, useValue: httpService },
         {
           provide: ModuleRef,
@@ -98,12 +94,29 @@ describe('ReviewGateNotificationService', () => {
     service = module.get(ReviewGateNotificationService);
   });
 
-  it('dispatches nothing when no channels are configured', async () => {
+  function recordedDestinations(): unknown {
+    const [input] = activityRecorder.record.mock.calls[0] ?? [];
+    return input?.alert?.destinations;
+  }
+
+  it('records the bell alert with no external channel when none is configured', async () => {
     const result = await service.dispatchPendingNotifications(pending(), CTX);
     expect(result).toEqual({});
-    expect(
-      notificationsService.sendReviewGatePendingEmail,
-    ).not.toHaveBeenCalled();
+    expect(activityRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alert: expect.objectContaining({
+          deduplicationKey: 'workflow-review-requested/exec-1/node-1',
+          destinations: [],
+        }),
+        entityId: 'exec-1',
+        key: ActivityKey.WORKFLOW_REVIEW_REQUESTED,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        value: 'My Workflow',
+      }),
+    );
+    expect(httpService.post).not.toHaveBeenCalled();
+    expect(tasksService.create).not.toHaveBeenCalled();
   });
 
   it('emails the owner when the email channel is configured with no explicit recipient', async () => {
@@ -113,11 +126,19 @@ describe('ReviewGateNotificationService', () => {
     );
 
     expect(prisma.user.findUnique).toHaveBeenCalled();
-    expect(
-      notificationsService.sendReviewGatePendingEmail,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'owner@example.com', workflowId: 'wf-1' }),
-    );
+    expect(recordedDestinations()).toEqual([
+      {
+        destination: 'owner@example.com',
+        message: expect.objectContaining({
+          action: 'review_gate_pending',
+          payload: expect.objectContaining({
+            to: 'owner@example.com',
+            workflowId: 'wf-1',
+          }),
+          type: 'email',
+        }),
+      },
+    ]);
   });
 
   it('prefers the explicit notifyEmail over the owner email', async () => {
@@ -130,11 +151,9 @@ describe('ReviewGateNotificationService', () => {
     );
 
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
-    expect(
-      notificationsService.sendReviewGatePendingEmail,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ to: 'reviewer@example.com' }),
-    );
+    expect(recordedDestinations()).toEqual([
+      expect.objectContaining({ destination: 'reviewer@example.com' }),
+    ]);
   });
 
   it('posts to the configured webhook url only after the SSRF guard passes', async () => {
@@ -190,12 +209,19 @@ describe('ReviewGateNotificationService', () => {
       CTX,
     );
 
-    expect(
-      notificationsService.sendReviewGatePendingSlack,
-    ).toHaveBeenCalledWith(
-      '#content-review',
-      expect.stringContaining('My Workflow'),
-    );
+    expect(recordedDestinations()).toEqual([
+      {
+        destination: '#content-review',
+        message: {
+          action: 'send_message',
+          payload: {
+            chatId: '#content-review',
+            message: expect.stringContaining('My Workflow'),
+          },
+          type: 'slack',
+        },
+      },
+    ]);
   });
 
   it('creates a task-inbox task and returns its id', async () => {
@@ -214,17 +240,20 @@ describe('ReviewGateNotificationService', () => {
     expect(result.taskId).toBe('task-1');
   });
 
-  it('swallows a failing channel without throwing', async () => {
-    notificationsService.sendReviewGatePendingEmail.mockRejectedValueOnce(
-      new Error('smtp down'),
-    );
+  it('still opens the task-inbox task when recording the request fails', async () => {
+    activityRecorder.record.mockRejectedValueOnce(new Error('db down'));
 
     await expect(
       service.dispatchPendingNotifications(
-        pending({ notifyChannels: [NotificationChannel.EMAIL] }),
+        pending({
+          notifyChannels: [
+            NotificationChannel.EMAIL,
+            NotificationChannel.TASK_INBOX,
+          ],
+        }),
         CTX,
       ),
-    ).resolves.toEqual({ taskId: undefined });
+    ).resolves.toEqual({ taskId: 'task-1' });
   });
 
   describe('resolvePendingTask', () => {

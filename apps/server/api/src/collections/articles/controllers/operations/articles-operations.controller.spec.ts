@@ -1,6 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
@@ -16,6 +15,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -86,8 +86,8 @@ describe('ArticlesOperationsController', () => {
   };
 
   const mockActivitiesService = {
-    create: vi.fn(),
-    patch: vi.fn(),
+    record: vi.fn(),
+    update: vi.fn(),
   };
 
   const mockWebsocketService = {
@@ -143,7 +143,7 @@ describe('ArticlesOperationsController', () => {
         TextGenerationCreditsService,
         { provide: ByokService, useValue: mockByokService },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: mockActivitiesService,
         },
         {
@@ -230,7 +230,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -269,7 +269,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -285,12 +285,12 @@ describe('ArticlesOperationsController', () => {
         requestedBrandId,
         undefined,
       );
-      expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
+      expect(mockActivitiesService.record).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({ brandId: requestedBrandId }),
       );
-      expect(mockActivitiesService.patch).toHaveBeenCalledWith(
-        activityId,
+      expect(mockActivitiesService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: activityId }),
         expect.objectContaining({
           brandId: requestedBrandId,
           key: ActivityKey.ARTICLE_GENERATED,
@@ -319,7 +319,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -415,7 +415,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -452,7 +452,7 @@ describe('ArticlesOperationsController', () => {
       expect(mockModelsService.findOne).not.toHaveBeenCalled();
       expect(service.resolveArticleCycleModelConfig).not.toHaveBeenCalled();
       expect(service.generateArticles).not.toHaveBeenCalled();
-      expect(mockActivitiesService.create).not.toHaveBeenCalled();
+      expect(mockActivitiesService.record).not.toHaveBeenCalled();
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {
@@ -466,7 +466,7 @@ describe('ArticlesOperationsController', () => {
           reviewModel: 'default-text-model',
           updateModel: 'default-text-model',
         });
-        mockActivitiesService.create.mockResolvedValue({ id: activityId });
+        mockActivitiesService.record.mockResolvedValue({ id: activityId });
         mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
           undefined,
         );

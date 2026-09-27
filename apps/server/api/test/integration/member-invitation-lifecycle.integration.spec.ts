@@ -5,7 +5,8 @@
  */
 
 import { InvitationService } from '@api/collections/members/services/invitation.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
@@ -73,7 +74,18 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
     service = new InvitationService(
       prisma,
       config as unknown as ConfigService,
-      { sendEmail } as unknown as NotificationsService,
+      {
+        // The service dispatches the invitation through the outbox; this
+        // adapter exposes the rendered email the way the assertions read it.
+        dispatch: async (input: ChannelDispatchInput) => {
+          const payload = input.messages[0]?.message.payload as {
+            html: string;
+            subject: string;
+            to: string;
+          };
+          await sendEmail(payload.to, payload.subject, payload.html);
+        },
+      } as unknown as ActivityRecorderService,
       logger as unknown as LoggerService,
     );
   });
