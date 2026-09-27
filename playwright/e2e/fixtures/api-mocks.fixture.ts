@@ -1,13 +1,18 @@
 import {
   ActivityKey,
   AgentThreadMode,
+  type CredentialPlatform,
   IngredientCategory,
   PostCategory,
   PostStatus,
+  PostVisibility,
+  ReleaseTargetSource,
   SocialSourceType,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
+  type TargetExecutionState,
+  TargetValidationState,
 } from '@genfeedai/contracts';
 import { buildReleaseAnalyticsComparison } from '@genfeedai/contracts/api-types/contracts/scheduler-analytics-comparison.contract';
 import type {
@@ -3937,7 +3942,7 @@ function buildChannelTargetResource(
   post: Record<string, unknown>,
   groupId: string,
   overrides: { id?: string; status?: string; scheduledAt?: string | null } = {},
-): { id: string; attributes: Record<string, unknown> } {
+): { id: string; attributes: Omit<IChannelTarget, 'id'> } {
   const id = overrides.id ?? String(post.id);
   const status = overrides.status ?? toReleaseStatus(post.status);
   const scheduledAt =
@@ -3945,43 +3950,55 @@ function buildChannelTargetResource(
       ? overrides.scheduledAt
       : ((post.scheduledDate as string | null) ?? null);
 
-  return {
-    attributes: {
-      attachments: [],
-      category: PostCategory.TEXT,
-      credentialId: `mock-credential-${id}`,
-      executionState: status,
-      order: 0,
-      platform: (post.platform as string) ?? 'twitter',
-      // The parent release group's id, never the target's own -- see
-      // `channel-target.attributes.ts`'s `releaseId`.
-      releaseId: groupId,
-      scheduledAt,
-      source: 'manual',
-      statusTransitions: [],
-      timezone: 'America/New_York',
-      // A supported platform with nothing collected yet, as
-      // `PostGroupContractService.toTargetAnalytics` emits it.
-      analytics: {
-        collection: {
-          capability: TargetAnalyticsCapability.SUPPORTED,
-          error: null,
-          freshness: TargetAnalyticsFreshness.UNAVAILABLE,
-          lastCollectedAt: null,
-          requestedAt: null,
-          state: TargetAnalyticsCollectionState.UNAVAILABLE,
-        },
-        snapshot: null,
-        state: 'unavailable',
+  // Mirrors `PostGroupContractService.toChannelTarget` for a manual target
+  // that passed validation and has no analytics collected yet.
+  const target: IChannelTarget = {
+    analytics: {
+      collection: {
+        capability: TargetAnalyticsCapability.SUPPORTED,
+        error: null,
+        freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: TargetAnalyticsCollectionState.UNAVAILABLE,
       },
-      // ReleaseDetailDrawer reads `target.validationIssues.length`
-      // unconditionally -- the real serializer always includes the field,
-      // so an incomplete mock target crashes the drawer's ErrorBoundary on
-      // click. See #5381.
-      validationIssues: [],
+      snapshot: null,
+      state: 'unavailable',
     },
+    attachments: [],
+    category: PostCategory.TEXT,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    credentialId: `mock-credential-${id}`,
+    error: null,
+    executionState: status as TargetExecutionState,
+    externalProviderId: null,
+    externalShortcode: null,
     id,
+    idempotencyKey: null,
+    isDeleted: false,
+    lastAttemptAt: null,
+    order: 0,
+    platform: ((post.platform as string) ?? 'twitter') as CredentialPlatform,
+    publishedAt: status === 'published' ? scheduledAt : null,
+    readiness: null,
+    // The parent release group's id, never the target's own.
+    releaseId: groupId,
+    retryCount: 0,
+    scheduledAt,
+    settings: {},
+    source: ReleaseTargetSource.MANUAL,
+    statusTransitions: [],
+    timezone: 'America/New_York',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    url: null,
+    validationIssues: [],
+    validationState: TargetValidationState.VALID,
+    visibility: PostVisibility.PUBLIC,
+    workflowExecutionId: null,
   };
+  const { id: _id, ...attributes } = target;
+
+  return { attributes, id };
 }
 
 /**
@@ -3994,7 +4011,7 @@ function buildChannelTargetResource(
 function buildReleaseGroupAttributes(
   post: Record<string, unknown>,
   groupId: string,
-  targets: Array<{ id: string; attributes: Record<string, unknown> }>,
+  targets: Array<{ id: string; attributes: Omit<IChannelTarget, 'id'> }>,
   overrides: { status?: string; scheduledAt?: string | null } = {},
 ): Record<string, unknown> {
   const status = overrides.status ?? toReleaseStatus(post.status);
@@ -4045,7 +4062,7 @@ function buildReleaseGroupAttributes(
 function buildReleaseGroupDocument(
   id: string,
   attributes: Record<string, unknown>,
-  targets: Array<{ id: string; attributes: Record<string, unknown> }>,
+  targets: Array<{ id: string; attributes: Omit<IChannelTarget, 'id'> }>,
 ) {
   return {
     data: {
@@ -4083,7 +4100,7 @@ function buildReleaseGroupCollectionDocument(
   releases: Array<{
     id: string;
     attributes: Record<string, unknown>;
-    targets: Array<{ id: string; attributes: Record<string, unknown> }>;
+    targets: Array<{ id: string; attributes: Omit<IChannelTarget, 'id'> }>;
   }>,
 ) {
   const included: Array<{

@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/contracts';
+import { PostStatus, TargetValidationState } from '@genfeedai/contracts';
 import type { Page } from '@playwright/test';
 import {
   generateMockPost,
@@ -299,6 +299,12 @@ test.describe('Calendar — Scheduling', () => {
 
     await calendarPage.getEventByText('Navigable Post').click();
     await expect(calendarPage.postModal).toBeVisible();
+    // The target passed validation: the drawer shows its validation badge.
+    await expect(
+      calendarPage.postModal.getByText(TargetValidationState.VALID, {
+        exact: true,
+      }),
+    ).toBeVisible();
 
     await calendarPage.clickViewDetails();
 
