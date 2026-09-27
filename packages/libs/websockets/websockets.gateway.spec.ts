@@ -166,6 +166,90 @@ describe('WebSocketGateway', () => {
     },
   );
 
+  it.each([
+    ['surplus fields', 'Bearer junk validJWT'],
+    ['single field', 'Bearer'],
+    ['lowercase scheme, single field', 'bearer'],
+  ])(
+    // #5350: a malformed presented Bearer header must reject the socket,
+    // never be silently ignored in favor of a valid `handshake.auth.token`.
+    'rejects a %s Bearer header even with a valid auth.token present',
+    async (_label, authorization) => {
+      verifyMock.mockResolvedValue({
+        organizationId: 'org-signed',
+        sub: 'aaaaaaaa-0000-0000-0000-000000000001',
+      });
+      const socket = createMockSocket({
+        handshake: {
+          auth: { token: 'header.payload.signature' },
+          headers: { authorization },
+          query: {},
+        } as Socket['handshake'],
+      });
+
+      await gateway.handleConnection(socket as Socket);
+
+      expect(verifyMock).not.toHaveBeenCalled();
+      expect(socket.join).not.toHaveBeenCalled();
+      expect(socket.disconnect).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each([
+    ['well-formed Bearer', 'Bearer header.payload.signature'],
+    ['non-Bearer scheme', 'Basic proxy-credential'],
+    ['no header', undefined],
+  ])(
+    // #5350: only a malformed Bearer attempt is rejected; every other header
+    // shape keeps the normal `handshake.auth.token` path.
+    'authenticates via auth.token with %s Authorization header',
+    async (_label, authorization) => {
+      verifyMock.mockResolvedValue({
+        organizationId: 'org-signed',
+        sub: 'aaaaaaaa-0000-0000-0000-000000000001',
+      });
+      const socket = createMockSocket({
+        handshake: {
+          auth: { token: 'auth.payload.signature' },
+          headers: authorization ? { authorization } : {},
+          query: {},
+        } as Socket['handshake'],
+      });
+
+      await gateway.handleConnection(socket as Socket);
+
+      expect(verifyMock).toHaveBeenCalledExactlyOnceWith(
+        'auth.payload.signature',
+      );
+      expect(socket.disconnect).not.toHaveBeenCalled();
+      expect(socket.emit).toHaveBeenCalledWith(
+        'connected',
+        expect.objectContaining({
+          userId: 'aaaaaaaa-0000-0000-0000-000000000001',
+        }),
+      );
+    },
+  );
+
+  it('verifies a well-formed Bearer header and disconnects when verification fails', async () => {
+    verifyMock.mockRejectedValue(new Error('invalid signature'));
+    const socket = createMockSocket({
+      handshake: {
+        auth: {},
+        headers: { authorization: 'Bearer stale.payload.signature' },
+        query: {},
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+
+    expect(verifyMock).toHaveBeenCalledExactlyOnceWith(
+      'stale.payload.signature',
+    );
+    expect(socket.join).not.toHaveBeenCalled();
+    expect(socket.disconnect).toHaveBeenCalledOnce();
+  });
+
   it('falls back to API_BASE_URL for JWKS when BETTER_AUTH_URL is unset', async () => {
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'API_BASE_URL') {
