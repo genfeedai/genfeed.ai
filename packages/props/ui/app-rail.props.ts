@@ -1,3 +1,10 @@
+import type {
+  AppRailItemConfig,
+  AppRailNavigationEvent,
+  AppRailNavigationItem,
+  AppRailNavigationVia,
+  AppRailSurface,
+} from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import type { ReactNode } from 'react';
 
 export interface AppRailNavigationTarget {
@@ -13,6 +20,8 @@ export interface AppRailBadge {
 }
 
 export interface AppRailProps {
+  surface?: AppRailSurface;
+  onNavigationEvent?: (event: AppRailNavigationEvent) => void;
   /** Count pills keyed by app id; a missing or zero count renders nothing. */
   badges?: Readonly<Partial<Record<string, AppRailBadge>>>;
   /** Selected brand context used by brand-aware apps when the current route is org-scoped. */
@@ -36,4 +45,32 @@ export interface AppRailProps {
   resolveNavigation?: (href: string) => AppRailNavigationTarget;
   /** Include platform-admin navigation for users with platform access. */
   showAdmin?: boolean;
+}
+
+export interface AppRailItemProps {
+  app: AppRailItemConfig;
+  badge?: AppRailBadge;
+  href: string;
+  isActive: boolean;
+  isLocked: boolean;
+  label: string;
+  description: string;
+  shortcut?: string[];
+  onNavigateStart: () => void;
+}
+
+export interface UseAppRailNavigationOptions {
+  items: readonly AppRailNavigationItem[];
+  surface: AppRailSurface;
+  isDesktop: boolean;
+  commandLabel: (label: string) => string;
+  navigate: (item: AppRailNavigationItem, via: AppRailNavigationVia) => void;
+}
+
+export interface AppProtectedRailProps {
+  brandSlug?: string;
+  isAdminChrome?: boolean;
+  /** Injected by AppLayout into the drawer copy. */
+  onNavigate?: () => void;
+  orgSlug?: string;
 }

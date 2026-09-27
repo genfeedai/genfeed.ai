@@ -4,7 +4,7 @@ import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
 import {
-  APP_SWITCHER_FEATURE_FLAG_KEYS,
+  APP_RAIL_FEATURE_FLAG_KEYS,
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/contracts/constants';
@@ -24,7 +24,7 @@ import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
 const REMOTE_FEATURE_FLAG_KEYS = [
-  ...APP_SWITCHER_FEATURE_FLAG_KEYS,
+  ...APP_RAIL_FEATURE_FLAG_KEYS,
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 ] as const;

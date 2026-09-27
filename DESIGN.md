@@ -745,11 +745,28 @@ holds that app's own menu, and collapsing the sidebar leaves the rail in place.
 Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled
 `bg-foreground/[0.12] text-foreground` tile.
-Each item carries a right-side tooltip (label + one-line description). Order is
+Each item carries a right-side tooltip (label, one-line description, and shortcut).
+The shared `app-rail.registry.ts` owns app order, groups, visibility flags, active
+roots, and scoped destinations for links, palette commands, and shortcuts. Order is
 Agent, Workspace, Studio, Library, Publishing, Messages; a short divider; then
 Discovery, Analytics, Automation. Role-gated Admin sits at the bottom. Unread
 counts render as an `info` pill on the item. On mobile the rail sits inside the
 navigation drawer beside the menu.
+
+Web shortcuts are `G` followed by `1`–`9` within one second; the desktop client
+uses `⌘1`–`⌘9`. Numbers follow the visible rail order; Admin is never numbered.
+Typing into inputs, textareas, or editable content suppresses these shortcuts.
+The palette shows localized “Go to <App>” commands with the same shortcuts and
+resolves Agent/Studio through the selected brand on organization-scoped pages.
+Only the rail at the active viewport breakpoint registers commands/listeners.
+Navigation emits `app_rail_navigated` with app identifiers, entry point, and
+`desktop`/`drawer` surface, without URLs or tenant/user identifiers.
+
+Workspace reuses the existing unread inbox-task hook. Publishing reuses the
+overview bootstrap review inbox's `readyCount` (completed items awaiting review,
+not items still generating). Messages retains its scoped unread count. Zero
+counts and counts on locked entries stay hidden; large counts display `99+`.
+Organization identity, sidebar controls, geometry, and colors follow Shell Layout.
 
 ## Iconography
 

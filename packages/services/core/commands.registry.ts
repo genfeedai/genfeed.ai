@@ -8,30 +8,24 @@
  * - Personal settings: /settings
  */
 
+import type { AppRailCommandsOptions } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   BookOpen,
-  ChartColumn,
   CircleUser,
-  FolderOpen,
   FolderPlus,
-  House as Home,
   Image,
-  LayoutGrid,
   LogOut,
   MessageSquare,
   Music,
   RefreshCw,
   Search,
-  Send,
-  Settings,
   Terminal,
   Upload,
   Video,
-  Wrench,
 } from 'lucide-react';
 
 /**
@@ -50,135 +44,24 @@ function navigate(url: string): void {
   window.location.href = url;
 }
 
-/**
- * Navigation Commands (consolidated app structure)
- *
- * Settings routes are scoped by owner: /settings for personal,
- * /{orgSlug}/~/settings for organization, and
- * /{orgSlug}/{brandSlug}/settings for brand.
- * All other routes are brand-scoped (/{orgSlug}/{brandSlug}/...).
- */
-export function createNavigationCommands(
-  orgSlug: string,
-  brandSlug: string,
-): ICommand[] {
-  const appBase = EnvironmentService.apps.app;
-  const brandPath = `${appBase}/${orgSlug}/${brandSlug}`;
-
-  return [
-    {
-      action: () => {
-        navigate(`${brandPath}/overview`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Content overview and dashboard',
-      icon: Home,
-      id: 'nav-overview',
-      keywords: ['dashboard', 'home', 'overview'],
-      label: 'Go to Overview',
-      priority: 10,
-      shortcut: ['⌘', '1'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/discovery/overview`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Research trends and content ideas',
-      icon: Search,
-      id: 'nav-discovery',
-      keywords: ['discover', 'research', 'trends', 'content'],
-      label: 'Go to Discovery',
-      priority: 10,
-      shortcut: ['⌘', '2'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/library`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Manage your content library',
-      icon: FolderOpen,
-      id: 'nav-library',
-      keywords: ['manager', 'library', 'files', 'assets', 'ingredients'],
-      label: 'Go to Library',
-      priority: 10,
-      shortcut: ['⌘', '3'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/library/assets?view=canvas`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Arrange all your generated assets on one canvas',
-      icon: LayoutGrid,
-      id: 'nav-library-canvas',
-      keywords: ['mood', 'board', 'moodboard', 'canvas', 'gallery', 'assets'],
-      label: 'Go to Library Canvas',
-      priority: 9,
-      shortcut: ['⌘', '7'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/publishing`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Manage drafts, approvals, and scheduled posts',
-      icon: Send,
-      id: 'nav-publishing',
-      keywords: ['publishing', 'publish', 'schedule', 'social', 'posts'],
-      label: 'Go to Publishing',
-      priority: 10,
-      shortcut: ['⌘', '4'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/analytics`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'View performance metrics',
-      icon: ChartColumn,
-      id: 'nav-analytics',
-      keywords: ['analytics', 'stats', 'metrics', 'insights'],
-      label: 'Go to Analytics',
-      priority: 10,
-      shortcut: ['⌘', '5'],
-    },
-    {
-      action: () => {
-        navigate(`${brandPath}/automation/workflows`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Manage agents, workflows, and operational runs',
-      icon: Wrench,
-      id: 'nav-automation',
-      keywords: ['agents', 'automation', 'workflows', 'runs'],
-      label: 'Go to Automation',
-      priority: 10,
-      shortcut: ['⌘', '6'],
-    },
-    {
-      action: () => {
-        navigate(`${appBase}/settings`);
-      },
-      category: 'navigation',
-      condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Manage your account and organization',
-      icon: Settings,
-      id: 'nav-settings',
-      keywords: ['settings', 'preferences', 'config'],
-      label: 'Go to Settings',
-      priority: 8,
-      shortcut: ['⌘', 'S'],
-    },
-  ];
+/** Build app commands from the shell's visible, scoped rail registry entries. */
+export function createNavigationCommands({
+  items,
+  commandLabel,
+  navigate,
+  surface,
+}: AppRailCommandsOptions): ICommand[] {
+  return items.map((item) => ({
+    action: () => navigate(item),
+    category: 'navigation',
+    description: item.description,
+    icon: item.app.icon,
+    id: `app-rail:${surface}:${item.app.id}`,
+    keywords: [item.app.id, item.label],
+    label: commandLabel(item.label),
+    priority: 10,
+    shortcut: item.shortcut,
+  }));
 }
 
 /**
@@ -412,7 +295,8 @@ export const quickActionCommands: ICommand[] = [
  * context-free ones, on any route missing a brand segment — #4660):
  * - always: quick actions, general help
  * - org known: org-scoped help
- * - org + brand known: navigation, generation, content
+ * - org + brand known: generation, content
+ * App navigation is registered by the rail from its visible registry entries.
  *
  * Personal/Organization/Brand settings destinations (Personal Settings,
  * Organization Settings, Brand Management, Billing) are NOT registered here.
@@ -435,7 +319,6 @@ export function createDefaultCommands({
     ...(orgSlug ? createOrgHelpCommands(orgSlug) : []),
     ...(orgSlug && brandSlug
       ? [
-          ...createNavigationCommands(orgSlug, brandSlug),
           ...createGenerationCommands(orgSlug, brandSlug),
           ...createContentCommands(orgSlug, brandSlug),
         ]

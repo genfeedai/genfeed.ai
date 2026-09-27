@@ -1,4 +1,4 @@
-export const APP_SWITCHER_FEATURE_FLAGS = {
+export const APP_RAIL_FEATURE_FLAGS = {
   workspace: 'app_switcher_workspace',
   agent: 'app_switcher_agent',
   messages: 'app_switcher_messages',
@@ -27,11 +27,11 @@ export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG = 'desktop_local_workspace';
  */
 export const LIBRARY_CANVAS_FEATURE_FLAG = 'moodboard';
 
-export type AppSwitcherFeatureFlagApp = keyof typeof APP_SWITCHER_FEATURE_FLAGS;
+export type AppRailFeatureFlagApp = keyof typeof APP_RAIL_FEATURE_FLAGS;
 
-export type AppSwitcherFeatureFlagKey =
-  (typeof APP_SWITCHER_FEATURE_FLAGS)[AppSwitcherFeatureFlagApp];
+export type AppRailFeatureFlagKey =
+  (typeof APP_RAIL_FEATURE_FLAGS)[AppRailFeatureFlagApp];
 
-export const APP_SWITCHER_FEATURE_FLAG_KEYS = Object.values(
-  APP_SWITCHER_FEATURE_FLAGS,
-) as AppSwitcherFeatureFlagKey[];
+export const APP_RAIL_FEATURE_FLAG_KEYS = Object.values(
+  APP_RAIL_FEATURE_FLAGS,
+) as AppRailFeatureFlagKey[];

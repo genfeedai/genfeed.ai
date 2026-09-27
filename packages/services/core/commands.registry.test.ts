@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import type { AppRailNavigationItem } from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
+import { Terminal } from 'lucide-react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist mock objects so they're available when vi.mock factories run
@@ -38,6 +40,22 @@ import {
 
 const TEST_ORG = 'test-org';
 const TEST_BRAND = 'test-brand';
+const railItem: AppRailNavigationItem = {
+  app: {
+    id: 'agent',
+    icon: Terminal,
+    label: 'agent.label',
+    description: 'agent.description',
+    activePathRoots: ['/agent'],
+    group: 'daily',
+    route: () => '/acme/brand/agent',
+  },
+  label: 'Agent',
+  description: 'Ask and execute.',
+  href: '/acme/brand/agent',
+  isLocked: false,
+  shortcut: ['G', '1'],
+};
 
 describe('commands.registry', () => {
   const originalLocation = window.location;
@@ -67,173 +85,49 @@ describe('commands.registry', () => {
   });
 
   describe('createNavigationCommands', () => {
-    it('should have correct number of navigation commands', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-
-      expect(navigationCommands.length).toBe(8);
+    it('uses resolved rail entries without hiding commands in the main app', () => {
+      const navigate = vi.fn();
+      const commands = createNavigationCommands({
+        items: [railItem],
+        commandLabel: (label) => `Go to ${label}`,
+        navigate,
+        surface: 'desktop',
+      });
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toMatchObject({
+        id: 'app-rail:desktop:agent',
+        label: 'Go to Agent',
+        shortcut: ['G', '1'],
+        category: 'navigation',
+      });
+      expect(commands[0].condition).toBeUndefined();
+      commands[0].action();
+      expect(navigate).toHaveBeenCalledWith(railItem);
     });
-
-    it('should have overview command with correct properties', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const overviewCmd = navigationCommands.find(
-        (c) => c.id === 'nav-overview',
-      );
-
-      expect(overviewCmd).toBeDefined();
-      expect(overviewCmd?.label).toBe('Go to Overview');
-      expect(overviewCmd?.category).toBe('navigation');
-      expect(overviewCmd?.keywords).toContain('dashboard');
-      expect(overviewCmd?.priority).toBe(10);
-      expect(overviewCmd?.shortcut).toEqual(['⌘', '1']);
-    });
-
-    it('should have library command', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const libraryCmd = navigationCommands.find((c) => c.id === 'nav-library');
-
-      expect(libraryCmd).toBeDefined();
-      expect(libraryCmd?.label).toBe('Go to Library');
-      expect(libraryCmd?.keywords).toContain('library');
-      expect(libraryCmd?.shortcut).toEqual(['⌘', '3']);
-    });
-
-    it('should have publishing command', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const publishingCmd = navigationCommands.find(
-        (c) => c.id === 'nav-publishing',
-      );
-
-      expect(publishingCmd).toBeDefined();
-      expect(publishingCmd?.label).toBe('Go to Publishing');
-      expect(publishingCmd?.keywords).toContain('posts');
-    });
-
-    it('should have analytics command', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const analyticsCmd = navigationCommands.find(
-        (c) => c.id === 'nav-analytics',
-      );
-
-      expect(analyticsCmd).toBeDefined();
-      expect(analyticsCmd?.label).toBe('Go to Analytics');
-      expect(analyticsCmd?.keywords).toContain('analytics');
-    });
-
-    it('should have automation command', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const automationCmd = navigationCommands.find(
-        (c) => c.id === 'nav-automation',
-      );
-
-      expect(automationCmd).toBeDefined();
-      expect(automationCmd?.keywords).toContain('workflows');
-    });
-
-    it('should have settings command', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const settingsCmd = navigationCommands.find(
-        (c) => c.id === 'nav-settings',
-      );
-
-      expect(settingsCmd).toBeDefined();
-      expect(settingsCmd?.label).toBe('Go to Settings');
-      expect(settingsCmd?.priority).toBe(8);
-    });
-
-    it('overview action should navigate to brand-scoped overview URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const overviewCmd = navigationCommands.find(
-        (c) => c.id === 'nav-overview',
-      );
-
-      overviewCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/overview`,
-      );
-    });
-
-    it('discovery action should navigate to the brand-scoped Discovery URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const discoveryCmd = navigationCommands.find(
-        (c) => c.id === 'nav-discovery',
-      );
-
-      discoveryCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discovery/overview`,
-      );
-    });
-
-    it('library action should navigate to brand-scoped library URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const libraryCmd = navigationCommands.find((c) => c.id === 'nav-library');
-
-      libraryCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/library`,
-      );
-    });
-
-    it('automation action should navigate to the brand-scoped Automation workflows URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const automationCmd = navigationCommands.find(
-        (c) => c.id === 'nav-automation',
-      );
-
-      automationCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/automation/workflows`,
-      );
-    });
-
-    it('publishing action should navigate to the brand-scoped Publishing URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const publishingCmd = navigationCommands.find(
-        (c) => c.id === 'nav-publishing',
-      );
-
-      publishingCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/publishing`,
-      );
-    });
-
-    it('settings action should navigate to personal settings URL', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const settingsCmd = navigationCommands.find(
-        (c) => c.id === 'nav-settings',
-      );
-
-      settingsCmd?.action();
-
-      expect(window.location.href).toBe('https://app.genfeed.ai/settings');
-    });
-
-    it('condition should return false when already on that app', () => {
-      mockEnvironmentService.currentApp = 'app';
-
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const overviewCmd = navigationCommands.find(
-        (c) => c.id === 'nav-overview',
-      );
-
-      expect(overviewCmd?.condition?.()).toBe(false);
-    });
-
-    it('condition should return true when on different app', () => {
-      mockEnvironmentService.currentApp = 'studio';
-
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const overviewCmd = navigationCommands.find(
-        (c) => c.id === 'nav-overview',
-      );
-
-      expect(overviewCmd?.condition?.()).toBe(true);
+    it('does not invent hidden entries and leaves visible Admin unnumbered', () => {
+      expect(
+        createNavigationCommands({
+          items: [],
+          commandLabel: (label) => label,
+          navigate: vi.fn(),
+          surface: 'drawer',
+        }),
+      ).toEqual([]);
+      expect(
+        createNavigationCommands({
+          items: [
+            {
+              ...railItem,
+              shortcut: undefined,
+              label: 'Admin',
+              app: { ...railItem.app, id: 'admin', group: 'admin' },
+            },
+          ],
+          commandLabel: (label) => label,
+          navigate: vi.fn(),
+          surface: 'desktop',
+        }),
+      ).toMatchObject([{ label: 'Admin', shortcut: undefined }]);
     });
   });
 
@@ -536,7 +430,6 @@ describe('commands.registry', () => {
         orgSlug: TEST_ORG,
       });
       const expectedLength =
-        createNavigationCommands(TEST_ORG, TEST_BRAND).length +
         createGenerationCommands(TEST_ORG, TEST_BRAND).length +
         createContentCommands(TEST_ORG, TEST_BRAND).length +
         createOrgHelpCommands(TEST_ORG).length +
@@ -553,7 +446,7 @@ describe('commands.registry', () => {
       });
       const categories = [...new Set(defaultCommands.map((c) => c.category))];
 
-      expect(categories).toContain('navigation');
+      expect(categories).not.toContain('navigation');
       expect(categories).toContain('generation');
       expect(categories).toContain('content');
       expect(categories).toContain('help');
@@ -670,7 +563,12 @@ describe('commands.registry', () => {
 
   describe('command structure validation', () => {
     it('all navigation commands should have keywords array', () => {
-      const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
+      const navigationCommands = createNavigationCommands({
+        items: [railItem],
+        commandLabel: (label) => label,
+        navigate: vi.fn(),
+        surface: 'desktop',
+      });
 
       navigationCommands.forEach((cmd) => {
         expect(Array.isArray(cmd.keywords)).toBe(true);

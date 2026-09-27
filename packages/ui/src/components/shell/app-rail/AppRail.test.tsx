@@ -1,8 +1,9 @@
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Every APP_SWITCHER_FEATURE_FLAGS key must be listed: the mock falls back to
+// Every APP_RAIL_FEATURE_FLAGS key must be listed: the mock falls back to
 // `true`, so a missing key silently keeps its item visible and the
 // no-modules-released case can never reach zero.
 const featureFlags = vi.hoisted(() => ({
@@ -17,12 +18,40 @@ const featureFlags = vi.hoisted(() => ({
   app_switcher_workspace: true,
 }));
 
-vi.mock('@genfeedai/hooks/feature-flags/use-feature-flag', () => ({
-  useFeatureFlag: (flagKey: string) =>
-    featureFlags[flagKey as keyof typeof featureFlags] ?? true,
+vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
+  useFeatureFlagContext: () => ({
+    flags: { ...featureFlags },
+    isConfigured: true,
+  }),
 }));
 
-const router = vi.hoisted(() => ({ prefetch: vi.fn() }));
+vi.mock(
+  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
+  () => ({
+    useIsDesktopClient: () => clientSurface.isDesktop,
+  }),
+);
+const clientSurface = vi.hoisted(() => ({ isDesktop: false }));
+const commands = vi.hoisted(() => ({
+  registerCommands: vi.fn((items: readonly ICommand[]) =>
+    items.map((item) => item.id),
+  ),
+  unregisterCommands: vi.fn(),
+}));
+vi.mock('@genfeedai/services/core/command-palette.service', () => ({
+  CommandPaletteService: commands,
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: { apps: { app: '' }, currentApp: 'app' },
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+const router = vi.hoisted(() => ({ prefetch: vi.fn(), push: vi.fn() }));
 vi.mock('next/navigation', () => ({
   useRouter: () => router,
 }));
@@ -46,14 +75,16 @@ vi.mock('next/link', () => ({
 
 // Tooltip content only mounts on hover in Radix; the rail's accessible
 // description is the sr-only span, so the tooltip renders as a passthrough.
-vi.mock('../../../primitives/tooltip', () => ({
+vi.mock('@ui/primitives/tooltip', () => ({
   Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipContent: () => null,
+  TooltipContent: ({ children }: { children: ReactNode }) => (
+    <div data-testid="rail-tooltip">{children}</div>
+  ),
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../../../primitives/separator', () => ({
+vi.mock('@ui/primitives/separator', () => ({
   Separator: ({ className, ...props }: { className?: string }) => (
     <div className={className} {...props} />
   ),
@@ -88,7 +119,7 @@ vi.mock('@genfeedai/contracts/constants', () => {
         },
       },
     },
-    APP_SWITCHER_FEATURE_FLAGS: {
+    APP_RAIL_FEATURE_FLAGS: {
       workspace: 'app_switcher_workspace',
       agent: 'app_switcher_agent',
       messages: 'app_switcher_messages',
@@ -118,12 +149,160 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 const { AppRail } = await import('./AppRail');
 
 describe('AppRail', () => {
+  it('shows the same numbered shortcut in the tooltip and palette', () => {
+    render(<AppRail orgSlug="acme" />);
+    expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('G 1');
+    expect(commands.registerCommands.mock.lastCall?.[0][0].shortcut).toEqual([
+      'G',
+      '1',
+    ]);
+  });
+
+  it('registers visible apps in rail order and routes palette actions through the same resolver', () => {
+    featureFlags.app_switcher_workspace = false;
+    const onNavigationEvent = vi.fn();
+    const { unmount } = render(
+      <AppRail
+        orgSlug="acme"
+        brandAwareSlug="selected"
+        currentPath="/acme/~/analytics"
+        onNavigationEvent={onNavigationEvent}
+        preservedSearch="taskId=t1"
+        resolveNavigation={(href) => ({ href: `${href}&thread=one` })}
+      />,
+    );
+    const registered = commands.registerCommands.mock.lastCall?.[0] ?? [];
+    expect(registered.map((entry) => entry.label)).toEqual([
+      'Go to Agent',
+      'Go to Studio',
+      'Go to Library',
+      'Go to Publishing',
+      'Go to Messages',
+      'Go to Discovery',
+      'Go to Analytics',
+      'Go to Automation',
+    ]);
+    expect(registered[1].shortcut).toEqual(['G', '2']);
+    act(() => {
+      registered[1].action();
+    });
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/selected/studio/generate?taskId=t1&thread=one',
+    );
+    expect(onNavigationEvent).toHaveBeenCalledWith({
+      from_app: 'analytics',
+      to_app: 'studio',
+      via: 'palette',
+      surface: 'desktop',
+    });
+    unmount();
+    expect(commands.unregisterCommands).toHaveBeenCalledWith(
+      registered.map((entry) => entry.id),
+    );
+  });
+
+  it('captures clicks once and lets the Link own navigation', () => {
+    const onNavigationEvent = vi.fn();
+    render(
+      <AppRail
+        orgSlug="acme"
+        currentPath="/settings/personal"
+        onNavigationEvent={onNavigationEvent}
+      />,
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Publishing' }));
+    expect(onNavigationEvent).toHaveBeenCalledExactlyOnceWith({
+      from_app: null,
+      to_app: 'publishing',
+      via: 'click',
+      surface: 'desktop',
+    });
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('uses web sequences and desktop command keys without numbering Admin', () => {
+    const onNavigationEvent = vi.fn();
+    const { rerender } = render(
+      <AppRail
+        orgSlug="acme"
+        showAdmin
+        onNavigationEvent={onNavigationEvent}
+      />,
+    );
+    fireEvent.keyDown(document, { key: 'g' });
+    fireEvent.keyDown(document, { key: '9' });
+    expect(router.push).toHaveBeenLastCalledWith('/acme/~/automation/overview');
+    expect(onNavigationEvent).toHaveBeenLastCalledWith({
+      from_app: null,
+      to_app: 'automation',
+      via: 'shortcut',
+      surface: 'desktop',
+    });
+    expect(commands.registerCommands.mock.lastCall?.[0]).toHaveLength(10);
+    expect(commands.registerCommands.mock.lastCall?.[0][9]).toMatchObject({
+      label: 'Go to Admin',
+      shortcut: undefined,
+    });
+    clientSurface.isDesktop = true;
+    rerender(<AppRail orgSlug="acme" showAdmin />);
+    fireEvent.keyDown(document, { key: '1', metaKey: true });
+    expect(router.push).toHaveBeenLastCalledWith('/acme/~/agent');
+    expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('⌘ 1');
+    expect(
+      screen.getAllByTestId('rail-tooltip')[9].querySelector('kbd'),
+    ).toBeNull();
+  });
+
+  it('has one keyboard and palette owner when desktop and drawer are both mounted', () => {
+    vi.mocked(window.matchMedia).mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    const onNavigate = vi.fn();
+    const onNavigationEvent = vi.fn();
+    render(
+      <>
+        <AppRail orgSlug="acme" />
+        <AppRail
+          orgSlug="acme"
+          surface="drawer"
+          onNavigate={onNavigate}
+          onNavigationEvent={onNavigationEvent}
+        />
+      </>,
+    );
+    expect(commands.registerCommands).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(document, { key: 'g' });
+    fireEvent.keyDown(document, { key: '2' });
+    expect(router.push).toHaveBeenCalledExactlyOnceWith(
+      '/acme/~/workspace/overview',
+    );
+    expect(onNavigate).toHaveBeenCalledOnce();
+    expect(onNavigationEvent).toHaveBeenCalledExactlyOnceWith({
+      from_app: null,
+      to_app: 'workspace',
+      via: 'shortcut',
+      surface: 'drawer',
+    });
+  });
+
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   beforeEach(() => {
     router.prefetch.mockClear();
+    router.push.mockClear();
+    commands.registerCommands.mockClear();
+    commands.unregisterCommands.mockClear();
+    clientSurface.isDesktop = false;
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
     for (const key of Object.keys(featureFlags) as Array<
       keyof typeof featureFlags
     >) {
@@ -498,6 +677,90 @@ describe('AppRail', () => {
       'aria-current',
       'page',
     );
+  });
+
+  it('renders Publishing and Workspace counts with accessible labels and hides zeros', () => {
+    const { rerender } = render(
+      <AppRail
+        orgSlug="acme"
+        badges={{
+          publishing: { count: 7, label: '7 items awaiting review' },
+          workspace: {
+            count: 120,
+            label: '120 unread tasks needing attention',
+          },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('app-rail-badge-publishing')).toHaveTextContent(
+      '7',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Publishing, 7 items awaiting review' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('app-rail-badge-workspace')).toHaveTextContent(
+      '99+',
+    );
+    rerender(
+      <AppRail
+        orgSlug="acme"
+        badges={{
+          publishing: { count: 0, label: '0 items awaiting review' },
+          workspace: { count: 0, label: '0 unread tasks needing attention' },
+        }}
+      />,
+    );
+    expect(
+      screen.queryByTestId('app-rail-badge-publishing'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('app-rail-badge-workspace'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cleans up shortcuts on unmount and refreshes palette routes after a scope change', () => {
+    const { rerender, unmount } = render(
+      <AppRail orgSlug="first" brandSlug="brand-one" />,
+    );
+    const initial = commands.registerCommands.mock.lastCall?.[0] ?? [];
+    rerender(<AppRail orgSlug="second" brandSlug="brand-two" />);
+    expect(commands.unregisterCommands).toHaveBeenCalledWith(
+      initial.map((command) => command.id),
+    );
+    act(() => {
+      commands.registerCommands.mock.lastCall?.[0][0].action();
+    });
+    expect(router.push).toHaveBeenLastCalledWith('/second/brand-two/agent');
+    unmount();
+    router.push.mockClear();
+    fireEvent.keyDown(document, { key: 'g' });
+    fireEvent.keyDown(document, { key: '1' });
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('uses the unnumbered Admin registry command with palette analytics', () => {
+    const onNavigationEvent = vi.fn();
+    render(
+      <AppRail
+        orgSlug="acme"
+        showAdmin
+        onNavigationEvent={onNavigationEvent}
+      />,
+    );
+    const admin = commands.registerCommands.mock.lastCall?.[0].find(
+      (command) => command.label === 'Go to Admin',
+    );
+    expect(admin?.shortcut).toBeUndefined();
+    act(() => {
+      admin?.action();
+    });
+    expect(router.push).toHaveBeenLastCalledWith('/admin/overview/dashboard');
+    expect(onNavigationEvent).toHaveBeenLastCalledWith({
+      from_app: null,
+      to_app: 'admin',
+      via: 'palette',
+      surface: 'desktop',
+    });
   });
 
   it('badges the Messages item with its unread count', () => {
