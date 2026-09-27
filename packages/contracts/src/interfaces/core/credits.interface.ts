@@ -48,4 +48,10 @@ export interface CreditsConfig {
    * provider — the platform key pays regardless, so that default is safe.
    */
   allowByokBypass?: boolean;
+  /**
+   * The caller reserves and settles per unit of work itself (a background job
+   * that bills each completed item), so admission checks the balance without
+   * placing a request-level hold.
+   */
+  isReservationDeferred?: boolean;
 }

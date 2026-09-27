@@ -1,12 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import {
   BatchItemStatus,
+  BatchRewriteItemFailureReason,
+  BatchRewriteJobStatus,
   BatchStatus,
   ContentFormat,
   ReferenceImageCategory,
 } from '../../src/enums/batch.enum';
 
 describe('batch.enum', () => {
+  describe('batch rewrite job wire values', () => {
+    it('keeps the API values the Review page reads', () => {
+      expect(Object.values(BatchRewriteJobStatus)).toEqual([
+        'queued',
+        'processing',
+        'completed',
+        'partially_failed',
+        'failed',
+        'cancelled',
+      ]);
+      expect(Object.values(BatchRewriteItemFailureReason)).toEqual([
+        'conflict',
+        'insufficient_credits',
+        'not_rewritable',
+        'generation_failed',
+      ]);
+    });
+  });
+
   describe('BatchStatus', () => {
     it('matches the Prisma BatchStatus labels 1:1', () => {
       expect(Object.values(BatchStatus)).toEqual([

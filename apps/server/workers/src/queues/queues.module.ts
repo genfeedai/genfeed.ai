@@ -11,6 +11,7 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
+  BATCH_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -156,6 +157,15 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: { age: 30 * 60 },
         },
         name: MEDIA_MODERATION_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: { age: 24 * 60 * 60 },
+          removeOnFail: { age: 24 * 60 * 60 },
+        },
+        name: BATCH_REWRITE_QUEUE,
       },
     ),
   ],

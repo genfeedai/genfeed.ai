@@ -1,11 +1,11 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
+import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -19,6 +19,12 @@ describe('BatchGenerationController', () => {
   let controller: BatchGenerationController;
   let service: vi.Mocked<BatchGenerationService>;
   let workflowService: { queueBatch: ReturnType<typeof vi.fn> };
+  const rewriteService = {
+    cancel: vi.fn(),
+    enqueue: vi.fn(),
+    getActiveJob: vi.fn(),
+    getJob: vi.fn(),
+  };
 
   const mockReq = {} as Request;
 
@@ -28,7 +34,7 @@ describe('BatchGenerationController', () => {
       providers: [
         {
           provide: BatchGenerationRewriteService,
-          useValue: { rewriteItems: vi.fn() },
+          useValue: rewriteService,
         },
         {
           provide: MembersService,
@@ -70,11 +76,6 @@ describe('BatchGenerationController', () => {
     })
       .overrideGuard(BatchRewriteCreditsGuard)
       .useValue({ canActivate: () => true })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_context: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -290,6 +291,70 @@ describe('BatchGenerationController', () => {
         'test-object-id',
         'Not aligned with the brief.',
         'test-object-id',
+      );
+    });
+  });
+
+  describe('rewrite jobs', () => {
+    const user = {
+      id: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as never;
+
+    it('queues a rewrite priced per distinct item from the admitted credits', async () => {
+      rewriteService.enqueue.mockResolvedValue({ id: 'job-1' });
+      const req = {
+        creditsConfig: {
+          amount: 4,
+          description: 'Batch rewrite (text model)',
+          source: ActivitySource.POST_ENHANCEMENT,
+        },
+      } as never;
+
+      await expect(
+        controller.createRewriteJob(
+          req,
+          'batch-1',
+          { itemIds: ['item-1', 'item-2', 'item-1'] },
+          user,
+        ),
+      ).resolves.toEqual({ id: 'job-1' });
+      expect(rewriteService.enqueue).toHaveBeenCalledWith({
+        batchId: 'batch-1',
+        credits: {
+          amountPerItem: 2,
+          description: 'Batch rewrite (text model)',
+          source: ActivitySource.POST_ENHANCEMENT,
+        },
+        itemIds: ['item-1', 'item-2', 'item-1'],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+    });
+
+    it('scopes progress, the active job, and cancellation to the organization', async () => {
+      rewriteService.getActiveJob.mockResolvedValue(null);
+
+      await expect(
+        controller.getActiveRewriteJob('batch-1', user),
+      ).resolves.toEqual({ job: null });
+      await controller.getRewriteJob('batch-1', 'job-1', user);
+      await controller.cancelRewriteJob('batch-1', 'job-1', user);
+
+      expect(rewriteService.getActiveJob).toHaveBeenCalledWith(
+        'batch-1',
+        'org-1',
+      );
+      expect(rewriteService.getJob).toHaveBeenCalledWith(
+        'batch-1',
+        'job-1',
+        'org-1',
+      );
+      expect(rewriteService.cancel).toHaveBeenCalledWith(
+        'batch-1',
+        'job-1',
+        'org-1',
       );
     });
   });
