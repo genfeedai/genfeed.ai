@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { resolveSpecTypecheckScope } from './spec-typecheck-scope';
+import {
+  queryTurboAffectedScope,
+  type RunTurboProcess,
+  resolveSpecTypecheckScope,
+} from './spec-typecheck-scope';
 
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -177,5 +181,94 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
     // nowhere: the ratchet's own program excluded them and nothing else ran
     // in their place (#5315).
     expect(config.exclude ?? []).not.toContain('src/components');
+  });
+});
+
+describe('queryTurboAffectedScope (#5372 regression guard)', () => {
+  // Stubs ONE LEVEL BELOW argument construction: it receives the exact argv
+  // `runTurboAffectedDryRun`'s real (unmodified) code built and only fakes
+  // the process result. This exercises the real "does this call get a
+  // `--filter=...` entry or not" logic instead of bypassing it — a stub
+  // placed at `queryTurboAffectedScope`'s own level (returning names
+  // directly, keyed off a `filter` parameter the test controls) would keep
+  // passing even if the filter were hardcoded inside the real argv-building
+  // function, which is exactly the regression #5315 fixed and #5372 guards.
+  function stubTurboProcess(): {
+    calls: readonly (readonly string[])[];
+    runProcess: RunTurboProcess;
+  } {
+    const calls: (readonly string[])[] = [];
+    const runProcess: RunTurboProcess = (args) => {
+      calls.push(args);
+      const isPackagesOnly = args.includes('--filter=./packages/*');
+      const packages = isPackagesOnly
+        ? ['@genfeedai/contracts']
+        : ['@genfeedai/contracts', '@genfeedai/api', '@genfeedai/app'];
+      return { status: 0, stdout: JSON.stringify({ packages }) };
+    };
+    return { calls, runProcess };
+  }
+
+  it('builds turbo argv with exactly one --filter=./packages/* call and one call with no --filter at all', () => {
+    const { calls, runProcess } = stubTurboProcess();
+
+    const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
+      '/repo',
+      'base-sha',
+      runProcess,
+    );
+
+    expect(affectedPackagesOnly).toEqual(['contracts']);
+    expect(allAffectedNames).toEqual(['contracts', 'api', 'app']);
+    expect(calls).toHaveLength(2);
+
+    // Packages-only call: exactly `--filter=./packages/*`.
+    expect(calls[0]).toEqual([
+      'turbo',
+      'run',
+      'build',
+      '--affected',
+      '--filter=./packages/*',
+      '--dry=json',
+    ]);
+    // The exact regression #5315 fixed and #5372 guards against: this
+    // second (allAffectedNames) call's argv must carry NO `--filter=...`
+    // entry at all — narrowing it, whether at the call site or inside
+    // runTurboAffectedDryRun's own argv construction, throws away a
+    // dependent app's edge before this module ever sees it.
+    expect(calls[1]).toEqual([
+      'turbo',
+      'run',
+      'build',
+      '--affected',
+      '--dry=json',
+    ]);
+    expect(calls[1].some((arg) => arg.startsWith('--filter='))).toBe(false);
+  });
+
+  it('feeds the real argv-built unfiltered turbo query through to resolveSpecTypecheckScope so a dependent app enters scope', () => {
+    const { runProcess } = stubTurboProcess();
+    const { affectedPackagesOnly, allAffectedNames } = queryTurboAffectedScope(
+      '/repo',
+      'base-sha',
+      runProcess,
+    );
+
+    // Neither app's OWN files changed here (appsAffectedFromFiles is empty)
+    // — only a package did, and turbo's unfiltered graph is the only reason
+    // `api`/`app` show up at all.
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly,
+      allAffectedNames,
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result.workspaces.slice().sort()).toEqual(
+      ['api', 'app', 'contracts'].sort(),
+    );
+    expect(result.buildFilters).toEqual([]);
+    expect(result.runAny).toBe(true);
   });
 });
