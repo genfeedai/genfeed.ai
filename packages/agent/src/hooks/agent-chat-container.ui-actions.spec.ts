@@ -166,6 +166,7 @@ describe('handleAgentUiAction', () => {
       const status = executionStatus === 'cancelled' ? 'declined' : 'approved';
       const sourceCard = {
         id: 'approval-card',
+        title: 'Approve change',
         type: 'mutation_approval_card' as const,
         data: {
           approvalId: 'approval-1',
@@ -197,7 +198,7 @@ describe('handleAgentUiAction', () => {
           content: `The action ${executionStatus}.`,
           metadata: {
             uiActions: [
-              { id: 'unrelated', type: 'next_steps_card' },
+              { id: 'unrelated', title: 'Next steps', type: 'next_steps_card' },
               {
                 ...sourceCard,
                 data: {

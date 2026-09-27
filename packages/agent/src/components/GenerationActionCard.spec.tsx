@@ -1,6 +1,7 @@
 import '@agent-tests/media-preview-mocks';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import {
   ModelCategory,
@@ -1501,7 +1502,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock() as unknown as AgentApiService}
         onUiAction={onUiAction}
       />,
     );
@@ -1535,7 +1536,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock() as unknown as AgentApiService}
         onUiAction={onUiAction}
       />,
     );
