@@ -16,8 +16,8 @@ app navigation; the active rail registers these commands. Settings navigation
 continues through the existing settings catalog.
 
 The registry and keyboard helpers are shared by the rail, shortcuts and palette.
-Publishing uses the existing overview bootstrap ready-for-review count; Workspace
-uses the existing unread-task count. No backend endpoint or schema was added.
+Workspace uses the existing unread-task count with a one-minute refresh interval;
+Messages retains its scoped unread count. No backend endpoint or schema was added.
 
 Remove useAdminCommandRegistration; visible Admin navigation now comes from the
 rail registry and captures the same analytics as other app palette commands.

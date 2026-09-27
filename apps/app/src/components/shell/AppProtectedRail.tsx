@@ -4,7 +4,6 @@ import { isPersonalSettingsPage } from '@app-components/app-protected-layout.set
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -45,7 +44,6 @@ function AppProtectedRailContent({
       selectedBrand,
     });
   const workspaceCount = useWorkspaceInboxCount();
-  const { reviewInbox } = useOverviewBootstrap();
   const translateRail = useTranslations('common.appRail');
   const translateMessages = useTranslations('common.messages');
   // The Messages item opens the brand in the URL, else the org-wide inbox:
@@ -105,12 +103,6 @@ function AppProtectedRailContent({
         )
       }
       badges={{
-        publishing: {
-          count: reviewInbox.readyCount,
-          label: translateRail('publishingBadge', {
-            count: reviewInbox.readyCount,
-          }),
-        },
         workspace: {
           count: workspaceCount,
           label: translateRail('workspaceBadge', { count: workspaceCount }),

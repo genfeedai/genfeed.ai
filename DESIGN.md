@@ -755,16 +755,16 @@ navigation drawer beside the menu.
 
 Web shortcuts are `G` followed by `1`–`9` within one second; the desktop client
 uses `⌘1`–`⌘9`. Numbers follow the visible rail order; Admin is never numbered.
-Typing into inputs, textareas, or editable content suppresses these shortcuts.
+Typing into inputs, textareas, editable content, or menus/dialogs suppresses these
+shortcuts. Digit shortcuts follow physical number-row keys across keyboard layouts.
 The palette shows localized “Go to <App>” commands with the same shortcuts and
 resolves Agent/Studio through the selected brand on organization-scoped pages.
 Only the rail at the active viewport breakpoint registers commands/listeners.
 Navigation emits `app_rail_navigated` with app identifiers, entry point, and
 `desktop`/`drawer` surface, without URLs or tenant/user identifiers.
 
-Workspace reuses the existing unread inbox-task hook. Publishing reuses the
-overview bootstrap review inbox's `readyCount` (completed items awaiting review,
-not items still generating). Messages retains its scoped unread count. Zero
+Workspace reuses the existing unread inbox-task hook and refreshes every minute.
+Messages retains its scoped unread count. Zero
 counts and counts on locked entries stay hidden; large counts display `99+`.
 Organization identity, sidebar controls, geometry, and colors follow Shell Layout.
 

@@ -14,18 +14,22 @@ describe('app rail keyboard shortcuts', () => {
       navigate,
       () => time,
     );
-    handleKeyDown(new KeyboardEvent('keydown', { key: '1' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
     expect(navigate).not.toHaveBeenCalled();
-    handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
     time = 1000;
-    const number = new KeyboardEvent('keydown', { key: '9', cancelable: true });
+    const number = new KeyboardEvent('keydown', {
+      code: 'Digit9',
+      key: '9',
+      cancelable: true,
+    });
     handleKeyDown(number);
     expect(navigate).toHaveBeenCalledExactlyOnceWith(8);
     expect(number.defaultPrevented).toBe(true);
-    handleKeyDown(new KeyboardEvent('keydown', { key: '2' }));
-    handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit2', key: '2' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
     time = 2001;
-    handleKeyDown(new KeyboardEvent('keydown', { key: '3' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit3', key: '3' }));
     expect(navigate).toHaveBeenCalledOnce();
   });
 
@@ -50,11 +54,15 @@ describe('app rail keyboard shortcuts', () => {
     document.body.appendChild(root);
     document.addEventListener('keydown', handleKeyDown);
     try {
-      handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
       target.dispatchEvent(
-        new KeyboardEvent('keydown', { key: '1', bubbles: true }),
+        new KeyboardEvent('keydown', {
+          code: 'Digit1',
+          key: '1',
+          bubbles: true,
+        }),
       );
-      handleKeyDown(new KeyboardEvent('keydown', { key: '2' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit2', key: '2' }));
       expect(navigate).not.toHaveBeenCalled();
     } finally {
       document.removeEventListener('keydown', handleKeyDown);
@@ -66,11 +74,15 @@ describe('app rail keyboard shortcuts', () => {
     (modifier) => {
       const navigate = vi.fn(() => true);
       const { handleKeyDown } = createAppRailShortcutHandler(false, navigate);
-      handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
       handleKeyDown(
-        new KeyboardEvent('keydown', { key: '1', [modifier]: true }),
+        new KeyboardEvent('keydown', {
+          code: 'Digit1',
+          key: '1',
+          [modifier]: true,
+        }),
       );
-      handleKeyDown(new KeyboardEvent('keydown', { key: '2' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit2', key: '2' }));
       expect(navigate).not.toHaveBeenCalled();
     },
   );
@@ -82,24 +94,25 @@ describe('app rail keyboard shortcuts', () => {
       navigate,
     );
     for (const init of [
-      { key: 'x' },
-      { key: '1', isComposing: true },
-      { key: '1', repeat: true },
+      { code: 'KeyX', key: 'x' },
+      { code: 'Digit1', key: '1', isComposing: true },
+      { code: 'Digit1', key: '1', repeat: true },
     ]) {
-      handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
       handleKeyDown(new KeyboardEvent('keydown', init));
-      handleKeyDown(new KeyboardEvent('keydown', { key: '1' }));
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
     }
-    handleKeyDown(new KeyboardEvent('keydown', { key: 'g' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
     reset();
-    handleKeyDown(new KeyboardEvent('keydown', { key: '1' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
     const handled = new KeyboardEvent('keydown', {
+      code: 'KeyG',
       key: 'g',
       cancelable: true,
     });
     handled.preventDefault();
     handleKeyDown(handled);
-    handleKeyDown(new KeyboardEvent('keydown', { key: '1' }));
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -110,6 +123,7 @@ describe('app rail keyboard shortcuts', () => {
     document.body.appendChild(input);
     input.addEventListener('keydown', handleKeyDown);
     const event = new KeyboardEvent('keydown', {
+      code: 'Digit1',
       key: '1',
       metaKey: true,
       cancelable: true,
@@ -119,6 +133,76 @@ describe('app rail keyboard shortcuts', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it.each(['menu', 'menubar', 'listbox', 'dialog', 'alertdialog', 'combobox'])(
+    'ignores shortcuts inside a %s and resets the web sequence',
+    (role) => {
+      const root = document.createElement('div');
+      root.setAttribute('role', role);
+      const target = root.appendChild(document.createElement('span'));
+      document.body.appendChild(root);
+      for (const isDesktop of [false, true]) {
+        const navigate = vi.fn(() => true);
+        const { handleKeyDown } = createAppRailShortcutHandler(
+          isDesktop,
+          navigate,
+        );
+        document.addEventListener('keydown', handleKeyDown);
+        try {
+          handleKeyDown(
+            new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }),
+          );
+          const event = new KeyboardEvent('keydown', {
+            code: 'Digit1',
+            key: '&',
+            metaKey: isDesktop,
+            bubbles: true,
+            cancelable: true,
+          });
+          target.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+          handleKeyDown(
+            new KeyboardEvent('keydown', { code: 'Digit2', key: '2' }),
+          );
+          target.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              code: 'KeyG',
+              key: 'g',
+              bubbles: true,
+            }),
+          );
+          handleKeyDown(
+            new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }),
+          );
+          expect(navigate).not.toHaveBeenCalled();
+        } finally {
+          document.removeEventListener('keydown', handleKeyDown);
+        }
+      }
+    },
+  );
+
+  it.each([false, true])(
+    'uses physical digit codes for desktop=%s',
+    (isDesktop) => {
+      const navigate = vi.fn(() => true);
+      const { handleKeyDown } = createAppRailShortcutHandler(
+        isDesktop,
+        navigate,
+      );
+      if (!isDesktop)
+        handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
+      const event = new KeyboardEvent('keydown', {
+        code: 'Digit1',
+        key: '&',
+        metaKey: isDesktop,
+        cancelable: true,
+      });
+      handleKeyDown(event);
+      expect(navigate).toHaveBeenCalledExactlyOnceWith(0);
+      expect(event.defaultPrevented).toBe(true);
+    },
+  );
+
   it('leaves Cmd+B to the existing sidebar handler', () => {
     for (const isDesktop of [true, false]) {
       const navigate = vi.fn(() => true);
@@ -127,6 +211,7 @@ describe('app rail keyboard shortcuts', () => {
         navigate,
       );
       const event = new KeyboardEvent('keydown', {
+        code: 'KeyB',
         key: 'b',
         metaKey: true,
         cancelable: true,
@@ -141,14 +226,15 @@ describe('app rail keyboard shortcuts', () => {
     const navigate = vi.fn((index: number) => index === 0);
     const { handleKeyDown } = createAppRailShortcutHandler(true, navigate);
     for (const init of [
-      { key: 'g' },
-      { key: '1' },
-      { key: '1', ctrlKey: true },
-      { key: '1', metaKey: true, altKey: true },
+      { code: 'KeyG', key: 'g' },
+      { code: 'Digit1', key: '1' },
+      { code: 'Digit1', key: '1', ctrlKey: true },
+      { code: 'Digit1', key: '1', metaKey: true, altKey: true },
     ])
       handleKeyDown(new KeyboardEvent('keydown', init));
     expect(navigate).not.toHaveBeenCalled();
     const accepted = new KeyboardEvent('keydown', {
+      code: 'Digit1',
       key: '1',
       metaKey: true,
       cancelable: true,
@@ -156,6 +242,7 @@ describe('app rail keyboard shortcuts', () => {
     handleKeyDown(accepted);
     expect(accepted.defaultPrevented).toBe(true);
     const unavailable = new KeyboardEvent('keydown', {
+      code: 'Digit9',
       key: '9',
       metaKey: true,
       cancelable: true,

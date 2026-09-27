@@ -10,16 +10,16 @@ export function createAppRailShortcutHandler(
   };
   const handleKeyDown = (event: KeyboardEvent) => {
     const target = event.target;
-    const isEditable =
+    const isEditableOrOverlay =
       target instanceof HTMLElement &&
       (target.isContentEditable ||
         Boolean(
           target.closest(
-            'input, textarea, select, [contenteditable]:not([contenteditable="false"])',
+            'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="menu"], [role="menubar"], [role="listbox"], [role="dialog"], [role="alertdialog"], [role="combobox"]',
           ),
         ));
     if (
-      isEditable ||
+      isEditableOrOverlay ||
       event.defaultPrevented ||
       event.isComposing ||
       event.repeat
@@ -27,7 +27,7 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    const isNumber = /^[1-9]$/.test(event.key);
+    const isNumber = /^Digit[1-9]$/.test(event.code);
     if (isDesktop) {
       reset();
       if (
@@ -36,7 +36,7 @@ export function createAppRailShortcutHandler(
         !event.altKey &&
         !event.shiftKey &&
         isNumber &&
-        navigate(Number(event.key) - 1)
+        navigate(Number(event.code.slice(-1)) - 1)
       ) {
         event.preventDefault();
       }
@@ -46,14 +46,18 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    if (event.key.toLowerCase() === 'g') {
+    if (event.code === 'KeyG') {
       sequenceStartedAt = now();
       return;
     }
     const isWithinWindow =
       sequenceStartedAt !== undefined && now() - sequenceStartedAt <= 1000;
     reset();
-    if (isWithinWindow && isNumber && navigate(Number(event.key) - 1)) {
+    if (
+      isWithinWindow &&
+      isNumber &&
+      navigate(Number(event.code.slice(-1)) - 1)
+    ) {
       event.preventDefault();
     }
   };

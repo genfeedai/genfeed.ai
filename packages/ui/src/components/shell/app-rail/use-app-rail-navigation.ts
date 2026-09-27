@@ -1,10 +1,25 @@
 'use client';
 
+import type {
+  AppRailNavigationItem,
+  AppRailNavigationVia,
+} from '@genfeedai/contracts/interfaces/ui/app-rail.interface';
 import type { UseAppRailNavigationOptions } from '@genfeedai/props/ui/app-rail.props';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { createNavigationCommands } from '@genfeedai/services/core/commands.registry';
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import { createAppRailShortcutHandler } from './app-rail.shortcuts';
+
+function getRegistrationKey(items: readonly AppRailNavigationItem[]): string {
+  return JSON.stringify(
+    items.map((item) => [
+      item.app.id,
+      item.app.group,
+      item.label,
+      item.description,
+    ]),
+  );
+}
 
 export function useAppRailNavigation({
   items,
@@ -13,17 +28,33 @@ export function useAppRailNavigation({
   commandLabel,
   navigate,
 }: UseAppRailNavigationOptions): void {
+  const registrationKey = getRegistrationKey(items);
+  const getItems = useEffectEvent(() => items);
+  const getCommandLabel = useEffectEvent((label: string) =>
+    commandLabel(label),
+  );
+  const navigateToApp = useEffectEvent(
+    (appId: string, via: AppRailNavigationVia): boolean => {
+      const item = items.find((candidate) => candidate.app.id === appId);
+      if (!item) return false;
+      navigate(item, via);
+      return true;
+    },
+  );
+
   useEffect(() => {
+    // Re-register when command membership, order, or localized metadata changes.
+    void registrationKey;
     const media = window.matchMedia('(min-width: 768px)');
     let registeredIds: string[] = [];
-    const numberedItems = items.filter((item) => item.app.group !== 'admin');
     const { handleKeyDown, reset } = createAppRailShortcutHandler(
       isDesktop,
       (index) => {
-        const item = numberedItems[index];
+        const item = getItems().filter(
+          (candidate) => candidate.app.group !== 'admin',
+        )[index];
         if (!item) return false;
-        navigate(item, 'shortcut');
-        return true;
+        return navigateToApp(item.app.id, 'shortcut');
       },
     );
     const cleanup = () => {
@@ -41,9 +72,11 @@ export function useAppRailNavigation({
       if (media.matches !== (surface === 'desktop')) return;
       registeredIds = CommandPaletteService.registerCommands(
         createNavigationCommands({
-          items,
-          commandLabel,
-          navigate: (item) => navigate(item, 'palette'),
+          items: getItems(),
+          commandLabel: getCommandLabel,
+          navigate: (item) => {
+            navigateToApp(item.app.id, 'palette');
+          },
           surface,
         }),
       );
@@ -57,5 +90,5 @@ export function useAppRailNavigation({
       cleanup();
       media.removeEventListener('change', syncSurface);
     };
-  }, [items, surface, isDesktop, commandLabel, navigate]);
+  }, [registrationKey, surface, isDesktop]);
 }

@@ -1,14 +1,6 @@
-const badgeCounts = vi.hoisted(() => ({ workspace: 0, ready: 0, pending: 0 }));
+const badgeCounts = vi.hoisted(() => ({ workspace: 0 }));
 vi.mock('@genfeedai/hooks/data/tasks/use-workspace-inbox-count', () => ({
   useWorkspaceInboxCount: () => badgeCounts.workspace,
-}));
-vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
-  useOverviewBootstrap: () => ({
-    reviewInbox: {
-      readyCount: badgeCounts.ready,
-      pendingCount: badgeCounts.pending,
-    },
-  }),
 }));
 vi.mock('@/lib/analytics/app-rail-analytics', () => ({
   captureAppRailNavigation: vi.fn(),
@@ -180,17 +172,15 @@ type RailProps = {
 };
 
 describe('AppProtectedRail', () => {
-  it('uses existing unread tasks and ready-for-review counts, excluding generating items', () => {
+  it('uses only Workspace and Messages unread counts', () => {
     badgeCounts.workspace = 4;
-    badgeCounts.ready = 3;
-    badgeCounts.pending = 9;
     render(<AppProtectedRail orgSlug="acme" />);
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        badges: expect.objectContaining({
+        badges: {
           workspace: { count: 4, label: 'workspaceBadge' },
-          publishing: { count: 3, label: 'publishingBadge' },
-        }),
+          messages: { count: 0, label: '0 unread conversations' },
+        },
         surface: 'desktop',
       }),
     );
@@ -213,8 +203,6 @@ describe('AppProtectedRail', () => {
     appRailSpy.mockClear();
     messagesUnread.count = 0;
     badgeCounts.workspace = 0;
-    badgeCounts.ready = 0;
-    badgeCounts.pending = 0;
     messagesUnread.spy.mockClear();
     brandContextState.brands = [
       {

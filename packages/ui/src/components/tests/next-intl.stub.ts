@@ -93,8 +93,6 @@ const UI_TEST_MESSAGES = {
       locked: '{app} — locked. Generate your first asset to unlock.',
       workspaceBadge:
         '{count, plural, one {# unread task needing attention} other {# unread tasks needing attention}}',
-      publishingBadge:
-        '{count, plural, one {# item awaiting review} other {# items awaiting review}}',
       agent: {
         label: 'Agent',
         description: 'Ask and execute.',

@@ -229,8 +229,8 @@ describe('AppRail', () => {
         onNavigationEvent={onNavigationEvent}
       />,
     );
-    fireEvent.keyDown(document, { key: 'g' });
-    fireEvent.keyDown(document, { key: '9' });
+    fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
+    fireEvent.keyDown(document, { code: 'Digit9', key: '9' });
     expect(router.push).toHaveBeenLastCalledWith('/acme/~/automation/overview');
     expect(onNavigationEvent).toHaveBeenLastCalledWith({
       from_app: null,
@@ -245,7 +245,7 @@ describe('AppRail', () => {
     });
     clientSurface.isDesktop = true;
     rerender(<AppRail orgSlug="acme" showAdmin />);
-    fireEvent.keyDown(document, { key: '1', metaKey: true });
+    fireEvent.keyDown(document, { code: 'Digit1', key: '1', metaKey: true });
     expect(router.push).toHaveBeenLastCalledWith('/acme/~/agent');
     expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('⌘ 1');
     expect(
@@ -273,8 +273,8 @@ describe('AppRail', () => {
       </>,
     );
     expect(commands.registerCommands).toHaveBeenCalledTimes(1);
-    fireEvent.keyDown(document, { key: 'g' });
-    fireEvent.keyDown(document, { key: '2' });
+    fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
+    fireEvent.keyDown(document, { code: 'Digit2', key: '2' });
     expect(router.push).toHaveBeenCalledExactlyOnceWith(
       '/acme/~/workspace/overview',
     );
@@ -679,12 +679,11 @@ describe('AppRail', () => {
     );
   });
 
-  it('renders Publishing and Workspace counts with accessible labels and hides zeros', () => {
+  it('renders Workspace counts with accessible labels and hides zeros', () => {
     const { rerender } = render(
       <AppRail
         orgSlug="acme"
         badges={{
-          publishing: { count: 7, label: '7 items awaiting review' },
           workspace: {
             count: 120,
             label: '120 unread tasks needing attention',
@@ -692,11 +691,10 @@ describe('AppRail', () => {
         }}
       />,
     );
-    expect(screen.getByTestId('app-rail-badge-publishing')).toHaveTextContent(
-      '7',
-    );
     expect(
-      screen.getByRole('link', { name: 'Publishing, 7 items awaiting review' }),
+      screen.getByRole('link', {
+        name: 'Workspace, 120 unread tasks needing attention',
+      }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('app-rail-badge-workspace')).toHaveTextContent(
       '99+',
@@ -705,36 +703,66 @@ describe('AppRail', () => {
       <AppRail
         orgSlug="acme"
         badges={{
-          publishing: { count: 0, label: '0 items awaiting review' },
           workspace: { count: 0, label: '0 unread tasks needing attention' },
         }}
       />,
     );
     expect(
-      screen.queryByTestId('app-rail-badge-publishing'),
-    ).not.toBeInTheDocument();
-    expect(
       screen.queryByTestId('app-rail-badge-workspace'),
     ).not.toBeInTheDocument();
   });
 
-  it('cleans up shortcuts on unmount and refreshes palette routes after a scope change', () => {
+  it('keeps registrations stable across route changes while actions use current hrefs', () => {
+    const onNavigationEvent = vi.fn();
     const { rerender, unmount } = render(
-      <AppRail orgSlug="first" brandSlug="brand-one" />,
+      <AppRail
+        orgSlug="acme"
+        brandSlug="brand-one"
+        currentPath="/acme/brand-one/agent"
+        onNavigationEvent={onNavigationEvent}
+      />,
     );
     const initial = commands.registerCommands.mock.lastCall?.[0] ?? [];
-    rerender(<AppRail orgSlug="second" brandSlug="brand-two" />);
-    expect(commands.unregisterCommands).toHaveBeenCalledWith(
+    const unregisterCount = commands.unregisterCommands.mock.calls.length;
+    rerender(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="brand-two"
+        currentPath="/acme/brand-two/workspace/overview"
+        onNavigationEvent={onNavigationEvent}
+      />,
+    );
+    expect(commands.registerCommands).toHaveBeenCalledTimes(1);
+    expect(commands.unregisterCommands).toHaveBeenCalledTimes(unregisterCount);
+    act(() => {
+      initial[0].action();
+    });
+    expect(router.push).toHaveBeenLastCalledWith('/acme/brand-two/agent');
+    expect(onNavigationEvent).toHaveBeenLastCalledWith({
+      from_app: 'workspace',
+      to_app: 'agent',
+      via: 'palette',
+      surface: 'desktop',
+    });
+    router.push.mockClear();
+    fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
+    fireEvent.keyDown(document, { code: 'Digit1', key: '&' });
+    expect(router.push).toHaveBeenCalledExactlyOnceWith(
+      '/acme/brand-two/agent',
+    );
+    expect(onNavigationEvent).toHaveBeenLastCalledWith({
+      from_app: 'workspace',
+      to_app: 'agent',
+      via: 'shortcut',
+      surface: 'desktop',
+    });
+    unmount();
+    expect(commands.unregisterCommands).toHaveBeenLastCalledWith(
       initial.map((command) => command.id),
     );
-    act(() => {
-      commands.registerCommands.mock.lastCall?.[0][0].action();
-    });
-    expect(router.push).toHaveBeenLastCalledWith('/second/brand-two/agent');
-    unmount();
     router.push.mockClear();
-    fireEvent.keyDown(document, { key: 'g' });
-    fireEvent.keyDown(document, { key: '1' });
+    fireEvent.keyDown(document, { code: 'KeyG', key: 'g' });
+    fireEvent.keyDown(document, { code: 'Digit1', key: '1' });
     expect(router.push).not.toHaveBeenCalled();
   });
 
