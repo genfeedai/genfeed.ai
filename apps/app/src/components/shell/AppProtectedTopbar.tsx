@@ -1,5 +1,6 @@
 'use client';
 
+import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import type { TopbarProps } from '@props/navigation/topbar.props';
@@ -9,6 +10,7 @@ import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
@@ -52,6 +54,37 @@ function AppProtectedTopbarContent({
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
   const workspaceInspector = useWorkspaceInspector();
+  const contextSidebar = useContextSidebar();
+  const translateContextSidebar = useTranslations('common.contextSidebar');
+  // A selection owns the right column, so the toggle drives the context
+  // sidebar while one is registered and the legacy inspector otherwise.
+  const rightPanel = contextSidebar?.selection
+    ? {
+        isMobileOpen: contextSidebar.isMobileOpen,
+        isOpen: contextSidebar.isOpen,
+        labels: {
+          close: translateContextSidebar('close'),
+          collapse: translateContextSidebar('collapse'),
+          expand: translateContextSidebar('expand'),
+          open: translateContextSidebar('open'),
+        },
+        setIsMobileOpen: contextSidebar.setIsMobileOpen,
+        toggle: contextSidebar.toggle,
+      }
+    : workspaceInspector?.isRegistered
+      ? {
+          isMobileOpen: workspaceInspector.isMobileOpen,
+          isOpen: workspaceInspector.isOpen,
+          labels: {
+            close: 'Close workspace inspector',
+            collapse: 'Collapse workspace inspector',
+            expand: 'Expand workspace inspector',
+            open: 'Open workspace inspector',
+          },
+          setIsMobileOpen: workspaceInspector.setIsMobileOpen,
+          toggle: workspaceInspector.toggle,
+        }
+      : null;
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
@@ -115,25 +148,25 @@ function AppProtectedTopbarContent({
               shifts between states. At `xl` and up it collapses/expands the
               rail; below `xl` the rail is display:none, so the same slot
               swaps to a variant that opens the inspector drawer instead. */}
-          {workspaceInspector?.isRegistered ? (
+          {rightPanel ? (
             <>
               <Button
                 aria-controls="workspace-context-inspector"
-                aria-expanded={workspaceInspector.isOpen}
+                aria-expanded={rightPanel.isOpen}
                 type="button"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 className="hidden size-8 xl:inline-flex"
-                data-active={workspaceInspector.isOpen ? 'true' : 'false'}
+                data-active={rightPanel.isOpen ? 'true' : 'false'}
                 data-testid="topbar-inspector-toggle"
                 ariaLabel={
-                  workspaceInspector.isOpen
-                    ? 'Collapse workspace inspector'
-                    : 'Expand workspace inspector'
+                  rightPanel.isOpen
+                    ? rightPanel.labels.collapse
+                    : rightPanel.labels.expand
                 }
-                onClick={workspaceInspector.toggle}
+                onClick={rightPanel.toggle}
               >
-                {workspaceInspector.isOpen ? (
+                {rightPanel.isOpen ? (
                   <PanelRightClose className="size-4" />
                 ) : (
                   <PanelRightOpen className="size-4" />
@@ -141,24 +174,22 @@ function AppProtectedTopbarContent({
               </Button>
               <Button
                 aria-controls="workspace-context-inspector-drawer"
-                aria-expanded={workspaceInspector.isMobileOpen}
+                aria-expanded={rightPanel.isMobileOpen}
                 type="button"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 className="inline-flex size-8 xl:hidden"
                 data-testid="topbar-inspector-drawer-toggle"
                 ariaLabel={
-                  workspaceInspector.isMobileOpen
-                    ? 'Close workspace inspector'
-                    : 'Open workspace inspector'
+                  rightPanel.isMobileOpen
+                    ? rightPanel.labels.close
+                    : rightPanel.labels.open
                 }
                 onClick={() =>
-                  workspaceInspector.setIsMobileOpen(
-                    !workspaceInspector.isMobileOpen,
-                  )
+                  rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
                 }
               >
-                {workspaceInspector.isMobileOpen ? (
+                {rightPanel.isMobileOpen ? (
                   <PanelRightClose className="size-4" />
                 ) : (
                   <PanelRightOpen className="size-4" />

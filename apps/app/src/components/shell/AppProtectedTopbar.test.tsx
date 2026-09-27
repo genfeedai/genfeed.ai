@@ -21,6 +21,15 @@ const workspaceInspectorState = vi.hoisted(() => ({
     toggle: () => void;
   } | null,
 }));
+const contextSidebarState = vi.hoisted(() => ({
+  value: null as {
+    isMobileOpen: boolean;
+    isOpen: boolean;
+    selection: { id: string; kind: 'asset'; title: string } | null;
+    setIsMobileOpen: (isMobileOpen: boolean) => void;
+    toggle: () => void;
+  } | null,
+}));
 const originalLocation = window.location;
 
 vi.mock('@genfeedai/contracts', () => ({
@@ -146,6 +155,20 @@ vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
   useWorkspaceInspector: () => workspaceInspectorState.value,
 }));
 
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => contextSidebarState.value,
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      close: 'Close details',
+      collapse: 'Collapse details',
+      expand: 'Expand details',
+      open: 'Open details',
+    })[key] ?? key,
+}));
+
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   default: (props: {
     brandId?: string;
@@ -223,6 +246,7 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
     workspaceInspectorState.value = null;
+    contextSidebarState.value = null;
     brandSwitcherSpy.mockClear();
     brandContextState.brands = [
       {
@@ -465,5 +489,54 @@ describe('AppProtectedTopbar', () => {
 
     fireEvent.click(drawerToggle);
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
+  });
+
+  it('drives the context sidebar instead of the inspector while a selection is registered', () => {
+    const toggle = vi.fn();
+    const setIsMobileOpen = vi.fn();
+    const inspectorToggle = vi.fn();
+    workspaceInspectorState.value = {
+      isMobileOpen: false,
+      isOpen: true,
+      isRegistered: true,
+      setIsMobileOpen: vi.fn(),
+      toggle: inspectorToggle,
+    };
+    contextSidebarState.value = {
+      isMobileOpen: false,
+      isOpen: false,
+      selection: { id: 'asset-1', kind: 'asset', title: 'Launch still' },
+      setIsMobileOpen,
+      toggle,
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const railToggle = screen.getByTestId('topbar-inspector-toggle');
+    expect(railToggle).toHaveAccessibleName('Expand details');
+    expect(railToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(railToggle);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(inspectorToggle).not.toHaveBeenCalled();
+
+    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(drawerToggle).toHaveAccessibleName('Open details');
+    fireEvent.click(drawerToggle);
+    expect(setIsMobileOpen).toHaveBeenCalledWith(true);
+  });
+
+  it('hides the toggle when nothing is selected and no inspector is mounted', () => {
+    contextSidebarState.value = {
+      isMobileOpen: false,
+      isOpen: false,
+      selection: null,
+      setIsMobileOpen: vi.fn(),
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
+    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
   });
 });

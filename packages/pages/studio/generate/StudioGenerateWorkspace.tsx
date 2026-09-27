@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
@@ -1128,6 +1129,23 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [applyTypeSettings, brandId, models, setType],
   );
 
+  const handleSelectJob = useCallback((job: StudioGenerateJob) => {
+    setSelectedJobId(job.id);
+  }, []);
+  const handleCloseInspector = useCallback(() => {
+    setSelectedJobId(null);
+  }, []);
+  // Remix feeds the finished asset back into the composer as a reference,
+  // the same path the card's variation action takes.
+  const handleRemixJob = useCallback(
+    (job: StudioGenerateJob) => {
+      if (job.ingredient && (job.type === 'image' || job.type === 'video')) {
+        handleAttachGeneratedReference(job.ingredient, job.type);
+      }
+    },
+    [handleAttachGeneratedReference],
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <SectionTopbar
@@ -1219,7 +1237,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 isLoading={isLoadingGallery}
                 jobs={visibleJobs}
                 onReprompt={handleVaryRecipe}
-                onSelect={(job) => setSelectedJobId(job.id)}
+                onSelect={handleSelectJob}
                 selectedJobId={selectedJobId}
                 view={resultsView}
               />
@@ -1278,16 +1296,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
             </div>
           </PromptBarContainer>
         </div>
+      </div>
+
+      <ContextSidebarPanel
+        onClose={handleCloseInspector}
+        selection={
+          selectedJob
+            ? {
+                id: selectedJob.id,
+                kind: 'asset',
+                subtitle:
+                  selectedJob.modelKey || translate('inspector.autoModel'),
+                title: getStudioGenerateTypeConfig(selectedJob.type).label,
+              }
+            : null
+        }
+      >
         {selectedJob ? (
           <StudioGenerateInspector
             job={selectedJob}
-            onClose={() => setSelectedJobId(null)}
-            onSelect={(job) => setSelectedJobId(job.id)}
+            onRemix={handleRemixJob}
+            onSelect={handleSelectJob}
+            onUseInPost={assetActions.onPublishIngredient}
             onVary={handleVaryRecipe}
             runJobs={selectedRunJobs}
           />
         ) : null}
-      </div>
+      </ContextSidebarPanel>
 
       <ContentLibraryPicker
         isLoading={isContentLibraryLoading}

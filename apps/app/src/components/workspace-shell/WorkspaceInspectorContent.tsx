@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';
 import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
-import type { ResearchWorkspaceSurfaceAdapterRegistration } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
 
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
@@ -42,7 +41,6 @@ import {
 type WorkspaceInspectorAdapters = {
   readonly effectiveSurfaceAdapter: AnalyticsWorkspaceSurfaceAdapterState | null;
   readonly productSurfaceAdapter: ProductWorkspaceSurfaceAdapter | null;
-  readonly researchSurfaceAdapter: ResearchWorkspaceSurfaceAdapterRegistration | null;
   readonly surfacePresentationAdapter: WorkspaceSurfacePresentationAdapter | null;
   readonly workspaceSurfaceAdapter: ActiveWorkspaceSurfaceAdapter | null;
 };
@@ -107,7 +105,6 @@ type WorkspaceInspectorContextPaneProps = {
   readonly paneKind: WorkspaceInspectorPaneKind;
   readonly productSurfaceAdapter: ProductWorkspaceSurfaceAdapter | null;
   readonly rawPathname: string;
-  readonly researchSurfaceAdapter: ResearchWorkspaceSurfaceAdapterRegistration | null;
   readonly searchParamsString: string;
   readonly showOverlayPreview: boolean;
   readonly surfacePresentationAdapter: WorkspaceSurfacePresentationAdapter | null;
@@ -249,17 +246,11 @@ function WorkspaceInspectorPrimaryAdapter({
 
 function WorkspaceInspectorSecondaryAdapter({
   bodyKind,
-  researchSurfaceAdapter,
   surfacePresentationAdapter,
 }: {
   readonly bodyKind: WorkspaceInspectorBodyKind;
-  readonly researchSurfaceAdapter: ResearchWorkspaceSurfaceAdapterRegistration | null;
   readonly surfacePresentationAdapter: WorkspaceSurfacePresentationAdapter | null;
 }) {
-  if (bodyKind === 'research-adapter') {
-    return researchSurfaceAdapter?.inspectorContent ?? null;
-  }
-
   if (bodyKind === 'presentation-adapter') {
     return surfacePresentationAdapter?.inspector ?? null;
   }
@@ -384,7 +375,6 @@ function WorkspaceInspectorWorkspaceBody({
   onReturnToConversation,
   paneKind,
   rawPathname,
-  researchSurfaceAdapter,
   searchParamsString,
   showOverlayPreview,
   surfacePresentationAdapter,
@@ -411,7 +401,6 @@ function WorkspaceInspectorWorkspaceBody({
       />
       <WorkspaceInspectorSecondaryAdapter
         bodyKind={bodyKind}
-        researchSurfaceAdapter={researchSurfaceAdapter}
         surfacePresentationAdapter={surfacePresentationAdapter}
       />
       <WorkspaceInspectorFallbackBody
@@ -460,7 +449,6 @@ function WorkspaceInspectorContextPane(
         onReturnToConversation={props.onReturnToConversation}
         paneKind={props.paneKind}
         rawPathname={props.rawPathname}
-        researchSurfaceAdapter={props.researchSurfaceAdapter}
         searchParamsString={props.searchParamsString}
         showOverlayPreview={props.showOverlayPreview}
         surfacePresentationAdapter={props.surfacePresentationAdapter}
@@ -491,7 +479,6 @@ function WorkspaceInspectorContent({
   const bodyKind = resolveWorkspaceInspectorBodyKind({
     hasEffectiveSurfaceAdapter: Boolean(adapters.effectiveSurfaceAdapter),
     hasPresentationAdapter: Boolean(adapters.surfacePresentationAdapter),
-    hasResearchAdapter: Boolean(adapters.researchSurfaceAdapter),
     hasWorkspaceAdapter: Boolean(adapters.workspaceSurfaceAdapter),
     isWorkflowInspectorSurface: route.isWorkflowInspectorSurface,
   });
@@ -521,7 +508,6 @@ function WorkspaceInspectorContent({
       paneKind={paneKind}
       productSurfaceAdapter={adapters.productSurfaceAdapter}
       rawPathname={route.rawPathname}
-      researchSurfaceAdapter={adapters.researchSurfaceAdapter}
       searchParamsString={route.searchParamsString}
       showOverlayPreview={showOverlayPreview}
       surfacePresentationAdapter={adapters.surfacePresentationAdapter}

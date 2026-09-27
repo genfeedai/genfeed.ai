@@ -1,6 +1,12 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateInspector from './StudioGenerateInspector';
@@ -19,13 +25,16 @@ const mocks = vi.hoisted(() => {
   const resolvers = new Map<unknown, () => Promise<unknown>>();
 
   return {
+    attachContentToNewConversationDraft: vi.fn(),
     categoryService,
+    download: vi.fn(async () => undefined),
     findChildren,
     findOne,
     getPosts,
     href: vi.fn((path: string) => `/acme/northstar${path}`),
     ingredientsFindOne,
     ingredientsService,
+    push: vi.fn(),
     resolvers,
   };
 });
@@ -53,7 +62,24 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: mocks.href }),
+  useOrgUrl: () => ({ href: mocks.href, orgSlug: 'acme' }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mocks.push }),
+}));
+
+vi.mock('@genfeedai/agent/stores/conversation-composer-draft.store', () => ({
+  attachContentToNewConversationDraft:
+    mocks.attachContentToNewConversationDraft,
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ alt }: { alt: string }) => <span aria-label={alt} role="img" />,
+}));
+
+vi.mock('@ui/masonry/shared/useMasonryHover', () => ({
+  createDownloadHandler: () => mocks.download,
 }));
 
 vi.mock('@services/content/ingredients.service', () => ({
@@ -119,7 +145,8 @@ describe('StudioGenerateInspector', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
@@ -166,7 +193,8 @@ describe('StudioGenerateInspector', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
@@ -180,31 +208,145 @@ describe('StudioGenerateInspector', () => {
     expect(receipts).toHaveTextContent('Version 1');
   });
 
-  it('keeps the header on the 48px band and the tabs inside the panel gutter', () => {
+  it('puts Recipe, Used in and History in a PanelTabs row under the facts', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
       />,
     );
 
-    const inspector = screen.getByTestId('studio-generate-inspector');
-    const header = inspector.firstElementChild;
-    const tabList = screen.getByRole('tablist');
+    const tabList = screen.getByRole('tablist', { name: 'Generation details' });
+    expect(tabList.parentElement).toHaveClass('h-12', 'border-b');
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Recipe',
+      'Used in',
+      'History',
+    ]);
+    // The sidebar header owns the title and close; the panel has neither.
+    expect(screen.queryByRole('button', { name: /close/i })).toBeNull();
+  });
 
-    expect(header).toHaveClass('h-12', 'items-center', 'border-b', 'px-4');
-    expect(tabList).toHaveClass('mx-4', 'mt-3');
-    expect(tabList).not.toHaveClass('ml-auto');
+  it('lists the asset facts it knows and omits credits', () => {
+    const ingredient = {
+      aspectRatio: '16:9',
+      brand: { label: 'Northstar' },
+      category: IngredientCategory.VIDEO,
+      createdAt: '2026-08-20T10:00:00.000Z',
+      id: 'ing-7',
+      metadataDuration: 8.4,
+      metadataModelLabel: 'Veo 3',
+    } as IIngredient;
+
+    render(
+      <StudioGenerateInspector
+        job={{
+          createdAt: 1,
+          id: 'ing-7',
+          ingredient,
+          ingredientId: 'ing-7',
+          prompt: 'Drone over the coast',
+          status: IngredientStatus.GENERATED,
+          type: 'video',
+        }}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[]}
+      />,
+    );
+
+    const facts = screen.getByTestId('studio-generate-inspector');
+    expect(facts).toHaveTextContent('TypeVideo');
+    expect(facts).toHaveTextContent('ModelVeo 3');
+    expect(facts).toHaveTextContent('Aspect16:9');
+    expect(facts).toHaveTextContent('Duration8s');
+    expect(facts).toHaveTextContent('BrandNorthstar');
+    expect(facts).toHaveTextContent('Created');
+    expect(facts).not.toHaveTextContent(/credit/i);
+  });
+
+  it('pins download, use in post, remix and Ask Agent for a finished asset', async () => {
+    const ingredient = {
+      category: IngredientCategory.IMAGE,
+      id: 'ing-1',
+      thumbnailUrl: 'https://cdn.example/ing-1.png',
+    } as IIngredient;
+    const job = { ...recipeJob, ingredient };
+    const onRemix = vi.fn();
+    const onUseInPost = vi.fn();
+
+    render(
+      <StudioGenerateInspector
+        job={job}
+        onRemix={onRemix}
+        onUseInPost={onUseInPost}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[job]}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Image preview' })).toBeVisible();
+
+    const actions = screen.getByRole('group', { name: 'Asset actions' });
+    fireEvent.click(within(actions).getByRole('button', { name: 'Download' }));
+    expect(mocks.download).toHaveBeenCalledWith(ingredient);
+
+    fireEvent.click(
+      within(actions).getByRole('button', { name: 'Use in post' }),
+    );
+    expect(onUseInPost).toHaveBeenCalledWith(ingredient);
+
+    fireEvent.click(within(actions).getByRole('button', { name: 'Remix' }));
+    expect(onRemix).toHaveBeenCalledWith(job);
+
+    fireEvent.click(
+      within(actions).getByRole('button', { name: 'Ask Agent about this' }),
+    );
+    expect(mocks.attachContentToNewConversationDraft).toHaveBeenCalledWith(
+      'acme',
+      {
+        contentTitle: 'Raw box contents',
+        contentType: 'image',
+        id: 'ing-1',
+        thumbnailUrl: 'https://cdn.example/ing-1.png',
+      },
+    );
+    expect(mocks.push).toHaveBeenCalledWith('/acme/northstar/agent/new');
+  });
+
+  it('offers only Vary while the asset has no persisted ingredient', () => {
+    render(
+      <StudioGenerateInspector
+        job={recipeJob}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+
+    const actions = screen.getByRole('group', { name: 'Asset actions' });
+    expect(
+      within(actions)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Vary']);
   });
 
   it('shows the enriched recipe instead of the raw composer text', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
@@ -226,7 +368,8 @@ describe('StudioGenerateInspector', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
@@ -252,7 +395,8 @@ describe('StudioGenerateInspector', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob, sibling]}
@@ -272,7 +416,8 @@ describe('StudioGenerateInspector', () => {
     render(
       <StudioGenerateInspector
         job={recipeJob}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={onVary}
         runJobs={[recipeJob]}
@@ -291,7 +436,8 @@ describe('StudioGenerateInspector', () => {
           ingredientId: undefined,
           status: IngredientStatus.FAILED,
         }}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[recipeJob]}
@@ -321,7 +467,8 @@ describe('StudioGenerateInspector', () => {
           status: IngredientStatus.GENERATED,
           type: 'image',
         }}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[]}
@@ -346,7 +493,8 @@ describe('StudioGenerateInspector', () => {
           status: IngredientStatus.GENERATED,
           type: 'image',
         }}
-        onClose={vi.fn()}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
         onSelect={vi.fn()}
         onVary={vi.fn()}
         runJobs={[]}

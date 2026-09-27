@@ -6,6 +6,7 @@ import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
   resolveJsonApiIngredientId,
+  resolveStudioAssetFacts,
   resolveStudioAssetUrl,
   resolveStudioTypeFromCategory,
   STUDIO_GENERATE_CATEGORIES,
@@ -314,4 +315,59 @@ describe('resolveJsonApiIngredientId', () => {
       );
     },
   );
+});
+
+describe('resolveStudioAssetFacts', () => {
+  it('prefers the submitted recipe over persisted metadata', () => {
+    const facts = resolveStudioAssetFacts(
+      buildJob({
+        createdAt: Date.UTC(2026, 7, 21, 9),
+        ingredient: buildIngredient({
+          aspectRatio: '1:1',
+          brand: { label: 'Northstar' } as IIngredient['brand'],
+          metadataDuration: 4,
+          metadataModelLabel: 'Veo 3',
+        }),
+        recipe: {
+          aspectRatio: '9:16',
+          blacklist: [],
+          duration: 8,
+          isAudioEnabled: false,
+          outputs: 1,
+          references: [],
+          tags: [],
+          text: 'A coastline',
+          type: 'video',
+        },
+        type: 'video',
+      }),
+    );
+
+    expect(facts).toEqual({
+      aspectRatio: '9:16',
+      brandLabel: 'Northstar',
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      durationSeconds: 8,
+      modelLabel: 'Veo 3',
+    });
+  });
+
+  it('falls back to live job fields and omits what it does not know', () => {
+    const facts = resolveStudioAssetFacts(
+      buildJob({
+        createdAt: 0,
+        height: 1024,
+        modelKey: 'flux-dev',
+        width: 768,
+      }),
+    );
+
+    expect(facts).toEqual({
+      aspectRatio: '768×1024',
+      brandLabel: undefined,
+      createdAt: undefined,
+      durationSeconds: undefined,
+      modelLabel: 'flux-dev',
+    });
+  });
 });

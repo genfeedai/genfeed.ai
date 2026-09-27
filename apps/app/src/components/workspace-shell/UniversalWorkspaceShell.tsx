@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
+import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -17,6 +18,7 @@ import {
   resolveConversationComposerDestinationHref,
   useAgentChatStore,
 } from '@genfeedai/agent';
+import { buildConversationComposerDraftScopeKey } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -35,6 +37,7 @@ import {
   DrawerTitle,
 } from '@ui/primitives/drawer';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -114,6 +117,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
+import {
+  WorkspaceContextSidebarDrawerBody,
+  WorkspaceContextSidebarRail,
+} from './WorkspaceContextSidebar';
 import WorkspaceInspectorContent from './WorkspaceInspectorContent';
 import {
   useRegisterWorkspaceInspector,
@@ -205,8 +212,19 @@ function UniversalWorkspaceShellContent({
   // tests, non-protected layouts) where there is no toggle at all, so it defaults
   // to expanded there. Focused onboarding is conversation-only — no inspector.
   const workspaceInspector = useWorkspaceInspector();
+  // A registered selection owns the right column: the context sidebar replaces
+  // the legacy inspector panes while something is selected.
+  const contextSidebar = useContextSidebar();
+  const translateContextSidebar = useTranslations('common.contextSidebar');
+  const activeContextSidebar =
+    !isFocusedOnboardingRoute && contextSidebar?.selection
+      ? contextSidebar
+      : null;
   const isInspectorOpen =
-    !isFocusedOnboardingRoute && (workspaceInspector?.isOpen ?? true);
+    !isFocusedOnboardingRoute &&
+    (activeContextSidebar
+      ? activeContextSidebar.isOpen
+      : (workspaceInspector?.isOpen ?? true));
   useRegisterWorkspaceInspector(!isFocusedOnboardingRoute);
   // Below `xl` the inspector renders as a drawer whose opener is the same
   // topbar toggle slot, so its open state also lives in the shared provider.
@@ -215,7 +233,8 @@ function UniversalWorkspaceShellContent({
   const [localMobileInspectorOpen, setLocalMobileInspectorOpen] =
     useState(false);
   const isMobileInspectorOpen =
-    workspaceInspector?.isMobileOpen ?? localMobileInspectorOpen;
+    !activeContextSidebar &&
+    (workspaceInspector?.isMobileOpen ?? localMobileInspectorOpen);
   const setIsMobileInspectorOpen =
     workspaceInspector?.setIsMobileOpen ?? setLocalMobileInspectorOpen;
   // `null` keeps the inspector sized to its own content (clamped by the CSS
@@ -479,7 +498,11 @@ function UniversalWorkspaceShellContent({
   // hosts the composer with the conversation in the inspector. Registered
   // overlays temporarily take portal ownership from either base region.
   const isCanvasComposerVisible = state !== 'overlay' && isAgentRoute;
-  const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
+  const draftScopeKey = buildConversationComposerDraftScopeKey(
+    orgSlug,
+    effectiveThreadId,
+    activeThread?.contextVersion,
+  );
   // Human-readable breadcrumb leaf resolved from the route registry
   // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
   const inspectorBreadcrumbLabel =
@@ -1020,7 +1043,6 @@ function UniversalWorkspaceShellContent({
     adapters: {
       effectiveSurfaceAdapter,
       productSurfaceAdapter,
-      researchSurfaceAdapter: activeResearchSurfaceAdapter,
       surfacePresentationAdapter: resolvedSurfacePresentationAdapter,
       workspaceSurfaceAdapter: resolvedWorkspaceSurfaceAdapter,
     },
@@ -1186,7 +1208,11 @@ function UniversalWorkspaceShellContent({
               --workspace-inspector-width, which is how the rail pushes content. */}
             {isFocusedOnboardingRoute ? null : (
               <aside
-                aria-label="Workspace inspector"
+                aria-label={
+                  activeContextSidebar
+                    ? translateContextSidebar('label')
+                    : 'Workspace inspector'
+                }
                 className={cn(
                   'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
                   // Docked inside the content surface, flush right and bottom;
@@ -1211,7 +1237,11 @@ function UniversalWorkspaceShellContent({
                     aria-valuemax={INSPECTOR_MAX_WIDTH}
                     aria-valuemin={INSPECTOR_MIN_WIDTH}
                     aria-valuenow={expandedInspectorWidth}
-                    ariaLabel="Resize workspace inspector"
+                    ariaLabel={
+                      activeContextSidebar
+                        ? translateContextSidebar('resize')
+                        : 'Resize workspace inspector'
+                    }
                     className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
                     onKeyDown={handleInspectorResizeKeyDown}
                     onMouseDown={handleInspectorResizeStart}
@@ -1234,20 +1264,37 @@ function UniversalWorkspaceShellContent({
                     width: expandedInspectorWidth,
                   }}
                 >
-                  <WorkspaceInspectorContent
-                    {...inspectorSharedProps}
-                    agentPanelSlot={
-                      isInspectorOpen ? (
-                        <div
-                          className="flex min-h-0 flex-1 flex-col empty:hidden"
-                          ref={setAgentInspectorPortalTarget}
-                        />
-                      ) : null
-                    }
-                    conversationSlot={
-                      isMobileInspectorOpen ? null : conversationInspectorSlot
-                    }
-                  />
+                  {contextSidebar ? (
+                    <div
+                      className="flex min-h-0 flex-1 flex-col"
+                      hidden={!activeContextSidebar}
+                    >
+                      <WorkspaceContextSidebarRail
+                        contextSidebar={contextSidebar}
+                      />
+                    </div>
+                  ) : null}
+                  {/* Legacy panes stay mounted under a selection so inspector
+                    drafts and active runs survive until it is cleared. */}
+                  <div
+                    className="flex min-h-0 flex-1 flex-col"
+                    hidden={Boolean(activeContextSidebar)}
+                  >
+                    <WorkspaceInspectorContent
+                      {...inspectorSharedProps}
+                      agentPanelSlot={
+                        isInspectorOpen && !activeContextSidebar ? (
+                          <div
+                            className="flex min-h-0 flex-1 flex-col empty:hidden"
+                            ref={setAgentInspectorPortalTarget}
+                          />
+                        ) : null
+                      }
+                      conversationSlot={
+                        isMobileInspectorOpen ? null : conversationInspectorSlot
+                      }
+                    />
+                  </div>
                 </div>
               </aside>
             )}
@@ -1255,28 +1302,44 @@ function UniversalWorkspaceShellContent({
 
           {isFocusedOnboardingRoute ? null : (
             <Drawer
-              open={isMobileInspectorOpen}
-              onOpenChange={setIsMobileInspectorOpen}
+              open={
+                activeContextSidebar
+                  ? activeContextSidebar.isMobileOpen
+                  : isMobileInspectorOpen
+              }
+              onOpenChange={
+                activeContextSidebar
+                  ? activeContextSidebar.setIsMobileOpen
+                  : setIsMobileInspectorOpen
+              }
             >
               <DrawerContent
                 className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
                 id="workspace-context-inspector-drawer"
               >
-                <DrawerHeader>
-                  <DrawerTitle>
-                    {WORKSPACE_INSPECTOR_CHROME.mobileDrawerTitle}
-                  </DrawerTitle>
-                  <DrawerDescription>
-                    {WORKSPACE_INSPECTOR_CHROME.mobileDrawerDescription}
-                  </DrawerDescription>
-                </DrawerHeader>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <WorkspaceInspectorContent
-                    {...inspectorSharedProps}
-                    agentPanelSlot={null}
-                    conversationSlot={conversationInspectorSlot}
+                {activeContextSidebar ? (
+                  <WorkspaceContextSidebarDrawerBody
+                    contextSidebar={activeContextSidebar}
                   />
-                </div>
+                ) : (
+                  <>
+                    <DrawerHeader>
+                      <DrawerTitle>
+                        {WORKSPACE_INSPECTOR_CHROME.mobileDrawerTitle}
+                      </DrawerTitle>
+                      <DrawerDescription>
+                        {WORKSPACE_INSPECTOR_CHROME.mobileDrawerDescription}
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <WorkspaceInspectorContent
+                        {...inspectorSharedProps}
+                        agentPanelSlot={null}
+                        conversationSlot={conversationInspectorSlot}
+                      />
+                    </div>
+                  </>
+                )}
               </DrawerContent>
             </Drawer>
           )}

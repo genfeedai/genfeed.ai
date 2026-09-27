@@ -1,3 +1,8 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
   act,
@@ -7,9 +12,30 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { StrictMode, useCallback, useRef } from 'react';
+import { type ReactNode, StrictMode, useCallback, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
+
+function ContextSidebarCloseControl() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <button type="button" onClick={contextSidebar?.close}>
+      Close sidebar
+    </button>
+  );
+}
+
+/** The shell's side of the context sidebar: provider, outlet and close. */
+function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
+  return (
+    <ContextSidebarProvider>
+      <ContextSidebarCloseControl />
+      <ContextSidebarOutlet testId="context-sidebar-outlet" />
+      {children}
+    </ContextSidebarProvider>
+  );
+}
 
 const mocks = vi.hoisted(() => ({
   assetActions: {
@@ -956,7 +982,7 @@ describe('StudioGenerateWorkspace', () => {
       storedJobs: [recipeJob],
     });
 
-    render(<StudioGenerateWorkspace />);
+    render(<StudioGenerateWorkspace />, { wrapper: ContextSidebarHost });
 
     const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
       onReprompt: (job: typeof recipeJob) => void;
@@ -978,6 +1004,44 @@ describe('StudioGenerateWorkspace', () => {
     act(() => resultsProps.onSelect(recipeJob));
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('opens the selected asset in the context sidebar and deselects on close', () => {
+    const job = {
+      createdAt: 1,
+      id: 'job-7',
+      prompt: 'Selected asset prompt',
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+
+    render(<StudioGenerateWorkspace />, { wrapper: ContextSidebarHost });
+
+    const outlet = screen.getByTestId('context-sidebar-outlet');
+    expect(outlet).toBeEmptyDOMElement();
+
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+
+    // The panel renders in the shell's outlet, not beside the results grid.
+    expect(outlet).toContainElement(screen.getByTestId('studio-inspector'));
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: 'job-7',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+
+    expect(screen.queryByTestId('studio-inspector')).toBeNull();
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toMatchObject({
+      selectedJobId: null,
+    });
   });
 
   it('applies an Agent handoff end-to-end: switches type, prefills the prompt, falls back an unavailable model and unsupported params with a notice, and attaches the resolved reference (#4716 review)', async () => {

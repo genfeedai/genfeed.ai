@@ -104,8 +104,10 @@ export interface StudioGenerateCardProps {
 
 export interface StudioGenerateInspectorProps {
   job: StudioGenerateJob;
-  onClose: () => void;
+  /** Attaches the finished asset to the composer as a generation reference. */
+  onRemix: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioGenerateJob) => void;
   runJobs: readonly StudioGenerateJob[];
 }
