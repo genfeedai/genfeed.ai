@@ -1058,7 +1058,7 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
               description: 'Launch day recap',
               engagementRate: 7.4,
               ingredientUrl: null,
-              isVideo: true,
+              isVideo: false,
               label: 'Launch day recap',
               platform: 'tiktok',
               postId: 'post-1',

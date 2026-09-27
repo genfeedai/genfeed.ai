@@ -48,14 +48,19 @@ interface DashboardHeroContent {
 
 const DB_DASHBOARD_SCOPE_KEY = 'organization';
 
+/**
+ * Server-provided initial data. Leave a field `undefined` when there is none:
+ * the data hooks treat any provided value (even `[]`) with
+ * `revalidateOnMount: false` as already hydrated and skip their mount fetch.
+ */
 export interface UseAnalyticsOverviewParams {
   analytics?: Partial<IAnalytics>;
-  brandsLeaderboard: IBrandWithStats[];
+  brandsLeaderboard?: IBrandWithStats[];
   cachedAt: string;
-  orgsLeaderboard: IOrgLeaderboardItem[];
+  orgsLeaderboard?: IOrgLeaderboardItem[];
   scope: PageScope;
-  timeseriesData: PlatformTimeSeriesDataPoint[];
-  topPosts: TopPostData[];
+  timeseriesData?: PlatformTimeSeriesDataPoint[];
+  topPosts?: TopPostData[];
 }
 
 export function useAnalyticsOverview({

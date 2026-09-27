@@ -2,13 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import type {
+  IQueryParams,
   IViralHookAnalysis,
   IViralHookVideo,
-} from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
-import { formatDuration } from '@genfeedai/helpers';
-import { formatDate } from '@helpers/formatting/date/date.helper';
+} from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
@@ -16,7 +14,6 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import {
@@ -28,32 +25,19 @@ import {
 } from '@ui/primitives/select';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { format } from 'date-fns';
-import { Clock, Video } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import HookAnalysisSection from './HookAnalysisSection';
 import HookStatCards from './HookStatCards';
 import PlatformPerformanceSection from './PlatformPerformanceSection';
 
-function formatTimeSpent(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-}
-
 const createDefaultAnalysis = (): IViralHookAnalysis => ({
-  avgTimePerVideo: 0,
-  hookEffectiveness: [
-    { avgEffectiveness: 0, count: 0, type: 'visual' },
-    { avgEffectiveness: 0, count: 0, type: 'verbal' },
-    { avgEffectiveness: 0, count: 0, type: 'narrative' },
-    { avgEffectiveness: 0, count: 0, type: 'structural' },
-  ],
+  hookEffectiveness: [],
   topHooks: [],
   topPlatforms: [],
-  totalTime: 0,
   totalVideos: 0,
 });
 
@@ -136,56 +120,6 @@ export default function AnalyticsHooks({
     void fetchHookData(controller.signal);
   };
 
-  const aggregatedPlatformData = useMemo(() => {
-    if (!videos?.length) {
-      return [];
-    }
-
-    const platformMap = new Map<
-      string,
-      {
-        totalViews: number;
-        totalLikes: number;
-        totalShares: number;
-        totalComments: number;
-        avgEngagement: number;
-        avgViralScore: number;
-        videoCount: number;
-      }
-    >();
-
-    videos.forEach((video) => {
-      video.platforms.forEach((platform) => {
-        const existing = platformMap.get(platform.platform) || {
-          avgEngagement: 0,
-          avgViralScore: 0,
-          totalComments: 0,
-          totalLikes: 0,
-          totalShares: 0,
-          totalViews: 0,
-          videoCount: 0,
-        };
-
-        existing.totalViews += platform.views;
-        existing.totalLikes += platform.likes;
-        existing.totalShares += platform.shares;
-        existing.totalComments += platform.comments;
-        existing.avgEngagement += platform.engagementRate;
-        existing.avgViralScore += platform.viralScore;
-        existing.videoCount += 1;
-
-        platformMap.set(platform.platform, existing);
-      });
-    });
-
-    return Array.from(platformMap.entries()).map(([platform, data]) => ({
-      platform,
-      ...data,
-      avgEngagement: data.avgEngagement / data.videoCount,
-      avgViralScore: data.avgViralScore / data.videoCount,
-    }));
-  }, [videos]);
-
   return (
     <Container
       label="Viral Hooks"
@@ -216,75 +150,42 @@ export default function AnalyticsHooks({
       </div>
 
       <div className="space-y-8 pb-12">
-        <HookStatCards
-          analysisData={analysisData}
-          formatTimeSpent={formatTimeSpent}
-          isLoading={isLoading}
-        />
+        <HookStatCards analysisData={analysisData} isLoading={isLoading} />
 
-        <PlatformPerformanceSection
-          aggregatedPlatformData={aggregatedPlatformData}
-        />
+        <PlatformPerformanceSection topPlatforms={analysisData.topPlatforms} />
 
         <section>
           <Card>
             <div className="p-6 space-y-4">
               <h2 className="text-xl font-semibold tracking-tight">
-                Video Hook Breakdown
+                Post Hook Breakdown
               </h2>
               <Table<IViralHookVideo>
                 items={videos ?? []}
                 isLoading={isLoading}
                 columns={[
                   {
-                    className: 'min-w-64',
-                    header: 'Video',
+                    className: 'min-w-48',
+                    header: 'Post',
                     key: 'title',
                     render: (video) => (
-                      <div className="space-y-1">
-                        <p className="font-semibold line-clamp-1">
-                          {video.title}
-                        </p>
+                      <p className="font-semibold line-clamp-1">
+                        {video.title}
+                      </p>
+                    ),
+                  },
+                  {
+                    className: 'min-w-64',
+                    header: 'Hook',
+                    key: 'hook',
+                    render: (video) =>
+                      video.hook ? (
+                        <p className="text-sm line-clamp-2">{video.hook}</p>
+                      ) : (
                         <p className="text-xs text-foreground/60">
-                          {video.creator} • {formatDate(video.uploadDate)}
+                          No hook detected
                         </p>
-                      </div>
-                    ),
-                  },
-                  {
-                    className: 'w-24',
-                    header: 'Duration',
-                    key: 'duration',
-                    render: (video) => (
-                      <span className="text-sm">
-                        {formatDuration(video.duration)}
-                      </span>
-                    ),
-                  },
-                  {
-                    className: 'w-40',
-                    header: 'Hooks',
-                    key: 'hooks',
-                    render: (video) => {
-                      const hookCount = video.hooks.length;
-                      const totalEffectiveness = video.hooks.reduce(
-                        (acc, hook) => acc + hook.effectiveness,
-                        0,
-                      );
-                      const averageEffectiveness =
-                        hookCount > 0
-                          ? Math.round(totalEffectiveness / hookCount)
-                          : 0;
-
-                      return (
-                        <div className="flex items-center gap-2">
-                          <Badge className="text-xs">{hookCount} hooks</Badge>
-                          <span className="text-xs text-foreground/60">
-                            Avg: {averageEffectiveness}% effective
-                          </span>
-                        </div>
-                      );
-                    },
+                      ),
                   },
                   {
                     className: 'w-32',
@@ -292,14 +193,16 @@ export default function AnalyticsHooks({
                     key: 'platforms',
                     render: (video) => (
                       <div className="flex gap-2">
-                        {video.platforms.map((p) => {
+                        {video.platforms.map((platform) => {
                           const config = PLATFORM_CONFIGS.find(
-                            (c) => c.id === p.platform,
+                            (c) => c.id === platform,
                           );
                           const Icon = config?.icon;
                           return Icon ? (
                             <span
-                              key={p.platform}
+                              key={platform}
+                              role="img"
+                              aria-label={config.label}
                               className="flex size-6 items-center justify-center bg-background/60"
                               style={{ color: config.color }}
                             >
@@ -311,48 +214,23 @@ export default function AnalyticsHooks({
                     ),
                   },
                   {
-                    className: 'min-w-48',
-                    header: 'Best Performance',
-                    key: 'performance',
-                    render: (video) => {
-                      if (video.platforms.length === 0) {
-                        return (
-                          <p className="text-xs text-foreground/60">
-                            No platform data
-                          </p>
-                        );
-                      }
-
-                      const best = video.platforms.reduce((prev, current) =>
-                        current.viralScore > prev.viralScore ? current : prev,
-                      );
-                      const config = PLATFORM_CONFIGS.find(
-                        (c) => c.id === best.platform,
-                      );
-
-                      return (
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{config?.label}</p>
-                          <div className="flex gap-2 text-xs text-foreground/60">
-                            <span>{formatCompactNumber(best.views)} views</span>
-                            <span>•</span>
-                            <span>Score: {best.viralScore}</span>
-                          </div>
-                        </div>
-                      );
-                    },
+                    className: 'w-28',
+                    header: 'Views',
+                    key: 'totalViews',
+                    render: (video) => (
+                      <span className="text-sm font-medium">
+                        {formatCompactNumber(video.totalViews)}
+                      </span>
+                    ),
                   },
                   {
-                    className: 'w-32',
-                    header: 'Time Tracked',
-                    key: 'timeTracked',
+                    className: 'w-28',
+                    header: 'Engagement',
+                    key: 'totalEngagement',
                     render: (video) => (
-                      <div className="flex items-center gap-2">
-                        <Clock className="text-foreground/60" />
-                        <span className="text-sm font-medium">
-                          {formatTimeSpent(video.totalTimeTracked)}
-                        </span>
-                      </div>
+                      <span className="text-sm font-medium">
+                        {formatCompactNumber(video.totalEngagement)}
+                      </span>
                     ),
                   },
                 ]}

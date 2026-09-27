@@ -1,5 +1,4 @@
 import type { Locator, Page } from '@playwright/test';
-import { expect } from '@playwright/test';
 import { brandPath, sidebarLocator } from '../utils/app-chrome';
 
 /**
@@ -26,20 +25,6 @@ export class AnalyticsPage {
   readonly trendsTab: Locator;
   readonly hooksTab: Locator;
   readonly insightsTab: Locator;
-  readonly accountsTab: Locator;
-
-  // Metrics
-  readonly engagementMetrics: Locator;
-  readonly metricCard: Locator;
-
-  // Charts
-  readonly chartContainer: Locator;
-  readonly chartCanvas: Locator;
-
-  // Shared list/table empty state (`@ui/display/table/Table` and
-  // `CardEmpty`) — the real testids the app renders, not a fictional
-  // "empty-state" hook.
-  readonly emptyState: Locator;
 
   // Insights feed card (`InsightListCard`) — the insights page renders a list
   // of AI-generated insights, not charts or metric cards.
@@ -47,15 +32,9 @@ export class AnalyticsPage {
 
   // Filters
   readonly dateRangeSelector: Locator;
-  readonly platformFilter: Locator;
-  readonly contentTypeFilter: Locator;
-
-  // Export
-  readonly exportButton: Locator;
 
   // Loading
   readonly loadingSpinner: Locator;
-  readonly skeleton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -77,67 +56,31 @@ export class AnalyticsPage {
       exact: true,
       name: 'Insights',
     });
-    this.accountsTab = sidebar.getByRole('link', {
-      exact: true,
-      name: 'Accounts',
-    });
 
-    // Metrics
-    this.engagementMetrics = page.locator(
-      '[data-testid="engagement-metrics"],' +
-        ' [data-testid="metrics-grid"],' +
-        ' .metrics-container',
-    );
-    this.metricCard = page.locator(
-      '[data-testid="metric-card"],' +
-        ' [data-testid="stat-card"],' +
-        ' .metric-card',
-    );
-
-    // Charts
-    this.chartContainer = page.locator(
-      '[data-testid="chart-container"],' +
-        ' [data-testid="chart"],' +
-        ' .chart-wrapper,' +
-        ' .recharts-wrapper',
-    );
-    this.chartCanvas = page.locator('canvas, svg.recharts-surface');
-
-    this.emptyState = page.locator(
-      '[data-testid="table-empty"], [data-testid="card-empty"]',
-    );
     this.insightsListCard = page.getByTestId('insight-list-card');
 
     // Filters
-    this.dateRangeSelector = page.locator(
-      '[data-testid="date-range-selector"],' +
-        ' [data-testid="date-range"],' +
-        ' button:has-text("Last"),' +
-        ' button:has-text("Date Range")',
-    );
-    this.platformFilter = page.locator(
-      '[data-testid="platform-filter"],' +
-        ' [data-testid="platform-select"],' +
-        ' button:has-text("Platform")',
-    );
-    this.contentTypeFilter = page.locator(
-      '[data-testid="content-type-filter"],' +
-        ' [data-testid="content-type-select"],' +
-        ' button:has-text("Content Type")',
-    );
-
-    // Export
-    this.exportButton = page.locator(
-      '[data-testid="export-button"],' +
-        ' button:has-text("Export"),' +
-        ' button:has-text("Download")',
-    );
+    // The layout's `FormDateRangePicker` trigger, labelled with the selected
+    // range (e.g. "Sep 20 - Sep 26, 2026").
+    this.dateRangeSelector = page.locator('main').getByRole('button', {
+      name: /^[A-Z][a-z]{2} \d{1,2}(, \d{4})? - [A-Z][a-z]{2} \d{1,2}, \d{4}$/,
+    });
 
     // Loading
     this.loadingSpinner = page.locator(
       '[data-testid="loading"], .loading, .spinner',
     );
-    this.skeleton = page.locator('[data-testid="skeleton"], .skeleton');
+  }
+
+  /**
+   * A page's own title heading inside `main` (the analytics layout's
+   * `Container` renders each sub-page's label as a heading), so a
+   * render check fails on an empty shell instead of passing on any `main`.
+   */
+  sectionHeading(name: string): Locator {
+    return this.page
+      .locator('main')
+      .getByRole('heading', { exact: true, name });
   }
 
   async goto(): Promise<void> {
@@ -196,44 +139,11 @@ export class AnalyticsPage {
     await this.page.waitForURL(/\/analytics\/insights(?:[/?#]|$)/);
   }
 
-  async selectDateRange(range: string): Promise<void> {
+  /** Pick one of the date range picker's presets (7, 30 or 90 days). */
+  async selectDateRangePreset(days: 7 | 30 | 90): Promise<void> {
     await this.dateRangeSelector.click();
-    await this.page.locator(`[role="option"]:has-text("${range}")`).click();
-  }
-
-  async selectPlatform(platform: string): Promise<void> {
-    await this.platformFilter.click();
-    await this.page.locator(`[role="option"]:has-text("${platform}")`).click();
-  }
-
-  async selectContentType(type: string): Promise<void> {
-    await this.contentTypeFilter.click();
-    await this.page.locator(`[role="option"]:has-text("${type}")`).click();
-  }
-
-  async clickExport(): Promise<void> {
-    await this.exportButton.click();
-  }
-
-  async getMetricCount(): Promise<number> {
-    return await this.metricCard.count();
-  }
-
-  async getChartCount(): Promise<number> {
-    return await this.chartContainer.count();
-  }
-
-  async isDisplayed(): Promise<boolean> {
-    return this.page.url().includes('/analytics');
-  }
-
-  async assertMetricsVisible(): Promise<void> {
-    const count = await this.getMetricCount();
-    expect(count).toBeGreaterThan(0);
-  }
-
-  async assertChartsVisible(): Promise<void> {
-    const count = await this.getChartCount();
-    expect(count).toBeGreaterThan(0);
+    await this.page
+      .getByRole('button', { exact: true, name: `Last ${days} days` })
+      .click();
   }
 }

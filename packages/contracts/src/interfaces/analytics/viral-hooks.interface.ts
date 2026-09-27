@@ -1,54 +1,49 @@
-export interface IViralHook {
-  timestamp: number;
-  duration: number;
-  description: string;
-  effectiveness: number;
-  type: 'visual' | 'verbal' | 'narrative' | 'structural';
-}
-
-export interface IViralPlatformMetrics {
-  platform: string;
-  views: number;
-  likes: number;
-  shares: number;
-  comments: number;
-  saves: number;
-  completionRate: number;
-  avgWatchTime: number;
-  engagementRate: number;
-  viralScore: number;
-}
-
+/**
+ * `GET /analytics/hooks` response (`AnalyticsHooksSerializer`: `videos` +
+ * `analysis`). Produced by `AnalyticsResponseProjection.buildViralHooks`: a
+ * post's hook is the opening line/sentence of its description, and every
+ * metric is summed from `post_analytics` over the requested date range.
+ */
 export interface IViralHookVideo {
   id: string;
   title: string;
-  thumbnail?: string;
-  creator: string;
-  uploadDate: string;
-  duration: number;
-  hooks: IViralHook[];
-  platforms: IViralPlatformMetrics[];
-  totalTimeTracked: number;
-  analysisNotes?: string;
-}
-
-export interface ITopPerformingPlatform {
-  platform: string;
-  avgViralScore: number;
+  description: string;
+  /** Opening line/sentence of the description; empty when it has none. */
+  hook: string;
+  platforms: string[];
+  totalEngagement: number;
   totalViews: number;
 }
 
-export interface IHookTypeEffectiveness {
-  type: string;
-  avgEffectiveness: number;
-  count: number;
+/** Posts grouped by their normalized (lowercased, trimmed) hook text. */
+export interface IViralHookEffectiveness {
+  hook: string;
+  avgEngagement: number;
+  avgViews: number;
+  postCount: number;
+}
+
+export interface IViralTopHook {
+  hook: string;
+  avgEngagement: number;
+  postCount: number;
+}
+
+export interface IViralHookPlatformSummary {
+  platform: string;
+  postCount: number;
+  totalEngagement: number;
+  totalViews: number;
 }
 
 export interface IViralHookAnalysis {
   totalVideos: number;
-  totalTime: number;
-  avgTimePerVideo: number;
-  topPlatforms: ITopPerformingPlatform[];
-  hookEffectiveness: IHookTypeEffectiveness[];
-  topHooks: string[];
+  topPlatforms: IViralHookPlatformSummary[];
+  hookEffectiveness: IViralHookEffectiveness[];
+  topHooks: IViralTopHook[];
+}
+
+export interface IViralHooksResult {
+  videos: IViralHookVideo[];
+  analysis: IViralHookAnalysis;
 }

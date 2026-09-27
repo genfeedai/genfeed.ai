@@ -6,7 +6,6 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsResponseProjection,
   type RawAnalyticsRow,
-  type ViralHooksResult,
 } from '@api/endpoints/analytics/analytics-response.projection';
 import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -14,6 +13,7 @@ import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -612,7 +612,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     organizationId?: string,
     minOutlierTier?: 'outlier' | 'breakout',
     postId?: string,
-  ): Promise<ViralHooksResult> {
+  ): Promise<IViralHooksResult> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,

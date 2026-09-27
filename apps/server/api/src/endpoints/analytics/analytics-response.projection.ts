@@ -1,4 +1,10 @@
 import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import type {
+  IViralHookEffectiveness,
+  IViralHookPlatformSummary,
+  IViralHooksResult,
+  IViralHookVideo,
+} from '@genfeedai/contracts/interfaces';
 
 export type RawAnalyticsRow = Record<string, unknown>;
 
@@ -22,40 +28,6 @@ export type AnalyticsBestPostingTime = {
   hour: number;
   platform: string;
   postCount: number;
-};
-
-type ViralHookVideo = {
-  description: string;
-  hook: string;
-  id: string;
-  platforms: string[];
-  title: string;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-type HookEffectiveness = {
-  avgEngagement: number;
-  avgViews: number;
-  hook: string;
-  postCount: number;
-};
-
-type TopPlatformSummary = {
-  platform: string;
-  postCount: number;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-export type ViralHooksResult = {
-  analysis: {
-    hookEffectiveness: HookEffectiveness[];
-    topHooks: Array<{ hook: string; avgEngagement: number; postCount: number }>;
-    topPlatforms: TopPlatformSummary[];
-    totalVideos: number;
-  };
-  videos: ViralHookVideo[];
 };
 
 /**
@@ -283,8 +255,8 @@ export class AnalyticsResponseProjection {
   buildViralHooks(
     videos: RawAnalyticsRow[],
     topPlatformsRaw: RawAnalyticsRow[],
-  ): ViralHooksResult {
-    const videosWithHooks: ViralHookVideo[] = videos.map((video) => ({
+  ): IViralHooksResult {
+    const videosWithHooks: IViralHookVideo[] = videos.map((video) => ({
       description: (video.description as string) || '',
       hook: this.extractHookFromDescription(video.description as string),
       id: video.id as string,
@@ -372,8 +344,8 @@ export class AnalyticsResponseProjection {
   }
 
   private buildHookEffectiveness(
-    videosWithHooks: ViralHookVideo[],
-  ): HookEffectiveness[] {
+    videosWithHooks: IViralHookVideo[],
+  ): IViralHookEffectiveness[] {
     const hookMap = new Map<
       string,
       { totalEngagement: number; totalViews: number; count: number }
@@ -405,7 +377,9 @@ export class AnalyticsResponseProjection {
       .sort((left, right) => right.avgEngagement - left.avgEngagement);
   }
 
-  private mapTopPlatforms(rows: RawAnalyticsRow[]): TopPlatformSummary[] {
+  private mapTopPlatforms(
+    rows: RawAnalyticsRow[],
+  ): IViralHookPlatformSummary[] {
     return rows.map((platform) => ({
       platform: platform.platform as string,
       postCount: Number(platform.post_count),

@@ -1,6 +1,11 @@
+import { InsightCategory, InsightImpact } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  IInsightResponse,
+  IViralHooksResult,
+} from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
-import { playwrightApiEndpoint } from '../../config/environment';
+import { createPlaywrightApiRoutePattern } from '../../config/environment';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -11,21 +16,163 @@ import { brandPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
- * Scope a mock to the API host, not just a path substring — an unscoped
- * `page.route('**\/insights**', ...)` also matches the *page's own*
- * navigation request (e.g. `/test-org/brand-1/analytics/insights` contains
- * "insights" too), which replaces the whole document with the mock's JSON
- * body instead of the app's HTML.
+ * Mock one API endpoint on the configured API (`playwrightApiEndpoint`) and
+ * record every request it answers. `pathPattern` is a regular-expression
+ * source for the path after the endpoint (e.g. `analytics/hooks\\?`), so a
+ * mock never matches the page's own navigation request.
  */
 async function mockApiRoute(
   page: Page,
-  path: string,
+  pathPattern: string,
   handler: (route: Route) => Promise<void>,
-): Promise<void> {
-  await page.route(`**/api.genfeed.ai${path}`, handler);
-  await page.route(`**/api.genfeed.ai/v1${path}`, handler);
-  await page.route(`${playwrightApiEndpoint}${path}`, handler);
+): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route(
+    createPlaywrightApiRoutePattern(pathPattern),
+    async (route) => {
+      seen.push(route.request().url());
+      await handler(route);
+    },
+  );
+  return seen;
 }
+
+function jsonApi(body: unknown): {
+  body: string;
+  contentType: string;
+  status: number;
+} {
+  return {
+    body: JSON.stringify(body),
+    contentType: 'application/json',
+    status: 200,
+  };
+}
+
+/**
+ * `GET /analytics/hooks` exactly as `AnalyticsResponseProjection
+ * .buildViralHooks` produces it (`AnalyticsHooksSerializer`): a text hook per
+ * post, string platform ids, and view/engagement aggregates
+ * (genfeedai/genfeed.ai#5415).
+ */
+function viralHooksDocument(result: IViralHooksResult): unknown {
+  return {
+    data: {
+      attributes: result,
+      id: 'analytics-hooks',
+      type: 'analytics-hooks',
+    },
+  };
+}
+
+const LAUNCH_HOOK = 'Stop scrolling: we shipped in 30 seconds';
+
+const POPULATED_HOOKS: IViralHooksResult = {
+  analysis: {
+    hookEffectiveness: [
+      {
+        avgEngagement: 887,
+        avgViews: 12000,
+        hook: LAUNCH_HOOK.toLowerCase(),
+        postCount: 1,
+      },
+    ],
+    topHooks: [
+      { avgEngagement: 887, hook: LAUNCH_HOOK.toLowerCase(), postCount: 1 },
+    ],
+    topPlatforms: [
+      {
+        platform: 'tiktok',
+        postCount: 1,
+        totalEngagement: 887,
+        totalViews: 12000,
+      },
+    ],
+    totalVideos: 1,
+  },
+  videos: [
+    {
+      description: `${LAUNCH_HOOK}\nFull recap of launch day inside.`,
+      hook: LAUNCH_HOOK,
+      id: 'post-1',
+      platforms: ['tiktok', 'instagram'],
+      title: 'Launch day recap',
+      totalEngagement: 887,
+      totalViews: 12000,
+    },
+  ],
+};
+
+const EMPTY_HOOKS: IViralHooksResult = {
+  analysis: {
+    hookEffectiveness: [],
+    topHooks: [],
+    topPlatforms: [],
+    totalVideos: 0,
+  },
+  videos: [],
+};
+
+// `GET /insights` (`InsightSerializer`, type `insight`) over
+// `IInsightResponse` rows.
+const EVENING_INSIGHT: Omit<IInsightResponse, 'createdAt' | 'id'> & {
+  createdAt: string;
+} = {
+  actionableSteps: ['Post at 6pm local time'],
+  category: InsightCategory.TREND,
+  confidence: 82,
+  createdAt: '2026-09-20T00:00:00.000Z',
+  description: 'Evening posts outperform morning posts 2:1.',
+  impact: InsightImpact.HIGH,
+  isDismissed: false,
+  isRead: false,
+  relatedMetrics: ['engagementRate'],
+  title: 'Evening posting window is outperforming',
+};
+
+/**
+ * `GET /analytics/top` (`AnalyticsTopPostSerializer` over
+ * `analyticsResponseProjection.buildTopContent`, which always emits
+ * `isVideo: false`), filtered by `platform` like the real endpoint.
+ */
+const TOP_POSTS = [
+  {
+    brandLogo: null,
+    brandName: 'Brand 1',
+    description: 'Launch day recap',
+    engagementRate: 7.4,
+    ingredientUrl: null,
+    isVideo: false,
+    label: 'Launch day recap',
+    platform: 'tiktok',
+    postId: 'post-1',
+    thumbnailUrl: null,
+    totalComments: 45,
+    totalEngagement: 887,
+    totalLikes: 800,
+    totalSaves: 12,
+    totalShares: 30,
+    totalViews: 12000,
+  },
+  {
+    brandLogo: null,
+    brandName: 'Brand 1',
+    description: 'Behind the scenes',
+    engagementRate: 5.1,
+    ingredientUrl: null,
+    isVideo: false,
+    label: 'Behind the scenes',
+    platform: 'instagram',
+    postId: 'post-2',
+    thumbnailUrl: null,
+    totalComments: 20,
+    totalEngagement: 410,
+    totalLikes: 370,
+    totalSaves: 5,
+    totalShares: 15,
+    totalViews: 8000,
+  },
+];
 
 /**
  * E2E Tests for Analytics Deep Pages
@@ -54,7 +201,12 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
-      await expect(analyticsPage.mainContent).toBeVisible();
+      // The page title and the insights feed card share the "AI Insights"
+      // label, so two headings are expected.
+      await expect(analyticsPage.sectionHeading('AI Insights')).toHaveCount(2);
+      await expect(
+        analyticsPage.sectionHeading('Social intelligence inbox'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -62,44 +214,28 @@ test.describe('Analytics Deep Pages', () => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = brandPath(APP_ROUTES.ANALYTICS.INSIGHTS);
 
-      // `GET /insights` (InsightsService.getInsights) is a JSON:API
-      // collection of `IInsightResponse` — mock it explicitly with
-      // deterministic content instead of accepting whatever the generic
-      // `/analytics/**` fallback (a different endpoint entirely; this one
-      // isn't under `/analytics`) happens to produce.
-      await mockApiRoute(authenticatedPage, '/insights**', async (r) => {
-        if (r.request().method() !== 'GET') {
-          await r.fallback();
-          return;
-        }
-        await r.fulfill({
-          body: JSON.stringify({
-            data: [
-              {
-                attributes: {
-                  actionableSteps: ['Post at 6pm local time'],
-                  category: 'trend',
-                  confidence: 82,
-                  createdAt: '2026-09-20T00:00:00.000Z',
-                  description: 'Evening posts outperform morning posts 2:1.',
-                  impact: 'high',
-                  isDismissed: false,
-                  isRead: false,
-                  relatedMetrics: ['engagementRate'],
-                  title: 'Evening posting window is outperforming',
+      // `GET /insights` isn't under `/analytics`, so the generic
+      // `/analytics/**` fixture doesn't cover it — mock it explicitly with
+      // deterministic content.
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'insights/?\\?',
+        async (r) => {
+          await r.fulfill(
+            jsonApi({
+              data: [
+                {
+                  attributes: EVENING_INSIGHT,
+                  id: 'insight-1',
+                  type: 'insight',
                 },
-                id: 'insight-1',
-                type: 'insights',
-              },
-            ],
-          }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      });
+              ],
+            }),
+          );
+        },
+      );
 
       await analyticsPage.gotoSection('insights');
-      await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
       // Insights is a generated feed (`InsightListCard`), not charts or metric
@@ -114,6 +250,7 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         authenticatedPage.getByText('Analytics insights unavailable'),
       ).toHaveCount(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
 
     test('should show the empty state when there are no insights', async ({
@@ -124,20 +261,17 @@ test.describe('Analytics Deep Pages', () => {
 
       // A valid, empty collection — the real "no insights yet" contract,
       // not the "unavailable" error state.
-      await mockApiRoute(authenticatedPage, '/insights**', async (r) => {
-        if (r.request().method() !== 'GET') {
-          await r.fallback();
-          return;
-        }
-        await r.fulfill({
-          body: JSON.stringify({ data: [] }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      });
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'insights/?\\?',
+        async (r) => {
+          await r.fulfill(
+            jsonApi({ data: [], meta: { page: 1, pageSize: 15, total: 0 } }),
+          );
+        },
+      );
 
       await analyticsPage.gotoSection('insights');
-      await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
       await expect(analyticsPage.insightsListCard).toBeVisible();
@@ -147,6 +281,7 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         authenticatedPage.getByText('Analytics insights unavailable'),
       ).toHaveCount(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -160,7 +295,10 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.gotoSection('hooks');
 
       await expect(authenticatedPage).toHaveURL(/hooks/);
-      await expect(analyticsPage.mainContent).toBeVisible();
+      await expect(analyticsPage.sectionHeading('Viral Hooks')).toBeVisible();
+      await expect(
+        analyticsPage.sectionHeading('Post Hook Breakdown'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -169,91 +307,45 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = brandPath(APP_ROUTES.ANALYTICS.HOOKS);
+      const main = authenticatedPage.locator('main');
 
-      // `GET /analytics/hooks` (AnalyticsService.getViralHooks) is a single
-      // resource shaped `{ videos: IViralHookVideo[], analysis:
-      // IViralHookAnalysis }` (`AnalyticsHooksSerializer`'s `videos`/
-      // `analysis` attributes) — the generic `/analytics/**` fallback used
-      // elsewhere in this file doesn't match this shape, so mock it
-      // explicitly rather than accepting whatever empty state the mismatch
-      // produces.
-      await mockApiRoute(authenticatedPage, '/analytics/hooks**', async (r) => {
-        await r.fulfill({
-          body: JSON.stringify({
-            data: {
-              attributes: {
-                analysis: {
-                  avgTimePerVideo: 42,
-                  hookEffectiveness: [
-                    { avgEffectiveness: 78, count: 1, type: 'visual' },
-                  ],
-                  topHooks: ['Cold open reveal'],
-                  topPlatforms: [
-                    {
-                      avgViralScore: 91,
-                      platform: 'tiktok',
-                      totalViews: 12000,
-                    },
-                  ],
-                  totalTime: 42,
-                  totalVideos: 1,
-                },
-                videos: [
-                  {
-                    analysisNotes: 'Strong cold open',
-                    creator: 'Brand 1',
-                    duration: 30,
-                    hooks: [
-                      {
-                        description: 'Cold open reveal',
-                        duration: 3,
-                        effectiveness: 78,
-                        timestamp: 0,
-                        type: 'visual',
-                      },
-                    ],
-                    id: 'video-1',
-                    platforms: [
-                      {
-                        avgWatchTime: 18,
-                        comments: 45,
-                        completionRate: 0.6,
-                        engagementRate: 7.4,
-                        likes: 800,
-                        platform: 'tiktok',
-                        saves: 12,
-                        shares: 30,
-                        viralScore: 91,
-                        views: 12000,
-                      },
-                    ],
-                    title: 'Launch day recap',
-                    totalTimeTracked: 42,
-                    uploadDate: '2026-09-01T00:00:00.000Z',
-                  },
-                ],
-              },
-              id: 'analytics-hooks',
-              type: 'analytics-hooks',
-            },
-          }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      });
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'analytics/hooks\\?',
+        async (r) => {
+          await r.fulfill(jsonApi(viralHooksDocument(POPULATED_HOOKS)));
+        },
+      );
 
       await analyticsPage.gotoSection('hooks');
-      await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      const rows = authenticatedPage.locator('table tbody tr');
+      // Post table: the post, its text hook, platforms and aggregates.
+      const rows = main.locator('table tbody tr');
       await expect(rows).toHaveCount(1);
       await expect(rows).toContainText('Launch day recap');
-      await expect(rows).toContainText('Brand 1');
-      await expect(rows).toContainText('1 hooks');
+      await expect(rows).toContainText(LAUNCH_HOOK);
+      await expect(rows.getByRole('img', { name: 'TikTok' })).toBeVisible();
+      await expect(rows.getByRole('img', { name: 'Instagram' })).toBeVisible();
+      await expect(rows).toContainText('12.0k');
+      await expect(rows).toContainText('887');
+
+      // Stat cards and rankings come from `analysis`.
+      const statCard = (label: string) =>
+        main.getByTestId('metric-card').filter({ hasText: label });
+      await expect(statCard('Posts Analyzed')).toContainText('1');
+      await expect(statCard('Hook Patterns')).toContainText('1');
+      await expect(statCard('Best Hook Avg Engagement')).toContainText('887');
+      await expect(statCard('Top Platform')).toContainText('TIKTOK');
       await expect(
-        authenticatedPage.locator('[data-testid="table-empty"]'),
-      ).toHaveCount(0);
+        main.getByText(LAUNCH_HOOK.toLowerCase(), { exact: true }),
+      ).toHaveCount(2);
+      await expect(
+        main.getByText('887 avg engagement • 1 posts', { exact: true }),
+      ).toBeVisible();
+
+      await expect(main.getByTestId('table-empty')).toHaveCount(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
 
     test('should show the empty state when there is no hook data', async ({
@@ -261,41 +353,31 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = brandPath(APP_ROUTES.ANALYTICS.HOOKS);
+      const main = authenticatedPage.locator('main');
 
-      // A valid, empty single-resource response — the real "no data yet"
-      // contract, not the malformed generic fallback.
-      await mockApiRoute(authenticatedPage, '/analytics/hooks**', async (r) => {
-        await r.fulfill({
-          body: JSON.stringify({
-            data: {
-              attributes: {
-                analysis: {
-                  avgTimePerVideo: 0,
-                  hookEffectiveness: [],
-                  topHooks: [],
-                  topPlatforms: [],
-                  totalTime: 0,
-                  totalVideos: 0,
-                },
-                videos: [],
-              },
-              id: 'analytics-hooks',
-              type: 'analytics-hooks',
-            },
-          }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      });
+      // A valid, empty response — the real "no data yet" contract, not the
+      // malformed generic fallback.
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'analytics/hooks\\?',
+        async (r) => {
+          await r.fulfill(jsonApi(viralHooksDocument(EMPTY_HOOKS)));
+        },
+      );
 
       await analyticsPage.gotoSection('hooks');
-      await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
+      await expect(main.getByTestId('table-empty')).toBeVisible();
+      await expect(main.locator('table tbody tr')).toHaveCount(0);
       await expect(
-        authenticatedPage.locator('[data-testid="table-empty"]'),
+        main.getByTestId('metric-card').filter({ hasText: 'Posts Analyzed' }),
+      ).toContainText('0');
+      await expect(
+        main.getByText('No top hook patterns detected yet.'),
       ).toBeVisible();
-      await expect(authenticatedPage.locator('table tbody tr')).toHaveCount(0);
+      await expect(main.getByText('No hook reach data yet.')).toBeVisible();
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -310,26 +392,40 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/performance-lab/);
-      await expect(analyticsPage.mainContent).toBeVisible();
+      await expect(
+        analyticsPage.sectionHeading('Performance Lab'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
-    test('should show the pattern grid or its empty state', async ({
+    test('should show the pattern grid empty state when there are no patterns', async ({
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
 
+      // `GET /creative-patterns` — a valid, empty collection.
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'creative-patterns\\?',
+        async (r) => {
+          await r.fulfill(jsonApi({ data: [], meta: { totalCount: 0 } }));
+        },
+      );
+
       await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // `PatternLabPage` (apps/app/packages/components/performance-lab) has no
-      // pattern data under these mocks, so it renders its "No patterns found"
-      // empty state — the only comparison UI it ships today.
       await expect(
-        authenticatedPage.getByRole('heading', { name: /no patterns found/i }),
+        analyticsPage.sectionHeading('No patterns found'),
       ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText(
+          'No creative patterns available yet. Patterns are extracted from your performance data.',
+        ),
+      ).toBeVisible();
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -344,7 +440,9 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/trend-turnover/);
-      await expect(analyticsPage.mainContent).toBeVisible();
+      await expect(
+        analyticsPage.sectionHeading('Trend Turnover Dashboard'),
+      ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -353,17 +451,59 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
       const route = brandPath(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
+      const main = authenticatedPage.locator('main');
+
+      // `GET /trends/turnover` (`TrendsService.getTurnoverStats`,
+      // `TrendTurnoverResponse`).
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'trends/turnover\\?',
+        async (r) => {
+          await r.fulfill(
+            jsonApi({
+              byPlatform: [
+                {
+                  alive: 9,
+                  appeared: 6,
+                  avgLifespanDays: 4.5,
+                  died: 3,
+                  platform: 'instagram',
+                  turnoverRate: 0.5,
+                },
+              ],
+              days: 30,
+              timeline: [
+                { appeared: 2, date: '2026-09-21', died: 1 },
+                { appeared: 4, date: '2026-09-22', died: 2 },
+              ],
+              totals: {
+                alive: 9,
+                appeared: 6,
+                avgLifespanDays: 4.5,
+                died: 3,
+                turnoverRate: 0.5,
+              },
+            }),
+          );
+        },
+      );
 
       await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // `buildUnhandledApiMockBody`'s `/turnover` fallback (api-interceptor.ts)
-      // returns real per-platform stats, so the Platform Breakdown `Table`
-      // renders a data row rather than its empty state.
+      const rows = main.locator('table tbody tr');
+      await expect(rows).toHaveCount(1);
+      await expect(rows).toContainText('Instagram');
+      await expect(rows).toContainText('4.5d');
+      await expect(rows).toContainText('0.5%');
       await expect(
-        authenticatedPage.locator('table tbody tr').first(),
-      ).toBeVisible();
+        main.getByTestId('metric-card').filter({ hasText: 'Appeared' }),
+      ).toContainText('6');
+      await expect(
+        main.getByTestId('metric-card').filter({ hasText: 'Died' }),
+      ).toContainText('3');
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -378,7 +518,7 @@ test.describe('Analytics Deep Pages', () => {
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/analytics\/posts/);
-      await expect(analyticsPage.mainContent).toBeVisible();
+      await expect(analyticsPage.sectionHeading('Top Posts')).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
@@ -395,10 +535,11 @@ test.describe('Analytics Deep Pages', () => {
       await expect(
         authenticatedPage.getByPlaceholder('Search posts...'),
       ).toBeVisible();
-
-      const filters = authenticatedPage.getByRole('combobox');
-      await expect(filters).toHaveCount(2);
-      await expect(filters.nth(1)).toContainText('All');
+      await expect(
+        authenticatedPage.getByRole('combobox', {
+          name: 'Filter post analytics by platform',
+        }),
+      ).toContainText('All');
     });
 
     test('should show the mocked posts and their metrics', async ({
@@ -413,10 +554,7 @@ test.describe('Analytics Deep Pages', () => {
 
       // `mockAnalyticsData` seeds two posts via `/analytics/top` (see
       // genfeedai/genfeed.ai#5404 for why the mock's field names matter).
-      // Assert the real rendered rows, not just "a table or its empty
-      // state" — that would also pass if the mock regressed to an empty
-      // collection.
-      const rows = authenticatedPage.locator('table tbody tr');
+      const rows = authenticatedPage.locator('main table tbody tr');
       await expect(rows).toHaveCount(2);
 
       const firstRow = rows.filter({ hasText: 'Launch day recap' });
@@ -430,8 +568,64 @@ test.describe('Analytics Deep Pages', () => {
       await expect(secondRow).toContainText('8,000');
 
       await expect(
-        authenticatedPage.locator('[data-testid="table-empty"]'),
+        authenticatedPage.locator('main [data-testid="table-empty"]'),
       ).toHaveCount(0);
+    });
+
+    test('should filter posts by platform', async ({ authenticatedPage }) => {
+      const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.POSTS);
+
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'analytics/top\\?',
+        async (r) => {
+          const platform = new URL(r.request().url()).searchParams.get(
+            'platform',
+          );
+          await r.fulfill(
+            jsonApi({
+              data: TOP_POSTS.filter(
+                (post) => !platform || post.platform === platform,
+              ).map((post) => ({
+                attributes: post,
+                id: `top-${post.postId}`,
+                type: 'analytics-top-post',
+              })),
+            }),
+          );
+        },
+      );
+
+      await authenticatedPage.goto(route);
+      await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
+
+      const rows = authenticatedPage.locator('main table tbody tr');
+      await expect(rows).toHaveCount(2);
+
+      await authenticatedPage
+        .getByRole('combobox', { name: 'Filter post analytics by platform' })
+        .click();
+      await authenticatedPage
+        .getByRole('option', { exact: true, name: 'Instagram' })
+        .click();
+
+      await expect
+        .poll(() =>
+          seen.some(
+            (url) => new URL(url).searchParams.get('platform') === 'instagram',
+          ),
+        )
+        .toBe(true);
+      await expect(rows).toHaveCount(1);
+      await expect(rows).toContainText('Behind the scenes');
+      await expect(rows).toContainText('instagram');
+      await expect(
+        authenticatedPage.getByRole('combobox', {
+          name: 'Filter post analytics by platform',
+        }),
+      ).toContainText('Instagram');
     });
 
     test('should show the empty state when there are no posts', async ({
@@ -442,22 +636,25 @@ test.describe('Analytics Deep Pages', () => {
 
       // Override the seeded posts with a valid, empty JSON:API collection —
       // the real "no data yet" contract, not a malformed fallback.
-      await mockApiRoute(authenticatedPage, '/analytics/top**', async (r) => {
-        await r.fulfill({
-          body: JSON.stringify({ data: [] }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      });
+      const seen = await mockApiRoute(
+        authenticatedPage,
+        'analytics/top\\?',
+        async (r) => {
+          await r.fulfill(jsonApi({ data: [] }));
+        },
+      );
 
       await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
       await expect(
-        authenticatedPage.locator('[data-testid="table-empty"]'),
+        authenticatedPage.locator('main [data-testid="table-empty"]'),
       ).toBeVisible();
-      await expect(authenticatedPage.locator('table tbody tr')).toHaveCount(0);
+      await expect(
+        authenticatedPage.locator('main table tbody tr'),
+      ).toHaveCount(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 });
@@ -484,19 +681,23 @@ test.describe('Analytics Deep Pages — Unauthenticated Access', () => {
       timeout: 15000,
     });
     expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    await assertNoErrorBoundaryFallback(
+      unauthenticatedPage,
+      APP_ROUTES.ANALYTICS.INSIGHTS,
+    );
   });
 
   test('should redirect unauthenticated user from performance lab', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(
-      brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB),
-    );
+    const route = brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
+    await unauthenticatedPage.goto(route);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,
     });
     expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    await assertNoErrorBoundaryFallback(unauthenticatedPage, route);
   });
 });

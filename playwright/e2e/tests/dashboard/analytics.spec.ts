@@ -1,3 +1,5 @@
+import type { Locator, Page, Route } from '@playwright/test';
+import { createPlaywrightApiRoutePattern } from '../../config/environment';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -15,8 +17,51 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
  * were retired with the operational-home rebuild (#2093) — analytics now
  * lives at /analytics/overview, and this dashboard's own content-recency
  * surface was replaced by review/publishing/credential-health surfaces.
- * All API calls are mocked - no real backend requests occur.
+ *
+ * The metric grid reads `GET /auth/bootstrap/overview`
+ * (`useOverviewBootstrap`); `mockAnalyticsData` seeds it with
+ * `reviewInbox.readyCount: 2` and `analytics.pendingPosts: 3`. The activity
+ * feed reads `GET /activities` (`useActivities`), seeded with three
+ * activities. All API calls are mocked - no real backend requests occur.
  */
+
+const BOOTSTRAP_OVERVIEW = createPlaywrightApiRoutePattern(
+  'auth/bootstrap/overview',
+);
+const ACTIVITIES = createPlaywrightApiRoutePattern('activities\\?');
+
+function metricCard(dashboardPage: DashboardPage, label: string): Locator {
+  return dashboardPage.statsSection
+    .getByTestId('metric-card')
+    .filter({ hasText: label });
+}
+
+async function expectSeededMetrics(
+  dashboardPage: DashboardPage,
+): Promise<void> {
+  await expect(dashboardPage.statsSection).toBeVisible();
+  const ready = metricCard(dashboardPage, 'Ready to review');
+  const pending = metricCard(dashboardPage, 'Pending posts');
+  await expect(ready).not.toHaveAttribute('aria-busy', 'true');
+  await expect(ready).toContainText('2');
+  await expect(pending).not.toHaveAttribute('aria-busy', 'true');
+  await expect(pending).toContainText('3');
+}
+
+/** Registers `handler` for `pattern` and records every request it sees. */
+async function interceptApi(
+  page: Page,
+  pattern: RegExp,
+  handler: (route: Route) => Promise<void>,
+): Promise<string[]> {
+  const seen: string[] = [];
+  await page.route(pattern, async (route) => {
+    seen.push(route.request().url());
+    await handler(route);
+  });
+  return seen;
+}
+
 test.describe('Dashboard Analytics', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -27,17 +72,16 @@ test.describe('Dashboard Analytics', () => {
   });
 
   test.describe('Statistics Widgets', () => {
-    test('should display statistics section', async ({ authenticatedPage }) => {
+    test('should display the operational metrics from the overview bootstrap', async ({
+      authenticatedPage,
+    }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // The operational-home metric grid (`operational-home-metrics`) always
-      // renders for an authenticated org/brand — see `assertStatsDisplayed`.
-      await dashboardPage.assertStatsDisplayed();
       await expect(authenticatedPage).toHaveURL(/overview/);
+      await expectSeededMetrics(dashboardPage);
     });
   });
 
@@ -46,44 +90,50 @@ test.describe('Dashboard Analytics', () => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       await expect(dashboardPage.activitySection).toBeVisible();
+      await expect(dashboardPage.activitySection).toContainText(
+        'Recent activity',
+      );
     });
 
     test('should display activity items', async ({ authenticatedPage }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      const activityCount = await dashboardPage
-        .getActivityCount()
-        .catch(() => 0);
-
-      expect(activityCount).toBeGreaterThanOrEqual(0);
+      await expect(dashboardPage.activityItem).toHaveCount(3);
+      await expect(dashboardPage.activityItem.nth(0)).toContainText(
+        'Generated a video',
+      );
+      await expect(dashboardPage.activityItem.nth(1)).toContainText(
+        'Generated an image',
+      );
+      await expect(dashboardPage.activityItem.nth(2)).toContainText(
+        'Subscription credits',
+      );
     });
 
     test('should show activity timestamps', async ({ authenticatedPage }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      const activityCount = await dashboardPage
-        .getActivityCount()
-        .catch(() => 0);
-
-      if (activityCount > 0) {
-        const activityText = await dashboardPage.getActivityText(0);
-        // Activity should have some text content
-        expect(activityText.length).toBeGreaterThan(0);
+      // Every seeded activity has a fixed past `createdAt`, rendered by
+      // `ClientFormattedDate` as a relative time — not its "Time
+      // unavailable" fallback.
+      await expect(dashboardPage.activityItem).toHaveCount(3);
+      for (const row of await dashboardPage.activityItem.all()) {
+        await expect(row).toContainText(
+          /\d+ (minute|hour|day|month|year)s? ago/,
+        );
       }
-
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expect(dashboardPage.activitySection).not.toContainText(
+        'Time unavailable',
+      );
     });
 
     test('should handle empty activity state', async ({
@@ -91,14 +141,14 @@ test.describe('Dashboard Analytics', () => {
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      // Mock empty activities
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/activities**',
+      const seen = await interceptApi(
+        authenticatedPage,
+        ACTIVITIES,
         async (route) => {
           await route.fulfill({
             body: JSON.stringify({
               data: [],
-              meta: { totalCount: 0 },
+              meta: { page: 1, pageSize: 5, totalCount: 0 },
             }),
             contentType: 'application/json',
             status: 200,
@@ -107,11 +157,13 @@ test.describe('Dashboard Analytics', () => {
       );
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // Should show empty state or no activities
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expect(
+        dashboardPage.activitySection.getByTestId('workspace-empty-state'),
+      ).toHaveText('No recent activity yet.');
+      await expect(dashboardPage.activityItem).toHaveCount(0);
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -121,26 +173,31 @@ test.describe('Dashboard Analytics', () => {
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      // Add delay to API responses
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/analytics/**',
+      // Hold the bootstrap request until the loading UI has been observed,
+      // then hand it back to `mockAnalyticsData`'s handler.
+      let release: () => void = () => {};
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const seen = await interceptApi(
+        authenticatedPage,
+        BOOTSTRAP_OVERVIEW,
         async (route) => {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          await route.fulfill({
-            body: JSON.stringify({ data: {} }),
-            contentType: 'application/json',
-            status: 200,
-          });
+          await gate;
+          await route.fallback();
         },
       );
 
-      await dashboardPage.goto();
+      await authenticatedPage.goto(dashboardPage.url);
 
-      // Loading state might be visible briefly
-      await dashboardPage.waitForLoadingComplete();
+      const ready = metricCard(dashboardPage, 'Ready to review');
+      await expect(ready).toHaveAttribute('aria-busy', 'true');
+      await expect.poll(() => seen.length).toBeGreaterThan(0);
+
+      release();
+
+      await expectSeededMetrics(dashboardPage);
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
-
-      await expect(authenticatedPage).toHaveURL(/overview/);
     });
 
     test('should handle slow network gracefully', async ({
@@ -148,39 +205,36 @@ test.describe('Dashboard Analytics', () => {
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      // Simulate slow network. `route.fallback()` (not `.continue()`) after
-      // the delay: `.continue()` sends the request straight to the real
-      // network, bypassing every earlier-registered mock — including the
-      // global organization-list mock (`api-interceptor.ts`'s
-      // `handleOrganizationRoutes`) that `RoutedOrganizationProvider` depends
-      // on for every route. That turned this into a real, unmocked
-      // `GET /organizations?mine=true` against a non-existent backend, which
-      // failed and tripped the "Organization switch failed" boundary — a
-      // test-harness artifact, not the product's real slow-network behavior.
-      // `.fallback()` still simulates latency but hands the request back to
-      // those mocks afterward, matching how the sibling
-      // "should show loading state while fetching data" test above scopes
-      // its own delay to `/analytics/**` only.
-      await authenticatedPage.route('**/api.genfeed.ai/**', async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        await route.fallback();
-      });
+      // Delay every API call, then `route.fallback()` (not `.continue()`)
+      // so the request still reaches the earlier-registered mocks —
+      // `.continue()` would hit the real, non-existent backend.
+      const seen = await interceptApi(
+        authenticatedPage,
+        createPlaywrightApiRoutePattern(),
+        async (route) => {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await route.fallback();
+        },
+      );
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expectSeededMetrics(dashboardPage);
+      await expect(dashboardPage.activityItem).toHaveCount(3);
+      expect(seen.some((url) => BOOTSTRAP_OVERVIEW.test(url))).toBe(true);
     });
   });
 
   test.describe('Error Handling', () => {
-    test('should handle analytics API error', async ({ authenticatedPage }) => {
+    test('should handle overview bootstrap API error', async ({
+      authenticatedPage,
+    }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      // Mock analytics error
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/analytics/**',
+      const seen = await interceptApi(
+        authenticatedPage,
+        BOOTSTRAP_OVERVIEW,
         async (route) => {
           await route.fulfill({
             body: JSON.stringify({
@@ -193,11 +247,17 @@ test.describe('Dashboard Analytics', () => {
       );
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // Page should still load with error state
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      // The attention queue degrades to its inline error line instead of
+      // crashing the page; the other surfaces stay available.
+      await expect(
+        authenticatedPage
+          .getByTestId('operational-home-needs-you')
+          .getByRole('alert'),
+      ).toContainText('Approval state is temporarily unavailable.');
+      await expect(dashboardPage.activityItem).toHaveCount(3);
+      expect(seen.length).toBeGreaterThan(0);
     });
 
     test('should handle activities API error', async ({
@@ -205,8 +265,9 @@ test.describe('Dashboard Analytics', () => {
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/activities**',
+      const seen = await interceptApi(
+        authenticatedPage,
+        ACTIVITIES,
         async (route) => {
           await route.fulfill({
             body: JSON.stringify({
@@ -219,11 +280,14 @@ test.describe('Dashboard Analytics', () => {
       );
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // Page should still load
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expect(
+        dashboardPage.activitySection.getByRole('alert'),
+      ).toContainText('Recent activity is temporarily unavailable.');
+      await expect(dashboardPage.activityItem).toHaveCount(0);
+      await expectSeededMetrics(dashboardPage);
+      expect(seen.length).toBeGreaterThan(0);
     });
   });
 
@@ -232,17 +296,27 @@ test.describe('Dashboard Analytics', () => {
       authenticatedPage,
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
+      const seen = await interceptApi(
+        authenticatedPage,
+        BOOTSTRAP_OVERVIEW,
+        async (route) => {
+          await route.fallback();
+        },
+      );
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
+      await expectSeededMetrics(dashboardPage);
+      const requestsBeforeReload = seen.length;
+      expect(requestsBeforeReload).toBeGreaterThan(0);
 
-      // Refresh
       await authenticatedPage.reload();
       await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // Page should reload successfully
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expect
+        .poll(() => seen.length)
+        .toBeGreaterThan(requestsBeforeReload);
+      await expectSeededMetrics(dashboardPage);
     });
   });
 
@@ -255,11 +329,10 @@ test.describe('Dashboard Analytics', () => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      // Analytics should adapt to mobile
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expectSeededMetrics(dashboardPage);
+      await expect(dashboardPage.activitySection).toBeVisible();
     });
 
     test('should display analytics on tablet viewport', async ({
@@ -270,10 +343,10 @@ test.describe('Dashboard Analytics', () => {
       await authenticatedPage.setViewportSize({ height: 1024, width: 768 });
 
       await dashboardPage.goto();
-      await dashboardPage.waitForPageLoad();
       await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
-      await expect(authenticatedPage).toHaveURL(/overview/);
+      await expectSeededMetrics(dashboardPage);
+      await expect(dashboardPage.activitySection).toBeVisible();
     });
   });
 });

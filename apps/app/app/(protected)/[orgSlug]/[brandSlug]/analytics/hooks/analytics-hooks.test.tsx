@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsHooks from './analytics-hooks';
@@ -32,14 +39,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-1',
     organizationId: mocks.organizationId,
   }),
-}));
-
-vi.mock('@genfeedai/helpers', () => ({
-  formatDuration: (seconds: number) => `${seconds}s`,
-}));
-
-vi.mock('@helpers/formatting/date/date.helper', () => ({
-  formatDate: (value: string) => `date:${value}`,
 }));
 
 vi.mock('@helpers/formatting/format/format.helper', () => ({
@@ -200,58 +199,64 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-function hookResponse() {
+/**
+ * The exact `GET /analytics/hooks` shape `AnalyticsResponseProjection
+ * .buildViralHooks` produces: a text hook per post, string platform ids, and
+ * engagement/view aggregates (genfeedai/genfeed.ai#5415).
+ */
+function hookResponse(): IViralHooksResult {
   return {
     analysis: {
-      avgTimePerVideo: 450,
-      hookEffectiveness: [{ avgEffectiveness: 82, count: 3, type: 'visual' }],
-      topHooks: ['Open with a pattern interrupt'],
-      topPlatforms: [{ platform: 'tiktok' }],
-      totalTime: 5400,
+      hookEffectiveness: [
+        {
+          avgEngagement: 320,
+          avgViews: 1600,
+          hook: 'open with a pattern interrupt',
+          postCount: 1,
+        },
+        {
+          avgEngagement: 90,
+          avgViews: 4200,
+          hook: 'three mistakes i made',
+          postCount: 2,
+        },
+      ],
+      topHooks: [
+        {
+          avgEngagement: 320,
+          hook: 'open with a pattern interrupt',
+          postCount: 1,
+        },
+        { avgEngagement: 90, hook: 'three mistakes i made', postCount: 2 },
+      ],
+      topPlatforms: [
+        {
+          platform: 'tiktok',
+          postCount: 3,
+          totalEngagement: 500,
+          totalViews: 9000,
+        },
+      ],
       totalVideos: 2,
     },
     videos: [
       {
-        creator: 'Creator One',
-        duration: 42,
-        hooks: [
-          { effectiveness: 80, type: 'visual' },
-          { effectiveness: 60, type: 'verbal' },
-        ],
+        description: 'Open with a pattern interrupt\nThen explain the offer.',
+        hook: 'Open with a pattern interrupt',
         id: 'video-1',
-        platforms: [
-          {
-            comments: 10,
-            engagementRate: 8.5,
-            likes: 200,
-            platform: 'tiktok',
-            shares: 20,
-            views: 1000,
-            viralScore: 88,
-          },
-          {
-            comments: 4,
-            engagementRate: 5.5,
-            likes: 120,
-            platform: 'instagram',
-            shares: 5,
-            views: 600,
-            viralScore: 64,
-          },
-        ],
+        platforms: ['tiktok', 'instagram'],
         title: 'Winning hook video',
-        totalTimeTracked: 3720,
-        uploadDate: '2026-05-01',
+        totalEngagement: 320,
+        totalViews: 1600,
       },
       {
-        creator: 'Creator Two',
-        duration: 20,
-        hooks: [],
+        description: '',
+        hook: '',
         id: 'video-2',
         platforms: [],
-        title: 'No platform data video',
-        totalTimeTracked: 45,
-        uploadDate: '2026-05-02',
+        title: 'Untitled',
+        totalEngagement: 12,
+        totalViews: 80,
       },
     ],
   };
@@ -276,25 +281,35 @@ describe('AnalyticsHooks', () => {
     expect(
       screen.getByText('Analyze hooks and engagement patterns.'),
     ).toBeVisible();
-    expect(screen.getByText('Total Videos Analyzed')).toBeVisible();
-    expect(screen.getByText('1h 30m')).toBeVisible();
-    expect(screen.getByText('7m')).toBeVisible();
+
+    // Stat cards
+    expect(screen.getByText('Posts Analyzed')).toBeVisible();
+    expect(screen.getByText('Hook Patterns')).toBeVisible();
     expect(screen.getByText('TIKTOK')).toBeVisible();
-    expect(screen.getAllByText('TikTok').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1 videos').length).toBeGreaterThan(0);
-    expect(screen.getByText('Total Views: 1000')).toBeVisible();
-    expect(screen.getByText('Avg Engagement: 8.5%')).toBeVisible();
-    expect(screen.getByText('Winning hook video')).toBeVisible();
-    expect(screen.getByText('Creator One • date:2026-05-01')).toBeVisible();
-    expect(screen.getByText('42s')).toBeVisible();
-    expect(screen.getByText('2 hooks')).toBeVisible();
-    expect(screen.getByText('Avg: 70% effective')).toBeVisible();
-    expect(screen.getAllByText('TikTok').length).toBeGreaterThan(0);
-    expect(screen.getByText('1000 views')).toBeVisible();
-    expect(screen.getByText('Score: 88')).toBeVisible();
-    expect(screen.getByText('No platform data')).toBeVisible();
-    expect(screen.getByText('visual Hooks')).toBeVisible();
-    expect(screen.getByText('Open with a pattern interrupt')).toBeVisible();
+
+    // Platform overview comes from `analysis.topPlatforms`
+    expect(screen.getByText('Total Views: 9000')).toBeVisible();
+    expect(screen.getByText('Total Engagement: 500')).toBeVisible();
+
+    // Post table renders each post's text hook, platform ids and aggregates
+    const [, winningRow, untitledRow] = within(
+      screen.getByRole('table'),
+    ).getAllByRole('row');
+    expect(
+      within(winningRow).getByText('Open with a pattern interrupt'),
+    ).toBeVisible();
+    expect(within(winningRow).getByLabelText('TikTok')).toBeVisible();
+    expect(within(winningRow).getByLabelText('Instagram')).toBeVisible();
+    expect(within(winningRow).getByText('1600')).toBeVisible();
+    expect(within(winningRow).getByText('320')).toBeVisible();
+    expect(within(untitledRow).getByText('Untitled')).toBeVisible();
+    expect(within(untitledRow).getByText('No hook detected')).toBeVisible();
+
+    // Hook pattern rankings: by engagement, then by reach (avg views)
+    expect(screen.getByText('320 avg engagement • 1 posts')).toBeVisible();
+    expect(screen.getByText('90 avg engagement • 2 posts')).toBeVisible();
+    expect(screen.getByText('4200')).toBeVisible();
+
     expect(mocks.getViralHooks).toHaveBeenCalledWith(
       expect.objectContaining({ brand: 'brand-1' }),
     );
@@ -316,9 +331,9 @@ describe('AnalyticsHooks', () => {
     expect(
       screen.getByText('Analyze hooks and engagement patterns.'),
     ).toBeVisible();
-    expect(screen.getByText('Total Videos Analyzed')).toBeVisible();
-    expect(screen.getByText('Total Time Tracked')).toBeVisible();
-    expect(screen.getByText('Avg Time per Video')).toBeVisible();
+    expect(screen.getByText('Posts Analyzed')).toBeVisible();
+    expect(screen.getByText('Hook Patterns')).toBeVisible();
+    expect(screen.getByText('Best Hook Avg Engagement')).toBeVisible();
     expect(screen.getByText('Top Platform')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeVisible();
     expect(screen.getByTestId('hooks-table-skeleton')).toBeVisible();
@@ -330,12 +345,12 @@ describe('AnalyticsHooks', () => {
     render(analyticsHooksTree('brand-prop'));
 
     expect(await screen.findByText('Viral Hooks')).toBeVisible();
-    expect(screen.getByText('N/A')).toBeVisible();
+    expect(screen.getAllByText('N/A')).toHaveLength(2);
     expect(screen.getAllByText('No data available').length).toBeGreaterThan(0);
-    expect(screen.getByText('visual Hooks')).toBeVisible();
     expect(
       screen.getByText('No top hook patterns detected yet.'),
     ).toBeVisible();
+    expect(screen.getByText('No hook reach data yet.')).toBeVisible();
     expect(mocks.getViralHooks).toHaveBeenCalledWith(
       expect.objectContaining({ brand: 'brand-prop' }),
     );
@@ -357,6 +372,6 @@ describe('AnalyticsHooks', () => {
       'GET /analytics/hooks failed',
       expect.any(Error),
     );
-    expect(screen.getByText('N/A')).toBeVisible();
+    expect(screen.getAllByText('N/A')).toHaveLength(2);
   });
 });

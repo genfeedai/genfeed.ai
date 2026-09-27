@@ -1,45 +1,17 @@
+import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/hook-analysis-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 
+const REACH_LIMIT = 5;
+
 export default function HookAnalysisSection({ analysisData }: Props) {
+  const hooksByReach = [...analysisData.hookEffectiveness]
+    .sort((left, right) => right.avgViews - left.avgViews)
+    .slice(0, REACH_LIMIT);
+
   return (
     <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <Card>
-        <div className="p-6 space-y-4">
-          <h3 className="text-sm font-semibold">Hook Type Effectiveness</h3>
-          <div className="space-y-3">
-            {analysisData.hookEffectiveness.length > 0 ? (
-              analysisData.hookEffectiveness.map((hook) => (
-                <div
-                  key={hook.type}
-                  className="flex items-center justify-between bg-tertiary p-3"
-                >
-                  <div>
-                    <p className="font-medium capitalize">{hook.type} Hooks</p>
-                    <p className="text-xs text-foreground/60">
-                      {hook.count} instances found
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">
-                      {hook.avgEffectiveness}%
-                    </p>
-                    <p className="text-xs text-foreground/60">
-                      avg effectiveness
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-foreground/60">
-                No hook effectiveness data yet.
-              </p>
-            )}
-          </div>
-        </div>
-      </Card>
-
       <Card>
         <div className="p-6 space-y-4">
           <h3 className="text-sm font-semibold">
@@ -49,13 +21,19 @@ export default function HookAnalysisSection({ analysisData }: Props) {
             {analysisData.topHooks.length > 0 ? (
               analysisData.topHooks.map((hook, idx) => (
                 <div
-                  key={hook}
+                  key={hook.hook}
                   className="flex items-start gap-3 bg-tertiary p-3"
                 >
                   <Badge className="bg-primary text-primary-foreground text-xs mt-1">
                     #{idx + 1}
                   </Badge>
-                  <p className="text-sm">{hook}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm">{hook.hook}</p>
+                    <p className="text-xs text-foreground/60">
+                      {formatCompactNumber(hook.avgEngagement)} avg engagement •{' '}
+                      {hook.postCount} posts
+                    </p>
+                  </div>
                 </div>
               ))
             ) : (
@@ -64,12 +42,38 @@ export default function HookAnalysisSection({ analysisData }: Props) {
               </p>
             )}
           </div>
-          <div className="mt-4 bg-tertiary p-3">
-            <p className="text-xs text-foreground/60">
-              <strong>Pro tip</strong> Videos with pattern interrupts in the
-              first 3 seconds show 45% higher completion rates across all
-              platforms.
-            </p>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="p-6 space-y-4">
+          <h3 className="text-sm font-semibold">Hooks by Reach</h3>
+          <div className="space-y-3">
+            {hooksByReach.length > 0 ? (
+              hooksByReach.map((hook) => (
+                <div
+                  key={hook.hook}
+                  className="flex items-center justify-between gap-4 bg-tertiary p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 font-medium">{hook.hook}</p>
+                    <p className="text-xs text-foreground/60">
+                      {hook.postCount} posts
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">
+                      {formatCompactNumber(hook.avgViews)}
+                    </p>
+                    <p className="text-xs text-foreground/60">avg views</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-foreground/60">
+                No hook reach data yet.
+              </p>
+            )}
           </div>
         </div>
       </Card>
