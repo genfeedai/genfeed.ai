@@ -110,11 +110,7 @@ export class BatchInterpolationController {
     MemberRole.CREATOR,
   ])
   @Credits({
-    // #5294 verified safe: BatchInterpolationBillingService.resolveApiKey
-    // requires creditsConfig.isByokBypass (set by this flag) before it
-    // resolves the org's Replicate key, and dispatch()'s replicate call
-    // always uses that same resolved key.
-    allowByokBypass: true,
+    allowByokBypass: true, // #5294 verified: resolveApiKey() re-resolves and uses this same org key.
     description: 'Batch interpolation video generation',
     source: ActivitySource.VIDEO_GENERATION,
   })
