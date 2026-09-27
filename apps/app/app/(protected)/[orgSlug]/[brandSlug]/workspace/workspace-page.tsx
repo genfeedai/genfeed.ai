@@ -121,6 +121,14 @@ function WorkspacePageContentContent({
     },
     [setSelectedTaskId],
   );
+  // A tap only vouches for the selection it made: once that task is closed, a
+  // later `?taskId=` restore of the same task is automatic again.
+  const selectedTaskKey = selectedTask?.id ?? null;
+  useEffect(() => {
+    if (!selectedTaskKey) {
+      setTappedTaskId(null);
+    }
+  }, [selectedTaskKey]);
   const selectedArtifactReferences = useMemo(
     () =>
       getWorkspaceOverviewArtifactReferences(selectedTask, {
