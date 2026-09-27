@@ -491,6 +491,60 @@ describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
     );
   });
 
+  it('falls back to the platform default and warns when an override resolves to an inactive model', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              isActive: false,
+              key: 'disabled-model',
+              lifecycle: ModelLifecycle.AVAILABLE,
+            }),
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('disabled-model'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'disabled-model' }),
+    );
+  });
+
+  it('falls back to the platform default and warns when an override resolves to a Retired model with no successor', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              key: 'retired-no-successor',
+              lifecycle: ModelLifecycle.RETIRED,
+              succeededBy: null,
+            }),
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('retired-no-successor'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'retired-no-successor' }),
+    );
+  });
+
   it('falls back to the platform default and warns on an override the registry does not know', async () => {
     const warn = vi.fn();
     const prisma = {

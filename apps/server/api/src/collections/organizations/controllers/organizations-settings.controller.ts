@@ -119,6 +119,55 @@ export class OrganizationsSettingsController {
   }
 
   /**
+   * Trims an agent-policy override to comparable, storable form. Empty after
+   * trim clears the override (persisted as `null`) rather than storing stray
+   * whitespace, matching the `value?.trim() || null` convention used
+   * elsewhere in this collection for optional string fields. `undefined` is
+   * left alone — the field was not part of this patch at all.
+   */
+  private normalizeAgentPolicyOverrideValue(
+    value: string | null | undefined,
+  ): string | null | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return value?.trim() || null;
+  }
+
+  /**
+   * Normalizes the three model-override fields on an incoming agentPolicy
+   * patch before they are compared against the stored value or persisted.
+   * Without this, a value that only differs in surrounding whitespace from
+   * the stored override defeats the preserve rule in
+   * {@link validateAgentPolicyModelOverrides} below, and untrimmed whitespace
+   * would otherwise be written to the database.
+   */
+  private normalizeAgentPolicyOverrides(
+    settingsDto: UpdateOrganizationSettingDto,
+  ): UpdateOrganizationSettingDto {
+    const overrides = settingsDto.agentPolicy;
+    if (!overrides) {
+      return settingsDto;
+    }
+
+    return {
+      ...settingsDto,
+      agentPolicy: {
+        ...overrides,
+        generationModelOverride: this.normalizeAgentPolicyOverrideValue(
+          overrides.generationModelOverride,
+        ),
+        reviewModelOverride: this.normalizeAgentPolicyOverrideValue(
+          overrides.reviewModelOverride,
+        ),
+        thinkingModelOverride: this.normalizeAgentPolicyOverrideValue(
+          overrides.thinkingModelOverride,
+        ),
+      },
+    };
+  }
+
+  /**
    * Rejects a model override key the settings page's own picker could never
    * have shown — the frontend resolves each override against its selector's
    * enabled, category-scoped catalog before persisting (see
@@ -128,6 +177,11 @@ export class OrganizationsSettingsController {
    * resend a value that no longer resolves (a model removed from the
    * allowlist after it was saved) rather than silently drop it, and that is
    * not a new invalid input for this save to reject.
+   *
+   * Callers must pass `settingsDto` through {@link normalizeAgentPolicyOverrides}
+   * first — both sides of the preserve comparison below assume the incoming
+   * override is already trimmed, so an unrelated save can't be rejected by a
+   * whitespace difference against the untrimmed stored value.
    */
   private async validateAgentPolicyModelOverrides(
     organizationSetting: OrganizationSettingDocument,
@@ -164,13 +218,14 @@ export class OrganizationsSettingsController {
     ];
 
     const pendingChecks = checks.filter(({ field }) => {
-      const value = overrides[field]?.trim();
+      const value = overrides[field];
       if (!value) {
         return false;
       }
-      const storedValue = organizationSetting.agentPolicy?.[field];
+      const storedValue = organizationSetting.agentPolicy?.[field]?.trim();
       // Preserve rule: an unrelated save can resend the exact stored value
-      // even if it would no longer validate — that is not a new input.
+      // (whitespace differences included) even if it would no longer
+      // validate — that is not a new input.
       return value !== storedValue;
     });
 
@@ -183,7 +238,7 @@ export class OrganizationsSettingsController {
     });
 
     for (const { categories, field } of pendingChecks) {
-      const value = (overrides[field] as string).trim();
+      const value = overrides[field] as string;
       const categorySet = new Set<string>(categories);
       const enabledInCategory = availableModels.filter(
         (model) =>
@@ -297,14 +352,17 @@ export class OrganizationsSettingsController {
         resolvedOrganizationId,
       );
 
+    const normalizedSettingsDto =
+      this.normalizeAgentPolicyOverrides(settingsDto);
+
     await this.validateAgentPolicyModelOverrides(
       organizationSettings,
-      settingsDto,
+      normalizedSettingsDto,
     );
 
     const data = await this.organizationSettingsService.patch(
       organizationSettings.id,
-      settingsDto,
+      normalizedSettingsDto,
     );
 
     return serializeSingle(req, OrganizationSettingSerializer, data);

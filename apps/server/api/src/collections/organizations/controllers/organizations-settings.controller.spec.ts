@@ -512,6 +512,54 @@ describe('OrganizationsSettingsController', () => {
         expect(organizationSettingsService.patch).toHaveBeenCalled();
       });
 
+      it('preserves a stored override that only differs in surrounding whitespace', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          {
+            ...settingsWithAllowlist,
+            agentPolicy: {
+              thinkingModelOverride: '  provider/text-model  ',
+            },
+          },
+        );
+
+        await controller.updateSettings(mockReq, organizationId, {
+          agentPolicy: { thinkingModelOverride: 'provider/text-model' },
+        });
+
+        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          settingsWithAllowlist.id,
+          { agentPolicy: { thinkingModelOverride: 'provider/text-model' } },
+        );
+      });
+
+      it('persists a newly validated override trimmed of surrounding whitespace', async () => {
+        mockModelsService.findAvailableModels.mockResolvedValue([
+          { category: 'text', id: textModelId, key: 'provider/text-model' },
+        ]);
+
+        await controller.updateSettings(mockReq, organizationId, {
+          agentPolicy: { thinkingModelOverride: '  provider/text-model  ' },
+        });
+
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          settingsWithAllowlist.id,
+          { agentPolicy: { thinkingModelOverride: 'provider/text-model' } },
+        );
+      });
+
+      it('clears an override that trims to empty instead of persisting whitespace', async () => {
+        await controller.updateSettings(mockReq, organizationId, {
+          agentPolicy: { thinkingModelOverride: '   ' },
+        });
+
+        expect(mockModelsService.findAvailableModels).not.toHaveBeenCalled();
+        expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+          settingsWithAllowlist.id,
+          { agentPolicy: { thinkingModelOverride: null } },
+        );
+      });
+
       it('does not validate when agentPolicy is not part of the patch', async () => {
         await controller.updateSettings(mockReq, organizationId, {
           isWhitelabelEnabled: true,
