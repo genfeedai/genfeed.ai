@@ -17,6 +17,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -29,7 +30,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -90,7 +91,9 @@ export class TrendsController {
   @Get('ideas')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Trend content ideas generation (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -125,11 +128,14 @@ export class TrendsController {
       id: brandId,
       organizationId,
     });
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organizationId,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
+    const creditsConfig = (req as CreditsGuardRequest).creditsConfig;
+    if (!creditsConfig?.isByokBypass) {
+      await assertOrganizationCreditsAvailable(
+        this.creditsUtilsService,
+        organizationId,
+        await getDefaultTextMinimumCredits(this.modelsService),
+      );
+    }
 
     // Get trends
     const trends = await this.trendsService.getTrends(
@@ -155,6 +161,7 @@ export class TrendsController {
         label: typeof brand?.label === 'string' ? brand.label : 'Brand',
         text: typeof brand?.text === 'string' ? brand.text : undefined,
       },
+      creditsConfig?.byokApiKeyOverride,
     );
     finalizeDeferredTextCredits(req, billedCredits);
 

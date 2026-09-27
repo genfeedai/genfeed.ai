@@ -48,4 +48,11 @@ export interface CreditsConfig {
    * provider — the platform key pays regardless, so that default is safe.
    */
   allowByokBypass?: boolean;
+  /**
+   * The org's decrypted BYOK key, resolved exactly once by CreditsGuard in
+   * the same call that decides `isByokBypass` (#5375). Dispatch reads this
+   * instead of re-resolving, so the credit decision and the key used to pay
+   * for the call can never disagree.
+   */
+  byokApiKeyOverride?: string;
 }

@@ -520,12 +520,16 @@ export class CreditsGuard implements CanActivate {
       }
 
       if (byokProvider && user.organizationId) {
-        const isByokActive = await this.byokService.isByokActiveForProvider(
+        // Resolve the org's decrypted key exactly once (#5375): the
+        // returned key is both the bypass decision (defined/undefined) and
+        // the value dispatch must use, so the credit charge and the
+        // provider call can never disagree about whose key paid.
+        const resolvedByokKey = await this.byokService.resolveApiKey(
           user.organizationId,
           byokProvider,
         );
 
-        if (isByokActive) {
+        if (resolvedByokKey) {
           this.loggerService.debug('Credits guard: BYOK bypass active', {
             byokProvider,
             organizationId: user.organizationId,
@@ -536,6 +540,7 @@ export class CreditsGuard implements CanActivate {
             ...creditsConfig,
             amount: requiredCredits,
             ...(creditsDeferred ? { deferred: true } : {}),
+            byokApiKeyOverride: resolvedByokKey.apiKey,
             isByokBypass: true,
             modelKey: modelKey || creditsConfig.modelKey,
             provider: byokProvider,

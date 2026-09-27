@@ -41,7 +41,7 @@ import type { Request } from 'express';
 const LEGACY_CONTROLLER_NAME = 'PromptsOperationsController';
 
 type RequestWithCredits = Request & {
-  creditsConfig?: { amount?: number };
+  creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
 
 function toPromptBrandContext(
@@ -113,6 +113,11 @@ export class PromptTransformationService {
   ): Promise<PromptDocument> {
     const chargedCredits =
       (request as RequestWithCredits).creditsConfig?.amount ?? 0;
+    // Captured synchronously (before generateRemix fires below, detached
+    // from this request) so the async completion uses the exact key the
+    // guard resolved for this request, never a stale or re-resolved one.
+    const byokApiKeyOverride = (request as RequestWithCredits).creditsConfig
+      ?.byokApiKeyOverride;
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
@@ -163,6 +168,7 @@ export class PromptTransformationService {
 
     this.generateRemix({
       activityId: activity.id.toString(),
+      byokApiKeyOverride,
       chargedCredits,
       data,
       organizationId: user.organizationId,
@@ -377,6 +383,7 @@ export class PromptTransformationService {
 
   private async generateRemix(options: {
     activityId: string;
+    byokApiKeyOverride?: string;
     chargedCredits: number;
     data: PromptDocument;
     organizationId: string;
@@ -387,6 +394,7 @@ export class PromptTransformationService {
   }): Promise<void> {
     const {
       activityId,
+      byokApiKeyOverride,
       chargedCredits,
       data,
       organizationId,
@@ -413,6 +421,7 @@ export class PromptTransformationService {
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
         input,
+        byokApiKeyOverride,
       );
 
       this.loggerService.log(`${url} succeeded`, { result });

@@ -375,6 +375,7 @@ export class TemplatesService {
     organization: string,
     userId?: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<{
     generatedContent: string;
     template: Template;
@@ -400,6 +401,7 @@ export class TemplatesService {
           generatedContent,
           dto.additionalInstructions,
           onBilling,
+          byokApiKeyOverride,
         );
       }
 
@@ -435,6 +437,7 @@ export class TemplatesService {
     dto: SuggestTemplatesDto,
     organization: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<
     Array<{
       template: Template;
@@ -466,6 +469,7 @@ export class TemplatesService {
         dto.goal,
         dto.keywords,
         onBilling,
+        byokApiKeyOverride,
       );
 
       const limit = dto.limit || 5;
@@ -649,6 +653,7 @@ export class TemplatesService {
     content: string,
     instructions: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<string> {
     const prompt = `Modify this content based on these instructions:
 
@@ -665,6 +670,7 @@ Return the modified content only, no explanation.`;
     const result = await this.replicateService.generateTextCompletionSync(
       DEFAULT_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
     onBilling?.(await this.calculateDefaultTextCharge(input, result));
 
@@ -679,6 +685,7 @@ Return the modified content only, no explanation.`;
     goal?: string,
     keywords?: string[],
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<
     Array<{
       template: Template;
@@ -717,6 +724,7 @@ and the reasons it fits. Include the top 5 only.`;
           schema: templateRankingSchema,
           schemaName: TEMPLATE_RANKING_SCHEMA_NAME,
         },
+        byokApiKeyOverride,
       );
 
       // The schema pins the index to a non-negative integer; it cannot know

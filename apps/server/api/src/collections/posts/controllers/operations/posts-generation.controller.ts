@@ -32,6 +32,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -50,6 +51,7 @@ import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivitySource,
+  ByokProvider,
   CredentialPlatform,
   PostCategory,
   PostRepurposeMode,
@@ -254,8 +256,10 @@ export class PostsGenerationController {
    */
   @Post(':postId/thread-expansions')
   @Credits({
+    allowByokBypass: true,
     description: 'Thread expansion (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
   @UseGuards(SubscriptionGuard, CreditsGuard)
@@ -337,8 +341,20 @@ export class PostsGenerationController {
       docs: createdPosts,
     });
 
+    // Captured synchronously (before the fire-and-forget dispatch below) so
+    // the async continuation uses the exact key the guard resolved for this
+    // request, never a stale or re-resolved one.
+    const byokApiKeyOverride = (request as CreditsGuardRequest).creditsConfig
+      ?.byokApiKeyOverride;
+
     this.postGenerationService
-      .expandThreadAsync(originalPost, createdPosts.slice(1), dto, user)
+      .expandThreadAsync(
+        originalPost,
+        createdPosts.slice(1),
+        dto,
+        user,
+        byokApiKeyOverride,
+      )
       .catch((error) => {
         this.logger.error('Failed to expand thread asynchronously', error);
       });
@@ -352,8 +368,10 @@ export class PostsGenerationController {
    */
   @Post(':postId/enhancements')
   @Credits({
+    allowByokBypass: true,
     description: 'Post content enhancement (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
   @UseGuards(SubscriptionGuard, CreditsGuard)
@@ -388,7 +406,12 @@ export class PostsGenerationController {
 
     try {
       const enhancedDescription =
-        await this.postGenerationService.enhanceDescription(post, dto, user);
+        await this.postGenerationService.enhanceDescription(
+          post,
+          dto,
+          user,
+          (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
+        );
       const updatedPost = await this.postsService.patch(postId, {
         description: enhancedDescription,
       });
@@ -456,15 +479,24 @@ export class PostsGenerationController {
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   // @ts-expect-error TS2345
-  @Credits({ amount: 1, source: ActivitySource.IMAGE_GENERATION })
+  @Credits({
+    allowByokBypass: true,
+    amount: 1,
+    provider: ByokProvider.OPENROUTER,
+    source: ActivitySource.IMAGE_GENERATION,
+  })
   @LogMethod({ logEnd: true, logError: true, logStart: true })
   async generateHookVariations(
     @CurrentUser() user: User,
     @Body() dto: GenerateHooksDto,
-    @Req() _request: Request,
+    @Req() request: Request,
   ) {
     try {
-      return await this.postGenerationService.generateHookVariations(dto, user);
+      return await this.postGenerationService.generateHookVariations(
+        dto,
+        user,
+        (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
+      );
     } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error;

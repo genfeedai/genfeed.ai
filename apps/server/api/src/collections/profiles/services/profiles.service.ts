@@ -264,6 +264,7 @@ export class ProfilesService {
     dto: ApplyProfileDto,
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<{
     original: string;
     enhanced: string;
@@ -293,6 +294,7 @@ export class ProfilesService {
         dto.contentType,
         profile,
         onBilling,
+        byokApiKeyOverride,
       );
 
       // Track usage — scope write predicate to org + soft-delete to prevent IDOR
@@ -328,6 +330,7 @@ export class ProfilesService {
     dto: AnalyzeToneDto,
     organizationId: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<{
     score: number;
     violations: Array<{
@@ -352,6 +355,7 @@ export class ProfilesService {
         dto.contentType,
         profile,
         onBilling,
+        byokApiKeyOverride,
       );
     } catch (error: unknown) {
       this.logger.error('Failed to analyze tone', { error });
@@ -367,6 +371,7 @@ export class ProfilesService {
     organizationId: string,
     userId?: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<Profile> {
     try {
       this.logger.debug('Generating profile from examples', {
@@ -375,7 +380,11 @@ export class ProfilesService {
         organizationId,
       });
 
-      const profileData = await this.analyzeExamples(dto.examples, onBilling);
+      const profileData = await this.analyzeExamples(
+        dto.examples,
+        onBilling,
+        byokApiKeyOverride,
+      );
 
       return await this.create(
         {
@@ -403,6 +412,7 @@ export class ProfilesService {
     contentType: 'image' | 'video' | 'voice' | 'article',
     profile: Profile,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<string> {
     const profileSection = profile[contentType];
 
@@ -428,6 +438,7 @@ Return the enhanced prompt that incorporates the brand's style while maintaining
     const result = await this.replicateService.generateTextCompletionSync(
       DEFAULT_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
     onBilling?.(await this.calculateDefaultTextCharge(input, result));
 
@@ -442,6 +453,7 @@ Return the enhanced prompt that incorporates the brand's style while maintaining
     contentType: 'image' | 'video' | 'voice' | 'article',
     profile: Profile,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<{
     score: number;
     violations: Array<{
@@ -480,6 +492,7 @@ violation with its severity, category, what is wrong and how to fix it.`;
       brandToneAnalysisSchema,
       BRAND_TONE_ANALYSIS_SCHEMA_NAME,
       onBilling,
+      byokApiKeyOverride,
     );
   }
 
@@ -493,6 +506,7 @@ violation with its severity, category, what is wrong and how to fix it.`;
       content?: string;
     }>,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<{
     image?: Record<string, unknown>;
     video?: Record<string, unknown>;
@@ -523,6 +537,7 @@ Describe each content type present in the examples, leaving the others null:
       brandProfileAnalysisSchema,
       BRAND_PROFILE_ANALYSIS_SCHEMA_NAME,
       onBilling,
+      byokApiKeyOverride,
     );
 
     return {
@@ -545,6 +560,7 @@ Describe each content type present in the examples, leaving the others null:
     schema: ZodType<TResult>,
     schemaName: string,
     onBilling?: (amount: number) => void,
+    byokApiKeyOverride?: string,
   ): Promise<TResult> {
     return this.replicateService.generateStructuredTextSync(
       DEFAULT_TEXT_MODEL,
@@ -559,6 +575,7 @@ Describe each content type present in the examples, leaving the others null:
         schema,
         schemaName,
       },
+      byokApiKeyOverride,
     );
   }
 

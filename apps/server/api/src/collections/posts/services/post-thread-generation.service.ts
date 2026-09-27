@@ -62,6 +62,7 @@ export class PostThreadGenerationService {
     childPosts: PostDocument[],
     dto: ExpandToThreadDto,
     identity: ThreadGenerationMetadata,
+    byokApiKeyOverride?: string,
   ): Promise<void> {
     let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
 
@@ -109,6 +110,7 @@ export class PostThreadGenerationService {
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
         input,
+        byokApiKeyOverride,
       );
 
       if (!content) {

@@ -700,12 +700,14 @@ export class PostGenerationService {
     childPosts: PostDocument[],
     dto: ExpandToThreadDto,
     identity: GenerationMetadata,
+    byokApiKeyOverride?: string,
   ): Promise<void> {
     return this.postThreadGenerationService.expandThread(
       originalPost,
       childPosts,
       dto,
       identity,
+      byokApiKeyOverride,
     );
   }
 
@@ -803,6 +805,7 @@ export class PostGenerationService {
     post: PostDocument,
     dto: EnhancePostDto,
     identity: Pick<AuthenticatedUser, 'organizationId'>,
+    byokApiKeyOverride?: string,
   ): Promise<string> {
     const currentDescription = post.description || '';
     const platform = post.platform || 'social media';
@@ -849,6 +852,7 @@ export class PostGenerationService {
     return this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
   }
 
@@ -866,6 +870,7 @@ export class PostGenerationService {
       AuthenticatedUser,
       'apiKeyId' | 'brandId' | 'id' | 'isApiKey' | 'organizationId' | 'userId'
     >,
+    byokApiKeyOverride?: string,
   ): Promise<{
     hooks: string[];
     metadata: {
@@ -960,6 +965,7 @@ Requirements:
     const result = await this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
 
     let hooks: string[] = [];

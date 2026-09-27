@@ -17,7 +17,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { resolveTextModelMinimumCredits } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -57,8 +57,10 @@ export class PromptsTransformationsController {
   @Post(':promptId/remix')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Remix prompt generation using AI',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.PROMPT_REMIX,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
