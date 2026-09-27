@@ -316,15 +316,18 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     it('keeps reconciling remaining ancient candidates when one fails', async () => {
       const now = Date.now();
       staleExecutionFinder.seed([
+        // Ascending (createdAt, id) order processes the older row first —
+        // seed ages so execution-ancient-3 is examined before -4, matching
+        // the reject-then-resolve mock sequence below.
         {
           id: 'execution-ancient-3',
           organizationId: 'org-1',
-          createdAt: new Date(now - 25 * 60 * 60_000),
+          createdAt: new Date(now - 26 * 60 * 60_000),
         },
         {
           id: 'execution-ancient-4',
           organizationId: 'org-2',
-          createdAt: new Date(now - 26 * 60 * 60_000),
+          createdAt: new Date(now - 25 * 60 * 60_000),
         },
       ]);
       queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(false);
@@ -502,7 +505,13 @@ describe('PendingWorkflowExecutionReconcileService', () => {
         createdAt: tiedCreatedAt,
       };
       staleExecutionFinder.seed([...fillers, tiedA, tiedB]);
-      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(false);
+      // Fillers keep a live job (skipped, stay pending, fill out page 1);
+      // only the two tied rows have none (recovered once finally examined).
+      queueService.hasClaimableSystemWorkflowJob.mockImplementation(
+        async (jobId: string) =>
+          jobId !== 'system-workflow-tied-a' &&
+          jobId !== 'system-workflow-tied-b',
+      );
 
       // Sweep 1: page 1 is the 200 fillers (full — lap continues). Neither
       // tied row has been examined yet.
