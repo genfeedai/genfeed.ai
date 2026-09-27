@@ -121,7 +121,27 @@ try {
     INSERT INTO credentials (id, "organizationId", "brandId", "userId", platform, "accessToken", "refreshToken", "updatedAt")
     VALUES ('upgrade-credential', 'upgrade-org', 'upgrade-brand', 'upgrade-user', 'YOUTUBE', 'synthetic-access', 'synthetic-refresh', NOW());
     INSERT INTO credentials (id, platform, "accessToken", "isDeleted", "updatedAt")
-    VALUES ('upgrade-deleted', 'YOUTUBE', 'synthetic-deleted', true, NOW())`);
+    VALUES ('upgrade-deleted', 'YOUTUBE', 'synthetic-deleted', true, NOW());
+    -- #5291 fixtures: member_current_brand (20260926090000) must backfill
+    -- every historical shape, not just an org with a live selected brand.
+    INSERT INTO roles (id, label, key, "updatedAt")
+    VALUES ('upgrade-role', 'Upgrade Role', 'upgrade-role', NOW());
+    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
+    VALUES ('upgrade-member', 'upgrade-org', 'upgrade-user', 'upgrade-role', NOW());
+    -- Org whose only brand is soft-deleted (e.g. the last brand was
+    -- removed pre-#5219, when BrandsService.remove had no last-brand guard).
+    INSERT INTO organizations (id, "userId", label, slug, "updatedAt")
+    VALUES ('upgrade-org-deleted-brand', 'upgrade-user', 'Upgrade Deleted Brand', 'upgrade-org-deleted-brand', NOW());
+    INSERT INTO brands (id, "organizationId", "userId", slug, label, "isSelected", "isDeleted", "updatedAt")
+    VALUES ('upgrade-brand-deleted', 'upgrade-org-deleted-brand', 'upgrade-user', 'upgrade-brand-deleted', 'Upgrade Deleted Brand', false, true, NOW());
+    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
+    VALUES ('upgrade-member-deleted-brand-org', 'upgrade-org-deleted-brand', 'upgrade-user', 'upgrade-role', NOW());
+    -- Org with a member row but zero brand rows at all (brand relocation
+    -- emptied it, or it never had one).
+    INSERT INTO organizations (id, "userId", label, slug, "updatedAt")
+    VALUES ('upgrade-org-no-brand', 'upgrade-user', 'Upgrade No Brand', 'upgrade-org-no-brand', NOW());
+    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
+    VALUES ('upgrade-member-no-brand', 'upgrade-org-no-brand', 'upgrade-user', 'upgrade-role', NOW())`);
   await assert.rejects(
     runCredentialEncryptionBackfill(db, args, ''),
     /TOKEN_ENCRYPTION_KEY/,
@@ -168,6 +188,44 @@ try {
     ).rows[0].organizationId,
     'upgrade-org',
   );
+  // #5291: 20260926090000_member_current_brand must have backfilled
+  // Member.currentBrandId for every historical shape without aborting —
+  // a live selected brand, an org whose only brand is soft-deleted, and an
+  // org with a member but no brand row at all (placeholder-brand fallback).
+  assert.equal(
+    (
+      await db.query('SELECT "currentBrandId" FROM members WHERE id = $1', [
+        'upgrade-member',
+      ])
+    ).rows[0].currentBrandId,
+    'upgrade-brand',
+  );
+  assert.equal(
+    (
+      await db.query('SELECT "currentBrandId" FROM members WHERE id = $1', [
+        'upgrade-member-deleted-brand-org',
+      ])
+    ).rows[0].currentBrandId,
+    'upgrade-brand-deleted',
+  );
+  const noBrandMember = (
+    await db.query('SELECT "currentBrandId" FROM members WHERE id = $1', [
+      'upgrade-member-no-brand',
+    ])
+  ).rows[0];
+  assert(
+    typeof noBrandMember.currentBrandId === 'string' &&
+      noBrandMember.currentBrandId.length > 0,
+    'member of a brandless org must receive a non-null currentBrandId',
+  );
+  const placeholderBrand = (
+    await db.query(
+      'SELECT "organizationId", "isDeleted" FROM brands WHERE id = $1',
+      [noBrandMember.currentBrandId],
+    )
+  ).rows[0];
+  assert.equal(placeholderBrand.organizationId, 'upgrade-org-no-brand');
+  assert.equal(placeholderBrand.isDeleted, false);
   await runCredentialEncryptionBackfill(db, { ...args, dryRun: true }, secret);
   assert.equal(
     (await db.query('SELECT count(*) FROM data_backfills')).rows[0].count,
@@ -365,6 +423,7 @@ try {
       'deleted-credential-encryption',
       'durable-completion-skip',
       'migration-rerun',
+      'member-current-brand-backfill',
     ],
   };
   await writeFile(
