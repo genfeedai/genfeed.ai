@@ -109,43 +109,13 @@ export class MediaVisionEvaluationService {
       return 'skipped';
     }
 
-    const sibling = await this.prisma.mediaPerception.findFirst({
-      select: { id: true, visionEvaluationId: true },
-      where: scopedWhere(job.organizationId, {
-        assetHash: perception.assetHash,
-        ingredientId: { not: job.ingredientId },
-        visionEvaluationId: { not: null },
-      }),
-    });
-    if (sibling?.visionEvaluationId) {
-      if (
-        await this.hasValidEvaluation(
-          job.organizationId,
-          sibling.visionEvaluationId,
-        )
-      ) {
-        await this.linkEvaluation(job, link.id, sibling.visionEvaluationId);
-        return 'reused';
-      }
-      // `visionEvaluationId` is a plain string, not a DB foreign key, so a
-      // soft-deleted (or otherwise gone) Evaluation leaves a dangling
-      // reference behind. Reusing it would mark this asset "no flags" from a
-      // result that no longer exists. Clear the sibling's dangling link too
-      // — otherwise it stays permanently excluded from
-      // `findUnevaluatedAssets` (which skips any non-null
-      // `visionEvaluationId`) and never gets a real evaluation again. This
-      // job falls through to score fresh frames below.
-      // Compare-and-clear on the exact id we just validated: a concurrent
-      // job could have already re-evaluated this sibling and linked a fresh
-      // evaluation between our read and this write, and that newer valid
-      // link must not be erased.
-      await this.prisma.mediaPerception.updateMany({
-        data: { visionEvaluationId: null },
-        where: scopedWhere(job.organizationId, {
-          id: sibling.id,
-          visionEvaluationId: sibling.visionEvaluationId,
-        }),
-      });
+    const reusedEvaluationId = await this.tryReuseSiblingEvaluation(
+      job,
+      perception.assetHash,
+    );
+    if (reusedEvaluationId) {
+      await this.linkEvaluation(job, link.id, reusedEvaluationId);
+      return 'reused';
     }
 
     const ingredient = await this.prisma.ingredient.findFirst({
@@ -269,6 +239,57 @@ export class MediaVisionEvaluationService {
         ? [{ ingredientId: row.id, organizationId: row.organizationId }]
         : [],
     );
+  }
+
+  /**
+   * Reuses a sibling perception's evaluation for identical bytes, when the
+   * sibling's link is still a live, org-scoped, non-deleted record. Returns
+   * the evaluation id to link, or `null` when the caller should score fresh
+   * frames instead — either no sibling exists, or its link was dangling.
+   */
+  private async tryReuseSiblingEvaluation(
+    job: IMediaPerceptionCandidate,
+    assetHash: string,
+  ): Promise<string | null> {
+    const sibling = await this.prisma.mediaPerception.findFirst({
+      select: { id: true, visionEvaluationId: true },
+      where: scopedWhere(job.organizationId, {
+        assetHash,
+        ingredientId: { not: job.ingredientId },
+        visionEvaluationId: { not: null },
+      }),
+    });
+    if (!sibling?.visionEvaluationId) {
+      return null;
+    }
+    if (
+      await this.hasValidEvaluation(
+        job.organizationId,
+        sibling.visionEvaluationId,
+      )
+    ) {
+      return sibling.visionEvaluationId;
+    }
+    // `visionEvaluationId` is a plain string, not a DB foreign key, so a
+    // soft-deleted (or otherwise gone) Evaluation leaves a dangling
+    // reference behind. Reusing it would mark this asset "no flags" from a
+    // result that no longer exists. Clear the sibling's dangling link too
+    // — otherwise it stays permanently excluded from
+    // `findUnevaluatedAssets` (which skips any non-null
+    // `visionEvaluationId`) and never gets a real evaluation again. The
+    // caller falls through to score fresh frames instead.
+    // Compare-and-clear on the exact id we just validated: a concurrent
+    // job could have already re-evaluated this sibling and linked a fresh
+    // evaluation between our read and this write, and that newer valid
+    // link must not be erased.
+    await this.prisma.mediaPerception.updateMany({
+      data: { visionEvaluationId: null },
+      where: scopedWhere(job.organizationId, {
+        id: sibling.id,
+        visionEvaluationId: sibling.visionEvaluationId,
+      }),
+    });
+    return null;
   }
 
   /** Whether an organization-scoped, non-deleted evaluation still exists. */
