@@ -231,24 +231,15 @@ export default function SiteFooter({
           </p>
 
           <div className="flex flex-col md:flex-row md:gap-6">
-            <Link
-              href="/terms"
-              className={LEGAL_LINK_CLASS}
-            >
+            <Link href="/terms" className={LEGAL_LINK_CLASS}>
               Terms
             </Link>
 
-            <Link
-              href="/privacy"
-              className={LEGAL_LINK_CLASS}
-            >
+            <Link href="/privacy" className={LEGAL_LINK_CLASS}>
               Privacy
             </Link>
 
-            <Link
-              href="/sitemap"
-              className={LEGAL_LINK_CLASS}
-            >
+            <Link href="/sitemap" className={LEGAL_LINK_CLASS}>
               {sitemapLabel}
             </Link>
           </div>
