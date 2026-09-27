@@ -1041,6 +1041,7 @@ async function resolveCanonicalProtectedPath(
  * Public (no-session) routes under the Better Auth guard. Unlike the keyless
  * self-hosted branch, /login, /sign-up, password reset, and /logout are real
  * auth pages here. /oauth/* are integration callbacks and must never be gated.
+ * /agent-auth/claim renders its own signed-out "Sign in to continue" step.
  */
 function isBetterAuthPublicRoute(pathname: string): boolean {
   return (
@@ -1053,7 +1054,8 @@ function isBetterAuthPublicRoute(pathname: string): boolean {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/logout') ||
     pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/oauth')
+    pathname.startsWith('/oauth') ||
+    pathname === '/agent-auth/claim'
   );
 }
 

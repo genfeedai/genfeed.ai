@@ -1021,7 +1021,7 @@
       "count": 4,
       "file": "apps/server/api/src/auth/services/auth-bootstrap.service.spec.ts",
       "fingerprint": "fc9444d92ce883071018",
-      "message": "Type '{ brandId: string; creditsBalance: number; hasEverHadCredits: true; isOnboardingCompleted: true; isSuperAdmin: false; organizationId: string; subscriptionStatus: SubscriptionStatus.ACTIVE; subscriptionTier: SubscriptionTier.BYOK; userId: string; }' is missing the following properties from type 'AccessBootstrapStatePayload': hasGeneratedFirstAsset, hasDismissedAssetGate",
+      "message": "Type '{ brandId: string; creditsBalance: number; hasEverHadCredits: true; isOnboardingCompleted: true; isSuperAdmin: false; organizationId: string; subscriptionStatus: SubscriptionStatus.ACTIVE; subscriptionTier: SubscriptionTier.PRO; userId: string; }' is missing the following properties from type 'AccessBootstrapStatePayload': hasGeneratedFirstAsset, hasDismissedAssetGate",
       "workspace": "api"
     },
     {
@@ -6958,38 +6958,6 @@
       "file": "apps/app/packages/server/protected-bootstrap.server.test.ts",
       "fingerprint": "a52c51830f1a65b1c3c8",
       "message": "Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type 'Mock<() => undefined>'.   Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type '{ (): undefined; new (): undefined; }'.     Target signature provides too few arguments. Expected 1 or more, but got 0.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 4,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "1350d386b908a1df2375",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 82,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "443c9fc3ccacd1a18f30",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 14,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "4aafece360dfba30998f",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 3,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "52b9b001bd346d74485b",
-      "message": "Expected 1 arguments, but got 2.",
       "workspace": "app"
     },
     {

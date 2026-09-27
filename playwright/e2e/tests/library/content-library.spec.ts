@@ -1,4 +1,4 @@
-import { brandPath } from '@e2e/utils/app-chrome';
+import { brandPath, currentRoute } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
@@ -48,7 +48,9 @@ test.describe('Content Library', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/videos/);
+      await expect
+        .poll(() => currentRoute(authenticatedPage))
+        .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
@@ -90,7 +92,9 @@ test.describe('Content Library', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/avatars/);
+      await expect
+        .poll(() => currentRoute(authenticatedPage))
+        .toBe(brandPath(APP_ROUTES.LIBRARY.AVATARS));
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
@@ -113,13 +117,13 @@ test.describe('Content Library', () => {
       await libraryNav.getByRole('link', { name: 'Recent' }).click();
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.RECENT));
 
       await libraryNav.getByRole('link', { name: 'Starred' }).click();
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.STARRED));
 
       await libraryNav.getByRole('link', { name: 'All assets' }).click();

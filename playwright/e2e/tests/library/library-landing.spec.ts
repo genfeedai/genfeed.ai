@@ -88,7 +88,9 @@ test.describe('Library', () => {
     await assertRouteRenders(authenticatedPage, shelfRoute);
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
-    await expect(authenticatedPage).toHaveURL(/library\/shelf\/needs-review/);
+    expect(new URL(authenticatedPage.url()).searchParams.get('shelf')).toBe(
+      LibraryShelf.NEEDS_REVIEW,
+    );
     await expect(authenticatedPage.locator('[data-nextjs-dialog]')).toHaveCount(
       0,
     );
@@ -117,7 +119,11 @@ test.describe('Library', () => {
       APP_ROUTES.LIBRARY.TRASH,
     ]) {
       await assertRouteRenders(authenticatedPage, brandRoute(route));
-      await expect(authenticatedPage).toHaveURL(new RegExp(`${route}$`));
+
+      const expected = new URL(brandRoute(route), authenticatedPage.url());
+      const actual = new URL(authenticatedPage.url());
+      expect(actual.pathname).toBe(expected.pathname);
+      expect(actual.search).toBe(expected.search);
     }
   });
 
@@ -129,7 +135,9 @@ test.describe('Library', () => {
       brandRoute(APP_ROUTES.LIBRARY.VIDEOS),
     );
 
-    await expect(authenticatedPage).toHaveURL(/library\/videos/);
+    expect(
+      new URL(authenticatedPage.url()).searchParams.getAll('categories'),
+    ).toEqual(['VIDEO', 'VIDEO_EDIT']);
     await expect(
       authenticatedPage.getByRole('link', { name: 'All assets' }),
     ).toBeVisible();

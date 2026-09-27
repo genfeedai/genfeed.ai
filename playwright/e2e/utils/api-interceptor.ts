@@ -1,5 +1,31 @@
-import { ActivityKey, type IngredientCategory } from '@genfeedai/contracts';
-import type { ICostReportSummary } from '@genfeedai/contracts/interfaces/billing';
+import {
+  ActivityKey,
+  AnalyticsMetric,
+  AnalyticsMetricAvailability,
+  BrandInterviewStatus,
+  type IngredientCategory,
+  Platform,
+} from '@genfeedai/contracts';
+import { EXPERT_FIRST_SYSTEM_CREDIT_COST } from '@genfeedai/contracts/constants';
+import type {
+  AdsResearchResponse,
+  AdWatchlistPlatformReadiness,
+  IAccountAnalytics,
+  IAccountAnalyticsDetail,
+  IAccountAnalyticsList,
+  IAgentBrandContextSnapshot,
+  IBrandInterviewStartResult,
+  IBrandMemoryInsight,
+  IByokProviderStatus,
+  ICostReportSummary,
+  IEmailPerformanceReport,
+  IExpertPathStatus,
+  ITrendHashtag,
+  ITrendSound,
+  IUnitEconomicsReport,
+  OrganizationCreditUsageResponse,
+  SocialSourcesResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -607,6 +633,17 @@ async function handleOrganizationRoutes(route: Route): Promise<void> {
     return;
   }
 
+  // OrganizationsSettingsController.getByokAllProviders returns a raw array.
+  if (/\/organizations\/[^/]+\/settings\/byok\/?(?:\?|$)/.test(url)) {
+    const statuses: IByokProviderStatus[] = [];
+    await route.fulfill({
+      body: JSON.stringify(statuses),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (url.includes('/settings')) {
     await route.fulfill({
       body: JSON.stringify(
@@ -870,6 +907,24 @@ async function handleAvatarRoutes(route: Route): Promise<void> {
 async function handleBillingRoutes(route: Route): Promise<void> {
   const url = route.request().url();
 
+  // SubscriptionsController returns this admin list as plain JSON, not JSON:API.
+  if (url.includes('/subscriptions/admin/credit-usage')) {
+    const creditUsage: OrganizationCreditUsageResponse = {
+      data: [],
+      limit: 20,
+      page: 1,
+      success: true,
+      totalDocs: 0,
+      totalPages: 0,
+    };
+    await route.fulfill({
+      body: JSON.stringify(creditUsage),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (url.includes('/subscriptions')) {
     await route.fulfill({
       body: JSON.stringify(
@@ -961,6 +1016,39 @@ async function handleBillingRoutes(route: Route): Promise<void> {
   });
 }
 
+function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
+  return {
+    coverage: 1,
+    evaluation: null,
+    freshnessHours: 2,
+    identity: {
+      brandId: 'brand-1',
+      brandLabel: 'Brand 1',
+      connectedAt: null,
+      credentialId,
+      externalAvatar: null,
+      externalHandle: '@mock',
+      externalId: null,
+      externalName: 'Mock account',
+      firstPublishedAt: null,
+      firstTrackedAt: null,
+      isConnected: true,
+      label: 'Mock account',
+      manageHref: '/settings/social',
+      platform: Platform.TIKTOK,
+    },
+    metrics: [
+      {
+        availability: AnalyticsMetricAvailability.OBSERVED,
+        change: 1200,
+        lifetime: 18_200,
+        metric: AnalyticsMetric.VIEWS,
+      },
+    ],
+    publishedPosts: 12,
+  };
+}
+
 async function handleAnalyticsRoutes(route: Route): Promise<void> {
   const url = route.request().url();
 
@@ -1014,6 +1102,114 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
     await route.fulfill({
       body: JSON.stringify(
         wrapCollectionInJsonApi([], 'analytics-leaderboard', 'leaderboard'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  const { pathname } = new URL(url);
+
+  if (pathname.endsWith('/analytics/brands')) {
+    const brands = {
+      data: [],
+      pagination: { limit: 64, page: 1, total: 0, totalPages: 1 },
+    };
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(brands, 'analytics-brand-stats', 'mock-brand-stats'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  const accountDetailMatch = pathname.match(/\/analytics\/accounts\/([^/]+)$/);
+  if (accountDetailMatch) {
+    const credentialId = accountDetailMatch[1];
+    const detail: IAccountAnalyticsDetail = {
+      ...createMockAccountAnalytics(credentialId),
+      growth: [],
+      series: [],
+      topPosts: [],
+    };
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(detail, 'account-analytics-detail', credentialId),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (pathname.endsWith('/analytics/accounts')) {
+    const list: IAccountAnalyticsList = {
+      accounts: [createMockAccountAnalytics('mock-id')],
+      limit: 50,
+      page: 1,
+      total: 1,
+      totalPages: 1,
+      unattributedPostCount: 0,
+    };
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(list, 'account-analytics-list', 'mock-account-list'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (pathname.endsWith('/analytics/business')) {
+    const business = {
+      comparisons: {
+        cashInVsUsageValue: { cashIn: 0, usageValue: 0 },
+        outstandingPrepaid: 0,
+        soldVsConsumed: { consumed: 0, sold: 0 },
+      },
+      credits: {
+        consumed: 0,
+        dailyConsumedSeries: [],
+        dailySoldSeries: [],
+        sold: 0,
+        wowGrowth: 0,
+      },
+      ingredients: {
+        categoryBreakdown: [],
+        dailySeries: [],
+        last30d: 0,
+        last7d: 0,
+        today: 0,
+        wowGrowth: 0,
+      },
+      leaders: { byCredits: [], byIngredients: [], byRevenue: [] },
+      projections: {
+        creditsNext30d: null,
+        ingredientsNext30d: null,
+        insufficientData: true,
+        isEstimate: true,
+        revenueNext30d: null,
+      },
+      revenue: {
+        dailySeries: [],
+        last30d: 0,
+        last7d: 0,
+        mtd: 0,
+        today: 0,
+        wowGrowth: 0,
+      },
+    };
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(
+          business,
+          'business-analytics',
+          'mock-business-analytics',
+        ),
       ),
       contentType: 'application/json',
       status: 200,
@@ -1237,6 +1433,136 @@ async function handleBrandsRoute(route: Route): Promise<void> {
     return;
   }
 
+  const { pathname, searchParams } = new URL(url);
+
+  if (method === 'GET' && /\/brands\/[^/]+\/agent-context\/?$/.test(pathname)) {
+    const snapshot: IAgentBrandContextSnapshot = {
+      brandId: brand.id,
+      brandName: brand.name,
+      budget: {
+        capChars: 12_000,
+        isTrimmed: false,
+        trimmedSections: [],
+        untrimmedChars: 0,
+        usedChars: 0,
+      },
+      generatedAt: new Date().toISOString(),
+      id: brand.id,
+      layerStatus: [],
+      layers: {
+        identity: { name: brand.name },
+        knowledge: [],
+        patterns: [],
+        performanceInsights: [],
+        prompting: { conversationStarters: [], seeds: [] },
+        recentPosts: [],
+      },
+      layersUsed: [],
+      memories: [],
+      memoryPrompt: '',
+      model: { creditsPerRound: 1, key: 'mock-model' },
+      query: searchParams.get('query') ?? '',
+      skills: [],
+      systemPrompt: '',
+    };
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(snapshot, 'agent-brand-context', brand.id),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (
+    method === 'GET' &&
+    /\/brands\/[^/]+\/memory\/insights\/?$/.test(pathname)
+  ) {
+    const insights: IBrandMemoryInsight[] = [];
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapCollectionInJsonApi(insights, 'brand-memory-insight', 'insight'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  // ExpertPathController returns raw bodies, not JSON:API.
+  if (
+    method === 'GET' &&
+    /\/brands\/[^/]+\/expert-path\/first-system\/?$/.test(pathname)
+  ) {
+    await route.fulfill({
+      body: JSON.stringify({ items: null, plan: null }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (method === 'GET' && /\/brands\/[^/]+\/expert-path\/?$/.test(pathname)) {
+    const status: IExpertPathStatus = {
+      brandId: brand.id,
+      corpus: { isComplete: false, readySourceCount: 0, sourceCount: 0 },
+      firstSystem: {
+        readiness: {
+          creditCost: EXPERT_FIRST_SYSTEM_CREDIT_COST,
+          isReady: false,
+          isUsingInterviewPlatforms: false,
+          missing: ['positioning', 'corpus'],
+          platforms: [],
+        },
+        status: 'none',
+      },
+      isExpert: false,
+      positioning: { answeredCount: 0, isComplete: false, totalCount: 0 },
+      publishApproval: { isRequired: true },
+    };
+    await route.fulfill({
+      body: JSON.stringify(status),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  // BrandInterviewController returns raw bodies, not JSON:API.
+  if (
+    method === 'GET' &&
+    /\/brands\/[^/]+\/interview\/active\/?$/.test(pathname)
+  ) {
+    await route.fulfill({
+      body: 'null',
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (method === 'POST' && /\/brands\/[^/]+\/interview\/?$/.test(pathname)) {
+    const started: IBrandInterviewStartResult = {
+      answeredFields: {},
+      brandId: brand.id,
+      completenessScore: 0,
+      creditsCharged: 0,
+      currentQuestion: null,
+      interviewId: 'mock-interview-id',
+      isExpertPositioning: true,
+      progress: { answeredFields: 0, percentComplete: 0, totalFields: 0 },
+      status: BrandInterviewStatus.IN_PROGRESS,
+      steps: [],
+    };
+    await route.fulfill({
+      body: JSON.stringify(started),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   if (method === 'GET' && /\/brands\/[^/?]+/.test(url)) {
     await route.fulfill({
       body: JSON.stringify(wrapInJsonApi(brand, 'brands', brand.id)),
@@ -1263,8 +1589,85 @@ async function handleBrandsRoute(route: Route): Promise<void> {
 }
 
 async function handleTasksRoute(route: Route): Promise<void> {
+  const request = route.request();
+  const { pathname } = new URL(request.url());
+
+  // A single task the spec did not mock does not exist: the real controller
+  // answers 404 to reads and updates, which the detail page renders as
+  // "not found".
+  if (
+    ['GET', 'PATCH'].includes(request.method()) &&
+    /\/tasks\/(?:by-identifier\/)?[^/]+\/?$/.test(pathname)
+  ) {
+    await route.fulfill({
+      body: JSON.stringify({
+        errors: [
+          { detail: 'Task not found', status: '404', title: 'Not Found' },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 404,
+    });
+    return;
+  }
+
   await route.fulfill({
     body: JSON.stringify(wrapCollectionInJsonApi([], 'task', 'task')),
+    contentType: 'application/json',
+    status: 200,
+  });
+}
+
+async function handleNewslettersRoute(route: Route): Promise<void> {
+  const request = route.request();
+  const { pathname } = new URL(request.url());
+
+  // NewslettersController.findOne and /context use findOneScoped: an
+  // unmocked id is a 404, which the editor renders as "not found".
+  if (
+    request.method() === 'GET' &&
+    /\/newsletters\/[^/]+(?:\/context)?\/?$/.test(pathname)
+  ) {
+    await route.fulfill({
+      body: JSON.stringify({
+        errors: [
+          { detail: 'Newsletter not found', status: '404', title: 'Not Found' },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 404,
+    });
+    return;
+  }
+
+  await route.fulfill({
+    body: JSON.stringify(buildUnhandledApiMockBody(request.url())),
+    contentType: 'application/json',
+    status: 200,
+  });
+}
+
+async function handleTemplatesRoute(route: Route): Promise<void> {
+  const request = route.request();
+  const { pathname } = new URL(request.url());
+
+  // TemplatesController.findOne uses findOrThrow: an unmocked id is a 404,
+  // which the detail page handles by returning to the list.
+  if (request.method() === 'GET' && /\/templates\/[^/]+\/?$/.test(pathname)) {
+    await route.fulfill({
+      body: JSON.stringify({
+        errors: [
+          { detail: 'Template not found', status: '404', title: 'Not Found' },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 404,
+    });
+    return;
+  }
+
+  await route.fulfill({
+    body: JSON.stringify(wrapCollectionInJsonApi([], 'templates', 'template')),
     contentType: 'application/json',
     status: 200,
   });
@@ -1346,23 +1749,34 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   }
 
   if (url.includes('/content')) {
-    await route.fulfill({
-      body: JSON.stringify({
-        items: [
-          {
-            id: 'trend-content-1',
-            platform: 'tiktok',
-            title: 'Workflow demo clip',
-            url: 'https://cdn.genfeed.ai/mock/trends/demo.mp4',
-          },
-        ],
-        summary: {
-          connectedPlatforms: ['tiktok'],
-          lockedPlatforms: [],
-          totalItems: 1,
-          totalTrends: 1,
+    const content = {
+      items: [
+        {
+          contentRank: 1,
+          contentType: 'video',
+          id: 'trend-content-1',
+          matchedTrends: ['workflow'],
+          mediaUrl: 'https://cdn.genfeed.ai/mock/trends/demo.mp4',
+          platform: Platform.TIKTOK,
+          requiresAuth: false,
+          sourcePreviewState: 'live',
+          sourceUrl: 'https://example.com/trend-content-1',
+          title: 'Workflow demo clip',
+          trendId: 'mock-id',
+          trendMentions: 1200,
+          trendTopic: 'workflow',
+          trendViralityScore: 88,
         },
-      }),
+      ],
+      summary: {
+        connectedPlatforms: [Platform.TIKTOK],
+        lockedPlatforms: [],
+        totalItems: 1,
+        totalTrends: 1,
+      },
+    };
+    await route.fulfill({
+      body: JSON.stringify(content),
       contentType: 'application/json',
       status: 200,
     });
@@ -1430,9 +1844,26 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   }
 
   if (url.includes('/hashtags')) {
+    const hashtags: ITrendHashtag[] = [
+      {
+        growthRate: 12,
+        hashtag: 'genfeed',
+        id: 'hashtag-1',
+        platform: Platform.TIKTOK,
+        postCount: 1200,
+        relatedHashtags: [],
+        viewCount: 54_000,
+        viralityScore: 82,
+      },
+    ];
     await route.fulfill({
       body: JSON.stringify({
-        hashtags: [{ hashtag: '#genfeed', posts: 1200, score: 82 }],
+        hashtags,
+        summary: {
+          avgViralityScore: 82,
+          platforms: [Platform.TIKTOK],
+          totalHashtags: 1,
+        },
       }),
       contentType: 'application/json',
       status: 200,
@@ -1441,10 +1872,46 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   }
 
   if (url.includes('/sounds')) {
+    const sounds: ITrendSound[] = [
+      {
+        growthRate: 8,
+        id: 'sound-1',
+        platform: Platform.TIKTOK,
+        soundId: 'sound-1',
+        soundName: 'Demo sound',
+        usageCount: 1200,
+        viralityScore: 70,
+      },
+    ];
     await route.fulfill({
       body: JSON.stringify({
-        sounds: [{ id: 'sound-1', title: 'Demo sound', usageCount: 1200 }],
+        sounds,
+        summary: { avgViralityScore: 70, totalSounds: 1, totalUsage: 1200 },
       }),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  if (url.includes('/trends/corpus/health')) {
+    const health = {
+      generatedAt: new Date().toISOString(),
+      providerFailures: [],
+      segments: [],
+      status: 'empty',
+      summary: {
+        activeTrends: 1,
+        failingProviders: 0,
+        freshSegments: 0,
+        platforms: [Platform.TIKTOK],
+        referenceRecords: 0,
+        staleSegments: 0,
+        totalSegments: 0,
+      },
+    };
+    await route.fulfill({
+      body: JSON.stringify(health),
       contentType: 'application/json',
       status: 200,
     });
@@ -1569,6 +2036,86 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return [];
   }
 
+  const { pathname, searchParams } = parsedUrl;
+
+  // SystemEmailsController.list and OutreachCampaignTargetsController return
+  // raw arrays, not JSON:API.
+  if (
+    /\/admin\/system-emails\/?$/.test(pathname) ||
+    /\/outreach-campaigns\/[^/]+\/targets\/?$/.test(pathname)
+  ) {
+    return [];
+  }
+
+  if (/\/admin\/system-emails\/performance\/?$/.test(pathname)) {
+    const now = new Date().toISOString();
+    const report: Omit<IEmailPerformanceReport, 'id'> = {
+      asOf: now,
+      from: searchParams.get('from') ?? now,
+      rows: [],
+      to: searchParams.get('to') ?? now,
+    };
+    return wrapInJsonApi(report, 'email-performance', 'mock-email-performance');
+  }
+
+  if (/\/admin\/unit-economics\/?$/.test(pathname)) {
+    const now = new Date().toISOString();
+    const report: IUnitEconomicsReport = {
+      from: searchParams.get('from') ?? now,
+      organizationId: searchParams.get('organizationId'),
+      organizationLabel: null,
+      rows: [],
+      to: searchParams.get('to') ?? now,
+      totals: {
+        agentChatCredits: 0,
+        agentTurns: 0,
+        generationCredits: 0,
+        grossMarginPercent: null,
+        grossMarginUsd: 0,
+        llmProviderCostUsd: 0,
+        mediaProviderCostUsd: 0,
+        revenueUsd: 0,
+      },
+    };
+    return wrapInJsonApi(
+      report,
+      'unit-economics-report',
+      'mock-unit-economics',
+    );
+  }
+
+  // SocialSourcesController.getFeed returns its result raw, not JSON:API.
+  if (/\/social-sources\/feed\/?$/.test(pathname)) {
+    const feed: SocialSourcesResponse = {
+      posts: [],
+      sources: [],
+      summary: { activeSources: 0, totalPosts: 0, totalSources: 0 },
+    };
+    return feed;
+  }
+
+  // AdsResearchController returns raw bodies, not JSON:API.
+  if (/\/ads\/research\/?$/.test(pathname)) {
+    const research: AdsResearchResponse = {
+      connectedAds: [],
+      filters: {},
+      publicAds: [],
+      summary: {
+        connectedCount: 0,
+        publicCount: 0,
+        reviewPolicy: 'Review required.',
+        selectedPlatform: 'all',
+        selectedSource: 'all',
+      },
+    };
+    return research;
+  }
+
+  if (/\/ads\/research\/watchlist-readiness\/?$/.test(pathname)) {
+    const readiness: AdWatchlistPlatformReadiness[] = [];
+    return readiness;
+  }
+
   return { data: [], meta: { totalCount: 0 } };
 }
 
@@ -1647,6 +2194,14 @@ export async function setupApiMocks(
 
   await routeApi('/tasks**', async (r) => {
     await handleTasksRoute(r);
+  });
+
+  await routeApi('/templates**', async (r) => {
+    await handleTemplatesRoute(r);
+  });
+
+  await routeApi('/newsletters/**', async (r) => {
+    await handleNewslettersRoute(r);
   });
 
   await routeApi('/onboarding/**', async (r) => {
