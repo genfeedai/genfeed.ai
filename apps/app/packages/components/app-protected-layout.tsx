@@ -33,6 +33,7 @@ import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
+import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -373,6 +374,19 @@ function AppLayoutWithDynamicMenu({
     automationMenuItems,
   ]);
 
+  // The rail is the only app navigation, so every route with shell chrome
+  // keeps it — including canvas routes that suppress the module sidebar.
+  const railComponent = useMemo(
+    () =>
+      isFocusedOnboardingRoute ? undefined : (
+        <AppProtectedRail
+          brandSlug={brandSlug}
+          isAdminChrome={isAdminRoute}
+          orgSlug={orgSlug}
+        />
+      ),
+    [brandSlug, isAdminRoute, isFocusedOnboardingRoute, orgSlug],
+  );
   const topbarComponent = isFocusedOnboardingRoute
     ? undefined
     : isAdminRoute
@@ -513,6 +527,7 @@ function AppLayoutWithDynamicMenu({
         pageHelp={pageHelp}
         currentApp={currentApp}
         menuComponent={menuComponent}
+        railComponent={railComponent}
         topbarComponent={topbarComponent}
         menuItems={navigationMenuItems}
         orgSlug={orgSlug}

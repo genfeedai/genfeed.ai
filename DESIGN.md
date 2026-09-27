@@ -721,10 +721,18 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 ghost semantics: transparent, `hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-muted`.
 
-### App Switcher
+### App Rail
 
-Google-style popover grid, three columns, icon + label per cell, opened from a
-topbar ghost trigger, grouped into Content and Tools with a subtle divider.
+Persistent top-level navigation at the far left, 52px wide, `bg-primary` with a
+`border-r border-border` divider. It picks the app; the sidebar to its right
+holds that app's own menu, and collapsing the sidebar leaves the rail in place.
+Items are 36px icon-only links: `text-foreground/58` at rest,
+`hover:bg-foreground/[0.06]`, active `bg-foreground/[0.1] text-foreground`.
+Each item carries a right-side tooltip (label + one-line description). Order is
+Agent, Workspace, Studio, Library, Publishing, Messages; a short divider; then
+Discovery, Analytics, Automation. Role-gated Admin sits at the bottom. Unread
+counts render as an `info` pill on the item. On mobile the rail sits inside the
+navigation drawer beside the menu.
 
 ## Iconography
 
@@ -734,7 +742,7 @@ displayed value change?**
 
 | Affordance | Promise | Use |
 |------------|---------|-----|
-| `ChevronsUpDown` | Replaces the value displayed by the trigger | Organization, brand, and app switchers; Select and combobox triggers; model pickers |
+| `ChevronsUpDown` | Replaces the value displayed by the trigger | Organization and brand switchers; Select and combobox triggers; model pickers |
 | `ChevronDown` | Reveals commands or content beneath an unchanged trigger | Action and overflow menus, accordions, disclosures, and apply-style filters |
 
 Both use the existing 14 / 16 / 20px icon scale and a muted foreground role.

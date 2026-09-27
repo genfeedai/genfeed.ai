@@ -1,3 +1,4 @@
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import AppLayout from '@ui/layouts/app/AppLayout';
@@ -6,6 +7,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function MenuComponent(): ReactElement {
   return <div data-testid="menu-component">Menu</div>;
+}
+
+function RailComponent({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}): ReactElement {
+  return (
+    <button type="button" data-testid="rail-component" onClick={onNavigate}>
+      Studio
+    </button>
+  );
+}
+
+function MenuToggleTopbar({ onMenuToggle }: TopbarProps): ReactElement {
+  return (
+    <button type="button" onClick={onMenuToggle}>
+      Open navigation
+    </button>
+  );
 }
 
 describe('AppLayout', () => {
@@ -47,7 +68,9 @@ describe('AppLayout', () => {
       'min-h-screen',
       'bg-background',
     );
-    expect(contentShell).toHaveClass('md:pl-[var(--desktop-sidebar-width)]');
+    expect(contentShell).toHaveClass(
+      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+    );
     expect(mainContent).toHaveClass('flex', 'flex-1', 'flex-col');
     expect(mainContent).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('Content')).toBeInTheDocument();
@@ -138,9 +161,117 @@ describe('AppLayout', () => {
     expect(rail).toBeInTheDocument();
     expect(rail).toHaveClass('border-r', 'border-border');
     expect(rail).toHaveClass('bg-background');
-    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
-    expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
+    expect(rail).toHaveClass('fixed', 'bottom-0');
+    expect(rail).toHaveStyle({
+      left: 'var(--desktop-rail-width, 0px)',
+      top: 'var(--desktop-titlebar-height)',
+    });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
+    expect(screen.queryByTestId('desktop-app-rail')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-rail-width': '0px',
+    });
+  });
+
+  it('renders the app rail at the far left and offsets the shell by its width', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const appRail = screen.getByTestId('desktop-app-rail');
+
+    expect(appRail).toHaveClass(
+      'fixed',
+      'left-0',
+      'bottom-0',
+      'w-[var(--desktop-rail-width)]',
+      'border-r',
+      'border-border',
+      'bg-background',
+    );
+    expect(appRail).toContainElement(
+      screen.getAllByTestId('rail-component')[0],
+    );
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-rail-width': '52px',
+    });
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+    );
+  });
+
+  it('keeps the app rail when the sidebar collapses', async () => {
+    window.localStorage.setItem('genfeed:sidebar:collapsed:auth', 'true');
+
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        width: '0px',
+      });
+    });
+    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
+      left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
+    });
+  });
+
+  it('keeps the app rail on routes without a module sidebar', () => {
+    render(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('desktop-sidebar-rail'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('mobile-app-rail')).toBeInTheDocument();
+  });
+
+  it('puts the app rail in the mobile drawer and closes the drawer on navigation', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const mobileRail = screen.getByTestId('mobile-app-rail');
+    const drawer = mobileRail.parentElement?.parentElement;
+
+    expect(drawer).toHaveClass('hidden');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(drawer).toHaveClass('flex');
+    expect(mobileRail.nextElementSibling).toContainElement(
+      screen.getAllByTestId('menu-component')[1],
+    );
+
+    const mobileRailItem = mobileRail.querySelector(
+      '[data-testid="rail-component"]',
+    );
+    expect(mobileRailItem).not.toBeNull();
+    fireEvent.click(mobileRailItem as Element);
+
+    expect(drawer).toHaveClass('hidden');
   });
 
   it('marks the workspace shell root without renaming the nav column', () => {
@@ -182,7 +313,9 @@ describe('AppLayout', () => {
       screen.getAllByRole('button', { name: 'Expand sidebar' }),
     ).toHaveLength(1);
     expect(expandToggle).toHaveClass('group');
-    expect(expandToggle).toHaveClass('left-3');
+    expect(expandToggle).toHaveStyle({
+      left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
+    });
     expect(expandToggle).not.toHaveClass('overflow-hidden');
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
     const logo = expandToggle.querySelector('img');

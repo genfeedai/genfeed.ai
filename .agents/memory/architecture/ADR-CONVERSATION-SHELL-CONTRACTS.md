@@ -88,7 +88,7 @@ This decision was checked against the repository and live issue state on
 - Protected routes are Next App Router pages under `apps/app/app/(protected)`.
 - Canonical URLs already encode personal, organization (`/:org/~`), brand
   (`/:org/:brand`), resource, and admin scope.
-- The app switcher exposes nine primary modules plus role-gated Admin. It does
+- The app rail exposes nine primary modules plus role-gated Admin. It does
   not enumerate Workflows, Calendar, Moodboard, settings, Automate Skills,
   Studio subroutes, or the full management and admin route set.
 - The former non-SaaS terminal dock was legacy shell chrome, not a route. The
@@ -463,7 +463,7 @@ Demoting the conversation from a state to a surface removes no route: the
 accepted Library compatibility hard cut reduces the current executable
 baseline by one.
 
-The app switcher is discovery for nine primary modules, not the inventory.
+The app rail is discovery for nine primary modules, not the inventory.
 
 | Route family                                                           | Required availability   | Allowed shell treatment                            | Important non-switcher coverage                                                                                                                                                      |
 | ---------------------------------------------------------------------- | ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

@@ -13,7 +13,6 @@ describe('value-swap iconography contract', () => {
   it.each([
     'components/menus/organization-switcher/OrganizationSwitcher.tsx',
     'components/menus/switchers/MenuBrandSwitcher.tsx',
-    'components/shell/app-switcher/AppSwitcher.tsx',
   ])('uses ChevronsUpDown on %s', (relativePath) => {
     const source = readUiSource(relativePath);
 

@@ -9,6 +9,7 @@ import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
 import CollapsedSidebarToggle from './CollapsedSidebarToggle';
+import DesktopRail from './DesktopRail';
 import DesktopSidebar from './DesktopSidebar';
 import { useAppLayout } from './useAppLayout';
 
@@ -18,6 +19,7 @@ export default function AppLayout({
   children,
   bannerComponent,
   menuComponent,
+  railComponent,
   topbarComponent,
   providers,
   menuItems = EMPTY_ARRAY,
@@ -37,12 +39,14 @@ export default function AppLayout({
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
     handleToggleDesktopSidebar,
+    hasMobileNavigation,
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
     layoutRootRef,
     layoutStyle,
     mobileMenuContent,
+    mobileRailContent,
     mobileSidebarWidth,
     sidebarOffsetTransition,
     topbarProps,
@@ -51,6 +55,7 @@ export default function AppLayout({
     currentApp,
     menuComponent,
     orgSlug,
+    railComponent,
     topbarComponent,
   });
 
@@ -76,6 +81,7 @@ export default function AppLayout({
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
           style={layoutStyle}
         >
+          {railComponent ? <DesktopRail>{railComponent}</DesktopRail> : null}
           {menuComponent && (
             <>
               {/* Desktop sidebar */}
@@ -97,8 +103,12 @@ export default function AppLayout({
               {isDesktopCollapsed && !topbarContent ? (
                 <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
               ) : null}
+            </>
+          )}
 
-              {/* Mobile sidebar drawer */}
+          {hasMobileNavigation ? (
+            <>
+              {/* Mobile navigation drawer: app rail beside the module menu */}
               <div
                 className={cn(
                   'fixed inset-0 z-40 transition-opacity duration-200 md:hidden',
@@ -119,21 +129,37 @@ export default function AppLayout({
 
                 <div
                   className={cn(
-                    'relative h-full max-w-[85vw] border-r border-border bg-background transition-transform duration-200',
+                    'relative flex h-full max-w-[85vw] border-r border-border bg-background transition-transform duration-200',
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                   )}
-                  style={{ width: mobileSidebarWidth }}
+                  style={{
+                    width: mobileMenuContent
+                      ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`
+                      : 'var(--desktop-rail-width)',
+                  }}
                 >
-                  {mobileMenuContent}
+                  {mobileRailContent ? (
+                    <div
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border"
+                      data-testid="mobile-app-rail"
+                    >
+                      {mobileRailContent}
+                    </div>
+                  ) : null}
+                  {mobileMenuContent ? (
+                    <div className="h-full min-w-0 flex-1">
+                      {mobileMenuContent}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </>
-          )}
+          ) : null}
 
           <section
             data-testid="app-content-shell"
             className={cn(
-              'relative flex flex-col bg-background md:pl-[var(--desktop-sidebar-width)] xl:pr-[var(--workspace-inspector-width,0px)]',
+              'relative flex flex-col bg-background md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:pr-[var(--workspace-inspector-width,0px)]',
               lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
             )}
             style={{ transition: sidebarOffsetTransition }}
@@ -142,7 +168,7 @@ export default function AppLayout({
               <div
                 data-testid="app-topbar-shell"
                 className={cn(
-                  'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background md:left-[var(--desktop-sidebar-width)] xl:right-[var(--workspace-inspector-width,0px)]',
+                  'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
                 )}
                 style={{
                   top: 'var(--desktop-titlebar-height)',

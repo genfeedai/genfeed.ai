@@ -157,10 +157,6 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
-  AppSwitcher: () => <div data-testid="app-switcher" />,
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Genfeed',

@@ -323,7 +323,7 @@ export * from './training/training-context.interface';
 export * from './training/training-layout-content.interface';
 export * from './training-layout.interface';
 export * from './ui/agent-conversation-route.interface';
-export * from './ui/app-switcher.interface';
+export * from './ui/app-rail.interface';
 export * from './ui/avatar.interface';
 export * from './ui/badge.interface';
 export * from './ui/command-palette.interface';

@@ -824,7 +824,7 @@ describe('AppProtectedLayout', () => {
     expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the permanent topbar on Studio routes', () => {
+  it('keeps the permanent topbar and app rail on Studio routes', () => {
     mockPathname.value = '/studio/storyboard';
 
     render(
@@ -836,6 +836,7 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
+        railComponent: expect.anything(),
         topbarComponent: expect.any(Function),
       }),
     );
@@ -1120,6 +1121,7 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
+        railComponent: undefined,
         topbarComponent: undefined,
       }),
     );
@@ -1165,12 +1167,14 @@ describe('AppProtectedLayout', () => {
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
     // The module sidebar is deliberately suppressed on canvas routes; the frame
-    // that has to survive the booting window is the layout plus its topbar.
+    // that has to survive the booting window is the layout, its topbar, and
+    // the app rail (the only way to switch apps).
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         isWorkspaceShell: false,
+        railComponent: expect.anything(),
         topbarComponent: expect.any(Function),
       }),
     );
@@ -1330,7 +1334,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
     ['/org-123/brand-123/publishing/remix', 'publishing', 'Publishing'],
   ])(
-    'keeps the %s app-switcher surface on its own module nav',
+    'keeps the %s rail app surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
       mockPathname.value = pathname;
 

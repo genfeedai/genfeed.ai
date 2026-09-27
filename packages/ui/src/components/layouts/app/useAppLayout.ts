@@ -26,17 +26,25 @@ import {
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
+/** App rail width: a 36px item plus 8px gutters. */
+export const APP_RAIL_WIDTH = 52;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 type UseAppLayoutParams = Pick<
   AppLayoutProps,
-  'menuComponent' | 'topbarComponent' | 'currentApp' | 'orgSlug' | 'brandSlug'
+  | 'menuComponent'
+  | 'railComponent'
+  | 'topbarComponent'
+  | 'currentApp'
+  | 'orgSlug'
+  | 'brandSlug'
 >;
 
 export function useAppLayout({
   menuComponent,
+  railComponent,
   topbarComponent,
   currentApp,
   orgSlug,
@@ -157,8 +165,10 @@ export function useAppLayout({
     return () => clearTimeout(timeout);
   }, [handleCloseSidebar]);
 
+  const hasMobileNavigation = Boolean(menuComponent || railComponent);
+
   useEffect(() => {
-    if (!menuComponent) {
+    if (!hasMobileNavigation) {
       return;
     }
 
@@ -172,7 +182,7 @@ export function useAppLayout({
     }
 
     return;
-  }, [isSidebarOpen, menuComponent]);
+  }, [hasMobileNavigation, isSidebarOpen]);
 
   const renderMenu = useCallback(
     (extraProps: Record<string, unknown> = {}) => {
@@ -272,6 +282,7 @@ export function useAppLayout({
       : desktopSidebarExpandedWidth
     : 0;
   const layoutStyle = {
+    '--desktop-rail-width': `${railComponent ? APP_RAIL_WIDTH : 0}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
     '--desktop-titlebar-height': isDesktopClient()
       ? `${DESKTOP_TITLEBAR_HEIGHT}px`
@@ -354,6 +365,11 @@ export function useAppLayout({
     isCollapsed: false,
     onClose: handleCloseSidebar,
   });
+  const mobileRailContent = railComponent
+    ? cloneElement(railComponent as ReactElement<{ onNavigate?: () => void }>, {
+        onNavigate: handleCloseSidebar,
+      })
+    : null;
 
   // `--desktop-sidebar-width` flips instantly when the rail is toggled, so any
   // consumer that offsets itself by that var must ease over the exact same
@@ -371,12 +387,14 @@ export function useAppLayout({
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
     handleToggleDesktopSidebar,
+    hasMobileNavigation,
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
     layoutRootRef: layoutRootRef as RefObject<HTMLDivElement | null>,
     layoutStyle,
     mobileMenuContent,
+    mobileRailContent,
     mobileSidebarWidth,
     sidebarOffsetTransition,
     topbarProps,
