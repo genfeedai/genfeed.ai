@@ -123,6 +123,11 @@ const config = createAppNextConfig({
       permanent: true,
       source: '/influencers',
     },
+    {
+      destination: '/linkedin-growth',
+      permanent: true,
+      source: '/linkedin-content',
+    },
   ],
   sentryProject: 'genfeed-ai',
 });

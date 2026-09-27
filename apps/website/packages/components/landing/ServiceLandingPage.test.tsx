@@ -69,4 +69,20 @@ describe('ServiceLandingPage', () => {
       screen.getByText('Can I run it myself instead of hiring you?'),
     ).toBeInTheDocument();
   });
+
+  it.each([
+    ['linkedin-growth', 'Grow your LinkedIn audience.'],
+    ['instagram-growth', 'Grow your Instagram.'],
+    ['tiktok-growth', 'Grow your TikTok.'],
+    ['youtube-growth', 'Grow your YouTube channel.'],
+    ['threads-growth', 'Grow on Threads.'],
+    ['facebook-growth', 'Grow your Facebook Page.'],
+    ['pinterest-growth', 'Grow your Pinterest traffic.'],
+  ])('renders the %s bio-link page headline', (slug, headline) => {
+    render(<ServiceLandingPage slug={slug} />);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      headline,
+    );
+  });
 });
