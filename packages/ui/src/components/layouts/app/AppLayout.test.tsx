@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const navigationState = vi.hoisted(() => ({
   pathname: '/acme/brand/workspace',
 }));
-vi.mock('next/navigation', () => ({
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
   usePathname: () => navigationState.pathname,
 }));
 
