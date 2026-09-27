@@ -80,6 +80,7 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -327,6 +328,12 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           useValue: {
             invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
             invalidateForUser: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendRevenueNotification: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
