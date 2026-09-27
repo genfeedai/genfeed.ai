@@ -65,6 +65,21 @@ describe('UpdateBrandDto', () => {
       });
     });
 
+    // #5295: PATCH /brands/:id {"isDeleted": true} used to skip
+    // BrandsService.remove()'s last-brand guard and member reassignment.
+    // Soft delete must only go through remove() (DELETE /brands/:id).
+    it.each([true, false])(
+      'rejects isDeleted=%s so soft delete cannot go through a brand update',
+      async (value) => {
+        await expect(
+          pipe.transform(
+            { isDeleted: value, label: 'Renamed Brand' },
+            metadata,
+          ),
+        ).rejects.toMatchObject({ status: 400 });
+      },
+    );
+
     it.each(['brand', 'brandId', 'organization', 'user', 'userId'])(
       'rejects the ownership relation field %s with a 400',
       async (field) => {
