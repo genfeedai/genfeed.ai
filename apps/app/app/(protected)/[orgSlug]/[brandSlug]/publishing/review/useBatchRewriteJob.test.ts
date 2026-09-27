@@ -152,8 +152,12 @@ describe('useBatchRewriteJob', () => {
     );
     emit('another-task');
     emit('job-1');
-    await waitFor(() => expect(onItemsRewritten).toHaveBeenCalledTimes(1));
-    expect([...result.current.rewritingIds]).toEqual(['item-2']);
+    // The hook calls onItemsRewritten in the same tick as setJob, before React
+    // commits the update: wait for the rendered state, not the callback.
+    await waitFor(() =>
+      expect([...result.current.rewritingIds]).toEqual(['item-2']),
+    );
+    expect(onItemsRewritten).toHaveBeenCalledTimes(1);
 
     mocks.service.getRewriteJob.mockResolvedValue(
       buildJob({

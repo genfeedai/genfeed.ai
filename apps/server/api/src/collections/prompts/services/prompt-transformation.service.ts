@@ -7,6 +7,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  extractPromptText,
+  toPromptBrandContext,
+} from '@api/collections/prompts/utils/prompt-text.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
@@ -24,7 +28,6 @@ import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-b
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import {
   ActivityKey,
   ActivitySource,
@@ -44,23 +47,6 @@ const LEGACY_CONTROLLER_NAME = 'PromptsOperationsController';
 type RequestWithCredits = Request & {
   creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
-
-function toPromptBrandContext(
-  brand: BrandDocument | null | undefined,
-): IPromptBrandContext | undefined {
-  if (!brand) {
-    return undefined;
-  }
-
-  return {
-    backgroundColor: brand.backgroundColor ?? undefined,
-    description: brand.description ?? undefined,
-    label: brand.label ?? undefined,
-    primaryColor: brand.primaryColor ?? undefined,
-    secondaryColor: brand.secondaryColor ?? undefined,
-    text: brand.text ?? undefined,
-  };
-}
 
 @Injectable()
 export class PromptTransformationService {
@@ -221,7 +207,7 @@ export class PromptTransformationService {
         normalizedType,
         user.organizationId,
       );
-      const userPrompt = this.extractPromptText(promptString);
+      const userPrompt = extractPromptText(promptString);
       const cinematicGuidance = isCinematicPromptCategory(normalizedType)
         ? loadCinematicLexiconGuidance()
         : '';
@@ -323,7 +309,7 @@ export class PromptTransformationService {
     organizationId: string,
   ): Promise<string> {
     if (!this.templatesService) {
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
 
     try {
@@ -343,7 +329,7 @@ export class PromptTransformationService {
         error,
         key: systemPromptKey,
       });
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
   }
 
@@ -371,15 +357,6 @@ export class PromptTransformationService {
     }
   }
 
-  private extractPromptText(promptString: string): string {
-    try {
-      const prompt = JSON.parse(promptString) as { prompt?: string };
-      return prompt.prompt || promptString;
-    } catch {
-      return promptString;
-    }
-  }
-
   private async generateRemix(options: {
     activityId: string;
     byokApiKeyOverride?: string;
@@ -403,6 +380,7 @@ export class PromptTransformationService {
       userPrompt,
     } = options;
     const url = `${LEGACY_CONTROLLER_NAME} postRemixResponse`;
+    const activity = { id: activityId, organizationId };
 
     try {
       const { input } = await this.promptBuilderService.buildPrompt(
@@ -428,36 +406,30 @@ export class PromptTransformationService {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activityRecorder.update(
-        { id: activityId, organizationId },
-        {
-          key: ActivityKey.PROMPT_REMIX_COMPLETED,
-          value: JSON.stringify({
-            progress: 100,
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        },
-      );
+      await this.activityRecorder.update(activity, {
+        key: ActivityKey.PROMPT_REMIX_COMPLETED,
+        value: JSON.stringify({
+          progress: 100,
+          promptId: data.id.toString(),
+          sourcePromptId: promptId,
+          type: 'remix',
+        }),
+      });
       await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
         result,
         status: Status.COMPLETED,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      await this.activityRecorder.update(
-        { id: activityId, organizationId },
-        {
-          key: ActivityKey.PROMPT_REMIX_FAILED,
-          value: JSON.stringify({
-            error: errorMessage(error),
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        },
-      );
+      await this.activityRecorder.update(activity, {
+        key: ActivityKey.PROMPT_REMIX_FAILED,
+        value: JSON.stringify({
+          error: errorMessage(error),
+          promptId: data.id.toString(),
+          sourcePromptId: promptId,
+          type: 'remix',
+        }),
+      });
       await this.refundRemixCredits(organizationId, userId, chargedCredits);
       await this.promptsService.patch(data.id, {
         status: PromptStatus.FAILED,

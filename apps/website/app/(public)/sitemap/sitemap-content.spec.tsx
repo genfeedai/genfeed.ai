@@ -20,7 +20,6 @@ const ORIGIN = 'https://genfeed.ai';
  */
 const DIRECTORY_EXEMPT = new Set<string>([
   '/',
-  '/dfy',
   '/done-for-you',
   '/facebook',
   '/fleet',

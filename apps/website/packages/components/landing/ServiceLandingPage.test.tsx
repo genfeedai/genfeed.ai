@@ -35,7 +35,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-const LANDING_SLUGS = [...serviceLandingSlugs, 'dfy', 'fleet'];
+const LANDING_SLUGS = [...serviceLandingSlugs, 'fleet'];
 
 vi.mock('@web-components/landing/BookingSection', () => ({
   default: () => <section id="book">Booking calendar</section>,
