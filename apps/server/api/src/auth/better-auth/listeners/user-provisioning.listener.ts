@@ -1,10 +1,12 @@
 import type { UserSetupResult } from '@api/collections/users/services/user-setup.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import * as Sentry from '@sentry/nestjs';
 
 import { BETTER_AUTH_USER_CREATED_EVENT } from '../better-auth.constants';
 import type { IBetterAuthUserCreatedEvent } from '../better-auth.types';
@@ -30,6 +32,7 @@ export class UserProvisioningListener {
     private readonly userSetupService: UserSetupService,
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly signupPrefillWorkflowService: SignupPrefillWorkflowService,
+    private readonly notificationsService: NotificationsService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -47,6 +50,7 @@ export class UserProvisioningListener {
       );
       await this.scheduleLifecycleEmails(event.userId);
       this.scheduleBrandPrefill(event, setupResult);
+      await this.notifyOperatorOfNewUser(event);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -99,6 +103,33 @@ export class UserProvisioningListener {
       this.logger.warn(`${this.context} lifecycle email scheduling skipped`, {
         error: error instanceof Error ? error.message : error,
         userId,
+      });
+    }
+  }
+
+  /**
+   * Operator Discord alert for every new signup (genfeedai/genfeed.ai#4969).
+   * `handleUserCreated` only runs from Better Auth's `user.create.after` hook
+   * (or the checkout handler's one-time emit for a checkout-first account),
+   * so this fires exactly once per created user — no separate debounce is
+   * needed. Best-effort: a notification outage must never fail provisioning,
+   * which has already committed above.
+   */
+  private async notifyOperatorOfNewUser(
+    event: IBetterAuthUserCreatedEvent,
+  ): Promise<void> {
+    try {
+      await this.notificationsService.sendUserCreatedNotification({
+        email: event.email,
+        id: event.userId,
+      });
+    } catch (error: unknown) {
+      this.logger.error(`${this.context} operator signup alert failed`, {
+        error: error instanceof Error ? error.message : error,
+        userId: event.userId,
+      });
+      Sentry.captureException(error, {
+        extra: { userId: event.userId },
       });
     }
   }

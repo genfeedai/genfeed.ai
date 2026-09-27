@@ -21,6 +21,7 @@ import {
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
@@ -37,11 +38,18 @@ import {
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { FIRST_SUCCESSFUL_PUBLISH_EVENT } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -111,6 +119,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     private readonly mediaReadinessService: MediaReadinessService,
+    @Optional()
+    private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
   onModuleInit(): void {
@@ -702,6 +712,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (!isProviderDraft) {
       this.emitPublishPublishedWebhook(post, result, prepared.platform);
       this.scheduleReplyPostWatchAfterPublish(post, result, prepared.platform);
+      this.captureFirstSuccessfulPublishBestEffort(
+        post,
+        prepared.platform,
+        url,
+      );
     }
 
     this.logger.log(
@@ -1077,6 +1092,74 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       platform,
       post,
       url: result.url || null,
+    });
+  }
+
+  /**
+   * Fire-and-forget PostHog capture for the `first_successful_publish`
+   * funnel event (genfeedai/genfeed.ai#4969). The client-side capture only
+   * fires from the newsletter editor, so a first social publish (X, LinkedIn,
+   * etc.) never reached the funnel — this is the one server-side moment a
+   * post is confirmed published by the provider, for every platform.
+   * Never throws: capture failures are handled inside
+   * `ServerFunnelCaptureService.capture` (logged + reported to Sentry), and
+   * the org-lookup below is wrapped separately so a query error here cannot
+   * fail an already-successful publish.
+   */
+  private captureFirstSuccessfulPublishBestEffort(
+    post: PostEntity,
+    platform: Platform | string,
+    url: string,
+  ): void {
+    if (!this.funnelCaptureService) {
+      return;
+    }
+
+    void this.recordFirstSuccessfulPublish(post, platform).catch(
+      (error: unknown) => {
+        this.logger.warn(`${url} first-publish funnel capture skipped`, {
+          error: getErrorMessage(error),
+          organizationId: post.organizationId,
+          postId: post.id.toString(),
+        });
+        Sentry.captureException(error, {
+          extra: {
+            organizationId: post.organizationId,
+            postId: post.id.toString(),
+          },
+        });
+      },
+    );
+  }
+
+  private async recordFirstSuccessfulPublish(
+    post: PostEntity,
+    platform: Platform | string,
+  ): Promise<void> {
+    const organizationId = post.organizationId;
+    if (!organizationId) {
+      return;
+    }
+
+    // "First ever" is read-then-decide against the existing PUBLISHED rows for
+    // the org (excluding this post), the same best-effort idempotency check
+    // `markOnboardingCompleteFromInvoice` uses for its own once-per-user flag —
+    // adequate for an analytics event, not a billing-grade lock.
+    const priorPublishCount = await this.prisma.post.count({
+      where: scopedWhere(organizationId, {
+        id: { not: post.id },
+        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+      }),
+    });
+
+    if (priorPublishCount > 0) {
+      return;
+    }
+
+    await this.funnelCaptureService?.capture({
+      distinctId: organizationId,
+      event: FIRST_SUCCESSFUL_PUBLISH_EVENT,
+      properties: { platform, surface: 'social' },
     });
   }
 

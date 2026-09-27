@@ -5,6 +5,7 @@ import {
   RouterPriority,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { ONBOARDING_COMPLETED_EVENT } from '@genfeedai/contracts/constants';
 import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -93,6 +94,9 @@ function createHandler(options?: {
           })),
       ),
   };
+  const funnelCaptureService = {
+    capture: vi.fn().mockResolvedValue(undefined),
+  };
   const handler = new AgentOnboardingToolHandler(
     { error: vi.fn(), warn: vi.fn() } as never,
     configService as never,
@@ -107,17 +111,22 @@ function createHandler(options?: {
     organizationsService as never,
     organizationSettingsService as never,
     usersService as never,
+    undefined,
+    undefined,
+    funnelCaptureService as never,
   );
 
   return {
     brandsService,
     contentGeneratorService,
     creditsUtilsService,
+    funnelCaptureService,
     generationGateway,
     handler,
     onboardingCreditGrantsService,
     organizationSettingsService,
     postsService,
+    usersService,
   };
 }
 
@@ -768,5 +777,53 @@ describe('Agent onboarding create_brand identity', () => {
       description: 'Handmade commuter bicycles',
     });
     expect(createInput).not.toHaveProperty('text');
+  });
+});
+
+describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969)', () => {
+  it('captures onboarding_completed exactly once for a user completing for the first time', async () => {
+    const { handler, funnelCaptureService, usersService } = createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+
+    await handler.completeOnboarding(CONTEXT);
+
+    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+      distinctId: 'user-1',
+      event: ONBOARDING_COMPLETED_EVENT,
+    });
+  });
+
+  it('does not re-capture for a user who was already onboarded', async () => {
+    const { handler, funnelCaptureService, usersService } = createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: true,
+    });
+
+    await handler.completeOnboarding(CONTEXT);
+
+    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+  });
+
+  it('does not fail onboarding completion when the capture call rejects', async () => {
+    const { handler, funnelCaptureService, usersService } = createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+    funnelCaptureService.capture.mockRejectedValue(new Error('network down'));
+
+    const result = await handler.completeOnboarding(CONTEXT);
+    // Drain the fire-and-forget capture chain's `.catch` before the test ends,
+    // so its rejection is handled here rather than surfacing against whatever
+    // test runs next.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(result.success).toBe(true);
   });
 });

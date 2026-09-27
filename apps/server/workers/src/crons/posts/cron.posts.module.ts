@@ -11,6 +11,7 @@ import {
   PublishApprovalsService,
   SERVER_TOKENS,
 } from '@api/index';
+import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
@@ -45,6 +46,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     QuotaModule,
     forwardRef(() => ReplyBotModule),
     PrismaModule,
+    ServerFunnelCaptureModule,
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),
   ],
