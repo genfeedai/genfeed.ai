@@ -244,12 +244,18 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       });
 
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-      const [, sentryContext] = vi.mocked(Sentry.captureException).mock
-        .calls[0];
-      expect(sentryContext?.extra).toEqual({
-        category: 'non_2xx_response',
-        event: 'onboarding_completed',
-        status: 429,
+      // `.mock.calls[0][1]` is typed as Sentry's own
+      // `ExclusiveEventHintOrCaptureContext` union, which does not expose
+      // `extra` on every member — asserting through `toHaveBeenCalledWith`
+      // (as the rest of the codebase's Sentry specs already do) avoids a
+      // property access TypeScript can't narrow, while still checking the
+      // exact object (no `objectContaining`, so no extra keys can hide).
+      expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+        extra: {
+          category: 'non_2xx_response',
+          event: 'onboarding_completed',
+          status: 429,
+        },
       });
     });
 
@@ -367,8 +373,11 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       });
 
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
-      const [sentryErrorArg, sentryOptions] = vi.mocked(Sentry.captureException)
-        .mock.calls[0];
+      // Destructure only the exception argument: the options argument's
+      // type (Sentry's ExclusiveEventHintOrCaptureContext union) does not
+      // expose `extra` on every member, so its `.extra` is asserted below
+      // through `toHaveBeenCalledWith` instead of a direct property access.
+      const [sentryErrorArg] = vi.mocked(Sentry.captureException).mock.calls[0];
       // The exact object passed to Sentry must not be the original
       // exception, and its own message must not carry the leak either.
       expect(sentryErrorArg).not.toBe(leakyError);
@@ -377,9 +386,11 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
         SECRET_PROJECT_KEY,
       );
       expect((sentryErrorArg as Error).message).not.toContain(SECRET_MARKER);
-      expect(sentryOptions?.extra).toEqual({
-        category: 'request_failed',
-        event: 'onboarding_completed',
+      expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+        extra: {
+          category: 'request_failed',
+          event: 'onboarding_completed',
+        },
       });
     });
 
@@ -398,14 +409,15 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
         event: 'onboarding_completed',
       });
 
-      const [sentryErrorArg, sentryOptions] = vi.mocked(Sentry.captureException)
-        .mock.calls[0];
+      const [sentryErrorArg] = vi.mocked(Sentry.captureException).mock.calls[0];
       expect((sentryErrorArg as Error).message).not.toContain(
         SECRET_PROJECT_KEY,
       );
-      expect(sentryOptions?.extra).toEqual({
-        category: 'invalid_destination',
-        event: 'onboarding_completed',
+      expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+        extra: {
+          category: 'invalid_destination',
+          event: 'onboarding_completed',
+        },
       });
     });
   });
