@@ -13,6 +13,7 @@ import {
   SocialSourceType,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -88,7 +89,11 @@ export class SocialSourceOwnAccountResyncWorkflowService
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `social-source-own-account-resync-${Math.floor(now.getTime() / RESYNC_SWEEP_INTERVAL_MS)}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

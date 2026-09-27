@@ -20,6 +20,7 @@ import {
   ReplyBotType,
 } from '@genfeedai/contracts';
 import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
@@ -248,6 +249,7 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
         },
       }),
       expect.stringMatching(/^reply-bot-poll-org-1-credential-1-/),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 

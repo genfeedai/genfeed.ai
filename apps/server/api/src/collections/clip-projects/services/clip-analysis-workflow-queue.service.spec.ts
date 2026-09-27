@@ -1,5 +1,6 @@
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { ClipAnalysisWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { ClipAnalysisWorkflowQueueService } from './clip-analysis-workflow-queue.service';
 
 describe('ClipAnalysisWorkflowQueueService', () => {
@@ -38,6 +39,7 @@ describe('ClipAnalysisWorkflowQueueService', () => {
       'clip-analysis-project-1',
       {
         attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: 'clip.analysis.failure',
           inputValues: { job: request },

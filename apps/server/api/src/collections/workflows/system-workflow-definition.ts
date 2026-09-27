@@ -23,18 +23,6 @@ export const PLATFORM_WORKFLOW_SCHEDULE_SOURCE =
  */
 export const PROACTIVE_AGENT_TURN_SOURCE = 'proactive';
 
-/**
- * Canonical ids `PlatformWorkflowSchedulesService` dispatches. Used to detect
- * whether a `workflow.for-each` node is running as part of a platform-sweep
- * workflow, so its `scheduled`-mode children also route to the platform
- * queue instead of the shared interactive one — see #5162 (#5252 review).
- */
-export const PLATFORM_SWEEP_CANONICAL_IDS: readonly string[] = [
-  'agent.autopilot.proactive',
-  'analytics-sync',
-  'content-loop-autopilot',
-];
-
 export type SystemWorkflowGraphMetadata = {
   canonicalId: string;
   changeSummary?: string;

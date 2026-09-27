@@ -19,6 +19,8 @@ import {
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interfaces';
 import {
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SystemWorkflowDispatchClass,
+  WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -64,6 +66,16 @@ export interface SystemWorkflowFailureReference {
 
 export interface QueueSystemWorkflowOptions {
   attempts?: number;
+  /**
+   * Whether this dispatch is a direct user/agent-initiated turn
+   * (`INTERACTIVE`, stays on `WORKFLOW_EXECUTION_QUEUE`) or everything else
+   * — worker crons, batch/background fan-out, polling reconciliation
+   * (`BACKGROUND`, routes to `WORKFLOW_BACKGROUND_QUEUE`) — see #5271.
+   * Required so a new producer cannot land without an explicit choice;
+   * `check-workflow-dispatch-class.ts` also fails a producer that bypasses
+   * this service to inject one of the routed queues directly.
+   */
+  dispatchClass: SystemWorkflowDispatchClass;
   delayMs?: number;
   failureWorkflow?: SystemWorkflowFailureReference;
   priorExecution?: NonNullable<
@@ -71,10 +83,11 @@ export interface QueueSystemWorkflowOptions {
   >;
   /**
    * Route this job to `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of
-   * `WORKFLOW_EXECUTION_QUEUE`. Set for platform-cron sweep dispatches
+   * `dispatchClass`'s queue. Set for platform-cron sweep dispatches
    * (`PlatformWorkflowSchedulesService`), proactive agent-strategy turns, and
    * `workflow.for-each` children spawned from a platform-sweep workflow —
-   * see #5162.
+   * see #5162. Computed by `SystemWorkflowRunnerService` from the dispatch's
+   * `source`, never set directly by a producer.
    *
    * BullMQ `priority` was considered and dropped (#5252 review): its rate
    * limiter is checked before priority is ever consulted, and an
@@ -87,7 +100,8 @@ export interface QueueSystemWorkflowOptions {
    * so giving only agent turns a priority would have made every one of those
    * other producers run *ahead* of them — the opposite of the intent. A
    * dedicated queue is the only fix that is correct for every producer
-   * without auditing and annotating all of them.
+   * without auditing and annotating all of them. #5271 finished that audit
+   * for every remaining producer via `dispatchClass` above.
    */
   usePlatformQueue?: boolean;
   /**
@@ -192,6 +206,10 @@ export class WorkflowExecutionQueueService {
     // `QueueSystemWorkflowOptions` and #5162.
     @InjectQueue(PLATFORM_SYSTEM_WORKFLOW_QUEUE)
     private readonly platformSystemWorkflowQueue: Queue<WorkflowExecutionJobData>,
+    // Every `dispatchClass: BACKGROUND` producer that isn't platform-sourced
+    // — see #5271.
+    @InjectQueue(WORKFLOW_BACKGROUND_QUEUE)
+    private readonly backgroundQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -230,7 +248,7 @@ export class WorkflowExecutionQueueService {
   async queueSystemWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     jobId: string,
-    options: QueueSystemWorkflowOptions = {},
+    options: QueueSystemWorkflowOptions,
   ): Promise<string> {
     // BullMQ's `add(name, data, { jobId })` silently no-ops when a job with
     // that id already exists in Redis, in ANY state — waiting/active/delayed
@@ -248,11 +266,15 @@ export class WorkflowExecutionQueueService {
     // alone and reported back rather than silently swallowed.
     //
     // Platform-cron sweep dispatches (`usePlatformQueue`) reserve and add on
-    // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of the shared
-    // `WORKFLOW_EXECUTION_QUEUE` — see #5162 and `QueueSystemWorkflowOptions`.
+    // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of `dispatchClass`'s queue —
+    // see #5162 and `QueueSystemWorkflowOptions`. Everything else routes by
+    // `dispatchClass`: `BACKGROUND` to `WORKFLOW_BACKGROUND_QUEUE`,
+    // `INTERACTIVE` to the shared `WORKFLOW_EXECUTION_QUEUE` (#5271).
     const targetQueue = options.usePlatformQueue
       ? this.platformSystemWorkflowQueue
-      : this.executionQueue;
+      : options.dispatchClass === SystemWorkflowDispatchClass.BACKGROUND
+        ? this.backgroundQueue
+        : this.executionQueue;
     const reservation = await reserveIdempotentJob(targetQueue, jobId);
     if (reservation.alreadyQueued) {
       this.logger.log(`${this.logContext} system workflow already queued`, {
@@ -484,7 +506,7 @@ export class WorkflowExecutionQueueService {
   /**
    * Whether `jobId` (the deterministic `system-workflow-${executionId}` id a
    * `system-run` job is queued under) is still claimable by a worker on
-   * either queue a system workflow may have been routed to. Used by
+   * any of the three queues a system workflow may have been routed to. Used by
    * `PendingWorkflowExecutionReconcileService` (#5162) to tell a merely slow
    * run from one that was queued but will never be picked up — no job at
    * all, or one sitting in a terminal `completed`/`failed` state while its
@@ -494,6 +516,7 @@ export class WorkflowExecutionQueueService {
     for (const queue of [
       this.executionQueue,
       this.platformSystemWorkflowQueue,
+      this.backgroundQueue,
     ]) {
       const job = await queue.getJob(jobId);
       if (!job) continue;

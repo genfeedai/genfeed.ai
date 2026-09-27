@@ -22,6 +22,7 @@ import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { BatchStatus } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BatchSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -160,11 +161,14 @@ export class BatchGenerationController {
     try {
       const organization = user.organizationId;
 
-      const jobId = await this.batchGenerationWorkflowService.queueBatch({
-        batchId: id,
-        organizationId: organization,
-        userId: user.userId ?? user.id,
-      });
+      const jobId = await this.batchGenerationWorkflowService.queueBatch(
+        {
+          batchId: id,
+          organizationId: organization,
+          userId: user.userId ?? user.id,
+        },
+        SystemWorkflowDispatchClass.INTERACTIVE,
+      );
       return { jobId, status: 'queued' };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'processBatch');

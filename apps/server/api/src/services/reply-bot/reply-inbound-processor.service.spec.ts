@@ -2,6 +2,7 @@ import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbo
 import { REPLY_INGESTION_ACTION_IDS } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
 import { Platform } from '@genfeedai/contracts';
 import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const INBOUND_INPUT = {
@@ -189,7 +190,10 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ inputValues: { request: input } }),
       'reply-inbound-org-1-comment-1',
-      { replaceTerminalJob: true },
+      {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   });
 });

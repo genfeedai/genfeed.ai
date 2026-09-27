@@ -7,6 +7,7 @@ import { lockWarmup } from '@api/endpoints/admin/warmup-accounts/warmup-workspac
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IWarmupPreparation } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma, WarmupAccount } from '@genfeedai/prisma';
 import type { ModuleRef } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -186,6 +187,9 @@ describe('warm-up preparation orchestration', () => {
           }),
         },
       }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      }),
     );
     expect(workflows.enqueueWorkflow).toHaveBeenCalledTimes(1);
     expect(lockWarmup).toHaveBeenCalledWith(
@@ -284,6 +288,9 @@ describe('warm-up preparation orchestration', () => {
     };
     expect(workflows.enqueueWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ idempotencyKey: 'starter-key' }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      }),
     );
     expect(data.diagnostics.preparation).toHaveProperty(
       'generation.key',

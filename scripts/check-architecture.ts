@@ -106,6 +106,14 @@ const checks = [
     name: 'Product workflow boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-workflow-dispatch-class.ts',
+    ],
+    name: 'System-workflow dispatch-class boundary',
+  },
+  {
     command: ['bun', 'run', 'scripts/architecture/check-route-shadowing.ts'],
     name: 'Controller route shadowing',
   },

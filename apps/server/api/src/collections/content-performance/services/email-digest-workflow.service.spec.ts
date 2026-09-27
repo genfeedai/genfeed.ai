@@ -8,6 +8,7 @@ import {
 } from '@api/collections/content-performance/services/email-digest-workflow.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -88,7 +89,11 @@ describe('email digest durable workflow results', () => {
     expect(queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ inputValues: { request: normalized } }),
       expect.stringMatching(/^email-digest-org-1-brand-1-[a-f0-9]{64}$/),
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
   });
 

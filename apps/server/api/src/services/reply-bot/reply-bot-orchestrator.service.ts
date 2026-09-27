@@ -14,6 +14,12 @@ import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loo
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
+  mergeReplyContext,
+  numberValue,
+  readRecord,
+  requiredString,
+} from '@api/services/reply-bot/reply-bot-orchestrator-parsing.util';
+import {
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@api/services/reply-bot/reply-bot-platform.util';
@@ -52,6 +58,7 @@ import type {
   ReplyIntent,
   ReplyIntentSource,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -219,6 +226,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         trigger: WorkflowExecutionTrigger.API,
       },
       `reply-bot-poll-${organizationId}-${credentialId}-${Date.now()}`,
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   }
 
@@ -265,15 +273,12 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async discoverBotsAction(
     action: SystemWorkflowActionRequest,
   ): Promise<{ items: ReplyBotRequest[] }> {
-    const request = this.readRecord(action.input.request);
-    const organizationId = this.requiredString(
+    const request = readRecord(action.input.request);
+    const organizationId = requiredString(
       request.organizationId,
       'organizationId',
     );
-    const credentialId = this.requiredString(
-      request.credentialId,
-      'credentialId',
-    );
+    const credentialId = requiredString(request.credentialId, 'credentialId');
     await this.loadCredential(credentialId, organizationId);
     const bots = await this.replyBotConfigsService.findActive(organizationId);
     return {
@@ -362,12 +367,12 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async finalizeBotAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ProcessingResult> {
-    const state = this.readRecord(action.input.state);
+    const state = readRecord(action.input.state);
     const results = this.readForEachResult<ReplyBotContentResult>(
       action.input.batch,
     ).results.map((entry) => entry.result);
     return {
-      botConfigId: this.requiredString(state.botConfigId, 'botConfigId'),
+      botConfigId: requiredString(state.botConfigId, 'botConfigId'),
       contentProcessed: results.length,
       dmsSent: results.filter((result) => result.dmSent).length,
       errors:
@@ -376,7 +381,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       platform: state.platform as ReplyBotPlatform,
       repliesSent: results.filter((result) => result.replySent).length,
       skipped:
-        this.numberValue(state.skipped) +
+        numberValue(state.skipped) +
         results.filter((result) => result.skipped).length,
     };
   }
@@ -561,7 +566,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       const replyText = await this.replyGenerationService.generateReply({
         brandId:
           typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined,
-        context: this.mergeReplyContext(
+        context: mergeReplyContext(
           botConfig.context,
           state.content.replyContext,
         ),
@@ -626,7 +631,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         context: botConfig.dmConfig?.context,
         customInstructions: instructions || undefined,
         organizationId: state.organizationId,
-        replyText: this.requiredString(state.replyText, 'replyText'),
+        replyText: requiredString(state.replyText, 'replyText'),
         tweetAuthor: state.content.authorUsername,
         tweetContent: state.content.text,
         userId: this.requireBotOwnerUserId(botConfig, state.botConfigId),
@@ -653,7 +658,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         const result = await this.botActionExecutorService.postReply(
           credential,
           this.deserializeCandidate(state.content),
-          this.requiredString(state.replyText, 'replyText'),
+          requiredString(state.replyText, 'replyText'),
         );
         if (!result.success) {
           return { ...state, error: result.error ?? 'Failed to post reply' };
@@ -699,7 +704,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     const state = this.readContentState(action.input);
     if (state.skipped)
       return { dmSent: false, replySent: false, skipped: true };
-    const activityId = this.requiredString(state.activityId, 'activityId');
+    const activityId = requiredString(state.activityId, 'activityId');
     if (state.error) {
       await this.botActivitiesService.updateStatus(
         activityId,
@@ -816,13 +821,13 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private async loadTestAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
-    const request = this.readRecord(action.input.request);
-    const botConfigId = this.requiredString(request.botConfigId, 'botConfigId');
-    const organizationId = this.requiredString(
+    const request = readRecord(action.input.request);
+    const botConfigId = requiredString(request.botConfigId, 'botConfigId');
+    const organizationId = requiredString(
       request.organizationId,
       'organizationId',
     );
-    const testContent = this.readRecord(request.testContent);
+    const testContent = readRecord(request.testContent);
     const botConfig = await this.loadBotConfig({ botConfigId, organizationId });
     const platform = normalizeReplyBotPlatform(
       botConfig.platform ?? ReplyBotPlatform.TWITTER,
@@ -833,12 +838,12 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       botConfigId,
       content: {
         authorId: 'dry-run-author',
-        authorUsername: this.requiredString(testContent.author, 'author'),
+        authorUsername: requiredString(testContent.author, 'author'),
         contentType: 'post' as SerializedReplyCandidate['contentType'],
         createdAt: new Date().toISOString(),
         id: 'dry-run-content',
         platform,
-        text: this.requiredString(testContent.content, 'content'),
+        text: requiredString(testContent.content, 'content'),
       },
       credentialId: '',
       dmDelayMs: 0,
@@ -861,7 +866,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     if (state.error) throw new Error(state.error);
     return {
       ...(state.dmText ? { dmText: state.dmText } : {}),
-      replyText: this.requiredString(state.replyText, 'replyText'),
+      replyText: requiredString(state.replyText, 'replyText'),
     };
   }
 
@@ -1034,19 +1039,16 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   }
 
   private readBotRequest(value: unknown): ReplyBotRequest {
-    const request = this.readRecord(value);
+    const request = readRecord(value);
     return {
-      botConfigId: this.requiredString(request.botConfigId, 'botConfigId'),
-      credentialId: this.requiredString(request.credentialId, 'credentialId'),
-      organizationId: this.requiredString(
-        request.organizationId,
-        'organizationId',
-      ),
+      botConfigId: requiredString(request.botConfigId, 'botConfigId'),
+      credentialId: requiredString(request.credentialId, 'credentialId'),
+      organizationId: requiredString(request.organizationId, 'organizationId'),
     };
   }
 
   private readContentRequest(value: unknown): ReplyBotContentRequest {
-    const request = this.readRecord(value);
+    const request = readRecord(value);
     return {
       ...this.readBotRequest(request),
       content: request.content as SerializedReplyCandidate,
@@ -1056,14 +1058,14 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   private readContentState(
     input: Record<string, unknown>,
   ): ReplyBotContentState {
-    const state = this.readRecord(input.state);
+    const state = readRecord(input.state);
     return (
       Object.keys(state).length > 0 ? state : input
     ) as ReplyBotContentState;
   }
 
   private readDmRequest(value: unknown): ReplyBotDmRequest {
-    const request = this.readRecord(value);
+    const request = readRecord(value);
     const replyContentId =
       typeof request.replyContentId === 'string'
         ? request.replyContentId
@@ -1076,9 +1078,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       typeof request.replyText === 'string' ? request.replyText : undefined;
     return {
       ...this.readBotRequest(request),
-      activityId: this.requiredString(request.activityId, 'activityId'),
-      dmText: this.requiredString(request.dmText, 'dmText'),
-      recipientId: this.requiredString(request.recipientId, 'recipientId'),
+      activityId: requiredString(request.activityId, 'activityId'),
+      dmText: requiredString(request.dmText, 'dmText'),
+      recipientId: requiredString(request.recipientId, 'recipientId'),
       ...(replyContentId === undefined ? {} : { replyContentId }),
       ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
       ...(replyText === undefined ? {} : { replyText }),
@@ -1086,14 +1088,14 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   }
 
   private readDmState(input: Record<string, unknown>): ReplyBotDmState {
-    const state = this.readRecord(input.state);
+    const state = readRecord(input.state);
     return (Object.keys(state).length > 0 ? state : input) as ReplyBotDmState;
   }
 
   private readForEachResult<T>(value: unknown): ForEachResult<T> {
-    const result = this.readRecord(value);
+    const result = readRecord(value);
     return {
-      count: this.numberValue(result.count),
+      count: numberValue(result.count),
       results: Array.isArray(result.results)
         ? (result.results as ForEachResult<T>['results'])
         : [],
@@ -1121,32 +1123,6 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       'userId',
       `Reply bot config ${botConfigId}`,
     );
-  }
-
-  private mergeReplyContext(
-    botContext: string | undefined,
-    candidateContext: string | undefined,
-  ): string | undefined {
-    return (
-      [botContext, candidateContext].filter(Boolean).join('\n\n') || undefined
-    );
-  }
-
-  private requiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.length === 0) {
-      throw new Error(`Reply bot action requires ${field}`);
-    }
-    return value;
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private numberValue(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   private errorMessage(error: unknown): string {

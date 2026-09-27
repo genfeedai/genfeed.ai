@@ -1,4 +1,5 @@
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { ClipFactoryWorkflowQueueService } from './clip-factory-workflow-queue.service';
 
 describe('ClipFactoryWorkflowQueueService', () => {
@@ -38,6 +39,7 @@ describe('ClipFactoryWorkflowQueueService', () => {
       'clip-factory-project-1',
       {
         attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         failureWorkflow: {
           canonicalId: 'clip.factory.failure',
           inputValues: { job: { ...job, mode: 'avatar' } },
