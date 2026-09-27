@@ -761,6 +761,53 @@ describe('DiscordService', () => {
       expect(fieldValue(embed, 'Amount')).toBe('¥5,000');
     });
 
+    it('formats UGX using the standard two-decimal scale, per Stripe’s special case', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 500,
+        currency: 'ugx',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // UGX is a real-world zero-decimal currency, but Stripe's `amount` for
+      // it stays two-decimal for backward compatibility: 500 means 5 UGX,
+      // not 500 UGX (genfeedai/genfeed.ai#5313 review finding).
+      expect(fieldValue(embed, 'Amount')).toBe('UGX 5');
+    });
+
+    it('formats ISK using the standard two-decimal scale, per Stripe’s special case', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 500,
+        currency: 'isk',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // Same backward-compatibility special case as UGX: 500 means 5 ISK.
+      expect(fieldValue(embed, 'Amount')).toBe('ISK 5');
+    });
+
+    it('formats a three-decimal KWD amount using a 1000 minor-unit scale', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 1_500,
+        currency: 'kwd',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // KWD has a three-digit minor unit — 1,500 means 1.500 KWD, not 15.00.
+      expect(fieldValue(embed, 'Amount')).toBe('KWD 1.500');
+    });
+
     it('always shows the revenue source in the Source field, even with a plan label', async () => {
       const { service } = await createService();
 

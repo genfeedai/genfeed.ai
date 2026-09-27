@@ -774,6 +774,15 @@ export class DiscordService {
    * Stripe currencies with no minor unit — the integer amount Stripe sends
    * already equals the major unit, so it must not be divided by 100.
    * https://docs.stripe.com/currencies#zero-decimal
+   *
+   * ISK and UGX are deliberately excluded even though both are real-world
+   * zero-decimal currencies today: Stripe's documented special case for each
+   * requires the `amount` to keep arriving in two-decimal form for backward
+   * compatibility (e.g. `500` means 5 ISK / 5 UGX, not 500), so they use the
+   * standard 100 scale below. HUF and TWD have their own special case, but
+   * it only affects manual *payouts* — charge/invoice amounts for both stay
+   * two-decimal, so neither belongs in this set either.
+   * https://docs.stripe.com/currencies#special-cases
    */
   private static readonly ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> =
     new Set([
@@ -787,7 +796,6 @@ export class DiscordService {
       'MGA',
       'PYG',
       'RWF',
-      'UGX',
       'VND',
       'VUV',
       'XAF',
