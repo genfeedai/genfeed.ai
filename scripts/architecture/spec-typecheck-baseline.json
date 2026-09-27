@@ -2033,22 +2033,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
-      "fingerprint": "5c8781033cf1328ce22a",
-      "message": "Type '\"twitter\"' is not assignable to type 'HookPlatform'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
-      "fingerprint": "8cc1bbd7c01aaa465bca",
-      "message": "Type '\"twitter\"' is not assignable to type 'HookPlatform'.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
@@ -2078,14 +2062,6 @@
       "file": "apps/server/api/src/collections/presets/controllers/presets.controller.spec.ts",
       "fingerprint": "c73ee49dfe9add4069f2",
       "message": "Argument of type '{ category: string; }' is not assignable to parameter of type 'PresetsQueryDto'.   Type '{ category: string; }' is missing the following properties from type 'PresetsQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "apps/server/api/src/collections/profiles/controllers/profiles.controller.spec.ts",
-      "fingerprint": "5c487003773e25b004e6",
-      "message": "Type 'string' is not assignable to type '{ contentType: \"article\" | \"video\" | \"image\" | \"voice\"; url?: string | undefined; content?: string | undefined; }'.",
       "workspace": "api"
     },
     {
@@ -2310,14 +2286,6 @@
       "file": "apps/server/api/src/collections/trainings/entities/training.entity.spec.ts",
       "fingerprint": "13a08ef1c4fe005c1216",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/controllers/trends.controller.spec.ts",
-      "fingerprint": "2662db4b87c06100f2f3",
-      "message": "Type '\"twitter\"' is not assignable to type 'Platform | undefined'.",
       "workspace": "api"
     },
     {
