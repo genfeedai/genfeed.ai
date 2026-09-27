@@ -332,7 +332,7 @@ test.describe('Calendar — Scheduling', () => {
 
     // Switch back to posts tab
     await calendarPage.switchToPostsTab();
-    await calendarPage.assertPostsTabActive();
+    await calendarPage.assertSocialPostsFilterActive();
   });
 
   test('should show list view link', async ({ authenticatedPage }) => {

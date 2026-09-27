@@ -262,11 +262,29 @@ export class CalendarPage {
   async assertPostsTabActive(): Promise<void> {
     // /publishing/calendar permanently redirects to the unified Posts
     // desk's calendar view (`/publishing/posts?view=calendar`); assert the
-    // canonical destination, not the legacy path.
+    // canonical destination, still in calendar view, and not filtered to
+    // one of the other content types (excluding only 'article' let
+    // 'newsletter' through as "posts tab active" too).
     await expect(this.page).toHaveURL(
       (url) =>
         url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
-        url.searchParams.get('type') !== 'article',
+        url.searchParams.get('view') === 'calendar' &&
+        url.searchParams.get('type') !== 'article' &&
+        url.searchParams.get('type') !== 'newsletter',
+    );
+  }
+
+  /**
+   * Stricter than `assertPostsTabActive`: asserts the type filter is
+   * explicitly `post` (e.g. right after `switchToPostsTab()` picks "Social
+   * posts" from the Select), not merely "not article/newsletter".
+   */
+  async assertSocialPostsFilterActive(): Promise<void> {
+    await expect(this.page).toHaveURL(
+      (url) =>
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
+        url.searchParams.get('view') === 'calendar' &&
+        url.searchParams.get('type') === 'post',
     );
   }
 
@@ -274,6 +292,7 @@ export class CalendarPage {
     await expect(this.page).toHaveURL(
       (url) =>
         url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
+        url.searchParams.get('view') === 'calendar' &&
         url.searchParams.get('type') === 'article',
     );
     await expect(this.mainContent.first()).toBeVisible();

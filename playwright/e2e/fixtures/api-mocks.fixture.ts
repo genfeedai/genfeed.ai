@@ -2,6 +2,7 @@ import {
   ActivityKey,
   AgentThreadMode,
   IngredientCategory,
+  PostCategory,
   PostStatus,
 } from '@genfeedai/contracts';
 import type { Page, Route } from '@playwright/test';
@@ -3919,6 +3920,7 @@ function toReleaseStatus(status: unknown): string {
  */
 function buildChannelTargetResource(
   post: Record<string, unknown>,
+  groupId: string,
   overrides: { id?: string; status?: string; scheduledAt?: string | null } = {},
 ): { id: string; attributes: Record<string, unknown> } {
   const id = overrides.id ?? String(post.id);
@@ -3931,12 +3933,14 @@ function buildChannelTargetResource(
   return {
     attributes: {
       attachments: [],
-      category: 'text',
+      category: PostCategory.TEXT,
       credentialId: `mock-credential-${id}`,
       executionState: status,
       order: 0,
       platform: (post.platform as string) ?? 'twitter',
-      releaseId: id,
+      // The parent release group's id, never the target's own -- see
+      // `channel-target.attributes.ts`'s `releaseId`.
+      releaseId: groupId,
       scheduledAt,
       source: 'manual',
       statusTransitions: [],
@@ -3960,6 +3964,7 @@ function buildChannelTargetResource(
  */
 function buildReleaseGroupAttributes(
   post: Record<string, unknown>,
+  groupId: string,
   overrides: { status?: string; scheduledAt?: string | null } = {},
 ): Record<string, unknown> {
   const status = overrides.status ?? toReleaseStatus(post.status);
@@ -3968,14 +3973,18 @@ function buildReleaseGroupAttributes(
       ? overrides.scheduledAt
       : ((post.scheduledDate as string | null) ?? null);
 
+  // `attachments` and `recurrence` are absent on purpose: both are
+  // `release-group.config.ts` relationships (`rel('release-attachment',
+  // ...)` / `rel('recurrence-rule', ...)`), never attributes -- wired into
+  // `data.relationships` by `buildReleaseGroupDocument` /
+  // `buildReleaseGroupCollectionDocument` instead.
   return {
     analyticsComparison: {
       metricDefinitions: [],
-      releaseId: String(post.id),
+      releaseId: groupId,
       state: 'empty',
       targets: [],
     },
-    attachments: [],
     baseContent: (post.description as string) || '',
     brandId: 'mock-brand-id',
     campaignId: null,
@@ -3983,7 +3992,6 @@ function buildReleaseGroupAttributes(
     organizationId: 'mock-org-id-e2e-test',
     ownerId: 'mock-user-id-e2e-test',
     publishedAt: status === 'published' ? scheduledAt : null,
-    recurrence: null,
     scheduledAt,
     status,
     statusTransitions: [],
@@ -4012,6 +4020,11 @@ function buildReleaseGroupDocument(
       attributes,
       id,
       relationships: {
+        // Both empty on every mocked release: no fixture here attaches
+        // files or sets up a recurrence rule. Still real relationships,
+        // not attributes -- see `buildReleaseGroupAttributes`.
+        attachments: { data: [] },
+        recurrence: { data: null },
         targets: {
           data: targets.map((target) => ({
             id: target.id,
@@ -4059,6 +4072,8 @@ function buildReleaseGroupCollectionDocument(
       attributes: release.attributes,
       id: release.id,
       relationships: {
+        attachments: { data: [] },
+        recurrence: { data: null },
         targets: {
           data: release.targets.map((target) => ({
             id: target.id,
@@ -4143,11 +4158,14 @@ export async function mockCalendarPosts(
       await route.fulfill({
         body: JSON.stringify(
           buildReleaseGroupCollectionDocument(
-            mockPosts.map((post) => ({
-              attributes: buildReleaseGroupAttributes(post),
-              id: String(post.id),
-              targets: [buildChannelTargetResource(post)],
-            })),
+            mockPosts.map((post) => {
+              const releaseId = String(post.id);
+              return {
+                attributes: buildReleaseGroupAttributes(post, releaseId),
+                id: releaseId,
+                targets: [buildChannelTargetResource(post, releaseId)],
+              };
+            }),
           ),
         ),
         contentType: 'application/json',
@@ -4210,14 +4228,17 @@ export async function mockPostPublishing(
     const requestedPostId = body?.postId || postId || 'mock-post-id';
     const resolvedGroupId = groupId ?? `mock-release-${requestedPostId}`;
     const attributes = post
-      ? buildReleaseGroupAttributes(post, state)
+      ? buildReleaseGroupAttributes(post, resolvedGroupId, state)
       : {
           scheduledAt: null,
           status: 'draft',
           title: 'Untitled post',
         };
     const target = post
-      ? buildChannelTargetResource(post, { id: requestedPostId, ...state })
+      ? buildChannelTargetResource(post, resolvedGroupId, {
+          id: requestedPostId,
+          ...state,
+        })
       : {
           attributes: { executionState: 'draft', platform: 'twitter' },
           id: requestedPostId,
@@ -4250,10 +4271,13 @@ export async function mockPostPublishing(
     const requestedGroupId = segments.at(-3) || groupId || 'mock-release-group';
     const requestedTargetId = segments.at(-1) || postId || 'mock-target-id';
     const attributes = post
-      ? buildReleaseGroupAttributes(post, state)
+      ? buildReleaseGroupAttributes(post, requestedGroupId, state)
       : { scheduledAt: state.scheduledAt, status: state.status };
     const target = post
-      ? buildChannelTargetResource(post, { id: requestedTargetId, ...state })
+      ? buildChannelTargetResource(post, requestedGroupId, {
+          id: requestedTargetId,
+          ...state,
+        })
       : {
           attributes: {
             executionState: state.status,
