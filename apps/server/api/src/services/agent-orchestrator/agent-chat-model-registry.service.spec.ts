@@ -466,18 +466,28 @@ describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
     );
   };
 
-  it('resolves a known override key normally', async () => {
+  it('resolves a known override key normally, taking precedence over the platform default', async () => {
     const service = buildService([
-      row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+      row({
+        isDefault: true,
+        key: 'platform-default',
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      }),
+      row({ key: 'override-target', lifecycle: ModelLifecycle.RECOMMENDED }),
     ]);
 
-    await expect(service.resolveOverrideModelKey('recommended')).resolves.toBe(
-      'recommended',
-    );
+    await expect(
+      service.resolveOverrideModelKey('override-target'),
+    ).resolves.toBe('override-target');
   });
 
-  it('follows succeededBy for a Retired override key', async () => {
+  it('follows succeededBy for a Retired override key, taking precedence over the platform default', async () => {
     const service = buildService([
+      row({
+        isDefault: true,
+        key: 'platform-default',
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      }),
       row({
         key: 'legacy',
         lifecycle: ModelLifecycle.RETIRED,
@@ -488,6 +498,85 @@ describe('AgentChatModelRegistryService.resolveOverrideModelKey', () => {
 
     await expect(service.resolveOverrideModelKey('legacy')).resolves.toBe(
       'recommended',
+    );
+  });
+
+  it('follows a multi-hop succeededBy chain for a Retired override key, taking precedence over the platform default', async () => {
+    const service = buildService([
+      row({
+        isDefault: true,
+        key: 'platform-default',
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      }),
+      row({
+        key: 'oldest',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'middle',
+      }),
+      row({
+        key: 'middle',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'newest',
+      }),
+      row({ key: 'newest', lifecycle: ModelLifecycle.RECOMMENDED }),
+    ]);
+
+    await expect(service.resolveOverrideModelKey('oldest')).resolves.toBe(
+      'newest',
+    );
+  });
+
+  it('falls back to the platform default and warns when an override resolves to an inactive model', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              isActive: false,
+              key: 'disabled-model',
+              lifecycle: ModelLifecycle.AVAILABLE,
+            }),
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('disabled-model'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'disabled-model' }),
+    );
+  });
+
+  it('falls back to the platform default and warns when an override resolves to a Retired model with no successor', async () => {
+    const warn = vi.fn();
+    const service = new AgentChatModelRegistryService(
+      {
+        model: {
+          findMany: vi.fn().mockResolvedValue([
+            row({
+              key: 'retired-no-successor',
+              lifecycle: ModelLifecycle.RETIRED,
+              succeededBy: null,
+            }),
+            row({ key: 'recommended', lifecycle: ModelLifecycle.RECOMMENDED }),
+          ]),
+        },
+      } as unknown as PrismaService,
+      { warn } as unknown as LoggerService,
+    );
+
+    await expect(
+      service.resolveOverrideModelKey('retired-no-successor'),
+    ).resolves.toBe('recommended');
+    expect(warn).toHaveBeenCalledWith(
+      'Agent policy model override does not resolve to a known catalog model; falling back to the platform default',
+      expect.objectContaining({ overrideKey: 'retired-no-successor' }),
     );
   });
 

@@ -138,7 +138,7 @@ jobs:
   # production workflow_call path, so release deploys remain gated by core.
   e2e-api-full:
     name: API E2E Full
-    if: github.event_name == 'schedule' || inputs.run_api_full == true
+    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || inputs.run_api_full == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -203,7 +203,7 @@ jobs:
   # or the production workflow_call path (#3836).
   e2e-isolated-publish:
     name: Isolated Publish E2E
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'schedule' && github.workflow == 'E2E Tests') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -335,7 +335,7 @@ jobs:
           # coerces the string '0' to falsy, so a `== 'schedule' && '0' || '2'`
           # form would wrongly yield 2 for the nightly. Keeping '0' in the `||`
           # fallback position (never the `&&` result) sidesteps that coercion.
-          E2E_RETRIES: ${{ github.event_name != 'schedule' && '2' || '0' }}
+          E2E_RETRIES: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') && '2' || '0' }}
           E2E_SHARD_INDEX: ${{ matrix.shard }}
           E2E_TOTAL_SHARDS: "4"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
@@ -366,8 +366,6 @@ jobs:
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          cache-turbo: "false"
 
       # Download one exact current-run artifact at a time. The wildcard form
       # transfers matches concurrently, so one transient blob failure obscures
@@ -513,7 +511,7 @@ jobs:
     if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    continue-on-error: ${{ github.event_name != 'schedule' }}
+    continue-on-error: ${{ !(github.event_name == 'schedule' && github.workflow == 'E2E Tests') }}
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -643,8 +641,10 @@ jobs:
   # repeated runs update its canonical bounded tracker, while the sibling recovery
   # job closes it only after three consecutive scheduled greens. Reporter failures
   # stay visible on their own step without replacing the source job result.
-  # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
-  # the caller's event, so github.event_name is 'schedule' solely for the nightly.
+  # Runs ONLY on the standalone cron. A workflow_call inherits the caller's
+  # event, and the hourly Full Suite (full-suite.yml) is itself a cron, so every
+  # nightly-only gate in this file also requires `github.workflow == 'E2E Tests'`
+  # (a called workflow reports its caller's name there).
   # Deploy gating is untouched. Keys off the aggregated gate AND the two
   # nightly-only jobs — the authed job and the API full tier — so any red
   # nightly surfaces exactly one issue. The full tier is deliberately absent
@@ -661,7 +661,7 @@ jobs:
     # e2e-api-full 'cancelled' arm below still catches a hung full tier.
     if: >-
       !cancelled()
-      && github.event_name == 'schedule'
+      && (github.event_name == 'schedule' && github.workflow == 'E2E Tests')
       && (needs.e2e-gate.result == 'failure'
         || needs.e2e-frontend-authed.result == 'failure'
         || needs.e2e-api-full.result == 'failure'
@@ -776,7 +776,7 @@ jobs:
     needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish]
     if: >-
       !cancelled()
-      && github.event_name == 'schedule'
+      && (github.event_name == 'schedule' && github.workflow == 'E2E Tests')
       && needs.e2e-gate.result == 'success'
       && (needs.e2e-frontend-authed.result == 'success'
         || needs.e2e-frontend-authed.result == 'skipped')

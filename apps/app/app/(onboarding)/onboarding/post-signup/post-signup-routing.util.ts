@@ -2,10 +2,15 @@ import type {
   PostSignupIntent,
   ResolvePostSignupIntentInput,
 } from '@genfeedai/props/onboarding/post-signup-routing.props';
+import { isFreePlanHandoff } from '@/lib/onboarding/onboarding-access.util';
 
 export type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
 
-export { deriveBrandNameFromDomain } from '@/lib/onboarding/onboarding-access.util';
+export {
+  deriveBrandNameFromDomain,
+  hasPaidPlanIntent,
+  isFreePlanHandoff,
+} from '@/lib/onboarding/onboarding-access.util';
 
 function extractDomain(email?: string | null): string | null {
   if (!email?.includes('@')) {
@@ -14,11 +19,6 @@ function extractDomain(email?: string | null): string | null {
 
   const domain = email.split('@')[1]?.trim().toLowerCase();
   return domain || null;
-}
-
-export function isFreePlanHandoff(rawPlan?: string | null): boolean {
-  const normalizedPlan = rawPlan?.trim().toLowerCase();
-  return normalizedPlan === 'payg' || normalizedPlan === 'free';
 }
 
 export function parseSelectedCredits(

@@ -135,7 +135,7 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
   assert.match(authed, /bun run test:e2e:authed/);
   assert.match(
     authed,
-    /continue-on-error: \$\{\{ github\.event_name != 'schedule' \}\}/,
+    /continue-on-error: \$\{\{ !\(github\.event_name == 'schedule' && github\.workflow == 'E2E Tests'\) \}\}/,
     'authed job must stay non-gating on the deploy path',
   );
 });
@@ -195,7 +195,7 @@ test('isolated-publish lane is nightly-only and off the production gate', () => 
   assert.match(isolated, /test:e2e:isolated-publish/);
   assert.match(
     isolated,
-    /github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch'/,
+    /\(github\.event_name == 'schedule' && github\.workflow == 'E2E Tests'\) \|\| github\.event_name == 'workflow_dispatch'/,
   );
   assert.doesNotMatch(gate, /e2e-isolated-publish/);
 });

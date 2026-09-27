@@ -16,6 +16,7 @@ name: Bundle Size
 on:
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [master]
   workflow_dispatch:
@@ -35,6 +36,8 @@ env:
 jobs:
   detect:
     name: Detect Frontend Changes
+    # Draft pull requests run nothing; CI runs once the PR is marked ready.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -61,7 +64,10 @@ jobs:
     name: First-Load JS (${{ matrix.app }})
     runs-on: ubuntu-latest
     needs: detect
-    if: github.event_name == 'push' || needs.detect.outputs.frontend == 'true'
+    # Master pushes rebuild the baseline only when the frontend changed: the
+    # pull-request side restores the newest baseline by prefix, which stays
+    # exact while nothing it measures has moved.
+    if: needs.detect.outputs.frontend == 'true'
     continue-on-error: true
     timeout-minutes: 30
     permissions:

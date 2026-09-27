@@ -453,9 +453,9 @@ jobs:
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
-      # full-suite.yml already validates every master head on push (CI heavy
-      # matrix + build-verify + E2E) — the exact suite verify-suite would run.
-      # A green push (or manual master) run for the release SHA is
+      # full-suite.yml validates master hourly (CI heavy matrix + build-verify
+      # + E2E) — the exact suite verify-suite would run. A green hourly (or
+      # manual master) run for the release SHA is
       # content-addressed evidence for the identical tree. If that run is still
       # queued or in progress, wait for it instead of launching the same matrix
       # a second time. A hard-red run blocks release; a missing, superseded, or

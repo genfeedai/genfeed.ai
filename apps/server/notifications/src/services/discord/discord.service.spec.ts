@@ -1,4 +1,5 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import type { IDiscordEmbed } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -715,6 +716,134 @@ describe('DiscordService', () => {
         expect.stringContaining('failed'),
         expect.any(Error),
       );
+    });
+  });
+
+  describe('sendRevenueNotification (genfeedai/genfeed.ai#5313)', () => {
+    function lastEmbed(): IDiscordEmbed {
+      const embed = lastSendPayload().embeds?.[0] as IDiscordEmbed;
+      expect(embed).toBeDefined();
+      expect(embed.fields).toBeDefined();
+      return embed;
+    }
+
+    function fieldValue(
+      embed: IDiscordEmbed,
+      name: string,
+    ): string | undefined {
+      return embed.fields?.find((field) => field.name === name)?.value;
+    }
+
+    it('formats a USD amount by dividing by 100 minor units', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 4_500,
+        currency: 'usd',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Amount')).toBe('$45.00');
+    });
+
+    it('formats a zero-decimal JPY amount without dividing by 100', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_000,
+        currency: 'jpy',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // JPY has no minor unit — Stripe's 5,000 already means ¥5,000, not ¥50.
+      expect(fieldValue(embed, 'Amount')).toBe('¥5,000');
+    });
+
+    it('formats UGX using the standard two-decimal scale, per Stripe’s special case', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 500,
+        currency: 'ugx',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // UGX is a real-world zero-decimal currency, but Stripe's `amount` for
+      // it stays two-decimal for backward compatibility: 500 means 5 UGX,
+      // not 500 UGX (genfeedai/genfeed.ai#5313 review finding). Intl inserts
+      // a non-breaking space (U+00A0) between an ISO currency code and the
+      // amount, not a regular space.
+      expect(fieldValue(embed, 'Amount')).toBe('UGX\u00a05');
+    });
+
+    it('formats ISK using the standard two-decimal scale, per Stripe’s special case', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 500,
+        currency: 'isk',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // Same backward-compatibility special case as UGX: 500 means 5 ISK.
+      expect(fieldValue(embed, 'Amount')).toBe('ISK\u00a05');
+    });
+
+    it('formats a three-decimal KWD amount using a 1000 minor-unit scale', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 1_500,
+        currency: 'kwd',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // KWD has a three-digit minor unit — 1,500 means 1.500 KWD, not 15.00.
+      expect(fieldValue(embed, 'Amount')).toBe('KWD\u00a01.500');
+    });
+
+    it('always shows the revenue source in the Source field, even with a plan label', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_900,
+        currency: 'usd',
+        organizationId: 'org_1',
+        planLabel: 'Pro',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Source')).toBe('Subscription invoice');
+      expect(fieldValue(embed, 'Plan')).toBe('Pro');
+      expect(embed.description).toContain('Pro');
+      expect(embed.description).toContain('Subscription invoice');
+    });
+
+    it('shows the formatted revenue source in Source and description when no plan label is known', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_900,
+        currency: 'usd',
+        organizationId: 'org_1',
+        source: 'credit_purchase',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Source')).toBe('Credit purchase');
+      expect(fieldValue(embed, 'Plan')).toBeUndefined();
+      expect(embed.description).toContain('Credit purchase');
     });
   });
 });

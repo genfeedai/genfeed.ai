@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
@@ -79,6 +80,7 @@ export class PostGenerationService {
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly apiKeysService: ApiKeysService,
     private readonly brandsService: BrandsService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
@@ -862,7 +864,7 @@ export class PostGenerationService {
     dto: GenerateHooksDto,
     identity: Pick<
       AuthenticatedUser,
-      'brandId' | 'id' | 'organizationId' | 'userId'
+      'apiKeyId' | 'brandId' | 'id' | 'isApiKey' | 'organizationId' | 'userId'
     >,
   ): Promise<{
     hooks: string[];
@@ -873,24 +875,26 @@ export class PostGenerationService {
       topic: string;
     };
   }> {
-    // #5219: generation always has an explicit brand. Explicit dto.brandId,
-    // else the route/thread context (identity.brandId), else the acting
-    // member's currentBrandId — never an org-wide guess.
-    const resolvedBrand = await resolveGenerationBrand({
-      brandsService: this.brandsService,
-      contextBrandId: identity.brandId,
+    // #5219/#5292: generation always has an explicit brand, resolved through
+    // the single API-key/MCP/session resolver: explicit dto.brandId, else
+    // (API-key caller) the key's validated defaultBrandId, else
+    // (every other caller) identity.brandId — re-validated, since it can be
+    // briefly stale — else the acting member's currentBrandId. Never an
+    // org-wide guess.
+    const resolvedBrandId = await resolveGenerationBrandIdForCaller({
       explicitBrandId: dto.brandId,
-      membersService: this.membersService,
-      organizationId: identity.organizationId,
-      userId: identity.userId ?? identity.id,
+      noApiKeyDefaultBrandMessage:
+        'brandId is required to generate hook variations. Configure a default brand for this API key, or pass brandId explicitly.',
+      noBrandMessage: 'brandId is required to generate hook variations.',
+      services: {
+        apiKeysService: this.apiKeysService,
+        brandsService: this.brandsService,
+        membersService: this.membersService,
+      },
+      user: identity,
     });
-    if (!resolvedBrand?.id) {
-      throw new BadRequestException(
-        'brandId is required to generate hook variations.',
-      );
-    }
     const brand = await this.brandsService.findOne({
-      id: String(resolvedBrand.id),
+      id: resolvedBrandId,
       organizationId: identity.organizationId,
     });
     if (!brand) {

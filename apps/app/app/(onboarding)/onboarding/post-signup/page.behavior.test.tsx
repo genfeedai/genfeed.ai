@@ -413,6 +413,31 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
+  it('uses URL free plan handoff to bypass stale stored paid plan checkout (genfeedai/genfeed.ai#5311)', async () => {
+    searchParamsState.value = new URLSearchParams(
+      'plan=free&brandDomain=https://www.acme.co/path&brandName=Acme',
+    );
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_stale');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+    });
+
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+    // genfeedai/genfeed.ai#5311: `?plan=free` must classify identically to
+    // `?plan=payg` on SIGNUP_COMPLETED — both are free handoffs, never paid
+    // intent — through the real usePostSignupRouting hook and event wiring,
+    // matching the SIGNUP_STARTED assertion in sign-up-form.test.tsx.
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith('signup_completed', {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: false,
+      hasCreditsIntent: false,
+      hasPlanIntent: false,
+    });
+  });
+
   it('claims and clears referral attribution before starting a PAYG checkout', async () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);

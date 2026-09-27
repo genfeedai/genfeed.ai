@@ -1,3 +1,4 @@
+import { OrganizationCategory } from '@genfeedai/contracts';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
@@ -6,11 +7,14 @@ import {
   deriveBrandNameFromDomain,
   extractBrandDomain,
   getSelectedOnboardingAccessMode,
+  hasPaidPlanIntent,
+  isFreePlanHandoff,
   ONBOARDING_ACCESS_SOURCE,
   ONBOARDING_STORAGE_KEYS,
   parseReferralCode,
   persistOnboardingHandoffParams,
   persistSignupAttribution,
+  resolveBrandStepAccountType,
   resolvePendingSignupAttribution,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -88,6 +92,29 @@ describe('extractBrandDomain', () => {
       'genfeed.ai',
     );
     expect(extractBrandDomain('acme.co')).toBe('acme.co');
+  });
+});
+
+describe('isFreePlanHandoff / hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', () => {
+  it('recognizes free and payg as free handoffs, never paid intent', () => {
+    for (const plan of ['payg', 'free', ' FREE ', ' PAYG ']) {
+      expect(isFreePlanHandoff(plan)).toBe(true);
+      expect(hasPaidPlanIntent(plan)).toBe(false);
+    }
+  });
+
+  it('treats an empty, whitespace, or missing plan as no intent', () => {
+    for (const plan of [null, undefined, '', '   ']) {
+      expect(isFreePlanHandoff(plan)).toBe(false);
+      expect(hasPaidPlanIntent(plan)).toBe(false);
+    }
+  });
+
+  it('counts a real paid plan as intent on both sides of the funnel', () => {
+    for (const plan of ['price_123', 'hosted', 'pro']) {
+      expect(isFreePlanHandoff(plan)).toBe(false);
+      expect(hasPaidPlanIntent(plan)).toBe(true);
+    }
   });
 });
 
@@ -385,4 +412,40 @@ describe('resolvePendingSignupAttribution', () => {
       ),
     ).toEqual({ referrerDomain: 'google.com' });
   });
+});
+
+describe('resolveBrandStepAccountType', () => {
+  it('prefers the signup CTA hint over the existing account type', () => {
+    expect(
+      resolveBrandStepAccountType(
+        OrganizationCategory.EXPERT,
+        OrganizationCategory.BUSINESS,
+      ),
+    ).toBe(OrganizationCategory.EXPERT);
+  });
+
+  it.each([OrganizationCategory.EXPERT, OrganizationCategory.AGENCY])(
+    'keeps an existing %s organization when there is no hint',
+    (existing) => {
+      expect(resolveBrandStepAccountType(null, existing)).toBe(existing);
+    },
+  );
+
+  it.each([OrganizationCategory.CREATOR, OrganizationCategory.BUSINESS])(
+    'does not let a %s hint overwrite an existing EXPERT organization',
+    (hint) => {
+      expect(
+        resolveBrandStepAccountType(hint, OrganizationCategory.EXPERT),
+      ).toBe(OrganizationCategory.EXPERT);
+    },
+  );
+
+  it.each([OrganizationCategory.BUSINESS, OrganizationCategory.CREATOR, null])(
+    'defaults %s to CREATOR when there is no hint',
+    (existing) => {
+      expect(resolveBrandStepAccountType(null, existing)).toBe(
+        OrganizationCategory.CREATOR,
+      );
+    },
+  );
 });

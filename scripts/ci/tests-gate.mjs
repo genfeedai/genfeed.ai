@@ -8,31 +8,12 @@ const VALID_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
 
 const DORMANT_CLASSIFICATION = 'dormant (paused surface)';
 
-// Each entry carries the planner group key so the summary can tell a paused
-// surface apart from a genuinely out-of-scope one. Without it every skip reads
-// as "not applicable", and a `full-suite` run looks like it covered everything
-// when a dormant workspace was never exercised (#2486).
-const SCOPED_WORKSPACE_JOBS = [
-  ['Package tests', 'TEST_PACKAGES_RESULT', 'TEST_SCOPE_PACKAGES', 'packages'],
-  [
-    'Server-service tests',
-    'TEST_SERVER_SERVICES_RESULT',
-    'TEST_SCOPE_SERVER_SERVICES',
-    'server',
-  ],
-  [
-    'Web and mobile tests',
-    'TEST_WEB_DESKTOP_MOBILE_RESULT',
-    'TEST_SCOPE_WEB_DESKTOP_MOBILE',
-    'web',
-  ],
-  [
-    'Extension tests',
-    'TEST_EXTENSIONS_RESULT',
-    'TEST_SCOPE_EXTENSIONS',
-    'extensions',
-  ],
-];
+// Paused surfaces never run, even under `full-suite`. They get their own rows
+// so the summary can tell a paused surface apart from an out-of-scope skip:
+// otherwise a full run reads as if it covered everything (#2486).
+const DORMANT_SURFACE_NAMES = {
+  extensions: 'Extension tests',
+};
 
 function parseBoolean(value, name, allowEmpty = false) {
   if (value === 'true') return true;
@@ -51,93 +32,62 @@ function readResult(env, key) {
 }
 
 export function createTestsGateJobs(env) {
-  const testScopeResult = readResult(env, 'TEST_SCOPE_RESULT');
-  const allowEmptyScope = testScopeResult !== 'success';
-  const appScope = parseBoolean(
-    env.TEST_SCOPE_APP,
-    'TEST_SCOPE_APP',
-    allowEmptyScope,
-  );
-  const apiScope = parseBoolean(
-    env.TEST_SCOPE_API,
-    'TEST_SCOPE_API',
-    allowEmptyScope,
-  );
-  const appTests = parseBoolean(
-    env.TEST_SCOPE_APP_TESTS,
-    'TEST_SCOPE_APP_TESTS',
-    allowEmptyScope,
-  );
-  const apiTests = parseBoolean(
-    env.TEST_SCOPE_API_TESTS,
-    'TEST_SCOPE_API_TESTS',
-    allowEmptyScope,
-  );
-  // Empty when the scope job never finished (e.g. a cancelled run), like the
-  // other scope outputs; a failed or cancelled scope job fails the gate anyway.
-  const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE', allowEmptyScope);
+  const planResult = readResult(env, 'PLAN_RESULT');
+  // Plan outputs are empty when the plan job never finished; a failed,
+  // skipped, or cancelled plan fails the gate on its own row.
+  const allowEmptyPlan = planResult !== 'success';
+  const planned = (key) => parseBoolean(env[key], key, allowEmptyPlan);
 
   return [
     {
-      name: 'Test scope',
-      result: testScopeResult,
+      // Trust check, heavy-tier resolution, test plan, and spec scope.
+      name: 'Plan',
+      result: planResult,
       applicable: true,
     },
-    ...SCOPED_WORKSPACE_JOBS.map(([name, resultKey, scopeKey, groupKey]) => ({
-      name,
-      result: readResult(env, resultKey),
-      applicable: parseBoolean(env[scopeKey], scopeKey, allowEmptyScope),
-      dormant: TEMPORARILY_DISABLED_TEST_GROUPS.has(groupKey),
-    })),
     {
-      // Format, secretlint, lint, typecheck, and the executable contracts run
-      // in one consolidated job (#1969); the gate holds their failure
-      // semantics now that build no longer queues behind them.
+      // Gitleaks, format, secretlint, lint, typecheck, and the executable
+      // contracts run in one consolidated job (#1969).
       name: 'Static checks',
       result: readResult(env, 'STATIC_CHECKS_RESULT'),
       applicable: true,
     },
     {
-      // Spec files are invisible to the Typecheck step inside Static checks —
-      // every backend tsconfig.typecheck.json excludes them — so the ratchet
-      // runs as its own job. It was absent from this aggregate, which let a red
-      // Spec Typecheck report a green Tests Gate: the master failure tracker
-      // keys off `tests-gate.result`, so run 32971423541 filed no tracker and
-      // its resolve arm closed the open ones instead.
+      // Spec files are invisible to the Typecheck step inside Static checks.
+      // This row must stay in the aggregate: the master failure tracker keys
+      // off the gate, so a missing row let a red Spec Typecheck close the open
+      // trackers (run 32971423541).
       name: 'Spec typecheck',
       result: readResult(env, 'SPEC_TYPECHECK_RESULT'),
-      applicable: true,
+      applicable: planned('PLAN_SPEC_TYPECHECK'),
     },
     {
+      // Build, plus the OpenAPI drift gate whenever the API is in scope.
       name: 'Build',
       result: readResult(env, 'BUILD_RESULT'),
       applicable: true,
     },
     {
-      name: 'App tests (full matrix)',
+      name: 'Workspace tests',
+      result: readResult(env, 'TEST_WORKSPACES_RESULT'),
+      applicable: planned('PLAN_WORKSPACE_TESTS'),
+    },
+    {
+      name: 'App tests',
       result: readResult(env, 'TEST_APP_RESULT'),
-      applicable: appScope && fullSuite,
+      applicable: planned('PLAN_APP_TESTS'),
     },
     {
-      name: 'App tests (changed)',
-      result: readResult(env, 'TEST_APP_CHANGED_RESULT'),
-      applicable: appTests && !fullSuite,
-    },
-    {
-      name: 'API tests (full matrix)',
+      name: 'API tests',
       result: readResult(env, 'TEST_API_RESULT'),
-      applicable: apiScope && fullSuite,
+      applicable: planned('PLAN_API_TESTS'),
     },
-    {
-      name: 'API tests (changed)',
-      result: readResult(env, 'TEST_API_CHANGED_RESULT'),
-      applicable: apiTests && !fullSuite,
-    },
-    {
-      name: 'OpenAPI spec drift',
-      result: readResult(env, 'OPENAPI_DRIFT_RESULT'),
-      applicable: apiScope,
-    },
+    ...[...TEMPORARILY_DISABLED_TEST_GROUPS].map((group) => ({
+      name: DORMANT_SURFACE_NAMES[group] ?? `${group} tests`,
+      result: 'skipped',
+      applicable: false,
+      dormant: true,
+    })),
   ];
 }
 
@@ -271,8 +221,7 @@ export function formatTestsGateSummary(evaluation) {
         .map((row) => row.name)
         .join(', ')}. These stay skipped even with the \`full-suite\` label. ` +
         'Re-enable one by removing its group from `TEMPORARILY_DISABLED_TEST_GROUPS` ' +
-        'in `scripts/ci/pr-test-plan.mjs` and setting its `vars.ENABLE_*_CI` ' +
-        'repository variable.',
+        'in `scripts/ci/pr-test-plan.mjs`.',
     );
   }
 

@@ -823,16 +823,14 @@ test('PR titles are checked without executing fork code and stay in sync with th
     prTitleWorkflow,
     /uses: amannn\/action-semantic-pull-request@[0-9a-f]{40} # v6\.\d+\.\d+/,
   );
-  // `github.event.pull_request` is absent on merge_group runs (#3143); each
-  // queue entry's `gh-readonly-queue/...` ref keeps the group unique there.
   assert.match(
     prTitleWorkflow,
-    /group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/,
+    /group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event\.pull_request\.number \}\}/,
   );
-  assert.match(
+  assert.doesNotMatch(
     prTitleWorkflow,
-    /^ {2}merge_group:\n {4}types: \[checks_requested\]$/m,
-    'PR Title is a required context, so it must also report on the merge queue commit',
+    /merge_group/,
+    'master has no merge queue; PR Title reports on the pull request only',
   );
 
   const typesBlock = prTitleWorkflow.match(
