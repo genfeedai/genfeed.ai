@@ -121,6 +121,23 @@ describe('Batch rewrite', () => {
     expect(generation.enhanceDescription).not.toHaveBeenCalled();
     expect(activities.create).not.toHaveBeenCalled();
   });
+  it('rejects a brandless batch before generating or creating an activity', async () => {
+    const { service, prisma, generation, activities } = setup();
+    prisma.batch.findFirst.mockResolvedValue({
+      id: 'batch-1',
+      brandId: null,
+      items,
+      updatedAt,
+    });
+
+    await expect(
+      service.rewriteItems('batch-1', ['item-1'], 'org-1', 'user-1'),
+    ).rejects.toThrow('Rewrite needs a brand-scoped batch');
+    expect(prisma.post.findMany).not.toHaveBeenCalled();
+    expect(generation.enhanceDescription).not.toHaveBeenCalled();
+    expect(activities.create).not.toHaveBeenCalled();
+  });
+
   it('rejects foreign item IDs before generation', async () => {
     const { service, generation } = setup();
     await expect(

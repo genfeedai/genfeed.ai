@@ -37,6 +37,12 @@ export class BatchGenerationRewriteService {
       where: { id: batchId, organizationId, isDeleted: false },
     });
     if (!batch) throw new NotFoundException('Batch', batchId);
+    // Posts always belong to a brand, and the rewrite uses its voice: a
+    // brandless batch has nothing it could rewrite.
+    const brandId = batch.brandId;
+    if (!brandId) {
+      throw new BadRequestException('Rewrite needs a brand-scoped batch');
+    }
     const selectedIds = new Set(itemIds);
     const items = resolveBatchItems(batch).filter((item) =>
       selectedIds.has(item.id),
@@ -53,7 +59,7 @@ export class BatchGenerationRewriteService {
         id: { in: items.flatMap((item) => (item.postId ? [item.postId] : [])) },
         organizationId,
         isDeleted: false,
-        brandId: batch.brandId,
+        brandId,
       },
     });
     const postMap = new Map(posts.map((post) => [post.id, post]));
@@ -72,7 +78,7 @@ export class BatchGenerationRewriteService {
     }
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: batch.brandId,
+        brandId,
         organizationId,
         userId,
         key: ActivityKey.POST_PROCESSING,
