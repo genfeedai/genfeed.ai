@@ -2,6 +2,8 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
+import { orgSettingsRoute } from '../../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Settings Connections & Sub-Pages
@@ -69,24 +71,34 @@ test.describe('Settings Connections & Sub-Pages', () => {
       await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
     });
 
-    test('should show generate API key button or form', async ({
+    test('should show the create API key button', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
+      // APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS ('/settings/organization/api-keys')
+      // is a legacy path that now renders LegacyOrganizationSettingsNotFound
+      // (see (pages)/organization/api-keys/page.tsx) — the live page is
+      // API_KEYS ('/settings/api-keys', (organization)/api-keys/page.tsx).
+      // Navigate with the explicit E2E org slug: the proxy's active-workspace
+      // resolution for a bare `/settings/*` path is cached server-side per
+      // session and is not deterministic across parallel workers sharing one
+      // dev server.
+      const route = orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS);
+      await authenticatedPage.goto(route);
       await authenticatedPage.waitForLoadState('domcontentloaded');
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
       const mainContent = authenticatedPage.locator(
         'main, [data-testid="main-content"]',
       );
       await expect(mainContent).toBeVisible({ timeout: 15000 });
 
-      // Should have a generate button or key input
-      const generateOrInput = settingsPage.generateApiKeyButton.or(
-        settingsPage.apiKeyInput,
-      );
-      await expect(generateOrInput).toBeVisible({ timeout: 10000 });
+      // Real UI (organization/api-keys/content.tsx): a "Create Key" button,
+      // no data-testid.
+      await expect(settingsPage.generateApiKeyButton).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test('should handle empty API keys state', async ({

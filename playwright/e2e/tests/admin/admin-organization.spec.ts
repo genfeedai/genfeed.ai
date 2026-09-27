@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
+import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
  * E2E route + interaction coverage for the Admin Organization and Folders pages.
@@ -36,7 +36,22 @@ test.describe('Admin Organization', () => {
 
   test('folders view stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
-    await tryClick(adminPage, 'button');
-    await expect(adminPage.locator('body')).toBeVisible();
+
+    // tryClick + "body is visible" never asserts anything real (any
+    // non-blank page satisfies it). Refresh (folders-list.tsx) is the one
+    // control every scope renders — the "New Folder" create button is
+    // hidden for PageScope.SUPERADMIN, which is what this route always
+    // passes. Assert the click actually re-fetches, not just that some
+    // button existed to click.
+    const refreshButton = adminPage.getByRole('button', { name: 'Refresh' });
+    await expect(refreshButton).toBeVisible();
+
+    const refreshRequest = adminPage.waitForResponse(
+      (response) =>
+        response.url().includes('/folders') &&
+        response.request().method() === 'GET',
+    );
+    await refreshButton.click();
+    await refreshRequest;
   });
 });

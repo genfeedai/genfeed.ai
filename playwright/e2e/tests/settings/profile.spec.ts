@@ -5,12 +5,14 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { formData, testUsers } from '../../fixtures/test-data.fixture';
 import { SettingsPage } from '../../pages/settings.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Profile Settings
  *
- * Tests verify profile editing, avatar upload, and user preferences.
- * All API calls are mocked - no real backend requests occur.
+ * Tests verify the personal settings surface: read-only profile identity,
+ * preferences, and cross-scope settings navigation. All API calls are
+ * mocked - no real backend requests occur.
  */
 test.describe('Profile Settings', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -35,9 +37,15 @@ test.describe('Profile Settings', () => {
 
       await settingsPage.goto();
       await settingsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/settings/personal',
+      );
 
-      // Profile section or tab should be visible
-      await expect(settingsPage.profileTab).toBeVisible();
+      // Personal settings home renders the read-only "Profile Information"
+      // card (name/email from the auth provider) — there is no separate
+      // profile tab in the redesigned Settings sidebar IA.
+      await expect(settingsPage.profileSection).toBeVisible();
     });
 
     test('should display navigation tabs', async ({ authenticatedPage }) => {
@@ -45,14 +53,19 @@ test.describe('Profile Settings', () => {
 
       await settingsPage.goto();
       await settingsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/settings/personal',
+      );
 
-      // Settings navigation should be visible
+      // Settings navigation is now the shared app sidebar, not an in-page tab
+      // bar — see settingsNav's own comment in settings.page.ts.
       await expect(settingsPage.settingsNav).toBeVisible();
     });
   });
 
   test.describe('Profile Form', () => {
-    test('should display profile form fields', async ({
+    test('should display profile information', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
@@ -60,10 +73,22 @@ test.describe('Profile Settings', () => {
       await settingsPage.goto();
       await settingsPage.goToProfile().catch(() => {});
       await settingsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/settings/personal',
+      );
 
-      // Check for form fields
-      await expect(settingsPage.firstNameInput).toBeVisible();
-      await expect(settingsPage.lastNameInput).toBeVisible();
+      // Personal settings (settings-profile-page.tsx) shows read-only
+      // identity sourced from the auth provider — name and email are
+      // displayed, not editable form fields. There is no first/last name or
+      // bio form in the shipped product.
+      await expect(settingsPage.profileSection).toBeVisible();
+      await expect(
+        authenticatedPage.getByText('Name', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText('Email', { exact: true }),
+      ).toBeVisible();
     });
 
     test('should pre-fill existing profile data', async ({
@@ -240,24 +265,26 @@ test.describe('Profile Settings', () => {
   });
 
   test.describe('Avatar Upload', () => {
+    // Obsolete: a personal avatar UPLOAD control never shipped in this
+    // product — identity (name, email, avatar) is sourced from the auth
+    // provider (use-auth-user.ts's toAuthUser()/normalizeAuthAvatarUrl) with
+    // no in-app editor. Confirmed by an app-wide search: no
+    // `input[type="file"]` for an avatar exists outside onboarding/studio
+    // upload flows unrelated to the personal profile. The "current avatar"
+    // coverage is kept below, pointed at where the avatar actually renders
+    // today (the sidebar account menu).
     test('should display current avatar', async ({ authenticatedPage }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.goto();
       await settingsPage.goToProfile().catch(() => {});
       await settingsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/settings/personal',
+      );
 
       await expect(settingsPage.avatarImage).toBeVisible();
-    });
-
-    test('should have avatar upload option', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await expect(settingsPage.avatarUpload).toBeVisible();
     });
   });
 
@@ -319,20 +346,17 @@ test.describe('Profile Settings', () => {
       await settingsPage.goToNotifications();
 
       await expect(authenticatedPage).toHaveURL(/settings|notifications/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/settings/notifications',
+      );
     });
 
-    test('should navigate to security settings', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.goToSecurity();
-
-      await expect(authenticatedPage).toHaveURL(/settings|security/);
-    });
+    // Obsolete: no security settings page (password change, 2FA, session
+    // management) exists anywhere in the product. Confirmed by an app-wide
+    // search for a `/settings/security` route/directory and for
+    // two-factor/session-revoke UI — none exists, and there is no route
+    // constant for it in routes.constant.ts.
 
     test('should navigate to API keys settings', async ({
       authenticatedPage,
@@ -342,9 +366,16 @@ test.describe('Profile Settings', () => {
       await settingsPage.goto();
       await settingsPage.waitForPageLoad();
 
+      // API keys moved from a same-scope Personal tab to the Organization
+      // scope's Developer group — goToApiKeys() now navigates there directly
+      // (with the explicit E2E org slug, deterministic across parallel runs).
       await settingsPage.goToApiKeys();
 
       await expect(authenticatedPage).toHaveURL(/settings|api/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        '/test-org/~/settings/api-keys',
+      );
     });
   });
 

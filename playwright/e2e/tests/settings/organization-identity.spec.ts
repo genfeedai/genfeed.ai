@@ -5,6 +5,7 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
 import { selectVisibleRadixOption } from '../../utils/radix-select';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 test.describe('Organization Identity Defaults', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -20,7 +21,14 @@ test.describe('Organization Identity Defaults', () => {
   }) => {
     const settingsPage = new SettingsPage(authenticatedPage);
 
+    // goToOrganization() now resolves to /test-org/~/settings/general — the
+    // legacy /settings/organization path 404s
+    // (LegacyOrganizationSettingsNotFound).
     await settingsPage.goToOrganization();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      '/test-org/~/settings/general',
+    );
 
     await expect(settingsPage.orgIdentityCard).toBeVisible({ timeout: 30000 });
     await expect(

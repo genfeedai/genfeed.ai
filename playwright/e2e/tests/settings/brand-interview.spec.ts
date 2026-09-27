@@ -177,7 +177,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .click();
 
     await expect(
-      authenticatedPage.getByText(toneQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: toneQuestion.questionText,
+      }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('navigation', { name: 'Interview steps' }),
@@ -256,7 +258,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .getByRole('button', { name: /start interview/i })
       .click();
     await expect(
-      authenticatedPage.getByText(toneQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: toneQuestion.questionText,
+      }),
     ).toBeVisible();
 
     // Answer the first question → advances to the audience question.
@@ -266,7 +270,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .fill('Bold, witty, and direct');
     await authenticatedPage.getByRole('button', { name: /continue/i }).click();
     await expect(
-      authenticatedPage.getByText(audienceQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: audienceQuestion.questionText,
+      }),
     ).toBeVisible();
 
     // Answer the second question → completes the interview.
@@ -276,6 +282,8 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .fill('Founders, indie hackers');
     await authenticatedPage.getByRole('button', { name: /continue/i }).click();
 
-    await expect(authenticatedPage.getByText(/complete/i)).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /interview complete/i }),
+    ).toBeVisible();
   });
 });

@@ -43,13 +43,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/settings/profile.spec.ts',
-    reason:
-      'Personal-settings locators drifted (`firstName` / profile-section). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/analytics/deep-pages.spec.ts',
     reason:
       'Insights / hooks / performance-lab / trend-turnover copy drifted. Evidence: run 31991510270.',
@@ -126,13 +119,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/settings/brand-interview.spec.ts',
-    reason:
-      'Brand interview locators trip strict-mode. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/workflow/workflow-detail.spec.ts',
     reason:
       'Workflow detail locators trip strict-mode. Evidence: run 31991510270.',
@@ -160,46 +146,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
     file: 'playwright/e2e/tests/posts/publishing.spec.ts',
     reason: 'Publishing flow copy drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/library/avatar-library.spec.ts',
-    reason: 'Avatar library selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/admin/admin-organization.spec.ts',
-    reason: 'Admin organization selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/settings/connections.spec.ts',
-    reason:
-      'Connections/social settings selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/settings/organization-identity.spec.ts',
-    reason:
-      'Org identity-defaults selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/studio-edit/studio-edit.spec.ts',
-    reason:
-      'Studio edit timeline selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/brands/identity-defaults.spec.ts',
-    reason:
-      'Brand identity-defaults selectors drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

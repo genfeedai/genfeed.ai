@@ -22,7 +22,6 @@ export class SettingsPage {
   readonly profileTab: Locator;
   readonly billingTab: Locator;
   readonly notificationsTab: Locator;
-  readonly securityTab: Locator;
   readonly apiKeysTab: Locator;
   readonly organizationTab: Locator;
 
@@ -54,13 +53,6 @@ export class SettingsPage {
   readonly pushNotificationsToggle: Locator;
   readonly marketingEmailsToggle: Locator;
 
-  // Security settings
-  readonly securitySection: Locator;
-  readonly changePasswordButton: Locator;
-  readonly twoFactorToggle: Locator;
-  readonly sessionsSection: Locator;
-  readonly revokeAllSessionsButton: Locator;
-
   // API Keys settings
   readonly apiKeysSection: Locator;
   readonly apiKeyInput: Locator;
@@ -87,23 +79,32 @@ export class SettingsPage {
 
     // Layout
     this.mainContent = page.locator('main, [data-testid="main-content"]');
-    this.settingsNav = page.locator(
-      '[data-testid="settings-nav"], nav[aria-label="Settings"]',
-    );
+    // The Settings IA moved from an in-page tab bar to the shared app sidebar
+    // (see settings-menu-items.config.ts / buildSettingsMenuItems). The same
+    // sidebar tree is mounted twice (desktop rail + pre-mounted mobile
+    // drawer, see AppLayout.tsx), so every query here scopes to the
+    // `aria-label="Navigation"` <aside> that DesktopSidebar renders — the
+    // mobile drawer copy carries no such landmark — to avoid strict-mode
+    // duplicates.
+    this.settingsNav = page.getByRole('complementary', {
+      exact: true,
+      name: 'Navigation',
+    });
 
     // Navigation tabs
-    this.profileTab = page.locator(
-      'a[href*="profile"], button:has-text("Profile"), [data-testid="profile-tab"]',
-    );
+    // "Profile" is now the "Personal" entry in the Account group of the
+    // Settings sidebar (settings-profile-page.tsx home).
+    this.profileTab = this.settingsNav.getByRole('link', {
+      exact: true,
+      name: 'Personal',
+    });
     this.billingTab = page.locator(
       `a[href*="${APP_ROUTES.SETTINGS.CREDITS}"], a[href*="billing"], button:has-text("Credits"), button:has-text("Billing"), [data-testid="billing-tab"]`,
     );
-    this.notificationsTab = page.locator(
-      'a[href*="notifications"], button:has-text("Notifications"), [data-testid="notifications-tab"]',
-    );
-    this.securityTab = page.locator(
-      'a[href*="security"], button:has-text("Security"), [data-testid="security-tab"]',
-    );
+    this.notificationsTab = this.settingsNav.getByRole('link', {
+      exact: true,
+      name: 'Notifications',
+    });
     this.apiKeysTab = page.locator(
       'a[href*="api"], button:has-text("API"), [data-testid="api-keys-tab"]',
     );
@@ -112,7 +113,14 @@ export class SettingsPage {
     );
 
     // Profile form
-    this.profileSection = page.locator('[data-testid="profile-section"]');
+    // Personal settings (settings-profile-page.tsx) shows read-only identity
+    // (name/email sourced from the auth provider) plus preferences — there is
+    // no editable name/bio form or personal avatar upload in the shipped
+    // product. These locators intentionally match nothing; the tests that use
+    // them assert only best-effort behaviour behind a `.catch()`.
+    this.profileSection = page.getByRole('heading', {
+      name: 'Profile Information',
+    });
     this.firstNameInput = page.locator(
       'input[name="firstName"], input[name="first_name"], [data-testid="first-name-input"]',
     );
@@ -128,9 +136,11 @@ export class SettingsPage {
     this.avatarUpload = page.locator(
       'input[type="file"][accept*="image"], [data-testid="avatar-upload"]',
     );
-    this.avatarImage = page.locator(
-      '[data-testid="avatar-image"], img[alt*="avatar" i], img[alt*="profile" i]',
-    );
+    // The user's own avatar now renders in the sidebar's account menu
+    // (SidebarUserProfile / UserDropdown), not inline on the settings page.
+    this.avatarImage = this.settingsNav
+      .getByRole('button', { name: 'Open account menu' })
+      .locator('img');
     this.saveProfileButton = page.locator(
       'button:has-text("Save"), button:has-text("Update Profile"), [data-testid="save-profile"]',
     );
@@ -179,27 +189,14 @@ export class SettingsPage {
       '[data-testid="marketing-emails"], input[name*="marketing"]',
     );
 
-    // Security section
-    this.securitySection = page.locator('[data-testid="security-section"]');
-    this.changePasswordButton = page.locator(
-      'button:has-text("Change Password"), [data-testid="change-password"]',
-    );
-    this.twoFactorToggle = page.locator(
-      '[data-testid="two-factor"], input[name*="2fa"], input[name*="twoFactor"]',
-    );
-    this.sessionsSection = page.locator('[data-testid="sessions-section"]');
-    this.revokeAllSessionsButton = page.locator(
-      'button:has-text("Revoke All"), [data-testid="revoke-sessions"]',
-    );
-
     // API Keys section
     this.apiKeysSection = page.locator('[data-testid="api-keys-section"]');
-    this.apiKeyInput = page.locator(
-      'input[name="apiKeyName"], [data-testid="api-key-name-input"]',
-    );
-    this.generateApiKeyButton = page.locator(
-      'button:has-text("Generate"), [data-testid="generate-api-key"]',
-    );
+    this.apiKeyInput = page.getByPlaceholder('MCP Server');
+    // Real UI (organization/api-keys/content.tsx): a plain "Create Key"
+    // button and an unlabelled Input with a placeholder — no data-testid.
+    this.generateApiKeyButton = page.getByRole('button', {
+      name: 'Create Key',
+    });
     this.apiKeyList = page.locator('[data-testid="api-key-list"]');
     this.apiKeyItem = page.locator('[data-testid="api-key-item"]');
     this.copyApiKeyButton = page.locator(
@@ -210,7 +207,7 @@ export class SettingsPage {
     );
 
     this.orgIdentityCard = page.locator(
-      '[data-testid="org-default-avatar-trigger"]',
+      '[data-testid="org-identity-defaults-card"]',
     );
     this.orgDefaultAvatarTrigger = page.locator(
       '[data-testid="org-default-avatar-trigger"]',
@@ -292,8 +289,17 @@ export class SettingsPage {
     await this.waitForPageLoad();
   }
 
+  // APP_ROUTES.SETTINGS.ORGANIZATION ('/settings/organization') is a legacy
+  // path that now renders LegacyOrganizationSettingsNotFound (see
+  // (pages)/organization/page.tsx) — the organization settings home moved to
+  // /settings/general (organization/content.tsx, which is what actually
+  // renders OrganizationIdentityDefaultsCard).
+  // Navigates with the explicit E2E org slug (orgSettingsRoute), not the bare
+  // path: the proxy's active-workspace resolution for a bare `/settings/*`
+  // path is cached server-side per session and is not deterministic across
+  // parallel workers sharing one dev server.
   async goToOrganization(): Promise<void> {
-    await this.page.goto(APP_ROUTES.SETTINGS.ORGANIZATION, {
+    await this.page.goto(orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL), {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
     });
@@ -305,14 +311,18 @@ export class SettingsPage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async goToSecurity(): Promise<void> {
-    await this.securityTab.click();
-    await this.page.waitForLoadState('domcontentloaded');
-  }
-
+  // API Keys settings moved out of the Personal tab bar entirely — they now
+  // live under the Organization scope's Developer group
+  // (settings-menu-items.config.ts), so reaching them is a scope switch via
+  // URL, the same way goToOrganization()/goToBilling() already navigate
+  // directly (with the explicit E2E org slug, not a bare path — see
+  // goToOrganization()) rather than clicking a same-scope tab.
   async goToApiKeys(): Promise<void> {
-    await this.apiKeysTab.click();
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.goto(orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS), {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await this.waitForPageLoad();
   }
 
   // Profile methods
@@ -368,25 +378,6 @@ export class SettingsPage {
 
   async toggleMarketingEmails(): Promise<void> {
     await this.marketingEmailsToggle.click();
-  }
-
-  // Security methods
-  async clickChangePassword(): Promise<void> {
-    await this.changePasswordButton.click();
-  }
-
-  async toggle2FA(): Promise<void> {
-    await this.twoFactorToggle.click();
-  }
-
-  async revokeAllSessions(): Promise<void> {
-    await this.revokeAllSessionsButton.click();
-
-    // Handle confirmation dialog
-    const confirmButton = this.confirmDialog.locator(
-      'button:has-text("Confirm")',
-    );
-    await confirmButton.click();
   }
 
   // API Keys methods

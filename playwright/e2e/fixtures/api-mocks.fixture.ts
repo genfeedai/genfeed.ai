@@ -7,6 +7,7 @@ import {
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
+  buildProtectedAppBootstrapPayload,
   generateMockIngredient,
   generateMockOrganization,
   generateMockSubscription,
@@ -77,7 +78,11 @@ function buildAvatarIdentityFixture(
 function buildAvatarIngredientDocument(avatar: MockAvatarIdentityFixture) {
   return {
     attributes: {
-      category: 'avatar',
+      // IngredientCategory.AVATAR is 'AVATAR' (uppercase) — isAvatarIngredient()
+      // does a strict `category === IngredientCategory.AVATAR` check, so a
+      // lowercase 'avatar' here silently drops every fixture avatar from
+      // useAvatarImages()'s filtered list (#mock-shape).
+      category: IngredientCategory.AVATAR,
       createdAt: new Date().toISOString(),
       id: avatar.id,
       metadata: {
@@ -3199,6 +3204,34 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
     });
   });
 
+  // useBrandProviderState's settings query reads from the auth bootstrap
+  // payload FIRST (BrandProvider's 60s shared, per-session-key client cache;
+  // see loadClientProtectedBootstrap) whenever bootstrap's organizationId
+  // matches the route's resolved org, and only falls back to the direct GET
+  // mocked above otherwise. setupApiMocks' default bootstrap mock resolves
+  // with a matching org id and its own generic settings, short-circuiting
+  // before the direct GET mock is ever consulted. Overriding the bootstrap
+  // response's settings would only fix the FIRST read: refreshSettings()
+  // (called after every save) does not clear that 60s client cache, so a
+  // matching org id would keep serving the pre-save snapshot after a save.
+  // Deliberately mismatching organizationId here routes every settings read
+  // — initial load and post-save refresh alike — through the direct GET/PATCH
+  // mock above, which is always live against the mutable `settings` value.
+  await routeApiPattern(page, '/auth/bootstrap**', async (route) => {
+    const bootstrap = buildProtectedAppBootstrapPayload();
+    await route.fulfill({
+      body: JSON.stringify({
+        ...bootstrap,
+        access: {
+          ...bootstrap.access,
+          organizationId: `${bootstrap.access.organizationId}-settings-test-bypass`,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApiPattern(
     page,
     '/organizations/**/ingredients**',
@@ -3295,6 +3328,26 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
     });
   });
 
+  // useBrandDetail's findOneBrand (both the initial load and every
+  // handleRefreshBrand() after a save) calls BrandsService.findOneBySlug(),
+  // which hits `GET /brands/slug?slug=...` — a different path than
+  // `/brands/brand-1` above. Without this, every refresh silently falls
+  // through to setupApiMocks' generic empty-collection fallback, so a saved
+  // agentConfig change never reaches the UI.
+  await routeApiPattern(page, '/brands/slug**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          attributes: brand,
+          id: brand.id,
+          type: 'brands',
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApiPattern(page, '/brands/brand-1/agent-config', async (route) => {
     brand = {
       ...brand,
@@ -3374,23 +3427,38 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
     });
   });
 
+  const avatarIngredientsListBody = JSON.stringify({
+    data: [
+      buildAvatarIngredientDocument(avatars.source),
+      buildAvatarIngredientDocument(avatars.video),
+    ],
+    meta: { page: 1, pageSize: 2, totalCount: 2 },
+  });
+
   await routeApiPattern(
     page,
     '/organizations/**/ingredients**',
     async (route) => {
       await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            buildAvatarIngredientDocument(avatars.source),
-            buildAvatarIngredientDocument(avatars.video),
-          ],
-          meta: { page: 1, pageSize: 2, totalCount: 2 },
-        }),
+        body: avatarIngredientsListBody,
         contentType: 'application/json',
         status: 200,
       });
     },
   );
+
+  // The Library's own asset list (LibraryAssetsPage, PageScope.BRAND) does not
+  // go through OrganizationsService at all — useIngredientsList's non-org
+  // branch calls IngredientsService (`/ingredients`, brand-scoped by auth
+  // context, not a path segment). The org-scoped mock above never matches
+  // that request.
+  await routeApiPattern(page, '/ingredients**', async (route) => {
+    await route.fulfill({
+      body: avatarIngredientsListBody,
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   const avatarPatchHandler = async (route: Route) => {
     const isVideo = route.request().url().includes(avatars.video.id);
