@@ -451,6 +451,12 @@ describe.skipIf(!connectionString)(
         usage: 7,
       });
 
+      // The shared afterEach only clears billingAccountMember rows for
+      // billingAccountIds[0]/[1] once this test returns — drop the extra
+      // members row first so deleting these extra users doesn't trip its FK.
+      await db.billingAccountMember.deleteMany({
+        where: { userId: { in: [viewerUserId, memberUserId] } },
+      });
       await db.user.deleteMany({
         where: { id: { in: [viewerUserId, memberUserId] } },
       });
