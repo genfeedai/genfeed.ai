@@ -171,7 +171,7 @@ describe('MediaTextDecisionService', () => {
   });
 
   it.each([
-    ['the mode is off', { mode: 'off' }],
+    ['the mode is off', { mode: 'off' as const }],
     ['no provider is bound', { isBound: false }],
     [
       'perception is pending',

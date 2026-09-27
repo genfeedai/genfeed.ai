@@ -219,7 +219,10 @@ describe('MediaModerationService.moderate', () => {
 
   it.each([
     ['the provider is none', { isEnabled: false }],
-    ['the mode is off', { featureSettings: { moderationMode: 'off' } }],
+    [
+      'the mode is off',
+      { featureSettings: { moderationMode: 'off' as const } },
+    ],
   ])('persists no verdict when %s', async (_label, options) => {
     const h = makeHarness(options);
 
