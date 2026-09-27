@@ -1,5 +1,4 @@
 import {
-  buildExecutionJsonApiResource,
   mockActiveSubscription,
   mockNodeTypes,
   mockWorkflowCrud,
@@ -13,7 +12,11 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
-import { WorkflowPage } from '../../pages/workflow.page';
+import {
+  executionsHistoryLocator,
+  WorkflowPage,
+} from '../../pages/workflow.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Workflow Execution
@@ -39,7 +42,18 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutions();
 
     await expect(authenticatedPage).toHaveURL(/automation\/runs/);
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(authenticatedPage, 'automation/runs');
+    // The generic app-shell `<main>` renders on every authenticated route
+    // regardless of whether the executions list itself loaded, so it is not
+    // a real signal — assert the surface's own populated/empty/error state
+    // (same helper `workflows.spec.ts` / `workflows-templates-executions.spec.ts` use).
+    // Multiple executions each render their own row/"View Details" link, so
+    // several of `executionsHistoryLocator`'s alternatives legitimately match
+    // more than once — `.first()` is the expected multiplicity here, not an
+    // ambiguous locator being narrowed.
+    await expect(
+      executionsHistoryLocator(authenticatedPage).first(),
+    ).toBeVisible();
   });
 
   test('should show execution details by ID', async ({ authenticatedPage }) => {
@@ -51,7 +65,17 @@ test.describe('Workflow Execution', () => {
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`automation/runs/${execution.id}`),
     );
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      `automation/runs/${execution.id}`,
+    );
+    // "Node Execution Log" only renders once `ExecutionDetailPage` has
+    // loaded and mapped the execution successfully (not the loading,
+    // error, or not-found branches) — a real signal, unlike the generic
+    // app-shell `<main>`.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+    ).toBeVisible();
   });
 
   test('should display execution status (completed)', async ({
@@ -59,19 +83,31 @@ test.describe('Workflow Execution', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const completedExec = testWorkflowExecutions.find(
-      (e) => e.status === 'completed',
+      (e) => e.status === 'COMPLETED',
     );
+    if (!completedExec) {
+      throw new Error(
+        'testWorkflowExecutions fixture is missing a COMPLETED execution',
+      );
+    }
 
-    await workflowPage.gotoExecutionById(completedExec?.id);
+    await workflowPage.gotoExecutionById(completedExec.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/runs/${completedExec?.id}`),
+      new RegExp(`automation/runs/${completedExec.id}`),
     );
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      `automation/runs/${completedExec.id}`,
+    );
 
-    // Page should render without errors for completed execution
-    const pageContent = await workflowPage.mainContent.textContent();
-    expect(pageContent).toBeTruthy();
+    // Page should render without errors for completed execution. Assert the
+    // real "Node Execution Log" heading, not the generic app-shell `<main>`
+    // (always present regardless of this page's own load state) — see the
+    // "should show execution details by ID" test above for why.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+    ).toBeVisible();
   });
 
   test('should display execution status (running)', async ({
@@ -79,15 +115,26 @@ test.describe('Workflow Execution', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const runningExec = testWorkflowExecutions.find(
-      (e) => e.status === 'running',
+      (e) => e.status === 'RUNNING',
     );
+    if (!runningExec) {
+      throw new Error(
+        'testWorkflowExecutions fixture is missing a RUNNING execution',
+      );
+    }
 
-    await workflowPage.gotoExecutionById(runningExec?.id);
+    await workflowPage.gotoExecutionById(runningExec.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/runs/${runningExec?.id}`),
+      new RegExp(`automation/runs/${runningExec.id}`),
     );
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      `automation/runs/${runningExec.id}`,
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+    ).toBeVisible();
   });
 
   test('should display execution status (failed)', async ({
@@ -95,56 +142,55 @@ test.describe('Workflow Execution', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const failedExec = testWorkflowExecutions.find(
-      (e) => e.status === 'failed',
+      (e) => e.status === 'FAILED',
     );
+    if (!failedExec) {
+      throw new Error(
+        'testWorkflowExecutions fixture is missing a FAILED execution',
+      );
+    }
 
-    await workflowPage.gotoExecutionById(failedExec?.id);
+    await workflowPage.gotoExecutionById(failedExec.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/runs/${failedExec?.id}`),
+      new RegExp(`automation/runs/${failedExec.id}`),
     );
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      `automation/runs/${failedExec.id}`,
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+    ).toBeVisible();
   });
 
   test('should show execution logs/results', async ({ authenticatedPage }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const execution = testWorkflowExecutions[0];
 
-    // Mock single execution with detailed logs
-    await authenticatedPage.route(
-      `**/api.genfeed.ai/executions/${execution.id}`,
-      async (route) => {
-        await route.fulfill({
-          body: JSON.stringify({
-            data: buildExecutionJsonApiResource(
-              execution.id,
-              {
-                completedAt: execution.completedAt,
-                id: execution.id,
-                logs: execution.logs,
-                results: execution.results,
-                startedAt: execution.startedAt,
-                status: execution.status,
-                workflowId: execution.workflowId,
-              },
-              'executions',
-            ),
-          }),
-          contentType: 'application/json',
-          status: 200,
-        });
-      },
-    );
-
+    // `mockWorkflowExecutions` (registered in `beforeEach`) already serves
+    // this execution by ID with its logs/results normalized against the
+    // real `ExecutionResult` contract (`nodeResults`, `progress`, `trigger`,
+    // etc). A previous per-test override here posted a hand-built,
+    // non-normalized payload (missing `nodeResults`, using fields the real
+    // contract doesn't have) at an endpoint the app doesn't even call
+    // (`/executions/:id` instead of `/workflow-executions/:id`), so it was
+    // silently inert. There is nothing left for this test to add on top of
+    // the shared mock.
     await workflowPage.gotoExecutionById(execution.id);
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`automation/runs/${execution.id}`),
     );
-    await expect(workflowPage.mainContent).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      `automation/runs/${execution.id}`,
+    );
 
-    // Content should be rendered
-    const content = await workflowPage.mainContent.textContent();
-    expect(content).toBeTruthy();
+    // Content should be rendered — see the "should show execution details
+    // by ID" test above for why this asserts the heading, not `mainContent`.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+    ).toBeVisible();
   });
 });

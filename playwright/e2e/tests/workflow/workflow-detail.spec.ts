@@ -11,6 +11,7 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Workflow Detail (parameterized /automation/workflows/[id])
@@ -36,13 +37,19 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
-    await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+    // The generic app-shell `<main>` renders on every authenticated route
+    // regardless of whether this page's own content loaded, so it is not a
+    // real positive signal on its own — assert the editor's actual canvas
+    // (or its documented empty state) instead.
+    await expect(
+      workflowPage.canvas.first().or(workflowPage.canvasEmpty.first()),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('should not redirect away from workflow detail', async ({
@@ -50,12 +57,14 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
     // Verify we stay on the workflow detail page, not redirected to list or login
     const url = authenticatedPage.url();
-    expect(url).toContain(`automation/workflows/${workflow.id}`);
+    expect(url).toContain(route);
     expect(url).not.toContain('/login');
   });
 
@@ -64,13 +73,15 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[1];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
-    await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
+    await expect(
+      workflowPage.canvas.first().or(workflowPage.canvasEmpty.first()),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('should display editor canvas or empty state for workflow', async ({
@@ -78,22 +89,17 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
   }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-    const hasCanvas = await workflowPage.canvas
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasEmpty = await workflowPage.canvasEmpty
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasMain = await workflowPage.mainContent
-      .isVisible()
-      .catch(() => false);
+    const hasCanvas = await workflowPage.canvas.first().isVisible();
+    const hasEmpty = hasCanvas
+      ? false
+      : await workflowPage.canvasEmpty.first().isVisible();
 
-    expect(hasCanvas || hasEmpty || hasMain).toBe(true);
+    expect(hasCanvas || hasEmpty).toBe(true);
   });
 
   test('should render on mobile viewport without crash', async ({
@@ -103,22 +109,25 @@ test.describe('Workflow Detail — /automation/workflows/[id]', () => {
 
     const workflowPage = new WorkflowPage(authenticatedPage);
     const workflow = testWorkflows[0];
+    const route = `automation/workflows/${workflow.id}`;
 
     await workflowPage.gotoEditorById(workflow.id);
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`automation/workflows/${workflow.id}`),
-    );
+    await expect(authenticatedPage).toHaveURL(new RegExp(route));
+    await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-    // On mobile, a desktop gate or the main content should be visible
-    const hasDesktopGate = await workflowPage.desktopGate
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasMain = await workflowPage.mainContent
-      .isVisible()
-      .catch(() => false);
+    // On mobile, either a dedicated desktop gate takes over, or the editor
+    // itself renders (canvas or its documented empty state) — the generic
+    // app-shell `<main>` is not a real signal either way (see above).
+    const hasDesktopGate = await workflowPage.desktopGate.first().isVisible();
+    const hasCanvas = hasDesktopGate
+      ? false
+      : await workflowPage.canvas.first().isVisible();
+    const hasEmpty =
+      hasDesktopGate || hasCanvas
+        ? false
+        : await workflowPage.canvasEmpty.first().isVisible();
 
-    expect(hasDesktopGate || hasMain).toBe(true);
+    expect(hasDesktopGate || hasCanvas || hasEmpty).toBe(true);
   });
 });
