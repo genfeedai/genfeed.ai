@@ -1,11 +1,46 @@
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const navigationState = vi.hoisted(() => ({
+  pathname: '/acme/brand/workspace',
+}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  usePathname: () => navigationState.pathname,
+}));
+
 function MenuComponent(): ReactElement {
   return <div data-testid="menu-component">Menu</div>;
+}
+
+function RailComponent({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}): ReactElement {
+  return (
+    <button type="button" data-testid="rail-component" onClick={onNavigate}>
+      Studio
+    </button>
+  );
+}
+
+function MenuToggleTopbar({ onMenuToggle }: TopbarProps): ReactElement {
+  return (
+    <button type="button" onClick={onMenuToggle}>
+      Open navigation
+    </button>
+  );
 }
 
 describe('AppLayout', () => {
@@ -47,7 +82,9 @@ describe('AppLayout', () => {
       'min-h-screen',
       'bg-background',
     );
-    expect(contentShell).toHaveClass('md:pl-[var(--desktop-sidebar-width)]');
+    expect(contentShell).toHaveClass(
+      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+    );
     expect(mainContent).toHaveClass('flex', 'flex-1', 'flex-col');
     expect(mainContent).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('Content')).toBeInTheDocument();
@@ -136,11 +173,206 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('desktop-sidebar-rail');
     expect(rail).toBeInTheDocument();
-    expect(rail).toHaveClass('border-r', 'border-border');
-    expect(rail).toHaveClass('bg-background');
-    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0');
-    expect(rail).toHaveStyle({ top: 'var(--desktop-titlebar-height)' });
+    // Chrome surface shared with the app rail; the content panel owns the border.
+    expect(rail).toHaveClass('bg-gray-100');
+    expect(rail).not.toHaveClass('border-r');
+    expect(rail).toHaveClass('fixed', 'bottom-0');
+    expect(rail).toHaveStyle({
+      left: 'var(--desktop-rail-width, 0px)',
+      // Shares the content surface's top inset so its header lines up with the
+      // topbar row.
+      top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
+    });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
+    expect(screen.queryByTestId('desktop-app-rail')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-rail-width': '0px',
+    });
+  });
+
+  it('renders the app rail at the far left and offsets the shell by its width', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const appRail = screen.getByTestId('desktop-app-rail');
+
+    expect(appRail).toHaveClass(
+      'fixed',
+      'left-0',
+      'bottom-0',
+      'w-[var(--desktop-rail-width)]',
+      // The sidebar-plane chrome shared with the sidebar, no divider.
+      'bg-gray-100',
+    );
+    expect(appRail).not.toHaveClass('border-r');
+    expect(appRail).toContainElement(
+      screen.getAllByTestId('rail-component')[0],
+    );
+    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
+      '--desktop-rail-width': '52px',
+    });
+    // Desktop: the topbar lives inside the inset panel instead of floating.
+    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+      'fixed',
+      'md:static',
+    );
+  });
+
+  it('sets the page on one Codex-style content surface that owns desktop scrolling', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    const contentShell = screen.getByTestId('app-content-shell');
+    const panel = screen.getByTestId('app-content-panel');
+    const mainContent = screen.getByTestId('app-main-content');
+
+    expect(layoutRoot).toHaveClass(
+      'bg-gray-100',
+      '[--shell-inset:0px]',
+      'md:[--shell-inset:0.5rem]',
+      'md:[--shell-edge:1px]',
+    );
+    // One inset from the top, flush to the right and bottom edges; the docked
+    // inspector's width is reserved inside the surface.
+    expect(contentShell).toHaveClass(
+      'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
+      'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
+      'md:h-dvh',
+      'md:overflow-hidden',
+    );
+    expect(contentShell.className).not.toMatch(
+      /md:p[rb]-\[var\(--shell-inset\)\]/,
+    );
+    // A single hairline where content meets the chrome, rounded at the corner.
+    expect(panel).toHaveClass(
+      'bg-background',
+      'md:rounded-tl-lg',
+      'md:border-t',
+      'md:border-l',
+      'md:border-border',
+      'md:overflow-hidden',
+    );
+    expect(panel).not.toHaveClass('md:border', 'md:rounded-lg');
+    expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
+    expect(mainContent).toHaveClass(
+      'md:overflow-y-auto',
+      'md:pt-0',
+      'pt-[calc(var(--desktop-titlebar-height)+3rem)]',
+    );
+    expect(mainContent).toHaveAttribute('data-scroll-container', 'shell');
+  });
+
+  it('starts every route at the top of the panel scroll', () => {
+    const { rerender } = render(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+    const mainContent = screen.getByTestId('app-main-content');
+    // jsdom has no layout, so give scrollTop real state to observe the reset.
+    let scrollTop = 240;
+    Object.defineProperty(mainContent, 'scrollTop', {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+
+    navigationState.pathname = '/acme/brand/library/assets';
+    rerender(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(scrollTop).toBe(0);
+  });
+
+  it('keeps the app rail when the sidebar collapses', async () => {
+    window.localStorage.setItem('genfeed:sidebar:collapsed:auth', 'true');
+
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
+        width: '0px',
+      });
+    });
+    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveStyle({
+      left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
+    });
+  });
+
+  it('keeps the app rail on routes without a module sidebar', () => {
+    render(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByTestId('desktop-app-rail')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('desktop-sidebar-rail'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('mobile-app-rail')).toBeInTheDocument();
+  });
+
+  it('puts the app rail in the mobile drawer and closes the drawer on navigation', () => {
+    render(
+      <AppLayout
+        menuComponent={<MenuComponent />}
+        railComponent={<RailComponent />}
+        topbarComponent={MenuToggleTopbar}
+      >
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const mobileRail = screen.getByTestId('mobile-app-rail');
+    const drawer = mobileRail.parentElement?.parentElement;
+
+    // Clears the 48px fixed topbar that overlaps the top of the drawer.
+    expect(mobileRail).toHaveClass('pt-12');
+    expect(drawer).toHaveClass('hidden');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(drawer).toHaveClass('flex');
+    expect(mobileRail.nextElementSibling).toContainElement(
+      screen.getAllByTestId('menu-component')[1],
+    );
+
+    const mobileRailItem = mobileRail.querySelector(
+      '[data-testid="rail-component"]',
+    );
+    expect(mobileRailItem).not.toBeNull();
+    fireEvent.click(mobileRailItem as Element);
+
+    expect(drawer).toHaveClass('hidden');
   });
 
   it('marks the workspace shell root without renaming the nav column', () => {
@@ -182,7 +414,9 @@ describe('AppLayout', () => {
       screen.getAllByRole('button', { name: 'Expand sidebar' }),
     ).toHaveLength(1);
     expect(expandToggle).toHaveClass('group');
-    expect(expandToggle).toHaveClass('left-3');
+    expect(expandToggle).toHaveStyle({
+      left: 'calc(var(--desktop-rail-width, 0px) + 0.75rem)',
+    });
     expect(expandToggle).not.toHaveClass('overflow-hidden');
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
     const logo = expandToggle.querySelector('img');

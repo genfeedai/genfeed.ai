@@ -86,6 +86,45 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 
 const UI_TEST_MESSAGES = {
   common: {
+    appRail: {
+      apps: 'Apps',
+      navigation: 'App navigation',
+      opening: 'Opening app.',
+      locked: '{app} — locked. Generate your first asset to unlock.',
+      agent: {
+        description: 'Ask and execute.',
+      },
+      workspace: {
+        description: 'Command center.',
+      },
+      studio: {
+        description: 'Create assets.',
+      },
+      library: {
+        description: 'Use source assets.',
+      },
+      publishing: {
+        description: 'Drafts and posts.',
+      },
+      messages: {
+        description: 'Reply to audience.',
+      },
+      discovery: {
+        description: 'Find winners.',
+      },
+      analytics: {
+        description: 'Measure results.',
+      },
+      automation: {
+        description: 'Run workflows.',
+      },
+      admin: {
+        description: 'Platform management.',
+      },
+    },
+    sidebar: {
+      collapse: 'Collapse sidebar',
+    },
     oauth: {
       platformCallback: {
         selectAccount: {

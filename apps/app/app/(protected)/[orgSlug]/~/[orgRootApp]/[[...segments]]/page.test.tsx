@@ -414,7 +414,7 @@ describe('OrgRootAppPage', () => {
     expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
   });
 
-  it('resolves the bare app-switcher Studio destination to the persisted last-used brand (#4671)', async () => {
+  it('resolves the bare app-rail Studio destination to the persisted last-used brand (#4671)', async () => {
     loadProtectedBootstrapMock.mockResolvedValue({
       brandId: 'brand-1',
       brands: [

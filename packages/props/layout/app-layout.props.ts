@@ -9,6 +9,12 @@ export interface AppLayoutProps {
   children: ReactNode;
   bannerComponent?: ReactNode | null;
   menuComponent?: ReactNode | null;
+  /**
+   * Persistent app rail left of the sidebar. It stays visible when the sidebar
+   * collapses; the mobile drawer receives a copy with `onNavigate` injected so
+   * picking an app closes the drawer.
+   */
+  railComponent?: ReactNode | null;
   topbarComponent?: ComponentType<TopbarProps> | null;
   providers?: ReactNode;
   /** Menu items for SidebarNavigationProvider (breadcrumbs, nested nav) */

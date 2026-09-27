@@ -5,7 +5,7 @@ import OrganizationAutomationOverviewPage from './OrganizationAutomationOverview
 export const generateMetadata = createPageMetadata('Automation Overview');
 
 /**
- * Org-level Automation home. The app switcher sends brandless users here, so this
+ * Org-level Automation home. The app rail sends brandless users here, so this
  * route must exist as a real page — the `~/[orgRootApp]` catch-all would 404.
  */
 export default function OrganizationAutomationRoute() {

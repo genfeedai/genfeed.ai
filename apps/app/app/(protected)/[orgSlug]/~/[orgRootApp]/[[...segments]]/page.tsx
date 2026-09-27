@@ -108,7 +108,7 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
   );
 }
 
-// A bare `/:org/~/studio` hit (the app-switcher's brandless destination,
+// A bare `/:org/~/studio` hit (the app rail's brandless destination,
 // #4671) still has a persisted last-used brand server-side even though the
 // client brand context clears its own brandId on org-scoped routes. Resolve
 // it here so Studio itself is reachable instead of always bouncing to Agent.
@@ -312,7 +312,7 @@ export default async function OrgRootAppPage({
       );
     }
 
-    // The bare app-switcher destination (no type segment): try the operator's
+    // The bare app-rail destination (no type segment): try the operator's
     // own persisted last-used brand before falling through to Agent (#4671).
     if (!segments?.length) {
       const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);

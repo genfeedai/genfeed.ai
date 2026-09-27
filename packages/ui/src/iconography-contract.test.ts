@@ -10,16 +10,15 @@ function readUiSource(relativePath: string): string {
 }
 
 describe('value-swap iconography contract', () => {
-  it.each([
-    'components/menus/organization-switcher/OrganizationSwitcher.tsx',
-    'components/menus/switchers/MenuBrandSwitcher.tsx',
-    'components/shell/app-switcher/AppSwitcher.tsx',
-  ])('uses ChevronsUpDown on %s', (relativePath) => {
-    const source = readUiSource(relativePath);
+  it.each(['components/menus/switchers/MenuBrandSwitcher.tsx'])(
+    'uses ChevronsUpDown on %s',
+    (relativePath) => {
+      const source = readUiSource(relativePath);
 
-    expect(source).toContain('ChevronsUpDown');
-    expect(source).not.toContain('ChevronDown');
-  });
+      expect(source).toContain('ChevronsUpDown');
+      expect(source).not.toContain('ChevronDown');
+    },
+  );
 
   it('uses the value-swap glyph on Select while keeping directional scroll glyphs', () => {
     const source = readUiSource('primitives/select.tsx');

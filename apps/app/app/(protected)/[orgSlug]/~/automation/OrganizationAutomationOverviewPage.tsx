@@ -48,7 +48,7 @@ const AUTOMATION_SURFACES = [
 /**
  * Org-level Automation home at `/:orgSlug/~/automation`.
  *
- * The app switcher routes here whenever no brand is selected, so this is the
+ * The app rail routes here whenever no brand is selected, so this is the
  * global view: every brand's automation entry points in one place.
  */
 export default function OrganizationAutomationOverviewPage() {

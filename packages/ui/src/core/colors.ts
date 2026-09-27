@@ -70,17 +70,17 @@ export const semanticColorTokens = {
     // gray-200 — the hover/selected fill every interactive surface lands on.
     accent: { hex: '#1F1F1F', hsl: '0 0% 12%' },
     accentForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
-    // background-100 — the canvas. Deliberately not #000: pure black amplifies
-    // halation around light type and kills every elevation cue above it.
-    background: { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    // background-200 — the content plane (sidebars, panels, cards).
-    backgroundSecondary: { hex: '#161616', hsl: '0 0% 9%' },
-    backgroundTertiary: { hex: '#1F1F1F', hsl: '0 0% 12%' },
+    // background-100 — the canvas: pure black (Codex/Vercel). Elevation above
+    // it comes from near-black planes plus hairline borders, and type stays
+    // capped at #EDEDED so it does not bloom on #000.
+    background: { hex: '#000000', hsl: '0 0% 0%' },
+    // background-200 — the near-black content plane (app chrome, panels, cards).
+    backgroundSecondary: { hex: '#0A0A0A', hsl: '0 0% 4%' },
+    backgroundTertiary: { hex: '#161616', hsl: '0 0% 9%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
-    // Lighter than the canvas, so a card reads as raised without a border.
-    // 5% (not 9%) so dark panels separate from the 4% canvas.
-    card: { hex: '#0D0D0D', hsl: '0 0% 5%' },
+    // The near-black plane, one step above the pure-black canvas.
+    card: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     cardForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },
@@ -94,18 +94,18 @@ export const semanticColorTokens = {
     input: { hex: '#333333', hsl: '0 0% 20%' },
     inv: { hex: '#EDEDED', hsl: '237 237 237' },
     invFg: { hex: '#0A0A0A', hsl: '10 10 10' },
-    muted: { hex: '#161616', hsl: '0 0% 9%' },
+    muted: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     // gray-900 — 7.66:1, comfortably past AAA for body copy.
     mutedForeground: { hex: '#A1A1A1', hsl: '0 0% 63%' },
-    // background-200, same plane as a card. Overlays separate with the
-    // shadow-dropdown hairline + shadow, never by getting lighter than the
-    // surface they cover — that reads as a second, competing canvas.
+    // One step above the near-black planes (gray-200 territory stays for
+    // hover), so menus read as lifted off the app chrome they open over, plus
+    // the shadow-dropdown hairline.
     popover: { hex: '#161616', hsl: '0 0% 9%' },
     popoverForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     primary: { hex: '#EDEDED', hsl: '0 0% 93%' },
     primaryForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     ring: { hex: '#EDEDED', hsl: '0 0% 93%' },
-    secondary: { hex: '#161616', hsl: '0 0% 9%' },
+    secondary: { hex: '#0A0A0A', hsl: '0 0% 4%' },
     secondaryForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     success: { hex: '#10B981', hsl: '160 84% 39%' },
     successForeground: { hex: '#0A0A0A', hsl: '0 0% 4%' },

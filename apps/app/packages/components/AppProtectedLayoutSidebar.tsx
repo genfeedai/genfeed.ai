@@ -1,7 +1,6 @@
 'use client';
 
 import type { SettingsScope } from '@app-config/settings-menu-items.config';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { SettingsSurface } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
@@ -11,7 +10,6 @@ import type {
   SidebarNavPanel,
 } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
-import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
@@ -19,6 +17,7 @@ import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
+import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
 type AppSidebarSurface = {
@@ -26,11 +25,12 @@ type AppSidebarSurface = {
   items: MenuItemConfig[];
   currentApp?: MenuSharedProps['currentApp'];
   sectionLabel?: string;
-  showOrgSwitcher?: boolean;
   showUserProfile?: boolean;
 };
 
 type Props = {
+  /** Route brand slug for the header brand switcher. */
+  brandSlug?: string;
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
@@ -40,6 +40,8 @@ type Props = {
    * while DesktopSidebar and --desktop-sidebar-width track the drag.
    */
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
+  /** Route org slug for the header brand switcher. */
+  orgSlug?: string;
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isConversationRoute: boolean;
@@ -54,13 +56,6 @@ type Props = {
   isAutomationRoute: boolean;
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
-  /**
-   * Personal-account settings PAGE (Personal/Notifications/Progress/Help/
-   * About), flat or as an org-scoped copy. Distinct from `settingsScope`,
-   * which stays ORGANIZATION for the org-scoped copy on purpose (it drives
-   * which menu renders below) — this drives switcher visibility instead.
-   */
-  isPersonalSettingsPage?: boolean;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
@@ -82,7 +77,9 @@ type Props = {
 };
 
 export default function AppProtectedLayoutSidebar({
+  brandSlug,
   currentApp,
+  orgSlug,
   isCollapsed,
   onToggleCollapse,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
@@ -99,7 +96,6 @@ export default function AppProtectedLayoutSidebar({
   isStudioRoute,
   isAutomationRoute,
   settingsScope = SettingsSurface.PERSONAL,
-  isPersonalSettingsPage = false,
   adminMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
@@ -114,26 +110,18 @@ export default function AppProtectedLayoutSidebar({
   messagesMenuItems,
   navPanel,
 }: Props) {
-  const { settings } = useBrand();
   const translate = useTranslations('common.sidebar');
   const router = useRouter();
   const { href } = useOrgUrl();
-  // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher is ALWAYS
-  // visible because it is the entry point to org-scoped surfaces (settings,
-  // brands, credits). Single-tenant modes still have exactly one org that a
-  // user must be able to open, so hiding the switcher strands them. Multi-org
-  // actions (create / switch) are gated INSIDE OrganizationSwitcher via
-  // canCreateOrganization (active subscription + tier org limit); non-SaaS just
-  // shows the current org with no create action. The brand switcher is
-  // similarly always visible.
-  //
-  // Documented exception (#4659): personal-account settings PAGES (flat or
-  // org-scoped copy) have no org context to switch from, so the settings
-  // surface below hides both switchers (`showOrgSwitcher`) when
-  // `isPersonalSettingsPage` is true; the brand switcher's matching hide
-  // condition lives in AppProtectedTopbar.
-  const orgSwitcherSlot = (
-    <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
+  // The header carries the brand switcher (Codex "Codex ▾" slot); the
+  // organization avatar lives on the app rail. The brand switcher hides itself
+  // on admin, organization-settings and personal-settings pages (#4659).
+  const headerSlot = (
+    <AppProtectedBrandSwitcher
+      brandSlug={brandSlug}
+      isAdminChrome={isAdminRoute}
+      orgSlug={orgSlug}
+    />
   );
   const sidebarStateProps = {
     isCollapsed,
@@ -194,21 +182,18 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: [],
         sectionLabel: translate('workspace'),
-        showOrgSwitcher: true,
       },
       {
         active: isLibraryRoute,
         currentApp,
         items: libraryMenuItems,
         sectionLabel: 'Library',
-        showOrgSwitcher: true,
       },
       {
         active: isStudioRoute,
         currentApp,
         items: studioMenuItems,
         sectionLabel: 'Studio',
-        showOrgSwitcher: true,
       },
       {
         active: isAdminRoute,
@@ -220,42 +205,36 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: publishingMenuItems,
         sectionLabel: APP_DISPLAY_LABELS.publishing,
-        showOrgSwitcher: true,
       },
       {
         active: isAutomationRoute,
         currentApp,
         items: automationMenuItems,
         sectionLabel: APP_DISPLAY_LABELS.automation,
-        showOrgSwitcher: true,
       },
       {
         active: isMessagesRoute,
         currentApp,
         items: messagesMenuItems,
         sectionLabel: 'Messages',
-        showOrgSwitcher: true,
       },
       {
         active: isAnalyticsRoute,
         currentApp,
         items: analyticsMenuItems,
         sectionLabel: 'Analytics',
-        showOrgSwitcher: true,
       },
       {
         active: isDiscoveryRoute,
         currentApp,
         items: discoveryMenuItems,
         sectionLabel: APP_DISPLAY_LABELS.discovery,
-        showOrgSwitcher: true,
       },
       {
         active: isOrgRoute,
         currentApp,
         items: orgMenuItems,
         sectionLabel: 'Organization',
-        showOrgSwitcher: true,
       },
       {
         active: isSettingsRoute,
@@ -264,10 +243,6 @@ export default function AppProtectedLayoutSidebar({
         // No top-level "Settings" shell header — org/brand switcher + group
         // labels (Organization / Access, Brand / Automation) are enough.
         sectionLabel: undefined,
-        // Personal-account settings pages have no org context to switch
-        // from (#4659) — including the org-scoped copy, which still has
-        // `settingsScope === ORGANIZATION` for menu purposes.
-        showOrgSwitcher: !isPersonalSettingsPage,
       },
     ] satisfies AppSidebarSurface[]
   ).find(({ active }) => active);
@@ -279,7 +254,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp={surface.currentApp}
         items={surface.items}
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
-        orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
+        headerSlot={headerSlot}
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
@@ -300,7 +275,7 @@ export default function AppProtectedLayoutSidebar({
       sectionLabel={translate('workspace')}
       collapsedSidebarWidth={0}
       mobileSidebarWidth={304}
-      orgSwitcherSlot={orgSwitcherSlot}
+      headerSlot={headerSlot}
       renderTopSlot={renderQuickActions}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems

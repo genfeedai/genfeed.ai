@@ -253,19 +253,19 @@ describe('OrganizationSwitcher', () => {
     ]);
   });
 
-  it('renders the sidebar trigger with compact spacing and a square avatar', async () => {
+  it('renders the organization as a keyboard-operable rail tile', async () => {
     renderSwitcher();
 
-    await waitFor(() => {
-      expect(screen.getByText('Acme Org')).toBeInTheDocument();
+    const trigger = await screen.findByRole('button', {
+      name: 'Switch organization, Acme Org',
     });
 
-    const trigger = screen.getByText('Acme Org').closest('div');
-    const avatar = trigger?.querySelector('.size-6');
-
-    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2.5', 'rounded-md');
-    expect(avatar).toHaveClass('rounded-md');
-    expect(avatar).not.toHaveClass('rounded-full');
+    // A native button: Enter and Space open the menu without extra handlers.
+    expect(trigger.tagName).toBe('BUTTON');
+    expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger).toHaveTextContent('A');
+    expect(trigger).toHaveClass('size-9', 'rounded-lg');
+    expect(trigger).toHaveAttribute('title', 'Acme Org');
   });
 
   it('passes the context loading state to the dropdown', async () => {

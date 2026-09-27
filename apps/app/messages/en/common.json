@@ -275,6 +275,8 @@
     "merge": "Merge"
   },
   "sidebar": {
+    "clearBrandSelection": "Clear brand selection",
+    "collapse": "Collapse sidebar",
     "newConversation": "New Conversation",
     "newConversationAriaLabel": "Start a new conversation",
     "newTask": "New Task",
@@ -1722,6 +1724,42 @@
       "title": "{count, plural, one {# new reply} other {# new replies}} to your posts",
       "titleWithHandle": "{count, plural, one {# new reply} other {# new replies}} on @{handle}",
       "openSource": "Reply in Messages"
+    }
+  },
+  "appRail": {
+    "apps": "Apps",
+    "navigation": "App navigation",
+    "opening": "Opening app.",
+    "locked": "{app} — locked. Generate your first asset to unlock.",
+    "agent": {
+      "description": "Ask and execute."
+    },
+    "workspace": {
+      "description": "Command center."
+    },
+    "studio": {
+      "description": "Create assets."
+    },
+    "library": {
+      "description": "Use source assets."
+    },
+    "publishing": {
+      "description": "Drafts and posts."
+    },
+    "messages": {
+      "description": "Reply to audience."
+    },
+    "discovery": {
+      "description": "Find winners."
+    },
+    "analytics": {
+      "description": "Measure results."
+    },
+    "automation": {
+      "description": "Run workflows."
+    },
+    "admin": {
+      "description": "Platform management."
     }
   }
 }
