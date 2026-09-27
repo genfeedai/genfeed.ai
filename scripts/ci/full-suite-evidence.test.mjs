@@ -51,6 +51,40 @@ test('selects only exact-SHA hourly or manual master Full Suite evidence', () =>
   assert.equal(selected?.id, 4);
 });
 
+test('a cancelled skip run never hides an earlier failure for the same SHA', () => {
+  const selected = selectFullSuiteRun(
+    [
+      run({ id: 1, conclusion: 'failure' }),
+      run({
+        id: 2,
+        conclusion: 'cancelled',
+        created_at: '2026-09-01T12:53:47Z',
+      }),
+    ],
+    RELEASE_SHA,
+  );
+
+  assert.equal(selected?.id, 1);
+});
+
+test('a hard-red exact-SHA run blocks release even after a later skip', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ id: 1, conclusion: 'failure' }),
+          run({
+            id: 2,
+            conclusion: 'cancelled',
+            created_at: '2026-09-01T12:53:47Z',
+          }),
+        ],
+      }),
+    ),
+    /concluded failure/,
+  );
+});
+
 test('prefers completed green evidence over an in-flight duplicate', () => {
   const selected = selectFullSuiteRun(
     [run({ id: 1 }), run({ id: 2, status: 'in_progress', conclusion: null })],

@@ -386,6 +386,10 @@ test('the full suite runs hourly, never cancels, and skips a finished head', () 
     freshness,
     /select\(\.conclusion == \\"success\\" or \.conclusion == \\"failure\\"\)/,
   );
+  // A skip must not conclude green: release evidence would read it as a pass
+  // for a SHA whose real run failed.
+  assert.match(freshness, /gh run cancel "\$\{GITHUB_RUN_ID\}"/);
+  assert.match(freshness, /^ {6}actions: write$/m);
   for (const jobId of ['ci', 'build-verify', 'e2e']) {
     assert.match(
       jobBlock(workflow, jobId, 'full-suite.yml'),

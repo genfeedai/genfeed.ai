@@ -46,9 +46,13 @@ export function selectFullSuiteRun(runs, releaseSha) {
   const matching = (runs ?? [])
     .filter((run) => exactReleaseRun(run, releaseSha))
     .sort(newestFirst);
+  // A cancelled run (a superseded run, or an hourly run that skipped an
+  // already-validated head) never outranks a real verdict for the same SHA:
+  // otherwise a skip that followed a red run would hide that failure.
   return (
     matching.find((run) => run.conclusion === 'success') ??
     matching.find((run) => ACTIVE_STATUSES.has(run.status)) ??
+    matching.find((run) => run.conclusion !== 'cancelled') ??
     matching[0] ??
     null
   );
