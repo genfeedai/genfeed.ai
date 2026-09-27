@@ -11,13 +11,14 @@ import {
   resolvePublicMcpResource,
   toInlineScriptStringLiteral,
 } from '@mcp/mcp/setup-page';
+import { JSDOM } from 'jsdom';
 
 /**
  * Extracts a `function <name>(...) { ... }` declaration's exact source text
  * out of the rendered HTML's inline `<script>` block, by brace-matching from
  * the first `{` after the signature. Used to unit-test the picker's client
- * JS logic directly (no jsdom in this package's vitest environment) rather
- * than asserting on the JS source text as a string.
+ * JS logic directly (the vitest environment is node) rather than asserting
+ * on the JS source text as a string.
  */
 function extractFunctionSource(html: string, name: string): string {
   const start = html.indexOf(`function ${name}(`);
@@ -442,32 +443,47 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="generic-client-config"');
     });
 
-    it('includes the new plain-text blocks (chat prompt, generic config) in the picker rewrite, alongside the endpoint display', () => {
-      const html = renderSetupPage();
-      const start = html.indexOf('function applyUrl(');
-      expect(start).toBeGreaterThan(-1);
-      const braceStart = html.indexOf('{', start);
-      let depth = 0;
-      let end = -1;
-      for (let i = braceStart; i < html.length; i += 1) {
-        if (html[i] === '{') depth += 1;
-        else if (html[i] === '}') {
-          depth -= 1;
-          if (depth === 0) {
-            end = i;
-            break;
-          }
-        }
+    it('rewrites every endpoint-bearing block when toolsets are selected and cleared', () => {
+      const dom = new JSDOM(renderSetupPage(), { runScripts: 'dangerously' });
+      const { document, Event } = dom.window;
+      const text = (id: string): string =>
+        document.getElementById(id)?.textContent ?? '';
+      const checkbox = Array.from(
+        document.querySelectorAll<HTMLInputElement>('[data-toolset-checkbox]'),
+      ).find((input) => !input.disabled);
+      if (!checkbox) {
+        throw new Error('expected a selectable toolset');
       }
-      expect(end).toBeGreaterThan(-1);
-      const applyUrlSource = html.slice(start, end + 1);
+      const toolset = checkbox.getAttribute('data-toolset');
+      const selectedUrl = `https://mcp.genfeed.ai/mcp?toolsets=${toolset}`;
+      const toggle = (isChecked: boolean): void => {
+        checkbox.checked = isChecked;
+        checkbox.dispatchEvent(new Event('change'));
+      };
 
-      expect(applyUrlSource).toContain("'mcp-url'");
-      expect(applyUrlSource).toContain("'chat-agent-prompt'");
-      expect(applyUrlSource).toContain("'generic-client-config'");
-      expect(applyUrlSource).toContain("'claude-code-command'");
-      expect(applyUrlSource).toContain("'codex-command'");
-      expect(applyUrlSource).toContain('agent-setup-prompt');
+      toggle(true);
+
+      expect(text('mcp-url')).toBe(selectedUrl);
+      expect(
+        document.getElementById('mcp-url-copy')?.getAttribute('data-copy'),
+      ).toBe(selectedUrl);
+      expect(text('chat-agent-prompt')).toContain(
+        `MCP server URL: ${selectedUrl}\n`,
+      );
+      expect(JSON.parse(text('generic-client-config')).url).toBe(selectedUrl);
+      expect(text('claude-code-command')).toContain(`'${selectedUrl}'`);
+      expect(text('codex-command')).toContain(`--url '${selectedUrl}'`);
+      expect(text('agent-setup-prompt')).toContain(`Endpoint: ${selectedUrl}`);
+
+      toggle(false);
+
+      expect(text('mcp-url')).toBe('https://mcp.genfeed.ai/mcp');
+      expect(JSON.parse(text('generic-client-config')).url).toBe(
+        'https://mcp.genfeed.ai/mcp',
+      );
+      expect(text('chat-agent-prompt')).not.toContain('?toolsets=');
+      expect(text('claude-code-command')).not.toContain('?toolsets=');
+      dom.window.close();
     });
 
     it('appends the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
