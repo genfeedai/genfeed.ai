@@ -181,7 +181,7 @@ export default function SettingsSubscriptionPage() {
         </div>
       </SectionCard>
 
-      {billingAccount ? (
+      {billingAccount?.kind === 'account' ? (
         <SectionCard title="Billing account">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -242,6 +242,44 @@ export default function SettingsSubscriptionPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {billingAccount?.kind === 'organization' ? (
+        <SectionCard title="Billing account">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Text size="sm" color="muted">
+                Linked to a shared billing account
+              </Text>
+              <Badge variant={billingAccount.isLinked ? 'success' : 'warning'}>
+                {billingAccount.isLinked ? 'Linked' : 'Not linked'}
+              </Badge>
+            </div>
+            <Text size="sm" color="muted">
+              This organization shares billing with other organizations. Ask a
+              billing account owner or administrator for wallet and cross-org
+              details.
+            </Text>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                This organization&apos;s usage
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {billingAccount.usage.toLocaleString('en-US')}
+              </Text>
+            </div>
+            {billingAccount.monthlyBudgetCredits !== null ? (
+              <div className="p-3 bg-muted/50 rounded">
+                <Text size="sm" color="muted">
+                  Monthly budget
+                </Text>
+                <Text as="p" size="lg" weight="bold">
+                  {billingAccount.monthlyBudgetCredits.toLocaleString('en-US')}
+                </Text>
+              </div>
+            ) : null}
           </div>
         </SectionCard>
       ) : null}

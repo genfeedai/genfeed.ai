@@ -15,8 +15,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BillingAccountMemberRole,
   BillingAccountOrganizationStatus,
+  CreditTransactionCategory,
   MemberRole,
   SubscriptionStatus,
+  SubscriptionTier,
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
@@ -351,6 +353,107 @@ describe.skipIf(!connectionString)(
         where: { id: organizationIds[1] },
       });
       expect(targetOrganization.billingAccountId).toBeNull();
+    });
+
+    it('gives a VIEWER the full snapshot but a plain org member only their own organization view (#5374)', async () => {
+      const db = database();
+      const suffix = randomUUID();
+      const viewerUserId = `bag-pg-viewer-${suffix}`;
+      const memberUserId = `bag-pg-member-${suffix}`;
+      await db.user.createMany({
+        data: [
+          { handle: viewerUserId, id: viewerUserId },
+          { handle: memberUserId, id: memberUserId },
+        ],
+      });
+
+      // Link BOTH organizations to the same billing account, so a leak in
+      // the reduced view would show up as organizationIds[1]'s data reaching
+      // a caller scoped to organizationIds[0]. Scale tier lifts the
+      // single-organization plan limit so both links succeed.
+      await db.billingAccount.update({
+        data: { planTier: SubscriptionTier.SCALE },
+        where: { id: billingAccountIds[0] },
+      });
+      await runWithTenantContext({ organizationId: organizationIds[0] }, () =>
+        billingAccounts.linkOrganization({
+          actorUserId: userId,
+          billingAccountId: billingAccountIds[0],
+          organizationId: organizationIds[0],
+        }),
+      );
+      await runWithTenantContext({ organizationId: organizationIds[1] }, () =>
+        billingAccounts.linkOrganization({
+          actorUserId: userId,
+          billingAccountId: billingAccountIds[0],
+          organizationId: organizationIds[1],
+        }),
+      );
+
+      await db.creditTransaction.create({
+        data: {
+          amount: 7,
+          billingAccountId: billingAccountIds[0],
+          category: CreditTransactionCategory.DEDUCT,
+          organizationId: organizationIds[0],
+        },
+      });
+      await db.creditTransaction.create({
+        data: {
+          amount: 40,
+          billingAccountId: billingAccountIds[0],
+          category: CreditTransactionCategory.DEDUCT,
+          organizationId: organizationIds[1],
+        },
+      });
+
+      await db.billingAccountMember.create({
+        data: {
+          billingAccountId: billingAccountIds[0],
+          role: BillingAccountMemberRole.VIEWER,
+          userId: viewerUserId,
+        },
+      });
+
+      const viewerSnapshot = await runWithTenantContext(
+        { organizationId: organizationIds[0] },
+        () => billingAccounts.getSnapshot(organizationIds[0], viewerUserId),
+      );
+      expect(viewerSnapshot.kind).toBe('account');
+      if (viewerSnapshot.kind !== 'account') {
+        throw new Error('expected full account snapshot');
+      }
+      expect(
+        viewerSnapshot.linkedOrganizations
+          .map((link) => link.organizationId)
+          .sort(),
+      ).toEqual([...organizationIds].sort());
+
+      const memberSnapshot = await runWithTenantContext(
+        { organizationId: organizationIds[0] },
+        () => billingAccounts.getSnapshot(organizationIds[0], memberUserId),
+      );
+      expect(memberSnapshot).toEqual({
+        budgetPolicy: null,
+        callerRole: null,
+        capabilities: {
+          canCheckout: false,
+          canDetachOrganization: false,
+          canLinkOrganization: false,
+          canManageBudgets: false,
+          canManageMembers: false,
+          canOpenPortal: false,
+        },
+        isLinked: true,
+        kind: 'organization',
+        monthlyBudgetCredits: null,
+        organizationId: organizationIds[0],
+        usage: 7,
+      });
+
+      await db.user.deleteMany({
+        where: { id: { in: [viewerUserId, memberUserId] } },
+      });
     });
 
     it('resolves via the LINKED BillingAccountOrganization branch, not direct attachment', async () => {

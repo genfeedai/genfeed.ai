@@ -23,9 +23,10 @@ import {
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import type {
-  IBillingAccount,
   IBillingAccountCapabilities,
   IBillingAccountOrganizationLink,
+  IBillingAccountOwnOrganizationView,
+  IBillingAccountSnapshot,
 } from '@genfeedai/contracts/interfaces';
 import {
   getOrganizationLimitForTier,
@@ -148,10 +149,21 @@ export class BillingAccountsService {
     });
   }
 
+  /**
+   * The full snapshot (every linked organization's label/budget/usage, plus
+   * the shared wallet and subscription status) requires a `BillingAccountMember`
+   * role — VIEWER and above — on this billing account. A caller who is only
+   * an active member of an organization linked to the account, with no role
+   * on the account itself, gets `getOwnOrganizationView` instead: their own
+   * organization's usage/budget and whether it's linked, nothing about any
+   * other linked organization, and no wallet internals (#5374). Enforced
+   * here, in the service, rather than only via the `capabilities` flags the
+   * full snapshot also carries.
+   */
   async getSnapshot(
     organizationId: string,
     userId: string,
-  ): Promise<IBillingAccount> {
+  ): Promise<IBillingAccountSnapshot> {
     const account = await this.resolveForOrganization(organizationId);
     // Guard-visible proof (#5217) that this organization may read this
     // billing account's shared rows, independent of `resolveForOrganization`
@@ -161,6 +173,9 @@ export class BillingAccountsService {
       this.prisma,
     );
     const callerRole = await this.findRole(account.id, userId);
+    if (!callerRole) {
+      return this.getOwnOrganizationView(scope, account, organizationId);
+    }
     const links = await this.prisma.billingAccountOrganization.findMany({
       where: billingAccountScopedWhere(scope, {
         status: BillingAccountOrganizationStatus.LINKED,
@@ -197,6 +212,7 @@ export class BillingAccountsService {
       id: account.id,
       isDeleted: account.isDeleted,
       isIdentityStale: status === BillingAccountStatus.STALE,
+      kind: 'account',
       label: account.label,
       linkedOrganizations,
       planTier: account.planTier,
@@ -208,6 +224,46 @@ export class BillingAccountsService {
         held,
         settled,
       },
+    };
+  }
+
+  /**
+   * The reduced view for a caller with no `BillingAccountMember` role on this
+   * billing account (#5374): only `organizationId`'s own usage and budget,
+   * and whether it is actively linked. Every read below is scoped both by
+   * `scope` (proving the billing account) and by `organizationId` (this
+   * caller's own organization, already proven to match the tenant context by
+   * `resolveBillingAccountAccess`) — never a cross-organization query whose
+   * result is merely filtered client-side before returning.
+   */
+  private async getOwnOrganizationView(
+    scope: BillingAccountScope,
+    account: { status: string },
+    organizationId: string,
+  ): Promise<IBillingAccountOwnOrganizationView> {
+    // A detach-then-relink-to-the-same-account cycle can leave more than one
+    // non-deleted row for this (billingAccountId, organizationId) pair — the
+    // stale DETACHED one and a fresh LINKED one — so order by `linkedAt` to
+    // read the current row rather than an arbitrary one.
+    const link = await this.prisma.billingAccountOrganization.findFirst({
+      orderBy: { linkedAt: 'desc' },
+      where: billingAccountScopedWhere(scope, { organizationId }),
+    });
+    const usage = await this.usageForOrganization(scope, organizationId);
+    const status = parseBillingAccountStatus(account.status);
+    const capabilities = this.capabilitiesFor(null, status);
+
+    return {
+      budgetPolicy: this.parseBudgetPolicy(link?.budgetPolicy ?? null),
+      callerRole: null,
+      capabilities,
+      isLinked:
+        parseBillingAccountOrganizationStatus(link?.status) ===
+        BillingAccountOrganizationStatus.LINKED,
+      kind: 'organization',
+      monthlyBudgetCredits: link?.monthlyBudgetCredits ?? null,
+      organizationId,
+      usage,
     };
   }
 
@@ -855,6 +911,26 @@ export class BillingAccountsService {
     return new Map(
       rows.map((row) => [row.organizationId, row._sum.amount ?? 0]),
     );
+  }
+
+  /**
+   * Usage for exactly one organization on this billing account (#5374) —
+   * unlike `usageByOrganization`, this never reads another linked
+   * organization's rows: the `where` is narrowed by `organizationId` on top
+   * of the guard-visible `billingAccountScopedWhere(scope, …)` proof.
+   */
+  private async usageForOrganization(
+    scope: BillingAccountScope,
+    organizationId: string,
+  ): Promise<number> {
+    const result = await this.prisma.creditTransaction.aggregate({
+      _sum: { amount: true },
+      where: billingAccountScopedWhere(scope, {
+        category: CreditTransactionCategory.DEDUCT,
+        organizationId,
+      }),
+    });
+    return result._sum.amount ?? 0;
   }
 
   private organizationLimitForTier(planTier: string | null) {

@@ -38,6 +38,8 @@ export interface IBillingAccountCapabilities {
 }
 
 export interface IBillingAccount extends IBaseEntity {
+  /** Full snapshot, returned only to a caller holding a BillingAccountMember role. */
+  kind: 'account';
   label: string | null;
   status: BillingAccountStatus;
   planTier: string | null;
@@ -49,6 +51,29 @@ export interface IBillingAccount extends IBaseEntity {
   isIdentityStale: boolean;
   capabilities: IBillingAccountCapabilities;
 }
+
+/**
+ * Reduced view returned to a caller who is an active member of an organization
+ * linked to a billing account but holds no `BillingAccountMember` role there
+ * (#5374). Carries only that organization's own usage/budget and whether it is
+ * linked — never another linked organization's data, the account label, or
+ * wallet internals.
+ */
+export interface IBillingAccountOwnOrganizationView {
+  kind: 'organization';
+  organizationId: string;
+  isLinked: boolean;
+  usage: number;
+  monthlyBudgetCredits: number | null;
+  budgetPolicy: BillingAccountBudgetPolicy | null;
+  callerRole: null;
+  capabilities: IBillingAccountCapabilities;
+}
+
+/** Either the full account snapshot or the reduced own-organization view — discriminate on `kind`. */
+export type IBillingAccountSnapshot =
+  | IBillingAccount
+  | IBillingAccountOwnOrganizationView;
 
 export interface ICreditReservation extends IBaseEntity {
   billingAccountId: string;

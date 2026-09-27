@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { IBillingAccount } from '@genfeedai/contracts/interfaces';
+import type { IBillingAccountSnapshot } from '@genfeedai/contracts/interfaces';
 import { BillingAccountsService } from '@genfeedai/services/billing/billing-accounts.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +23,7 @@ export function useBillingAccount() {
   });
 
   return {
-    account: (data ?? null) as IBillingAccount | null,
+    account: (data ?? null) as IBillingAccountSnapshot | null,
     error,
     isLoading,
     refresh: refetch,
