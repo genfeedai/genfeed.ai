@@ -21,6 +21,25 @@ function normalizeEndpoint(endpoint: string): string {
   return end === endpoint.length ? endpoint : endpoint.slice(0, end);
 }
 
+/**
+ * A message the user pastes into a chat agent that builds its own connectors
+ * from a remote MCP URL (Meta Muse, Grok Bot). The agent adds the server,
+ * the user approves OAuth in the browser, and no secret enters the chat.
+ */
+export function buildConnectGenfeedChatPrompt(endpoint: string): string {
+  const mcpEndpoint = normalizeEndpoint(endpoint);
+
+  return [
+    'Add Genfeed as a custom connector.',
+    '',
+    `MCP server URL: ${mcpEndpoint}`,
+    'Transport: remote Streamable HTTP',
+    'Authentication: OAuth. Send me the sign-in link and wait while I approve access in my browser. Never ask me for a password, token, or API key in this chat.',
+    '',
+    'After I approve, list my Genfeed brands to confirm the connection works. Before publishing anything, show me the draft and wait for my approval.',
+  ].join('\n');
+}
+
 export function buildConnectGenfeedInstructions(
   client: ConnectGenfeedClient,
   endpoint: string,
