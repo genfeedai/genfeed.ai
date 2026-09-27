@@ -212,7 +212,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.organization.id).toBe('');
       expect(result.data.organization.name).toBe('');
       expect(result.data.scopes).toEqual([]);
-      expect(result.data.user.id).toBe('');
+      expect(result.data.user.id).toBe('user_123');
     });
 
     it('should handle missing email addresses', async () => {
@@ -266,14 +266,14 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.email).toBe('fallback@example.com');
     });
 
-    it('should keep the database user id empty when userId is not a valid entity id', async () => {
+    it('falls back to the Better Auth user id when no explicit userId is set', async () => {
       const req = buildReq({
         id: 'auth_user_id',
       });
 
       const result = await controller.whoami(req);
 
-      expect(result.data.user.id).toBe('');
+      expect(result.data.user.id).toBe('auth_user_id');
       expect(result.data.user.authUserId).toBe('auth_user_id');
     });
 
@@ -301,16 +301,19 @@ describe('AuthWhoamiController', () => {
       expect(result.data.scopes).toEqual([]);
     });
 
-    it('should return an empty database user id for an unsupported legacy id', async () => {
+    it('returns a legacy Better Auth base62 user id unchanged', async () => {
+      const legacyUserId = 'Xk2p9QvL3mN8rT5wYz1aBc4dEf6gHj7K';
       const req = buildReq({
-        id: 'auth_user_id',
-        userId: 'user_123',
+        id: legacyUserId,
+        isApiKey: true,
+        organizationId: 'org_abc',
+        userId: legacyUserId,
       });
 
       const result = await controller.whoami(req);
 
-      expect(result.data.user.id).toBe('');
-      expect(result.data.user.authUserId).toBe('auth_user_id');
+      expect(result.data.user.id).toBe(legacyUserId);
+      expect(result.data.organization.id).toBe('org_abc');
     });
 
     it('should trim name when lastName has trailing spaces', async () => {
