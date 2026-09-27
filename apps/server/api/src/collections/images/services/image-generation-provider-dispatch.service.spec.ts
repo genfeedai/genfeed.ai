@@ -612,6 +612,10 @@ describe('ImageGenerationProviderDispatchService', () => {
     replicateService.generateTextToImage.mockResolvedValue(
       'replicate-byok-job',
     );
+    replicateService.getPrediction.mockResolvedValue({
+      output: ['https://replicate.example.com/generated.png'],
+      status: 'succeeded',
+    });
     const context = buildContext({
       model,
       request: {
