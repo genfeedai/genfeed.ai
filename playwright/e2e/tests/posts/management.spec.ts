@@ -22,16 +22,19 @@ test.describe('Posts — Management', () => {
     });
   });
 
-  test('should display posts page with tabs', async ({ authenticatedPage }) => {
+  test('should display posts page with filter controls', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);
     await postsPage.gotoNotPosted();
 
-    // All tabs should be visible
-    await expect(postsPage.notPostedTab).toBeVisible();
-    await expect(postsPage.publishedTab).toBeVisible();
-    await expect(postsPage.engageTab).toBeVisible();
+    // Lifecycle state is a deep link, not a tab; the toolbar's content-type,
+    // channel, and status filters are the current UI for narrowing the list.
+    await expect(postsPage.contentTypeFilterTrigger).toBeVisible();
+    await expect(postsPage.channelFilterTrigger).toBeVisible();
+    await expect(postsPage.statusFilterTrigger).toBeVisible();
   });
 
   test('should show not-posted posts by default', async ({
@@ -63,7 +66,9 @@ test.describe('Posts — Management', () => {
     );
   });
 
-  test('should navigate between post tabs', async ({ authenticatedPage }) => {
+  test('should navigate between post lifecycle filters', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);

@@ -71,20 +71,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/calendar/scheduling.spec.ts',
-    reason:
-      'Publishing calendar assertions drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/states/error-states.spec.ts',
-    reason:
-      'Network-abort helper fails page.goto before the surface renders. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/studio/batch.spec.ts',
     reason:
       'Studio batch nav/count assertions drifted. Evidence: run 31991510270.',
@@ -152,18 +138,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/posts/posts-interactions.spec.ts',
-    reason: 'Publishing desk interactions drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/posts/publishing.spec.ts',
-    reason: 'Publishing flow copy drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/library/avatar-library.spec.ts',
     reason: 'Avatar library selectors drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
@@ -200,13 +174,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/brands/identity-defaults.spec.ts',
     reason:
       'Brand identity-defaults selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/posts/management.spec.ts',
-    reason:
-      'Publishing list tabs/cards still assert pre-desk copy after the POM prefix fix. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

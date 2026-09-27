@@ -22,10 +22,13 @@ export class PostsPage {
   readonly loadingIndicator: Locator;
   readonly pageTitle: Locator;
 
-  // Tabs
-  readonly notPostedTab: Locator;
-  readonly publishedTab: Locator;
-  readonly engageTab: Locator;
+  // Content library filters. The lifecycle "tabs" (Not posted / Published /
+  // Engage) were replaced by deep-linkable query-param filters plus this
+  // toolbar (content type, channel, status) -- there is no in-page tab UI to
+  // click any more. See #5381.
+  readonly contentTypeFilterTrigger: Locator;
+  readonly channelFilterTrigger: Locator;
+  readonly statusFilterTrigger: Locator;
 
   // View toggles
   readonly gridViewButton: Locator;
@@ -91,28 +94,21 @@ export class PostsPage {
       'h1:has-text("Posts"), [data-testid="page-title"]',
     );
 
-    // Tabs
-    const notPostedFilterPath = createPublishingPostsFilterRoute({
-      publicationState: 'not-posted',
+    // Content library filters (toolbar rendered by
+    // PublishingContentLibraryToolbar). The type/channel Selects keep a
+    // stable aria-label; the status multiselect's accessible name is its
+    // placeholder text since none of our fixtures pre-select a real status
+    // option (the legacy `publicationState` bucket values, e.g.
+    // 'not-posted', never match a real status option value).
+    this.contentTypeFilterTrigger = page.locator(
+      'button[role="combobox"][aria-label="Content type"]',
+    );
+    this.channelFilterTrigger = page.locator(
+      'button[role="combobox"][aria-label="Channel"]',
+    );
+    this.statusFilterTrigger = page.getByRole('button', {
+      name: 'All statuses',
     });
-    const postedFilterPath = createPublishingPostsFilterRoute({
-      publicationState: 'posted',
-    });
-    this.notPostedTab = page
-      .locator(
-        `a[href$="${notPostedFilterPath}"], a[href*="${notPostedFilterPath}"], [role="tab"]:has-text("Not posted")`,
-      )
-      .first();
-    this.publishedTab = page
-      .locator(
-        `a[href$="${postedFilterPath}"], a[href*="${postedFilterPath}"], [role="tab"]:has-text("Published")`,
-      )
-      .first();
-    this.engageTab = page
-      .locator(
-        `a[href$="${APP_ROUTES.ANALYTICS.POSTS}"], a[href*="${APP_ROUTES.ANALYTICS.POSTS}"], [role="tab"]:has-text("Analytics")`,
-      )
-      .first();
 
     // View toggles
     this.gridViewButton = page.locator(
@@ -299,21 +295,22 @@ export class PostsPage {
     }
   }
 
-  // ── Tab interactions ────────────────────────────────────
+  // ── Lifecycle filter navigation ─────────────────────────
+  //
+  // These states are deep links (query-param filters), not clickable
+  // in-page tabs -- switching between them means navigating to the
+  // canonical route, exactly like a bookmark or an external link would.
 
   async switchToNotPosted(): Promise<void> {
-    await this.notPostedTab.click();
-    await this.waitForPageLoad();
+    await this.gotoNotPosted();
   }
 
   async switchToPublished(): Promise<void> {
-    await this.publishedTab.click();
-    await this.waitForPageLoad();
+    await this.gotoPublished();
   }
 
   async switchToEngage(): Promise<void> {
-    await this.engageTab.click();
-    await this.waitForPageLoad();
+    await this.gotoEngage();
   }
 
   // ── View toggles ───────────────────────────────────────

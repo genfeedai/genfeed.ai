@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { brandPath } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Calendar Page
@@ -17,9 +18,11 @@ export class CalendarPage {
   readonly mainContent: Locator;
   readonly loadingFallback: Locator;
 
-  // Tabs
-  readonly postsTab: Locator;
-  readonly articlesTab: Locator;
+  // Content-type filter. Posts vs Articles is a `type` query-param filter
+  // on the unified content library toolbar now, not a separate calendar tab
+  // -- the toolbar stays mounted (via PostsLayoutContext) even in calendar
+  // view. See #5381.
+  readonly contentTypeFilterTrigger: Locator;
 
   // Calendar grid
   readonly calendarGrid: Locator;
@@ -53,12 +56,9 @@ export class CalendarPage {
     );
 
     // Posts calendar is canonical. Articles are a type-filtered view of the
-    // unified Publishing content library.
-    this.postsTab = page.locator(
-      `a[href$="${APP_ROUTES.PUBLISHING.CALENDAR}"]`,
-    );
-    this.articlesTab = page.locator(
-      `a[href*="${APP_ROUTES.PUBLISHING.POSTS}"][href*="type=article"]`,
+    // unified Publishing content library, selected from this Select.
+    this.contentTypeFilterTrigger = page.locator(
+      'button[role="combobox"][aria-label="Content type"]',
     );
 
     // Calendar grid elements
@@ -93,11 +93,13 @@ export class CalendarPage {
     this.todayButton = page.locator(
       'button:has-text("Today"),' + ' [data-testid="calendar-today"]',
     );
+    // The custom toolbar (ContentCalendarView) renders `headerToolbar:
+    // false` and its own h2 next to the nav buttons -- there is no
+    // `.fc-toolbar-title` or `calendar-header`-classed wrapper any more.
     this.monthLabel = page.locator(
       '[data-testid="calendar-title"],' +
         ' .fc-toolbar-title,' +
-        ' [class*="calendar-header"] h2,' +
-        ' [class*="calendar-header"] span',
+        ' div:has(button[aria-label="Previous period"]) h2',
     );
 
     // View toggles
@@ -128,7 +130,12 @@ export class CalendarPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoPosts(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISHING.CALENDAR);
+    // A bare (org/brand-less) protected route resolves through the
+    // proxy's hosted-mode-misconfiguration fallback, which can land on a
+    // seeded `/default/default` workspace instead of the mocked-auth
+    // `test-org/brand-1` one -- the same nondeterminism #5361 saw. Navigate
+    // to the canonical mocked workspace deep link instead.
+    await this.page.goto(brandPath(APP_ROUTES.PUBLISHING.CALENDAR));
     await this.waitForPageLoad();
   }
 
@@ -147,31 +154,21 @@ export class CalendarPage {
     }
   }
 
-  // ── Tab interactions ────────────────────────────────────
+  // ── Content-type filter interactions ───────────────────
 
   async switchToPostsTab(): Promise<void> {
-    const isVisible = await this.postsTab
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (isVisible) {
-      await this.postsTab.first().click();
-    } else {
-      await this.page.goto(APP_ROUTES.PUBLISHING.CALENDAR);
-    }
+    await this.contentTypeFilterTrigger.click();
+    await this.page
+      .getByRole('option', { name: 'Social posts', exact: true })
+      .click();
     await this.waitForPageLoad();
   }
 
   async switchToArticlesTab(): Promise<void> {
-    const isVisible = await this.articlesTab
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (isVisible) {
-      await this.articlesTab.first().click();
-    } else {
-      await this.page.goto(`${APP_ROUTES.PUBLISHING.POSTS}?type=article`);
-    }
+    await this.contentTypeFilterTrigger.click();
+    await this.page
+      .getByRole('option', { name: 'Articles', exact: true })
+      .click();
     await this.waitForPageLoad();
   }
 
@@ -249,7 +246,14 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/publishing\/calendar/);
+    // /publishing/calendar permanently redirects to the unified Posts
+    // desk's calendar view (`/publishing/posts?view=calendar`); assert the
+    // canonical destination, not the legacy path.
+    await expect(this.page).toHaveURL(
+      (url) =>
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
+        url.searchParams.get('type') !== 'article',
+    );
   }
 
   async assertArticlesTabActive(): Promise<void> {

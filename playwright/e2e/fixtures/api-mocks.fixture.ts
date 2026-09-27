@@ -3608,6 +3608,21 @@ export async function mockNetworkError(
   urlPattern: string,
 ): Promise<void> {
   await page.route(urlPattern, async (route) => {
+    const request = route.request();
+    // The glob (e.g. "**/posts**") also matches two request shapes besides
+    // the intended background API call: the page's own document navigation,
+    // and the App Router's RSC payload fetch for that same route (tagged
+    // with the `rsc` header). Aborting either forces Next's own "failed to
+    // fetch RSC payload -> fall back to a hard reload" recovery loop instead
+    // of letting the surface render its own handled error/empty state. See
+    // #5381.
+    if (
+      request.resourceType() === 'document' ||
+      (await request.headerValue('rsc')) !== null
+    ) {
+      await route.continue();
+      return;
+    }
     await route.abort('failed');
   });
 }

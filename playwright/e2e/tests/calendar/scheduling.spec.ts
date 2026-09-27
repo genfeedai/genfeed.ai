@@ -27,7 +27,9 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/publishing\/posts\?view=calendar/,
+    );
     await calendarPage.assertPostsTabActive();
   });
 
@@ -70,7 +72,9 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.gotoPosts();
 
     // Calendar should be rendered with events
-    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/publishing\/posts\?view=calendar/,
+    );
 
     // The calendar component should be visible
     await calendarPage.assertCalendarVisible().catch(() => {
@@ -123,7 +127,9 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.gotoPosts();
 
     // Verify calendar page loads with the post data
-    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/publishing\/posts\?view=calendar/,
+    );
 
     // Calendar events should be present (if any rendered)
     const eventCount = await calendarPage.getEventCount();
