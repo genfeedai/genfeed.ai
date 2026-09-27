@@ -31,6 +31,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 import { Separator } from '../../../primitives/separator';
@@ -48,7 +49,6 @@ type RailAppConfig = AppRailItemConfig & {
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
-  description: string;
   visibilityFlagKey?: AppSwitcherFeatureFlagKey;
 };
 
@@ -74,7 +74,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
   [
     {
       activePathRoots: ['/agent'],
-      description: 'Ask and execute.',
       icon: Terminal,
       id: 'agent',
       label: APP_DISPLAY_LABELS.agent,
@@ -83,7 +82,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/workspace', '/overview'],
-      description: 'Command center.',
       icon: LayoutGrid,
       id: 'workspace',
       label: APP_DISPLAY_LABELS.workspace,
@@ -92,7 +90,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/studio'],
-      description: 'Create assets.',
       icon: Sparkles,
       id: 'studio',
       label: APP_DISPLAY_LABELS.studio,
@@ -106,7 +103,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/library'],
-      description: 'Use source assets.',
       icon: Layers,
       id: 'library',
       label: APP_DISPLAY_LABELS.library,
@@ -115,7 +111,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/publishing'],
-      description: 'Drafts and posts.',
       icon: Send,
       id: 'publishing',
       label: APP_DISPLAY_LABELS.publishing,
@@ -124,7 +119,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/messages'],
-      description: 'Reply to audience.',
       icon: MessageSquare,
       id: 'messages',
       label: APP_DISPLAY_LABELS.messages,
@@ -135,7 +129,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
   [
     {
       activePathRoots: ['/discovery'],
-      description: 'Find winners.',
       icon: TrendingUp,
       id: 'discovery',
       label: APP_DISPLAY_LABELS.discovery,
@@ -144,7 +137,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/analytics'],
-      description: 'Measure results.',
       icon: ChartNoAxesColumn,
       id: 'analytics',
       label: APP_DISPLAY_LABELS.analytics,
@@ -153,7 +145,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
     },
     {
       activePathRoots: ['/automation'],
-      description: 'Run workflows.',
       icon: Workflow,
       id: 'automation',
       label: APP_DISPLAY_LABELS.automation,
@@ -165,7 +156,6 @@ const RAIL_APP_GROUPS: readonly (readonly RailAppConfig[])[] = [
 
 const ADMIN_RAIL_APP: RailAppConfig = {
   activePathRoots: ['/admin'],
-  description: 'Platform management.',
   icon: ShieldCheck,
   id: 'admin',
   label: APP_DISPLAY_LABELS.admin,
@@ -331,17 +321,21 @@ function getActiveAppId({
 function AppRailItem({
   app,
   badge,
+  description,
   href,
   isActive,
   isLocked,
+  lockedLabel,
   navigationAnnouncement,
   onNavigateStart,
 }: {
   app: RailAppConfig;
   badge?: AppRailBadge;
+  description: string;
   href: string;
   isActive: boolean;
   isLocked: boolean;
+  lockedLabel: string;
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
 }) {
@@ -349,7 +343,7 @@ function AppRailItem({
   const intent = useNavigationIntentPrefetch(href);
   const hasBadge = !isLocked && badge !== undefined && badge.count > 0;
   const accessibleLabel = isLocked
-    ? `${app.label} — locked. Generate your first asset to unlock.`
+    ? lockedLabel
     : hasBadge
       ? `${app.label}, ${badge.label}`
       : app.label;
@@ -395,7 +389,7 @@ function AppRailItem({
             </span>
           ) : null}
           <span id={`app-rail-desc-${app.id}`} className="sr-only">
-            {app.description}
+            {description}
           </span>
         </Link>
       </TooltipTrigger>
@@ -407,7 +401,7 @@ function AppRailItem({
       >
         <span className="block font-semibold">{app.label}</span>
         <span className="mt-0.5 block font-normal text-muted-foreground">
-          {app.description}
+          {description}
         </span>
       </TooltipContent>
     </Tooltip>
@@ -431,6 +425,7 @@ export function AppRail({
   resolveNavigation,
   showAdmin = false,
 }: AppRailProps) {
+  const translate = useTranslations('common.appRail');
   const railVisibility = useRailVisibility();
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
 
@@ -501,7 +496,7 @@ export function AppRail({
   }
 
   const handleNavigateStart = (announcement?: string) => {
-    setNavigationAnnouncement(announcement ?? 'Opening app.');
+    setNavigationAnnouncement(announcement ?? translate('opening'));
     onNavigate?.();
   };
 
@@ -513,9 +508,11 @@ export function AppRail({
         key={app.id}
         app={app}
         badge={badges?.[app.id]}
+        description={translate(`${app.id}.description`)}
         href={navigation.href}
         isActive={app.id === activeAppId}
         isLocked={isAppLocked(app)}
+        lockedLabel={translate('locked', { app: app.label })}
         navigationAnnouncement={navigation.announcement}
         onNavigateStart={handleNavigateStart}
       />
@@ -525,7 +522,7 @@ export function AppRail({
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={200}>
       <nav
-        aria-label="Apps"
+        aria-label={translate('apps')}
         className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-2 pt-1.5"
         data-testid="app-rail"
       >

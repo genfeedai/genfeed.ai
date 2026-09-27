@@ -13,6 +13,7 @@ import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft, PanelLeftClose } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
@@ -41,6 +42,7 @@ export default function MenuShared({
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: MenuSharedProps) {
   const { push } = useRouter();
+  const translateSidebar = useTranslations('common.sidebar');
 
   const {
     activeHref,
@@ -158,8 +160,8 @@ export default function MenuShared({
         variant={ButtonVariant.GHOST}
         size={ButtonSize.ICON}
         withWrapper={false}
-        ariaLabel="Collapse sidebar"
-        tooltip="Collapse sidebar"
+        ariaLabel={translateSidebar('collapse')}
+        tooltip={translateSidebar('collapse')}
         className="hidden size-8 shrink-0 text-foreground/58 hover:text-foreground md:inline-flex"
         onClick={onToggleCollapse}
       >

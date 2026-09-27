@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 type DesktopRailProps = {
@@ -13,9 +14,11 @@ type DesktopRailProps = {
  * panel carries the border.
  */
 export default function DesktopRail({ children }: DesktopRailProps) {
+  const translate = useTranslations('common.appRail');
+
   return (
     <aside
-      aria-label="App navigation"
+      aria-label={translate('navigation')}
       data-testid="desktop-app-rail"
       className="fixed bottom-0 left-0 z-30 hidden w-[var(--desktop-rail-width)] flex-col bg-gray-100 md:flex"
       // Same top inset as the content surface, so the rail's first row, the
