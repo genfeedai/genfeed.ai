@@ -548,20 +548,23 @@ a { color: inherit; text-decoration: none; }
 .section-copy a:hover { color: var(--gf-text-primary); }
 .tablist {
   display: flex;
-  flex-wrap: wrap;
   gap: 0;
+  overflow-x: auto;
   border-bottom: 1px solid var(--gf-border);
+  scrollbar-width: none;
 }
 .tab {
+  flex: 0 0 auto;
   min-height: 46px;
+  white-space: nowrap;
   border: 0;
   border-right: 1px solid var(--gf-border);
   background: transparent;
   color: var(--gf-text-muted);
-  padding: 0 18px;
+  padding: 0 16px;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .tab[aria-selected="true"] {
@@ -756,6 +759,7 @@ code, pre {
   .toolsets-section { padding: 36px 0; }
   .section-title { font-size: 34px; }
   .tabpanel { padding: 0 16px 4px; }
+  .tablist { flex-wrap: wrap; }
   .tab {
     flex: 1 1 100%;
     border-bottom: 1px solid var(--gf-border);

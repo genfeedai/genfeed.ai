@@ -594,7 +594,7 @@ describe('MCP setup page', () => {
 
       const setupIndex = html.indexOf('id="setup-title"');
       const toolsetsIndex = html.indexOf('<details class="toolsets">');
-      const pickerIndex = html.indexOf('toolset-picker');
+      const pickerIndex = html.indexOf('class="toolset-picker"');
 
       expect(setupIndex).toBeGreaterThan(-1);
       expect(toolsetsIndex).toBeGreaterThan(setupIndex);
