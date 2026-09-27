@@ -5,12 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug[
-  'pinterest-growth'
-] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.instagram as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function PinterestGrowthPage() {
-  return <ServiceLandingPage slug="pinterest-growth" />;
+export default function InstagramGrowthPage() {
+  return <ServiceLandingPage slug="instagram" />;
 }

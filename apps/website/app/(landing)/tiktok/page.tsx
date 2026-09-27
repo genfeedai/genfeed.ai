@@ -5,12 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug[
-  'tiktok-growth'
-] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.tiktok as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
 export default function TikTokGrowthPage() {
-  return <ServiceLandingPage slug="tiktok-growth" />;
+  return <ServiceLandingPage slug="tiktok" />;
 }

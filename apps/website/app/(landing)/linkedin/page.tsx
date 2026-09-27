@@ -5,10 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug['x-growth'] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.linkedin as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function XGrowthPage() {
-  return <ServiceLandingPage slug="x-growth" />;
+export default function LinkedInGrowthPage() {
+  return <ServiceLandingPage slug="linkedin" />;
 }

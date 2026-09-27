@@ -5,12 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug[
-  'threads-growth'
-] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.pinterest as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function ThreadsGrowthPage() {
-  return <ServiceLandingPage slug="threads-growth" />;
+export default function PinterestGrowthPage() {
+  return <ServiceLandingPage slug="pinterest" />;
 }
