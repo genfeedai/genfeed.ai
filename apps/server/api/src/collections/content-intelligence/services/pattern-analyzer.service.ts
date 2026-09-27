@@ -8,6 +8,7 @@ import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import {
@@ -23,7 +24,6 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { ContentPatternLabels } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -84,7 +84,7 @@ export class PatternAnalyzerService {
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
   }
@@ -287,7 +287,7 @@ export class PatternAnalyzerService {
     const fallback = this.readRuleBasedLabels(ruleBasedPatterns);
     const hasRuleBasedAnswer = ruleBasedPatterns.length > 0;
     const { minConfidence, mode } = resolvePatternAnalyzerDecisionSettings(
-      this.configService,
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (mode === 'off') {

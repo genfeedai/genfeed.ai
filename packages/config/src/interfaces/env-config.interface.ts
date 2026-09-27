@@ -73,7 +73,6 @@ export interface IEnvConfig {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_URL?: string;
-  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: 'true' | 'false';
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
 
@@ -103,12 +102,10 @@ export interface IEnvConfig {
   STRIPE_PAYG_CREDITS?: number;
 
   // === General AI ===
-  AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
   AGENT_CONTEXT_COMPRESSION_MODEL?: string;
   AGENT_CONTEXT_WINDOW_SIZE?: number;
   AGENT_STREAM_COALESCE_MAX_BYTES?: number;
   AGENT_STREAM_COALESCE_WINDOW_MS?: number;
-  AGENT_TOKEN_STREAMING_ENABLED?: string;
   MAX_TOKENS?: number;
 
   // === fal.ai ===
@@ -187,44 +184,12 @@ export interface IEnvConfig {
   OPENROUTER_API_KEY?: string;
 
   // === Typed decisions (TypeSafe AI / Jev) ===
-  // Agent auto-routing (#4865) no longer calls Jev — the candidate is a
-  // deterministic registry read. `shadow` only logs it; `live` dispatches it.
-  AGENT_AUTO_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
-  REPLY_BOT_INTENT_DECISION_MODE?: 'off' | 'shadow' | 'live';
-  REPLY_BOT_INTENT_MIN_CONFIDENCE?: number;
-  // Capped at shadow (release-blocker follow-up, epic #4863): the provider
-  // answer is recorded but never acted on.
-  TASK_ROUTING_DECISION_MODE?: 'off' | 'shadow';
-  TASK_ROUTING_MIN_CONFIDENCE?: number;
+  // Rollout modes and thresholds are Admin platform settings (#5407).
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
   // Eval-organization API key the content-eval media ladder (#4926) uses to
   // generate through the product API. Never a customer key.
   CONTENT_EVAL_GENFEED_API_KEY?: string;
-  // Capped at shadow (release-blocker follow-up, epic #4863): the provider
-  // answer is recorded but never acted on.
-  PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow';
-  PATTERN_ANALYZER_MIN_CONFIDENCE?: number;
-  UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow';
-  UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
-
-  // === Media validation (#4877) ===
-  MEDIA_GATE_VISION_MODE?: 'off' | 'shadow' | 'live';
-  MEDIA_PERCEPTION_ENABLED?: 'true' | 'false';
-  MEDIA_TEXT_GATE_DECISION_MODE?: 'off' | 'shadow' | 'live';
-  MEDIA_TEXT_GATE_MIN_CONFIDENCE?: number;
-  MEDIA_PERCEPTION_FRAME_COUNT?: number;
-  MEDIA_PERCEPTION_LOOKBACK_HOURS?: number;
-  MEDIA_PERCEPTION_VISION_MODEL?: string;
-  MODERATION_MODE?: 'off' | 'shadow' | 'live';
-  MODERATION_PROVIDER?: 'none' | 'openai';
-  MODERATION_THRESHOLDS?: string;
-
-  // === Typed decision: model-discovery category (#4869) ===
-  // Mirrors TypedDecisionMode in @genfeedai/contracts; spelled out here
-  // because @genfeedai/config does not depend on contracts.
-  MODEL_DISCOVERY_DECISION_MODE?: 'off' | 'shadow' | 'live';
-  MODEL_DISCOVERY_MIN_CONFIDENCE?: number;
 
   // === News API ===
   NEWS_API_KEY?: string;
@@ -442,8 +407,6 @@ export interface IEnvConfig {
 
   // AI
   XAI_MODEL?: string;
-
-  SYSTEM_EVENTS_ENABLED_AT?: string;
 
   // Allow additional env vars
   [key: string]: string | number | boolean | undefined;

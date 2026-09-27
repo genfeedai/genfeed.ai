@@ -4,13 +4,18 @@ Epic #4877 checks generated media before it is published, in three layers. Each
 layer runs off the publish path. The publish path only reads the persisted
 results, through `MediaAssessmentService`.
 
+Every setting below is an operator control in **Admin → Platform settings**
+(`/admin/administration/platform-settings`), not an environment variable
+(#5407). A change applies to every API and workers process within 15 seconds,
+with no restart or deploy.
+
 | Layer | What runs | Setting | Default |
 | --- | --- | --- | --- |
 | Readiness (#4878) | Probe metadata against `PLATFORM_MEDIA_SPECS` | always on | blocks on `error` |
-| Perception (#4879) | Frames, OCR, transcript and scene description | `MEDIA_PERCEPTION_ENABLED` | on |
-| Moderation (#4880) | Provider scores over frames, transcript and OCR | `MODERATION_PROVIDER`, `MODERATION_MODE` | `none`, `shadow` |
-| Vision flags (#4881) | Scorer rubric over the perceived frames | `MEDIA_GATE_VISION_MODE` | `off` |
-| Text decisions (#4882) | Typed decisions over the transcript, scene description and caption | `MEDIA_TEXT_GATE_DECISION_MODE` | `off` |
+| Perception (#4879) | Frames, OCR, transcript and scene description | Media perception | on |
+| Moderation (#4880) | Provider scores over frames, transcript and OCR | Moderation provider, moderation mode | `none`, `shadow` |
+| Vision flags (#4881) | Scorer rubric over the perceived frames | Vision gate mode | `off` |
+| Text decisions (#4882) | Typed decisions over the transcript, scene description and caption | Text gate mode | `off` |
 
 Perception produces inputs and never gates anything on its own. The three gating
 classifier layers are moderation, vision and text. Readiness is deterministic.
@@ -56,8 +61,8 @@ score decile** and a **suggested** threshold computed from the rule below.
 
 ### Moderation
 
-Moderation thresholds are per category, a minimum score in `0..1`, and set in
-`MODERATION_THRESHOLDS`. Lower is stricter.
+Moderation thresholds are per category, a minimum score in `0..1`, and set as
+per-category overrides in Admin → Platform settings. Lower is stricter.
 
 | Category | Default | Bias |
 | --- | --- | --- |
@@ -101,7 +106,7 @@ Changing which values flag is a contract change, reviewed like code.
 
 ### Text decisions
 
-A `false` answer counts at or above `MEDIA_TEXT_GATE_MIN_CONFIDENCE`
+A `false` answer counts at or above the text gate's minimum confidence
 (default 0.85). Only `false` answers act, so only they are calibrated: for each
 confidence decile, the rate at which the label was also `false`. Apply the same
 rule as for moderation, and use the higher suggestion of `isBrandSafe` and
@@ -164,7 +169,7 @@ their checks complete. That is the fail-closed choice made in #4881.
 per asset. A failure in any of them fails the job, and BullMQ retries all three
 (3 attempts with exponential backoff from 60s). After the last attempt, the
 failed job holds the asset's job id for 30 minutes. The sweep then offers the
-asset again, as long as it is still inside `MEDIA_PERCEPTION_LOOKBACK_HOURS`.
+asset again, as long as it is still inside the perception lookback window.
 Moderation and text decisions recover on their own once the provider returns.
 
 Vision does not. Each retry of the shared job spends one of the asset's 3 paid
@@ -192,7 +197,7 @@ failed for good, the text questions are never asked over what remains, because
 that would pass text that was never read. While the text gate is `live`, the
 asset stays `checks_pending` and needs a human approval.
 
-**Unbound providers are not outages.** With `MODERATION_PROVIDER=none`, or no
+**Unbound providers are not outages.** With the moderation provider `none`, or no
 typed-decision provider bound in /admin, that gate classifies nothing new and
 never marks media as unchecked, even when its mode is `live`.
 

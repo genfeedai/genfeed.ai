@@ -169,6 +169,10 @@ const checks = [
     ],
     name: 'Activity recording boundary (#5197)',
   },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-env-product-flags.ts'],
+    name: 'Env product-flag boundary (#5407)',
+  },
 ] as const;
 
 let failed = false;

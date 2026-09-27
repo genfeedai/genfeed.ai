@@ -1,30 +1,19 @@
 import { createHash } from 'node:crypto';
-import type { TypedDecisionRolloutSettings } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
-
-export const MEDIA_TEXT_GATE_DEFAULT_MIN_CONFIDENCE = 0.85;
+import type {
+  IPlatformFeatureSettings,
+  TypedDecisionRolloutSettings,
+} from '@genfeedai/contracts/interfaces';
 
 /** Async worker path: decisions may take longer than the chat-turn budget. */
 export const MEDIA_TEXT_DECISION_TIMEOUT_MS = 15_000;
 
-/** The one place the MEDIA_TEXT_GATE_* keys are read (#4882). */
+/** The media text-gate rollout (#4882), an operator platform setting (#5407). */
 export function resolveMediaTextGateSettings(
-  configService: ConfigService,
+  settings: IPlatformFeatureSettings,
 ): TypedDecisionRolloutSettings {
-  const rawMode = String(
-    configService.get('MEDIA_TEXT_GATE_DECISION_MODE') ?? '',
-  )
-    .trim()
-    .toLowerCase();
-  const rawConfidence = Number(
-    configService.get('MEDIA_TEXT_GATE_MIN_CONFIDENCE'),
-  );
   return {
-    minConfidence:
-      Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1
-        ? rawConfidence
-        : MEDIA_TEXT_GATE_DEFAULT_MIN_CONFIDENCE,
-    mode: rawMode === 'live' || rawMode === 'shadow' ? rawMode : 'off',
+    minConfidence: settings.mediaTextGateMinConfidence,
+    mode: settings.mediaTextGateDecisionMode,
   };
 }
 

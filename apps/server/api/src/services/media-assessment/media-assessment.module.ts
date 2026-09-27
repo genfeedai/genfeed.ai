@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
@@ -13,7 +14,12 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [MediaAssessmentService],
-  imports: [ConfigModule, MediaReadinessModule, TypedDecisionsModule],
+  imports: [
+    ConfigModule,
+    MediaReadinessModule,
+    PlatformSettingsModule,
+    TypedDecisionsModule,
+  ],
   providers: [MediaAssessmentService],
 })
 export class MediaAssessmentModule {}

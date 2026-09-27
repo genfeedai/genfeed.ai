@@ -19,27 +19,32 @@
  *   --text-fixture=<path>        repeatable via commas; default: both
  *                                committed media-text sets
  *   --provider=<name>            typed-decision adapter (default jev)
+ *   --moderation-provider=<name> moderation adapter, none|openai (default
+ *                                openai; needs OPENAI_API_KEY)
  *   --skip=readiness,moderation,text
  *   --min-recall=<0..1>          fail when a measurable moderation category
  *                                recalls below this
  *   --min-accuracy=<0..1>        fail when a text question scores below this
  *
- * Moderation uses MODERATION_PROVIDER / MODERATION_THRESHOLDS from the
- * environment exactly as the API does; with the provider `none` the section
- * says so and prints nothing else.
+ * Moderation provider and thresholds are Admin platform settings (#5407) and
+ * this script has no database, so it takes the provider as a flag and
+ * measures against the default thresholds — the calibration it prints is what
+ * an operator copies into /admin. With the provider `none` the section says so
+ * and prints nothing else.
  */
 
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { resolveModerationSettings } from '@api/services/moderation/moderation.settings';
 import { computeModerationCalibration } from '@api/services/moderation/moderation-calibration.util';
-import { createModerationProvider } from '@api/services/moderation/moderation-provider.factory';
+import { createModerationProviders } from '@api/services/moderation/moderation-provider.factory';
 import {
   buildReadinessSamples,
   scoreReadinessSamples,
 } from '@api-test/fixtures/media-gates/readiness-samples.fixture';
 import { ModerationCategory } from '@genfeedai/contracts';
 import type { ModerationScores } from '@genfeedai/contracts/api-types/contracts';
+import { parsePlatformFeatureSettings } from '@genfeedai/contracts/constants';
 import type {
   IModerationProvider,
   TypedDecisionProvider,
@@ -113,16 +118,21 @@ async function classify(
 async function runModeration(
   options: MediaBenchmarkOptions,
 ): Promise<{ isPassing: boolean; report: string }> {
-  const settings = resolveModerationSettings(options.configService);
-  const provider = createModerationProvider(
+  // An unknown name resolves to `none`, which reports itself as skipped.
+  const settings = resolveModerationSettings(
+    parsePlatformFeatureSettings({
+      moderationProvider: options.readFlag('moderation-provider') ?? 'openai',
+    }),
+  );
+  const provider = createModerationProviders(
     options.configService,
     options.logger,
-  );
+  )[settings.provider];
   let report = '\nModeration\n';
   report += `  provider:  ${provider.name}\n`;
   if (!provider.isEnabled) {
     report +=
-      '  skipped:   no moderation adapter bound. Set MODERATION_PROVIDER=openai with OPENAI_API_KEY to benchmark it.\n';
+      '  skipped:   no moderation adapter bound. Pass --moderation-provider=openai with OPENAI_API_KEY to benchmark it.\n';
     return { isPassing: true, report };
   }
 
@@ -252,7 +262,7 @@ async function runTextDecisions(
     ) {
       isPassing = false;
     }
-    // Only a `false` answer acts (MEDIA_TEXT_GATE_MIN_CONFIDENCE), so only
+    // Only a `false` answer acts (the text-gate minimum confidence), so only
     // `false` answers are calibrated: how often was the label also false?
     const falseBins = binByScore(
       answered

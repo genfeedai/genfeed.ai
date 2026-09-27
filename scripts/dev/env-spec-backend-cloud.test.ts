@@ -77,26 +77,29 @@ describe('env-spec backend cloud flag', () => {
   });
 
   it('copies signup alert settings onto the services that read them', () => {
-    const apiTarget = ENV_TARGETS.find((target) => target.id === 'api');
-    const workersTarget = ENV_TARGETS.find((target) => target.id === 'workers');
     const notificationsTarget = ENV_TARGETS.find(
       (target) => target.id === 'notifications',
-    );
-    const apiSection = ROOT_ENV_SECTIONS.find(
-      (section) => section.title === 'API',
     );
     const notificationsSection = ROOT_ENV_SECTIONS.find(
       (section) => section.title === 'Files MCP Notifications',
     );
 
-    expect(apiTarget?.directKeys).toContain('SYSTEM_EVENTS_ENABLED_AT');
-    expect(workersTarget?.directKeys).toContain('SYSTEM_EVENTS_ENABLED_AT');
-    expect(apiSection?.keys).toContain('SYSTEM_EVENTS_ENABLED_AT');
     expect(notificationsTarget?.directKeys).toContain(
       'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
     );
     expect(notificationsSection?.keys).toContain(
       'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
     );
+  });
+
+  it('never ships product feature switches as env (#5407)', () => {
+    // Recording start is an Admin platform setting shared by API and workers.
+    for (const target of ENV_TARGETS) {
+      expect(target.directKeys).not.toContain('SYSTEM_EVENTS_ENABLED_AT');
+      expect(target.directKeys).not.toContain(
+        'BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION',
+      );
+      expect(target.directKeys).not.toContain('MEDIA_PERCEPTION_ENABLED');
+    }
   });
 });

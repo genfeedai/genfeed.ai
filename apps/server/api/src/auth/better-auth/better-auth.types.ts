@@ -193,7 +193,6 @@ export interface IBetterAuthEnvValues {
   BETTER_AUTH_COOKIE_DOMAIN?: string;
   BETTER_AUTH_EXPERIMENTAL_JOINS?: string;
   BETTER_AUTH_IP_HEADERS?: string;
-  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: string;
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_URL?: string;
@@ -215,7 +214,12 @@ export interface ICreateBetterAuthOptions {
   trustedOrigins: string[];
   google?: IBetterAuthSocialProviderConfig;
   github?: IBetterAuthSocialProviderConfig;
-  requireEmailVerification?: boolean;
+  /**
+   * Whether email/password accounts must verify their email to sign in. An
+   * operator platform setting (#5407), resolved on every auth request so a
+   * change applies without rebuilding the Better Auth instance.
+   */
+  resolveIsEmailVerificationRequired: () => Promise<boolean>;
   /**
    * Root cookie domain (e.g. `.genfeed.ai`) for sharing the session cookie set
    * on the API host with sibling frontend subdomains. When set, enables
@@ -275,7 +279,6 @@ export type IBetterAuthRuntimeConfig = Pick<
   | 'github'
   | 'google'
   | 'ipAddressHeaders'
-  | 'requireEmailVerification'
   | 'secret'
   | 'skipStateCookieCheck'
   | 'trustedOrigins'
