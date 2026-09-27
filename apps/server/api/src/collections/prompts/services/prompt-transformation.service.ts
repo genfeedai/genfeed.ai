@@ -7,6 +7,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  extractPromptText,
+  toPromptBrandContext,
+} from '@api/collections/prompts/utils/prompt-text.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
@@ -24,7 +28,6 @@ import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-b
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import {
   ActivityKey,
   ActivitySource,
@@ -44,23 +47,6 @@ const LEGACY_CONTROLLER_NAME = 'PromptsOperationsController';
 type RequestWithCredits = Request & {
   creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
-
-function toPromptBrandContext(
-  brand: BrandDocument | null | undefined,
-): IPromptBrandContext | undefined {
-  if (!brand) {
-    return undefined;
-  }
-
-  return {
-    backgroundColor: brand.backgroundColor ?? undefined,
-    description: brand.description ?? undefined,
-    label: brand.label ?? undefined,
-    primaryColor: brand.primaryColor ?? undefined,
-    secondaryColor: brand.secondaryColor ?? undefined,
-    text: brand.text ?? undefined,
-  };
-}
 
 @Injectable()
 export class PromptTransformationService {
@@ -221,7 +207,7 @@ export class PromptTransformationService {
         normalizedType,
         user.organizationId,
       );
-      const userPrompt = this.extractPromptText(promptString);
+      const userPrompt = extractPromptText(promptString);
       const cinematicGuidance = isCinematicPromptCategory(normalizedType)
         ? loadCinematicLexiconGuidance()
         : '';
@@ -323,7 +309,7 @@ export class PromptTransformationService {
     organizationId: string,
   ): Promise<string> {
     if (!this.templatesService) {
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
 
     try {
@@ -343,7 +329,7 @@ export class PromptTransformationService {
         error,
         key: systemPromptKey,
       });
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
   }
 
@@ -368,15 +354,6 @@ export class PromptTransformationService {
         error,
         key: systemPromptKey,
       });
-    }
-  }
-
-  private extractPromptText(promptString: string): string {
-    try {
-      const prompt = JSON.parse(promptString) as { prompt?: string };
-      return prompt.prompt || promptString;
-    } catch {
-      return promptString;
     }
   }
 
