@@ -37,25 +37,47 @@ vi.mock('@services/core/environment.service', () => ({
 
 const LANDING_SLUGS = [...serviceLandingSlugs, 'retainer', 'dfy', 'fleet'];
 
+vi.mock('@web-components/landing/BookingSection', () => ({
+  default: () => <section id="book">Booking calendar</section>,
+}));
+
 describe('ServiceLandingPage', () => {
-  it.each(LANDING_SLUGS)(
-    'offers self-serve and a call on /%s, in the hero and the closing CTA',
+  it.each(LANDING_SLUGS.filter((slug) => slug !== 'done-for-you'))(
+    'offers self-serve first and a call on /%s, in the hero and the closing CTA',
     (slug) => {
       render(<ServiceLandingPage slug={slug} />);
 
       const startFree = screen.getAllByRole('link', { name: 'Start free' });
-      const bookCall = screen.getAllByRole('link', { name: 'Book a Call' });
+      const bookCall = screen.getAllByRole('link', { name: 'Book a call' });
 
       expect(startFree).toHaveLength(2);
       expect(bookCall).toHaveLength(2);
       for (const link of startFree) {
         expect(link).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
       }
+      // Calls are booked on /done-for-you, never straight on Calendly.
       for (const link of bookCall) {
-        expect(link).toHaveAttribute('href', 'https://calendly.com/genfeed');
+        expect(link).toHaveAttribute('href', '/done-for-you#book');
       }
+      expect(screen.queryByText('Booking calendar')).not.toBeInTheDocument();
     },
   );
+
+  it('puts the call first on /done-for-you and closes on the calendar', () => {
+    render(<ServiceLandingPage slug="done-for-you" />);
+
+    const heroLinks = screen
+      .getAllByRole('link')
+      .map((link) => link.textContent?.trim())
+      .filter((label) => label === 'Book a call' || label === 'Start free');
+
+    expect(heroLinks).toEqual(['Book a call', 'Start free']);
+    expect(screen.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
+      'href',
+      '/done-for-you#book',
+    );
+    expect(screen.getByText('Booking calendar')).toBeInTheDocument();
+  });
 
   it('renders the X growth page with both paths spelled out', () => {
     render(<ServiceLandingPage slug="x" />);

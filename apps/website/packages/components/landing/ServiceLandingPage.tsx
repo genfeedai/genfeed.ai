@@ -1,10 +1,12 @@
 'use client';
 
+import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import SectionHeader from '@ui/marketing/SectionHeader';
-import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
   CtaSection,
@@ -12,6 +14,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import BookingSection from '@web-components/landing/BookingSection';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import { pitchLandingConfigBySlug } from '@web-components/landing/pitch-pages.data';
 import {
@@ -32,30 +35,40 @@ export interface ServiceLandingPageProps {
 const SIGN_UP_HREF = `${EnvironmentService.apps.app}/sign-up`;
 
 // Every landing page offers both paths: run it yourself on Genfeed, or have us
-// run it. Self-serve leads because it is the lower-friction first step.
-function LandingActions(): React.ReactElement {
-  return (
-    <>
-      <Button size={ButtonSize.PUBLIC} asChild>
-        <Link href={SIGN_UP_HREF} target="_blank" rel="noopener noreferrer">
-          Start free
-        </Link>
-      </Button>
-      <Button
-        variant={ButtonVariant.SECONDARY}
-        size={ButtonSize.PUBLIC}
-        asChild
-      >
-        <Link
-          href={EnvironmentService.calendly}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Book a Call
-        </Link>
-      </Button>
-    </>
+// run it. Self-serve leads because it is the lower-friction first step, except
+// on the booking page itself, where the call is what the visitor came for.
+// Every "Book a call" goes to that page's calendar, never straight to Calendly.
+function LandingActions({
+  slug,
+}: ServiceLandingActionsProps): React.ReactElement {
+  const isBookingPage = slug === BOOKING_PAGE_SLUG;
+
+  const bookCall = (
+    <ButtonTracked
+      asChild
+      key="book"
+      size={ButtonSize.PUBLIC}
+      trackingData={{ action: 'book_call', page: slug }}
+      trackingName="service_landing_click"
+      variant={isBookingPage ? undefined : ButtonVariant.SECONDARY}
+    >
+      <Link href={BOOKING_HREF}>Book a call</Link>
+    </ButtonTracked>
   );
+  const startFree = (
+    <ButtonTracked
+      asChild
+      key="start"
+      size={ButtonSize.PUBLIC}
+      trackingData={{ action: 'start_signup', page: slug }}
+      trackingName="service_landing_click"
+      variant={isBookingPage ? ButtonVariant.SECONDARY : undefined}
+    >
+      <a href={SIGN_UP_HREF}>Start free</a>
+    </ButtonTracked>
+  );
+
+  return <>{isBookingPage ? [bookCall, startFree] : [startFree, bookCall]}</>;
 }
 
 export default function ServiceLandingPage({
@@ -76,7 +89,7 @@ export default function ServiceLandingPage({
           </>
         }
         description={config.heroDescription}
-        heroActions={<LandingActions />}
+        heroActions={<LandingActions slug={slug} />}
         showFooter={false}
       >
         <WebSection maxWidth="md" className="pt-0">
@@ -220,13 +233,17 @@ export default function ServiceLandingPage({
           <FaqGrid items={config.faqs} />
         </WebSection>
 
-        <CtaSection
-          bg="subtle"
-          title={config.closingTitle}
-          description={config.closingDescription}
-        >
-          <LandingActions />
-        </CtaSection>
+        {slug === BOOKING_PAGE_SLUG ? (
+          <BookingSection />
+        ) : (
+          <CtaSection
+            bg="subtle"
+            title={config.closingTitle}
+            description={config.closingDescription}
+          >
+            <LandingActions slug={slug} />
+          </CtaSection>
+        )}
       </PageLayout>
 
       <LandingFooter />

@@ -1,5 +1,5 @@
+import { BOOKING_HREF } from '@data/booking.data';
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
-import { EnvironmentService } from '@services/core/environment.service';
 import {
   NeuralGrid,
   NeuralGridItem,
@@ -97,9 +97,7 @@ export default function ContactPage() {
             </Link>
             <Link
               className="font-medium text-primary hover:underline"
-              href={EnvironmentService.calendly}
-              rel="noopener noreferrer"
-              target="_blank"
+              href={BOOKING_HREF}
             >
               Book a call
             </Link>

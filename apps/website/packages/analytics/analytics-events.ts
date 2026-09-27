@@ -14,6 +14,7 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   BRAND_OS_INTAKE_STARTED: 'brand_os_intake_started',
   BRAND_OS_PREVIEW_COMPLETED: 'brand_os_preview_completed',
   BOOK_CALL: 'book_call',
+  CALL_BOOKED: 'call_booked',
   CONNECT_AGENT: 'connect_agent',
   CTA_CLICK: 'cta_click',
   START_SIGNUP: 'start_signup',
@@ -59,6 +60,10 @@ export interface WebsiteAnalyticsEventProperties {
     readonly outcome: 'blocked' | 'error' | 'partial' | 'ready';
   };
   [WEBSITE_ANALYTICS_EVENTS.BOOK_CALL]: WebsiteCtaPayload;
+  /** A slot confirmed in the embedded calendar, not just a click toward it. */
+  [WEBSITE_ANALYTICS_EVENTS.CALL_BOOKED]: {
+    readonly surface: 'done_for_you';
+  };
   [WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.CTA_CLICK]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.START_SIGNUP]: WebsiteCtaPayload;

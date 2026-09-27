@@ -1,9 +1,9 @@
 'use client';
 
+import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
-import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import {
@@ -19,8 +19,8 @@ import Link from 'next/link';
 
 const SERVICE_CARDS = [
   {
-    cta: 'Book a Call',
-    ctaHref: EnvironmentService.calendly,
+    cta: 'Book a call',
+    ctaHref: BOOKING_HREF,
     description:
       'Setup packages and custom workshops to get your team productive on the platform fast.',
     features: [
@@ -36,8 +36,8 @@ const SERVICE_CARDS = [
     shortLabel: 'Training',
   },
   {
-    cta: 'Book a Call',
-    ctaHref: EnvironmentService.calendly,
+    cta: 'Book a call',
+    ctaHref: BOOKING_HREF,
     description: serviceOffering.description,
     features: serviceOffering.includes,
     label: 'Done-For-You',
@@ -46,8 +46,8 @@ const SERVICE_CARDS = [
     shortLabel: 'Content',
   },
   {
-    cta: 'Book a Call',
-    ctaHref: EnvironmentService.calendly,
+    cta: 'Book a call',
+    ctaHref: BOOKING_HREF,
     description:
       'Content strategy, brand positioning, and channel optimization for teams that need direction before execution.',
     features: [
@@ -142,13 +142,7 @@ export default function ServicesContent() {
                     size={ButtonSize.PUBLIC}
                     className="mt-12 w-full text-center"
                   >
-                    <a
-                      href={service.ctaHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {service.cta}
-                    </a>
+                    <Link href={service.ctaHref}>{service.cta}</Link>
                   </Button>
                 </NeuralGridItem>
               );
@@ -239,13 +233,7 @@ export default function ServicesContent() {
           description="Tell us about your content needs and we will scope the right engagement."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
-            <a
-              href={EnvironmentService.calendly}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Book a Call
-            </a>
+            <Link href={BOOKING_HREF}>Book a call</Link>
           </Button>
           <Button
             variant={ButtonVariant.SECONDARY}

@@ -1,5 +1,6 @@
 'use client';
 
+import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
@@ -183,7 +184,7 @@ export default function PricingContent() {
                 ? paygSignUpHref
                 : isFeatured
                   ? proSignUpHref
-                  : plan.ctaHref || EnvironmentService.calendly;
+                  : plan.ctaHref || BOOKING_HREF;
               const ctaLabel = plan.cta || 'Get Started';
 
               return (
@@ -312,11 +313,7 @@ export default function PricingContent() {
                 size={ButtonSize.PUBLIC}
                 variant={ButtonVariant.SECONDARY}
               >
-                <a
-                  href={enterprisePlan.ctaHref || EnvironmentService.calendly}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={enterprisePlan.ctaHref || BOOKING_HREF}>
                   {enterprisePlan.cta}
                 </a>
               </Button>

@@ -35,14 +35,14 @@ describe('LandingTopbar', () => {
       <LandingTopbar
         ctaHref="/sign-up"
         ctaLabel="Start free"
-        secondaryCtaHref="https://calendly.com/genfeed"
-        secondaryCtaLabel="Book a Call"
+        secondaryCtaHref="/done-for-you#book"
+        secondaryCtaLabel="Book a call"
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Book a Call' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
       'href',
-      'https://calendly.com/genfeed',
+      '/done-for-you#book',
     );
     expect(screen.getByRole('link', { name: 'Start free' })).toHaveAttribute(
       'href',
