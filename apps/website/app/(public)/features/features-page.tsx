@@ -193,7 +193,7 @@ export default function FeaturesPage(): React.ReactElement {
                   size={ButtonSize.PUBLIC}
                   className="tracking-[0.3em]"
                 >
-                  <Link href="/demo">See How It Works</Link>
+                  <Link href="/agent">See How It Works</Link>
                 </Button>
               </div>
             </div>

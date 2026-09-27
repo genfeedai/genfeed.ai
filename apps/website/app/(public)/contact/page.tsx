@@ -1,4 +1,5 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
+import { EnvironmentService } from '@services/core/environment.service';
 import {
   NeuralGrid,
   NeuralGridItem,
@@ -78,10 +79,12 @@ export default function ContactPage() {
       </WebSection>
       <WebSection bg="bordered" maxWidth="lg" py="md">
         <div className="mx-auto max-w-3xl space-y-4 text-center">
-          <h2 className="text-3xl font-semibold">Sales and partnerships</h2>
+          <h2 className="text-3xl font-semibold">
+            Done for you and partnerships
+          </h2>
           <p className="text-muted-foreground">
-            For managed content operations, agency programs, enterprise hosting,
-            or partnerships, email hello@genfeed.ai or book a product demo.
+            For done-for-you content operations, agency programs, enterprise
+            hosting, or partnerships, email hello@genfeed.ai or book a call.
             Include your publishing channels, approximate output needs, and
             whether you prefer managed cloud or self-hosting.
           </p>
@@ -94,9 +97,11 @@ export default function ContactPage() {
             </Link>
             <Link
               className="font-medium text-primary hover:underline"
-              href="/demo"
+              href={EnvironmentService.calendly}
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              Book a demo
+              Book a call
             </Link>
           </div>
         </div>

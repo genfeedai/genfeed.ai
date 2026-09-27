@@ -22,6 +22,7 @@ import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
   CtaSection,
@@ -71,8 +72,8 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Book a demo when you need team rollout planning, migration support, enterprise terms, or a multi-brand workflow designed before signup.',
-    question: 'When should I book a demo?',
+      'Only if you want it run for you. Book a call for done-for-you production or enterprise terms. Everything else is self-serve: connect the agent you already use, or sign up and start in the studio.',
+    question: 'Do I need to talk to someone?',
   },
 ];
 
@@ -316,7 +317,7 @@ export default function PricingContent() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Book a Demo
+                  {enterprisePlan.cta}
                 </a>
               </Button>
             </NeuralGridItem>
@@ -397,26 +398,12 @@ export default function PricingContent() {
         <CtaSection
           bg="subtle"
           title="Start free. Pay per output."
-          description="Book a demo only when the rollout needs team planning or enterprise terms."
+          description="Connect the agent you already use, or start in the studio. Both draw from the same credits."
         >
-          <Button size={ButtonSize.PUBLIC} asChild>
-            <a href={paygSignUpHref} target="_blank" rel="noopener noreferrer">
-              Create now
-            </a>
-          </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.PUBLIC}
-            asChild
-          >
-            <a
-              href={EnvironmentService.calendly}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Book a Demo
-            </a>
-          </Button>
+          <AgentFirstActions
+            signUpHref={paygSignUpHref}
+            trackingName="pricing_cta_click"
+          />
         </CtaSection>
       </PageLayout>
     </div>

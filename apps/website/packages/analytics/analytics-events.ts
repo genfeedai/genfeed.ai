@@ -14,6 +14,7 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   BRAND_OS_INTAKE_STARTED: 'brand_os_intake_started',
   BRAND_OS_PREVIEW_COMPLETED: 'brand_os_preview_completed',
   BOOK_CALL: 'book_call',
+  CONNECT_AGENT: 'connect_agent',
   CTA_CLICK: 'cta_click',
   START_SIGNUP: 'start_signup',
   YOUTUBE_CLIP_ANALYSIS_COMPLETED: 'youtube_clip_analysis_completed',
@@ -33,6 +34,7 @@ export type WebsiteAnalyticsEvent =
 
 export type WebsiteCtaAnalyticsEvent =
   | typeof WEBSITE_ANALYTICS_EVENTS.BOOK_CALL
+  | typeof WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT
   | typeof WEBSITE_ANALYTICS_EVENTS.CTA_CLICK
   | typeof WEBSITE_ANALYTICS_EVENTS.START_SIGNUP
   | typeof WEBSITE_ANALYTICS_EVENTS.VIEW_PRICING;
@@ -57,6 +59,7 @@ export interface WebsiteAnalyticsEventProperties {
     readonly outcome: 'blocked' | 'error' | 'partial' | 'ready';
   };
   [WEBSITE_ANALYTICS_EVENTS.BOOK_CALL]: WebsiteCtaPayload;
+  [WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.CTA_CLICK]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.START_SIGNUP]: WebsiteCtaPayload;
   [WEBSITE_ANALYTICS_EVENTS.VIEW_PRICING]: WebsiteCtaPayload;
@@ -106,6 +109,8 @@ const BOOK_CALL_ACTIONS = new Set([
   'schedule_call',
 ]);
 
+const CONNECT_AGENT_ACTIONS = new Set(['connect_agent']);
+
 const SIGNUP_ACTIONS = new Set([
   'core_cta',
   'get_started',
@@ -138,8 +143,8 @@ function matchesActionPrefix(action: string, candidates: Set<string>): boolean {
 
 /**
  * Map a tracked CTA click to the analytics events it represents: always
- * `cta_click`, plus the conversion intent (book a call, start signup, view
- * pricing) derived from the CTA's `action` slug.
+ * `cta_click`, plus the conversion intent (book a call, connect an agent,
+ * start signup, view pricing) derived from the CTA's `action` slug.
  */
 export function deriveWebsiteEventsFromCta(
   payload: WebsiteCtaPayload | undefined,
@@ -151,6 +156,13 @@ export function deriveWebsiteEventsFromCta(
     return [
       WEBSITE_ANALYTICS_EVENTS.CTA_CLICK,
       WEBSITE_ANALYTICS_EVENTS.BOOK_CALL,
+    ];
+  }
+
+  if (matchesActionPrefix(action, CONNECT_AGENT_ACTIONS)) {
+    return [
+      WEBSITE_ANALYTICS_EVENTS.CTA_CLICK,
+      WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT,
     ];
   }
 

@@ -1,12 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
@@ -21,9 +20,6 @@ import {
   Wand,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
-
-const CALENDLY_URL = EnvironmentService.calendly;
 
 const SHOWCASE_IMAGES = [
   {
@@ -114,33 +110,11 @@ export default function LibraryContent() {
     <div ref={containerRef}>
       <PageLayout
         heroActions={
-          <>
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingName="library_hero_click"
-              trackingData={{ action: 'sign_up' }}
-            >
-              <Link href={`${EnvironmentService.apps.app}/sign-up?plan=payg`}>
-                Create now
-              </Link>
-            </ButtonTracked>
-            <ButtonTracked
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              trackingName="library_hero_click"
-              trackingData={{ action: 'book_demo' }}
-            >
-              <Link
-                href={CALENDLY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Book a Demo
-              </Link>
-            </ButtonTracked>
-          </>
+          <AgentFirstActions
+            signUpHref={`${EnvironmentService.apps.app}/sign-up?plan=payg`}
+            signUpLabel="Create now"
+            trackingName="library_hero_click"
+          />
         }
         heroVisual={HERO_VISUAL}
         compact
@@ -279,31 +253,11 @@ export default function LibraryContent() {
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
+              <AgentFirstActions
+                signUpHref={`${EnvironmentService.apps.app}/sign-up?plan=payg`}
+                signUpLabel="Create now"
                 trackingName="library_cta_click"
-                trackingData={{ action: 'sign_up' }}
-              >
-                <Link href={`${EnvironmentService.apps.app}/sign-up?plan=payg`}>
-                  Create now
-                </Link>
-              </ButtonTracked>
-              <ButtonTracked
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.PUBLIC}
-                trackingName="library_cta_click"
-                trackingData={{ action: 'book_demo' }}
-              >
-                <Link
-                  href={CALENDLY_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a Demo
-                </Link>
-              </ButtonTracked>
+              />
             </div>
           </div>
         </section>

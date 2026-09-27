@@ -70,15 +70,18 @@ describe('AgentContent', () => {
       ['ChatGPT', '/chatgpt'],
     ]) {
       const hrefs = screen
-        .getAllByRole('link', { name })
+        .getAllByRole('link', { name: new RegExp(`^${name}`) })
         .map((link) => link.getAttribute('href'));
       expect(hrefs).toContain(href);
     }
   });
 
-  it('sends the hero to sign-up and the secondary action to developers', () => {
+  it('leads the hero with the agent connection, then sign-up', () => {
     render(<AgentContent />);
 
+    expect(
+      screen.getByRole('link', { name: /connect your agent/i }),
+    ).toHaveAttribute('href', '/agent#connect');
     const [heroKeyLink] = screen.getAllByRole('link', {
       name: /start for \$0/i,
     });
@@ -87,9 +90,21 @@ describe('AgentContent', () => {
       'href',
       'https://app.genfeed.ai/sign-up',
     );
+  });
+
+  it('puts the connect section, which every agent CTA targets, first', () => {
+    const { container } = render(<AgentContent />);
+
+    const connect = container.querySelector('#connect');
+    const asks = screen.getByRole('heading', {
+      level: 2,
+      name: /what people ask it for/i,
+    });
+
+    expect(connect).not.toBeNull();
     expect(
-      screen.getByRole('link', { name: /for developers/i }),
-    ).toHaveAttribute('href', '/developers');
+      connect?.compareDocumentPosition(asks) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('tracks hero and closing CTAs under separate page-scoped names', () => {
@@ -107,7 +122,7 @@ describe('AgentContent', () => {
       1,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'create_now' },
+          trackingData: { action: 'start_signup' },
           trackingName: 'agent_hero_click',
         },
       }),

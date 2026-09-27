@@ -13,8 +13,6 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
     apps: {
       app: 'https://app.genfeed.ai',
     },
-    calendly: 'https://calendly.com/genfeed/demo',
-    mcpConnectHref: 'https://app.genfeed.ai/connect',
   },
 }));
 
@@ -38,16 +36,16 @@ vi.mock('next/link', () => ({
 }));
 
 describe('WebsiteTopbar', () => {
-  it('leads with the primary creation action and studio navigation', () => {
+  it('pairs the creation action with the agent action, never a demo', () => {
     render(<WebsiteTopbar />);
 
     expect(
       screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
-    expect(screen.getByRole('link', { name: /book a demo/i })).toHaveAttribute(
-      'href',
-      'https://calendly.com/genfeed/demo',
-    );
+    expect(
+      screen.getByRole('link', { name: /connect your agent/i }),
+    ).toHaveAttribute('href', '/agent#connect');
+    expect(screen.queryByText(/book a demo/i)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Pricing' })).toHaveAttribute(
       'href',
       '/pricing',

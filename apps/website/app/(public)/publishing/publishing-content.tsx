@@ -1,12 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
@@ -20,7 +19,6 @@ import {
   Zap,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -152,30 +150,7 @@ export default function PublishingContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        heroActions={
-          <>
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingName="publishing_hero_click"
-              trackingData={{ action: 'view_plans' }}
-            >
-              <Link href="/pricing">
-                View Plans
-                <ArrowRight className="size-4" />
-              </Link>
-            </ButtonTracked>
-            <ButtonTracked
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              trackingName="publishing_hero_click"
-              trackingData={{ action: 'core_cta' }}
-            >
-              <Link href="/pricing">View Plans</Link>
-            </ButtonTracked>
-          </>
-        }
+        heroActions={<AgentFirstActions trackingName="publishing_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}
         compact
@@ -346,26 +321,7 @@ export default function PublishingContent() {
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                trackingName="publishing_cta_click"
-                trackingData={{ action: 'view_plans' }}
-              >
-                <Link href="/pricing">
-                  View Plans
-                  <ArrowRight className="size-4" />
-                </Link>
-              </ButtonTracked>
-              <ButtonTracked
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.PUBLIC}
-                trackingName="publishing_cta_click"
-                trackingData={{ action: 'book_demo' }}
-              >
-                <Link href="/demo">Book a Demo</Link>
-              </ButtonTracked>
+              <AgentFirstActions trackingName="publishing_cta_click" />
             </div>
           </div>
         </section>

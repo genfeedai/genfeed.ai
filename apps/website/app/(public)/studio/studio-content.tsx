@@ -1,14 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import StudioInterfacePreview from '@public/studio/studio-interface-preview';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import PageLayout from '@web-components/PageLayout';
 import {
@@ -125,30 +124,7 @@ export default function StudioContent({ models }: StudioContentProps) {
   return (
     <div ref={containerRef}>
       <PageLayout
-        heroActions={
-          <>
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingName="studio_hero_click"
-              trackingData={{ action: 'view_plans' }}
-            >
-              <Link href="/pricing">
-                View Plans
-                <ArrowRight className="size-4" />
-              </Link>
-            </ButtonTracked>
-            <ButtonTracked
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              trackingName="studio_hero_click"
-              trackingData={{ action: 'explore_demo' }}
-            >
-              <Link href="/demo">Explore Demo</Link>
-            </ButtonTracked>
-          </>
-        }
+        heroActions={<AgentFirstActions trackingName="studio_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={heroVisual}
         compact
@@ -325,29 +301,7 @@ export default function StudioContent({ models }: StudioContentProps) {
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                trackingName="studio_cta_click"
-                trackingData={{ action: 'view_plans' }}
-              >
-                <Link href="/pricing">
-                  View Plans
-                  <ArrowRight className="size-4" />
-                </Link>
-              </ButtonTracked>
-              <ButtonTracked
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.PUBLIC}
-                trackingName="studio_cta_click"
-                trackingData={{ action: 'explore_studio' }}
-              >
-                <Link href="/demo">
-                  <ArrowRight className="size-4" />
-                  Explore Studio
-                </Link>
-              </ButtonTracked>
+              <AgentFirstActions trackingName="studio_cta_click" />
             </div>
           </div>
         </section>

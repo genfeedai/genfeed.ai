@@ -415,8 +415,8 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Scale Tier - higher-entry team studio
   {
-    cta: 'Talk to Sales',
-    ctaHref: CALENDLY_URL,
+    cta: 'Start Scale',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
       includedCreditsFeature('scale'),
@@ -444,7 +444,7 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Enterprise Tier - custom deployment
   {
-    cta: 'Book a Demo',
+    cta: 'Book a call',
     ctaHref: CALENDLY_URL,
     description: 'Custom studio, governance, and support',
     features: [

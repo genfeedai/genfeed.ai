@@ -86,7 +86,6 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/articles', label: 'Articles' },
       { href: '/changelog', label: 'Changelog' },
       { href: '/posts', label: 'Posts by ingredient' },
-      { href: '/demo', label: 'Product demo' },
       { href: '/benchmark', label: 'Benchmark' },
       { href: '/faq', label: 'FAQ' },
       { href: '/about', label: 'About' },

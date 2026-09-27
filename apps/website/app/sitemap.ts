@@ -313,12 +313,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'monthly',
       lastModified: new Date(),
-      priority: 0.7,
-      url: 'https://genfeed.ai/demo',
-    },
-    {
-      changeFrequency: 'monthly',
-      lastModified: new Date(),
       priority: 0.6,
       url: 'https://genfeed.ai/gen',
     },
