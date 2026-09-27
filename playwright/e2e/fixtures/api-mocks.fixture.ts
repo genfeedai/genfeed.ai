@@ -4286,11 +4286,14 @@ export async function mockPostPublishing(
       id: requestedPostId,
       ...state,
     });
+    // `ensureReleaseForPost` creates the group with no release-wide date and
+    // `schedulePostGroupTarget` only schedules the target, so the group's
+    // `scheduledAt` stays null.
     const attributes = buildReleaseGroupAttributes(
       source,
       resolvedGroupId,
       [target],
-      state,
+      { scheduledAt: null, status: state.status },
     );
     await route.fulfill({
       body: JSON.stringify(
@@ -4326,11 +4329,14 @@ export async function mockPostPublishing(
       id: requestedTargetId,
       ...state,
     });
+    // `ensureReleaseForPost` creates the group with no release-wide date and
+    // `schedulePostGroupTarget` only schedules the target, so the group's
+    // `scheduledAt` stays null.
     const attributes = buildReleaseGroupAttributes(
       source,
       requestedGroupId,
       [target],
-      state,
+      { scheduledAt: null, status: state.status },
     );
     await route.fulfill({
       body: JSON.stringify(
