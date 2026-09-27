@@ -1,4 +1,4 @@
-packages: @genfeedai/contracts
+packages: @genfeedai/contracts @genfeedai/serializers @genfeedai/client @genfeedai/hooks @genfeedai/services
 
 `GET /billing-accounts/current` (`BillingAccountsService.getSnapshot`) exposed
 every linked organization's label, budget and usage, plus the shared wallet
