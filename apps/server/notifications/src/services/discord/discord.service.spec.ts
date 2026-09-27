@@ -774,8 +774,10 @@ describe('DiscordService', () => {
       const embed = lastEmbed();
       // UGX is a real-world zero-decimal currency, but Stripe's `amount` for
       // it stays two-decimal for backward compatibility: 500 means 5 UGX,
-      // not 500 UGX (genfeedai/genfeed.ai#5313 review finding).
-      expect(fieldValue(embed, 'Amount')).toBe('UGX 5');
+      // not 500 UGX (genfeedai/genfeed.ai#5313 review finding). Intl inserts
+      // a non-breaking space (U+00A0) between an ISO currency code and the
+      // amount, not a regular space.
+      expect(fieldValue(embed, 'Amount')).toBe('UGX\u00a05');
     });
 
     it('formats ISK using the standard two-decimal scale, per Stripe’s special case', async () => {
@@ -790,7 +792,7 @@ describe('DiscordService', () => {
 
       const embed = lastEmbed();
       // Same backward-compatibility special case as UGX: 500 means 5 ISK.
-      expect(fieldValue(embed, 'Amount')).toBe('ISK 5');
+      expect(fieldValue(embed, 'Amount')).toBe('ISK\u00a05');
     });
 
     it('formats a three-decimal KWD amount using a 1000 minor-unit scale', async () => {
@@ -805,7 +807,7 @@ describe('DiscordService', () => {
 
       const embed = lastEmbed();
       // KWD has a three-digit minor unit — 1,500 means 1.500 KWD, not 15.00.
-      expect(fieldValue(embed, 'Amount')).toBe('KWD 1.500');
+      expect(fieldValue(embed, 'Amount')).toBe('KWD\u00a01.500');
     });
 
     it('always shows the revenue source in the Source field, even with a plan label', async () => {
