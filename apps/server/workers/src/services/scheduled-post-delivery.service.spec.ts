@@ -69,7 +69,7 @@ type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();
   return {
-    activitiesService: { create: vi.fn().mockResolvedValue(undefined) },
+    activitiesService: { record: vi.fn().mockResolvedValue(undefined) },
     credentialsService: { findOne: vi.fn() },
     logger: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     mediaReadinessService: {
@@ -811,7 +811,7 @@ describe('ScheduledPostDeliveryService', () => {
       'YouTube requires at least 1 media item(s).',
       undefined,
     );
-    expect(mocks.activitiesService.create).toHaveBeenCalledWith(
+    expect(mocks.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         entityId: 'post-1',
         key: ActivityKey.POST_FAILED,
@@ -871,7 +871,7 @@ describe('ScheduledPostDeliveryService', () => {
         success: false,
       }),
     );
-    expect(mocks.activitiesService.create).not.toHaveBeenCalled();
+    expect(mocks.activitiesService.record).not.toHaveBeenCalled();
     expect(
       mocks.publishEventWebhookService.emitLegacyPostFailed,
     ).not.toHaveBeenCalled();
@@ -879,7 +879,7 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('keeps a failed target failed when recording the owner notification throws', async () => {
     mocks.credentialsService.findOne.mockResolvedValue(null);
-    mocks.activitiesService.create.mockRejectedValue(
+    mocks.activitiesService.record.mockRejectedValue(
       new Error('activity store unavailable'),
     );
     const post = createScheduledPost();
@@ -1023,7 +1023,7 @@ describe('ScheduledPostDeliveryService', () => {
         success: false,
       }),
     );
-    expect(mocks.activitiesService.create).toHaveBeenCalledWith(
+    expect(mocks.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.POST_FAILED,
         value: 'Quota exceeded: 10/10 posts for twitter',

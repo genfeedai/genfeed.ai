@@ -9,6 +9,8 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
+  getActivityAlertPolicy,
+  type INotificationInboxActivity,
   type INotificationInboxItem,
   SOCIAL_REPLY_NOTIFICATION_TOPIC,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -74,6 +76,56 @@ function readInboxFailure(
         }
       : null;
   return safeFailure;
+}
+
+type InboxActivityRow = {
+  action: string | null;
+  brandId: string | null;
+  createdAt: Date;
+  data: Prisma.JsonValue;
+  entityId: string | null;
+  entityModel: string | null;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string | null;
+};
+
+function readInboxActivity(
+  organizationId: string,
+  activity: InboxActivityRow | null,
+): INotificationInboxActivity | null {
+  if (
+    !activity ||
+    activity.isDeleted ||
+    activity.organizationId !== organizationId
+  ) {
+    return null;
+  }
+  const data =
+    activity.data &&
+    typeof activity.data === 'object' &&
+    !Array.isArray(activity.data)
+      ? activity.data
+      : {};
+  const key =
+    typeof data.key === 'string' && data.key ? data.key : activity.action;
+  if (!key) return null;
+  return {
+    brandId: activity.brandId,
+    createdAt: activity.createdAt.toISOString(),
+    entityId: activity.entityId,
+    entityModel: activity.entityModel,
+    id: activity.id,
+    key,
+    source: typeof data.source === 'string' ? data.source : null,
+    value: typeof data.value === 'string' ? data.value.slice(0, 4000) : null,
+  };
+}
+
+/** Alerts that are not problems render as completed; the rest as failures. */
+function readInboxOutcome(eventKey: string): 'completed' | 'failed' {
+  const severity = getActivityAlertPolicy(eventKey)?.severity;
+  return severity === 'success' || severity === 'info' ? 'completed' : 'failed';
 }
 
 function hasSystemWorkflowMetadata(metadata: Prisma.JsonValue): boolean {
@@ -271,7 +323,22 @@ export class NotificationInboxService {
       }),
       orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
       take: PAGE_LIMIT + 1,
-      include: { event: true },
+      include: {
+        activity: {
+          select: {
+            action: true,
+            brandId: true,
+            createdAt: true,
+            data: true,
+            entityId: true,
+            entityModel: true,
+            id: true,
+            isDeleted: true,
+            organizationId: true,
+          },
+        },
+        event: true,
+      },
     });
     const page = rows.slice(0, PAGE_LIMIT);
     const {
@@ -304,6 +371,9 @@ export class NotificationInboxService {
           occurredAt: row.occurredAt,
           readAt: row.readAt,
           outcome: 'completed' as const,
+          severity:
+            getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+          activity: readInboxActivity(organizationId, row.activity),
           sourceHref: brandSlug
             ? inboxSourceHref(
                 member.organization.slug,
@@ -350,11 +420,9 @@ export class NotificationInboxService {
         topic: row.topic,
         occurredAt: row.occurredAt,
         readAt: row.readAt,
-        outcome:
-          row.event.eventKey.endsWith('.completed') ||
-          row.event.eventKey === 'agent.review.changed'
-            ? 'completed'
-            : 'failed',
+        outcome: readInboxOutcome(row.event.eventKey),
+        severity: getActivityAlertPolicy(row.event.eventKey)?.severity ?? null,
+        activity: readInboxActivity(organizationId, row.activity),
         sourceHref: inboxSourceHref(member.organization.slug, brandSlug, path),
         sourceLabel:
           strategy?.label?.slice(0, 300) ??

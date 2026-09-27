@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -22,6 +20,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -65,7 +64,7 @@ export class VideosReframeController {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
@@ -175,23 +174,21 @@ export class VideosReframeController {
     const websocketUrl = WebSocketPaths.video(ingredientData.id);
 
     // Create activity for video reframe start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: parent.brandId ?? user.brandId,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_REFRAME_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.VIDEO_REFRAME,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          ingredientId: ingredientData.id.toString(),
-          model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-          sourceId: parent.id.toString(),
-          type: 'transformation',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: parent.brandId ?? user.brandId,
+      entityId: ingredientData.id,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_REFRAME_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.VIDEO_REFRAME,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        ingredientId: ingredientData.id.toString(),
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
+        sourceId: parent.id.toString(),
+        type: 'transformation',
       }),
-    );
+    });
 
     // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({

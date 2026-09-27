@@ -22,13 +22,6 @@
 /** @type {PlaywrightE2eQuarantine[]} */
 export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
-    file: 'playwright/e2e/tests/visual/visual-regression.spec.ts',
-    reason:
-      'Pixel baselines are not stable under the mocked full-tier nightly. Visual goldens need a dedicated job and update process.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/dashboard/analytics.spec.ts',
     reason:
       'Asserts retired dashboard stat widgets. Analytics lives at /analytics/overview. Evidence: run 31991510270.',
@@ -64,13 +57,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/discovery/discovery.spec.ts',
-    reason:
-      'Discovery heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/studio/batch.spec.ts',
     reason:
       'Studio batch nav/count assertions drifted. Evidence: run 31991510270.',
@@ -102,12 +88,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/analytics/overview.spec.ts',
     reason:
       'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/discovery/discovery-interactions.spec.ts',
-    reason: 'Discovery interaction copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

@@ -1,37 +1,54 @@
 /**
- * Notification service interfaces
- * Used by NotificationsService for type-safe notification handling
+ * Channel message payloads the notifications service renders. Messages are
+ * recorded in the durable outbox by the activity recording API (#5197) and
+ * handed to the notifications service by the delivery worker.
  */
-
-export type NotificationType = 'telegram' | 'discord' | 'email' | 'bot';
-
-export interface INotificationEvent {
-  type: NotificationType | 'slack';
-  action: string;
-  payload: INotificationPayloadTypes;
-  userId?: string;
-  organizationId?: string;
-  timestamp?: Date;
-}
 
 export type INotificationPayloadTypes =
   | ITelegramMessagePayload
   | IEmailPayload
-  | ICrmLeadOutreachEmailPayload
-  | ITrendSummaryPayload
-  | IVideoStatusEmailPayload
   | IDiscordCardPayload
-  | IChatbotPayload
-  | IPostNotificationPayload
   | IArticleNotificationPayload
   | IVercelNotificationPayload
   | IUserCreatedPayload
   | IIngredientNotificationPayload
   | IModelDiscoveryNotificationPayload
   | IReviewGatePendingEmailPayload
-  | IReviewGatePendingSlackPayload
   | ILowCreditsAlertPayload
   | IRevenueNotificationPayload;
+
+/** Channels a rendered message is delivered on through the outbox (#5197). */
+export const CHANNEL_MESSAGE_TYPES = [
+  'discord',
+  'email',
+  'slack',
+  'telegram',
+] as const;
+export type ChannelMessageType = (typeof CHANNEL_MESSAGE_TYPES)[number];
+
+/** A rendered channel message: the notifications service's render vocabulary. */
+export interface IChannelMessage {
+  type: ChannelMessageType;
+  action: string;
+  payload: INotificationPayloadTypes;
+}
+
+/** Internal request from the delivery worker to the notifications service. */
+export interface IChannelDeliveryRequest {
+  idempotencyKey: string;
+  /** Email address, chat or channel id; null for the operator's channel. */
+  destination: string | null;
+  message: IChannelMessage;
+}
+
+/**
+ * `delivered` once the provider accepted the message; `skipped` when the
+ * channel is not configured on this deployment (for example no operator
+ * Discord). Provider failures are HTTP errors with `{ message, retryable }`.
+ */
+export type IChannelDeliveryResponse =
+  | { status: 'delivered'; messageId: string }
+  | { status: 'skipped'; reason: string };
 
 export interface ITelegramMessagePayload {
   chatId: string;
@@ -68,26 +85,6 @@ export interface IEmailDeliveryErrorResponse {
   retryable: boolean;
 }
 
-export interface ICrmLeadOutreachEmailPayload {
-  to: string;
-  leadId: string;
-  leadName: string;
-  company?: string;
-  subject?: string;
-  organizationId?: string;
-}
-
-export interface IVideoStatusEmailPayload {
-  to: string;
-  status: 'completed' | 'failed';
-  path: string;
-  jobId?: string;
-  error?: string;
-  organizationId?: string;
-  url?: string;
-  userId?: string;
-}
-
 export interface IReviewGatePendingEmailPayload {
   to: string;
   workflowId: string;
@@ -98,11 +95,6 @@ export interface IReviewGatePendingEmailPayload {
   captionPreview?: string;
   organizationId?: string;
   userId?: string;
-}
-
-export interface IReviewGatePendingSlackPayload {
-  chatId: string;
-  message: string;
 }
 
 export interface IDiscordCardPayload {
@@ -125,26 +117,6 @@ export interface IDiscordEmbedField {
   name: string;
   value: string;
   inline?: boolean;
-}
-
-export interface IChatbotPayload {
-  sessionId: string;
-  message: string;
-  metadata?: IChatbotMetadata;
-}
-
-export interface IChatbotMetadata {
-  source?: string;
-  context?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-export interface IPostNotificationPayload {
-  platform: string;
-  externalId: string;
-  description?: string;
-  mediaUrl?: string;
-  platforms?: Array<{ platform: string; url: string }>;
 }
 
 export interface IArticleNotificationPayload {
@@ -217,11 +189,4 @@ export interface IRevenueNotificationPayload {
   amountMinor: number;
   currency: string;
   userId?: string | null;
-}
-
-export interface ITrendSummaryPayload {
-  cadence: string;
-  minViralScore?: number;
-  organizationId: string;
-  trends: unknown[];
 }

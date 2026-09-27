@@ -22,6 +22,17 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     ),
     'utf8',
   );
+  // #5197: inbox items reference their activity and only in-app deliveries
+  // materialize. Applied after the rollout migration, as in production.
+  const alertPolicyMigration = readFileSync(
+    resolve(
+      '../../../packages/prisma/prisma/migrations/20260927160000_activity_alert_policy/migration.sql',
+    ),
+    'utf8',
+  );
+  const alertPolicyInboxSql = alertPolicyMigration.slice(
+    alertPolicyMigration.indexOf('-- Inbox items reference'),
+  );
 
   beforeAll(async () => {
     const connectionString = assertIsolatedDatabaseUrl();
@@ -139,6 +150,7 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     await delivery('historical-bob', 'historical', 'bob', 'alpha');
     await delivery('historical-deleted', 'historical', 'deleted', 'alpha');
     await sql.query(migration);
+    await sql.query(alertPolicyInboxSql);
   }, 90000);
 
   afterAll(async () => {
@@ -154,7 +166,7 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
       data: {
         id,
         organizationId,
-        eventKey: 'workflow.execution.failed',
+        eventKey: 'workflow-execution-failed',
         deduplicationKey: id,
         sourceType: 'workflow_execution',
         sourceId: id,
@@ -169,8 +181,8 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     eventId: string,
     userId: string,
     organizationId: string,
-    channel = 'email',
-    status = 'pending',
+    channel = 'in_app',
+    status = 'delivered',
     isDeleted = false,
   ) {
     return prisma.notificationDelivery.create({
@@ -231,12 +243,19 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     );
     expect((await inbox.list('alpha', 'alice')).docs[0].readAt).toEqual(readAt);
   });
-  it('supports an old producer after rollout, atomically rolls back, and ignores deleted records', async () => {
+  it('materializes only in-app deliveries, atomically rolls back, and ignores deleted records', async () => {
     await event('new', 'alpha');
     await delivery('old-writer', 'new', 'alice', 'alpha');
     expect(
       await prisma.notificationInboxItem.count({ where: { eventId: 'new' } }),
     ).toBe(1);
+    await event('email-only', 'alpha');
+    await delivery('email-only', 'email-only', 'alice', 'alpha', 'email');
+    expect(
+      await prisma.notificationInboxItem.count({
+        where: { eventId: 'email-only' },
+      }),
+    ).toBe(0);
     await event('deleted-event', 'alpha', true);
     await delivery('deleted-source', 'deleted-event', 'alice', 'alpha');
     await delivery(
@@ -244,8 +263,8 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
       'new',
       'bob',
       'alpha',
-      'email',
-      'pending',
+      'in_app',
+      'delivered',
       true,
     );
     expect(
@@ -263,10 +282,10 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
         await tx.notificationDelivery.create({
           data: {
             id: 'rolled-back',
-            eventId: 'new',
+            eventId: 'email-only',
             userId: 'bob',
             organizationId: 'alpha',
-            channel: 'other',
+            channel: 'in_app',
             topic: 'agent.status',
             provider: 'test',
             idempotencyKey: 'rollback',
@@ -277,7 +296,7 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     ).rejects.toThrow('abort');
     expect(
       await prisma.notificationInboxItem.count({
-        where: { userId: 'bob', eventId: 'new' },
+        where: { userId: 'bob', eventId: 'email-only' },
       }),
     ).toBe(0);
   });
@@ -342,7 +361,7 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
         data: {
           id: 'branded-event',
           organizationId: 'alpha',
-          eventKey: 'agent.run.failed',
+          eventKey: 'agent-run-failed',
           deduplicationKey: 'branded-event',
           sourceType: 'agent_run',
           sourceId: 'branded-run',
@@ -356,7 +375,7 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
           eventId: 'branded-event',
           userId: 'alice',
           organizationId: 'alpha',
-          channel: 'email',
+          channel: 'in_app',
           topic: 'agent.status',
           provider: 'test',
           idempotencyKey: 'branded-delivery',

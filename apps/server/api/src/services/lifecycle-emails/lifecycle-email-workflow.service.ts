@@ -9,6 +9,7 @@ import {
 } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { LifecycleEmailWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const LIFECYCLE_EMAIL_ACTION_IDS = {
@@ -184,6 +185,7 @@ export class LifecycleEmailWorkflowService implements OnModuleInit {
       {
         attempts: 3,
         delayMs: Math.max(0, scheduledFor.getTime() - Date.now()),
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         replaceTerminalJob: true,
       },
     );

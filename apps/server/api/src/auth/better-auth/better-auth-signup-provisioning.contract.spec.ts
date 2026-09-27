@@ -7,8 +7,8 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
@@ -137,7 +137,7 @@ function createSignupProvisioningHarness() {
     enqueuePrefill: vi.fn().mockResolvedValue(undefined),
   };
   const notificationsService = {
-    sendUserCreatedNotification: vi.fn().mockResolvedValue(undefined),
+    dispatch: vi.fn().mockResolvedValue(undefined),
   };
 
   const userSetupService = new UserSetupService(
@@ -158,7 +158,7 @@ function createSignupProvisioningHarness() {
     userSetupService,
     lifecycleEmailService as unknown as LifecycleEmailService,
     signupPrefillQueueService as unknown as SignupPrefillWorkflowService,
-    notificationsService as unknown as NotificationsService,
+    notificationsService as unknown as ActivityRecorderService,
     logger as unknown as LoggerService,
   );
 

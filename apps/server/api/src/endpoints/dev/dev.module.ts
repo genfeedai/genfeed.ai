@@ -1,6 +1,6 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { DevController } from '@api/endpoints/dev/dev.controller';
-import { NotificationsModule } from '@api/services/notifications/notifications.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { Module } from '@nestjs/common';
 
 /**
@@ -11,6 +11,6 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   controllers: [DevController],
-  imports: [NotificationsModule, IngredientsModule],
+  imports: [ActivityRecordingModule, IngredientsModule],
 })
 export class DevModule {}

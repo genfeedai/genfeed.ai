@@ -2,12 +2,12 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -42,8 +42,8 @@ describe('PostThreadGenerationService', () => {
   const activity = { id: testId('activity') };
 
   const activitiesService = {
-    create: vi.fn().mockResolvedValue(activity),
-    patch: vi.fn().mockResolvedValue(activity),
+    record: vi.fn().mockResolvedValue(activity),
+    update: vi.fn().mockResolvedValue(activity),
   };
   const loggerService = {
     error: vi.fn(),
@@ -72,8 +72,8 @@ describe('PostThreadGenerationService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    activitiesService.create.mockResolvedValue(activity);
-    activitiesService.patch.mockResolvedValue(activity);
+    activitiesService.record.mockResolvedValue(activity);
+    activitiesService.update.mockResolvedValue(activity);
     postsService.patch.mockImplementation((id: string, patch: unknown) =>
       Promise.resolve({ id, ...(patch as Record<string, unknown>) }),
     );
@@ -89,7 +89,7 @@ describe('PostThreadGenerationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostThreadGenerationService,
-        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: ActivityRecorderService, useValue: activitiesService },
         { provide: LoggerService, useValue: loggerService },
         { provide: PostsService, useValue: postsService },
         { provide: PromptBuilderService, useValue: promptBuilderService },
@@ -137,12 +137,12 @@ describe('PostThreadGenerationService', () => {
       expect.any(String),
       expect.objectContaining({ status: Status.COMPLETED }),
     );
-    expect(activitiesService.create).toHaveBeenCalledTimes(3);
-    expect(activitiesService.patch).toHaveBeenCalledWith(
-      activity.id,
+    expect(activitiesService.record).toHaveBeenCalledTimes(3);
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activity.id }),
       expect.objectContaining({ key: ActivityKey.POST_GENERATED }),
     );
-    const completion = activitiesService.patch.mock.calls.at(-1)?.[1];
+    const completion = activitiesService.update.mock.calls.at(-1)?.[1];
     expect(JSON.parse(completion.value)).toMatchObject({
       completedCount: 2,
       totalCount: 2,
@@ -377,7 +377,7 @@ describe('PostThreadGenerationService', () => {
   });
 
   it('marks every child failed when activity creation throws', async () => {
-    activitiesService.create.mockRejectedValueOnce(
+    activitiesService.record.mockRejectedValueOnce(
       new Error('activity store down'),
     );
 
@@ -388,7 +388,7 @@ describe('PostThreadGenerationService', () => {
       identity,
     );
 
-    expect(activitiesService.patch).not.toHaveBeenCalled();
+    expect(activitiesService.update).not.toHaveBeenCalled();
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
       targetExecutionState: TargetExecutionState.FAILED,
     });
@@ -401,7 +401,7 @@ describe('PostThreadGenerationService', () => {
     replicateService.generateTextCompletionSync.mockRejectedValueOnce(
       new Error('provider unavailable'),
     );
-    activitiesService.patch.mockRejectedValueOnce(
+    activitiesService.update.mockRejectedValueOnce(
       new Error('activity update unavailable'),
     );
 

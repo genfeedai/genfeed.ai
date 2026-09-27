@@ -103,7 +103,7 @@ export default function ReviewItemsTable({
               aria-label={isSelected ? 'Deselect item' : 'Select item'}
               className="size-4 border border-border bg-background shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary"
               isChecked={isSelected}
-              isDisabled={Boolean(rewritingIds?.size)}
+              isDisabled={Boolean(rewritingIds?.has(item.id))}
               name={`review-select-${item.id}`}
               onCheckedChange={() => {
                 onToggleSelect(item.id);

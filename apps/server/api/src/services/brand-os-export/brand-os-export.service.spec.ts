@@ -315,11 +315,24 @@ describe('Brand OS export publication boundary', () => {
       expect(Object.keys(args.data).sort()).toEqual([
         'action',
         'brandId',
+        'data',
         'entityId',
         'entityModel',
         'organizationId',
         'userId',
       ]);
+      // The activity JSON carries only its key and provenance, never content.
+      for (const field of Object.keys(args.data.data)) {
+        expect([
+          'actorUserId',
+          'apiKeyId',
+          'isRead',
+          'key',
+          'origin',
+          'source',
+        ]).toContain(field);
+      }
+      expect(JSON.stringify(args.data.data)).not.toContain('Brand 1');
     }
     expect(JSON.stringify(log.mock.calls)).not.toContain('Brand 1');
   });

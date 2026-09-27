@@ -25,7 +25,7 @@ describe('SocialSourceHistoryImportService', () => {
     log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
-  const activitiesService = { create: vi.fn() };
+  const activitiesService = { record: vi.fn() };
   const queue = { queueSystemWorkflow: vi.fn() };
   const credential = { findFirst: vi.fn() };
   const brand = { findFirst: vi.fn() };
@@ -67,7 +67,7 @@ describe('SocialSourceHistoryImportService', () => {
       id: 'source-1',
       ...data,
     }));
-    activitiesService.create.mockResolvedValue({});
+    activitiesService.record.mockResolvedValue({});
     queue.queueSystemWorkflow.mockResolvedValue('job-1');
     service = new SocialSourceHistoryImportService(
       prisma,
@@ -118,7 +118,7 @@ describe('SocialSourceHistoryImportService', () => {
       'social-source-history-import-source-1',
       expect.objectContaining({ replaceTerminalJob: true }),
     );
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.SOCIAL_HISTORY_IMPORT_SCHEDULED,
         organizationId: 'org-1',
@@ -143,7 +143,7 @@ describe('SocialSourceHistoryImportService', () => {
     });
     expect(socialSource.create).not.toHaveBeenCalled();
     expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED,
       }),
@@ -255,7 +255,7 @@ describe('SocialSourceHistoryImportService', () => {
         organizationId: 'org-1',
       }),
     });
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.SOCIAL_HISTORY_IMPORT_COMPLETED,
         value: expect.stringContaining('"importedCount":42'),

@@ -188,28 +188,9 @@ export class WorkflowExecutionFinalizerService {
       typeof workflow?.label === 'string' && workflow.label.trim().length > 0
         ? workflow.label
         : input.workflowId;
-    const error =
-      typeof input.result.error === 'string' && input.result.error.trim()
-        ? input.result.error
-        : 'Unknown error';
-
+    // The owner's alert (bell and email) is the WORKFLOW_EXECUTION_FAILED
+    // activity completeExecution recorded; this only refreshes live views.
     try {
-      await this.notificationsPublisher.publishNotification({
-        organizationId,
-        userId,
-        notification: {
-          link: `/automation/runs/${completedExecution.id}`,
-          message: `${workflowLabel} failed during a scheduled run: ${error}`,
-          metadata: {
-            executionId: completedExecution.id,
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            workflowId: input.workflowId,
-          },
-          title: 'Scheduled workflow failed',
-          type: 'workflow_scheduled_failed',
-        },
-      });
-
       await this.notificationsPublisher.publishWorkflowStatus(
         input.workflowId,
         'failed',

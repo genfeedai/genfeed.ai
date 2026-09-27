@@ -934,7 +934,6 @@ export const createMockNotificationsService = () => ({
   sendEmail: vi
     .fn()
     .mockResolvedValue({ messageId: 'mock-email-id', success: true }),
-  sendNotification: vi.fn().mockResolvedValue({ success: true }),
   sendPushNotification: vi.fn().mockResolvedValue({ success: true }),
   sendWebhook: vi.fn().mockResolvedValue({ success: true }),
 });

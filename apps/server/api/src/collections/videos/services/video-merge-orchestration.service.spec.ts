@@ -1,11 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CaptionsService } from '@api/collections/captions/services/captions.service';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import type { VideosService } from '@api/collections/videos/services/videos.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -48,8 +48,8 @@ describe('VideoMergeOrchestrationService', () => {
   } as User;
 
   const activitiesService = {
-    create: vi.fn(),
-    patch: vi.fn(),
+    record: vi.fn(),
+    update: vi.fn(),
   };
   const captionsService = { create: vi.fn(), patch: vi.fn() };
   const configService = {
@@ -101,12 +101,12 @@ describe('VideoMergeOrchestrationService', () => {
       },
       metadataData: { id: metadataId },
     });
-    activitiesService.create.mockResolvedValue({ id: activityId });
+    activitiesService.record.mockResolvedValue({ id: activityId });
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    activitiesService.patch.mockResolvedValue(undefined);
+    activitiesService.update.mockResolvedValue(undefined);
     captionsService.create.mockResolvedValue({
       content: 'caption content',
       id: 'caption-1',
@@ -130,7 +130,7 @@ describe('VideoMergeOrchestrationService', () => {
     whisperService.generateCaptions.mockResolvedValue('caption content');
 
     service = new VideoMergeOrchestrationService(
-      activitiesService as unknown as ActivitiesService,
+      activitiesService as unknown as ActivityRecorderService,
       captionsService as unknown as CaptionsService,
       configService as unknown as ConfigService,
       fileQueueService as unknown as FileQueueService,
@@ -179,7 +179,7 @@ describe('VideoMergeOrchestrationService', () => {
       sourceIds: [firstVideoId, firstVideoId, secondVideoId],
       status: IngredientStatus.PROCESSING,
     });
-    expect(activitiesService.create).toHaveBeenCalledWith(
+    expect(activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: user.brandId,
         entityId: ingredientId,
@@ -358,18 +358,21 @@ describe('VideoMergeOrchestrationService', () => {
       user.id,
       room,
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(activityId, {
-      key: ActivityKey.VIDEO_COMPLETED,
-      value: JSON.stringify({
-        frameCount: 2,
-        ingredientId,
-        label: 'Merged 2 videos',
-        progress: 100,
-        resultId: ingredientId,
-        resultType: 'VIDEO',
-        type: 'merge',
-      }),
-    });
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
+      {
+        key: ActivityKey.VIDEO_COMPLETED,
+        value: JSON.stringify({
+          frameCount: 2,
+          ingredientId,
+          label: 'Merged 2 videos',
+          progress: 100,
+          resultId: ingredientId,
+          resultType: 'VIDEO',
+          type: 'merge',
+        }),
+      },
+    );
     expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith({
       activityId,
       label: 'Merged 2 videos',
@@ -446,16 +449,19 @@ describe('VideoMergeOrchestrationService', () => {
       user.id,
       room,
     );
-    expect(activitiesService.patch).toHaveBeenCalledWith(activityId, {
-      key: ActivityKey.VIDEO_FAILED,
-      value: JSON.stringify({
-        error: 'queue unavailable',
-        frameCount: 2,
-        ingredientId,
-        label: 'Merge failed',
-        type: 'merge',
-      }),
-    });
+    expect(activitiesService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: activityId }),
+      {
+        key: ActivityKey.VIDEO_FAILED,
+        value: JSON.stringify({
+          error: 'queue unavailable',
+          frameCount: 2,
+          ingredientId,
+          label: 'Merge failed',
+          type: 'merge',
+        }),
+      },
+    );
     expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith({
       activityId,
       error: 'queue unavailable',

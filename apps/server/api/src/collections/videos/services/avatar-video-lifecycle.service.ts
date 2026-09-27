@@ -1,5 +1,5 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -24,12 +24,12 @@ interface AvatarProcessingAnnouncement {
 @Injectable()
 export class AvatarVideoLifecycleService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
   async announceProcessing(input: AvatarProcessingAnnouncement): Promise<void> {
-    const activity = await this.activitiesService.create({
+    const activity = await this.activityRecorder.record({
       brandId: input.brandId,
       entityId: input.ingredientId,
       entityModel: ActivityEntityModel.INGREDIENT,

@@ -1,4 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
@@ -25,6 +24,7 @@ import {
   type PublishResult,
   SERVER_TOKENS,
 } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
@@ -326,11 +326,8 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
         inject: [PrismaService],
       },
       {
-        provide: ActivitiesService,
-        useValue: {
-          create: vi.fn().mockResolvedValue(undefined),
-          findOne: vi.fn().mockResolvedValue(null),
-        },
+        provide: ActivityRecorderService,
+        useValue: { record: vi.fn().mockResolvedValue(undefined) },
       },
       {
         provide: AgentScopeContextService,

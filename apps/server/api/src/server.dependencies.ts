@@ -2,10 +2,6 @@ import type { ByokProvider } from '@genfeedai/contracts';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
-export type {
-  ServerActivityCreateInput,
-  ServerActivityWriter,
-} from './collections/activities/activities.port';
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
 export type {
   ServerLinkedInTrend,
@@ -31,7 +27,6 @@ export type {
 } from './services/integrations/youtube/youtube-uploads.port';
 
 export const SERVER_TOKENS = {
-  activities: 'SERVER_ACTIVITIES',
   analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
   byok: 'SERVER_BYOK',
   config: 'SERVER_CONFIG',
@@ -42,7 +37,6 @@ export const SERVER_TOKENS = {
   linkedInTrends: 'SERVER_LINKEDIN_TRENDS',
   logger: 'SERVER_LOGGER',
   mastodon: 'SERVER_MASTODON',
-  notifications: 'SERVER_NOTIFICATIONS',
   pinterest: 'SERVER_PINTEREST',
   postAnalytics: 'SERVER_POST_ANALYTICS',
   posts: 'SERVER_POSTS',
@@ -166,10 +160,6 @@ export interface ServerPosts {
     postId: string,
     data: { isAnalyticsEnabled: boolean },
   ): Promise<unknown>;
-}
-
-export interface ServerNotifications {
-  sendEmail(email: string, subject: string, html: string): Promise<void>;
 }
 
 export interface ServerBrandMemorySync {

@@ -1,4 +1,5 @@
 import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AgentTurnAcceptanceService,
@@ -318,6 +319,7 @@ describe('AgentTurnAcceptanceService', () => {
         organizationId: 'org-1',
         userId: 'user-1',
       }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -361,6 +363,7 @@ describe('AgentTurnAcceptanceService', () => {
           request.clientRequestId,
         ),
       }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 
@@ -407,6 +410,7 @@ describe('AgentTurnAcceptanceService', () => {
           }),
         },
       }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -438,6 +442,7 @@ describe('AgentTurnAcceptanceService', () => {
             request: expect.objectContaining({ hostSupportsApproval }),
           },
         }),
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
       );
     },
   );

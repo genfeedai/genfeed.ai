@@ -1,12 +1,17 @@
-import { randomUUID } from 'node:crypto';
 import { assertValidChannelTargetSchedule } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   SERVER_TOKENS,
   type ServerLogger,
   type ServerPrisma,
 } from '@api/server.dependencies';
+import { recordActivityInTransaction } from '@api/services/activity-recording/activity-recording.core';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  ActivitySource,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
 import {
@@ -21,7 +26,6 @@ const MAX_SERIALIZABLE_ATTEMPTS = 3;
 // Post has no statusTransitions column. The lifecycle child explicitly forbids
 // a schema/visibility change, so target history uses the existing tenant-scoped
 // Activity audit store in the same transaction as the Post mutation.
-const POST_LIFECYCLE_AUDIT_ACTION = 'post.lifecycle.transition';
 
 export const POST_LIFECYCLE_TRANSITIONS: Readonly<
   Record<TargetExecutionState, ReadonlySet<TargetExecutionState>>
@@ -100,10 +104,7 @@ export type PostLifecycleTransitionResult =
   | { kind: 'stale' }
   | { kind: 'transitioned'; target: Post };
 
-export type PostLifecycleTransaction = Pick<
-  Prisma.TransactionClient,
-  'activity' | 'post'
->;
+export type PostLifecycleTransaction = Prisma.TransactionClient;
 
 class PostLifecycleTargetNotFoundException extends HttpException {
   constructor(postId: string) {
@@ -282,24 +283,23 @@ export class PostLifecycleService {
       return this.stale(input, currentState, 'concurrent_mutation');
     }
 
-    await transaction.activity.create({
+    // Audit history only: the key raises no alert, so nothing runs after commit.
+    await recordActivityInTransaction(transaction, {
+      brandId: target.brandId,
       data: {
-        action: POST_LIFECYCLE_AUDIT_ACTION,
-        brandId: target.brandId,
-        data: this.toJson({
-          actorId: input.actorId ?? null,
-          at: at.toISOString(),
-          ...(input.error !== undefined ? { error: input.error } : {}),
-          from: currentState,
-          ...(input.reason ? { reason: input.reason } : {}),
-          to: input.nextState,
-        }),
-        entityId: target.id,
-        entityModel: 'post',
-        id: randomUUID(),
-        organizationId: input.organizationId,
-        userId: input.actorId ?? null,
+        actorId: input.actorId ?? null,
+        at: at.toISOString(),
+        ...(input.error !== undefined ? { error: input.error } : {}),
+        from: currentState,
+        ...(input.reason ? { reason: input.reason } : {}),
+        to: input.nextState,
       },
+      entityId: target.id,
+      entityModel: 'post',
+      key: ActivityKey.POST_LIFECYCLE_TRANSITION,
+      organizationId: input.organizationId,
+      source: ActivitySource.POST_LIFECYCLE,
+      userId: input.actorId ?? null,
     });
 
     const persisted = await transaction.post.findFirst({

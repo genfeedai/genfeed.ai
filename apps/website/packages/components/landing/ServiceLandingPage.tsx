@@ -105,7 +105,7 @@ export default function ServiceLandingPage({
             </div>
 
             <div className="bg-background/60 p-6">
-              <div className="mb-4 flex items-center gap-2 text-2xs font-black uppercase tracking-[0.24em] text-surface/50">
+              <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
                 <CalendarRange className="size-4" />
                 {config.fitLabel}
               </div>
@@ -128,7 +128,7 @@ export default function ServiceLandingPage({
           <SectionHeader
             title={config.outcomesTitle}
             description={config.outcomesDescription}
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={3} className="gsap-grid">
@@ -149,7 +149,7 @@ export default function ServiceLandingPage({
           <SectionHeader
             title={config.deliverablesTitle}
             description={config.deliverablesDescription}
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={3}>
@@ -189,7 +189,7 @@ export default function ServiceLandingPage({
           <SectionHeader
             title={config.processTitle}
             description={config.processDescription}
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={4}>
@@ -214,7 +214,7 @@ export default function ServiceLandingPage({
           <SectionHeader
             title={config.faqTitle}
             description={config.faqDescription}
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <FaqGrid items={config.faqs} />

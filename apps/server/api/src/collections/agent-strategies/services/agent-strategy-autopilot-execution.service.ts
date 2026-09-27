@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import {
@@ -35,6 +34,7 @@ import { PostAccountFanoutService } from '@api/collections/posts/services/post-a
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -56,7 +56,7 @@ import { Injectable } from '@nestjs/common';
 export class AgentStrategyAutopilotExecutionService {
   constructor(
     private readonly opportunitiesService: AgentStrategyOpportunitiesService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly contentGatewayService: ContentGatewayService,
     private readonly optimizersService: OptimizersService,
     private readonly evaluationsOperationsService: EvaluationsOperationsService,
@@ -788,7 +788,7 @@ export class AgentStrategyAutopilotExecutionService {
     const description = `${input.topic} is ready in the publishing inbox.`;
 
     try {
-      await this.activitiesService.create({
+      await this.activityRecorder.record({
         brandId: getStrategyBrandId(input.strategy) ?? '',
         entityId: input.postId,
         entityModel: ActivityEntityModel.POST,

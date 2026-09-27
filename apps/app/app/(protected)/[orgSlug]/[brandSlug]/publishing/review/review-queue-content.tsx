@@ -30,6 +30,8 @@ function ReviewQueueContentContent() {
     handleBatchChange,
     handleBulkAction,
     handleBulkRewrite,
+    isRewriteStarting,
+    rewriteProgress,
     rewritingIds,
     handleDiscardBatch,
     handleFilterChange,
@@ -69,6 +71,8 @@ function ReviewQueueContentContent() {
       onBulkApprove={() => handleBulkAction('approve')}
       onBulkReject={() => handleBulkAction('reject')}
       onBulkRewrite={handleBulkRewrite}
+      isRewriteStarting={isRewriteStarting}
+      rewriteProgress={rewriteProgress}
       rewritingIds={rewritingIds}
       onDiscardBatch={handleDiscardBatch}
       onClosePostDetail={() => setSelectedPostId(null)}

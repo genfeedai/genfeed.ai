@@ -18,8 +18,8 @@ import { ArticleVersionService } from '@api/collections/articles/services/articl
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleScope, ArticleStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
@@ -97,8 +97,8 @@ describe('ArticlesService publish-state transition', () => {
     } as unknown as ConfigService;
 
     const notificationsService = {
-      sendArticleNotification: vi.fn().mockResolvedValue(undefined),
-    } as unknown as NotificationsService;
+      dispatch: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ActivityRecorderService;
 
     const organizationSettingsService = {
       findOne: vi
@@ -156,9 +156,7 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.status).toBe('PUBLISHED');
     expect(data.scope).toBe(ArticleScope.PUBLIC);
     expect(data.publishedAt).toBeDefined();
-    expect(notificationsService.sendArticleNotification).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('applies the same publish transition for legacy `public` input', async () => {
@@ -178,9 +176,7 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.status).toBe('PUBLISHED');
     expect(data.scope).toBe(ArticleScope.PUBLIC);
     expect(data.publishedAt).toBeDefined();
-    expect(notificationsService.sendArticleNotification).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
   });
 
   it('leaves publication side effects untouched for a draft update', async () => {
@@ -198,7 +194,7 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.status).toBe('DRAFT');
     expect(data.scope).toBeUndefined();
     expect(data.publishedAt).toBeUndefined();
-    expect(notificationsService.sendArticleNotification).not.toHaveBeenCalled();
+    expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
 
   it('leaves publication side effects untouched when no status is supplied', async () => {
@@ -215,7 +211,7 @@ describe('ArticlesService publish-state transition', () => {
     const data = readPatchedData(delegate);
     expect(data.scope).toBeUndefined();
     expect(data.publishedAt).toBeUndefined();
-    expect(notificationsService.sendArticleNotification).not.toHaveBeenCalled();
+    expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
   it('allows editing an organization-shared draft without changing its operator author', async () => {
     const { delegate, service } = buildService();
@@ -279,6 +275,6 @@ describe('ArticlesService publish-state transition', () => {
       },
     });
     expect(delegate.update).not.toHaveBeenCalled();
-    expect(notificationsService.sendArticleNotification).not.toHaveBeenCalled();
+    expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
 });

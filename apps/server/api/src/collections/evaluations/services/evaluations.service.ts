@@ -17,11 +17,13 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
+import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -39,6 +41,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   HttpException,
@@ -67,6 +70,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     private readonly evaluationsOperationsService: EvaluationsOperationsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
     @Optional() private readonly imagesService?: ImagesService,
     @Optional() private readonly videosService?: VideosService,
     @Optional() private readonly articlesService?: ArticlesService,
@@ -174,10 +178,18 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       contentId,
       organizationId,
     );
-    await this.assertOrganizationCreditsAvailable(
+    // The single BYOK decision (#5380): an org whose own key pays for the
+    // evaluation model skips the credit floor and is never charged.
+    const byok = await this.textGenerationCreditsService.resolveDispatch(
       organizationId,
-      EvaluationsService.EVALUATION_MINIMUM_CREDITS,
+      [DEFAULT_TEXT_MODEL],
     );
+    if (!byok) {
+      await this.assertOrganizationCreditsAvailable(
+        organizationId,
+        EvaluationsService.EVALUATION_MINIMUM_CREDITS,
+      );
+    }
 
     switch (contentType) {
       case IngredientCategory.VIDEO:
@@ -187,6 +199,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           userId,
           brandId,
+          byok,
         );
       case IngredientCategory.IMAGE:
         return this.evaluateImage(
@@ -195,6 +208,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           userId,
           brandId,
+          byok,
         );
       case 'article':
         return this.evaluateArticle(
@@ -203,6 +217,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           userId,
           brandId,
+          byok,
         );
       case 'post':
         return this.evaluatePost(
@@ -211,6 +226,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           organizationId,
           userId,
           brandId,
+          byok,
         );
       default:
         throw new Error(`Unsupported content type: ${contentType}`);
@@ -223,6 +239,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
     brandId: string,
+    byok?: TextByokDispatch,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating video: ${videoId}`, this.constructorName);
 
@@ -257,6 +274,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       (amount) => {
         billedCredits += amount;
       },
+      byok,
     )) as EvaluationAiResult;
 
     const evaluation = await this.prisma.evaluation.create({
@@ -293,6 +311,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
     brandId: string,
+    byok?: TextByokDispatch,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating image: ${imageId}`, this.constructorName);
 
@@ -327,6 +346,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       (amount) => {
         billedCredits += amount;
       },
+      byok,
     )) as EvaluationAiResult;
 
     const evaluation = await this.prisma.evaluation.create({
@@ -363,6 +383,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
     brandId: string,
+    byok?: TextByokDispatch,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating article: ${articleId}`, this.constructorName);
 
@@ -395,6 +416,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       (amount) => {
         billedCredits += amount;
       },
+      byok,
     )) as EvaluationAiResult;
 
     const evaluation = await this.prisma.evaluation.create({
@@ -431,6 +453,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     userId: string,
     brandId: string,
+    byok?: TextByokDispatch,
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating post: ${postId}`, this.constructorName);
 
@@ -463,6 +486,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       post as unknown as PostEvaluationContent,
       organizationId,
       userId,
+      byok,
     ).catch((error) => {
       this.logger.error(
         `Async post evaluation failed: ${(error as Error).message}`,
@@ -482,6 +506,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     post: PostEvaluationContent,
     organizationId: string,
     userId: string,
+    byok?: TextByokDispatch,
   ): Promise<void> {
     const postId = String(post.id);
     let billedCredits = 0;
@@ -512,6 +537,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         (amount) => {
           billedCredits += amount;
         },
+        byok,
       )) as EvaluationAiResult;
 
       await this.settleEvaluationCredits(

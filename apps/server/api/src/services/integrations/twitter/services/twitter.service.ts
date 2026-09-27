@@ -1,9 +1,9 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import {
   SERVER_TOKENS,
-  type ServerActivityWriter,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   isTwitterAuthorizationError,
   isTwitterRateLimitError,
@@ -87,8 +87,7 @@ export class TwitterService {
     private readonly configService: ConfigService,
 
     private readonly loggerService: LoggerService,
-    @Inject(SERVER_TOKENS.activities)
-    private readonly activitiesService: ServerActivityWriter,
+    private readonly activityRecorder: ActivityRecorderService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
     private readonly httpService: HttpService,
@@ -316,7 +315,7 @@ export class TwitterService {
       });
 
       // Create activity for social integration disconnection
-      await this.activitiesService.create({
+      await this.activityRecorder.record({
         brandId: brandId,
         key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
         organizationId: organizationId,

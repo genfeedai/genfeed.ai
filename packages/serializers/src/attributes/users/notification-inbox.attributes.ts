@@ -8,6 +8,8 @@ export const notificationInboxAttributes = createEntityAttributes([
   'sourceLabel',
   'failure',
   'socialReply',
+  'severity',
+  'activity',
 ]);
 export const notificationInboxCountAttributes = createEntityAttributes([
   'unreadCount',

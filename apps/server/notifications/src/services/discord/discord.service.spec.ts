@@ -258,118 +258,13 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendIngredientNotification(
-        IngredientCategory.IMAGE,
-        'https://cdn/img.png',
-        { id: 'ing-1' },
-      );
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed'),
-        expect.any(Error),
-      );
-    });
-  });
-
-  describe('sendPostCard', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getPostsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendPostCard({ externalId: 'p-1', platform: 'instagram' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
-    it('should build a single-platform card with a canonical url button', async () => {
-      const { service } = await createService();
-
-      await service.sendPostCard({
-        description: 'A great post',
-        externalId: 'p-123',
-        platform: 'instagram',
-      });
-
-      const payload = lastSendPayload();
-      expect(payload.content).toBe('https://www.instagram.com/p/p-123/');
-      expect(payload.components).toHaveLength(1);
-
-      const embed = payload.embeds?.[0] as {
-        color: number;
-        description: string;
-        title: string;
-        url: string;
-      };
-      expect(embed.color).toBe(0xe4405f);
-      expect(embed.title).toBe('Published to Instagram');
-      expect(embed.description).toBe('A great post');
-      expect(embed.url).toBe('https://www.instagram.com/p/p-123/');
-    });
-
-    it('should build a multi-platform card with per-platform buttons', async () => {
-      const { service } = await createService();
-
-      await service.sendPostCard({
-        externalId: 'p-1',
-        mediaUrl: 'https://cdn/images/pic.png',
-        platform: 'twitter',
-        platforms: [
-          { platform: 'twitter', url: 'https://x.com/i/status/1' },
-          { platform: 'linkedin', url: 'https://linkedin.com/feed/update/2' },
-        ],
-      });
-
-      const payload = lastSendPayload();
-      const embed = payload.embeds?.[0] as {
-        color: number;
-        image?: { url: string };
-        title: string;
-      };
-      expect(embed.title).toBe('Published to 2 Platforms');
-      expect(embed.color).toBe(0x5865f2);
-      expect(embed.image).toEqual({ url: 'https://cdn/images/pic.png' });
-    });
-
-    it('should add a video button when media is a video', async () => {
-      const { service } = await createService();
-
-      await service.sendPostCard({
-        externalId: 'p-1',
-        mediaUrl: 'https://cdn/videos/vid.mp4',
-        platform: 'youtube',
-      });
-
-      const payload = lastSendPayload();
-      const row = payload.components?.[0] as unknown as {
-        components: ReadonlyArray<{ data: { label?: string } }>;
-      };
-      const labels = row.components.map((button) => button.data.label);
-      expect(labels).toContain('View Video');
-    });
-
-    it('should handle unknown platforms without canonical url', async () => {
-      const { service } = await createService();
-
-      await service.sendPostCard({
-        externalId: 'p-9',
-        platform: 'mastodon',
-      });
-
-      const payload = lastSendPayload();
-      expect(payload.content).toBeUndefined();
-      const embed = payload.embeds?.[0] as {
-        description: string;
-        title: string;
-      };
-      expect(embed.title).toBe('Published to Mastodon');
-      expect(embed.description).toBe('Content published successfully');
-    });
-
-    it('should log error when webhook send fails', async () => {
-      mockSend.mockRejectedValue(new Error('send failed'));
-      const { service } = await createService();
-
-      await service.sendPostCard({ externalId: 'p-1', platform: 'facebook' });
+      await expect(
+        service.sendIngredientNotification(
+          IngredientCategory.IMAGE,
+          'https://cdn/img.png',
+          { id: 'ing-1' },
+        ),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -404,7 +299,9 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendVercelNotification({ title: 'Deploy' });
+      await expect(
+        service.sendVercelNotification({ title: 'Deploy' }),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -448,11 +345,13 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendStreakNotification({
-        color: 0x123456,
-        description: 'desc',
-        title: 'Streak',
-      });
+      await expect(
+        service.sendStreakNotification({
+          color: 0x123456,
+          description: 'desc',
+          title: 'Streak',
+        }),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -532,7 +431,9 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendModelDiscoveryNotification(basePayload);
+      await expect(
+        service.sendModelDiscoveryNotification(basePayload),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -582,11 +483,13 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendArticleNotification({
-        label: 'Launch',
-        publicUrl: 'https://blog.genfeed.ai/launch',
-        slug: 'launch',
-      });
+      await expect(
+        service.sendArticleNotification({
+          label: 'Launch',
+          publicUrl: 'https://blog.genfeed.ai/launch',
+          slug: 'launch',
+        }),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -638,7 +541,9 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
+      await expect(
+        service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' }),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
@@ -710,7 +615,9 @@ describe('DiscordService', () => {
       mockSend.mockRejectedValue(new Error('send failed'));
       const { service } = await createService();
 
-      await service.sendUserCreatedNotification({ id: 'u-1' });
+      await expect(
+        service.sendUserCreatedNotification({ id: 'u-1' }),
+      ).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),

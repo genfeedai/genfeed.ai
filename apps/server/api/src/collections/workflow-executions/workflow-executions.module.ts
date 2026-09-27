@@ -13,7 +13,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { NotificationsModule } from '@api/services/notifications/notifications.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { Module } from '@nestjs/common';
 
@@ -27,11 +27,11 @@ import { Module } from '@nestjs/common';
     StalePendingSystemExecutionFinderService,
   ],
   imports: [
+    ActivityRecordingModule,
     AgentStrategiesCoreModule,
     AgentThreadsModule,
     WorkflowsCoreModule,
     UsersModule,
-    NotificationsModule,
     WebhookClientModule,
   ],
   providers: [

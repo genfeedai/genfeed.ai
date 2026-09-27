@@ -1,4 +1,5 @@
 import type { AgentRuntimeState } from '../../enums/agent-runtime-state.enum';
+import type { SystemWorkflowDispatchClass } from '../../queue/system-workflow-dispatch-class.constant';
 
 /**
  * Minimal AgentRuntime turn input — campaign (and future non-chat) callers
@@ -10,6 +11,14 @@ export interface IAgentRuntimeStartTurnInput {
   brandId?: string | null;
   campaignId?: string;
   creditBudget?: number;
+  /**
+   * Whether this turn is a direct user-initiated action (`INTERACTIVE`, e.g.
+   * `AgentCampaignExecutionService`'s live "start campaign") or an automated
+   * dispatch (`BACKGROUND`, e.g. `ContentEngineService`'s due-orchestration /
+   * trigger-evaluation sweep) — see #5271. Required so a new caller of
+   * `AgentRuntimeService.startTurn` cannot land without an explicit choice.
+   */
+  dispatchClass: SystemWorkflowDispatchClass;
   label: string;
   metadata?: Record<string, unknown>;
   model?: string;

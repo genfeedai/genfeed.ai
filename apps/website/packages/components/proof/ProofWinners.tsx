@@ -32,7 +32,7 @@ function PublishedLinkedInPost({ winner }: { winner: Winner }) {
             <p className="truncate text-xs text-surface/55">
               {proof.authorHeadline}
             </p>
-            <p className="mt-0.5 truncate text-xs text-surface/45">
+            <p className="mt-0.5 truncate text-xs text-surface/60">
               @{proof.authorHandle} &middot;{' '}
               <time dateTime={winner.publishedAt}>
                 {formatDate(winner.publishedAt, DATE_FORMATS.DISPLAY_DATE)}
@@ -138,7 +138,7 @@ export default function ProofWinners(): React.ReactElement | null {
     <WebSection bg="bordered" maxWidth="xl" py="lg">
       <div data-reveal="up">
         <SectionHeader
-          className="mb-10 [&_h2]:text-5xl"
+          className="mb-10 [&_h2]:text-4xl sm:[&_h2]:text-5xl"
           description="Created in Genfeed. Published on LinkedIn. Verified after launch."
           title="Your next post."
         />
@@ -169,7 +169,7 @@ export default function ProofWinners(): React.ReactElement | null {
                 <p className="mt-4 text-sm leading-6 text-surface/65">
                   {winner.provenance}
                 </p>
-                <p className="mt-2 text-sm text-surface/45">
+                <p className="mt-2 text-sm text-surface/60">
                   {winner.platform} &middot; {winner.mediaType}
                 </p>
               </div>

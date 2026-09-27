@@ -57,12 +57,12 @@ export class SlackService {
     channelId: string,
     text: string,
     blocks?: SlackBlock[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const url = `${SlackService.name} ${CallerUtil.getCallerName()}`;
 
     if (!this.client) {
       this.loggerService.warn(`${url} Client not initialized`, this.context);
-      return;
+      return false;
     }
 
     try {
@@ -71,55 +71,14 @@ export class SlackService {
         channel: channelId,
         text,
       });
+      return true;
     } catch (error: unknown) {
       this.loggerService.error(
         `${url} Failed to send message to ${channelId}`,
         error,
         this.context,
       );
-    }
-  }
-
-  public async sendFile(
-    channelId: string,
-    fileUrl: string,
-    comment?: string,
-  ): Promise<void> {
-    const url = `${SlackService.name} ${CallerUtil.getCallerName()}`;
-
-    if (!this.client) {
-      this.loggerService.warn(`${url} Client not initialized`, this.context);
-      return;
-    }
-
-    try {
-      // Send the file URL as a message with an image block
-      const blocks: SlackBlock[] = [];
-
-      if (comment) {
-        blocks.push({
-          text: { text: comment, type: 'mrkdwn' },
-          type: 'section',
-        });
-      }
-
-      blocks.push({
-        alt_text: comment || 'Shared file',
-        image_url: fileUrl,
-        type: 'image',
-      });
-
-      await this.client.chat.postMessage({
-        blocks,
-        channel: channelId,
-        text: comment || 'Shared file',
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} Failed to send file to ${channelId}`,
-        error,
-        this.context,
-      );
+      throw error;
     }
   }
 }

@@ -4,7 +4,17 @@ import {
   IngredientCategory,
   PostCategory,
   PostStatus,
+  SocialSourceType,
 } from '@genfeedai/contracts';
+import type {
+  AdsResearchFilters,
+  AdsResearchItem,
+  AdsResearchResponse,
+  ISocialSource,
+  ISourcePost,
+  SocialSourcesResponse,
+} from '@genfeedai/contracts/interfaces';
+import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import {
   playwrightApiEndpoint,
@@ -5187,6 +5197,183 @@ export async function mockRateLimiting(
         'X-RateLimit-Reset': (Date.now() + 60000).toString(),
       },
       status: 429,
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Discovery Desk Mocks
+// ----------------------------------------------------------------------------
+
+/**
+ * Mock for the Discovery Desk's followed-creator feed (`/social-sources/feed`).
+ * The Desk's default `/trends/content` mock (api-interceptor's
+ * `handleTrendsRoute`) already supplies one item whose Desk `source` is
+ * `'trends'` ("Workflow demo clip"); this adds one item whose Desk `source`
+ * is `'following'` (see `packages/pages/trends/desk/desk-items.ts`'s
+ * `toDeskItemFromSourcePost`), so discovery specs can prove the Desk's
+ * source-tab filter actually changes which rows render instead of only
+ * checking the URL.
+ */
+export async function mockDiscoveryDeskFollowingFeed(
+  page: Page,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const source: ISocialSource = {
+    brandId: 'brand-1',
+    createdAt: now,
+    followersCount: 42_000,
+    handle: 'creator.spotlight',
+    id: 'social-source-desk-1',
+    isActive: true,
+    isDeleted: false,
+    organizationId: 'test-org',
+    platform: 'instagram',
+    sourceType: SocialSourceType.ACCOUNT,
+    updatedAt: now,
+    userId: 'user-1',
+  };
+  const post: ISourcePost = {
+    authorHandle: 'creator.spotlight',
+    brandId: 'brand-1',
+    contentType: 'post',
+    createdAt: now,
+    externalId: 'ext-desk-1',
+    id: 'source-post-desk-1',
+    isDeleted: false,
+    organizationId: 'test-org',
+    platform: 'instagram',
+    publishedAt: now,
+    sourceId: source.id,
+    text: 'Creator collab teaser',
+    updatedAt: now,
+  };
+  const feed: SocialSourcesResponse = {
+    posts: [post],
+    sources: [source],
+    summary: { activeSources: 1, totalPosts: 1, totalSources: 1 },
+  };
+
+  await routeApiPattern(page, '/social-sources/feed**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(feed),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
+/**
+ * Mock for the Ads Research list endpoint (`/ads/research`) that honors the
+ * requested platform, mirroring the real `AdsResearchController` /
+ * `useAdsResearchPageClient.ts`'s `filters.platform` (server-side) contract —
+ * the inherited fallback (`buildUnhandledApiMockBody`'s `/ads/research`
+ * branch) always returns empty arrays regardless of platform, which let a
+ * platform-tab switch look like it worked (URL + tab state changed) without
+ * proving the results actually changed. Search itself stays client-side
+ * (`useAdsResearchPageClient.ts` filters `allAds` by title/headline/body/
+ * accountName locally), so this only needs to seed distinguishable ads, not
+ * parse the search query.
+ *
+ * Registered as a single regex route so it matches `/ads/research` (with or
+ * without a query string) across every host variant without also matching
+ * `/ads/research/watchlist-readiness`.
+ */
+/**
+ * Mirrors `AdsResearchService.normalizeFilters` (apps/server/api/src/
+ * endpoints/ads-research/ads-research.service.ts) — the real `listAds()`
+ * always echoes the request back as `filters` with these exact server
+ * defaults applied, never `{}`.
+ */
+function normalizeAdsFilters(
+  searchParams: URLSearchParams,
+): AdsResearchFilters {
+  const raw: AdsResearchFilters = {
+    adAccountId: searchParams.get('adAccountId') || undefined,
+    brandId: searchParams.get('brandId') || undefined,
+    brandName: searchParams.get('brandName') || undefined,
+    channel: (searchParams.get('channel') as AdsChannel) || undefined,
+    credentialId: searchParams.get('credentialId') || undefined,
+    industry: searchParams.get('industry') || undefined,
+    limit: searchParams.get('limit')
+      ? Number(searchParams.get('limit'))
+      : undefined,
+    loginCustomerId: searchParams.get('loginCustomerId') || undefined,
+    metric:
+      (searchParams.get('metric') as AdsResearchFilters['metric']) || undefined,
+    platform:
+      (searchParams.get('platform') as AdsResearchFilters['platform']) ||
+      undefined,
+    source:
+      (searchParams.get('source') as AdsResearchFilters['source']) || undefined,
+    timeframe:
+      (searchParams.get('timeframe') as AdsResearchFilters['timeframe']) ||
+      undefined,
+  };
+
+  return {
+    ...raw,
+    channel: raw.channel || AdsChannel.ALL,
+    limit: raw.limit ? Math.min(raw.limit, 24) : 12,
+    metric: raw.metric || 'performanceScore',
+    source: raw.source || 'all',
+    timeframe: raw.timeframe || 'last_30_days',
+  };
+}
+
+export async function mockAdsResearchResults(page: Page): Promise<void> {
+  // `mapPublicItem`/`mapResearchItem` in the real service always emit
+  // `channel: AdsChannel.ALL` — `AdsChannel` only varies on connected-account
+  // ads pulled from a live ad account, never on the public archive rows this
+  // mock stands in for.
+  const items: AdsResearchItem[] = [
+    {
+      channel: AdsChannel.ALL,
+      explanation: 'High CTR carousel promoting a seasonal discount.',
+      id: 'ads-research-meta-1',
+      metrics: { clicks: 420, ctr: 3.1, impressions: 13_500 },
+      platform: AdsPlatform.META,
+      source: 'public',
+      sourceId: 'meta-src-1',
+      title: 'Meta Winter Sale Carousel',
+    },
+    {
+      channel: AdsChannel.ALL,
+      explanation: 'Top-performing search ad bundling three SKUs.',
+      id: 'ads-research-google-1',
+      metrics: { clicks: 310, ctr: 4.4, impressions: 7_050 },
+      platform: AdsPlatform.GOOGLE,
+      source: 'public',
+      sourceId: 'google-src-1',
+      title: 'Google Search Bundle Deal',
+    },
+  ];
+
+  await page.route(/\/ads\/research\/?(?:\?.*)?$/, async (route) => {
+    const searchParams = new URL(route.request().url()).searchParams;
+    const requestedPlatform = searchParams.get('platform');
+    const matching = requestedPlatform
+      ? items.filter((item) => item.platform === requestedPlatform)
+      : items;
+    const filters = normalizeAdsFilters(searchParams);
+
+    const response: AdsResearchResponse = {
+      connectedAds: [],
+      filters,
+      publicAds: matching,
+      summary: {
+        connectedCount: 0,
+        publicCount: matching.length,
+        reviewPolicy: 'Review required.',
+        selectedPlatform: filters.platform ?? 'all',
+        selectedSource: filters.source ?? 'all',
+      },
+    };
+
+    await route.fulfill({
+      body: JSON.stringify(response),
+      contentType: 'application/json',
+      status: 200,
     });
   });
 }

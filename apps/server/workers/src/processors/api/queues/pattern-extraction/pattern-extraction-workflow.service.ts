@@ -4,6 +4,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -157,7 +158,11 @@ export class PatternExtractionWorkflowService implements OnModuleInit {
         trigger: WorkflowExecutionTrigger.SCHEDULED,
       },
       `pattern-extraction-${organizationId}-${dateKey}`,
-      { attempts: 2, replaceTerminalJob: true },
+      {
+        attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

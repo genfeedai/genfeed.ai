@@ -1,4 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { SocialSourceDocument } from '@api/collections/social-sources/schemas/social-source.schema';
 import {
   buildSocialSourceHistoryImportWorkflowDefinition,
@@ -10,6 +9,7 @@ import {
 } from '@api/collections/social-sources/utils/social-source-handle.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { scopedWhere } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
@@ -23,6 +23,7 @@ import type {
   SocialSourceHistoryImportWorkflowInput,
   SocialSourceMetadata,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -53,7 +54,7 @@ interface HistoryImportCompletion {
 export class SocialSourceHistoryImportService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
   ) {}
@@ -180,7 +181,11 @@ export class SocialSourceHistoryImportService {
         userId,
       },
       `social-source-history-import-${source.id}`,
-      { attempts: 2, replaceTerminalJob: true },
+      {
+        attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
 
     this.logger.log('Scheduled social account history import', {
@@ -398,7 +403,7 @@ export class SocialSourceHistoryImportService {
     },
   ): Promise<void> {
     try {
-      await this.activitiesService.create({
+      await this.activityRecorder.record({
         brandId: input.brandId,
         entityId: input.entityId,
         key,

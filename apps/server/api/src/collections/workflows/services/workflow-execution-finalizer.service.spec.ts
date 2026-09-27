@@ -35,7 +35,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     findFirstFailedNodeId: vi.fn(),
   };
   const notificationsPublisher = {
-    publishNotification: vi.fn(),
     publishWorkflowStatus: vi.fn(),
   };
   const logger = {
@@ -52,7 +51,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     prisma.workflow.update.mockResolvedValue({});
     prisma.workflow.findFirst.mockResolvedValue({ label: 'Morning digest' });
     prisma.workflow.findUnique.mockResolvedValue({ label: 'Morning digest' });
-    notificationsPublisher.publishNotification.mockResolvedValue(undefined);
     notificationsPublisher.publishWorkflowStatus.mockResolvedValue(undefined);
 
     service = new WorkflowExecutionFinalizerService(
@@ -63,7 +61,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       logger as never,
     );
   });
-  it('publishes an in-app notice and workflow-status email path on scheduled failure', async () => {
+  it('refreshes live workflow status on a scheduled failure', async () => {
     executionsService.completeExecution.mockResolvedValue({
       id: 'exec-1',
       organizationId: 'org-1',
@@ -81,21 +79,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.FAILED,
     });
 
-    expect(notificationsPublisher.publishNotification).toHaveBeenCalledWith({
-      notification: {
-        link: '/automation/runs/exec-1',
-        message: 'Morning digest failed during a scheduled run: node exploded',
-        metadata: {
-          executionId: 'exec-1',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflowId: 'wf-1',
-        },
-        title: 'Scheduled workflow failed',
-        type: 'workflow_scheduled_failed',
-      },
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
     expect(notificationsPublisher.publishWorkflowStatus).toHaveBeenCalledWith(
       'wf-1',
       'failed',
@@ -125,7 +108,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.FAILED,
     });
 
-    expect(notificationsPublisher.publishNotification).not.toHaveBeenCalled();
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });
 
@@ -151,7 +133,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.ACTIVE,
     });
 
-    expect(notificationsPublisher.publishNotification).not.toHaveBeenCalled();
     expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
   });
 
@@ -163,7 +144,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       userId: 'user-1',
       workflowId: 'wf-1',
     });
-    notificationsPublisher.publishNotification.mockRejectedValue(
+    notificationsPublisher.publishWorkflowStatus.mockRejectedValue(
       new Error('bus down'),
     );
 

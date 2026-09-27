@@ -108,6 +108,7 @@ describe('article header prompt workflow registration', () => {
     expect(articleInsights.generateHeaderPrompt).toHaveBeenCalledWith(
       article,
       'org-1',
+      undefined,
     );
     expect(patch).not.toHaveBeenCalled();
 

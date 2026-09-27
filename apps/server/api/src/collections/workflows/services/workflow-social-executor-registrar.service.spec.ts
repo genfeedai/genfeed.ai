@@ -4,6 +4,7 @@ import {
   formatSocialReadProviderError,
   WorkflowSocialExecutorRegistrarService,
 } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
+import { ActivityKey } from '@genfeedai/contracts';
 import {
   createExecutableActionNode,
   type INodeExecutor,
@@ -43,9 +44,9 @@ function register(
       resolveBrandUserAccessToken?: ReturnType<typeof vi.fn>;
       searchRecentTweets?: ReturnType<typeof vi.fn>;
     };
-    notificationsService?: {
-      sendEmail?: ReturnType<typeof vi.fn>;
-      sendNotification?: ReturnType<typeof vi.fn>;
+    activityRecorder?: {
+      dispatch?: ReturnType<typeof vi.fn>;
+      record?: ReturnType<typeof vi.fn>;
     };
     credentialsService?: {
       findOne?: ReturnType<typeof vi.fn>;
@@ -62,7 +63,7 @@ function register(
     undefined,
     overrides.twitterService as never,
     overrides.credentialsService as never,
-    overrides.notificationsService as never,
+    overrides.activityRecorder as never,
   ).register(engine);
   return engine;
 }
@@ -206,12 +207,9 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
   });
 
   it('delivers an in-app report and records destination', async () => {
-    const sendNotification = vi.fn().mockResolvedValue(undefined);
+    const record = vi.fn().mockResolvedValue({ id: 'activity-1' });
     const engine = register({
-      notificationsService: {
-        sendEmail: vi.fn(),
-        sendNotification,
-      },
+      activityRecorder: { dispatch: vi.fn(), record },
     });
 
     const result = await executeAction(
@@ -221,10 +219,13 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
       new Map([['content', 'Morning digest body']]),
     );
 
-    expect(sendNotification).toHaveBeenCalledWith(
+    expect(record).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'workflow_report',
+        data: { body: 'Morning digest body' },
+        key: ActivityKey.WORKFLOW_REPORT_DELIVERED,
+        organizationId: 'org-1',
         userId: 'user-1',
+        value: 'Morning X digest',
       }),
     );
     expect(result).toEqual(
@@ -237,9 +238,9 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
 
   it('fails closed when notification delivery throws, naming the destination', async () => {
     const engine = register({
-      notificationsService: {
-        sendEmail: vi.fn(),
-        sendNotification: vi.fn().mockRejectedValue(new Error('bus down')),
+      activityRecorder: {
+        dispatch: vi.fn(),
+        record: vi.fn().mockRejectedValue(new Error('bus down')),
       },
     });
 

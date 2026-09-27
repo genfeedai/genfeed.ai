@@ -2,6 +2,7 @@ import { BatchWorkflowExecutionService } from '@api/collections/workflows/servic
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BadRequestException } from '@nestjs/common';
 
 describe('BatchWorkflowExecutionService', () => {
@@ -64,6 +65,9 @@ describe('BatchWorkflowExecutionService', () => {
         },
         organizationId: 'org-1',
         userId: 'user-1',
+      }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
   });

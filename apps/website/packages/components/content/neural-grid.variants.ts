@@ -40,9 +40,11 @@ export const neuralGridItemVariants = cva(
         center: 'text-center',
         left: 'text-left',
       },
+      // 48px of padding on each side of a 360px phone leaves a 216px column
+      // for the copy; cards keep their desktop padding from `sm` up.
       padding: {
-        lg: 'p-12',
-        md: 'p-10',
+        lg: 'p-6 sm:p-12',
+        md: 'p-6 sm:p-10',
         sm: 'p-6',
       },
     },

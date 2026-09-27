@@ -22,6 +22,7 @@ import {
   ReplyBotType,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type WatchFetchResult = ReplyPostWatchWorkflowInput & {
@@ -90,6 +91,7 @@ export class ReplyPostWatchService implements OnModuleInit {
           `reply-post-watch-${params.organizationId}-${platform}-${params.postId}-${attempt}`,
           {
             delayMs: delayMinutes * 60 * 1000,
+            dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
             replaceTerminalJob: true,
           },
         );
