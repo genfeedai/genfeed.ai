@@ -406,6 +406,15 @@ describe('resolveBrandStepAccountType', () => {
     },
   );
 
+  it.each([OrganizationCategory.CREATOR, OrganizationCategory.BUSINESS])(
+    'does not let a %s hint overwrite an existing EXPERT organization',
+    (hint) => {
+      expect(
+        resolveBrandStepAccountType(hint, OrganizationCategory.EXPERT),
+      ).toBe(OrganizationCategory.EXPERT);
+    },
+  );
+
   it.each([OrganizationCategory.BUSINESS, OrganizationCategory.CREATOR, null])(
     'defaults %s to CREATOR when there is no hint',
     (existing) => {

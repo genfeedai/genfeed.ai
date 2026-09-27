@@ -94,20 +94,15 @@ const PRESERVED_ONBOARDING_ACCOUNT_TYPES: ReadonlySet<OrganizationCategory> =
   new Set([OrganizationCategory.AGENCY, OrganizationCategory.EXPERT]);
 
 /**
- * Account type the brand step writes: the signup CTA hint when present,
- * otherwise the organization's existing EXPERT or AGENCY type, otherwise
- * CREATOR. Brand setup must never downgrade an organization that already
- * chose a specialised path, e.g. when onboarding is replayed on a device
- * without the CTA hint.
+ * Account type the brand step writes: an organization's existing EXPERT or
+ * AGENCY type, otherwise the signup CTA hint, otherwise CREATOR. Brand setup
+ * never overwrites a specialised path an organization already chose, whether
+ * onboarding is replayed without the hint or a stale hint is still stored.
  */
 export function resolveBrandStepAccountType(
   requestedAccountType: OrganizationCategory | null,
   existingAccountType: OrganizationCategory | null,
 ): OrganizationCategory {
-  if (requestedAccountType) {
-    return requestedAccountType;
-  }
-
   if (
     existingAccountType &&
     PRESERVED_ONBOARDING_ACCOUNT_TYPES.has(existingAccountType)
@@ -115,7 +110,7 @@ export function resolveBrandStepAccountType(
     return existingAccountType;
   }
 
-  return OrganizationCategory.CREATOR;
+  return requestedAccountType ?? OrganizationCategory.CREATOR;
 }
 
 const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;

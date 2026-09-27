@@ -105,9 +105,8 @@ test.describe('Onboarding Flow', () => {
     }) => {
       const page = new OnboardingPage(onboardingPage);
 
-      // A work-domain signup skips the website prompt and lands on loading,
-      // which auto-completes the brand step once setup finishes.
-      await page.waitForLoadingPhase();
+      // A work-domain signup skips the website prompt; brand setup runs and
+      // hands off to the agent on its own.
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
 
       // Completing brand first is what unlocks `/workspace` at the end of this
@@ -134,12 +133,13 @@ test.describe('Onboarding Flow', () => {
   });
 
   test.describe('Step 1: Brand', () => {
-    test('should show the loading step and hand off to the agent for a work-domain signup', async ({
+    test('should hand off to the agent for a work-domain signup', async ({
       onboardingPage,
     }) => {
+      // Setup starts during fixture navigation, so the loading step is not
+      // held here; the personal-inbox test below asserts it deterministically.
       const page = new OnboardingPage(onboardingPage);
 
-      await page.waitForLoadingPhase();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 
@@ -149,9 +149,11 @@ test.describe('Onboarding Flow', () => {
       const page = new OnboardingPage(personalInboxOnboardingPage);
 
       await page.waitForWebsitePromptPhase();
+      const releaseBrandSetup = await page.holdBrandSetup();
       await page.continueFromWebsitePrompt('acme-studio.com');
 
       await page.waitForLoadingPhase();
+      releaseBrandSetup();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 

@@ -119,6 +119,27 @@ export class OnboardingPage {
     await expect(this.headline).toHaveText("What's your website?");
   }
 
+  /**
+   * Holds brand setup on its loading step: setup awaits the organization
+   * account-type PATCH, so that response waits until the returned release
+   * runs. Register it before the action that starts setup.
+   */
+  async holdBrandSetup(): Promise<() => void> {
+    let release: () => void = () => {};
+    const isReleased = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await this.page.route(/\/organizations\/[^/?]+$/, async (route) => {
+      if (route.request().method() === 'PATCH') {
+        await isReleased;
+      }
+      await route.fallback();
+    });
+
+    return release;
+  }
+
   /** Continues from the website prompt, optionally filling in a website. */
   async continueFromWebsitePrompt(websiteUrl?: string): Promise<void> {
     if (websiteUrl) {
