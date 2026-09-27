@@ -1,3 +1,5 @@
+import { InsightCategory, InsightImpact } from '@genfeedai/contracts';
+import type { Insight } from '@genfeedai/props/analytics/insights.props';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,18 +16,15 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
   useInsights: vi.fn(() => ({
-    alerts: [],
-    anomalies: [],
-    audiences: [],
-    contentInsightsStatus: 'empty',
-    contentInsightsUnavailableReason: null,
-    dismissAlert: vi.fn(),
+    dismissInsight: vi.fn(),
+    error: null,
+    insights: [],
     isLoading: false,
     isRefreshing: false,
-    markAlertRead: vi.fn(),
+    markInsightRead: vi.fn(),
     refresh: vi.fn(),
-    suggestions: [],
-    trends: [],
+    status: 'empty',
+    unavailableReason: null,
   })),
 }));
 
@@ -50,15 +49,6 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
-  },
-}));
-
 describe('InsightsOverview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,24 +65,50 @@ describe('InsightsOverview', () => {
     expect(screen.getByText(/Social intelligence scope/)).toBeInTheDocument();
   });
 
-  it('renders an unavailable state when predictive analytics fails', () => {
+  it('renders the insight list when insights are available', () => {
+    const insights: Insight[] = [
+      {
+        actionableSteps: ['Post more reels'],
+        category: InsightCategory.OPPORTUNITY,
+        confidence: 82,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        description: 'Reels are outperforming other formats this week.',
+        id: 'insight-1',
+        impact: InsightImpact.HIGH,
+        isRead: false,
+        relatedMetrics: [],
+        title: 'Reels are trending',
+      },
+    ];
+
     vi.mocked(useInsights).mockReturnValueOnce({
-      alerts: [],
-      anomalies: [],
-      audiences: [],
-      contentInsightsStatus: 'unavailable',
-      contentInsightsUnavailableReason: 'Provider unavailable',
-      dismissAlert: vi.fn(),
+      dismissInsight: vi.fn(),
+      error: null,
+      insights,
+      isLoading: false,
+      isRefreshing: false,
+      markInsightRead: vi.fn(),
+      refresh: vi.fn(),
+      status: 'available',
+      unavailableReason: null,
+    });
+
+    render(<InsightsOverview />);
+
+    expect(screen.getByText('Reels are trending')).toBeInTheDocument();
+  });
+
+  it('renders an unavailable state when insights fail to load', () => {
+    vi.mocked(useInsights).mockReturnValueOnce({
       dismissInsight: vi.fn(),
       error: new Error('Provider unavailable'),
       insights: [],
       isLoading: false,
       isRefreshing: false,
-      markAlertRead: vi.fn(),
       markInsightRead: vi.fn(),
       refresh: vi.fn(),
-      suggestions: [],
-      trends: [],
+      status: 'unavailable',
+      unavailableReason: 'Provider unavailable',
     });
 
     render(<InsightsOverview />);
