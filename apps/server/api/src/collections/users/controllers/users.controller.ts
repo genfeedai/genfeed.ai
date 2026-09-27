@@ -294,9 +294,9 @@ export class UsersController {
   }
 
   /**
-   * Idempotent onboarding-funnel completion. Patches the User row only when not
-   * already completed, invalidates the access caches so `OnboardingGuard` sees
-   * the new state on the next request.
+   * Idempotent onboarding-funnel completion. Atomically claims the false->true
+   * transition on the User row (see below), then invalidates the access
+   * caches so `OnboardingGuard` sees the new state on the next request.
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
     const canonicalUserId = (user.userId ?? user.id) || user.id;
@@ -309,13 +309,20 @@ export class UsersController {
       throw new UnauthorizedException('User account not found');
     }
 
-    if (!dbUser.isOnboardingCompleted) {
-      await this.usersService.patch(dbUser.id, {
+    // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
+    // clause, so the false->true transition itself is the concurrency fence
+    // (mirrors the agent-first completion path in
+    // AgentOnboardingToolHandler). A racing completion call — a second tab
+    // finishing this same wizard, or the agent-first path completing first —
+    // matches 0 rows and leaves the already-persisted transition untouched.
+    await this.usersService.patchAll(
+      { id: dbUser.id, isOnboardingCompleted: false },
+      {
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
         onboardingStepsCompleted: ['brand', 'providers', 'summary'],
-      } as Partial<UpdateUserDto>);
-    }
+      } as Partial<UpdateUserDto>,
+    );
 
     const dbUserId = dbUser.id.toString();
     await this.userAccessCacheService.invalidateAll(dbUserId);

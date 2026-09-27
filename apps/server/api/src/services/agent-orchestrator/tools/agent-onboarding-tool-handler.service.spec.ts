@@ -30,7 +30,11 @@ function createMissionState() {
 function createHandler(options?: {
   brand?: Record<string, unknown> | null;
   byokKeys?: Record<string, unknown>;
+  credential?: Record<string, unknown> | null;
+  image?: Record<string, unknown> | null;
   isByokEnabled?: boolean;
+  post?: Record<string, unknown> | null;
+  video?: Record<string, unknown> | null;
 }) {
   const missions = createMissionState();
   const creditsUtilsService = {
@@ -62,8 +66,15 @@ function createHandler(options?: {
     findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
   };
-  const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
-  const imagesService = { findOne: vi.fn().mockResolvedValue(null) };
+  const credentialsService = {
+    findOne: vi.fn().mockResolvedValue(options?.credential ?? null),
+  };
+  const imagesService = {
+    findOne: vi.fn().mockResolvedValue(options?.image ?? null),
+  };
+  const videosService = {
+    findOne: vi.fn().mockResolvedValue(options?.video ?? null),
+  };
   const contentGeneratorService = {
     generateContentWorkflow: vi
       .fn()
@@ -78,8 +89,14 @@ function createHandler(options?: {
     ingredientsEndpoint: 'https://cdn.example.com/ingredients',
   };
   const organizationsService = { patch: vi.fn() };
-  const usersService = { findOne: vi.fn(), patch: vi.fn() };
-  const postsService = { findOne: vi.fn().mockResolvedValue(null) };
+  const usersService = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+  };
+  const postsService = {
+    findOne: vi.fn().mockResolvedValue(options?.post ?? null),
+  };
   const onboardingCreditGrantsService = {
     captureOnboardingCompletedBestEffort: vi.fn(),
     completeMissions: vi
@@ -108,18 +125,22 @@ function createHandler(options?: {
     organizationsService as never,
     organizationSettingsService as never,
     usersService as never,
+    videosService as never,
   );
 
   return {
     brandsService,
     contentGeneratorService,
+    credentialsService,
     creditsUtilsService,
     generationGateway,
     handler,
+    imagesService,
     onboardingCreditGrantsService,
     organizationSettingsService,
     postsService,
     usersService,
+    videosService,
   };
 }
 
@@ -773,7 +794,7 @@ describe('Agent onboarding create_brand identity', () => {
   });
 });
 
-describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969)', () => {
+describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)', () => {
   it('delegates the onboarding_completed capture exactly once for a user completing for the first time', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =
       createHandler();
@@ -781,9 +802,16 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969)', () => 
       id: 'user-1',
       isOnboardingCompleted: false,
     });
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      modifiedCount: 1,
+    });
 
     await handler.completeOnboarding(CONTEXT);
 
+    expect(usersService.patchAll).toHaveBeenCalledWith(
+      { id: 'user-1', isOnboardingCompleted: false },
+      expect.objectContaining({ isOnboardingCompleted: true }),
+    );
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).toHaveBeenCalledTimes(1);
@@ -792,15 +820,158 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969)', () => 
     ).toHaveBeenCalledWith('user-1');
   });
 
-  it('does not re-capture for a user who was already onboarded', async () => {
+  it('does not re-capture for a user who was already onboarded (atomic claim matches 0 rows)', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =
       createHandler();
     (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'user-1',
       isOnboardingCompleted: true,
     });
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      modifiedCount: 0,
+    });
 
     await handler.completeOnboarding(CONTEXT);
+
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('emits at most one completion event when two completion calls race for the same user', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+
+    // Model the real Postgres guarantee: `isOnboardingCompleted: false` is
+    // part of the WHERE clause, so only the first of two racing updateMany
+    // calls can match the still-false row.
+    let claimed = false;
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockImplementation(
+      async (filter: { isOnboardingCompleted?: boolean }) => {
+        if (filter.isOnboardingCompleted === false && !claimed) {
+          claimed = true;
+          return { modifiedCount: 1 };
+        }
+        return { modifiedCount: 0 };
+      },
+    );
+
+    await Promise.all([
+      handler.completeOnboarding(CONTEXT),
+      handler.completeOnboarding(CONTEXT),
+    ]);
+
+    expect(usersService.patchAll).toHaveBeenCalledTimes(2);
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledWith('user-1');
+  });
+
+  it('leaves the prior completion unchanged and does not re-emit on a repeated call', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createHandler();
+    const completedAt = new Date('2026-01-01T00:00:00.000Z');
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: true,
+      onboardingCompletedAt: completedAt,
+    });
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      modifiedCount: 0,
+    });
+
+    await handler.completeOnboarding(CONTEXT);
+    await handler.completeOnboarding(CONTEXT);
+
+    expect(usersService.patchAll).toHaveBeenCalledTimes(2);
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).not.toHaveBeenCalled();
+  });
+});
+
+describe('onboarding journey completion race (genfeedai/genfeed.ai#5311)', () => {
+  function createCompletableHandler() {
+    return createHandler({
+      brand: { id: 'brand-1' },
+      credential: { id: 'credential-1' },
+      image: { id: 'image-1' },
+      post: { id: 'post-1' },
+      video: { id: 'video-1' },
+    });
+  }
+
+  it('claims the false->true transition atomically and captures once when the journey completes', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createCompletableHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      modifiedCount: 1,
+    });
+
+    await handler.checkOnboardingStatus(CONTEXT);
+
+    expect(usersService.patchAll).toHaveBeenCalledWith(
+      { id: 'user-1', isOnboardingCompleted: false },
+      expect.objectContaining({ isOnboardingCompleted: true }),
+    );
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits at most one completion event when two journey re-checks race for the same user', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createCompletableHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+
+    let claimed = false;
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockImplementation(
+      async (filter: { isOnboardingCompleted?: boolean }) => {
+        if (filter.isOnboardingCompleted === false && !claimed) {
+          claimed = true;
+          return { modifiedCount: 1 };
+        }
+        return { modifiedCount: 0 };
+      },
+    );
+
+    await Promise.all([
+      handler.checkOnboardingStatus(CONTEXT),
+      handler.checkOnboardingStatus(CONTEXT),
+    ]);
+
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('never fires the funnel event when a journey re-check finds the user already onboarded', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createCompletableHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: true,
+    });
+    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
+      modifiedCount: 0,
+    });
+
+    await handler.checkOnboardingStatus(CONTEXT);
+    await handler.checkOnboardingStatus(CONTEXT);
 
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,

@@ -59,6 +59,7 @@ describe('UsersController', () => {
       findOne: vi.fn(),
       hasOnboardingField: vi.fn(),
       patch: vi.fn(),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
       recordSignupAttribution: vi.fn().mockResolvedValue(true),
     };
     settingsService = { findOne: vi.fn(), patch: vi.fn() };
@@ -540,10 +541,7 @@ describe('UsersController', () => {
           id: 'user_canonical_1',
           isOnboardingCompleted: true,
         });
-      usersService.patch.mockResolvedValue({
-        id: 'user_canonical_1',
-        isOnboardingCompleted: true,
-      });
+      usersService.patchAll.mockResolvedValue({ modifiedCount: 1 });
 
       const result = await controller.updateMe(mockRequest, mockUser, {
         isOnboardingCompleted: true,
@@ -552,10 +550,14 @@ describe('UsersController', () => {
       expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
         id: userId,
       });
-      expect(usersService.patch).toHaveBeenCalledWith(
-        'user_canonical_1',
+      // genfeedai/genfeed.ai#5311: the false->true transition is claimed
+      // atomically (isOnboardingCompleted: false in the WHERE clause), not a
+      // read-then-write `patch`.
+      expect(usersService.patchAll).toHaveBeenCalledWith(
+        { id: 'user_canonical_1', isOnboardingCompleted: false },
         expect.objectContaining({ isOnboardingCompleted: true }),
       );
+      expect(usersService.patch).not.toHaveBeenCalled();
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         'user_canonical_1',
       );
@@ -575,6 +577,28 @@ describe('UsersController', () => {
       ).rejects.toThrow('User account not found');
 
       expect(usersService.patch).not.toHaveBeenCalled();
+      expect(usersService.patchAll).not.toHaveBeenCalled();
+    });
+
+    it('leaves the prior completion untouched on a repeated onboarding-completion call', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'user_canonical_1',
+        isOnboardingCompleted: true,
+      });
+      usersService.patchAll.mockResolvedValue({ modifiedCount: 0 });
+
+      await controller.updateMe(mockRequest, mockUser, {
+        isOnboardingCompleted: true,
+      } as never);
+      await controller.updateMe(mockRequest, mockUser, {
+        isOnboardingCompleted: true,
+      } as never);
+
+      expect(usersService.patchAll).toHaveBeenCalledTimes(2);
+      expect(usersService.patchAll).toHaveBeenCalledWith(
+        { id: 'user_canonical_1', isOnboardingCompleted: false },
+        expect.objectContaining({ isOnboardingCompleted: true }),
+      );
     });
   });
 
