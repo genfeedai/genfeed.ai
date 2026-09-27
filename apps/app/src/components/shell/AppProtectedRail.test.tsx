@@ -19,6 +19,7 @@ vi.mock('next-intl', () => ({
 }));
 
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
@@ -117,6 +118,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
       organization: { id: 'org', slug: 'acme' },
       slug: 'brand',
     },
+    settings: { subscriptionTier: 'pro' },
   }),
 }));
 
@@ -128,10 +130,30 @@ vi.mock(
 );
 
 vi.mock('@ui/shell/app-rail/AppRail', () => ({
-  AppRail: (props: Record<string, unknown>) => {
+  AppRail: (props: Record<string, unknown> & { header?: ReactNode }) => {
     appRailSpy(props);
-    return <nav aria-label="Apps" data-testid="app-rail" />;
+    return (
+      <nav aria-label="Apps" data-testid="app-rail">
+        {props.header}
+      </nav>
+    );
   },
+}));
+
+vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
+  default: ({
+    subscriptionTier,
+    variant,
+  }: {
+    subscriptionTier?: string | null;
+    variant?: string;
+  }) => (
+    <div
+      data-testid="organization-switcher"
+      data-subscription-tier={subscriptionTier ?? ''}
+      data-variant={variant}
+    />
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -283,6 +305,40 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ isAssetGateLocked: true, onNavigate }),
     );
+  });
+
+  it('pins the organization avatar at the top of the rail', () => {
+    render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
+
+    const organization = screen.getByTestId('organization-switcher');
+    expect(organization).toHaveAttribute('data-variant', 'avatar');
+    expect(organization).toHaveAttribute('data-subscription-tier', 'pro');
+  });
+
+  it('keeps the organization avatar on organization settings pages', () => {
+    mockPathname.value = '/acme/~/settings/general';
+
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+  });
+
+  it('hides the organization avatar on personal-account settings pages (#4659)', () => {
+    for (const pathname of [
+      '/settings',
+      '/settings/personal',
+      '/acme/~/settings/personal',
+      '/acme/~/settings/notifications',
+    ]) {
+      mockPathname.value = pathname;
+
+      const { unmount } = render(<AppProtectedRail orgSlug="acme" />);
+
+      expect(
+        screen.queryByTestId('organization-switcher'),
+      ).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('launches rail destinations through the trusted shell resolver', () => {

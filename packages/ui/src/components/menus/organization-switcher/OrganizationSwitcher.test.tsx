@@ -268,6 +268,23 @@ describe('OrganizationSwitcher', () => {
     expect(avatar).not.toHaveClass('rounded-full');
   });
 
+  it('renders a 36px initial tile for the app rail in avatar mode', async () => {
+    render(
+      <OrganizationSwitcher
+        subscriptionTier={mockSubscriptionTier}
+        variant="avatar"
+      />,
+    );
+
+    const trigger = await screen.findByRole('button', {
+      name: 'Switch organization, Acme Org',
+    });
+
+    expect(trigger).toHaveTextContent('A');
+    expect(trigger).toHaveClass('size-9', 'rounded-lg');
+    expect(screen.queryByText('Acme Org')).not.toBeInTheDocument();
+  });
+
   it('passes the context loading state to the dropdown', async () => {
     mockOrganizationStatus = 'loading';
     mockOrganizations = [];

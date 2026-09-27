@@ -4,3 +4,6 @@ packages: @genfeedai/props
 `AppRailBadge`, `AppRailNavigationTarget`; `variant` removed, `onNavigate`
 added). `AppLayoutProps` gains an optional `railComponent` slot for the
 persistent app rail.
+
+`MenuSharedProps.orgSwitcherSlot` is renamed `headerSlot`: the sidebar header now
+carries the brand switcher while the organization moves to the app rail (`AppRailProps.header`).

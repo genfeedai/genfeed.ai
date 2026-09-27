@@ -156,7 +156,6 @@ function AppLayoutWithDynamicMenu({
     orgSlug,
     brandSlug,
     settingsScope,
-    isPersonalSettingsPage,
     agentApiService,
     threads,
     agentMenuItems,
@@ -326,7 +325,8 @@ function AppLayoutWithDynamicMenu({
         isStudioRoute={isStudioRoute}
         isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
-        isPersonalSettingsPage={isPersonalSettingsPage}
+        orgSlug={orgSlug}
+        brandSlug={brandSlug}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
@@ -360,7 +360,8 @@ function AppLayoutWithDynamicMenu({
     isSettingsRoute,
     isStudioRoute,
     isAutomationRoute,
-    isPersonalSettingsPage,
+    brandSlug,
+    orgSlug,
     libraryMenuItems,
     menuItems,
     messagesMenuItems,

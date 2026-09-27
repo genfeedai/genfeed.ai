@@ -32,10 +32,13 @@ import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrganizationSwitcherProps {
   subscriptionTier?: string | null;
+  /** `avatar`: a 36px initial tile for the app rail (Slack workspace icon). */
+  variant?: 'labeled' | 'avatar';
 }
 
 export default function OrganizationSwitcher({
   subscriptionTier,
+  variant = 'labeled',
 }: OrganizationSwitcherProps = {}) {
   const getOrgsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -87,7 +90,8 @@ export default function OrganizationSwitcher({
   return (
     <>
       <SwitcherDropdown
-        className="w-full"
+        className={variant === 'avatar' ? undefined : 'w-full'}
+        minWidth={variant === 'avatar' ? 240 : undefined}
         items={orgs.map((o) => ({
           id: o.id,
           isActive: o.id === activeOrgId,
@@ -100,24 +104,42 @@ export default function OrganizationSwitcher({
             target: '_blank',
           },
         }))}
-        renderTrigger={({ isOpen }) => (
-          <div
-            data-testid="organization-switcher-trigger"
-            className={cn(
-              SWITCHER_TRIGGER_CLASSNAME,
-              isSwitching && 'cursor-not-allowed opacity-50',
-              isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
-            )}
-          >
-            <div className={SWITCHER_AVATAR_CLASSNAME}>
+        renderTrigger={({ isOpen }) =>
+          variant === 'avatar' ? (
+            <div
+              aria-label={`Switch organization, ${displayLabel}`}
+              data-testid="organization-switcher-trigger"
+              role="button"
+              tabIndex={0}
+              title={displayLabel}
+              className={cn(
+                'flex size-9 cursor-pointer items-center justify-center rounded-lg bg-foreground/[0.12] text-sm font-semibold text-foreground transition-colors hover:bg-foreground/[0.18]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+                isSwitching && 'cursor-not-allowed opacity-50',
+                isOpen && 'bg-foreground/[0.18]',
+              )}
+            >
               {displayLabel.charAt(0).toUpperCase()}
             </div>
-            <span className={SWITCHER_LABEL_CLASSNAME}>
-              {isSwitching ? 'Switching\u2026' : displayLabel}
-            </span>
-            <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
-          </div>
-        )}
+          ) : (
+            <div
+              data-testid="organization-switcher-trigger"
+              className={cn(
+                SWITCHER_TRIGGER_CLASSNAME,
+                isSwitching && 'cursor-not-allowed opacity-50',
+                isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+              )}
+            >
+              <div className={SWITCHER_AVATAR_CLASSNAME}>
+                {displayLabel.charAt(0).toUpperCase()}
+              </div>
+              <span className={SWITCHER_LABEL_CLASSNAME}>
+                {isSwitching ? 'Switching\u2026' : displayLabel}
+              </span>
+              <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
+            </div>
+          )
+        }
         onSelect={(id) => void handleSwitch(id)}
         isDisabled={isSwitching}
         isLoading={isLoading}

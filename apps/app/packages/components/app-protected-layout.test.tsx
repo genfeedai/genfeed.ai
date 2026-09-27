@@ -149,7 +149,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     isCollapsed?: boolean;
     items?: { href: string; hrefScope?: string; label: string }[];
     mobileSidebarWidth?: number;
-    orgSwitcherSlot?: ReactNode;
+    headerSlot?: ReactNode;
     primaryAction?:
       | { href: string; label: string }
       | { onClick: () => void; label: string };
@@ -167,10 +167,8 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     appSidebarSpy(props);
     return (
       <div data-testid="app-sidebar">
-        {props.orgSwitcherSlot ? (
-          <div data-testid="app-sidebar-org-switcher-slot">
-            {props.orgSwitcherSlot}
-          </div>
+        {props.headerSlot ? (
+          <div data-testid="app-sidebar-header-slot">{props.headerSlot}</div>
         ) : null}
         {props.renderTopSlot ? props.renderTopSlot() : null}
         {props.renderBody ? props.renderBody() : null}
@@ -616,10 +614,14 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByText('Protected content')).toBeInTheDocument();
+    // Brand switcher is the sidebar header (Codex "Codex ▾" slot); the org
+    // avatar lives on the app rail, which the mocked AppLayout does not mount.
+    expect(screen.getByTestId('app-sidebar-header-slot')).toContainElement(
+      screen.getByTestId('sidebar-brand-switcher'),
+    );
     expect(
-      screen.queryByTestId('sidebar-brand-switcher'),
+      screen.queryByTestId('organization-switcher'),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
@@ -629,7 +631,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
-        orgSwitcherSlot: expect.anything(),
+        headerSlot: expect.anything(),
         renderTopSlot: expect.any(Function),
         sectionLabel: 'Workspace',
         showPrimaryItems: true,
@@ -657,7 +659,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps the org switcher visible in SaaS mode', () => {
+  it('keeps the header brand switcher in SaaS mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
 
     render(
@@ -666,13 +668,13 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-brand-switcher')).toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ orgSwitcherSlot: expect.anything() }),
+      expect.objectContaining({ headerSlot: expect.anything() }),
     );
   });
 
-  it('hides the org switcher on every flat personal settings page (#4659)', () => {
+  it('hides the header brand switcher on every flat personal settings page (#4659)', () => {
     mockRouteParams.brandSlug = undefined;
     mockRouteParams.orgSlug = undefined;
 
@@ -694,16 +696,13 @@ describe('AppProtectedLayout', () => {
       );
 
       expect(
-        screen.queryByTestId('organization-switcher'),
+        screen.queryByTestId('sidebar-brand-switcher'),
       ).not.toBeInTheDocument();
-      expect(appSidebarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ orgSwitcherSlot: undefined }),
-      );
       unmount();
     }
   });
 
-  it('hides the org switcher on every org-scoped copy of a personal settings page (#4659 review)', () => {
+  it('hides the header brand switcher on every org-scoped copy of a personal settings page (#4659 review)', () => {
     // Before the fix, scope was derived from route params alone, so any
     // org-scoped page (including these personal-account copies) counted as
     // ORGANIZATION and kept the org switcher — the PRD and ADR both say
@@ -727,16 +726,13 @@ describe('AppProtectedLayout', () => {
       );
 
       expect(
-        screen.queryByTestId('organization-switcher'),
+        screen.queryByTestId('sidebar-brand-switcher'),
       ).not.toBeInTheDocument();
-      expect(appSidebarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ orgSwitcherSlot: undefined }),
-      );
       unmount();
     }
   });
 
-  it('keeps the org switcher on actual organization settings pages (#4659)', () => {
+  it('hides the header brand switcher on organization settings pages', () => {
     mockPathname.value = '/acme/~/settings/general';
     mockRouteParams.brandSlug = undefined;
     mockRouteParams.orgSlug = 'acme';
@@ -747,10 +743,11 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
-    expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ orgSwitcherSlot: expect.anything() }),
-    );
+    // Organization scope has no brand to switch; the org avatar on the rail
+    // is the switcher there.
+    expect(
+      screen.queryByTestId('sidebar-brand-switcher'),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the workspace quick actions on non-conversation routes', () => {

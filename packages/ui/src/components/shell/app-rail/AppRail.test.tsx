@@ -236,6 +236,20 @@ describe('AppRail', () => {
     );
   });
 
+  it('pins the header slot above the apps', () => {
+    render(
+      <AppRail orgSlug="acme" header={<div data-testid="org-avatar">A</div>} />,
+    );
+
+    const header = screen.getByTestId('app-rail-header');
+    expect(header).toContainElement(screen.getByTestId('org-avatar'));
+    expect(
+      header.compareDocumentPosition(
+        screen.getByRole('link', { name: 'Agent' }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('pins Admin below the product apps', () => {
     render(<AppRail orgSlug="acme" showAdmin />);
 

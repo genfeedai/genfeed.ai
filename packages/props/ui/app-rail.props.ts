@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export interface AppRailNavigationTarget {
   announcement?: string;
   href: string;
@@ -24,6 +26,8 @@ export interface AppRailProps {
    * section. Passed down from the app shell's access state.
    */
   isAssetGateLocked?: boolean;
+  /** Pinned above the apps, e.g. the organization avatar (Slack workspace icon). */
+  header?: ReactNode;
   /** Called when an app link is activated, e.g. to close the mobile drawer. */
   onNavigate?: () => void;
   orgSlug: string;

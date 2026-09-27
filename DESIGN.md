@@ -10,10 +10,10 @@ description: >
 colors:
   # ── Canvas ────────────────────────────────────────────────────────────────
   # Two steps, and only two. 100 is the page; 200 is the raised content plane.
-  # Dark deliberately stops short of #000000: pure black amplifies halation
-  # around light type and leaves elevation nowhere to go.
-  background-100: "#0A0A0A"
-  background-200: "#161616"
+  # Dark is Codex/Vercel: a pure-black page and a near-black plane (app chrome,
+  # cards, panels). Type stays capped at #EDEDED so it does not bloom on black.
+  background-100: "#000000"
+  background-200: "#0A0A0A"
 
   # ── Neutral ladder ────────────────────────────────────────────────────────
   # Ten steps, each with one job. Values below are the Dark reference; Light
@@ -22,7 +22,7 @@ colors:
   #   100 1.09/1.04 · 200 1.20/1.12 · 300 1.38/1.23 · 400 1.57/1.35
   #   500 2.23/1.71 · 600 3.45/2.42 · 700 5.01/3.10 · 800 6.53/4.54
   #   900 7.66/7.49 · 1000 16.91/17.18
-  gray-100: "#161616"   # subtle fill · raised surface (card, panel, sidebar)
+  gray-100: "#0A0A0A"   # subtle fill · raised surface (card, panel, sidebar)
   gray-200: "#1F1F1F"   # nested fill · hover on a raised surface
   gray-300: "#2A2A2A"   # active / selected fill
   gray-400: "#333333"   # border
@@ -35,12 +35,12 @@ colors:
 
   # ── Surfaces (semantic aliases onto the ladder) ───────────────────────────
   # Four planes, one step apart: canvas -> card -> nested fill -> hover.
-  bg-primary: "#0A0A0A"
-  bg-secondary: "#161616"
-  bg-tertiary: "#1F1F1F"
+  bg-primary: "#000000"
+  bg-secondary: "#0A0A0A"
+  bg-tertiary: "#161616"
   bg-elevated: "#161616"
   bg-hover: "#2A2A2A"
-  card: "#161616"
+  card: "#0A0A0A"
 
   # ── Structure ─────────────────────────────────────────────────────────────
   border: "#333333"
@@ -451,11 +451,11 @@ parallel, a component is authored once and never branches on theme — and the l
 theme is not a second design to maintain, it is the same design with the ladder
 turned over.
 
-The canvas is deliberately not pure black and the primary text is deliberately not
-pure white. `#EDEDED` on `#0A0A0A` is 16.9:1 — lower than `#FFFFFF` on `#000000`
-would be, and materially easier to read at 14px, because pure white on pure black
-halates: the glyph edges bloom and the counters close up. Maximum contrast and
-maximum readability are not the same target.
+The dark canvas is pure black (`#000000`) with a near-black `#0A0A0A` plane for
+the app chrome, cards and panels — the Codex/Vercel look, where elevation comes
+from that one step plus hairline borders rather than grays. The primary text is
+deliberately not pure white: `#EDEDED` keeps glyph edges from blooming on black
+at 14px. Maximum contrast and maximum readability are not the same target.
 
 The YAML block above records the **Dark reference**. Light values live in the same
 token source, at the same step names.
@@ -481,7 +481,7 @@ Ten steps, each with one job. Pick a step by the job, never by how the swatch lo
 
 | step | job                                     | dark      | light     |
 |------|-----------------------------------------|-----------|-----------|
-| 100  | subtle fill · raised surface            | `#161616` | `#F5F5F5` |
+| 100  | subtle fill · raised surface            | `#0A0A0A` | `#F5F5F5` |
 | 200  | nested fill · hover on a raised surface | `#1F1F1F` | `#EDEDED` |
 | 300  | active / selected fill                  | `#2A2A2A` | `#E3E3E3` |
 | 400  | border                                  | `#333333` | `#D9D9D9` |
@@ -721,7 +721,7 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 ### Shell Layout
 
 Codex/Slack chrome. The app rail and the sidebar share one continuous surface —
-the `gray-100` sidebar plane (`#161616` dark, `#F5F5F5` light) — with no border
+the `gray-100` sidebar plane (`#0A0A0A` dark, `#F5F5F5` light) — with no border
 between them or under the sidebar header. The page sits in a single **content
 panel** inset from the window by `--shell-inset` (8px, desktop): `bg-primary`,
 `rounded-lg`, `border border-border`, and it owns scrolling — the topbar is its

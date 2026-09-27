@@ -5,10 +5,9 @@
  * *role-parallel*: step N does the same job in dark and light, so a component
  * written against a step never needs a per-theme branch.
  *
- * The dark canvas is `#0A0A0A` (not `#000000`) and dark primary text is
- * `#EDEDED` (not `#FFFFFF`). Capping the extremes trades ~3 points of raw WCAG
- * ratio for a large reduction in halation — the glare that makes pure white on
- * pure black hard to read at UI type sizes.
+ * The dark canvas is pure `#000000` with a near-black `#0A0A0A` content plane
+ * (Codex/Vercel), and dark primary text is capped at `#EDEDED` (not `#FFFFFF`)
+ * so light type does not bloom on black at UI sizes.
  */
 
 export const neutralScaleSteps = [
@@ -54,13 +53,14 @@ export const neutralScaleJobs = {
  * Solid neutral ladders. Both are monotonic in contrast against their own
  * canvas, so "one step up" is always a visible, predictable change.
  *
- * Contrast against canvas — dark (`#0A0A0A`) / light (`#FAFAFA`):
+ * Contrast against canvas — dark (`#000000`) / light (`#FAFAFA`); dark ratios
+ * below were measured on the former `#0A0A0A` canvas and only rise on `#000`:
  * 100 1.09/1.04 · 200 1.20/1.12 · 300 1.38/1.23 · 400 1.57/1.35 · 500 2.23/1.71
  * 600 3.45/2.42 · 700 5.01/3.10 · 800 6.53/4.54 · 900 7.66/7.49 · 1000 16.91/17.18
  */
 export const neutralScale = {
   dark: {
-    '100': { hex: '#161616', hsl: '0 0% 9%' },
+    '100': { hex: '#0A0A0A', hsl: '0 0% 4%' },
     '200': { hex: '#1F1F1F', hsl: '0 0% 12%' },
     '300': { hex: '#2A2A2A', hsl: '0 0% 16%' },
     '400': { hex: '#333333', hsl: '0 0% 20%' },
@@ -129,8 +129,8 @@ export type BackgroundScale = Record<BackgroundScaleStep, ScaleValue>;
  */
 export const backgroundScale = {
   dark: {
-    '100': { hex: '#0A0A0A', hsl: '0 0% 4%' },
-    '200': { hex: '#161616', hsl: '0 0% 9%' },
+    '100': { hex: '#000000', hsl: '0 0% 0%' },
+    '200': { hex: '#0A0A0A', hsl: '0 0% 4%' },
   },
   light: {
     '100': { hex: '#FAFAFA', hsl: '0 0% 98%' },

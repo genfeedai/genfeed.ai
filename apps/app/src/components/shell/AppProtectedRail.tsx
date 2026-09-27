@@ -1,9 +1,11 @@
 'use client';
 
+import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -34,7 +36,7 @@ function AppProtectedRailContent({
 }: AppProtectedRailProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { brandId, brands, selectedBrand } = useBrand();
+  const { brandId, brands, selectedBrand, settings } = useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
     useOrgUrl();
@@ -96,6 +98,16 @@ function AppProtectedRailContent({
 
   return (
     <AppRail
+      header={
+        // Slack workspace icon. Personal-account settings pages have no org
+        // context to switch from (#4659).
+        isPersonalSettingsPage(pathname) ? undefined : (
+          <OrganizationSwitcher
+            subscriptionTier={settings?.subscriptionTier}
+            variant="avatar"
+          />
+        )
+      }
       badges={{
         messages: {
           count: messagesUnreadCount,

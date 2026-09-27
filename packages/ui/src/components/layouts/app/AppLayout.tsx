@@ -82,7 +82,7 @@ export default function AppLayout({
           className={cn(
             'overflow-x-hidden',
             hasChrome
-              ? 'bg-gray-100 [--shell-inset:0px] md:[--shell-inset:0.5rem]'
+              ? 'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-edge:1px] md:[--shell-inset:0.5rem]'
               : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
@@ -157,7 +157,9 @@ export default function AppLayout({
                     </div>
                   ) : null}
                   {mobileMenuContent ? (
-                    <div className="h-full min-w-0 flex-1">
+                    // Below the fixed topbar, like the rail, so the header's
+                    // brand switcher stays reachable.
+                    <div className="h-full min-w-0 flex-1 pt-12">
                       {mobileMenuContent}
                     </div>
                   ) : null}
@@ -172,10 +174,11 @@ export default function AppLayout({
               'relative flex flex-col',
               hasChrome
                 ? cn(
-                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] md:pr-[var(--shell-inset)] md:pb-[var(--shell-inset)]',
-                    // The inspector floats as its own panel: reserve its width
-                    // plus one inset gap, and no gap while it is collapsed.
-                    'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px)+min(var(--workspace-inspector-width,0px),var(--shell-inset)))]',
+                    // Codex: the content surface sits one inset below the top
+                    // (so the rail, sidebar header and topbar share a row) and
+                    // runs flush to the right and bottom edges. The docked
+                    // inspector reserves its width inside that surface.
+                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] xl:pr-[var(--workspace-inspector-width,0px)]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -194,7 +197,9 @@ export default function AppLayout({
               className={cn(
                 'flex flex-1 flex-col bg-background',
                 hasChrome &&
-                  'md:min-h-0 md:overflow-hidden md:rounded-lg md:border md:border-border',
+                  // One hairline where the content meets the chrome: the
+                  // sidebar edge and the top, rounded where they meet.
+                  'md:min-h-0 md:overflow-hidden md:rounded-tl-lg md:border-t md:border-l md:border-border',
               )}
             >
               {topbarContent ? (

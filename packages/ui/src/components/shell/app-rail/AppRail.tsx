@@ -423,6 +423,7 @@ export function AppRail({
   brandAwareSlug,
   brandSlug,
   currentPath,
+  header,
   isAssetGateLocked = false,
   onNavigate,
   orgSlug,
@@ -528,6 +529,15 @@ export function AppRail({
         className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-2 pt-1.5"
         data-testid="app-rail"
       >
+        {header ? (
+          <div
+            className="flex flex-col items-center gap-1 pb-1"
+            data-testid="app-rail-header"
+          >
+            {header}
+            <Separator className="mt-1 w-5" />
+          </div>
+        ) : null}
         {groups.map((group, index) => (
           <div
             key={group[0]?.id ?? index}

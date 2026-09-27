@@ -1093,7 +1093,10 @@ function UniversalWorkspaceShellContent({
             'relative overflow-hidden bg-background',
             isFocusedOnboardingRoute
               ? 'min-h-[calc(100dvh-var(--desktop-titlebar-height))]'
-              : 'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+              : // Desktop: fill the inset content panel (its insets, border and
+                // any shell banner are already taken out of the flex column).
+                // Mobile keeps viewport sizing under the fixed topbar.
+                'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:flex md:min-h-0 md:flex-1 md:flex-col',
           )}
           data-shell-state={state}
           data-workspace-surface={surfaceKey}
@@ -1111,7 +1114,7 @@ function UniversalWorkspaceShellContent({
               'min-h-0',
               isFocusedOnboardingRoute
                 ? 'h-[calc(100dvh-var(--desktop-titlebar-height))]'
-                : 'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+                : 'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] md:h-auto md:flex-1',
             )}
             data-testid="workspace-shell-regions"
           >
@@ -1186,17 +1189,17 @@ function UniversalWorkspaceShellContent({
                 aria-label="Workspace inspector"
                 className={cn(
                   'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
-                  // Its own inset panel beside the content panel (the shell
-                  // reserves one --shell-inset gap while it is open).
-                  isInspectorOpen && 'rounded-lg border border-border',
+                  // Docked inside the content surface, flush right and bottom;
+                  // the top hairline continues the surface's own top border.
+                  isInspectorOpen && 'border-t border-l border-border',
                 )}
                 id="workspace-context-inspector"
                 inert={!isInspectorOpen}
                 ref={inspectorRef}
                 style={{
-                  bottom: 'var(--shell-inset, 0px)',
+                  bottom: 0,
                   minWidth: inspectorRailWidth,
-                  right: 'var(--shell-inset, 0px)',
+                  right: 0,
                   top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px))',
                   transition: INSPECTOR_RAIL_TRANSITION,
                   width: inspectorRailWidth,

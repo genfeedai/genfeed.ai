@@ -173,7 +173,9 @@ describe('AppLayout', () => {
     expect(rail).toHaveClass('fixed', 'bottom-0');
     expect(rail).toHaveStyle({
       left: 'var(--desktop-rail-width, 0px)',
-      top: 'var(--desktop-titlebar-height)',
+      // Shares the content surface's top inset so its header lines up with the
+      // topbar row.
+      top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
     });
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
     expect(screen.queryByTestId('desktop-app-rail')).not.toBeInTheDocument();
@@ -217,7 +219,7 @@ describe('AppLayout', () => {
     );
   });
 
-  it('insets the page in one bordered panel that owns desktop scrolling', () => {
+  it('sets the page on one Codex-style content surface that owns desktop scrolling', () => {
     render(
       <AppLayout
         menuComponent={<MenuComponent />}
@@ -237,23 +239,30 @@ describe('AppLayout', () => {
       'bg-gray-100',
       '[--shell-inset:0px]',
       'md:[--shell-inset:0.5rem]',
+      'md:[--shell-edge:1px]',
     );
+    // One inset from the top, flush to the right and bottom edges; the docked
+    // inspector's width is reserved inside the surface.
     expect(contentShell).toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
       'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
-      'md:pr-[var(--shell-inset)]',
-      'md:pb-[var(--shell-inset)]',
+      'xl:pr-[var(--workspace-inspector-width,0px)]',
       'md:h-dvh',
       'md:overflow-hidden',
-      'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px)+min(var(--workspace-inspector-width,0px),var(--shell-inset)))]',
     );
+    expect(contentShell.className).not.toMatch(
+      /md:p[rb]-\[var\(--shell-inset\)\]/,
+    );
+    // A single hairline where content meets the chrome, rounded at the corner.
     expect(panel).toHaveClass(
       'bg-background',
-      'md:rounded-lg',
-      'md:border',
+      'md:rounded-tl-lg',
+      'md:border-t',
+      'md:border-l',
       'md:border-border',
       'md:overflow-hidden',
     );
+    expect(panel).not.toHaveClass('md:border', 'md:rounded-lg');
     expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',

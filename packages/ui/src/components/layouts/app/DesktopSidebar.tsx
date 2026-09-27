@@ -62,7 +62,7 @@ export default function DesktopSidebar({
         // Sits right of the app rail; 0 when the host renders no rail.
         left: 'var(--desktop-rail-width, 0px)',
         minWidth: widthStyle,
-        top: 'var(--desktop-titlebar-height)',
+        top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
         transition: isResizing
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
