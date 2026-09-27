@@ -3,7 +3,13 @@ import {
   AgentThreadMode,
   IngredientCategory,
   PostStatus,
+  SocialSourceType,
 } from '@genfeedai/contracts';
+import type {
+  ISocialSource,
+  ISourcePost,
+  SocialSourcesResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -4834,6 +4840,68 @@ export async function mockRateLimiting(
         'X-RateLimit-Reset': (Date.now() + 60000).toString(),
       },
       status: 429,
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Discovery Desk Mocks
+// ----------------------------------------------------------------------------
+
+/**
+ * Mock for the Discovery Desk's followed-creator feed (`/social-sources/feed`).
+ * The Desk's default `/trends/content` mock (api-interceptor's
+ * `handleTrendsRoute`) already supplies one item whose Desk `source` is
+ * `'trends'` ("Workflow demo clip"); this adds one item whose Desk `source`
+ * is `'following'` (see `packages/pages/trends/desk/desk-items.ts`'s
+ * `toDeskItemFromSourcePost`), so discovery specs can prove the Desk's
+ * source-tab filter actually changes which rows render instead of only
+ * checking the URL.
+ */
+export async function mockDiscoveryDeskFollowingFeed(
+  page: Page,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const source: ISocialSource = {
+    brandId: 'brand-1',
+    createdAt: now,
+    followersCount: 42_000,
+    handle: 'creator.spotlight',
+    id: 'social-source-desk-1',
+    isActive: true,
+    isDeleted: false,
+    organizationId: 'test-org',
+    platform: 'instagram',
+    sourceType: SocialSourceType.ACCOUNT,
+    updatedAt: now,
+    userId: 'user-1',
+  };
+  const post: ISourcePost = {
+    authorHandle: 'creator.spotlight',
+    brandId: 'brand-1',
+    contentType: 'post',
+    createdAt: now,
+    externalId: 'ext-desk-1',
+    id: 'source-post-desk-1',
+    isDeleted: false,
+    organizationId: 'test-org',
+    platform: 'instagram',
+    publishedAt: now,
+    sourceId: source.id,
+    text: 'Creator collab teaser',
+    updatedAt: now,
+  };
+  const feed: SocialSourcesResponse = {
+    posts: [post],
+    sources: [source],
+    summary: { activeSources: 1, totalPosts: 1, totalSources: 1 },
+  };
+
+  await routeApiPattern(page, '/social-sources/feed**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(feed),
+      contentType: 'application/json',
+      status: 200,
     });
   });
 }

@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
+  mockDiscoveryDeskFollowingFeed,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { DiscoveryPage } from '../../pages/discovery.page';
@@ -155,10 +156,17 @@ test.describe('Discovery section', () => {
         APP_ROUTES.DISCOVERY.ADS,
       );
 
+      // Keyboard-activate rather than click: the header's tab row can lay
+      // out under another header control at this viewport width, which
+      // fails a pointer click's hit-test even though the tab is visible and
+      // enabled. A role="tab" button must support keyboard activation per
+      // the WAI-ARIA tab pattern, and it exercises the same `onTabChange`
+      // handler as a click.
       const googleTab = authenticatedPage.getByRole('tab', {
         name: 'Google + YouTube',
       });
-      await googleTab.click();
+      await googleTab.focus();
+      await googleTab.press('Enter');
 
       await expect(googleTab).toHaveAttribute('data-state', 'active');
       await expect(authenticatedPage).toHaveURL(/platform=google/);
@@ -176,7 +184,8 @@ test.describe('Discovery section', () => {
       );
 
       const metaTab = authenticatedPage.getByRole('tab', { name: 'Meta' });
-      await metaTab.click();
+      await metaTab.focus();
+      await metaTab.press('Enter');
 
       await expect(metaTab).toHaveAttribute('data-state', 'active');
       await expect(authenticatedPage).toHaveURL(/platform=meta/);
@@ -190,6 +199,13 @@ test.describe('Discovery section', () => {
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
+      // Seed one 'trends' row ("Workflow demo clip", the default
+      // /trends/content mock) and one 'following' row ("Creator collab
+      // teaser") so the source filter has an observable effect on the
+      // rendered rows, not just the URL — a reload that ignored the filter
+      // would still keep `source=trends` in the URL but would show both.
+      await mockDiscoveryDeskFollowingFeed(authenticatedPage);
+
       await discoveryPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
       await assertNoErrorBoundaryFallback(
@@ -199,17 +215,41 @@ test.describe('Discovery section', () => {
 
       // The Desk's source filter is URL-backed (`?source=`) — select a
       // non-default tab so refresh has real state to preserve.
-      await authenticatedPage
-        .getByRole('tab', { name: 'Public trends' })
-        .click();
+      const trendsTab = authenticatedPage.getByRole('tab', {
+        name: 'Public trends',
+      });
+      // Keyboard-activate — see the Google/Meta tab tests above for why a
+      // click's hit-test can be unreliable in this crowded header.
+      await trendsTab.focus();
+      await trendsTab.press('Enter');
       await expect(authenticatedPage).toHaveURL(/source=trends/);
+      await expect(
+        authenticatedPage.getByText('Workflow demo clip'),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText('Creator collab teaser'),
+      ).toBeHidden();
 
       await authenticatedPage.reload();
       await discoveryPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
 
       await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(discoveryPage.mainContent).toBeVisible();
+
+      // The active tab and the row filtering it drives must both survive
+      // the reload — not only the URL param.
+      await expect(trendsTab).toHaveAttribute('data-state', 'active');
+      await expect(
+        authenticatedPage.getByText('Workflow demo clip'),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText('Creator collab teaser'),
+      ).toBeHidden();
     });
 
     test('should handle browser back from ads to discovery overview', async ({
@@ -225,6 +265,10 @@ test.describe('Discovery section', () => {
 
       await authenticatedPage.goBack();
       await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
     });
   });
 });
@@ -239,6 +283,7 @@ test.describe('Discovery — unauthenticated access', () => {
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
       timeout: 10000,
     });
+    await assertNoErrorBoundaryFallback(unauthenticatedPage, '/login');
   });
 
   test('should redirect unauthenticated user from /discovery/overview to login', async ({
@@ -250,6 +295,7 @@ test.describe('Discovery — unauthenticated access', () => {
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
       timeout: 10000,
     });
+    await assertNoErrorBoundaryFallback(unauthenticatedPage, '/login');
   });
 
   test('should redirect unauthenticated user from /discovery/ads to login', async ({
@@ -261,5 +307,6 @@ test.describe('Discovery — unauthenticated access', () => {
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
       timeout: 10000,
     });
+    await assertNoErrorBoundaryFallback(unauthenticatedPage, '/login');
   });
 });
