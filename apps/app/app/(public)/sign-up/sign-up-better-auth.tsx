@@ -52,13 +52,23 @@ function getLoginHref(callbackURL: string) {
   return `/login?${params.toString()}`;
 }
 
+/**
+ * `?plan=payg` is the free pay-as-you-go handoff, not a paid-plan signal —
+ * counting it as plan intent skews the signup->checkout funnel alert toward
+ * a near-zero conversion rate by design (genfeedai/genfeed.ai#4969).
+ */
+function hasPaidPlanIntent(rawPlan: string | null): boolean {
+  const plan = rawPlan?.trim().toLowerCase();
+  return Boolean(plan) && plan !== 'payg';
+}
+
 function getSignupFunnelIntentProperties(
   searchParams: Pick<URLSearchParams, 'get'>,
 ) {
   return {
     hasCloudHandoff: searchParams.get('accessMode') === 'cloud',
     hasCreditsIntent: Boolean(searchParams.get('credits')?.trim()),
-    hasPlanIntent: Boolean(searchParams.get('plan')?.trim()),
+    hasPlanIntent: hasPaidPlanIntent(searchParams.get('plan')),
   };
 }
 

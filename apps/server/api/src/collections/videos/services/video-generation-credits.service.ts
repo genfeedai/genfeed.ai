@@ -24,7 +24,7 @@ import {
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type ClipChainReservationHold = {
   reservationId: string;
@@ -320,16 +320,6 @@ export class VideoGenerationCreditsService {
       ))
     ) {
       return undefined;
-    }
-    if (!(await this.byokService.isByokBillingInGoodStanding(organizationId))) {
-      throw new HttpException(
-        {
-          detail:
-            'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
-          title: 'BYOK billing past due',
-        },
-        HttpStatus.FORBIDDEN,
-      );
     }
     return provider;
   }

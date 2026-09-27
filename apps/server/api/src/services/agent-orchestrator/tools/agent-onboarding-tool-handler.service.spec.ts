@@ -81,6 +81,7 @@ function createHandler(options?: {
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const postsService = { findOne: vi.fn().mockResolvedValue(null) };
   const onboardingCreditGrantsService = {
+    captureOnboardingCompletedBestEffort: vi.fn(),
     completeMissions: vi
       .fn()
       .mockImplementation(
@@ -118,6 +119,7 @@ function createHandler(options?: {
     onboardingCreditGrantsService,
     organizationSettingsService,
     postsService,
+    usersService,
   };
 }
 
@@ -768,5 +770,40 @@ describe('Agent onboarding create_brand identity', () => {
       description: 'Handmade commuter bicycles',
     });
     expect(createInput).not.toHaveProperty('text');
+  });
+});
+
+describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969)', () => {
+  it('delegates the onboarding_completed capture exactly once for a user completing for the first time', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+
+    await handler.completeOnboarding(CONTEXT);
+
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).toHaveBeenCalledWith('user-1');
+  });
+
+  it('does not re-capture for a user who was already onboarded', async () => {
+    const { handler, onboardingCreditGrantsService, usersService } =
+      createHandler();
+    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: true,
+    });
+
+    await handler.completeOnboarding(CONTEXT);
+
+    expect(
+      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).not.toHaveBeenCalled();
   });
 });

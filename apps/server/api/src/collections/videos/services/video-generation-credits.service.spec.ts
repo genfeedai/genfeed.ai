@@ -25,7 +25,6 @@ describe('VideoGenerationCreditsService', () => {
   };
   const byokService = {
     isByokActiveForProvider: vi.fn(),
-    isByokBillingInGoodStanding: vi.fn(),
   };
 
   let service: VideoGenerationCreditsService;
@@ -34,7 +33,6 @@ describe('VideoGenerationCreditsService', () => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     byokService.isByokActiveForProvider.mockResolvedValue(false);
-    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );

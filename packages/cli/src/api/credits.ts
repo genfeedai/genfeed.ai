@@ -14,15 +14,6 @@ export interface CreditUsage {
   breakdown?: Array<{ source: string; amount: number; count: number }>;
 }
 
-export interface CreditSummary {
-  totalUsage: number;
-  billableUsage: number;
-  freeRemaining: number;
-  projectedFee?: number;
-  billingPeriod?: string;
-  resetDate?: string;
-}
-
 export interface LastPurchaseBaseline {
   lastPurchaseCredits: number;
   usedSinceLastPurchase: number;
@@ -51,11 +42,6 @@ export interface CreditTransaction {
 export async function getCreditUsage(): Promise<CreditUsage> {
   const response = await get<JsonApiSingleResponse>('/credits/usage');
   return flattenSingle<CreditUsage>(response);
-}
-
-export async function getCreditSummary(): Promise<CreditSummary> {
-  const response = await get<JsonApiSingleResponse>('/credits/byok-usage-summary');
-  return flattenSingle<CreditSummary>(response);
 }
 
 export async function getLastPurchaseBaseline(): Promise<LastPurchaseBaseline> {

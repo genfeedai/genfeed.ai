@@ -40,15 +40,10 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: isDesktopClientMock,
 }));
 
+const useAuthIdentityMock = vi.hoisted(() => vi.fn());
+
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({
-    getToken: vi.fn(),
-    isLoaded: true,
-    isSignedIn: true,
-    orgId: 'org_bravo',
-    sessionId: 'session-1',
-    userId: 'user-1',
-  }),
+  useAuthIdentity: () => useAuthIdentityMock(),
 }));
 
 vi.mock('../internal/context-authed-service', () => ({
@@ -164,6 +159,15 @@ describe('RoutedOrganizationProvider', () => {
     loggerWarnMock.mockReset();
     replaceMock.mockReset();
     isDesktopClientMock.mockReturnValue(false);
+    useAuthIdentityMock.mockReset();
+    useAuthIdentityMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: true,
+      orgId: 'org_bravo',
+      sessionId: 'session-1',
+      userId: 'user-1',
+    });
   });
 
   it('reconciles the routed organization on the desktop shell like on the web', async () => {
@@ -600,6 +604,199 @@ describe('RoutedOrganizationProvider', () => {
         reportToSentry: true,
         tags: expect.objectContaining({ reason: 'cross-tab-sync-failed' }),
       }),
+    );
+  });
+
+  it('treats a route with no organization slug as unscoped without calling the backend', async () => {
+    pathname = '/sign-in';
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('unscoped'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('none');
+    expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+    expect(getMyOrganizationsMock).not.toHaveBeenCalled();
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+  });
+
+  it('treats a signed-out user on a scoped route as unscoped', async () => {
+    useAuthIdentityMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('unscoped'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
+    expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+  });
+
+  it('reports loading, unconfirmed, without querying the backend while auth identity resolves', async () => {
+    useAuthIdentityMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: false,
+      isSignedIn: false,
+      orgId: null,
+      sessionId: null,
+      userId: null,
+    });
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('loading'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+  });
+
+  it('fails closed when an automatic route switch never reconfirms an active membership', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(BRAVO_ACTIVE)
+      .mockResolvedValueOnce(
+        ALPHA_ACTIVE.map((organization) => ({
+          ...organization,
+          isActive: false,
+        })),
+      );
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(switchOrganizationMock).toHaveBeenCalledWith('org_alpha'),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('none');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: true,
+        tags: expect.objectContaining({ reason: 'switch-failed' }),
+      }),
+    );
+  });
+
+  it('ignores an unrelated storage event and never restarts reconciliation', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    getOrganizationsServiceMock.mockClear();
+    getMyOrganizationsMock.mockClear();
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'some-unrelated-key',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('status')).toHaveTextContent('matched');
+    expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+    expect(getMyOrganizationsMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores a cross-tab signal while the current tab has no routed organization', async () => {
+    pathname = '/sign-in';
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('unscoped'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('status')).toHaveTextContent('unscoped');
+    expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('discards a slower, superseded cross-tab reconciliation instead of overriding the newer one', async () => {
+    let resolveStaleSync: ((value: typeof BRAVO_ACTIVE) => void) | undefined;
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveStaleSync = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(ALPHA_ACTIVE);
+
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'first',
+        }),
+      );
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'second',
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(getMyOrganizationsMock).toHaveBeenCalledTimes(2),
+    );
+
+    await act(async () => {
+      resolveStaleSync?.(BRAVO_ACTIVE);
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(getMyOrganizationsMock).toHaveBeenCalledTimes(3),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('throws when the hook is used outside its provider', () => {
+    function Orphan() {
+      useRoutedOrganization();
+      return null;
+    }
+
+    expect(() => render(<Orphan />)).toThrow(
+      'useRoutedOrganization must be used within RoutedOrganizationProvider',
     );
   });
 });

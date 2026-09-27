@@ -8,6 +8,7 @@ import {
   TwitterBrandOAuthProvider,
 } from '@api/services/source-collector/providers/twitter-official.provider';
 import { YoutubeOfficialProvider } from '@api/services/source-collector/providers/youtube-official.provider';
+import { YoutubePublicProvider } from '@api/services/source-collector/providers/youtube-public.provider';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,
@@ -32,8 +33,12 @@ function hasExternalPostId(
  * IG: brand OAuth (own account, needs `credentialId`) → Business Discovery
  *     (competitor accounts, via the brand's own credential) → Apify
  * TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
- * YouTube / LinkedIn: brand OAuth (own account history) → Apify (public feed)
+ * YouTube: brand OAuth (own account history) → public API key (public channel,
+ *     `YOUTUBE_API_KEY`) → Apify (fallback when the public API is unavailable)
+ * LinkedIn: brand OAuth (own account history) → Apify (public feed)
  *
+ * A successful native result — including an empty upload list — ends the
+ * chain; Apify is never started after a native provider already succeeded.
  * Throws when every provider fails (no silent empty success).
  */
 @Injectable()
@@ -48,6 +53,7 @@ export class SourceCollectorService {
     private readonly instagramBusinessDiscovery: InstagramBusinessDiscoveryProvider,
     private readonly tiktokOfficial: TiktokOfficialProvider,
     private readonly youtubeOfficial: YoutubeOfficialProvider,
+    private readonly youtubePublic: YoutubePublicProvider,
     private readonly linkedinOfficial: LinkedinOfficialProvider,
     private readonly apifySocial: ApifySocialProvider,
   ) {
@@ -59,6 +65,7 @@ export class SourceCollectorService {
       this.instagramBusinessDiscovery,
       this.tiktokOfficial,
       this.youtubeOfficial,
+      this.youtubePublic,
       this.linkedinOfficial,
       this.apifySocial,
     ];

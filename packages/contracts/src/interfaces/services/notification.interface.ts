@@ -30,7 +30,8 @@ export type INotificationPayloadTypes =
   | IModelDiscoveryNotificationPayload
   | IReviewGatePendingEmailPayload
   | IReviewGatePendingSlackPayload
-  | ILowCreditsAlertPayload;
+  | ILowCreditsAlertPayload
+  | IRevenueNotificationPayload;
 
 export interface ITelegramMessagePayload {
   chatId: string;
@@ -204,6 +205,18 @@ export interface IModelDiscoveryNotificationPayload {
 export interface ILowCreditsAlertPayload {
   organizationId: string;
   balance: number;
+}
+
+/** Operator alert for a completed Stripe checkout or paid invoice. */
+export interface IRevenueNotificationPayload {
+  organizationId: string;
+  /** `BillingRevenueSource` value, e.g. `subscription_invoice`. */
+  source: string;
+  /** Human-readable plan/product name when known, e.g. `Pro`, `Scale`. */
+  planLabel?: string;
+  amountMinor: number;
+  currency: string;
+  userId?: string | null;
 }
 
 export interface ITrendSummaryPayload {

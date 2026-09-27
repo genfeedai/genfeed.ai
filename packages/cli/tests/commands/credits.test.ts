@@ -3,14 +3,12 @@ import { createCreditsCommand, creditsCommand } from '@/commands/credits';
 
 const {
   mockCreateCreditsCheckout,
-  mockGetCreditSummary,
   mockGetCreditUsage,
   mockListCreditTransactions,
   mockOpenExternalUrl,
   mockRequireAuth,
 } = vi.hoisted(() => ({
   mockCreateCreditsCheckout: vi.fn(),
-  mockGetCreditSummary: vi.fn(),
   mockGetCreditUsage: vi.fn(),
   mockListCreditTransactions: vi.fn(),
   mockOpenExternalUrl: vi.fn(),
@@ -23,7 +21,6 @@ vi.mock('@/api/client', () => ({
 
 vi.mock('@/api/credits', () => ({
   createCreditsCheckout: (credits: number) => mockCreateCreditsCheckout(credits),
-  getCreditSummary: () => mockGetCreditSummary(),
   getCreditUsage: () => mockGetCreditUsage(),
   listCreditTransactions: (limit: number) => mockListCreditTransactions(limit),
 }));
@@ -64,12 +61,6 @@ describe('credits command', () => {
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     mockRequireAuth.mockResolvedValue('gf_test_key');
     mockGetCreditUsage.mockResolvedValue({ currentBalance: 4_820 });
-    mockGetCreditSummary.mockResolvedValue({
-      billableUsage: 750,
-      freeRemaining: 250,
-      projectedFee: 7.5,
-      totalUsage: 1_000,
-    });
     mockCreateCreditsCheckout.mockResolvedValue({
       url: 'https://checkout.stripe.test/cs_1',
     });
@@ -180,18 +171,5 @@ describe('credits command', () => {
     await creditsCommand.parseAsync(['usage', '--json'], { from: 'user' });
 
     expect(readJsonOutput()).toEqual({ currentBalance: 4_820 });
-  });
-
-  it('prints the BYOK summary as JSON', async () => {
-    const creditsCommand = createCreditsCommand();
-
-    await creditsCommand.parseAsync(['summary', '--json'], { from: 'user' });
-
-    expect(readJsonOutput()).toEqual({
-      billableUsage: 750,
-      freeRemaining: 250,
-      projectedFee: 7.5,
-      totalUsage: 1_000,
-    });
   });
 });

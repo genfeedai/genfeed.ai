@@ -320,3 +320,37 @@ describe('OnboardingCreditGrantsService', () => {
     expect(grants).not.toHaveBeenCalled();
   });
 });
+
+describe('OnboardingCreditGrantsService.captureOnboardingCompletedBestEffort (genfeedai/genfeed.ai#4969)', () => {
+  it('captures onboarding_completed through the injected funnel capture service', () => {
+    const funnelCaptureService = {
+      capture: vi.fn().mockResolvedValue(undefined),
+    };
+    const service = new OnboardingCreditGrantsService(
+      {} as unknown as TransactionUtil,
+      {} as unknown as OrganizationSettingsService,
+      {} as unknown as CreditsUtilsService,
+      funnelCaptureService as never,
+    );
+
+    service.captureOnboardingCompletedBestEffort('user-1');
+
+    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+      distinctId: 'user-1',
+      event: 'onboarding_completed',
+    });
+  });
+
+  it('is a no-op when no funnel capture service is configured', () => {
+    const service = new OnboardingCreditGrantsService(
+      {} as unknown as TransactionUtil,
+      {} as unknown as OrganizationSettingsService,
+      {} as unknown as CreditsUtilsService,
+    );
+
+    expect(() =>
+      service.captureOnboardingCompletedBestEffort('user-1'),
+    ).not.toThrow();
+  });
+});

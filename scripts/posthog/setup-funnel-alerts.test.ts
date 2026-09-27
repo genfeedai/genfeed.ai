@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCheckoutToCompletionQuery,
   buildInsightPayload,
+  buildSignupToCheckoutQuery,
   buildSubscriptionPayload,
   buildSyntheticBreakEvents,
   deriveIngestionHost,
@@ -91,5 +93,26 @@ describe('setup-funnel-alerts', () => {
       hasPlanIntent: true,
       issue: 1431,
     });
+  });
+
+  it('filters the signup->checkout denominator on paid plan intent (genfeedai/genfeed.ai#4969)', () => {
+    const query = buildSignupToCheckoutQuery(config);
+
+    expect(query).toContain(
+      "countIf(event = 'signup_completed' AND properties.hasPlanIntent = true) AS signup_completed",
+    );
+    // The payg free handoff sets hasPlanIntent to false — it must never
+    // widen the denominator this filter is meant to narrow.
+    expect(query).not.toContain(
+      "countIf(event = 'signup_completed') AS signup_completed",
+    );
+  });
+
+  it('does not filter the checkout->completion query on plan intent', () => {
+    // Every checkout, payg or subscription, is a real checkout attempt —
+    // only the signup denominator needed the plan-intent filter.
+    const query = buildCheckoutToCompletionQuery(config);
+
+    expect(query).not.toContain('hasPlanIntent');
   });
 });

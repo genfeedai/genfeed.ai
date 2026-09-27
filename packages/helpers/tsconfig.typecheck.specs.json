@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": "../.."
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/voice-commands.helper.ts",
+    "src/voice/**",
+    "src/media/download/download.helper.ts"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "./vitest-globals.d.ts"]
+}

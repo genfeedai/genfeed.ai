@@ -100,18 +100,12 @@ describe('AccessStateProvider', () => {
 
   it('derives access flags from bootstrap state', () => {
     function Consumer() {
-      const {
-        canAccessApp,
-        hasPaygCredits,
-        isByok,
-        isSubscribed,
-        needsOnboarding,
-      } = useAccessState();
+      const { canAccessApp, hasPaygCredits, isSubscribed, needsOnboarding } =
+        useAccessState();
 
       return (
         <div>
           <span data-testid="subscribed">{String(isSubscribed)}</span>
-          <span data-testid="byok">{String(isByok)}</span>
           <span data-testid="payg">{String(hasPaygCredits)}</span>
           <span data-testid="access">{String(canAccessApp)}</span>
           <span data-testid="needs-onboarding">{String(needsOnboarding)}</span>
@@ -133,7 +127,6 @@ describe('AccessStateProvider', () => {
     );
 
     expect(screen.getByTestId('subscribed')).toHaveTextContent('false');
-    expect(screen.getByTestId('byok')).toHaveTextContent('false');
     expect(screen.getByTestId('payg')).toHaveTextContent('true');
     expect(screen.getByTestId('access')).toHaveTextContent('false');
     expect(screen.getByTestId('needs-onboarding')).toHaveTextContent('true');

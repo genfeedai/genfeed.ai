@@ -80,10 +80,12 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  createTestBrand,
   createTestMember,
   createTestOrganization,
   generateIdString,
@@ -329,6 +331,12 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           },
         },
         {
+          provide: NotificationsService,
+          useValue: {
+            sendRevenueNotification: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: NotificationsPublisherService,
           useValue: { emit: vi.fn().mockResolvedValue(undefined) },
         },
@@ -382,6 +390,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
   }) => {
     const organizationId = generateIdString();
     const userId = generateIdString();
+    const brandId = generateIdString();
     const organization = createTestOrganization({
       id: organizationId,
       label: `Test Org ${params.plan} ${organizationId}`,
@@ -389,8 +398,18 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     });
 
     await dbHelper.seedCollection('organizations', [organization]);
+    // currentBrandId is a required per-member invariant (#5219) -- every
+    // seeded org needs a real brand for its member row to reference.
+    await dbHelper.seedCollection('brands', [
+      createTestBrand({ id: brandId, organizationId, userId }),
+    ]);
     await dbHelper.seedCollection('members', [
-      createTestMember({ organizationId, roleId: 'owner', userId }),
+      createTestMember({
+        currentBrandId: brandId,
+        organizationId,
+        roleId: 'owner',
+        userId,
+      }),
     ]);
     await billingAccountsService.ensureForOrganization({
       organizationId,

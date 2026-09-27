@@ -236,13 +236,41 @@ describe('proactive organization to strategy run and attributed draft integratio
       { reconcile: vi.fn() } as never,
       { reconcile: vi.fn() } as never,
     );
-    const processorArgs = Array.from({ length: 30 }, () => ({}));
-    processorArgs[0] = { isDevSchedulersEnabled: true };
-    processorArgs.push(schedules);
+    // List every constructor argument so an arity change fails typecheck
+    // instead of shifting workflowSchedules into the wrong slot.
     const processor = new PlatformSchedulesProcessor(
-      ...(processorArgs as ConstructorParameters<
-        typeof PlatformSchedulesProcessor
-      >),
+      { isDevSchedulersEnabled: true } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      schedules as never,
+      {} as never,
     );
 
     await prisma.organization.create({

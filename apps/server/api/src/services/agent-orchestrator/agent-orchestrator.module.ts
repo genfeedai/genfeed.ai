@@ -119,6 +119,7 @@ import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
+import { AgentWorkflowToolOfficialResolverService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-official-resolver.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent-source-ingest.module';
@@ -238,6 +239,7 @@ import { Module } from '@nestjs/common';
     AgentWorkflowToolExecuteService,
     AgentWorkflowToolHandler,
     AgentWorkflowToolInstallService,
+    AgentWorkflowToolOfficialResolverService,
     AgentBrandContentToolHandler,
     AgentBrandContextToolHandler,
     AgentKnowledgeToolHandler,

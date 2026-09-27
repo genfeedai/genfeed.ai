@@ -22,7 +22,6 @@ export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
 
 const SUBSCRIPTION_TIER_LABELS: Record<string, string> = {
   [SubscriptionTier.FREE]: 'Free',
-  [SubscriptionTier.BYOK]: 'BYOK (free)',
   [SubscriptionTier.PRO]: 'Pro',
   [SubscriptionTier.SCALE]: 'Scale',
   [SubscriptionTier.ENTERPRISE]: 'Enterprise',

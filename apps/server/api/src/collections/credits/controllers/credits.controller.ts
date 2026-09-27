@@ -14,17 +14,15 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
-  ByokUsageSummarySerializer,
   CreditTransactionSerializer,
   CreditUsageSerializer,
   LastPurchaseBaselineSerializer,
   TopbarBalancesSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Controller, Get, Optional, Query, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -34,7 +32,6 @@ export class CreditsController {
     private readonly creditTransactionsService: CreditTransactionsService,
     private readonly topbarBalancesService: TopbarBalancesService,
     readonly _loggerService: LoggerService,
-    @Optional() private readonly byokBillingService?: ByokBillingService,
   ) {}
 
   @Get('usage')
@@ -102,40 +99,6 @@ export class CreditsController {
       );
 
     return serializeCollection(req, CreditTransactionSerializer, { docs });
-  }
-
-  @Get('byok-usage-summary')
-  @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
-  @Cache({
-    keyGenerator: (req) => {
-      const orgId = (req.user as User | undefined)?.organizationId ?? 'unknown';
-      return CACHE_PATTERNS.CREDITS_BYOK(orgId);
-    },
-    tags: [CACHE_TAGS.CREDITS],
-    ttl: 60,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getByokUsageSummary(@Req() req: Request, @CurrentUser() user: User) {
-    const organizationId = user.organizationId.toString();
-
-    if (!this.byokBillingService) {
-      const fallback = {
-        billableUsage: 0,
-        billingStatus: 'active',
-        freeRemaining: 500,
-        freeThreshold: 500,
-        periodEnd: new Date(),
-        periodStart: new Date(),
-        projectedFee: 0,
-        rollover: 0,
-        totalUsage: 0,
-      };
-      return serializeSingle(req, ByokUsageSummarySerializer, fallback);
-    }
-
-    const data =
-      await this.byokBillingService.getByokUsageSummary(organizationId);
-    return serializeSingle(req, ByokUsageSummarySerializer, data);
   }
 
   @Get('topbar-balances')

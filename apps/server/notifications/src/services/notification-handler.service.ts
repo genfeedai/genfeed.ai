@@ -211,6 +211,12 @@ export class NotificationHandlerService implements OnModuleInit {
         }
         break;
 
+      case 'revenue_notification':
+        if ('organizationId' in payload && 'amountMinor' in payload) {
+          await this.discordService.sendRevenueNotification(payload);
+        }
+        break;
+
       case 'model_discovery':
         if ('modelKey' in payload) {
           await this.discordService.sendModelDiscoveryNotification(payload);

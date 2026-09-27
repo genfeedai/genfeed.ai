@@ -255,7 +255,7 @@ describe('SignUpForm', () => {
     );
   });
 
-  it('starts Google sign-up with the callback URL', async () => {
+  it('starts Google sign-up with the callback URL, and does not count the free payg handoff as plan intent', async () => {
     window.history.replaceState({}, '', '/sign-up?plan=payg');
 
     render(<SignUpForm />);
@@ -265,6 +265,33 @@ describe('SignUpForm', () => {
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding/post-signup?plan=payg'),
+        provider: 'google',
+      });
+    });
+    // genfeedai/genfeed.ai#4969: `?plan=payg` is the free pay-as-you-go
+    // handoff, not a paid plan — it must never count as plan intent, or the
+    // signup->checkout funnel alert skews toward a near-zero conversion rate.
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: false,
+        method: 'google',
+      },
+    );
+  });
+
+  it('counts a real paid plan handoff as plan intent (genfeedai/genfeed.ai#4969)', async () => {
+    window.history.replaceState({}, '', '/sign-up?plan=hosted');
+
+    render(<SignUpForm />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/onboarding/post-signup?plan=hosted'),
         provider: 'google',
       });
     });

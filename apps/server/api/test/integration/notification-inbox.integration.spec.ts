@@ -315,7 +315,6 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
         label: id,
         organizationId: 'alpha',
         userId: 'alice',
-        isSelected: false,
       })),
     });
     try {
