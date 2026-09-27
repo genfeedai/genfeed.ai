@@ -133,15 +133,19 @@ describe('MCP setup page', () => {
     const html = renderSetupPage();
     expect(html).toContain('https://mcp.genfeed.ai/mcp');
     expect(html).toContain('AI agent setup prompt');
-    expect(html).toContain('Copy AI prompt');
+    expect(html).toContain('aria-label="Copy agent setup prompt"');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
     expect(html).toContain('https://app.genfeed.ai/connect');
     expect(html).toContain('Start guided setup');
+    expect(html).toContain('Read MCP docs');
     expect(html).toContain('OAuth setup guide');
     expect(html).toContain('Authorize and verify');
     expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
+    expect(html).toContain('Muse &amp; Grok Bot');
+    expect(html).toContain('Other clients');
+    expect(html).toContain('Advanced: limit which toolsets load');
   });
 
   it('adds cookieless page and control tracking when PostHog is configured', () => {
@@ -308,10 +312,14 @@ describe('MCP setup page', () => {
   it('uses shared static UI surface primitives instead of local card CSS', () => {
     const html = renderSetupPage();
 
-    expect(html).toContain('gf-card gf-feature-card');
-    expect(html).toContain('gf-card gf-info-card');
+    expect(html).toContain('gf-card');
     expect(html).toContain('gf-button gf-button-primary');
+    expect(html).toContain('gf-button gf-button-secondary');
     expect(html).toContain('gf-code-block command');
+    expect(html).toContain('gf-badge');
+    expect(html).toContain('gf-inline-code');
+    expect(html).not.toContain('gf-card gf-feature-card');
+    expect(html).not.toContain('gf-card gf-info-card');
     expect(html).not.toContain('mcp-hero-card');
     expect(html).not.toContain('mcp-meta-card');
     expect(html).not.toContain('class="poster"');
@@ -430,6 +438,36 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="claude-code-command"');
       expect(html).toContain('id="codex-command"');
       expect(html).toContain('id="agent-setup-prompt"');
+      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('id="generic-client-config"');
+    });
+
+    it('includes the new plain-text blocks (chat prompt, generic config) in the picker rewrite, alongside the endpoint display', () => {
+      const html = renderSetupPage();
+      const start = html.indexOf('function applyUrl(');
+      expect(start).toBeGreaterThan(-1);
+      const braceStart = html.indexOf('{', start);
+      let depth = 0;
+      let end = -1;
+      for (let i = braceStart; i < html.length; i += 1) {
+        if (html[i] === '{') depth += 1;
+        else if (html[i] === '}') {
+          depth -= 1;
+          if (depth === 0) {
+            end = i;
+            break;
+          }
+        }
+      }
+      expect(end).toBeGreaterThan(-1);
+      const applyUrlSource = html.slice(start, end + 1);
+
+      expect(applyUrlSource).toContain("'mcp-url'");
+      expect(applyUrlSource).toContain("'chat-agent-prompt'");
+      expect(applyUrlSource).toContain("'generic-client-config'");
+      expect(applyUrlSource).toContain("'claude-code-command'");
+      expect(applyUrlSource).toContain("'codex-command'");
+      expect(applyUrlSource).toContain('agent-setup-prompt');
     });
 
     it('appends the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
@@ -516,6 +554,53 @@ describe('MCP setup page', () => {
       expect(html).not.toContain('</script><script>alert(1)</script>');
       expect(html).toContain(
         'var baseMcpUrl = "https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp";',
+      );
+    });
+  });
+
+  describe('Muse & Grok Bot and other MCP clients tabs', () => {
+    it('gives Meta Muse and Grok Bot a copy-paste chat prompt that builds their own connector', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain('Muse &amp; Grok Bot');
+      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('data-copy-source="chat-agent-prompt"');
+      expect(html).toContain('Add Genfeed as a custom connector.');
+      expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
+      expect(html).toContain(
+        'Send me the sign-in link and wait while I approve access in my browser.',
+      );
+    });
+
+    it('gives other MCP clients (Claude.ai, ChatGPT, Cursor, Gemini) the generic JSON config', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain('Other clients');
+      expect(html).toContain('id="generic-client-config"');
+      expect(html).toContain('data-copy-source="generic-client-config"');
+      expect(html).toContain(
+        '&quot;transport&quot;: &quot;streamable-http&quot;',
+      );
+      expect(html).toContain(
+        '&quot;url&quot;: &quot;https://mcp.genfeed.ai/mcp&quot;',
+      );
+      expect(html).toContain(
+        'Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth',
+      );
+    });
+
+    it('collapses the toolset picker into an "Advanced" disclosure below setup', () => {
+      const html = renderSetupPage();
+
+      const setupIndex = html.indexOf('id="setup-title"');
+      const toolsetsIndex = html.indexOf('<details class="toolsets">');
+      const pickerIndex = html.indexOf('toolset-picker');
+
+      expect(setupIndex).toBeGreaterThan(-1);
+      expect(toolsetsIndex).toBeGreaterThan(setupIndex);
+      expect(pickerIndex).toBeGreaterThan(toolsetsIndex);
+      expect(html).toContain(
+        '<summary>Advanced: limit which toolsets load</summary>',
       );
     });
   });
