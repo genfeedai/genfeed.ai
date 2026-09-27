@@ -215,9 +215,24 @@ describe.skipIf(!redisAvailable)(
 
     afterAll(async () => {
       await Promise.all(workers.map((worker) => worker.close()));
+      // Obliterate by name through fresh connections rather than reusing
+      // `queues` entries: several of those are still attached to a Worker
+      // from an earlier test in this file and BullMQ refuses to obliterate a
+      // queue that is not paused.
+      const cleanupQueues = [
+        interactiveQueueName,
+        platformQueueName,
+        backgroundQueueName,
+      ].map((name) => new Queue(name, { connection: { url: redisUrl } }));
+      // `obliterate` refuses a queue that still has waiting/delayed jobs and
+      // is not paused — several tests above leave exactly that behind (a
+      // routed job nothing ever consumes). Pause first; `force: true` only
+      // bypasses the separate "has active jobs" check, not this one.
+      await Promise.all(cleanupQueues.map((queue) => queue.pause()));
       await Promise.all(
-        queues.map((queue) => queue.obliterate({ force: true })),
+        cleanupQueues.map((queue) => queue.obliterate({ force: true })),
       );
+      await Promise.all(cleanupQueues.map((queue) => queue.close()));
       await Promise.all(queues.map((queue) => queue.close()));
     });
 

@@ -47,12 +47,15 @@ describe('content-engine-parsing.util', () => {
       expect(normalizeDate('2026-01-01T00:00:00.000Z')).toEqual(
         new Date('2026-01-01T00:00:00.000Z'),
       );
-      expect(normalizeDate(0)).toEqual(new Date(0));
+      expect(normalizeDate(1700000000000)).toEqual(new Date(1700000000000));
     });
 
     it('returns null for falsy, invalid, or unsupported values', () => {
       expect(normalizeDate(null)).toBeNull();
       expect(normalizeDate(undefined)).toBeNull();
+      // 0 is falsy, so it short-circuits the same as null/undefined — this
+      // matches the original private method's behavior verbatim.
+      expect(normalizeDate(0)).toBeNull();
       expect(normalizeDate('not-a-date')).toBeNull();
       expect(normalizeDate({})).toBeNull();
     });
