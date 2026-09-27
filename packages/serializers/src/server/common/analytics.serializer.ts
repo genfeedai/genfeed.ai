@@ -15,6 +15,7 @@ import {
   analyticsSerializerConfig,
   analyticsTimeSeriesWithPlatformsSerializerConfig,
   analyticsTopContentSerializerConfig,
+  analyticsTopPostSerializerConfig,
   analyticsTrendSerializerConfig,
   fleetEvaluationPolicySerializerConfig,
 } from '@serializers/configs';
@@ -77,6 +78,11 @@ export const { AnalyticsTimeseriesWithPlatformsSerializer } = buildSerializer(
 export const { AnalyticsTopContentSerializer } = buildSerializer(
   'server',
   analyticsTopContentSerializerConfig,
+);
+
+export const { AnalyticsTopPostSerializer } = buildSerializer(
+  'server',
+  analyticsTopPostSerializerConfig,
 );
 
 export const { AnalyticsTrendSerializer } = buildSerializer(

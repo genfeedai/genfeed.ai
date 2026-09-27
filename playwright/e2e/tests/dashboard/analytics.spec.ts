@@ -32,10 +32,10 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // The operational-home metric grid (`operational-home-metrics`) always
       // renders for an authenticated org/brand — see `assertStatsDisplayed`.
-      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
       await dashboardPage.assertStatsDisplayed();
       await expect(authenticatedPage).toHaveURL(/overview/);
     });
@@ -57,6 +57,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       const activityCount = await dashboardPage
         .getActivityCount()
@@ -70,6 +71,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       const activityCount = await dashboardPage
         .getActivityCount()
@@ -106,6 +108,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Should show empty state or no activities
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -135,6 +138,7 @@ test.describe('Dashboard Analytics', () => {
 
       // Loading state might be visible briefly
       await dashboardPage.waitForLoadingComplete();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       await expect(authenticatedPage).toHaveURL(/overview/);
     });
@@ -144,14 +148,27 @@ test.describe('Dashboard Analytics', () => {
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
 
-      // Simulate slow network
+      // Simulate slow network. `route.fallback()` (not `.continue()`) after
+      // the delay: `.continue()` sends the request straight to the real
+      // network, bypassing every earlier-registered mock — including the
+      // global organization-list mock (`api-interceptor.ts`'s
+      // `handleOrganizationRoutes`) that `RoutedOrganizationProvider` depends
+      // on for every route. That turned this into a real, unmocked
+      // `GET /organizations?mine=true` against a non-existent backend, which
+      // failed and tripped the "Organization switch failed" boundary — a
+      // test-harness artifact, not the product's real slow-network behavior.
+      // `.fallback()` still simulates latency but hands the request back to
+      // those mocks afterward, matching how the sibling
+      // "should show loading state while fetching data" test above scopes
+      // its own delay to `/analytics/**` only.
       await authenticatedPage.route('**/api.genfeed.ai/**', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        await route.continue();
+        await route.fallback();
       });
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       await expect(authenticatedPage).toHaveURL(/overview/);
     });
@@ -177,6 +194,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Page should still load with error state
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -202,6 +220,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Page should still load
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -220,6 +239,7 @@ test.describe('Dashboard Analytics', () => {
       // Refresh
       await authenticatedPage.reload();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Page should reload successfully
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -236,6 +256,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       // Analytics should adapt to mobile
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -250,6 +271,7 @@ test.describe('Dashboard Analytics', () => {
 
       await dashboardPage.goto();
       await dashboardPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, dashboardPage.url);
 
       await expect(authenticatedPage).toHaveURL(/overview/);
     });

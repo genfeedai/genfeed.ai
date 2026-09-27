@@ -14,6 +14,7 @@ import {
   analyticsPlatformAttributes,
   analyticsTimeSeriesWithPlatformsAttributes,
   analyticsTopContentAttributes,
+  analyticsTopPostAttributes,
   analyticsTrendAttributes,
   fleetEvaluationPolicyAttributes,
 } from '@serializers/attributes/common';
@@ -37,6 +38,17 @@ export const analyticsPlatformSerializerConfig = simpleConfig(
 export const analyticsTopContentSerializerConfig = simpleConfig(
   'analytics-top-content',
   analyticsTopContentAttributes,
+);
+
+/**
+ * `GET /analytics/top` — distinct from `analyticsTopContentSerializerConfig`,
+ * which serializes the unrelated organizations-relationships top-content
+ * endpoint. See `analyticsTopPostAttributes` for why these can't share one
+ * serializer.
+ */
+export const analyticsTopPostSerializerConfig = simpleConfig(
+  'analytics-top-post',
+  analyticsTopPostAttributes,
 );
 
 export const analyticsOrgLeaderboardSerializerConfig = simpleConfig(

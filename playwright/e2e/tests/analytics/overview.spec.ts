@@ -5,6 +5,8 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
+import { brandPath } from '../../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Analytics Overview
@@ -32,6 +34,7 @@ test.describe('Analytics Overview', () => {
 
       await expect(authenticatedPage).toHaveURL(/analytics/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
     });
 
     test('should show engagement metrics', async ({ authenticatedPage }) => {
@@ -39,6 +42,7 @@ test.describe('Analytics Overview', () => {
 
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
 
       // Metrics section or cards should be present
       const hasMetrics = await analyticsPage.metricCard
@@ -57,6 +61,7 @@ test.describe('Analytics Overview', () => {
 
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
 
       // Charts or chart containers should render
       const hasCharts = await analyticsPage.chartContainer
@@ -83,61 +88,83 @@ test.describe('Analytics Overview', () => {
 
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
 
       // A URL-pattern check alone would still pass on an "Organization
       // unavailable" fallback (its suggested link also contains "trends" in
-      // the path), so also assert the real surface rendered. Each step waits
-      // for its own page to settle (`waitForPageLoad`) before the next click,
-      // since these are client-side transitions racing the analytics
-      // section's per-page data fetches under parallel load.
+      // the path), so also assert the real surface rendered and that no
+      // ErrorBoundary fired. Each step waits for its own page to settle
+      // (`waitForPageLoad`) before the next click, since these are
+      // client-side transitions racing the analytics section's per-page
+      // data fetches under parallel load.
       await analyticsPage.navigateToTrends();
-      await expect(authenticatedPage).toHaveURL(/analytics.*trends|trends/);
+      await expect(authenticatedPage).toHaveURL(/analytics\/trends/);
       await analyticsPage.waitForPageLoad();
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        brandPath('/analytics/trends'),
+      );
 
       await analyticsPage.navigateToHooks();
-      await expect(authenticatedPage).toHaveURL(/analytics.*hooks|hooks/);
+      await expect(authenticatedPage).toHaveURL(/analytics\/hooks/);
       await analyticsPage.waitForPageLoad();
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        brandPath('/analytics/hooks'),
+      );
 
       await analyticsPage.navigateToInsights();
-      await expect(authenticatedPage).toHaveURL(/analytics.*insights|insights/);
+      await expect(authenticatedPage).toHaveURL(/analytics\/insights/);
       await analyticsPage.waitForPageLoad();
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        brandPath('/analytics/insights'),
+      );
 
       await analyticsPage.navigateToOverview();
-      await expect(authenticatedPage).toHaveURL(
-        /analytics.*overview|analytics/,
-      );
+      // Exact overview pathname — the previous `analytics.*overview|analytics`
+      // pattern's second alternative matched any analytics URL regardless of
+      // the first, so it could not fail even on a stale page.
+      await expect(authenticatedPage).toHaveURL(/analytics\/overview/);
       await analyticsPage.waitForPageLoad();
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
     });
 
     test('should display trends page', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath('/analytics/trends');
 
       await analyticsPage.gotoSection('trends');
 
       await expect(authenticatedPage).toHaveURL(/trends/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should display hooks page', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath('/analytics/hooks');
 
       await analyticsPage.gotoSection('hooks');
 
       await expect(authenticatedPage).toHaveURL(/hooks/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should display insights page', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath('/analytics/insights');
 
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
   });
 
@@ -147,6 +174,7 @@ test.describe('Analytics Overview', () => {
 
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
 
       // Date range selector should be available
       const hasDateRange = await analyticsPage.dateRangeSelector
@@ -156,6 +184,10 @@ test.describe('Analytics Overview', () => {
       if (hasDateRange) {
         await analyticsPage.selectDateRange('Last 7 days');
         await analyticsPage.waitForPageLoad();
+        await assertNoErrorBoundaryFallback(
+          authenticatedPage,
+          analyticsPage.url,
+        );
       }
 
       await expect(authenticatedPage).toHaveURL(/analytics/);
@@ -166,6 +198,7 @@ test.describe('Analytics Overview', () => {
 
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, analyticsPage.url);
 
       const hasPlatformFilter = await analyticsPage.platformFilter
         .isVisible()
@@ -174,6 +207,10 @@ test.describe('Analytics Overview', () => {
       if (hasPlatformFilter) {
         await analyticsPage.selectPlatform('Instagram');
         await analyticsPage.waitForPageLoad();
+        await assertNoErrorBoundaryFallback(
+          authenticatedPage,
+          analyticsPage.url,
+        );
       }
 
       await expect(authenticatedPage).toHaveURL(/analytics/);

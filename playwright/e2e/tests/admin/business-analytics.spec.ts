@@ -27,12 +27,20 @@ test.describe('Admin Business Analytics', () => {
 
     await admin.assertPageVisible();
     await expect(adminPage).toHaveURL(/admin\/overview\/analytics\/business/);
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
   });
 
   test('renders revenue KPI section', async ({ adminPage }) => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     // KPI section heading
     await expect(
@@ -44,6 +52,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /credits/i }).first(),
@@ -54,6 +66,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /ingredients/i }).first(),
@@ -64,6 +80,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /daily revenue/i }).first(),
@@ -74,6 +94,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /daily ingredients/i }).first(),
@@ -84,6 +108,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /comparisons/i }).first(),
@@ -106,6 +134,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /projections/i }).first(),
@@ -121,6 +153,10 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
     await expect(
       adminPage.getByRole('heading', { name: /top organizations/i }).first(),
@@ -165,6 +201,10 @@ test.describe('Admin Business Analytics', () => {
       waitUntil: 'domcontentloaded',
     });
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL,
+    );
 
     const businessTab = adminPage.getByRole('link', { name: /business/i });
     await expect(businessTab).toBeVisible();
@@ -172,5 +212,9 @@ test.describe('Admin Business Analytics', () => {
 
     await admin.waitForPageLoad();
     await expect(adminPage).toHaveURL(/admin\/overview\/analytics\/business/);
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
   });
 });

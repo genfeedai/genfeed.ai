@@ -36,7 +36,7 @@ import {
   AnalyticsOverviewSerializer,
   AnalyticsPlatformSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
-  AnalyticsTopContentSerializer,
+  AnalyticsTopPostSerializer,
   AnalyticsTrendSerializer,
   BusinessAnalyticsSerializer,
 } from '@genfeedai/serializers';
@@ -373,7 +373,7 @@ export class AnalyticsController {
       query.platform as CredentialPlatform,
       organizationId,
     );
-    return serializeSingle(req, AnalyticsTopContentSerializer, data);
+    return serializeSingle(req, AnalyticsTopPostSerializer, data);
   }
 
   @Get('platforms')

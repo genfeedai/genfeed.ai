@@ -303,6 +303,63 @@ describe('AnalyticsController', () => {
       expect(result).toBeDefined();
     });
 
+    // #5404 (found while fixing #5381): this endpoint's own producer (`buildTopContent` in
+    // `analytics-response.projection.ts`) emits brandName/total*/label, but
+    // the controller used to reuse `AnalyticsTopContentSerializer` — a
+    // serializer built for the unrelated organizations-relationships
+    // top-content endpoint (title/views/likes/comments/shares). That
+    // serializer's attribute allowlist silently dropped every field this
+    // endpoint's client (`useTopPosts`/`AnalyticsPostsList`) actually reads,
+    // so production always rendered a fallback brand name with zeroed
+    // metrics regardless of the real underlying data.
+    it('serializes the real producer fields, not the unrelated top-content shape', async () => {
+      analyticsService.getTopContent.mockResolvedValueOnce([
+        {
+          brandLogo: null,
+          brandName: 'Acme Brand',
+          description: 'A launch day recap',
+          engagementRate: 7.4,
+          id: 'row-1',
+          ingredientUrl: undefined,
+          isVideo: false,
+          label: 'Launch day recap',
+          platform: 'tiktok',
+          postId: 'post-1',
+          thumbnailUrl: undefined,
+          totalComments: 45,
+          totalEngagement: 887,
+          totalLikes: 800,
+          totalSaves: 12,
+          totalShares: 30,
+          totalViews: 12000,
+        },
+      ]);
+
+      const query = {
+        brandId: 'brand_1',
+        endDate: '2025-01-31',
+        limit: 5,
+        metric: 'views',
+        startDate: '2025-01-01',
+      } as unknown as TopContentQueryDto;
+
+      const result = (await controller.getTopContent(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      )) as { data: Array<{ attributes: Record<string, unknown> }> };
+
+      const [{ attributes }] = result.data;
+      expect(attributes.brandName).toBe('Acme Brand');
+      expect(attributes.totalViews).toBe(12000);
+      expect(attributes.totalEngagement).toBe(887);
+      expect(attributes.label).toBe('Launch day recap');
+      expect(attributes.postId).toBe('post-1');
+      // The unrelated top-content serializer's fields must not leak in.
+      expect(attributes.title).toBeUndefined();
+      expect(attributes.views).toBeUndefined();
+    });
+
     it('should return platform comparison', async () => {
       analyticsService.getPlatformComparison.mockResolvedValueOnce({
         platforms: [],

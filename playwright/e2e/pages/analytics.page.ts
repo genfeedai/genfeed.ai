@@ -175,7 +175,10 @@ export class AnalyticsPage {
   // `DashboardPage`'s `#gotoOrClick` convention.
   async navigateToOverview(): Promise<void> {
     await this.overviewTab.click();
-    await this.page.waitForURL(/\/analytics(\/overview)?(?:[/?#]|$)/);
+    // Exact overview pathname only — `(\/overview)?` being optional made
+    // this match *every* analytics subroute (e.g. `/analytics/trends`),
+    // so a stale page could satisfy this wait.
+    await this.page.waitForURL(/\/analytics\/overview(?:[/?#]|$)/);
   }
 
   async navigateToTrends(): Promise<void> {
