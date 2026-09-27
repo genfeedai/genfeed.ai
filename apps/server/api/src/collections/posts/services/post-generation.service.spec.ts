@@ -821,7 +821,7 @@ Tweet 3: Tech innovation is changing the world.`,
       const result = await service.generateHookVariations(
         {
           count: 3,
-          platform: 'twitter',
+          platform: HookPlatform.TWITTER,
           topic: 'AI technology',
         },
         identity,
@@ -839,7 +839,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await service.generateHookVariations(
-        { count: 2, platform: 'twitter', topic: 'AI' },
+        { count: 2, platform: HookPlatform.TWITTER, topic: 'AI' },
         identity,
       );
 
@@ -873,7 +873,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await service.generateHookVariations(
-        { count: 2, platform: 'twitter', topic: 'AI' },
+        { count: 2, platform: HookPlatform.TWITTER, topic: 'AI' },
         identity,
         'org-openrouter-key',
       );

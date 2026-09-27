@@ -7,6 +7,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
+import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
@@ -276,7 +277,7 @@ export class PromptTransformationService {
       await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
         value: JSON.stringify({
-          error: this.errorMessage(error),
+          error: errorMessage(error),
           promptId,
           type: 'enhance',
         }),
@@ -286,7 +287,7 @@ export class PromptTransformationService {
       });
 
       throw new BadRequestException(
-        this.errorMessage(error, 'Failed to enhance prompt'),
+        errorMessage(error, 'Failed to enhance prompt'),
       );
     }
   }
@@ -447,7 +448,7 @@ export class PromptTransformationService {
       await this.activitiesService.patch(activityId, {
         key: ActivityKey.PROMPT_REMIX_FAILED,
         value: JSON.stringify({
-          error: this.errorMessage(error),
+          error: errorMessage(error),
           promptId: data.id.toString(),
           sourcePromptId: promptId,
           type: 'remix',
@@ -458,7 +459,7 @@ export class PromptTransformationService {
         status: PromptStatus.FAILED,
       });
       await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-        error: this.errorMessage(error),
+        error: errorMessage(error),
         status: Status.FAILED,
       });
     }
@@ -491,15 +492,5 @@ export class PromptTransformationService {
         userId,
       });
     }
-  }
-
-  private errorMessage(error: unknown, fallback = 'An error occurred'): string {
-    if (typeof error !== 'object' || error === null || !('message' in error)) {
-      return fallback;
-    }
-
-    return typeof error.message === 'string' && error.message
-      ? error.message
-      : fallback;
   }
 }

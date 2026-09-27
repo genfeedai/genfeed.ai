@@ -248,6 +248,7 @@ describe('ProfilesController', () => {
     // service call.
     it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
       const dto: ApplyProfileDto = {
+        contentType: 'article',
         profileId,
         prompt: 'Original prompt',
       };
@@ -278,6 +279,7 @@ describe('ProfilesController', () => {
 
     it('still runs the credits preflight when the guard did not bypass', async () => {
       const dto: ApplyProfileDto = {
+        contentType: 'article',
         profileId,
         prompt: 'Original prompt',
       };
@@ -322,6 +324,7 @@ describe('ProfilesController', () => {
     it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
       const dto: AnalyzeToneDto = {
         content: 'Test content',
+        contentType: 'article',
         profileId,
       };
       const byokReq = {
@@ -350,6 +353,7 @@ describe('ProfilesController', () => {
     it('still runs the credits preflight when the guard did not bypass', async () => {
       const dto: AnalyzeToneDto = {
         content: 'Test content',
+        contentType: 'article',
         profileId,
       };
       mockProfilesService.analyzeTone.mockResolvedValue({
@@ -367,7 +371,12 @@ describe('ProfilesController', () => {
   describe('generateFromExamples', () => {
     it('should generate profile from examples', async () => {
       const dto: GenerateFromExamplesDto = {
-        examples: ['Example 1', 'Example 2', 'Example 3'],
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+          { content: 'Example 3', contentType: 'article' },
+        ],
         label: 'Generated Profile',
       };
 
@@ -391,7 +400,11 @@ describe('ProfilesController', () => {
 
     it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
       const dto: GenerateFromExamplesDto = {
-        examples: ['Example 1', 'Example 2'],
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+        ],
         label: 'Generated Profile',
       };
       const byokReq = {
@@ -416,7 +429,11 @@ describe('ProfilesController', () => {
 
     it('still runs the credits preflight when the guard did not bypass', async () => {
       const dto: GenerateFromExamplesDto = {
-        examples: ['Example 1', 'Example 2'],
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+        ],
         label: 'Generated Profile',
       };
       mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);

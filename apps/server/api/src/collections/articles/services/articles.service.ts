@@ -993,9 +993,7 @@ export class ArticlesService
     return this.articlesContentService.convertToTwitterThread(article);
   }
 
-  /**
-   * Analyze article virality potential using AI
-   */
+  /** Analyze article virality potential using AI */
   analyzeVirality(
     articleId: string,
     userId: string,

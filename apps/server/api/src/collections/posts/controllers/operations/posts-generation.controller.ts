@@ -8,6 +8,8 @@ import {
   isOwnedPost,
   isTwitterPlatform,
   postAccessBlockReason,
+  resolveByokApiKeyOverride,
+  threadExpansionBlockReason,
 } from '@api/collections/posts/controllers/operations/posts-generation.helpers';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
@@ -32,7 +34,6 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -275,43 +276,23 @@ export class PostsGenerationController {
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
+    const existingChildren = originalPost
+      ? await this.postsService.count(originalPost.organizationId, {
+          parentId: postId,
+        })
+      : 0;
+    const blockReason = threadExpansionBlockReason({
+      existingChildren,
+      isOwned: isOwnedPost(originalPost, user.organizationId),
+      isTwitter: isTwitterPlatform(originalPost?.platform),
+      postExists: Boolean(originalPost),
+    });
 
-    if (!originalPost) {
+    if (blockReason || !originalPost) {
       throw createPostsGenerationHttpException(
-        'The specified post does not exist',
-        'Post not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (!isOwnedPost(originalPost, user.organizationId)) {
-      throw createPostsGenerationHttpException(
-        'You do not have access to this post',
-        'Access denied',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const existingChildren = await this.postsService.count(
-      originalPost.organizationId,
-      {
-        parentId: postId,
-      },
-    );
-
-    if (existingChildren > 0) {
-      throw createPostsGenerationHttpException(
-        'This post already has thread children. Cannot expand further.',
-        'Already a thread',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    if (!isTwitterPlatform(originalPost.platform)) {
-      throw createPostsGenerationHttpException(
-        'Thread expansion is only available for Twitter/X posts',
-        'Platform not supported',
-        HttpStatus.BAD_REQUEST,
+        blockReason?.detail ?? 'The specified post does not exist',
+        blockReason?.title ?? 'Post not found',
+        blockReason?.status ?? HttpStatus.NOT_FOUND,
       );
     }
 
@@ -341,19 +322,13 @@ export class PostsGenerationController {
       docs: createdPosts,
     });
 
-    // Captured synchronously (before the fire-and-forget dispatch below) so
-    // the async continuation uses the exact key the guard resolved for this
-    // request, never a stale or re-resolved one.
-    const byokApiKeyOverride = (request as CreditsGuardRequest).creditsConfig
-      ?.byokApiKeyOverride;
-
     this.postGenerationService
       .expandThreadAsync(
         originalPost,
         createdPosts.slice(1),
         dto,
         user,
-        byokApiKeyOverride,
+        resolveByokApiKeyOverride(request),
       )
       .catch((error) => {
         this.logger.error('Failed to expand thread asynchronously', error);
@@ -410,7 +385,7 @@ export class PostsGenerationController {
           post,
           dto,
           user,
-          (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
+          resolveByokApiKeyOverride(request),
         );
       const updatedPost = await this.postsService.patch(postId, {
         description: enhancedDescription,
@@ -495,7 +470,7 @@ export class PostsGenerationController {
       return await this.postGenerationService.generateHookVariations(
         dto,
         user,
-        (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
+        resolveByokApiKeyOverride(request),
       );
     } catch (error: unknown) {
       if (error instanceof HttpException) {

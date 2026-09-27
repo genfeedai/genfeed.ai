@@ -691,10 +691,7 @@ export class PostGenerationService {
   // THREAD EXPANSION
   // ==========================================================================
 
-  /**
-   * Expand an existing post into a Twitter/X thread, updating the provided
-   * child posts with generated content as it completes.
-   */
+  /** Expand a post into a Twitter/X thread, updating child posts as generation completes. */
   async expandThreadAsync(
     originalPost: PostDocument,
     childPosts: PostDocument[],
@@ -860,10 +857,7 @@ export class PostGenerationService {
   // HOOK VARIATIONS
   // ==========================================================================
 
-  /**
-   * Generate hook variations for a topic/platform. Throws on AI failure; the
-   * caller maps the error onto the HTTP boundary.
-   */
+  /** Generate hook variations for a topic/platform. Throws on AI failure; caller maps the error onto the HTTP boundary. */
   async generateHookVariations(
     dto: GenerateHooksDto,
     identity: Pick<
