@@ -9,7 +9,12 @@ export interface LandingTopbarProps {
   ctaHref: string;
   ctaLabel: string;
   logoHref?: string;
-  /** Optional second action, rendered before the primary CTA from `sm` up. */
+  /**
+   * Optional second action, rendered before the primary CTA from 360px up:
+   * most paid traffic lands on a phone, and hiding the sales path below `sm`
+   * left those visitors a single choice. Only a 320px screen is too narrow
+   * for both buttons, and the primary one wins there.
+   */
   secondaryCtaHref?: string;
   secondaryCtaLabel?: string;
 }
@@ -26,13 +31,13 @@ export default function LandingTopbar({
       <div className="container mx-auto flex h-20 items-center justify-between px-6">
         <TopbarLogo logoHref={logoHref} />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {secondaryCtaHref && secondaryCtaLabel ? (
             <Button
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               asChild
-              className="hidden h-10 px-5 text-sm sm:inline-flex"
+              className="h-11 px-3 text-sm tracking-[0.08em] max-[359px]:hidden sm:px-5 sm:tracking-[0.18em]"
             >
               <Link
                 href={secondaryCtaHref}
@@ -47,7 +52,7 @@ export default function LandingTopbar({
           <Button
             size={ButtonSize.PUBLIC}
             asChild
-            className="h-10 px-5 text-sm"
+            className="h-11 px-3 text-sm tracking-[0.08em] sm:px-5 sm:tracking-[0.18em]"
           >
             <Link href={ctaHref} target="_blank" rel="noopener noreferrer">
               {ctaLabel}

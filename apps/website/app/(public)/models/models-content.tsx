@@ -73,7 +73,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
         Live catalog
       </Text>
       {models && models.length > 0 ? (
-        <div className="mt-6 grid grid-cols-3 gap-5">
+        <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-5">
           {[
             { label: 'Models', value: modelCount },
             { label: 'Formats', value: categoryCount },
@@ -83,7 +83,7 @@ function CatalogSignal({ models }: ModelsContentProps) {
               <Text className="text-4xl font-semibold tracking-[-0.05em] text-surface sm:text-5xl">
                 {item.value}
               </Text>
-              <Text className="mt-2 text-xs uppercase tracking-[0.12em] text-surface/50">
+              <Text className="mt-2 text-xs uppercase tracking-[0.04em] text-surface/60 sm:tracking-[0.12em]">
                 {item.label}
               </Text>
             </div>
@@ -156,7 +156,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
         title="Models"
       >
         {models === null ? (
-          <section className="container mx-auto px-6 pb-32">
+          <section className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="max-w-3xl border-y border-edge/10 py-16">
               <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
                 Catalog unavailable
@@ -174,7 +174,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
             </div>
           </section>
         ) : models.length === 0 ? (
-          <section className="container mx-auto px-6 pb-32">
+          <section className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="max-w-3xl border-y border-edge/10 py-16">
               <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
                 Catalog empty
@@ -192,7 +192,7 @@ export default function ModelsContent({ models }: ModelsContentProps) {
             </div>
           </section>
         ) : (
-          <div className="container mx-auto px-6 pb-32">
+          <div className="container mx-auto px-6 pb-16 md:pb-32">
             <div className="mb-20 flex flex-col justify-between gap-6 border-b border-edge/10 pb-10 sm:flex-row sm:items-end">
               <div>
                 <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">

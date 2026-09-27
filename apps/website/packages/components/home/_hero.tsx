@@ -34,7 +34,7 @@ export default function HomeHero(): React.ReactElement {
       <div className="container relative mx-auto px-6 text-center">
         <Heading
           as="h1"
-          className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-in mx-auto max-w-5xl text-[clamp(2.25rem,10.5vw,3rem)] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
           {/* The line break is a layout lock, not a sentence boundary. Keep the
               explicit space so the accessible name stays two spoken sentences
@@ -78,7 +78,7 @@ export default function HomeHero(): React.ReactElement {
               <Link href={AGENT_HREF}>See what it does</Link>
             </ButtonTracked>
           </div>
-          <Text as="p" className="mt-5 text-center text-[13px] text-surface/72">
+          <Text as="p" className="mt-5 text-center text-sm text-surface/72">
             Free to start. No card required.
           </Text>
         </div>

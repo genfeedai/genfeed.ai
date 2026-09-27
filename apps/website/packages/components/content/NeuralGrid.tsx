@@ -94,13 +94,18 @@ const bgClasses = {
   subtle: 'bg-fill/[0.02]',
 } as const;
 
+/**
+ * Section rhythm. Each step halves below `md`: 128px of air above and below a
+ * section is a chapter break on a desktop, but on a phone it is most of a
+ * screen of nothing between two headings.
+ */
 const pyClasses = {
-  lg: 'py-32',
-  md: 'py-20',
+  lg: 'py-16 md:py-32',
+  md: 'py-12 md:py-20',
   // For a section that has to sit high on the page — a pricing table a visitor
   // came to read, not a chapter break.
-  sm: 'py-10',
-  xl: 'py-40',
+  sm: 'py-8 md:py-10',
+  xl: 'py-20 md:py-40',
 } as const;
 
 const maxWidthClasses = {
@@ -155,7 +160,11 @@ function CtaSection({
 }: CtaSectionProps & { ref?: Ref<HTMLElement> }) {
   return (
     <section
-      className={cn('py-40', bg === 'subtle' && 'bg-fill/[0.02]', className)}
+      className={cn(
+        'py-20 md:py-40',
+        bg === 'subtle' && 'bg-fill/[0.02]',
+        className,
+      )}
       ref={ref}
       {...props}
     >
@@ -165,7 +174,7 @@ function CtaSection({
             {title}
           </h2>
           {description && (
-            <p className="text-surface/65 text-xl mb-12 font-medium">
+            <p className="mb-8 text-lg font-medium text-surface/65 sm:mb-12 sm:text-xl">
               {description}
             </p>
           )}

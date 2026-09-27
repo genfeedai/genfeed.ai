@@ -293,7 +293,7 @@ export default function ExpertsContent() {
 
         {/* Final CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="gen-card-spotlight p-12 text-center">
+          <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
               Build your Brand OS
             </Heading>
