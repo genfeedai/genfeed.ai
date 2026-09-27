@@ -3,7 +3,7 @@
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { OrganizationCategory } from '@genfeedai/contracts';
+import type { OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   resolveSignupBrandDomain,
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import {
   ONBOARDING_STORAGE_KEYS,
   parseOnboardingAccountType,
+  resolveBrandStepAccountType,
 } from '@/lib/onboarding/onboarding-access.util';
 import BrandLoadingState from './brand-loading-state';
 import {
@@ -97,21 +98,34 @@ function BrandContentContent() {
   }, [isUserLoading, isPersonalInbox]);
 
   const resolveWorkspaceIds = useCallback(
-    async (token: string): Promise<{ brandId: string; orgId: string }> => {
+    async (
+      token: string,
+    ): Promise<{
+      accountType: OrganizationCategory | null;
+      brandId: string;
+      orgId: string;
+    }> => {
       const usersService = UsersService.getInstance(token);
       const [brands, organizations] = await Promise.all([
         usersService.findMeBrands({ limit: 1 }),
         usersService.findMeOrganizations(),
       ]);
       const brandId = brands[0]?.id ?? null;
-      const orgId = organizations[0]?.id ?? null;
+      const organization = organizations[0];
+      const orgId = organization?.id ?? null;
       orgIdRef.current = orgId;
 
       if (!brandId || !orgId) {
         throw new Error('No workspace found for the current user');
       }
 
-      return { brandId, orgId };
+      return {
+        accountType: parseOnboardingAccountType(
+          organization?.accountType ?? organization?.category,
+        ),
+        brandId,
+        orgId,
+      };
     },
     [],
   );
@@ -160,15 +174,21 @@ function BrandContentContent() {
           throw new Error('Authentication is unavailable');
         }
 
-        const { brandId, orgId } = await resolveWorkspaceIds(token);
+        const {
+          accountType: existingAccountType,
+          brandId,
+          orgId,
+        } = await resolveWorkspaceIds(token);
         if (signal.aborted) return;
 
         const requestedAccountType = parseOnboardingAccountType(
           searchParams.get('accountType') ??
             localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
         );
-        const accountType =
-          requestedAccountType ?? OrganizationCategory.CREATOR;
+        const accountType = resolveBrandStepAccountType(
+          requestedAccountType,
+          existingAccountType,
+        );
         const brandName =
           resolved.brandName ||
           resolveSignupWorkspaceLabel({
