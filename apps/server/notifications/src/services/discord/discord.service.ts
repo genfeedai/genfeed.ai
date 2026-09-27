@@ -765,7 +765,6 @@ export class DiscordService {
   }
 
   private static readonly REVENUE_SOURCE_LABELS: Record<string, string> = {
-    byok_platform_fee: 'BYOK platform fee',
     credit_purchase: 'Credit purchase',
     subscription_invoice: 'Subscription invoice',
   };

@@ -61,7 +61,7 @@ export type BillingRevenueEventInput = {
   source: BillingRevenueSource;
   stripeObjectId: string;
   userId?: string | null;
-  /** Human-readable plan/product name for the operator alert, e.g. `Pro`, `Scale`, `BYOK`. */
+  /** Human-readable plan/product name for the operator alert, e.g. `Pro`, `Scale`. */
   planLabel?: string;
 };
 
