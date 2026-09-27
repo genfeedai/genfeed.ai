@@ -78,12 +78,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/auth/public-extra.spec.ts',
-    reason: 'Public auth extra selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/states/error-states.spec.ts',
     reason:
       'Network-abort helper fails page.goto before the surface renders. Evidence: run 31991510270.',
@@ -178,13 +172,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
     file: 'playwright/e2e/tests/admin/admin-organization.spec.ts',
     reason: 'Admin organization selectors drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/studio/batch-clips-interactions.spec.ts',
-    reason:
-      'Studio batch/clips interactions drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

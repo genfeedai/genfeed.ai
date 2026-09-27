@@ -55,12 +55,14 @@ export default function DesktopSidebar({
       aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
-        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden bg-background md:flex',
-        !isCollapsed && 'border-r border-border',
+        // Same chrome surface as the rail; the content panel owns the border.
+        'fixed bottom-0 z-30 hidden flex-col overflow-hidden bg-gray-100 md:flex',
       )}
       style={{
+        // Sits right of the app rail; 0 when the host renders no rail.
+        left: 'var(--desktop-rail-width, 0px)',
         minWidth: widthStyle,
-        top: 'var(--desktop-titlebar-height)',
+        top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
         transition: isResizing
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,

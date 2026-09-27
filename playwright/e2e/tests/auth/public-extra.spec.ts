@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
+import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
  * Public + Managed-Credits Route Coverage
@@ -112,8 +112,16 @@ test.describe('Managed Credits (Authenticated)', () => {
       authenticatedPage,
       APP_ROUTES.MANAGED_CREDITS_SUCCESS,
     );
-    const clicked = await tryClick(authenticatedPage, 'a');
-    expect(clicked).toBe(true);
-    await expect(authenticatedPage.locator('body')).toBeVisible();
+    // No Stripe session_id in the URL: the page explains the missing checkout
+    // instead of offering the managed key.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Managed credits ready' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Provisioning result not ready'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Missing Stripe checkout session.'),
+    ).toBeVisible();
   });
 });

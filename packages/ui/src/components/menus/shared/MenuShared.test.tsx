@@ -4,6 +4,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import MenuShared from '@ui/menus/shared/MenuShared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const {
   mockPush,
   mockEnterNestedGroup,
@@ -157,10 +163,6 @@ vi.mock('@ui/buttons/credits/ButtonCredits', () => ({
   default: () => <div data-testid="button-credits" />,
 }));
 
-vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
-  AppSwitcher: () => <div data-testid="app-switcher" />,
-}));
-
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Genfeed',
@@ -256,7 +258,7 @@ describe('MenuShared', () => {
     render(
       <MenuShared
         config={config}
-        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        headerSlot={<div data-testid="organization-switcher">Acme</div>}
       />,
     );
 
@@ -270,7 +272,7 @@ describe('MenuShared', () => {
     render(
       <MenuShared
         config={config}
-        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        headerSlot={<div data-testid="organization-switcher">Acme</div>}
         renderTopSlot={() => <div data-testid="sidebar-top-slot">Search</div>}
       />,
     );
@@ -293,15 +295,14 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('shows the Genfeed mark at rest and the collapse icon on hover or focus', () => {
+  it('puts a plain collapse toggle at the trailing edge of the header, after the switcher', () => {
     const onToggleCollapse = vi.fn();
-    mockLogoUrl.value = '/logo.svg';
 
     render(
       <MenuShared
         config={config}
         onToggleCollapse={onToggleCollapse}
-        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+        headerSlot={<div data-testid="brand-switcher">Acme</div>}
       />,
     );
 
@@ -309,30 +310,18 @@ describe('MenuShared', () => {
     const collapseToggle = screen.getByRole('button', {
       name: 'Collapse sidebar',
     });
-    const toggleIcon = collapseToggle.querySelector('svg');
-    const logo = collapseToggle.querySelector('img');
 
     expect(headerShell).toContainElement(collapseToggle);
-    expect(screen.getByRole('link', { name: 'Genfeed home' })).toHaveAttribute(
-      'href',
-      '/',
-    );
-    expect(collapseToggle).toHaveClass('group');
-    expect(logo?.getAttribute('src')).toContain('logo.svg');
-    expect(toggleIcon).toBeInTheDocument();
-    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
-    expect(logo?.parentElement).toHaveClass('group-focus-visible:opacity-0');
-    expect(toggleIcon?.parentElement).toHaveClass('opacity-0');
-    expect(toggleIcon?.parentElement).toHaveClass('group-hover:opacity-100');
-    expect(toggleIcon?.parentElement).toHaveClass(
-      'group-focus-visible:opacity-100',
-    );
-
-    fireEvent.mouseEnter(collapseToggle);
-    fireEvent.focus(collapseToggle);
-
-    expect(collapseToggle.querySelector('svg')).toBe(toggleIcon);
-    expect(collapseToggle.querySelector('img')).toBe(logo);
+    // Codex-style: no logo in the header (the org lives on the app rail).
+    expect(collapseToggle.querySelector('img')).toBeNull();
+    expect(collapseToggle.querySelector('svg')).toBeInTheDocument();
+    expect(headerShell.lastElementChild).toBe(collapseToggle);
+    expect(
+      screen
+        .getByTestId('brand-switcher')
+        .compareDocumentPosition(collapseToggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     fireEvent.click(collapseToggle);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);

@@ -22,7 +22,8 @@ Source of truth:
   `scripts/architecture/check-product-route-inventory.ts`
 - Shell surface resolver in `apps/app/packages/components/useAppProtectedLayout.ts`
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
-- App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
+- App rail in `packages/ui/src/components/shell/app-rail/AppRail.tsx`, hosted by
+  `apps/app/src/components/shell/AppProtectedRail.tsx` (#5304)
 
 The application registry mirrors all 216 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
@@ -34,9 +35,9 @@ Regenerate the raw route list with:
 bun run check:route-inventory
 ```
 
-## App Switcher Modules
+## App Rail Modules
 
-The app switcher is a module switcher, not a deep-page launcher.
+The app rail is a module switcher, not a deep-page launcher.
 
 Current primary modules:
 

@@ -10,6 +10,7 @@
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
+    "@genfeedai/tsconfig": "workspace:*",
     "vitest": "5.0.1"
   },
   "exports": {

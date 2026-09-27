@@ -75,7 +75,11 @@ const DEFAULT_BASELINE_PATH =
  * in — the others simply have no spec tsconfig and are silently skipped by
  * `discoverSpecWorkspaces`.
  */
-const DEFAULT_WORKSPACE_ROOTS = ['apps/server', 'apps', 'packages'] as const;
+export const DEFAULT_WORKSPACE_ROOTS = [
+  'apps/server',
+  'apps',
+  'packages',
+] as const;
 const SPEC_TSCONFIG_NAME = 'tsconfig.typecheck.specs.json';
 
 const SPEC_TYPECHECK_BASELINE_VERSION = 2;

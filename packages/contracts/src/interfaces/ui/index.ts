@@ -1,5 +1,5 @@
 export * from './agent-conversation-route.interface';
-export * from './app-switcher.interface';
+export * from './app-rail.interface';
 export * from './avatar.interface';
 export * from './badge.interface';
 export * from './command-palette.interface';

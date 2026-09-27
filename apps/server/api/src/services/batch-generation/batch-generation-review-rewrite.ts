@@ -15,6 +15,10 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
+type RewrittenBatch = Omit<BatchWithConfig, 'items'> & {
+  items: BatchItemFull[];
+};
+
 type RewriteCollaborators = {
   autonomousPublishPolicy: AutonomousPublishPolicyService;
   organizationId: string;
@@ -147,7 +151,7 @@ export async function applyBatchRewrites({
   batch: BatchWithConfig;
   batchId: string;
   captions: Map<string, string>;
-}): Promise<BatchWithConfig> {
+}): Promise<RewrittenBatch> {
   const items = resolveBatchItems(batch);
   const reviewedAt = new Date().toISOString();
   for (const item of items) {

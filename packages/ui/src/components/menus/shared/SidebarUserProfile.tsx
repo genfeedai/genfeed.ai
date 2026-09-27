@@ -53,7 +53,7 @@ export default function SidebarUserProfile({
 
   if (isCollapsed) {
     return (
-      <div className="relative z-10 border-t border-border bg-background p-3 flex justify-center shadow-sidebar-footer">
+      <div className="relative z-10 flex justify-center p-3">
         <UserDropdown
           imageUrl={user.imageUrl}
           userName={displayName}
@@ -64,7 +64,7 @@ export default function SidebarUserProfile({
   }
 
   return (
-    <div className="relative z-10 border-t border-border bg-background shadow-sidebar-footer">
+    <div className="relative z-10">
       <UserDropdown
         showIdentity
         imageUrl={user.imageUrl}

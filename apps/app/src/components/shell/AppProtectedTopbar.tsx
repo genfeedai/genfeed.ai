@@ -1,44 +1,19 @@
 'use client';
 
-import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  getBrandEntityId,
-  getBrandOrganizationId,
-  getBrandOrganizationSlug,
-} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import {
-  APP_DISPLAY_LABELS,
-  createOrganizationAppRoute,
-} from '@genfeedai/contracts/constants';
-import type { IBrand } from '@genfeedai/contracts/interfaces';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
-import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { Suspense, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
+import { Suspense } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
-import { useMessagesUnreadCount } from '@/components/shell/use-messages-unread-count';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import {
-  appendSearchParamsToHref,
-  getBrandSwitchHref,
-  getCurrentBrandScopedPath,
-  pickOperatorTaskContextSearchParams,
-  resolveOrganizationScopePath,
-} from '@/lib/navigation/operator-shell';
-import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -62,48 +37,6 @@ type AppProtectedTopbarProps = TopbarProps & {
   chrome?: AppProtectedTopbarChrome;
 };
 
-function resolveTopbarScope({
-  brandId,
-  brandSlug,
-  brands,
-  orgSlug,
-  resolvedBrandSlug,
-  resolvedOrgSlug,
-  selectedBrand,
-}: {
-  brandId?: string;
-  brandSlug?: string;
-  brands: IBrand[];
-  orgSlug?: string;
-  resolvedBrandSlug?: string;
-  resolvedOrgSlug?: string;
-  selectedBrand?: IBrand | null;
-}) {
-  const explicitBrandSlug = brandSlug || undefined;
-  const hasExplicitOrgScope = Boolean(orgSlug);
-  const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
-  const effectiveBrandSlug = hasExplicitOrgScope
-    ? explicitBrandSlug
-    : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
-  const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
-  const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
-  const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
-  const selectedBrandForContext = effectiveBrandId
-    ? brands.find((brand) => getBrandEntityId(brand) === effectiveBrandId) ||
-      selectedBrand
-    : undefined;
-  const brandAwareAppSlug =
-    effectiveBrandSlug || selectedBrandForContext?.slug || undefined;
-
-  return {
-    brandAwareAppSlug,
-    effectiveBrandSlug,
-    effectiveOrgSlug,
-    isOrganizationScopeRoute,
-    visibleBrandId,
-  };
-}
-
 function AppProtectedTopbarContent({
   chrome = 'app',
   isMenuOpen,
@@ -111,149 +44,25 @@ function AppProtectedTopbarContent({
   isSidebarCollapsed,
   onSidebarToggle,
   currentApp,
-  orgSlug,
-  brandSlug,
 }: AppProtectedTopbarProps = {}) {
-  const searchParams = useSearchParams();
   const pathname = usePathname();
   // Settings routes (/:org/~/settings or /:org/:brand/settings) show
   // "Settings" as the breadcrumb root. Inspect the app-route segment so a
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
-  // The page itself (never the session-backfilled useOrgUrl slugs below)
-  // decides whether this is a personal-account settings page, flat or as an
-  // org-scoped copy, so the brand switcher stays hidden there even when a
-  // brand is selected in session (#4659) — matches the sidebar's
-  // org-switcher gating.
-  const isOnPersonalSettingsPage = isPersonalSettingsPage(pathname);
-  const { push } = useRouter();
-  const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
-    useBrand();
-  const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   const workspaceInspector = useWorkspaceInspector();
-  // Route props are authoritative; only fall back to useOrgUrl when the shell is
-  // rendered without route context. On org-level `/:org/~/...` pages
-  // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
-  // views instead of trapping a stale brand. The brand context (brandId/brands)
-  // still drives the brand switcher itself.
-  const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
-    useOrgUrl();
-  const {
-    brandAwareAppSlug,
-    effectiveBrandSlug,
-    effectiveOrgSlug,
-    isOrganizationScopeRoute,
-    visibleBrandId,
-  } = resolveTopbarScope({
-    brandId,
-    brandSlug,
-    brands,
-    orgSlug,
-    resolvedBrandSlug,
-    resolvedOrgSlug,
-    selectedBrand,
-  });
-  const translateMessages = useTranslations('common.messages');
-  // The Messages tile opens the brand in the URL, else the org-wide inbox:
-  // the badge counts the same scope. While the route names a brand but
-  // `brands` hasn't loaded it yet, the scope is unresolved — never fall back
-  // to the org-wide count in that gap, or the badge flashes the wrong number
-  // before swapping to the brand-scoped one once brands load.
-  const messagesBadgeBrand = effectiveBrandSlug
-    ? brands.find((brand) => brand.slug === effectiveBrandSlug)
-    : undefined;
-  const isMessagesBadgeScopeResolved =
-    !effectiveBrandSlug || Boolean(messagesBadgeBrand);
-  const messagesBadgeBrandId = messagesBadgeBrand
-    ? getBrandEntityId(messagesBadgeBrand) || undefined
-    : undefined;
-  const messagesUnreadCount = useMessagesUnreadCount(
-    messagesBadgeBrandId,
-    isMessagesBadgeScopeResolved,
-  );
-  const isOrganizationSettingsRoute =
-    Boolean(effectiveOrgSlug) &&
-    isOrganizationScopeRoute &&
-    pathname.startsWith(`/${effectiveOrgSlug}/~/settings`);
 
-  const handleBrandChange = useCallback(
-    (nextBrandId: string) => {
-      setBrandId(nextBrandId);
-
-      const nextBrand = brands.find(
-        (brand) => getBrandEntityId(brand) === nextBrandId,
-      );
-      const nextOrganizationId = getBrandOrganizationId(nextBrand);
-      const nextOrgSlug =
-        getBrandOrganizationSlug(nextBrand) || effectiveOrgSlug;
-
-      if (nextOrganizationId) {
-        setOrganizationId(nextOrganizationId);
-      }
-
-      if (nextOrgSlug && nextBrand?.slug) {
-        // Stay on the surface (agent, studio, …) but drop a selected
-        // conversation — that thread belongs to the previous brand.
-        push(
-          getBrandSwitchHref({
-            nextBrandSlug: nextBrand.slug,
-            nextOrgSlug,
-            pathname,
-          }),
-        );
-      }
-    },
-    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
-  );
-
-  const handleClearBrandSelection = useCallback(() => {
-    setBrandId('');
-
-    if (effectiveOrgSlug) {
-      // Drop brand scope. Shared surfaces keep the same path under `~`;
-      // brand-only settings (publishing, voice, …) fall back to org brands
-      // instead of a 404 on /:org/~/settings/publishing.
-      push(
-        createOrganizationAppRoute(
-          effectiveOrgSlug,
-          resolveOrganizationScopePath(getCurrentBrandScopedPath(pathname)),
-        ),
-      );
-    }
-  }, [effectiveOrgSlug, pathname, push, setBrandId]);
-
-  const currentHref = appendSearchParamsToHref(
-    pathname,
-    new URLSearchParams(searchParams.toString()),
-  );
-  const preservedTaskSearch = pickOperatorTaskContextSearchParams(
-    new URLSearchParams(searchParams.toString()),
-  ).toString();
-  const resolveAppSwitcherNavigation = useCallback(
-    (destinationHref: string) => {
-      const launch = resolveWorkspaceSurfaceLaunch({
-        currentHref,
-        destinationHref,
-        threadId: searchParams.get('thread'),
-      });
-
-      return {
-        announcement: launch.announcement,
-        href: launch.href,
-      };
-    },
-    [currentHref, searchParams],
-  );
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
-  // Breadcrumb fallback label only (switcher active state is path-based).
+  // Breadcrumb fallback label only (the app rail's active state is path-based).
   const breadcrumbFallbackApp = isAdminChrome
     ? 'admin'
     : (currentApp ?? 'workspace');
   return (
     <header className="h-full w-full bg-transparent">
-      {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
+      {/* Page identity and actions only: the brand switcher is the sidebar
+          header and the organization is on the app rail. */}
       <div
         data-testid="app-protected-topbar-inner"
         className="grid h-full w-full grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(min-content,1fr)] items-center gap-3 px-3"
@@ -283,28 +92,6 @@ function AppProtectedTopbarContent({
               <ToggleIcon className="size-4" />
             </Button>
           ) : null}
-
-          {!isAdminChrome &&
-          brands.length > 0 &&
-          !isOrganizationSettingsRoute &&
-          !isOnPersonalSettingsPage ? (
-            <div className="w-40 min-w-0 sm:w-44 md:w-48">
-              <MenuBrandSwitcher
-                variant="labeled"
-                brands={brands}
-                brandId={visibleBrandId}
-                onBrandChange={handleBrandChange}
-                clearSelectionAction={
-                  visibleBrandId
-                    ? {
-                        ariaLabel: 'Clear brand selection',
-                        onSelect: handleClearBrandSelection,
-                      }
-                    : undefined
-                }
-              />
-            </div>
-          ) : null}
         </div>
 
         <div className="hidden min-w-0 justify-center md:flex">
@@ -322,28 +109,6 @@ function AppProtectedTopbarContent({
           {!isAdminChrome ? <NotificationInboxMenu /> : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
-
-          {effectiveOrgSlug ? (
-            <AppSwitcher
-              variant="icon"
-              badges={{
-                messages: {
-                  count: messagesUnreadCount,
-                  label: translateMessages('unreadBadge', {
-                    count: messagesUnreadCount,
-                  }),
-                },
-              }}
-              currentPath={pathname}
-              orgSlug={effectiveOrgSlug}
-              brandAwareSlug={brandAwareAppSlug}
-              brandSlug={effectiveBrandSlug}
-              isAssetGateLocked={isAssetGateLocked}
-              preservedSearch={preservedTaskSearch || undefined}
-              resolveNavigation={resolveAppSwitcherNavigation}
-              showAdmin={isAdminChrome || isSuperAdmin}
-            />
-          ) : null}
 
           {/* Last control in the bar, always: the inspector's only opener
               lives here — and pinning it to the extreme right means it never

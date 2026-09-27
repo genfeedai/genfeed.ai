@@ -1,7 +1,7 @@
 import type { IconComponent } from '../../types/icon';
 import type { AppContext } from './menu-config.interface';
 
-export interface AppSwitcherItemConfig {
+export interface AppRailItemConfig {
   id: AppContext;
   icon: IconComponent;
   label: string;

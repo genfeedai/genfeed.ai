@@ -282,6 +282,10 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
     return this.invoker.invoke<CreateAvatarVideoDto, JsonApiSingleResponse>(
       {
         creditsConfig: {
+          // #5294 mirrors AvatarVideoController.createAvatarVideo — that
+          // route opted in because AvatarVideoGenerationService
+          // independently resolves and passes the org's HeyGen key.
+          allowByokBypass: true,
           description: 'Avatar video generation',
           modelKey: MODEL_KEYS.HEYGEN_AVATAR,
           source: ActivitySource.VIDEO_GENERATION,

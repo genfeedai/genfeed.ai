@@ -110,6 +110,7 @@ export class BatchInterpolationController {
     MemberRole.CREATOR,
   ])
   @Credits({
+    allowByokBypass: true, // #5294 verified: resolveApiKey() re-resolves and uses this same org key.
     description: 'Batch interpolation video generation',
     source: ActivitySource.VIDEO_GENERATION,
   })

@@ -1,17 +1,19 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
-import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, PanelLeftClose } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
@@ -36,10 +38,11 @@ export default function MenuShared({
   conversationActions,
   renderFooterSlot,
   showUserProfile = true,
-  orgSwitcherSlot,
+  headerSlot,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: MenuSharedProps) {
   const { push } = useRouter();
+  const translateSidebar = useTranslations('common.sidebar');
 
   const {
     activeHref,
@@ -148,14 +151,22 @@ export default function MenuShared({
     </>
   );
 
+  // Codex-style: a plain panel toggle at the header's trailing edge. The org
+  // lives on the app rail, so the header carries no logo.
   const collapseControl =
     onToggleCollapse && !isCollapsed ? (
-      <SidebarLogoToggleButton
-        ariaLabel="Collapse sidebar"
-        className="hidden md:flex"
-        direction="collapse"
+      <Button
+        type="button"
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
+        withWrapper={false}
+        ariaLabel={translateSidebar('collapse')}
+        tooltip={translateSidebar('collapse')}
+        className="hidden size-8 shrink-0 text-foreground/58 hover:text-foreground md:inline-flex"
         onClick={onToggleCollapse}
-      />
+      >
+        <PanelLeftClose className="size-4" />
+      </Button>
     ) : null;
 
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
@@ -167,7 +178,9 @@ export default function MenuShared({
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
       data-shell-section-label={sectionLabel ?? ''}
-      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-background"
+      // Transparent: the host (desktop sidebar / mobile drawer) paints the
+      // shared chrome surface.
+      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-transparent"
       style={
         // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
         sidebarWidth
@@ -178,22 +191,24 @@ export default function MenuShared({
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           data-testid="sidebar-header-shell"
-          className="flex h-12 flex-shrink-0 items-center gap-1.5 border-b border-border px-3"
+          className="flex h-12 flex-shrink-0 items-center gap-1.5 px-3"
         >
           <div className="md:hidden">
             <TopbarLogo logoHref={config.logoHref} size="compact" />
           </div>
-          {collapseControl}
-          {orgSwitcherSlot ? (
+          {headerSlot ? (
             <div
               className={cn(
                 'min-w-0 flex-1 transition-opacity duration-200',
                 isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
               )}
             >
-              {orgSwitcherSlot}
+              {headerSlot}
             </div>
-          ) : null}
+          ) : (
+            <div className="flex-1" />
+          )}
+          {collapseControl}
         </div>
 
         {/* Body — fades out when collapsed, pointer-events disabled */}

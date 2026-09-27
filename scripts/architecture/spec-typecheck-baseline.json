@@ -1021,7 +1021,7 @@
       "count": 4,
       "file": "apps/server/api/src/auth/services/auth-bootstrap.service.spec.ts",
       "fingerprint": "fc9444d92ce883071018",
-      "message": "Type '{ brandId: string; creditsBalance: number; hasEverHadCredits: true; isOnboardingCompleted: true; isSuperAdmin: false; organizationId: string; subscriptionStatus: SubscriptionStatus.ACTIVE; subscriptionTier: SubscriptionTier.BYOK; userId: string; }' is missing the following properties from type 'AccessBootstrapStatePayload': hasGeneratedFirstAsset, hasDismissedAssetGate",
+      "message": "Type '{ brandId: string; creditsBalance: number; hasEverHadCredits: true; isOnboardingCompleted: true; isSuperAdmin: false; organizationId: string; subscriptionStatus: SubscriptionStatus.ACTIVE; subscriptionTier: SubscriptionTier.PRO; userId: string; }' is missing the following properties from type 'AccessBootstrapStatePayload': hasGeneratedFirstAsset, hasDismissedAssetGate",
       "workspace": "api"
     },
     {
@@ -6958,38 +6958,6 @@
       "file": "apps/app/packages/server/protected-bootstrap.server.test.ts",
       "fingerprint": "a52c51830f1a65b1c3c8",
       "message": "Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type 'Mock<() => undefined>'.   Type 'Mock<(name: string) => { value: string; } | undefined>' is not assignable to type '{ (): undefined; new (): undefined; }'.     Target signature provides too few arguments. Expected 1 or more, but got 0.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 4,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "1350d386b908a1df2375",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 82,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "443c9fc3ccacd1a18f30",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 14,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "4aafece360dfba30998f",
-      "message": "Expected 1 arguments, but got 2.",
-      "workspace": "app"
-    },
-    {
-      "code": 2554,
-      "count": 3,
-      "file": "apps/app/proxy.test.ts",
-      "fingerprint": "52b9b001bd346d74485b",
-      "message": "Expected 1 arguments, but got 2.",
       "workspace": "app"
     },
     {
@@ -21059,9 +21027,9 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx",
-      "fingerprint": "a2229f6080ee7dc1a88b",
-      "message": "Cannot find module '@genfeedai/props/ui/app-switcher.props' or its corresponding type declarations.",
+      "file": "packages/ui/src/components/shell/app-rail/AppRail.tsx",
+      "fingerprint": "f5258a9fff3ff543293b",
+      "message": "Cannot find module '@genfeedai/props/ui/app-rail.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -22481,27 +22449,1827 @@
       "workspace": "telegram"
     },
     {
-      "code": 2307,
+      "code": 2550,
       "count": 1,
-      "file": "apps/app/tests/next-intl.stub.ts",
-      "fingerprint": "1234c2b944761597e209",
-      "message": "Cannot find module '@ui/tests/next-intl.stub' or its corresponding type declarations.",
+      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
+      "fingerprint": "d0e80b4fff082fb0ff98",
+      "message": "Property 'toSorted' does not exist on type '(IAgentStrategyRunHistoryItem | AgentStrategyRun)[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
       "workspace": "ui"
     },
     {
-      "code": 2307,
+      "code": 7006,
       "count": 1,
-      "file": "packages/hooks/ui/use-animated-counter/use-animated-counter.ts",
-      "fingerprint": "f6e2cfc7e81562469299",
-      "message": "Cannot find module '@hooks/ui/use-intersection-observer/use-intersection-observer' or its corresponding type declarations.",
+      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
+      "fingerprint": "aabb61dfb9778d751984",
+      "message": "Parameter 'run' implicitly has an 'any' type.",
       "workspace": "ui"
     },
     {
-      "code": 2882,
+      "code": 7006,
+      "count": 2,
+      "file": "packages/agent/src/components/AgentActivityFeed.tsx",
+      "fingerprint": "e87bdcea53eaf8d1cd6f",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
       "count": 1,
-      "file": "packages/ui/src/components/tests/setup.ts",
-      "fingerprint": "8eb945cc7d33aab2d559",
-      "message": "Cannot find module or type declarations for side-effect import of '@ui/tests/global-mocks'.",
+      "file": "packages/agent/src/components/agent-thread-list.helpers.ts",
+      "fingerprint": "01a21103e97329910cad",
+      "message": "Property 'toSorted' does not exist on type '{ brandId: string | null; label: string; threads: AgentThread[]; }[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/agent/src/components/agent-thread-list.helpers.ts",
+      "fingerprint": "116fdaaf21959f50b2ad",
+      "message": "Parameter 'left' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/agent/src/components/blocks/DynamicTable.tsx",
+      "fingerprint": "0e605baac6f56e8a4fbd",
+      "message": "Property 'toSorted' does not exist on type 'Record<string, unknown>[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/agent/src/components/blocks/DynamicTable.tsx",
+      "fingerprint": "47856fdf5de6c6fc7ab2",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/agent/src/hooks/agent-chat-stream.entry.ts",
+      "fingerprint": "ed23910d0aae4dcfdcab",
+      "message": "Property 'findLast' does not exist on type 'BufferedThreadEvent[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/agent/src/hooks/agent-chat-stream.entry.ts",
+      "fingerprint": "095c45503b4b674e73d9",
+      "message": "Parameter 'event' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/agent/src/stores/agent-chat.store.ts",
+      "fingerprint": "e211fed71ccd2e87ebcf",
+      "message": "Property 'findLastIndex' does not exist on type 'AgentUiAction[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/agent/src/stores/agent-chat.store.ts",
+      "fingerprint": "080b8b09c9899629980e",
+      "message": "Parameter 'candidate' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/agent/src/utils/derive-timeline.ts",
+      "fingerprint": "27a03e522c5583fb6446",
+      "message": "Property 'toSorted' does not exist on type 'EnrichedWorkEvent[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/agent/src/utils/derive-timeline.ts",
+      "fingerprint": "06a620075cd2d577a80d",
+      "message": "Parameter 'event' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/agent/src/utils/derive-timeline.ts",
+      "fingerprint": "74b00f14eeaf87f80531",
+      "message": "Parameter 'left' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/agent/src/utils/sort-agent-threads.util.ts",
+      "fingerprint": "832054a63e63a23e914c",
+      "message": "Property 'toSorted' does not exist on type 'AgentThread[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/agent/src/utils/sort-agent-threads.util.ts",
+      "fingerprint": "0bd3e377deb6c177e83b",
+      "message": "Parameter 'left' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/cards/preview/quick-analytics-preview.test.tsx",
+      "fingerprint": "c33cbad0bb448f5eaa69",
+      "message": "Object literal may only specify known properties, and 'createdAt' does not exist in type 'IAnalytics'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/charts/brand-performance/brand-performance-chart.test.tsx",
+      "fingerprint": "5de0563424029c7a811f",
+      "message": "Type '{}' is missing the following properties from type '{ dataKey: string; fill: string; }': dataKey, fill",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/charts/brand-performance/brand-performance-chart.tsx",
+      "fingerprint": "fa111e14de7d451bab75",
+      "message": "Property 'toSorted' does not exist on type 'BrandPerformanceData[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/analytics/charts/brand-performance/brand-performance-chart.tsx",
+      "fingerprint": "64e86d66169fbcea311e",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/charts/platform-breakdown/platform-breakdown-chart.test.tsx",
+      "fingerprint": "d411b9e61cbc64ad6d38",
+      "message": "Type 'null' is not assignable to type 'PlatformBreakdownData[]'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 7,
+      "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
+      "fingerprint": "2b8a94e8756778dc8e5a",
+      "message": "Type '\"facebook\"' is not assignable to type 'Platform'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 8,
+      "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
+      "fingerprint": "41d82200feb9cfc25bcf",
+      "message": "Type '\"facebook\"' is not assignable to type 'Platform'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
+      "fingerprint": "98a4d9c738d7496843b4",
+      "message": "Type '\"tiktok\"' is not assignable to type 'Platform'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 6,
+      "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
+      "fingerprint": "ddf53debd2c8e6b15749",
+      "message": "Type '\"instagram\"' is not assignable to type 'Platform'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/charts/platform-time-series/platform-time-series-chart.test.tsx",
+      "fingerprint": "f3035e3a289665789a4d",
+      "message": "Type '{}' is missing the following properties from type '{ dataKey: string; stroke: string; }': dataKey, stroke",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
+      "fingerprint": "1100c8a1067629510a12",
+      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
+      "fingerprint": "201671a9c58449546a15",
+      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/platform-breakdown/platform-analytics-breakdown.test.tsx",
+      "fingerprint": "6e9b29e4cf89a603b95b",
+      "message": "Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }[]' is not assignable to type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }[]'.   Type '{ platform: string; summary: { totalComments: number; totalLikes: number; totalShares: number; totalViews: number; }; }' is missing the following properties from type '{ id: string; label: string; platform: string; summary: { totalViews: number; totalLikes: number; totalComments: number; totalShares: number; avgEngagementRate: number; publicationCount: number; }; }': id, label",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/top-posts/TopPostsSection.test.tsx",
+      "fingerprint": "93917c3aa69c0310811e",
+      "message": "Type '{ alt: string | undefined; crossOrigin?: CrossOrigin; decoding?: \"auto\" | \"async\" | \"sync\" | undefined; fetchPriority?: \"auto\" | \"low\" | \"high\" | undefined; height?: string | number | undefined; ... 286 more ...; type: \"image\"; }' is not assignable to type 'DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>'.   Type '{ alt: string | undefined; crossOrigin?: CrossOrigin; decoding?: \"auto\" | \"async\" | \"sync\" | undefined; fetchPriority?: \"auto\" | \"low\" | \"high\" | undefined; height?: string | number | undefined; ... 286 more ...; type: \"image\"; }' is not assignable to type 'InputHTMLAttributes<HTMLInputElement>'.     Types of property 'src' are incompatible.       Type 'string | Blob | undefined' is not assignable to type 'string | undefined'.         Type 'Blob' is not assignable to type 'string'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/top-posts/TopPostsSection.test.tsx",
+      "fingerprint": "63d2bb0d4050b5bb8f98",
+      "message": "Property 'blurDataURL' does not exist on type 'ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean | undefined; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/top-posts/TopPostsSection.test.tsx",
+      "fingerprint": "68dbba26248d93b61c36",
+      "message": "Property 'priority' does not exist on type 'ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean | undefined; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/top-posts/TopPostsSection.test.tsx",
+      "fingerprint": "062749881f0906aa895b",
+      "message": "Conversion of type 'typeof (Anonymous class)' to type '{ new (callback: IntersectionObserverCallback, options?: IntersectionObserverInit | undefined): IntersectionObserver; prototype: IntersectionObserver; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'prototype' are incompatible.     Type '(Anonymous class)' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/trending-hashtags.tsx",
+      "fingerprint": "e61e5270d34348edb9fc",
+      "message": "Property 'toSorted' does not exist on type 'ITrendHashtag[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/trending-hashtags.tsx",
+      "fingerprint": "935c42f771f7176c3c1c",
+      "message": "Parameter 'hashtag' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/analytics/trends/trending-hashtags.tsx",
+      "fingerprint": "c9c722a31f820fcc8cec",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/trending-sounds.tsx",
+      "fingerprint": "8c7cd2424563ab1f7881",
+      "message": "Property 'toSorted' does not exist on type 'ITrendSound[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/analytics/trends/trending-sounds.tsx",
+      "fingerprint": "7b23ccf1126f5b73e970",
+      "message": "Parameter 'sound' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/analytics/trends/trending-sounds.tsx",
+      "fingerprint": "d054303987bddb64db36",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/viral-video-leaderboard.tsx",
+      "fingerprint": "c1039c585355fa850a54",
+      "message": "Property 'toSorted' does not exist on type 'ITrendVideo[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/viral-video-leaderboard.tsx",
+      "fingerprint": "19318c5e28643bad489a",
+      "message": "Parameter 'v' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/analytics/trends/viral-video-leaderboard.tsx",
+      "fingerprint": "3812d7ada9a33e924faa",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/ui/src/components/analytics/trends/viral-video-leaderboard.tsx",
+      "fingerprint": "9b1468bf27ad2fd34683",
+      "message": "Parameter 'v' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/buttons/dropdown/button-dropdown/ButtonDropdown.test.tsx",
+      "fingerprint": "37837d86b0e711cc8cbd",
+      "message": "Property 'value' is missing in type '{ name: string; options: ({ icon: Element; label: string; value: string; } | { label: string; value: string; icon?: undefined; })[]; onChange: Mock<Procedure>; placeholder: string; }' but required in type 'ButtonDropdownProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/buttons/dropdown/button-dropdown/ButtonDropdown.test.tsx",
+      "fingerprint": "ddb2cf849a96db1735e1",
+      "message": "Property 'value' is missing in type '{ name: string; options: ({ icon: Element; label: string; value: string; } | { label: string; value: string; icon?: undefined; })[]; onChange: Mock<Procedure>; }' but required in type 'ButtonDropdownProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/ui/src/components/command-palette/command-palette-initializer/CommandPaletteInitializer.test.tsx",
+      "fingerprint": "5e80ed1be9f2b8b71760",
+      "message": "Argument of type '{ registerCommands: Mock<Procedure>; unregisterCommands: Mock<Procedure>; }' is not assignable to parameter of type 'ICommandPaletteContext'.   Type '{ registerCommands: Mock<Procedure>; unregisterCommands: Mock<Procedure>; }' is missing the following properties from type 'ICommandPaletteContext': state, open, close, toggle, and 4 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2554,
+      "count": 1,
+      "file": "packages/ui/src/components/command-palette/command-palette/CommandPalette.test.tsx",
+      "fingerprint": "fac9c38ee1e35728d48d",
+      "message": "Expected 0 arguments, but got 1.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 2,
+      "file": "packages/ui/src/components/command-palette/command-palette/CommandPaletteView.test.tsx",
+      "fingerprint": "838116007a8a803a3166",
+      "message": "Conversion of type '{ current: null; }' to type 'RefObject<HTMLInputElement>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'current' are incompatible.     Type 'null' is not comparable to type 'HTMLInputElement'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/constants/media.constant.test.ts",
+      "fingerprint": "42f409d00269e575d0e4",
+      "message": "Property 'REPLICATE_FLUX_SCHNELL' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 124 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/constants/media.constant.test.ts",
+      "fingerprint": "8242b53bacab0de14e14",
+      "message": "Property 'REPLICATE_HUNYUAN' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 124 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/content/textarea-label-actions/TextareaLabelActions.test.tsx",
+      "fingerprint": "3032664fc89768afab99",
+      "message": "Type '{}' is missing the following properties from type 'TextareaLabelActionsProps': label, onCopy, onEnhance",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/display/badge-quota/BadgeQuota.test.tsx",
+      "fingerprint": "7959262ee63abde7ad68",
+      "message": "Type '{}' is missing the following properties from type 'BadgeQuotaProps': currentCount, dailyLimit",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 2,
+      "file": "packages/ui/src/components/display/masonry/Masonry.test.tsx",
+      "fingerprint": "30e2ecdc601ffcc74457",
+      "message": "Property 'children' is missing in type '{}' but required in type 'MasonryProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/display/platform-badge/PlatformBadge.test.tsx",
+      "fingerprint": "87727d94cda7397c261d",
+      "message": "Property 'platform' is missing in type '{}' but required in type 'PlatformBadgeProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/display/platform-badge/PlatformBadge.test.tsx",
+      "fingerprint": "920c3d8ceabbd2cd179c",
+      "message": "Property 'platform' is missing in type '{}' but required in type 'PlatformBadgeProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/display/table/Table.test.tsx",
+      "fingerprint": "603e38de4339b581fda1",
+      "message": "Type '{}' is missing the following properties from type 'TableProps<unknown>': items, columns",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/drag-drop/zone-folder/DropZoneFolder.test.tsx",
+      "fingerprint": "262f767b9c4c7cb8b1fc",
+      "message": "Type '{ id: string; label: string; }' is missing the following properties from type 'IFolder': organization, user, tags, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
+      "fingerprint": "9f886d4d22891800fb69",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupPopover.test.tsx",
+      "fingerprint": "caae4d147136a1af5e5b",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
+      "fingerprint": "56458ec92d853993e8e7",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/generation-setup/GenerationSetupTrigger.test.tsx",
+      "fingerprint": "7ddfc863b7d36b2d6860",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelItem.test.tsx",
+      "fingerprint": "a031ff3499d6fb356311",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelItem.test.tsx",
+      "fingerprint": "a1b23b82b480e6a78de6",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelSpec.test.tsx",
+      "fingerprint": "2160d495693cb897a51b",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorModelSpec.test.tsx",
+      "fingerprint": "672c8b0ff4976c6b768d",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorPopover.test.tsx",
+      "fingerprint": "838c8dbf95f7b1435dc2",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorPopover.test.tsx",
+      "fingerprint": "b07243362b3980d28e06",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorTrigger.test.tsx",
+      "fingerprint": "839f4f04a641d883b35c",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/ModelSelectorTrigger.test.tsx",
+      "fingerprint": "eae2b6fcf00579aa1e49",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/model-selector.utils.test.ts",
+      "fingerprint": "1e72f30f604e3d542647",
+      "message": "'key' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2783,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/model-selector/model-selector.utils.test.ts",
+      "fingerprint": "3dc2548334104bd187e9",
+      "message": "'label' is specified more than once, so this usage will be overwritten.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/dropdowns/prompt/DropdownPrompt.test.tsx",
+      "fingerprint": "e0663b5da6cf94a9108d",
+      "message": "Property 'promptText' is missing in type '{}' but required in type 'PromptDropdownProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/evaluation/badge/EvaluationBadge.test.tsx",
+      "fingerprint": "9a1ced1c9a10b97fb929",
+      "message": "Property 'score' is missing in type '{}' but required in type 'EvaluationBadgeProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 2,
+      "file": "packages/ui/src/components/evaluation/card/EvaluationCard.test.tsx",
+      "fingerprint": "c330c7d6a07078118d48",
+      "message": "Type '{ overall: number; }' is missing the following properties from type 'IEngagementScores': viralityPotential, emotionalAppeal, shareability, platformFit",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 2,
+      "file": "packages/ui/src/components/evaluation/card/EvaluationCard.test.tsx",
+      "fingerprint": "e948562c6d801e0b65f9",
+      "message": "Type '{ overall: number; }' is missing the following properties from type 'IBrandScores': styleAlignment, messageAlignment, toneAlignment",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/feedback/infinite-scroll/InfiniteScroll.test.tsx",
+      "fingerprint": "48dd2a37033e24cccdef",
+      "message": "Type '{}' is missing the following properties from type 'InfiniteScrollProps': onLoadMore, hasMore, children",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 3,
+      "file": "packages/ui/src/components/ingredients/list/header/IngredientsListHeader.test.tsx",
+      "fingerprint": "60407aaf4f5e1e693fcb",
+      "message": "Type '{}' is missing the following properties from type 'IngredientsListHeaderProps': selectedCount, canMerge, isMerging, onClearSelection, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/ingredients/list/media-grid/ingredient-time-groups.util.test.ts",
+      "fingerprint": "c6ac5533f75ef701ab92",
+      "message": "Conversion of type '{ createdAt: Date; id: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ createdAt: Date; id: string; }' is missing the following properties from type 'IIngredient': category, status, user, organization, and 10 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
+      "fingerprint": "0834b9000e308d13f2fa",
+      "message": "Type '{}' is missing the following properties from type 'SelectionActionsBarProps': count, onBulkDelete, onClear",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
+      "fingerprint": "4755a2d4463d93d27ce0",
+      "message": "Type '{ count: number; onDownload: Mock<Procedure>; }' is missing the following properties from type 'SelectionActionsBarProps': onBulkDelete, onClear",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
+      "fingerprint": "ef0aac64e415d3c976d7",
+      "message": "Type '{ count: number; }' is missing the following properties from type 'SelectionActionsBarProps': onBulkDelete, onClear",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 4,
+      "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
+      "fingerprint": "f7c9afb25825037d5d3f",
+      "message": "Type '{ count: number; canPublishCampaign: true; onPublishCampaign: Mock<Procedure>; }' is missing the following properties from type 'SelectionActionsBarProps': onBulkDelete, onClear",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.test.tsx",
+      "fingerprint": "baa2bb4176e254b59913",
+      "message": "Property 'onBulkDelete' is missing in type '{ count: number; onClear: Mock<Procedure>; }' but required in type 'SelectionActionsBarProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/ingredients/tabs/prompts/IngredientTabsPrompts.test.tsx",
+      "fingerprint": "531a40245b6f7de4ecea",
+      "message": "Property 'ingredient' is missing in type '{}' but required in type 'IngredientTabsPromptsProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/ingredients/tabs/tags/IngredientTabsTags.test.tsx",
+      "fingerprint": "f6c8bf0f94e728fa189b",
+      "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; tags: never[]; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/layout/container/Container.test.tsx",
+      "fingerprint": "808ff3b164fdf73529a7",
+      "message": "Type 'string' is not assignable to type 'NavigationTab'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 2,
+      "file": "packages/ui/src/components/layout/container/Container.test.tsx",
+      "fingerprint": "853fb0a2354933210f8a",
+      "message": "Object literal may only specify known properties, and 'variant' does not exist in type 'TabsProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/layout/page-header/PageHeader.test.tsx",
+      "fingerprint": "f3dd8180aadb74ae662b",
+      "message": "Property 'title' is missing in type '{}' but required in type 'PageHeaderProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/lazy/load/LazyLoad.test.tsx",
+      "fingerprint": "df22b587a9eea3303644",
+      "message": "Property 'children' is missing in type '{}' but required in type 'LazyLoadProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
+      "fingerprint": "f8da2612190f77d57208",
+      "message": "Argument of type 'this' is not assignable to parameter of type 'IntersectionObserver'.   Type 'MockIntersectionObserver' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
+      "fingerprint": "8bf7f7ba6d6b3c0eb284",
+      "message": "Property 'video' is missing in type '{}' but required in type 'MasonryVideoProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
+      "fingerprint": "fd390b2ebcf5d6d3434b",
+      "message": "Property 'image' is missing in type '{}' but required in type 'MasonryImageProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2769,
+      "count": 1,
+      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
+      "fingerprint": "52aef4dfd01346ab12d3",
+      "message": "No overload matches this call.   Overload 1 of 2, '(props: IngredientListProps<IIngredient>, context?: any): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.     Type '{}' is missing the following properties from type 'IngredientListProps<IIngredient>': ingredients, selectedIngredientId   Overload 2 of 2, '(props: IngredientListProps<IIngredient>): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.     Type '{}' is missing the following properties from type 'IngredientListProps<IIngredient>': ingredients, selectedIngredientId",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 2,
+      "file": "packages/ui/src/components/lists/list/List.test.tsx",
+      "fingerprint": "a8a6671a2b6ff3344976",
+      "message": "Conversion of type '{ category: IngredientCategory.MUSIC; id: string; ingredientUrl: string; isPlaying: false; name: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.MUSIC; id: string; ingredientUrl: string; isPlaying: false; name: string; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/lists/list/List.test.tsx",
+      "fingerprint": "0369e087b7cff9218398",
+      "message": "Property 'selectedId' is missing in type '{ className: string; ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 2,
+      "file": "packages/ui/src/components/lists/list/List.test.tsx",
+      "fingerprint": "420bb0df5a065ebb3b85",
+      "message": "Property 'selectedId' is missing in type '{ ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/lists/list/List.test.tsx",
+      "fingerprint": "b76c159f536619849b1f",
+      "message": "Property 'selectedId' is missing in type '{ ingredients: IIngredient[]; label: string; onConfirm: Mock<Procedure>; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/lists/list/List.test.tsx",
+      "fingerprint": "db7c4d4e330047c0a41d",
+      "message": "Property 'selectedId' is missing in type '{ onConfirm: Mock<Procedure>; ingredients: IIngredient[]; label: string; setIngredients: Mock<Procedure>; }' but required in type 'ListProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/lists/row-sound/ListRowSound.test.tsx",
+      "fingerprint": "9e59ecaf4475fbd1781a",
+      "message": "Type '{ id: string; isPlaying: boolean; metadata: { description: string; label: string; }; provider: string; }' is not assignable to type 'SoundIngredient | undefined'.   Type '{ id: string; isPlaying: boolean; metadata: { description: string; label: string; }; provider: string; }' is missing the following properties from type 'IVoice': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/lists/row-sound/ListRowSound.test.tsx",
+      "fingerprint": "f12347d30df44d693f1a",
+      "message": "Type '{ id: string; isPlaying: boolean; metadata: { description: string; label: string; }; provider: string; }' is not assignable to type 'SoundIngredient | undefined'.   Type '{ id: string; isPlaying: boolean; metadata: { description: string; label: string; }; provider: string; }' is missing the following properties from type 'IVoice': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/masonry/image/MasonryImage.test.tsx",
+      "fingerprint": "e56fef56a90b56fe2f83",
+      "message": "Type '{ height: number; width: number; }' is not assignable to type 'string | IMetadata | undefined'.   Type '{ height: number; width: number; }' is missing the following properties from type 'IMetadata': label, id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/masonry/image/MasonryImage.test.tsx",
+      "fingerprint": "d070976ace844f009e38",
+      "message": "Conversion of type '{ id: string; ingredientUrl: string; metadata: { height: number; width: number; }; promptText: string; status: \"active\"; }' to type 'IImage' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; ingredientUrl: string; metadata: { height: number; width: number; }; promptText: string; status: \"active\"; }' is missing the following properties from type 'IImage': category, user, organization, scope, and 10 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 2,
+      "file": "packages/ui/src/components/masonry/video/MasonryVideo.test.tsx",
+      "fingerprint": "2e107db6e6bb7f5afe73",
+      "message": "Conversion of type 'undefined' to type '{ thumbnail?: string | undefined; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2493,
+      "count": 2,
+      "file": "packages/ui/src/components/masonry/video/MasonryVideo.test.tsx",
+      "fingerprint": "dd6600f9472138b48492",
+      "message": "Tuple type '[]' of length '0' has no element at index '0'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2554,
+      "count": 1,
+      "file": "packages/ui/src/components/masonry/video/MasonryVideo.test.tsx",
+      "fingerprint": "9290511641aecb31d657",
+      "message": "Expected 0 arguments, but got 1.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/menus/label/MenuLabel.test.tsx",
+      "fingerprint": "c6b897bd3164f32eda09",
+      "message": "Property 'label' is missing in type '{}' but required in type 'MenuLabelProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 6,
+      "file": "packages/ui/src/components/menus/switchers/MenuBrandSwitcher.test.tsx",
+      "fingerprint": "b55a78c4f2c5ec10ebea",
+      "message": "Type '{ id: string; label: string; organization: { slug: string; }; slug: string; thumbnailUrl: string; }[]' is not assignable to type 'Brand[]'.   Type '{ id: string; label: string; organization: { slug: string; }; slug: string; thumbnailUrl: string; }' is missing the following properties from type 'Brand': logoUrl, bannerUrl, primaryReferenceUrl, totalCredentials, and 33 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/modals/actions/ModalActions.test.tsx",
+      "fingerprint": "8ba10d9d5e38146a1d47",
+      "message": "Property 'children' is missing in type '{}' but required in type 'ModalActionsProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2820,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/brands/brand/ModalBrand.test.tsx",
+      "fingerprint": "dd7d727f6d7ae0d8f434",
+      "message": "Type '\"brand\"' is not assignable to type 'Scope'. Did you mean 'Scope.BRAND'?",
+      "workspace": "ui"
+    },
+    {
+      "code": 2344,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
+      "fingerprint": "d20145dc02b0baeb7cb4",
+      "message": "Type 'Mock<Procedure | Constructable>' does not satisfy the constraint '(...args: any) => any'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(...args: any) => any'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(...args: any): any'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2348,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/brands/instagram/InstagramAccountSelector.test.tsx",
+      "fingerprint": "acd7be2f021f5901cf3c",
+      "message": "Value of type 'Mock<Procedure | Constructable>' is not callable. Did you mean to include 'new'?",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/batch/ModalPostBatch.test.tsx",
+      "fingerprint": "02e77d52fa5becd21df3",
+      "message": "Property 'PRIVATE' does not exist on type 'typeof Scope'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/batch/ModalPostBatch.test.tsx",
+      "fingerprint": "eaadbe303e6ec951cca7",
+      "message": "Property 'COMPLETE' does not exist on type 'typeof IngredientStatus'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 4,
+      "file": "packages/ui/src/components/modals/content/generate-illustration/ModalGenerateIllustration.test.tsx",
+      "fingerprint": "4490365f1528415a4db2",
+      "message": "Property 'postId' is missing in type '{ isOpen: true; initialPrompt: string; onConfirm: () => undefined; }' but required in type 'ModalGenerateIllustrationProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2769,
+      "count": 2,
+      "file": "packages/ui/src/components/modals/content/post/ModalPost.test.tsx",
+      "fingerprint": "dede7253faeeb6c10737",
+      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/post/ModalPostContent.test.tsx",
+      "fingerprint": "f3b1c54269cb4e9c565f",
+      "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': getValues, getErrors, getFieldState, setError, and 12 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 3,
+      "file": "packages/ui/src/components/modals/content/post/ModalPostFooter.test.tsx",
+      "fingerprint": "22588ce475eaaad40507",
+      "message": "Type '{}' is missing the following properties from type 'Omit<ModalPostFooterProps, \"onSubmit\">': activeTab, onClose, isLoading, globalDescription, and 6 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/post/ModalPostSetupTab.test.tsx",
+      "fingerprint": "4aad8c0bed9353ef1275",
+      "message": "Conversion of type '{ control: {}; setValue: Mock<Procedure>; }' to type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ control: {}; setValue: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ platforms: { credentialId: string; description: string; enabled: boolean; handle: string; label: string; overrideSchedule: boolean; platform: string; targetExecutionState: TargetExecutionState; visibility: PostVisibility; customScheduledDate?: string | undefined; }[]; ... 4 more ...; visibility?: Pos...': watch, getValues, getErrors, getFieldState, and 13 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
+      "fingerprint": "35f851f3b5e1db53e26c",
+      "message": "Type '{ clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; onClose: Mock<Procedure>; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/content/thread/ModalTwitterThread.test.tsx",
+      "fingerprint": "4343e0b1952e9324fd10",
+      "message": "Type '{ onClose: Mock<Procedure>; clipboardService: { copyToClipboard: Mock<Procedure>; }; isOpen: boolean; notificationsService: { success: Mock<Procedure>; }; thread: { ...; }; }' is not assignable to type 'ModalTwitterThreadProps'.   Types of property 'thread' are incompatible.     Type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' is not assignable to type 'TwitterThreadResponse & { articleId: string; }'.       Property 'articleId' is missing in type '{ totalTweets: number; tweets: { characterCount: number; content: string; order: number; }[]; }' but required in type '{ articleId: string; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
+      "fingerprint": "540f2ed6aded43d0a6bb",
+      "message": "Type '{ activeTab: \"references\"; accountReference: null; category: IngredientCategory; filterReferenceId: string; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
+      "fingerprint": "b781d06d11819ef03508",
+      "message": "Type '{ accountReference: null; activeTab: \"media\"; category: IngredientCategory; filterReferenceId: string; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
+      "fingerprint": "e1f3e94eb14526cb68c3",
+      "message": "Type '{ filterReferenceId: string; accountReference: null; activeTab: \"media\"; category: IngredientCategory; localFormat: \"portrait\"; onClearFilter: Mock<Procedure>; onReloadItems: Mock<...>; onTabChange: Mock<...>; onUseAccountReference: Mock<...>; tabs: { ...; }[]; }' is not assignable to type 'ModalGalleryHeaderProps'.   Types of property 'localFormat' are incompatible.     Type '\"portrait\"' is not assignable to type 'IngredientFormat'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/ModalGalleryHeader.test.tsx",
+      "fingerprint": "2836b0cc35047dab8394",
+      "message": "Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/hooks/useModalGallery.ts",
+      "fingerprint": "e20f8a363f6838b6a353",
+      "message": "Property 'toSorted' does not exist on type 'string[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
+      "fingerprint": "67de6056a463ba78f59b",
+      "message": "Type '{ onSelect: Mock<Procedure>; getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; isSelected: boolean; localFormat: \"portrait\"; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
+      "fingerprint": "7ad3d773793ba865b0ef",
+      "message": "Type '{ getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; isSelected: boolean; localFormat: \"portrait\"; onSelect: Mock<...>; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemImage.test.tsx",
+      "fingerprint": "ba68309a14456247d670",
+      "message": "Type '{ isSelected: true; getFormatLabel: Mock<(format: any) => any>; getImageFormat: Mock<() => \"portrait\">; image: { height: number; id: string; width: number; }; localFormat: \"portrait\"; onSelect: Mock<...>; }' is not assignable to type 'ModalGalleryItemImageProps'.   Types of property 'image' are incompatible.     Type '{ height: number; id: string; width: number; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "4024cdbe34f81bd0b8de",
+      "message": "Type '{ isSelected: true; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; onSelect: Mock<Procedure>; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "7e994adae865d5b8b563",
+      "message": "Type '{ onSelect: Mock<Procedure>; isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "94964850a90dfc05b7ef",
+      "message": "Type '{ onSelect: Mock<Procedure>; isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "be6aab841802bffbea56",
+      "message": "Type '{ isSelected: boolean; music: { id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }; onSelect: Mock<Procedure>; }' is not assignable to type 'ModalGalleryItemMusicProps'.   Types of property 'music' are incompatible.     Type '{ id: string; ingredientUrl: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "990b511782e348e3f3f8",
+      "message": "Type '{ metadata: {}; id: string; ingredientUrl: string; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "cdefaf55f64abb3a06e7",
+      "message": "Type '{ ingredientUrl: undefined; id: string; metadata: { label: string; }; metadataDuration: number; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemMusic.test.tsx",
+      "fingerprint": "e9c23d6548cafe55e846",
+      "message": "Type '{ metadataDuration: undefined; id: string; ingredientUrl: string; metadata: { label: string; }; }' is missing the following properties from type 'IMusic': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
+      "fingerprint": "0ffc356ae6a22c373c6d",
+      "message": "Type '{ isSelected: true; selectedItems: string[]; onSelect: Mock<Procedure>; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
+      "fingerprint": "319c576a044b6320e88b",
+      "message": "Type '{ onSelect: Mock<Procedure>; isSelected: boolean; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectedItems: never[]; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
+      "fingerprint": "b30fe786491369b208a7",
+      "message": "Type '{ isSelected: boolean; onSelect: Mock<Procedure>; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectedItems: never[]; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemReference.test.tsx",
+      "fingerprint": "d9ad7ed64bf6f76b20de",
+      "message": "Type '{ isSelected: true; onSelect: Mock<Procedure>; onSelectionLimit: Mock<Procedure>; reference: { id: string; url: string; }; selectedItems: never[]; selectionLimit: number; }' is not assignable to type 'ModalGalleryItemReferenceProps'.   Types of property 'reference' are incompatible.     Type '{ id: string; url: string; }' is missing the following properties from type 'IAsset': userId, parentType, category, isDeleted, and 2 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemVideo.test.tsx",
+      "fingerprint": "b2f3d699ade62defa748",
+      "message": "Type '{ onSelect: Mock<Procedure>; video: { id: string; }; }' is not assignable to type 'ModalGalleryItemVideoProps'.   Types of property 'video' are incompatible.     Type '{ id: string; }' is missing the following properties from type 'IVideo': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/gallery/items/ModalGalleryItemVideo.test.tsx",
+      "fingerprint": "e99e661f74b9e29748f4",
+      "message": "Type '{ onSelect: Mock<Procedure>; video: { id: string; }; }' is not assignable to type 'ModalGalleryItemVideoProps'.   Types of property 'video' are incompatible.     Type '{ id: string; }' is missing the following properties from type 'IVideo': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 8,
+      "file": "packages/ui/src/components/modals/ingredients/upload/ModalUpload.test.tsx",
+      "fingerprint": "33856267f900d2e1cc25",
+      "message": "Type '{ type: string; onComplete: Mock<Procedure>; }' is not assignable to type 'IntrinsicAttributes & ModalUploadProps'.   Property 'type' does not exist on type 'IntrinsicAttributes & ModalUploadProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/trainings/ModalTraining.test.tsx",
+      "fingerprint": "6335c0375f0d22eb3cbd",
+      "message": "Conversion of type '{ current: null; }' to type 'RefObject<HTMLFormElement>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Types of property 'current' are incompatible.     Type 'null' is not comparable to type 'HTMLFormElement'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2559,
+      "count": 1,
+      "file": "packages/ui/src/components/modals/trainings/ModalTrainingNew.test.tsx",
+      "fingerprint": "74130d0e8ffcdd41a2d3",
+      "message": "Type '{ onConfirm: Mock<Procedure>; }' has no properties in common with type 'IntrinsicAttributes & ModalTrainingNewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/navigation/pagination/Pagination.test.tsx",
+      "fingerprint": "6f99d0af73eea27496ab",
+      "message": "Property 'totalPages' is missing in type '{ currentPage: number; onPageChange: Mock<Procedure>; }' but required in type 'PaginationProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/navigation/pagination/Pagination.test.tsx",
+      "fingerprint": "91805e2ff66738d7dbdf",
+      "message": "Property 'currentPage' is missing in type '{ totalPages: number; onPageChange: Mock<Procedure>; }' but required in type 'PaginationProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 3,
+      "file": "packages/ui/src/components/overview/OverviewLayout.test.tsx",
+      "fingerprint": "955d905c0bd251f5e8a5",
+      "message": "Type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }[]' is not assignable to type 'OverviewCard[]'.   Property 'id' is missing in type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }' but required in type 'OverviewCard'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/overview/OverviewTrendsPanel.tsx",
+      "fingerprint": "42bfa1fa536b514746a0",
+      "message": "Property 'toSorted' does not exist on type 'TrendItem[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/ui/src/components/overview/OverviewTrendsPanel.tsx",
+      "fingerprint": "b5453493f2715e67253b",
+      "message": "Parameter 'trend' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/overview/OverviewTrendsPanel.tsx",
+      "fingerprint": "e34bf526f2f7f8f9b101",
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/posts/filter/posts-filter/PostsFilter.test.tsx",
+      "fingerprint": "66d23b3d5ce05ba834ae",
+      "message": "Type '{}' is missing the following properties from type 'PostsFilterProps': value, onChange",
+      "workspace": "ui"
+    },
+    {
+      "code": 2550,
+      "count": 1,
+      "file": "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx",
+      "fingerprint": "0379c55e74351e503001",
+      "message": "Property 'toSorted' does not exist on type '{ decision: ReviewDecision; feedback?: string | undefined; reviewedAt: string; }[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2023' or later.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 2,
+      "file": "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx",
+      "fingerprint": "16c3015d5be49a221705",
+      "message": "Parameter 'left' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7006,
+      "count": 1,
+      "file": "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx",
+      "fingerprint": "7f49ec5e3b896956b9aa",
+      "message": "Parameter 'event' implicitly has an 'any' type.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/posts/quick-actions/post-quick-actions/PostQuickActions.test.tsx",
+      "fingerprint": "2553405ca4223af1552d",
+      "message": "Type '{}' is missing the following properties from type 'PostQuickActionsProps': postId, onEnhance, isEnhancing, enhancingAction",
+      "workspace": "ui"
+    },
+    {
+      "code": 2367,
+      "count": 1,
+      "file": "packages/ui/src/components/pricing/card/PricingCard.tsx",
+      "fingerprint": "eaae6e49e6163986aaff",
+      "message": "This comparison appears to be unintentional because the types 'SubscriptionStatus | undefined' and '\"active\"' have no overlap.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 3,
+      "file": "packages/ui/src/components/pricing/toggle/PricingToggle.test.tsx",
+      "fingerprint": "4b416d2d15a7836cf345",
+      "message": "Type '{}' is missing the following properties from type 'PricingToggleProps': isYearly, setIsYearly",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "08b862c62380c21f6cc0",
+      "message": "Type '\"video\"' is not assignable to type 'ModelCategory'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "19910204c8031d37284a",
+      "message": "Type '\"image\"' is not assignable to type 'ModelCategory'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "22a371c03f846af73dd3",
+      "message": "Type '{}' is not assignable to type 'Partial<Omit<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }, \"text\">> & { ...; }'.   Property 'isValid' is missing in type '{}' but required in type '{ isValid: boolean; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "caf827ba11e3462d5c49",
+      "message": "Type '((e?: FormEvent<HTMLFormElement> | undefined) => void) | undefined' is not assignable to type 'MouseEventHandler<HTMLButtonElement> | undefined'.   Type '(e?: FormEvent<HTMLFormElement> | undefined) => void' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.     Types of parameters 'e' and 'event' are incompatible.       Type 'MouseEvent<HTMLButtonElement, MouseEvent>' is not assignable to type 'FormEvent<HTMLFormElement>'.         Types of property 'currentTarget' are incompatible.           Type 'EventTarget & HTMLButtonElement' is not assignable to type 'EventTarget & HTMLFormElement'.             Type 'EventTarget & HTMLButtonElement' is missing the following properties from type 'HTMLFormElement': acceptCharset, action, autocomplete, elements, and 12 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "dc982f9ccd2d6c394402",
+      "message": "Type '{ text: string; }' is not assignable to type 'Partial<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }> & { ...; }'.   Property 'isValid' is missing in type '{ text: string; }' but required in type '{ isValid: boolean; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "66906887e122bd2a1b2a",
+      "message": "Object literal may only specify known properties, and 'name' does not exist in type 'ITraining'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "726e4207024649e1764e",
+      "message": "Object literal may only specify known properties, and 'name' does not exist in type 'IFolder'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "775f8973bc9761babf4e",
+      "message": "Object literal may only specify known properties, and 'id' does not exist in type 'FormDropdownOption'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "bacc7513ffa2ff54715e",
+      "message": "Object literal may only specify known properties, and 'id' does not exist in type 'FormDropdownOption'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "18565267dd479f99b41b",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementCameraMovement': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "417e0c2e5487e1214889",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementLighting': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "555f60107c2142aafaa7",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementCamera': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "5a8d359a047835a3325e",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementScene': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "6bd333e24197124eaf5a",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementLens': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "95f8ceabaa1949c4c093",
+      "message": "Type '{ isDefault: true; key: string; label: string; }' is missing the following properties from type 'IElementBlacklist': isActive, id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "964f243d6a826bf7b050",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementMood': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "b4216d57b69d062eb29f",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IFontFamily': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "f6e63f0dde9b6fed0769",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IElementStyle': id, isDeleted, createdAt, updatedAt",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "3cc5dbc5ec1826333add",
+      "message": "Type '{ key: string; label: string; }' is missing the following properties from type 'IPreset': description, category, isActive, id, and 3 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
+      "fingerprint": "d70e91bea99c514d2ba2",
+      "message": "Type '{ isDefault: true; key: string; label: string; }' is missing the following properties from type 'ISound': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "3317d81706cf55d20c71",
+      "message": "Type '{ children: string | undefined; \"aria-label\": string; \"data-testid\": string | undefined; placeholder: string | undefined; role: \"textbox\"; tabIndex: number; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.   Property 'placeholder' does not exist on type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "459c6c9b3e56b0e47206",
+      "message": "Property 'isGenerateBlocked' is missing in type '{ extraExtensions: never; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; ... 22 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "76d53bf159f823b85e24",
+      "message": "Property 'isGenerateBlocked' is missing in type '{ activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 21 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "9efef227bd205f71e530",
+      "message": "Property 'isGenerateBlocked' is missing in type '{ isDisabled: true; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 20 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "ae5f8e5e7e96a8e2e5c7",
+      "message": "Property 'isGenerateBlocked' is missing in type '{ isGenerating: true; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 20 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
+      "fingerprint": "bdbae5f049eddeae567b",
+      "message": "Property 'isGenerateBlocked' is missing in type '{ activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 21 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "cf49b350ffddff32ba38",
+      "message": "Type 'Mock<(name?: string | undefined) => \"already typing\" | undefined>' is not assignable to type 'UseFormWatch<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>'.   Type 'string | undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }'.     Type 'undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "0f33143a4af90c5fa449",
+      "message": "Argument of type 'HTMLElement | null' is not assignable to parameter of type 'Element'.   Type 'null' is not assignable to type 'Element'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "c1c69a6233fad6cc258c",
+      "message": "Argument of type 'HTMLElement | null' is not assignable to parameter of type 'Element'.   Type 'null' is not assignable to type 'Element'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "1f0ea406a836dece49ae",
+      "message": "Type '{ generationMeter: null; activeGenerations: never[]; avatars: never[]; categoryType: IngredientCategory; controlClass: string; currentConfig: { buttons: { model: boolean; }; defaultModel: string; placeholder: string; }; ... 53 more ...; watchedQuality: string; }' is missing the following properties from type 'PromptBarEssentialsProps': pathname, referenceSource, isSupported, generateLabel",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "7b7fd273f6ba70c39da1",
+      "message": "Type '{ isGenerating: true; activeGenerations: never[]; avatars: never[]; categoryType: IngredientCategory; controlClass: string; currentConfig: { buttons: { model: boolean; }; defaultModel: string; placeholder: string; }; ... 53 more ...; watchedQuality: string; }' is missing the following properties from type 'PromptBarEssentialsProps': pathname, referenceSource, isSupported, generateLabel",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 7,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "e3da62a9158cc110d631",
+      "message": "Type '{ extraExtensions: never; activeGenerations: never[]; avatars: never[]; categoryType: IngredientCategory; controlClass: string; currentConfig: { buttons: { model: boolean; }; defaultModel: string; placeholder: string; }; ... 54 more ...; watchedQuality: string; }' is missing the following properties from type 'PromptBarEssentialsProps': pathname, referenceSource, isSupported, generateLabel",
+      "workspace": "ui"
+    },
+    {
+      "code": 2739,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "f74623b106c952488861",
+      "message": "Type '{ activeGenerations: never[]; avatars: never[]; categoryType: IngredientCategory; controlClass: string; currentConfig: { buttons: { model: boolean; }; defaultModel: string; placeholder: string; }; ... 54 more ...; watchedQuality: string; }' is missing the following properties from type 'PromptBarEssentialsProps': pathname, referenceSource, isSupported, generateLabel",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
+      "fingerprint": "8fbc711ba14c0a24fa09",
+      "message": "Type '{ setValue: Mock<Procedure>; control: {}; formState: { isValid: boolean; }; getValues: Mock<(name?: string | undefined) => false | undefined>; watch: Mock<(name?: string | undefined) => \"\" | undefined>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/model-controls/PromptBarModelControls.test.tsx",
+      "fingerprint": "37bfc5a22ea72e1990f6",
+      "message": "Property 'lifecycle' is missing in type '{ category: ModelCategory.IMAGE; cost: number; createdAt: string; id: string; isActive: true; isDefault: true; isDeleted: false; key: \"google/imagen-3\"; label: string; provider: ModelProvider.REPLICATE; updatedAt: string; }' but required in type 'IModel'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2353,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
+      "fingerprint": "336325139a6725b277de",
+      "message": "Object literal may only specify known properties, and 'hasAnyResolutionOptionsValue' does not exist in type 'PromptBarQuickOptionsProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
+      "fingerprint": "749fc55673c4ae74abbc",
+      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 2,
+      "file": "packages/ui/src/components/prompt-bars/components/quick-options/PromptBarQuickOptions.test.tsx",
+      "fingerprint": "8cc7f7b98a494c44546f",
+      "message": "Property 'hasAnyResolutionOptionsValue' is missing in type '{ currentConfig: PromptBarConfig; pathname: string; categoryType?: IngredientCategory | undefined; currentModelCategory?: ModelCategory | null | undefined; ... 31 more ...; inlineContent?: ReactNode; }' but required in type 'PromptBarQuickOptionsWrapperProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2614,
+      "count": 1,
+      "file": "packages/ui/src/components/providers/index.ts",
+      "fingerprint": "0167d68dd077f79395b4",
+      "message": "Module '\"@ui/providers/AppProviders\"' has no exported member 'AppProvidersProps'. Did you mean to use 'import AppProvidersProps from \"@ui/providers/AppProviders\"' instead?",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/publisher/PostingSignaturePicker.test.tsx",
+      "fingerprint": "93f1f209333250628e61",
+      "message": "Type '\"linkedin\"' is not assignable to type 'Platform'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "5cdccf7c9b933d7b486e",
+      "message": "Property 'icon' does not exist on type 'IconURL | Icon[] | Icons'.   Property 'icon' does not exist on type 'string'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "cd9355559b379cf9352a",
+      "message": "Property 'apple' does not exist on type 'IconURL | Icon[] | Icons'.   Property 'apple' does not exist on type 'string'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 2,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "df9552cd32ab24035330",
+      "message": "Property 'icon' does not exist on type 'IconURL | Icon[] | Icons'.   Property 'icon' does not exist on type 'string'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "acd43a18d2a09ced4a25",
+      "message": "Conversion of type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' to type 'PWAAppConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'appName' is missing in type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' but required in type 'PWAAppConfig'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "e23ee475a69b3152e3b9",
+      "message": "Conversion of type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' to type 'PWAAppConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'appName' is missing in type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' but required in type 'PWAAppConfig'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "packages/ui/src/components/pwa/pwa.helper.test.ts",
+      "fingerprint": "e531e57b8f64c92c1741",
+      "message": "Conversion of type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' to type 'PWAAppConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'appName' is missing in type '{ appId: string; backgroundColor: string; description: string; displayName: string; scope: string; shortName: string; startUrl: string; themeColorDark: string; themeColorLight: string; }' but required in type 'PWAAppConfig'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/quick-actions/actions/IngredientQuickActions.test.tsx",
+      "fingerprint": "3ded72aaa37dc61a119b",
+      "message": "Type '{ subscriptionTier: SubscriptionTier.FREE; }' is not assignable to type 'null'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/quick-actions/actions/IngredientQuickActions.test.tsx",
+      "fingerprint": "7bcfd38dcaede0edc3f9",
+      "message": "Type '{ subscriptionTier: SubscriptionTier.PRO; }' is not assignable to type 'null'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/quick-actions/button/QuickActionButton.test.tsx",
+      "fingerprint": "378403353f5a97b7ea21",
+      "message": "Property 'onClick' is missing in type '{ id: string; icon: JSX.Element; label: string; variant: \"primary\"; }' but required in type 'IQuickAction'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 1,
+      "file": "packages/ui/src/components/quick-actions/button/QuickActionButton.test.tsx",
+      "fingerprint": "3c6c652a01e7d0332e08",
+      "message": "Property 'onClick' is missing in type '{ id: string; icon: JSX.Element; label: string; variant: \"primary\"; }' but required in type 'IQuickAction'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/ui/src/components/quick-actions/config/quick-actions.config.test.tsx",
+      "fingerprint": "09ac1a6053e1e341ade9",
+      "message": "Argument of type 'Partial<IIngredient>' is not assignable to parameter of type 'IIngredient'.   Types of property 'category' are incompatible.     Type 'IngredientCategory | undefined' is not assignable to type 'IngredientCategory'.       Type 'undefined' is not assignable to type 'IngredientCategory'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2741,
+      "count": 3,
+      "file": "packages/ui/src/components/quick-actions/container/QuickActionsContainer.test.tsx",
+      "fingerprint": "fbf75d51aa3c9a0f6680",
+      "message": "Property 'children' is missing in type '{}' but required in type 'QuickActionsContainerProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7016,
+      "count": 1,
+      "file": "packages/ui/src/components/shell/AppHtmlDocument.test.tsx",
+      "fingerprint": "42ad691503c1e1c874b3",
+      "message": "Could not find a declaration file for module 'jsdom'. '<root>/node_modules/.bun/jsdom@29.1.1/node_modules/jsdom/lib/api.js' implicitly has an 'any' type.   Try `npm i --save-dev @types/jsdom` if it exists or add a new declaration (.d.ts) file containing `declare module 'jsdom';`",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/shell/app-switcher/AppSwitcher.test.tsx",
+      "fingerprint": "bf032cc42e03c525d324",
+      "message": "Type '{ children: ReactNode; type: \"button\"; onClick: (() => void) | undefined; \"aria-label\": string | undefined; className: string | undefined; \"aria-current\": string | undefined; }' is not assignable to type 'DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>'.   Type '{ children: ReactNode; type: \"button\"; onClick: (() => void) | undefined; \"aria-label\": string | undefined; className: string | undefined; \"aria-current\": string | undefined; }' is not assignable to type 'ButtonHTMLAttributes<HTMLButtonElement>'.     Types of property '\"aria-current\"' are incompatible.       Type 'string | undefined' is not assignable to type 'boolean | \"date\" | \"step\" | \"page\" | \"time\" | \"false\" | \"true\" | \"location\" | undefined'.         Type 'string' is not assignable to type 'boolean | \"date\" | \"step\" | \"page\" | \"time\" | \"false\" | \"true\" | \"location\" | undefined'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/studio/frame-sequence/FrameSequenceSelector.test.tsx",
+      "fingerprint": "a31636efa2bef45b746b",
+      "message": "Type '{ id: string; ingredientUrl: string; }[]' is not assignable to type 'IImage[]'.   Type '{ id: string; ingredientUrl: string; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/studio/frame-sequence/FrameSequenceSelector.test.tsx",
+      "fingerprint": "b69df50b7510ac0b530d",
+      "message": "Type '{ id: string; ingredientUrl: string; }[]' is not assignable to type 'IImage[]'.   Type '{ id: string; ingredientUrl: string; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 1,
+      "file": "packages/ui/src/components/studio/frame-sequence/FrameSequenceSelector.test.tsx",
+      "fingerprint": "170b2902f175839d0869",
+      "message": "Type '{ id: string; ingredientUrl: string; }' is missing the following properties from type 'IImage': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2740,
+      "count": 3,
+      "file": "packages/ui/src/components/tags/manager/TagsManager.test.tsx",
+      "fingerprint": "989934a272f7aaa5f115",
+      "message": "Type '{ id: string; tags: never[]; }' is missing the following properties from type 'IIngredient': category, status, user, organization, and 11 more.",
+      "workspace": "ui"
+    },
+    {
+      "code": 7016,
+      "count": 1,
+      "file": "packages/ui/src/components/theme/ThemeBootstrapScript.test.tsx",
+      "fingerprint": "0dbb271d899e3a634595",
+      "message": "Could not find a declaration file for module 'jsdom'. '<root>/node_modules/.bun/jsdom@29.1.1/node_modules/jsdom/lib/api.js' implicitly has an 'any' type.   Try `npm i --save-dev @types/jsdom` if it exists or add a new declaration (.d.ts) file containing `declare module 'jsdom';`",
+      "workspace": "ui"
+    },
+    {
+      "code": 2554,
+      "count": 3,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.test.tsx",
+      "fingerprint": "c2f2639956afbbe2bd37",
+      "message": "Expected 1 arguments, but got 0.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
+      "fingerprint": "1c894a294bed80c94ce3",
+      "message": "Type 'OnEdgesChange' is not assignable to type '(changes: unknown[]) => void'.   Types of parameters 'changes' and 'changes' are incompatible.     Type 'unknown[]' is not assignable to type 'EdgeChange<Edge>[]'.       Type 'unknown' is not assignable to type 'EdgeChange<Edge>'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
+      "fingerprint": "1e752219eb5fc1137bbe",
+      "message": "Type 'Edge[]' is not assignable to type 'WorkflowEdge[]'.   Type 'Edge' is not assignable to type 'WorkflowEdge'.     Types of property 'sourceHandle' are incompatible.       Type 'string | null | undefined' is not assignable to type 'string | undefined'.         Type 'null' is not assignable to type 'string | undefined'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
+      "fingerprint": "46837ab3b98303e37eb7",
+      "message": "Type 'OnNodesChange<Node<WorkflowNodeData>>' is not assignable to type '(changes: unknown[]) => void'.   Types of parameters 'changes' and 'changes' are incompatible.     Type 'unknown[]' is not assignable to type 'NodeChange<Node<WorkflowNodeData>>[]'.       Type 'unknown' is not assignable to type 'NodeChange<Node<WorkflowNodeData>>'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowBuilder.tsx",
+      "fingerprint": "6e73b490544d5a7faa32",
+      "message": "Type '(connection: Connection) => void' is not assignable to type '(connection: WorkflowCanvasConnection) => void'.   Types of parameters 'connection' and 'connection' are incompatible.     Type 'WorkflowCanvasConnection' is not assignable to type 'Connection'.       Types of property 'source' are incompatible.         Type 'string | null | undefined' is not assignable to type 'string'.           Type 'undefined' is not assignable to type 'string'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
+      "fingerprint": "2ce09063969ff6f84a14",
+      "message": "Type '{ onDrop: Mock<Procedure>; edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
+      "fingerprint": "5c017c8c91f822e602a7",
+      "message": "Type '{ edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
+      "fingerprint": "972c33a53e5c414ea79d",
+      "message": "Type '{ onNodeSelect: Mock<Procedure>; edges: Edge[]; isReadOnly: boolean; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowCanvas.test.tsx",
+      "fingerprint": "e938199cd648d68ad8b0",
+      "message": "Type '{ isReadOnly: true; edges: Edge[]; nodes: Node[]; onConnect: Mock<Procedure>; onDrop: Mock<Procedure>; onEdgesChange: Mock<Procedure>; onNodeSelect: Mock<...>; onNodesChange: Mock<...>; }' is not assignable to type 'WorkflowCanvasProps'.   Types of property 'nodes' are incompatible.     Type 'Node[]' is not assignable to type 'WorkflowCanvasNode[]'.       Type 'Node' is not assignable to type 'WorkflowCanvasNode'.         Types of property 'data' are incompatible.           Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowNodeData': label, config, nodeType",
+      "workspace": "ui"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/WorkflowToolbar.tsx",
+      "fingerprint": "b32122038ac4f5ab3abe",
+      "message": "Property '_workflowId' does not exist on type 'WorkflowToolbarProps'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/nodes/BaseNode.test.tsx",
+      "fingerprint": "9f9d5efb36ed75c7db16",
+      "message": "Type '{ config: { aspectRatio: string; }; definition: { category: string; configSchema: {}; description: string; icon: string; inputs: { media: { label: string; type: string; }; }; label: string; outputs: { result: { ...; }; }; }; label: string; nodeType: string; }' is not assignable to type 'WorkflowNodeData'.   The types of 'definition.category' are incompatible between these types.     Type 'string' is not assignable to type '\"processing\" | \"output\" | \"input\" | \"effects\" | \"ai\" | \"control\"'.",
+      "workspace": "ui"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/ui/src/components/workflow-builder/panels/NodeConfigPanel.test.tsx",
+      "fingerprint": "f72691932b174c77d696",
+      "message": "Type '{ configSchema: { prompt: { label: string; placeholder: string; type: \"text\"; }; }; label?: string | undefined; description?: string | undefined; category?: \"processing\" | \"output\" | \"input\" | \"effects\" | \"ai\" | \"control\" | undefined; ... 5 more ...; isEnabled?: boolean; }' is not assignable to type 'NodeDefinition'.   Types of property 'label' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
       "workspace": "ui"
     },
     {

@@ -2,40 +2,15 @@ vi.mock('@/components/shell/NotificationInboxMenu', () => ({
   default: () => <div data-testid="notification-inbox" />,
 }));
 
-const messagesUnread = vi.hoisted(() => ({
-  count: 0,
-  spy: vi.fn(),
-}));
-vi.mock('@/components/shell/use-messages-unread-count', () => ({
-  useMessagesUnreadCount: (
-    brandId?: string,
-    isBrandScopeResolved?: boolean,
-  ) => {
-    messagesUnread.spy(brandId, isBrandScopeResolved);
-    return messagesUnread.count;
-  },
-}));
-
-// The constants barrel is mocked below, so the catalog-backed stub cannot load.
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string, values?: { count?: number }) =>
-    key === 'unreadBadge' ? `${values?.count} unread conversations` : key,
-}));
-
-import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
-const appSwitcherSpy = vi.hoisted(() => vi.fn());
 const brandSwitcherSpy = vi.hoisted(() => vi.fn());
 const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
   value: '/acme/brand/workspace',
-}));
-const mockAccessState = vi.hoisted(() => ({
-  isSuperAdmin: false,
 }));
 const workspaceInspectorState = vi.hoisted(() => ({
   value: null as {
@@ -142,13 +117,6 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock(
-  '@genfeedai/contexts/providers/access-state/access-state.provider',
-  () => ({
-    useAccessState: () => mockAccessState,
-  }),
-);
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -209,25 +177,6 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   },
 }));
 
-vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
-  AppSwitcher: (props: {
-    brandAwareSlug?: string;
-    brandSlug?: string;
-    currentPath?: string;
-    orgSlug: string;
-    preservedSearch?: string;
-    resolveNavigation?: (href: string) => {
-      announcement?: string;
-      href: string;
-    };
-    showAdmin?: boolean;
-    variant?: string;
-  }) => {
-    appSwitcherSpy(props);
-    return <div data-testid="app-switcher">{props.variant}</div>;
-  },
-}));
-
 vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
   default: () => <div data-testid="topbar-credits-bar">Credits</div>,
 }));
@@ -269,18 +218,12 @@ vi.mock('next/navigation', () => ({
 
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 
-const threadId = testId('thread');
-
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
-    mockAccessState.isSuperAdmin = false;
     workspaceInspectorState.value = null;
-    appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
-    messagesUnread.count = 0;
-    messagesUnread.spy.mockClear();
     brandContextState.brands = [
       {
         id: 'brand',
@@ -307,28 +250,21 @@ describe('AppProtectedTopbar', () => {
     });
   });
 
-  it('renders brand scope on the left, breadcrumb title in the middle, and controls on the right', () => {
+  it('carries only the page identity and actions, never the brand or org', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
 
-    const brandSwitcher = screen.getByTestId('brand-switcher');
     const breadcrumbs = screen.getByRole('navigation', {
       name: 'Breadcrumb',
     });
-    const switcher = screen.getByTestId('app-switcher');
     const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
+    // The brand switcher is the sidebar header; the org is on the app rail.
+    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
     expect(topbarInner).toHaveClass('gap-3', 'px-3');
-    expect(brandSwitcher).toHaveTextContent('labeled');
     expect(breadcrumbs).toHaveTextContent('Studio');
-    expect(switcher).toHaveTextContent('icon');
-    expect(switcher).toBeInTheDocument();
-    expect(
-      brandSwitcher.compareDocumentPosition(breadcrumbs) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
     expect(
       breadcrumbs.compareDocumentPosition(credits) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -342,156 +278,14 @@ describe('AppProtectedTopbar', () => {
       activityMenu.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    // Cloud-sync sits before the grouped app-switcher/settings cluster.
+  });
+
+  it('leaves app navigation to the rail', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
     expect(
-      cloudSyncIndicator.compareDocumentPosition(switcher) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('badges the Messages tile with the route brand unread count', () => {
-    messagesUnread.count = 3;
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="workspace"
-      />,
-    );
-
-    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand', true);
-    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).toEqual(
-      expect.objectContaining({
-        badges: {
-          messages: { count: 3, label: '3 unread conversations' },
-        },
-      }),
-    );
-  });
-
-  it('counts every brand for the org-scoped Messages tile', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, true);
-  });
-
-  it('never falls back to the org-wide count while the routed brand has not loaded yet', () => {
-    brandContextState.brands = [];
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="workspace"
-      />,
-    );
-
-    // Unresolved: no brand id yet, and the hook must not fetch org-wide
-    // instead — that would flash the wrong count once brands load.
-    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, false);
-  });
-
-  it('does not inject the context brand into explicit org-scoped routes', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandAwareSlug: 'brand',
-        brandSlug: undefined,
-        orgSlug: 'acme',
-      }),
-    );
-    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
-      'currentApp',
-    );
-  });
-
-  it('hides the brand switcher on organization settings routes', () => {
-    mockPathname.value = '/acme/~/settings/api-keys';
-
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandAwareSlug: 'brand',
-        brandSlug: undefined,
-        orgSlug: 'acme',
-      }),
-    );
-  });
-
-  it('hides the brand switcher on every flat personal settings page even with a brand selected in session', () => {
-    // Flat /settings/* pages carry no orgSlug/brandSlug route param — the
-    // mocked useOrgUrl above still backfills brandSlug: 'brand' from the
-    // session's last-selected brand, which is exactly the bug (#4659): the
-    // switcher must key off the page itself, not that backfill.
-    for (const pathname of [
-      '/settings',
-      '/settings/personal',
-      '/settings/notifications',
-      '/settings/progress',
-      '/settings/help',
-      '/settings/about',
-    ]) {
-      mockPathname.value = pathname;
-
-      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
-
-      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
-      unmount();
-    }
-  });
-
-  it('hides the brand switcher on every org-scoped copy of a personal settings page', () => {
-    for (const pathname of [
-      '/acme/~/settings/personal',
-      '/acme/~/settings/notifications',
-      '/acme/~/settings/progress',
-      '/acme/~/settings/help',
-    ]) {
-      mockPathname.value = pathname;
-
-      const { unmount } = render(
-        <AppProtectedTopbar orgSlug="acme" currentApp="workspace" />,
-      );
-
-      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
-      unmount();
-    }
-  });
-
-  it('does not hide the brand switcher on non-settings routes with no org/brand route param (#4659 review)', () => {
-    // Before the fix, a route-param-derived "settings scope" evaluated
-    // PERSONAL for ANY route with no orgSlug/brandSlug param — including `/`
-    // and `/connect` — and wrongly hid the brand switcher there too.
-    for (const pathname of ['/', '/connect']) {
-      mockPathname.value = pathname;
-
-      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
-
-      expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
-      unmount();
-    }
-  });
-
-  it('passes an explicit brand route through to the app switcher', () => {
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="workspace"
-      />,
-    );
-
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandSlug: 'brand',
-        orgSlug: 'acme',
-      }),
-    );
-    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
-      'currentApp',
-    );
+      screen.queryByRole('button', { name: 'Switch app' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders admin chrome without brand, credits, account, or cloud controls', () => {
@@ -507,17 +301,6 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.getByRole('navigation', { name: 'Breadcrumb' }),
     ).toHaveTextContent('Admin');
-    expect(screen.getByTestId('app-switcher')).toHaveTextContent('icon');
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandSlug: 'brand',
-        orgSlug: 'acme',
-        showAdmin: true,
-      }),
-    );
-    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
-      'currentApp',
-    );
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('topbar-activity-menu'),
@@ -528,68 +311,11 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
   });
 
-  it('enables the admin app switcher item for platform admins', () => {
-    mockAccessState.isSuperAdmin = true;
-
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        showAdmin: true,
-      }),
-    );
-  });
-
-  it('hides the admin app switcher item for non-admin users', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(appSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        showAdmin: false,
-      }),
-    );
-  });
-
-  it('launches switcher destinations through the trusted shell resolver', () => {
-    mockSearchParams = new URLSearchParams([
-      ['taskId', 'task-1'],
-      ['taskSource', 'workspace'],
-      ['thread', 'thread-1'],
-    ]);
-
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="agent"
-      />,
-    );
-
-    const switcherProps = appSwitcherSpy.mock.lastCall?.[0] as {
-      preservedSearch?: string;
-      resolveNavigation?: (href: string) => {
-        announcement?: string;
-        href: string;
-      };
-    };
-
-    expect(switcherProps.preservedSearch).toBe(
-      'taskId=task-1&taskSource=workspace',
-    );
-    expect(
-      switcherProps.resolveNavigation?.('/acme/brand/analytics?taskId=task-1'),
-    ).toEqual({
-      announcement: 'Opening analytics in canvas mode.',
-      href: '/acme/brand/analytics?taskId=task-1',
-    });
-  });
-
   it('places credits first in the right-side control cluster', () => {
     render(<AppProtectedTopbar />);
 
     const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
-    const switcher = screen.getByTestId('app-switcher');
     const credits = screen.getByTestId('topbar-credits-bar');
 
     expect(
@@ -598,10 +324,6 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
     expect(
       activityMenu.compareDocumentPosition(cloudSyncIndicator) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      cloudSyncIndicator.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -743,119 +465,5 @@ describe('AppProtectedTopbar', () => {
 
     fireEvent.click(drawerToggle);
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
-  });
-
-  it('clears the visible brand on explicit organization routes', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
-
-    expect(brandSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: '',
-        clearSelectionAction: undefined,
-      }),
-    );
-    expect(
-      screen.queryByTestId('clear-brand-selection'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows the selected brand on explicit brand routes', () => {
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="workspace"
-      />,
-    );
-
-    expect(brandSwitcherSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand',
-        clearSelectionAction: expect.objectContaining({
-          ariaLabel: 'Clear brand selection',
-        }),
-      }),
-    );
-    expect(screen.getByTestId('clear-brand-selection')).toBeInTheDocument();
-  });
-
-  it('routes the clear-brand action to the org-scoped equivalent of the current surface', () => {
-    mockPathname.value = '/acme/brand/agent/new';
-
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="agent"
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId('clear-brand-selection'));
-
-    expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
-  });
-
-  it('starts an explicit brandless conversation when clearing a brand-owned thread', () => {
-    mockPathname.value = `/acme/werwer/agent/${threadId}`;
-
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="werwer"
-        currentApp="agent"
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId('clear-brand-selection'));
-
-    expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
-  });
-
-  it('routes clear-brand from brand-only settings to the org brands hub', () => {
-    mockPathname.value = '/acme/brand/settings/publishing';
-
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="brand"
-        currentApp="workspace"
-      />,
-    );
-
-    fireEvent.click(screen.getByTestId('clear-brand-selection'));
-
-    // No /:org/~/settings/publishing page — land on org brand management.
-    expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/brands');
-  });
-
-  it('keeps the agent surface when selecting a brand from an org-scoped route', () => {
-    mockPathname.value = '/acme/~/agent/new';
-
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="agent" />);
-
-    const onBrandChange = brandSwitcherSpy.mock.calls.at(-1)?.[0]
-      ?.onBrandChange as ((id: string) => void) | undefined;
-    expect(onBrandChange).toEqual(expect.any(Function));
-    onBrandChange?.('brand');
-
-    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
-  });
-
-  it('drops the selected conversation when switching brands', () => {
-    mockPathname.value = `/acme/werwer/agent/${threadId}`;
-
-    render(
-      <AppProtectedTopbar
-        orgSlug="acme"
-        brandSlug="werwer"
-        currentApp="agent"
-      />,
-    );
-
-    const onBrandChange = brandSwitcherSpy.mock.calls.at(-1)?.[0]
-      ?.onBrandChange as ((id: string) => void) | undefined;
-    onBrandChange?.('brand');
-
-    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
   });
 });

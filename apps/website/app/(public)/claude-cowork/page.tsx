@@ -1,15 +1,9 @@
-import { getAgentClient } from '@data/agent-clients.data';
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
-import AgentClientContent from '@public/agent-clients/agent-client-content';
+import AgentClientPage, {
+  createAgentClientMetadata,
+} from '@public/agent-clients/agent-client-page';
 
-const client = getAgentClient('claude-cowork');
-
-export const generateMetadata = createPageMetadataWithCanonical(
-  client.title,
-  client.description,
-  `/${client.slug}`,
-);
+export const generateMetadata = createAgentClientMetadata('claude-cowork');
 
 export default function ClaudeCoworkConnectPage(): React.ReactElement {
-  return <AgentClientContent client={client} />;
+  return <AgentClientPage slug="claude-cowork" />;
 }

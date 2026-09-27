@@ -61,6 +61,7 @@ export class FalImageGenerationProviderAdapter
         const result = await this.falService.generateImage(
           request.modelEndpoint ?? getFalEndpointFromModelKey(request.model),
           input,
+          request.apiKeyOverride,
         );
         return {
           externalId: result.url,

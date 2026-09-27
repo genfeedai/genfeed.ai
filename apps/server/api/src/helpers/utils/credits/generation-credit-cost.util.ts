@@ -17,6 +17,14 @@ export type ApprovedImageQuoteConstraint = {
 export type DeferredCreditsConfig = {
   approvedImageQuote?: ApprovedImageQuoteConstraint;
   amount?: number;
+  /**
+   * The org's own decrypted key for `provider`, resolved once alongside the
+   * `isByokBypass` decision (#5294). Dispatch must reuse this exact value —
+   * re-resolving separately would let the credit decision and the actual
+   * provider call disagree about whose key pays.
+   */
+  byokApiKeyOverride?: string;
+  byokApiSecretOverride?: string;
   deferred?: boolean;
   isByokBypass?: boolean;
   modelKey?: string;

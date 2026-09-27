@@ -90,9 +90,28 @@ describe('VideoGenerationProviderDispatchService', () => {
         image_url: 'https://cdn.example.com/reference.png',
         prompt: 'A cinematic sunrise',
       },
+      undefined,
     );
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the Fal dispatch call (#5294)', async () => {
+    falService.generateVideo.mockResolvedValue({
+      url: 'https://fal.example.com/video.mp4',
+    });
+    const params = buildParams({
+      apiKeyOverride: 'org-fal-key',
+      model: MODEL_KEYS.FAL_VEO_3_1,
+    });
+
+    await service.dispatch(params);
+
+    expect(falService.generateVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.FAL_VEO_3_1,
+      expect.anything(),
+      'org-fal-key',
+    );
   });
 
   it('omits absent optional FAL inputs', async () => {
@@ -111,6 +130,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       {
         prompt: 'A cinematic sunrise',
       },
+      undefined,
     );
   });
 
@@ -130,6 +150,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(falService.generateVideo).toHaveBeenCalledWith(
       'minimax/h3/text-to-video',
       expect.objectContaining({ prompt: 'A cinematic sunrise' }),
+      undefined,
     );
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
   });
@@ -148,6 +169,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
       'minimax/h3/text-to-video',
       expect.any(Object),
+      undefined,
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
   });
@@ -165,9 +187,26 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
       'replicate/video-model',
       params.promptParams,
+      undefined,
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the Replicate dispatch call (#5294)', async () => {
+    replicateService.generateTextToVideo.mockResolvedValue('replicate-job');
+    const params = buildParams({
+      apiKeyOverride: 'org-replicate-key',
+      model: 'replicate/video-model',
+    });
+
+    await service.dispatch(params);
+
+    expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+      'replicate/video-model',
+      params.promptParams,
+      'org-replicate-key',
+    );
   });
 
   it('routes Higgsfield DoP video and resolves the polled video URL', async () => {

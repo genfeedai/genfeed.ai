@@ -6,8 +6,9 @@ import { expect, type Page, type Response } from '@playwright/test';
  * Provides a single, robust "does this route render?" check used by the
  * dedicated per-area route specs. Mirrors the proven logic in
  * `e2e/tests/smoke/all-app-pages.spec.ts` so every spec asserts the same
- * health signals: real HTTP response, no framework error overlay, no redirect
- * to login, and a non-blank body.
+ * health signals: real HTTP response, no framework error overlay, no caught
+ * application ErrorBoundary fallback, no redirect to login, and a non-blank
+ * body.
  *
  * @module route-assertions
  */
@@ -42,6 +43,10 @@ export const ERROR_BOUNDARY_FALLBACK_SELECTOR =
  * normal-looking page, so a route smoke that checks only for the overlay and
  * a non-blank body can stay green while the app is actually broken (#5070).
  *
+ * Most boundaries trip only after client data loads, so the check first lets
+ * the network go idle (bounded, best-effort — polling pages fall through).
+ * Checking right after `domcontentloaded` passes before the fallback exists.
+ *
  * @param page - Playwright page, already navigated to `route`
  * @param route - The route being checked, used only for the failure message
  */
@@ -49,6 +54,10 @@ export async function assertNoErrorBoundaryFallback(
   page: Page,
   route: string,
 ): Promise<void> {
+  await page
+    .waitForLoadState('networkidle', { timeout: 5_000 })
+    .catch(() => {});
+
   await expect(
     page.locator(ERROR_BOUNDARY_FALLBACK_SELECTOR),
     `${route} rendered an application error boundary`,
@@ -82,6 +91,8 @@ export async function assertRouteRenders(
     page.locator('[data-nextjs-dialog]'),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
+
+  await assertNoErrorBoundaryFallback(page, route);
 
   if (!allowRedirectToLogin) {
     expect(page.url(), `${route} redirected to login`).not.toMatch(/\/login/);
@@ -135,7 +146,8 @@ export async function tryClick(page: Page, selector: string): Promise<boolean> {
 }
 
 /**
- * Asserts the current page is not showing a framework/runtime error overlay.
+ * Asserts the current page is not showing a framework/runtime error overlay
+ * or a caught application ErrorBoundary fallback.
  *
  * @param page - Playwright page
  */
@@ -143,4 +155,5 @@ export async function expectNoErrorOverlay(page: Page): Promise<void> {
   await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0, {
     timeout: 1_000,
   });
+  await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
 }

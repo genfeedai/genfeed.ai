@@ -35,7 +35,7 @@ describe('static surface primitives', () => {
     expect(staticSurfaceCss).toContain('.gf-ui[data-theme="light"]');
     expect(staticSurfaceCss).toContain('.gf-ui[data-theme="dark"]');
     expect(staticSurfaceCss).toContain('--gf-bg-primary: #FAFAFA');
-    expect(staticSurfaceCss).toContain('--gf-bg-primary: #0A0A0A');
+    expect(staticSurfaceCss).toContain('--gf-bg-primary: #000000');
     expect(staticSurfaceCss).toContain('--gf-grid-line:');
     expect(staticSurfaceCss).toContain('--gf-divider-subtle:');
   });
