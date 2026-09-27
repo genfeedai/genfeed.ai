@@ -2,7 +2,6 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -37,9 +36,10 @@ export class AuthWhoamiController {
     const contextUserId = context?.userId ?? user?.userId ?? user?.id;
     const contextOrganizationId =
       context?.organizationId ?? user?.organizationId;
-    const databaseUserId = EntityIdUtil.isValid(contextUserId)
-      ? String(contextUserId)
-      : '';
+    // `users.id` is opaque: production keeps legacy Better Auth base62 IDs
+    // beside UUIDs, so any non-empty ID is the canonical user reference.
+    const databaseUserId =
+      typeof contextUserId === 'string' ? contextUserId : '';
     const authUserId = user?.id || '';
 
     const isApiKey = user?.isApiKey === true;

@@ -4041,30 +4041,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 4,
-      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
-      "fingerprint": "a49f57d74d5c5bda57bb",
-      "message": "Type '{}' is not assignable to type 'INotificationPayloadTypes'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
-      "fingerprint": "b2b7ec8058cde51cf5ad",
-      "message": "Type '{ to: string; }' is not assignable to type 'INotificationPayloadTypes'.   Type '{ to: string; }' is missing the following properties from type 'IReviewGatePendingEmailPayload': workflowId, workflowLabel, executionId, nodeId",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
-      "fingerprint": "d4e931279d630aa2001c",
-      "message": "Type '{ message: string; }' is not assignable to type 'INotificationPayloadTypes'.   Property 'chatId' is missing in type '{ message: string; }' but required in type 'IReviewGatePendingSlackPayload'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 3,
       "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
@@ -24300,14 +24276,6 @@
       "code": 2503,
       "count": 1,
       "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
-      "fingerprint": "2c2e8e9c306206d14cb8",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
       "fingerprint": "af5c2d5bea6ff2bd4f57",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "workers"
@@ -24357,14 +24325,6 @@
       "count": 1,
       "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
       "fingerprint": "46fe4cd931f929d4a80a",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
-      "fingerprint": "b1fb1017f8ff63404560",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "workers"
     },

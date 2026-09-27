@@ -1,6 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { categoryToPlural, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -22,7 +22,7 @@ export class DevController {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly ingredientsService: IngredientsService,
   ) {
     if (this.configService.isProduction) {
@@ -34,7 +34,7 @@ export class DevController {
 
   /**
    * Test Discord card by sending a real ingredient to the webhook
-   * Fetches ingredient from DB and sends notification through Redis pub/sub
+   * Fetches the ingredient and sends its card through the durable outbox
    *
    * Body: { ingredientId: string }
    */
@@ -88,22 +88,33 @@ export class DevController {
       const category = ingredient.category as IngredientCategory;
       const cdnUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${ingredient.id}`;
 
-      // Send via Redis pub/sub to notifications service
-      await this.notificationsService.sendNotification({
-        action: 'ingredient_notification',
-        payload: {
-          category,
-          cdnUrl,
-          ingredient: {
-            id: ingredient.id,
-            metadata: ingredient.metadata ?? undefined,
-            // The Discord card renders `prompt.original`, so it needs the
-            // populated object, not the id.
-            // relation-alias-ok: explicitly populated in the query above.
-            prompt: ingredient.prompt ?? undefined,
+      // A fresh deduplication key per request: every test sends a card.
+      await this.activityRecorder.dispatch({
+        deduplicationKey: `dev/discord/${ingredient.id}/${Date.now()}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'ingredient_notification',
+              payload: {
+                category,
+                cdnUrl,
+                ingredient: {
+                  id: ingredient.id,
+                  metadata: ingredient.metadata ?? undefined,
+                  // The Discord card renders `prompt.original`, so it needs
+                  // the populated object, not the id.
+                  // relation-alias-ok: explicitly populated in the query above.
+                  prompt: ingredient.prompt ?? undefined,
+                },
+              },
+              type: 'discord',
+            },
           },
-        },
-        type: 'discord',
+        ],
+        organizationId: ingredient.organizationId,
+        source: { id: ingredient.id, type: 'ingredient' },
+        topic: 'operator.alerts',
       });
 
       this.loggerService.log(`${url} completed`, {

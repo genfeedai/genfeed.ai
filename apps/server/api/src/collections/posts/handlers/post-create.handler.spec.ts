@@ -10,7 +10,7 @@ describe('createPost draft boundary', () => {
   function setup() {
     const mocks = {
       accountHealthService: { evaluateScheduledPublishGate: vi.fn() },
-      activitiesService: { create: vi.fn() },
+      activityRecorder: { record: vi.fn() },
       credentialsService: { findOne: vi.fn().mockResolvedValue(null) },
       ingredientsService: { findByIds: vi.fn() },
       loggerService: { error: vi.fn() },

@@ -77,7 +77,7 @@ export default function AgentClientContent({
       >
         <WebSection className="gsap-section" maxWidth="lg" py="sm">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={client.connectInstruction}
             title={`How to connect ${client.name} to Genfeed`}
           />
@@ -100,7 +100,7 @@ export default function AgentClientContent({
             py="md"
           >
             <SectionHeader
-              className="[&_h2]:text-4xl"
+              className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
               description={client.manualKey.authorizationInstruction}
               title={AGENT_CLIENT_MANUAL_KEY_HEADING}
             />
@@ -118,7 +118,7 @@ export default function AgentClientContent({
 
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description="Ask in plain language. Drafts wait for your review before anything publishes."
             title={`What can you ask ${client.name} to do?`}
           />
@@ -135,7 +135,7 @@ export default function AgentClientContent({
 
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={client.about}
             title={`What is ${client.name}?`}
           />
@@ -160,7 +160,7 @@ export default function AgentClientContent({
           py="md"
         >
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description={`${client.name} drafts and schedules for every channel you connect in Genfeed, and publishes after your review.`}
             title={`Which platforms can ${client.name} post to?`}
           />
@@ -180,7 +180,7 @@ export default function AgentClientContent({
 
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             description="Every client connects to the same Genfeed MCP server."
             title="Use Genfeed with other AI agents"
           />
@@ -200,7 +200,7 @@ export default function AgentClientContent({
 
         <WebSection className="gsap-section" maxWidth="md" py="md">
           <SectionHeader
-            className="[&_h2]:text-4xl"
+            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
             title={`${client.name} and Genfeed: frequently asked questions`}
           />
           <FaqGrid items={[...client.faq]} />

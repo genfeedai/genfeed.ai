@@ -3,8 +3,9 @@ import {
   PostLifecycleService,
   scopedWhere,
 } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
-import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import {
   BatchItemStatus,
   BatchStatus,
@@ -75,6 +76,7 @@ export class BatchGenerationReviewService {
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly summaryService: BatchGenerationSummaryService,
     private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
+    private readonly activityRecorder: ActivityRecorderService,
     @Optional()
     private readonly harnessReviewFeedbackService?: HarnessReviewFeedbackService,
   ) {}
@@ -682,21 +684,25 @@ export class BatchGenerationReviewService {
             reviewedAt: now.toISOString(),
           },
         ];
-        if (post.agentStrategyId && post.brandId && post.platform) {
-          await recordAgentReviewOutcome(transaction, {
-            organizationId: orgId,
-            brandId: post.brandId,
-            strategyId: post.agentStrategyId,
-            platform: post.platform,
-            postId: post.id,
-            userId: batch.userId,
-            decisionId: `expired:${post.id}:${post.createdAt.toISOString()}`,
-            autoPublishEnabled: false,
-            approvalStreak: 0,
-            expired: true,
-            occurredAt: now,
-          });
-        }
+        const review =
+          post.agentStrategyId && post.brandId && post.platform
+            ? await buildAgentReviewActivity(transaction, {
+                organizationId: orgId,
+                brandId: post.brandId,
+                strategyId: post.agentStrategyId,
+                platform: post.platform,
+                postId: post.id,
+                userId: batch.userId,
+                decisionId: `expired:${post.id}:${post.createdAt.toISOString()}`,
+                autoPublishEnabled: false,
+                approvalStreak: 0,
+                expired: true,
+                occurredAt: now,
+              })
+            : null;
+        // Committed with the batch; the delivery sweep sends the email.
+        if (review)
+          await this.activityRecorder.recordInTransaction(transaction, review);
         expired.push(post.id);
       }
       if (expired.length)

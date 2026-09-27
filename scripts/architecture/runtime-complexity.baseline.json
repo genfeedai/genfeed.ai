@@ -12,7 +12,7 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1214,
+    "actual": 1181,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
@@ -126,7 +126,7 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 218,
+    "actual": 216,
     "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.ts",
     "metric": "method-lines",
     "symbol": "AutoMergeService.createAndQueueMerge"

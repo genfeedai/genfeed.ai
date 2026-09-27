@@ -1,7 +1,7 @@
-import type { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -23,7 +23,7 @@ export class ScheduledPostFailureService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
 
@@ -34,10 +34,10 @@ export class ScheduledPostFailureService {
    */
   async notifyPublishFailed(
     post: PostEntity,
-    activity: ActivityEntity,
+    activity: RecordActivityInput,
   ): Promise<void> {
     try {
-      await this.activitiesService.create(activity);
+      await this.activityRecorder.record(activity);
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} failed to record publish failure activity`,

@@ -1,4 +1,4 @@
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
   MediaAssessmentService,
@@ -193,7 +193,7 @@ function perceptionRow() {
 /** Every write a gate job could make, so a test can assert none happened. */
 function writes() {
   return {
-    activityCreate: vi.fn(),
+    activityRecord: vi.fn(),
     evaluationCreate: vi.fn(),
     moderationUpsert: vi.fn(),
     textUpsert: vi.fn(),
@@ -215,7 +215,7 @@ describe.each<Outage>(['none', 'timeout'])(
         } as unknown as PrismaService,
         perceptionService(),
         moderationProvider(outage),
-        { create: w.activityCreate } as unknown as ActivitiesService,
+        { record: w.activityRecord } as unknown as ActivityRecorderService,
         config(outage),
         logger(),
       );
@@ -228,7 +228,7 @@ describe.each<Outage>(['none', 'timeout'])(
         await expect(run).rejects.toThrow(/timed out/);
       }
       expect(w.moderationUpsert).not.toHaveBeenCalled();
-      expect(w.activityCreate).not.toHaveBeenCalled();
+      expect(w.activityRecord).not.toHaveBeenCalled();
     });
 
     it('vision records the paid attempt and creates no evaluation', async () => {

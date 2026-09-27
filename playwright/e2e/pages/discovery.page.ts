@@ -2,10 +2,14 @@ import { sidebarLocator } from '@e2e/utils/app-chrome';
 import type { Locator, Page } from '@playwright/test';
 
 /**
- * Page Object Model for the Discovery pages
+ * Page Object Model for the Discovery pages.
  *
- * Covers /discovery, /discovery/overview, /discovery/socials,
- * /discovery/following, /discovery/ads (+ google/meta) routes.
+ * Covers /discovery (redirects to /discovery/overview), /discovery/overview
+ * (the "Signal Desk") and /discovery/ads (platform is a tab/query filter on
+ * this one page, not a route). #4317 (closes #4299) hard-retired
+ * /discovery/socials, /discovery/following, /discovery/discovery,
+ * /discovery/[platform], and /discovery/ads/{google,meta,tiktok,x} with no
+ * redirects — do not reintroduce locators or `gotoSection` values for them.
  *
  * @module discovery.page
  */
@@ -21,12 +25,6 @@ export class DiscoveryPage {
   readonly loadingSpinner: Locator;
   readonly skeleton: Locator;
 
-  // Navigation
-  readonly overviewTab: Locator;
-  readonly socialsTab: Locator;
-  readonly followingTab: Locator;
-  readonly adsTab: Locator;
-
   constructor(page: Page) {
     this.page = page;
 
@@ -37,27 +35,6 @@ export class DiscoveryPage {
       '[data-testid="loading"], .loading, .spinner',
     );
     this.skeleton = page.locator('[data-testid="skeleton"], .skeleton');
-
-    this.overviewTab = page.locator(
-      'a[href*="discovery/overview"],' +
-        ' button:has-text("Overview"),' +
-        ' [data-testid="discovery-overview-tab"]',
-    );
-    this.socialsTab = page.locator(
-      'a[href*="discovery/socials"],' +
-        ' button:has-text("Socials"),' +
-        ' [data-testid="discovery-socials-tab"]',
-    );
-    this.followingTab = page.locator(
-      'a[href*="discovery/following"],' +
-        ' button:has-text("Following"),' +
-        ' [data-testid="discovery-following-tab"]',
-    );
-    this.adsTab = page.locator(
-      'a[href*="discovery/ads"],' +
-        ' button:has-text("Ads"),' +
-        ' [data-testid="discovery-ads-tab"]',
-    );
   }
 
   async goto(path = this.url): Promise<void> {
@@ -65,15 +42,7 @@ export class DiscoveryPage {
     await this.waitForPageLoad();
   }
 
-  async gotoSection(
-    section:
-      | 'overview'
-      | 'socials'
-      | 'following'
-      | 'ads'
-      | 'ads/google'
-      | 'ads/meta',
-  ): Promise<void> {
+  async gotoSection(section: 'overview' | 'ads'): Promise<void> {
     await this.page.goto(`/discovery/${section}`);
     await this.waitForPageLoad();
   }

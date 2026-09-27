@@ -54,13 +54,15 @@ describe('NotificationsPublisherService', () => {
     });
   });
 
-  it('publishes notification event', async () => {
-    const data = {
-      notification: { message: 'test', type: 'info' },
-      userId: 'user-1',
-    };
-    await service.publishNotification(data as never);
-    expect(redisService.publish).toHaveBeenCalledWith('notifications', data);
+  it('publishes a bell refresh for in-app recipients only when there are any', async () => {
+    await service.publishInboxUpdate('org-1', []);
+    expect(redisService.publish).not.toHaveBeenCalled();
+
+    await service.publishInboxUpdate('org-1', ['user-1']);
+    expect(redisService.publish).toHaveBeenCalledWith('notification-inbox', {
+      organizationId: 'org-1',
+      userIds: ['user-1'],
+    });
   });
 
   it('publishes ingredient status', async () => {

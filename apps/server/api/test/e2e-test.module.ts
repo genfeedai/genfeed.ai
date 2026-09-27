@@ -54,6 +54,7 @@ import { UserAccessCacheService } from '@api/common/services/user-access-cache.s
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -198,7 +199,10 @@ const inertCollectionService = {
  * itself. CRUD E2E only needs Nest to construct the controller.
  */
 export const BRAND_CONTROLLER_E2E_MOCK_PROVIDERS = [
-  { provide: ActivitiesService, useValue: inertCollectionService },
+  {
+    provide: ActivityRecorderService,
+    useValue: { record: () => Promise.resolve(null) },
+  },
   { provide: VideosService, useValue: inertCollectionService },
   { provide: ImagesService, useValue: inertCollectionService },
   { provide: ArticlesService, useValue: inertCollectionService },

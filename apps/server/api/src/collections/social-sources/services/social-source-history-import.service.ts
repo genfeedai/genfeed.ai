@@ -1,4 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { SocialSourceDocument } from '@api/collections/social-sources/schemas/social-source.schema';
 import {
   buildSocialSourceHistoryImportWorkflowDefinition,
@@ -10,6 +9,7 @@ import {
 } from '@api/collections/social-sources/utils/social-source-handle.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { scopedWhere } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
@@ -54,7 +54,7 @@ interface HistoryImportCompletion {
 export class SocialSourceHistoryImportService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly queue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
   ) {}
@@ -403,7 +403,7 @@ export class SocialSourceHistoryImportService {
     },
   ): Promise<void> {
     try {
-      await this.activitiesService.create({
+      await this.activityRecorder.record({
         brandId: input.brandId,
         entityId: input.entityId,
         key,

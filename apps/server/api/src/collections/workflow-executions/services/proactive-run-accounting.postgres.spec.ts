@@ -27,9 +27,9 @@ describe.skipIf(!connectionString)(
       prisma as never,
       logger as never,
     );
-    const outbox = {
-      recordWorkflowOutcome: vi.fn().mockResolvedValue(null),
-      enqueueAfterCommit: vi.fn(),
+    const activityRecorder = {
+      afterCommit: vi.fn(),
+      recordInTransaction: vi.fn().mockResolvedValue(null),
     };
     const makeService = (
       strategyService: AgentStrategiesService = strategies,
@@ -38,7 +38,7 @@ describe.skipIf(!connectionString)(
         prisma as never,
         logger as never,
         { emitExecutionOutcome: vi.fn() } as never,
-        outbox as never,
+        activityRecorder as never,
         strategyService,
       );
     beforeEach(async () => {

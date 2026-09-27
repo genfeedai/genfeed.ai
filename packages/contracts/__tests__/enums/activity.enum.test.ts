@@ -51,6 +51,12 @@ describe('activity.enum', () => {
         'REFERRAL',
         'MEDIA_MODERATION',
         'AGENT_CHAT',
+        'WORKFLOW_EXECUTION',
+        'AGENT_RUN',
+        'AGENT_REVIEW',
+        'MCP_APPROVAL',
+        'POST_LIFECYCLE',
+        'BRAND_OS_EXPORT',
       ]);
     });
 
@@ -162,6 +168,24 @@ describe('activity.enum', () => {
         'PROMPT_REMIX_FAILED',
         'BRAND_RELOCATED',
         'MEDIA_MODERATION_FLAGGED',
+        'WORKFLOW_EXECUTION_COMPLETED',
+        'WORKFLOW_EXECUTION_FAILED',
+        'AGENT_RUN_COMPLETED',
+        'AGENT_RUN_FAILED',
+        'AGENT_RUN_DELIVERY_FAILED',
+        'AGENT_REVIEW_CHANGED',
+        'AGENT_REVIEW_EXPIRED',
+        'SOCIAL_REPLIES_RECEIVED',
+        'CREDITS_LOW',
+        'WORKFLOW_REVIEW_REQUESTED',
+        'WORKFLOW_REPORT_DELIVERED',
+        'TREND_SUMMARY_READY',
+        'MCP_APPROVAL_REQUESTED',
+        'POST_LIFECYCLE_TRANSITION',
+        'BRAND_OS_EXPORT_DOWNLOAD',
+        'BRAND_OS_EXPORT_PUBLISH',
+        'BRAND_OS_EXPORT_REVOKE',
+        'BRAND_OS_EXPORT_PUBLIC_READ',
       ]);
     });
 

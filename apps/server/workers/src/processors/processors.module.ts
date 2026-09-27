@@ -67,6 +67,7 @@ import { BackgroundSystemWorkflowProcessor } from '@workers/processors/api/colle
 import { PlatformSystemWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/platform-system-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
+import { BatchRewriteProcessor } from '@workers/processors/api/queues/batch-rewrite/batch-rewrite.processor';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { MediaModerationProcessor } from '@workers/processors/api/queues/media-moderation/media-moderation.processor';
@@ -145,6 +146,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
   ],
   providers: [
     // --- queues/ processors ---
+    BatchRewriteProcessor,
     CreditDeductionProcessor,
     LlmCostSettlementProcessor,
     HeygenPollProcessor,

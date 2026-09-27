@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -9,6 +7,10 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  extractPromptText,
+  toPromptBrandContext,
+} from '@api/collections/prompts/utils/prompt-text.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
@@ -20,11 +22,12 @@ import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.uti
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import {
   ActivityKey,
   ActivitySource,
@@ -45,27 +48,10 @@ type RequestWithCredits = Request & {
   creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
 
-function toPromptBrandContext(
-  brand: BrandDocument | null | undefined,
-): IPromptBrandContext | undefined {
-  if (!brand) {
-    return undefined;
-  }
-
-  return {
-    backgroundColor: brand.backgroundColor ?? undefined,
-    description: brand.description ?? undefined,
-    label: brand.label ?? undefined,
-    primaryColor: brand.primaryColor ?? undefined,
-    secondaryColor: brand.secondaryColor ?? undefined,
-    text: brand.text ?? undefined,
-  };
-}
-
 @Injectable()
 export class PromptTransformationService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -142,20 +128,18 @@ export class PromptTransformationService {
       systemPromptKey,
       user.organizationId,
     );
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_REMIX,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          promptId: data.id.toString(),
-          sourcePromptId: promptId,
-          type: 'remix',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: promptBrandId ?? user.brandId,
+      key: ActivityKey.PROMPT_REMIX_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.PROMPT_REMIX,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        promptId: data.id.toString(),
+        sourcePromptId: promptId,
+        type: 'remix',
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -190,21 +174,20 @@ export class PromptTransformationService {
   async enhanceExisting(
     promptId: string,
     user: User,
+    resolveApiKey?: TextDispatchKeyResolver,
   ): Promise<{ model: string; prompt: PromptDocument | null }> {
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
       await this.parseStoredPrompt(prompt);
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_ENHANCEMENT,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({ promptId, type: 'enhance' }),
-      }),
-    );
+    const activity = await this.activityRecorder.record({
+      brandId: promptBrandId ?? user.brandId,
+      key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.PROMPT_ENHANCEMENT,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({ promptId, type: 'enhance' }),
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -224,7 +207,7 @@ export class PromptTransformationService {
         normalizedType,
         user.organizationId,
       );
-      const userPrompt = this.extractPromptText(promptString);
+      const userPrompt = extractPromptText(promptString);
       const cinematicGuidance = isCinematicPromptCategory(normalizedType)
         ? loadCinematicLexiconGuidance()
         : '';
@@ -254,13 +237,14 @@ export class PromptTransformationService {
       const result = await this.replicateService.generateTextCompletionSync(
         model,
         input,
+        await resolveApiKey?.(model),
       );
 
       await this.promptsService.patch(promptId, {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activitiesService.patch(activity.id.toString(), {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
         value: JSON.stringify({
           progress: 100,
@@ -274,7 +258,7 @@ export class PromptTransformationService {
         prompt: await this.promptsService.findOne({ id: promptId }),
       };
     } catch (error: unknown) {
-      await this.activitiesService.patch(activity.id.toString(), {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
         value: JSON.stringify({
           error: errorMessage(error),
@@ -325,7 +309,7 @@ export class PromptTransformationService {
     organizationId: string,
   ): Promise<string> {
     if (!this.templatesService) {
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
 
     try {
@@ -345,7 +329,7 @@ export class PromptTransformationService {
         error,
         key: systemPromptKey,
       });
-      return this.extractPromptText(promptString);
+      return extractPromptText(promptString);
     }
   }
 
@@ -373,15 +357,6 @@ export class PromptTransformationService {
     }
   }
 
-  private extractPromptText(promptString: string): string {
-    try {
-      const prompt = JSON.parse(promptString) as { prompt?: string };
-      return prompt.prompt || promptString;
-    } catch {
-      return promptString;
-    }
-  }
-
   private async generateRemix(options: {
     activityId: string;
     byokApiKeyOverride?: string;
@@ -405,6 +380,7 @@ export class PromptTransformationService {
       userPrompt,
     } = options;
     const url = `${LEGACY_CONTROLLER_NAME} postRemixResponse`;
+    const activity = { id: activityId, organizationId };
 
     try {
       const { input } = await this.promptBuilderService.buildPrompt(
@@ -430,7 +406,7 @@ export class PromptTransformationService {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activitiesService.patch(activityId, {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_REMIX_COMPLETED,
         value: JSON.stringify({
           progress: 100,
@@ -445,7 +421,7 @@ export class PromptTransformationService {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      await this.activitiesService.patch(activityId, {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_REMIX_FAILED,
         value: JSON.stringify({
           error: errorMessage(error),

@@ -1,7 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -27,6 +25,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -86,7 +85,7 @@ type InterpolationContext = {
 @UseGuards(RolesGuard, SubscriptionGuard, CreditsGuard)
 export class BatchInterpolationController {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -351,27 +350,25 @@ export class BatchInterpolationController {
           width: context.width,
         });
       const ingredientId = ingredientData.id.toString();
-      const activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: context.brand.id,
-          entityId: ingredientData.id,
-          entityModel: ActivityEntityModel.INGREDIENT,
-          key: ActivityKey.VIDEO_PROCESSING,
-          organizationId: context.user.organizationId,
-          source: ActivitySource.VIDEO_GENERATION,
-          userId: context.user.id,
-          value: JSON.stringify({
-            groupId: context.groupId,
-            ingredientId,
-            isLoopMode: context.dto.isLoopMode,
-            isMergeEnabled: context.dto.isMergeEnabled,
-            model: context.dto.modelKey,
-            pairIndex,
-            totalPairs: context.pairs.length,
-            type: 'interpolation',
-          }),
+      const activity = await this.activityRecorder.record({
+        brandId: context.brand.id,
+        entityId: ingredientData.id,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        key: ActivityKey.VIDEO_PROCESSING,
+        organizationId: context.user.organizationId,
+        source: ActivitySource.VIDEO_GENERATION,
+        userId: context.user.id,
+        value: JSON.stringify({
+          groupId: context.groupId,
+          ingredientId,
+          isLoopMode: context.dto.isLoopMode,
+          isMergeEnabled: context.dto.isMergeEnabled,
+          model: context.dto.modelKey,
+          pairIndex,
+          totalPairs: context.pairs.length,
+          type: 'interpolation',
         }),
-      );
+      });
       const isLoopPair =
         Boolean(context.dto.isLoopMode) &&
         pairIndex === context.pairs.length - 1;

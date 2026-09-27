@@ -14,7 +14,7 @@
  * ones for future collaborator additions) here so a broken constructor graph
  * fails fast on the PR that breaks it.
  */
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
@@ -59,6 +59,7 @@ import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
@@ -311,7 +312,7 @@ describe('E2E fixture contracts', () => {
     expect(
       BRAND_CONTROLLER_E2E_MOCK_PROVIDERS.map(resolveProviderToken),
     ).toEqual([
-      ActivitiesService,
+      ActivityRecorderService,
       VideosService,
       ImagesService,
       ArticlesService,

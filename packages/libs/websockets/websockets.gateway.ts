@@ -16,7 +16,7 @@ import type {
   IngredientStatusData,
   IngredientUpdateMessage,
   MediaFailedEvent,
-  NotificationData,
+  NotificationInboxUpdateData,
   PostStatusData,
   PostUpdateMessage,
   SubscriptionUpdateMessage,
@@ -121,7 +121,7 @@ export class WebSocketGateway
       'video-progress',
       'video-complete',
       'media-failed',
-      'notifications',
+      'notification-inbox',
       'ingredient-status',
       'post-status',
       'training-status',
@@ -359,8 +359,8 @@ export class WebSocketGateway
         this.handleMediaFailed(data as MediaFailedEvent);
         break;
 
-      case 'notifications':
-        this.handleNotification(data as NotificationData);
+      case 'notification-inbox':
+        this.handleNotificationInboxUpdate(data as NotificationInboxUpdateData);
         break;
 
       case 'ingredient-status':
@@ -517,24 +517,19 @@ export class WebSocketGateway
     this.logger.error(`Sent media failed to ${targetRoom}: ${path}`, error);
   }
 
-  private handleNotification(data: NotificationData): void {
+  private handleNotificationInboxUpdate(
+    data: NotificationInboxUpdateData,
+  ): void {
     if (!this.isServerOperational()) {
-      this.warnServerNotReady('notification', data);
+      this.warnServerNotReady('notification-inbox', data);
       return;
     }
 
-    const { userId, notification, organizationId } = data;
-
-    if (organizationId) {
-      this.server
-        .to(`org-${organizationId}`)
-        .emit('notification', notification);
-      this.logger.log(`Sent notification to org ${organizationId}`);
-    } else if (userId) {
+    // The payload only names the organization; clients re-read their inbox.
+    for (const userId of data.userIds ?? []) {
       this.server
         .to(getUserRoomName(userId))
-        .emit('notification', notification);
-      this.logger.log(`Sent notification to user ${userId}`);
+        .emit('notification-inbox', { organizationId: data.organizationId });
     }
   }
 

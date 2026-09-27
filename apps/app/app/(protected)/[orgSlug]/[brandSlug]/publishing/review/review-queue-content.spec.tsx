@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   setFiltersNode: vi.fn(),
   setQueryData: vi.fn(),
+  startRewrite: vi.fn(),
+  useBatchRewriteJob: vi.fn(),
   useQuery: vi.fn(),
 }));
 const searchParamsState = new URLSearchParams();
@@ -67,6 +69,18 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
+  },
+}));
+
+vi.mock('./useBatchRewriteJob', () => ({
+  useBatchRewriteJob: (params: unknown) => {
+    mocks.useBatchRewriteJob(params);
+    return {
+      isRewriteStarting: false,
+      rewriteProgress: null,
+      rewritingIds: new Set<string>(),
+      startRewrite: mocks.startRewrite,
+    };
   },
 }));
 
@@ -894,34 +908,41 @@ describe('ReviewQueueContent', () => {
     );
   });
 
-  it('rewrites selected items through the API and refreshes on completion', async () => {
+  it('queues a background rewrite of the selection and keeps the page usable', async () => {
     mockReviewQueries();
-    let complete: (() => void) | undefined;
-    const itemAction = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          complete = resolve;
-        }),
-    );
-    mocks.getBatchesService.mockResolvedValue({ itemAction });
+    mocks.startRewrite.mockResolvedValue(true);
+    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
     render(<ReviewQueueContent />);
     fireEvent.click(
       await screen.findByRole('button', { name: 'Toggle item-1' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Toggle item-2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Rewrite batch' }));
+
     await waitFor(() =>
-      expect(itemAction).toHaveBeenCalledWith('batch-1', {
-        action: 'rewrite',
-        itemIds: ['item-1', 'item-2'],
-      }),
+      expect(mocks.startRewrite).toHaveBeenCalledWith(['item-1', 'item-2']),
     );
-    expect(screen.getByText('Actioning: true')).toBeInTheDocument();
-    await act(async () => complete?.());
     await waitFor(() =>
-      expect(screen.getByText('Actioning: false')).toBeInTheDocument(),
+      expect(screen.getByText('Selected count: 0')).toBeInTheDocument(),
     );
-    expect(itemAction).toHaveBeenCalledOnce();
+    expect(screen.getByText('Actioning: false')).toBeInTheDocument();
+    expect(mocks.useBatchRewriteJob).toHaveBeenLastCalledWith(
+      expect.objectContaining({ batchId: 'batch-1' }),
+    );
+  });
+
+  it('keeps the selection when the rewrite could not be queued', async () => {
+    mockReviewQueries();
+    mocks.startRewrite.mockResolvedValue(false);
+    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
+    render(<ReviewQueueContent />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Toggle item-1' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite batch' }));
+
+    await waitFor(() => expect(mocks.startRewrite).toHaveBeenCalledOnce());
+    expect(screen.getByText('Selected count: 1')).toBeInTheDocument();
   });
 
   it('renders loading, empty, selected-batch error, and unresolved detail states', () => {

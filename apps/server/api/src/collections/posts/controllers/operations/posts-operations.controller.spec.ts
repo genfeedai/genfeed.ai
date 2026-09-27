@@ -20,7 +20,6 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
@@ -44,8 +43,10 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -187,9 +188,9 @@ describe('PostsOperationsController', () => {
 
   // Mock Services
   const mockActivitiesService = {
-    create: vi.fn().mockResolvedValue(mockActivity),
-    createMany: vi.fn().mockResolvedValue(1),
-    patch: vi.fn().mockResolvedValue(mockActivity),
+    record: vi.fn().mockResolvedValue(mockActivity),
+    recordMany: vi.fn().mockResolvedValue(1),
+    update: vi.fn().mockResolvedValue(mockActivity),
   };
 
   const mockAccountPublishingContextService = {
@@ -309,8 +310,8 @@ Tweet 3: Tech innovation is changing the world.`,
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockActivitiesService.create.mockResolvedValue(mockActivity);
-    mockActivitiesService.patch.mockResolvedValue(mockActivity);
+    mockActivitiesService.record.mockResolvedValue(mockActivity);
+    mockActivitiesService.update.mockResolvedValue(mockActivity);
     mockAccountPublishingContextService.resolve.mockResolvedValue(
       mockPublishingContext,
     );
@@ -318,7 +319,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockCredentialsService.findOne.mockResolvedValue(mockCredential);
     mockIngredientsService.findByIds.mockResolvedValue([]);
     mockIngredientsService.findOne.mockResolvedValue(mockIngredient);
-    mockActivitiesService.createMany.mockResolvedValue(1);
+    mockActivitiesService.recordMany.mockResolvedValue(1);
     mockPostsService.addThreadReply.mockResolvedValue(mockPost);
     mockPostsService.batchSchedule.mockResolvedValue({
       missingPostIds: [],
@@ -356,10 +357,18 @@ Tweet 3: Tech innovation is changing the world.`,
       controllers: [PostsGenerationController, PostsOperationsController],
       providers: [
         {
+          provide: TextGenerationCreditsService,
+          useValue: {
+            deferredKeyResolver: vi.fn(() => async () => undefined),
+            ensureDeferredCredits: vi.fn().mockResolvedValue(undefined),
+            guardResolvedDispatch: vi.fn().mockReturnValue(undefined),
+          },
+        },
+        {
           provide: AccountPublishingContextService,
           useValue: mockAccountPublishingContextService,
         },
-        { provide: ActivitiesService, useValue: mockActivitiesService },
+        { provide: ActivityRecorderService, useValue: mockActivitiesService },
         {
           provide: AgentContextAssemblyService,
           useValue: mockAgentContextAssemblyService,
@@ -968,9 +977,9 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should record every scheduled activity in one insert', async () => {
       await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
 
-      expect(mockActivitiesService.createMany).toHaveBeenCalledTimes(1);
-      expect(mockActivitiesService.create).not.toHaveBeenCalled();
-      expect(mockActivitiesService.createMany.mock.calls[0]?.[0]).toHaveLength(
+      expect(mockActivitiesService.recordMany).toHaveBeenCalledTimes(1);
+      expect(mockActivitiesService.record).not.toHaveBeenCalled();
+      expect(mockActivitiesService.recordMany.mock.calls[0]?.[0]).toHaveLength(
         2,
       );
     });
@@ -1370,7 +1379,7 @@ Tweet 3: Tech innovation is changing the world.`,
           userId,
         }),
       );
-      expect(mockActivitiesService.create).toHaveBeenCalled();
+      expect(mockActivitiesService.record).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 

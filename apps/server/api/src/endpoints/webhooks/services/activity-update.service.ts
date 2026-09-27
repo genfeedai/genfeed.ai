@@ -1,4 +1,3 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import {
@@ -16,6 +15,7 @@ import {
   parseActivityValue,
 } from '@api/helpers/utils/activity-value/activity-value.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -30,6 +30,7 @@ import { Injectable } from '@nestjs/common';
 export class ActivityUpdateService {
   constructor(
     private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -89,33 +90,29 @@ export class ActivityUpdateService {
         existingActivity.value ?? undefined,
       );
 
-      activity = await this.activitiesService.patch(
-        existingActivity.id.toString(),
-        {
-          key: activityKey,
+      activity =
+        (await this.activityRecorder.update(existingActivity, {
           entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           isRead: false,
+          key: activityKey,
           value: buildCompletionValue({
             activityKey,
             existingValue: parsedValue,
             ingredientId,
           }),
-        },
-      );
+        })) ?? existingActivity;
     } else {
-      activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: brandId ? String(brandId) : undefined,
-          entityId: ingredientId,
-          entityModel: ActivityEntityModel.INGREDIENT,
-          key: activityKey,
-          organizationId: organizationId ? String(organizationId) : undefined,
-          source: activitySource,
-          userId: dbUserId,
-          value: buildCompletionValue({ activityKey, ingredientId }),
-        }),
-      );
+      activity = await this.activityRecorder.record({
+        brandId: brandId ? String(brandId) : null,
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        key: activityKey,
+        organizationId: organizationId ? String(organizationId) : null,
+        source: activitySource,
+        userId: dbUserId,
+        value: buildCompletionValue({ activityKey, ingredientId }),
+      });
     }
 
     if (userId) {
@@ -181,34 +178,30 @@ export class ActivityUpdateService {
         existingActivity.value ?? undefined,
       );
 
-      activity = await this.activitiesService.patch(
-        existingActivity.id.toString(),
-        {
-          key: activityKey,
+      activity =
+        (await this.activityRecorder.update(existingActivity, {
           entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           isRead: false,
+          key: activityKey,
           value: buildFailureValue({
             activityKey,
             errorMessage,
             existingValue: parsedValue,
             ingredientId,
           }),
-        },
-      );
+        })) ?? existingActivity;
     } else {
-      activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: brandId ? String(brandId) : undefined,
-          entityId: ingredientId,
-          entityModel: ActivityEntityModel.INGREDIENT,
-          key: activityKey,
-          organizationId: organizationId ? String(organizationId) : undefined,
-          source: activitySource,
-          userId: dbUserId,
-          value: buildFailureValue({ activityKey, errorMessage, ingredientId }),
-        }),
-      );
+      activity = await this.activityRecorder.record({
+        brandId: brandId ? String(brandId) : null,
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        key: activityKey,
+        organizationId: organizationId ? String(organizationId) : null,
+        source: activitySource,
+        userId: dbUserId,
+        value: buildFailureValue({ activityKey, errorMessage, ingredientId }),
+      });
     }
 
     if (userId && activity) {

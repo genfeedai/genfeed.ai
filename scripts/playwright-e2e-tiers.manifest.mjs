@@ -22,13 +22,6 @@
 /** @type {PlaywrightE2eQuarantine[]} */
 export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
-    file: 'playwright/e2e/tests/visual/visual-regression.spec.ts',
-    reason:
-      'Pixel baselines are not stable under the mocked full-tier nightly. Visual goldens need a dedicated job and update process.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/settings/profile.spec.ts',
     reason:
       'Personal-settings locators drifted (`firstName` / profile-section). Evidence: run 31991510270.',
@@ -39,13 +32,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/workflow/execution.spec.ts',
     reason:
       'Workflow execution locators trip strict-mode. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/discovery/discovery.spec.ts',
-    reason:
-      'Discovery heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -88,12 +74,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/chat/chat-flows.spec.ts',
     reason:
       'Agent chat analytics snapshot / publish-fallback UI drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/discovery/discovery-interactions.spec.ts',
-    reason: 'Discovery interaction copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

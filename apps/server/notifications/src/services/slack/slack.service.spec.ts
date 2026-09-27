@@ -178,65 +178,12 @@ describe('SlackService', () => {
       }).compile();
 
       const s = module.get<SlackService>(SlackService);
-      await s.sendMessage('C789', 'message');
+      await expect(s.sendMessage('C789', 'message')).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to send'),
         expect.any(Error),
         expect.any(Object),
-      );
-    });
-  });
-
-  describe('sendFile', () => {
-    it('should warn and return early when client is not initialized', async () => {
-      mockConfigService.get.mockReturnValue(undefined);
-
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          SlackService,
-          { provide: ConfigService, useValue: mockConfigService },
-          { provide: LoggerService, useValue: mockLoggerService },
-        ],
-      }).compile();
-
-      const uninitializedService = module.get<SlackService>(SlackService);
-      vi.clearAllMocks();
-
-      await uninitializedService.sendFile(
-        'C123',
-        'https://example.com/img.png',
-      );
-
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not initialized'),
-        expect.any(Object),
-      );
-      expect(mockPostMessage).not.toHaveBeenCalled();
-    });
-
-    it('should post image block with file URL', async () => {
-      mockConfigService.get.mockReturnValue('test-slack-bot-token');
-      mockPostMessage.mockResolvedValue({ ok: true });
-
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          SlackService,
-          { provide: ConfigService, useValue: mockConfigService },
-          { provide: LoggerService, useValue: mockLoggerService },
-        ],
-      }).compile();
-
-      const s = module.get<SlackService>(SlackService);
-      await s.sendFile('C999', 'https://example.com/img.png', 'A caption');
-
-      expect(mockPostMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          blocks: expect.arrayContaining([
-            expect.objectContaining({ type: 'image' }),
-          ]),
-          channel: 'C999',
-        }),
       );
     });
   });

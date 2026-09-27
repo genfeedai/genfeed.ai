@@ -1,8 +1,8 @@
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ApiKeyScope } from '@genfeedai/contracts';
+import { ActivityKey, ApiKeyScope } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -25,8 +25,8 @@ describe('McpApprovalsService', () => {
     warn: vi.fn(),
   };
 
-  const mockNotificationsPublisher: Partial<NotificationsPublisherService> = {
-    publishNotification: vi.fn(),
+  const mockNotificationsPublisher: Partial<ActivityRecorderService> = {
+    record: vi.fn(),
   };
 
   let service: McpApprovalsService;
@@ -44,12 +44,12 @@ describe('McpApprovalsService', () => {
     service = new McpApprovalsService(
       { mcpApproval } as unknown as PrismaService,
       mockLogger as LoggerService,
-      mockNotificationsPublisher as NotificationsPublisherService,
+      mockNotificationsPublisher as ActivityRecorderService,
     );
   });
 
   describe('createPending', () => {
-    it('creates a PENDING approval row and calls publishNotification', async () => {
+    it('creates a PENDING approval row and records the approval request activity', async () => {
       const fakeApproval = {
         id: 'approval-1',
         organizationId: 'org-1',
@@ -62,9 +62,7 @@ describe('McpApprovalsService', () => {
       mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.create.mockResolvedValue(fakeApproval);
       (
-        mockNotificationsPublisher.publishNotification as ReturnType<
-          typeof vi.fn
-        >
+        mockNotificationsPublisher.record as ReturnType<typeof vi.fn>
       ).mockResolvedValue(undefined);
 
       const result = await service.createPending(
@@ -84,18 +82,12 @@ describe('McpApprovalsService', () => {
           userId: 'user-1',
         },
       });
-      expect(
-        mockNotificationsPublisher.publishNotification,
-      ).toHaveBeenCalledWith(
+      expect(mockNotificationsPublisher.record).toHaveBeenCalledWith(
         expect.objectContaining({
+          data: expect.objectContaining({ toolName: 'delete_file' }),
+          key: ActivityKey.MCP_APPROVAL_REQUESTED,
           organizationId: 'org-1',
           userId: 'user-1',
-          notification: expect.objectContaining({
-            type: 'mcp_approval_pending',
-            metadata: expect.objectContaining({
-              toolName: 'delete_file',
-            }),
-          }) as unknown,
         }),
       );
       expect(result).toEqual(fakeApproval);
@@ -161,9 +153,7 @@ describe('McpApprovalsService', () => {
       await expect(
         service.createPending('org-1', 'user-1', 'delete_file', {}),
       ).resolves.toEqual(concurrent);
-      expect(
-        mockNotificationsPublisher.publishNotification,
-      ).not.toHaveBeenCalled();
+      expect(mockNotificationsPublisher.record).not.toHaveBeenCalled();
     });
 
     it.each(['P2002', 'P2024'])(
@@ -196,7 +186,7 @@ describe('McpApprovalsService', () => {
       expect(mcpApproval.create).not.toHaveBeenCalled();
     });
 
-    it('does NOT throw if publishNotification fails (swallows error)', async () => {
+    it('does NOT throw if recording the request fails (swallows error)', async () => {
       const fakeApproval = {
         id: 'approval-2',
         organizationId: 'org-1',
@@ -209,9 +199,7 @@ describe('McpApprovalsService', () => {
       mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.create.mockResolvedValue(fakeApproval);
       (
-        mockNotificationsPublisher.publishNotification as ReturnType<
-          typeof vi.fn
-        >
+        mockNotificationsPublisher.record as ReturnType<typeof vi.fn>
       ).mockRejectedValue(new Error('Redis down'));
 
       await expect(

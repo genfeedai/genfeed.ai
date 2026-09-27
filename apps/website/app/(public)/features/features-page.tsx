@@ -83,7 +83,7 @@ export default function FeaturesPage(): React.ReactElement {
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
       >
         {/* Features Grid */}
-        <section className="gsap-hero py-32">
+        <section className="gsap-hero py-16 md:py-32">
           <div className="container mx-auto px-6">
             <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 lg:grid-cols-4">
               {FEATURES.map((feature) => {
@@ -91,7 +91,7 @@ export default function FeaturesPage(): React.ReactElement {
                 return (
                   <div
                     key={feature.number}
-                    className="gsap-card bg-background p-12 flex flex-col group hover:bg-fill/[0.02] transition-colors"
+                    className="gsap-card bg-background p-6 sm:p-12 flex flex-col group hover:bg-fill/[0.02] transition-colors"
                   >
                     <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-12">
                       {feature.number} / {feature.label}
@@ -113,7 +113,7 @@ export default function FeaturesPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="gsap-section bg-fill/[0.02] py-32">
+        <section className="gsap-section bg-fill/[0.02] py-16 md:py-32">
           <div className="container mx-auto px-6">
             <div className="mb-14 max-w-3xl">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-surface/45">
@@ -169,7 +169,7 @@ export default function FeaturesPage(): React.ReactElement {
         </section>
 
         {/* CTA Section */}
-        <section className="py-40">
+        <section className="py-20 md:py-40">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-6xl font-semibold mb-10">
