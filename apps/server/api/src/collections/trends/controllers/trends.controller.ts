@@ -118,6 +118,13 @@ export class TrendsController {
       },
       user,
     });
+    // Re-fetch the resolved brand's fields (description/label/text) for the
+    // idea-generation prompt context below — the resolver above only proves
+    // the id, not the full row.
+    const brand = await this.brandsService.findOne({
+      id: brandId,
+      organizationId,
+    });
     await assertOrganizationCreditsAvailable(
       this.creditsUtilsService,
       organizationId,
@@ -142,9 +149,11 @@ export class TrendsController {
       },
       {
         description:
-          typeof brand.description === 'string' ? brand.description : undefined,
-        label: typeof brand.label === 'string' ? brand.label : 'Brand',
-        text: typeof brand.text === 'string' ? brand.text : undefined,
+          typeof brand?.description === 'string'
+            ? brand.description
+            : undefined,
+        label: typeof brand?.label === 'string' ? brand.label : 'Brand',
+        text: typeof brand?.text === 'string' ? brand.text : undefined,
       },
     );
     finalizeDeferredTextCredits(req, billedCredits);
