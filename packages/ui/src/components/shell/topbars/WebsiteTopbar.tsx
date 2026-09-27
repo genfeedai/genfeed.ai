@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useDeferredIsSignedIn } from '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
@@ -156,7 +156,7 @@ const NAV_LINKS = [
 ];
 
 export default function WebsiteTopbar() {
-  const { isSignedIn } = useAuthIdentity();
+  const isSignedIn = useDeferredIsSignedIn();
 
   // The desktop bar hides Log in and the agent action to fit, so on a phone they
   // live in the menu. Without them a returning visitor had no way to sign in.

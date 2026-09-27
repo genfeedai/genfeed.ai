@@ -187,6 +187,22 @@ describe('useGsapEntrance batch reveals', () => {
     expect(scrollTriggerMock.batch).not.toHaveBeenCalled();
   });
 
+  it('never tweens painted content on the immediate path', async () => {
+    const inView = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ bottom: 120, top: 40 } as DOMRect);
+
+    render(
+      createElement(RevealList, {
+        animations: [gsapPresets.fadeUp('.item')],
+      }),
+    );
+
+    await waitFor(() => expect(gsapMock.context).toHaveBeenCalled());
+    expect(gsapMock.fromTo).not.toHaveBeenCalled();
+    inView.mockRestore();
+  });
+
   it('leaves content untouched when the reader prefers reduced motion', async () => {
     stubReducedMotion(true);
 

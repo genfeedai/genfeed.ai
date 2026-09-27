@@ -1,7 +1,5 @@
 'use client';
 
-import { BetterAuthProvider } from '@genfeedai/auth-client/react';
-import { dark } from '@genfeedai/auth-client/themes';
 import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
@@ -13,17 +11,8 @@ const LazyModalErrorDebug = dynamic(
   { ssr: false },
 );
 
-interface BetterAuthProviderProps {
-  appearance?: {
-    theme?: unknown;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
-
 export interface AppProvidersProps {
   children: ReactNode;
-  authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
   includeLazyModalErrorDebug?: boolean;
   includeToaster?: boolean;
@@ -31,13 +20,10 @@ export interface AppProvidersProps {
 
 export default function AppProviders({
   children,
-  authProps,
   disableTransitionOnChange = true,
   includeLazyModalErrorDebug = true,
   includeToaster = true,
 }: AppProvidersProps) {
-  const appearance = authProps?.appearance;
-
   return (
     <ThemeProvider
       attribute="data-theme"
@@ -47,20 +33,14 @@ export default function AppProviders({
       forcedTheme="dark"
       storageKey="genfeed-website-theme"
     >
-      <BetterAuthProvider
-        {...authProps}
-        appearance={{
-          ...(appearance ?? {}),
-          theme: dark,
-        }}
-      >
-        <WebMcpProvider />
-        {children}
-        {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" theme="dark" />
-        ) : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-      </BetterAuthProvider>
+      {/* No auth provider: marketing pages must not ship the Better Auth
+          client. Pages that need a session call the auth hooks directly. */}
+      <WebMcpProvider />
+      {children}
+      {includeToaster ? (
+        <Toaster richColors closeButton position="top-right" theme="dark" />
+      ) : null}
+      {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
     </ThemeProvider>
   );
 }
