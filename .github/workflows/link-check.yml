@@ -23,6 +23,7 @@ name: Link Check
 on:
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 concurrency:
@@ -40,6 +41,8 @@ env:
 jobs:
   detect:
     name: Detect Link-Check Scope
+    # Draft pull requests run nothing; CI runs once the PR is marked ready.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:

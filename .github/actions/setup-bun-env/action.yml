@@ -10,10 +10,6 @@ inputs:
     description: Dependency install command to run after toolchain setup
     required: false
     default: 'bun install --frozen-lockfile'
-  cache-turbo:
-    description: Whether to cache the local Turbo directory
-    required: false
-    default: 'true'
   cache-playwright:
     description: |
       Whether to cache Playwright browser binaries (chromium) and install
@@ -44,14 +40,9 @@ runs:
         restore-keys: |
           ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-version }}-
 
-    - name: Cache Turbo
-      if: ${{ inputs.cache-turbo == 'true' }}
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: .turbo
-        key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-turbo-
+    # No local `.turbo` cache: the Turbo remote cache (TURBO_TOKEN) already
+    # serves task outputs, and a lockfile-keyed local snapshot was a ~1 GB
+    # stale download on every job (2026-09-27 audit).
 
     # ffmpeg-static@5.3.0 downloads a ~40 MB binary during install unless
     # FFMPEG_BIN points at an existing file. CI does not execute ffmpeg: the

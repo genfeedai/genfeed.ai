@@ -11,28 +11,17 @@ import {
 } from './tests-gate.mjs';
 
 const ALL_SUCCESS_ENV = {
-  TEST_SCOPE_APP: 'true',
-  TEST_SCOPE_API: 'true',
-  TEST_SCOPE_APP_TESTS: 'true',
-  TEST_SCOPE_API_TESTS: 'true',
-  TEST_SCOPE_PACKAGES: 'true',
-  TEST_SCOPE_SERVER_SERVICES: 'true',
-  TEST_SCOPE_WEB_DESKTOP_MOBILE: 'true',
-  TEST_SCOPE_EXTENSIONS: 'true',
-  FULL_SUITE: 'false',
-  TEST_SCOPE_RESULT: 'success',
-  TEST_PACKAGES_RESULT: 'success',
-  TEST_SERVER_SERVICES_RESULT: 'success',
-  TEST_WEB_DESKTOP_MOBILE_RESULT: 'success',
-  TEST_EXTENSIONS_RESULT: 'success',
+  PLAN_RESULT: 'success',
+  PLAN_APP_TESTS: 'true',
+  PLAN_API_TESTS: 'true',
+  PLAN_WORKSPACE_TESTS: 'true',
+  PLAN_SPEC_TYPECHECK: 'true',
   STATIC_CHECKS_RESULT: 'success',
   SPEC_TYPECHECK_RESULT: 'success',
+  TEST_WORKSPACES_RESULT: 'success',
+  TEST_APP_RESULT: 'success',
+  TEST_API_RESULT: 'success',
   BUILD_RESULT: 'success',
-  TEST_APP_RESULT: 'skipped',
-  TEST_APP_CHANGED_RESULT: 'success',
-  TEST_API_RESULT: 'skipped',
-  TEST_API_CHANGED_RESULT: 'success',
-  OPENAPI_DRIFT_RESULT: 'success',
 };
 
 function evaluate(env = {}) {
@@ -44,30 +33,19 @@ function evaluate(env = {}) {
 }
 
 // What a pull request run looks like after a newer push cancelled it: the
-// scope job never published outputs and every downstream job was cancelled.
+// plan job never published outputs and every downstream job was cancelled.
 const CANCELLED_RUN_ENV = {
-  TEST_SCOPE_APP: '',
-  TEST_SCOPE_API: '',
-  TEST_SCOPE_APP_TESTS: '',
-  TEST_SCOPE_API_TESTS: '',
-  TEST_SCOPE_PACKAGES: '',
-  TEST_SCOPE_SERVER_SERVICES: '',
-  TEST_SCOPE_WEB_DESKTOP_MOBILE: '',
-  TEST_SCOPE_EXTENSIONS: '',
-  FULL_SUITE: '',
-  TEST_SCOPE_RESULT: 'cancelled',
-  TEST_PACKAGES_RESULT: 'cancelled',
-  TEST_SERVER_SERVICES_RESULT: 'cancelled',
-  TEST_WEB_DESKTOP_MOBILE_RESULT: 'cancelled',
-  TEST_EXTENSIONS_RESULT: 'cancelled',
+  PLAN_RESULT: 'cancelled',
+  PLAN_APP_TESTS: '',
+  PLAN_API_TESTS: '',
+  PLAN_WORKSPACE_TESTS: '',
+  PLAN_SPEC_TYPECHECK: '',
   STATIC_CHECKS_RESULT: 'cancelled',
   SPEC_TYPECHECK_RESULT: 'cancelled',
-  BUILD_RESULT: 'cancelled',
+  TEST_WORKSPACES_RESULT: 'cancelled',
   TEST_APP_RESULT: 'cancelled',
-  TEST_APP_CHANGED_RESULT: 'cancelled',
   TEST_API_RESULT: 'cancelled',
-  TEST_API_CHANGED_RESULT: 'cancelled',
-  OPENAPI_DRIFT_RESULT: 'cancelled',
+  BUILD_RESULT: 'cancelled',
 };
 
 function runGateCli(env = {}) {
@@ -79,99 +57,73 @@ function runGateCli(env = {}) {
   });
 }
 
-test('passes when applicable jobs succeed and intentional skips are explicit', () => {
+function classificationOf(result, name) {
+  return result.rows.find((row) => row.name === name)?.classification;
+}
+
+test('passes when applicable jobs succeed', () => {
   const result = evaluate();
 
   assert.equal(result.passed, true);
   assert.deepEqual(result.failures, []);
-  assert.equal(
-    result.rows.find((row) => row.name === 'App tests (full matrix)')
-      ?.classification,
-    'not applicable',
-  );
 });
 
 test('fails when an applicable upstream job fails', () => {
-  const result = evaluate({ TEST_PACKAGES_RESULT: 'failure' });
+  const result = evaluate({ TEST_WORKSPACES_RESULT: 'failure' });
 
   assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, ['Package tests failure']);
+  assert.deepEqual(result.failures, ['Workspace tests failure']);
 });
 
-test('accepts skipped workspace jobs only when the plan marks them inapplicable', () => {
+test('accepts skipped jobs only when the plan marks them inapplicable', () => {
   const result = evaluate({
-    TEST_SCOPE_EXTENSIONS: 'false',
-    TEST_EXTENSIONS_RESULT: 'skipped',
-    TEST_SCOPE_SERVER_SERVICES: 'false',
-    TEST_SERVER_SERVICES_RESULT: 'skipped',
+    PLAN_WORKSPACE_TESTS: 'false',
+    TEST_WORKSPACES_RESULT: 'skipped',
+    PLAN_APP_TESTS: 'false',
+    TEST_APP_RESULT: 'skipped',
+    PLAN_API_TESTS: 'false',
+    TEST_API_RESULT: 'skipped',
+    PLAN_SPEC_TYPECHECK: 'false',
+    SPEC_TYPECHECK_RESULT: 'skipped',
   });
 
   assert.equal(result.passed, true);
-  assert.equal(
-    result.rows.find((row) => row.name === 'Server-service tests')
-      ?.classification,
-    'not applicable',
-  );
+  for (const name of [
+    'Workspace tests',
+    'App tests',
+    'API tests',
+    'Spec typecheck',
+  ]) {
+    assert.equal(classificationOf(result, name), 'not applicable');
+  }
+});
+
+test('rejects a skipped job the plan marked applicable', () => {
+  for (const [key, name] of [
+    ['TEST_WORKSPACES_RESULT', 'Workspace tests'],
+    ['TEST_APP_RESULT', 'App tests'],
+    ['TEST_API_RESULT', 'API tests'],
+    ['SPEC_TYPECHECK_RESULT', 'Spec typecheck'],
+  ]) {
+    const result = evaluate({ [key]: 'skipped' });
+
+    assert.equal(result.passed, false);
+    assert.deepEqual(result.failures, [`${name} was applicable but skipped`]);
+  }
 });
 
 test('labels a paused surface as dormant rather than merely out of scope', () => {
-  const result = evaluate({
-    TEST_SCOPE_EXTENSIONS: 'false',
-    TEST_EXTENSIONS_RESULT: 'skipped',
-  });
+  const result = evaluate();
 
   assert.equal(result.passed, true);
   assert.equal(
-    result.rows.find((row) => row.name === 'Extension tests')?.classification,
+    classificationOf(result, 'Extension tests'),
     'dormant (paused surface)',
   );
-});
-
-test('keeps a paused surface dormant on a full-suite run', () => {
-  const result = evaluate({
-    FULL_SUITE: 'true',
-    TEST_SCOPE_EXTENSIONS: 'false',
-    TEST_EXTENSIONS_RESULT: 'skipped',
-    TEST_APP_RESULT: 'success',
-    TEST_APP_CHANGED_RESULT: 'skipped',
-    TEST_API_RESULT: 'success',
-    TEST_API_CHANGED_RESULT: 'skipped',
-  });
-
-  assert.equal(result.passed, true);
-  assert.equal(
-    result.rows.find((row) => row.name === 'Extension tests')?.classification,
-    'dormant (paused surface)',
-  );
-});
-
-test('dormancy never softens a failing paused-surface job', () => {
-  const result = evaluate({
-    TEST_SCOPE_EXTENSIONS: 'false',
-    TEST_EXTENSIONS_RESULT: 'failure',
-  });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, ['Extension tests failure']);
-});
-
-test('dormancy never excuses a paused surface the plan marked applicable', () => {
-  const result = evaluate({
-    TEST_SCOPE_EXTENSIONS: 'true',
-    TEST_EXTENSIONS_RESULT: 'skipped',
-  });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'Extension tests was applicable but skipped',
-  ]);
 });
 
 test('names paused surfaces in the summary of an otherwise passing run', () => {
-  const result = runGateCli({
-    TEST_SCOPE_EXTENSIONS: 'false',
-    TEST_EXTENSIONS_RESULT: 'skipped',
-  });
+  const result = runGateCli();
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /All applicable test and build jobs passed\./);
@@ -182,38 +134,22 @@ test('names paused surfaces in the summary of an otherwise passing run', () => {
   assert.match(result.stdout, /stay skipped even with the `full-suite` label/);
 });
 
-test('omits the paused-surface note when nothing was skipped as dormant', () => {
-  const result = runGateCli();
-
-  assert.equal(result.status, 0);
-  assert.doesNotMatch(result.stdout, /paused surfaces/);
-});
-
-test('rejects skipped workspace jobs when the plan marks them applicable', () => {
-  const result = evaluate({ TEST_PACKAGES_RESULT: 'skipped' });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'Package tests was applicable but skipped',
-  ]);
-});
-
-test('fails closed when an applicable upstream result is missing', () => {
+test('fails closed when an upstream result is missing', () => {
   assert.throws(
     () =>
       createTestsGateJobs({
         ...ALL_SUCCESS_ENV,
-        TEST_PACKAGES_RESULT: undefined,
+        TEST_WORKSPACES_RESULT: undefined,
       }),
-    /TEST_PACKAGES_RESULT must be a GitHub job result/,
+    /TEST_WORKSPACES_RESULT must be a GitHub job result/,
   );
 });
 
 test('exits non-zero when an applicable upstream job fails', () => {
-  const result = runGateCli({ TEST_PACKAGES_RESULT: 'failure' });
+  const result = runGateCli({ TEST_API_RESULT: 'failure' });
 
   assert.equal(result.status, 1);
-  assert.match(result.stdout, /Gate failures: Package tests failure\./);
+  assert.match(result.stdout, /Gate failures: API tests failure\./);
 });
 
 test('fails when an upstream job is cancelled', () => {
@@ -228,7 +164,7 @@ test('a cancelled run that was not superseded still fails instead of crashing', 
 
   assert.equal(result.passed, false);
   assert.equal(result.superseded, undefined);
-  assert.ok(result.failures.includes('Test scope cancelled'));
+  assert.ok(result.failures.includes('Plan cancelled'));
 });
 
 test('passes a pull request run superseded by a newer push', () => {
@@ -246,7 +182,7 @@ test('passes a pull request run superseded by a newer push', () => {
 test('tolerates jobs left unrun by an upstream cancellation when superseded', () => {
   const result = evaluate({
     BUILD_RESULT: 'cancelled',
-    TEST_APP_CHANGED_RESULT: 'skipped',
+    TEST_APP_RESULT: 'skipped',
     RUN_SUPERSEDED: 'true',
   });
 
@@ -257,16 +193,11 @@ test('tolerates jobs left unrun by an upstream cancellation when superseded', ()
 test('a genuine failure keeps a superseded run red', () => {
   const result = evaluate({
     ...CANCELLED_RUN_ENV,
-    TEST_SCOPE_APP: 'true',
-    TEST_SCOPE_API: 'true',
-    TEST_SCOPE_APP_TESTS: 'true',
-    TEST_SCOPE_API_TESTS: 'true',
-    TEST_SCOPE_PACKAGES: 'true',
-    TEST_SCOPE_SERVER_SERVICES: 'true',
-    TEST_SCOPE_WEB_DESKTOP_MOBILE: 'true',
-    TEST_SCOPE_EXTENSIONS: 'true',
-    FULL_SUITE: 'false',
-    TEST_SCOPE_RESULT: 'success',
+    PLAN_RESULT: 'success',
+    PLAN_APP_TESTS: 'true',
+    PLAN_API_TESTS: 'true',
+    PLAN_WORKSPACE_TESTS: 'true',
+    PLAN_SPEC_TYPECHECK: 'true',
     STATIC_CHECKS_RESULT: 'failure',
     RUN_SUPERSEDED: 'true',
   });
@@ -275,7 +206,7 @@ test('a genuine failure keeps a superseded run red', () => {
   assert.ok(result.failures.includes('Static checks failure'));
 });
 
-test('merge-queue and master runs never read as superseded', () => {
+test('hourly master runs never read as superseded', () => {
   assert.deepEqual(readSupersession({}), {
     superseded: false,
     supersededBy: null,
@@ -297,107 +228,57 @@ test('exits zero and names the newer commit for a superseded run', () => {
   assert.match(result.stdout, /Superseded by commit 0ffd495866a8/);
 });
 
-test('fails when the consolidated static checks fail', () => {
-  // Format, secretlint, lint, typecheck, and the executable contracts run in
-  // one static-checks job (#1969). The gate must treat that job exactly like
-  // the five contexts it replaced.
-  const result = evaluate({ STATIC_CHECKS_RESULT: 'failure' });
+test('static checks and build can never be skipped past the gate', () => {
+  for (const [key, name] of [
+    ['STATIC_CHECKS_RESULT', 'Static checks'],
+    ['BUILD_RESULT', 'Build'],
+  ]) {
+    const result = evaluate({ [key]: 'skipped' });
 
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, ['Static checks failure']);
-});
-
-test('static checks can never be skipped past the gate', () => {
-  const result = evaluate({ STATIC_CHECKS_RESULT: 'skipped' });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'Static checks was applicable but skipped',
-  ]);
+    assert.equal(result.passed, false);
+    assert.deepEqual(result.failures, [`${name} was applicable but skipped`]);
+  }
 });
 
 test('fails when the spec typecheck ratchet fails', () => {
-  // Spec files sit outside every backend tsconfig.typecheck.json, so the
-  // ratchet is the only job that sees them. Left out of the gate it reported
-  // green on a red trunk: run 32971423541 had Spec Typecheck failing, Tests
-  // Gate passing, the master failure reporter skipped, and its resolve arm
-  // closing the open trackers.
+  // Spec files sit outside every workspace typecheck config, so the ratchet is
+  // the only job that sees them. Left out of the gate it reported green on a
+  // red trunk: run 32971423541 had Spec Typecheck failing, Tests Gate passing,
+  // and the master failure tracker closing the open trackers.
   const result = evaluate({ SPEC_TYPECHECK_RESULT: 'failure' });
 
   assert.equal(result.passed, false);
   assert.deepEqual(result.failures, ['Spec typecheck failure']);
 });
 
-test('spec typecheck can never be skipped past the gate', () => {
-  const result = evaluate({ SPEC_TYPECHECK_RESULT: 'skipped' });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'Spec typecheck was applicable but skipped',
-  ]);
-});
-
-test('fails when an applicable job is unexpectedly skipped', () => {
-  const result = evaluate({ TEST_APP_CHANGED_RESULT: 'skipped' });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'App tests (changed) was applicable but skipped',
-  ]);
-});
-
-test('reports a scope failure when its outputs are empty', () => {
+test('a plan that never finished fails the gate on its own row', () => {
   const result = evaluate({
-    TEST_SCOPE_APP: '',
-    TEST_SCOPE_API: '',
-    TEST_SCOPE_APP_TESTS: '',
-    TEST_SCOPE_API_TESTS: '',
-    TEST_SCOPE_PACKAGES: '',
-    TEST_SCOPE_SERVER_SERVICES: '',
-    TEST_SCOPE_WEB_DESKTOP_MOBILE: '',
-    TEST_SCOPE_EXTENSIONS: '',
-    TEST_SCOPE_RESULT: 'failure',
+    PLAN_RESULT: 'failure',
+    PLAN_APP_TESTS: '',
+    PLAN_API_TESTS: '',
+    PLAN_WORKSPACE_TESTS: '',
+    PLAN_SPEC_TYPECHECK: '',
+    SPEC_TYPECHECK_RESULT: 'skipped',
+    TEST_WORKSPACES_RESULT: 'skipped',
+    TEST_APP_RESULT: 'skipped',
+    TEST_API_RESULT: 'skipped',
+    STATIC_CHECKS_RESULT: 'skipped',
+    BUILD_RESULT: 'skipped',
   });
 
   assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, ['Test scope failure']);
+  assert.deepEqual(result.failures, [
+    'Plan failure',
+    'Static checks was applicable but skipped',
+    'Build was applicable but skipped',
+  ]);
 });
 
-test('fails closed when a successful scope job omits its outputs', () => {
-  const result = runGateCli({
-    TEST_SCOPE_APP: '',
-    TEST_SCOPE_API: '',
-    TEST_SCOPE_RESULT: 'success',
-  });
+test('fails closed when a successful plan omits its outputs', () => {
+  const result = runGateCli({ PLAN_APP_TESTS: '' });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /TEST_SCOPE_APP must be "true" or "false"/);
-});
-
-test('accepts an empty affected-test manifest without requiring a runner', () => {
-  const result = evaluate({
-    TEST_SCOPE_APP_TESTS: 'false',
-    TEST_APP_CHANGED_RESULT: 'skipped',
-    TEST_SCOPE_API_TESTS: 'false',
-    TEST_API_CHANGED_RESULT: 'skipped',
-  });
-
-  assert.equal(result.passed, true);
-});
-
-test('switches full-suite applicability without accepting missing matrix jobs', () => {
-  const result = evaluate({
-    FULL_SUITE: 'true',
-    TEST_APP_RESULT: 'skipped',
-    TEST_APP_CHANGED_RESULT: 'skipped',
-    TEST_API_RESULT: 'success',
-    TEST_API_CHANGED_RESULT: 'skipped',
-  });
-
-  assert.equal(result.passed, false);
-  assert.deepEqual(result.failures, [
-    'App tests (full matrix) was applicable but skipped',
-  ]);
+  assert.match(result.stderr, /PLAN_APP_TESTS must be "true" or "false"/);
 });
 
 test('keeps the workflow contract stable', () => {
@@ -408,30 +289,40 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
-  // Pull requests, merge-queue runs (#3143) AND master pushes reach a
-  // conclusive gate (#2510); the release path (workflow_call inherits the
-  // caller's originating event) does not match any arm and stays unchanged.
+  // Ready pull requests and the hourly master Full Suite (`schedule`,
+  // inherited through workflow_call) reach a conclusive gate (#2510); drafts
+  // and the release path (workflow_dispatch) do not.
   assert.match(
     workflow,
-    /^ {4}if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}\n/m,
+    /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& !github\.event\.pull_request\.draft\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'schedule'\) \}\}\n/m,
   );
 
   for (const job of [
+    'plan',
     'static-checks',
     'spec-typecheck',
-    'test-scope',
-    'test-packages',
-    'test-server-services',
-    'test-web-desktop-mobile',
-    'test-extensions',
+    'test-workspaces',
     'test-app',
-    'test-app-changed',
     'test-api',
-    'test-api-changed',
-    'openapi-drift',
     'build',
   ]) {
-    assert.match(workflow, new RegExp(`^      - ${job}$`, 'm'));
+    assert.match(workflow, new RegExp(`^ {6}- ${job}$`, 'm'));
+  }
+
+  for (const [environmentKey, output] of [
+    ['PLAN_APP_TESTS', 'app_tests'],
+    ['PLAN_API_TESTS', 'api_tests'],
+    ['PLAN_WORKSPACE_TESTS', 'workspace_tests'],
+    ['PLAN_SPEC_TYPECHECK', 'spec_run'],
+  ]) {
+    assert.match(
+      workflow,
+      new RegExp(
+        `^ {10}${environmentKey}: \\$\\{\\{ needs\\.plan\\.outputs\\.${output} \\}\\}$`,
+        'm',
+      ),
+      `${environmentKey} must reach tests-gate from the plan`,
+    );
   }
 
   // Supersession is detected for pull requests only and fed to the gate.

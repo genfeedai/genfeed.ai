@@ -84,10 +84,6 @@ const isCoverageRun = process.argv.includes('--coverage');
 const isShardRun = process.argv.some(
   (arg) => arg === '--shard' || arg.startsWith('--shard='),
 );
-// Set by the Changed Coverage (api) job in ci.yml (#1849). That job runs the
-// affected `--changed` graph only, so the full-repo thresholds below describe a
-// suite it never executes — same mathematics as a shard, different mechanism.
-const isChangedCodeCoverageRun = process.env.CHANGED_CODE_COVERAGE === '1';
 const coverageDirectory = path.resolve(serviceDir, './coverage');
 
 if (isCoverageRun) {
@@ -102,27 +98,26 @@ if (isCoverageRun) {
 // step can grab it — starving the merge job (ENOENT). The merge job runs
 // `vitest --merge-reports --coverage` (no --shard), reconstructs the full
 // coverage from all 4 blobs, and re-evaluates these thresholds there.
-const coverageThresholds =
-  isShardRun || isChangedCodeCoverageRun
-    ? undefined
-    : {
-        // Ratcheted ~2 points below the 2026-08-10 merged report
-        // (run 31367395806: 56.54% branches, 71.48% functions, 68.04% lines,
-        // 68.05% statements). Shard and changed-code runs skip this block.
-        branches: 54,
-        functions: 69,
-        lines: 66,
-        // Ratchet floor for integration code (current actual ~67.5% lines /
-        // ~56% branches). Raise these toward 100 as integration test gaps fill.
-        'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
-          {
-            branches: 55,
-            functions: 65,
-            lines: 65,
-            statements: 65,
-          },
-        statements: 66,
-      };
+const coverageThresholds = isShardRun
+  ? undefined
+  : {
+      // Ratcheted ~2 points below the 2026-08-10 merged report
+      // (run 31367395806: 56.54% branches, 71.48% functions, 68.04% lines,
+      // 68.05% statements). Shard runs skip this block.
+      branches: 54,
+      functions: 69,
+      lines: 66,
+      // Ratchet floor for integration code (current actual ~67.5% lines /
+      // ~56% branches). Raise these toward 100 as integration test gaps fill.
+      'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
+        {
+          branches: 55,
+          functions: 65,
+          lines: 65,
+          statements: 65,
+        },
+      statements: 66,
+    };
 
 export default defineConfig({
   customLogger,
