@@ -9,27 +9,17 @@ import { EXPERT_FIRST_SYSTEM_CREDIT_COST } from '@genfeedai/contracts/constants'
 import type {
   AdsResearchResponse,
   AdWatchlistPlatformReadiness,
-  IAgentBrandContextSnapshot,
-  IBrandMemoryInsight,
-  IExpertPathStatus,
-  SocialSourcesResponse,
-} from '@genfeedai/contracts/interfaces';
-import type { IEmailPerformanceReport } from '@genfeedai/contracts/interfaces/admin';
-import type {
   IAccountAnalytics,
   IAccountAnalyticsDetail,
   IAccountAnalyticsList,
-} from '@genfeedai/contracts/interfaces/analytics';
-import type {
+  IAgentBrandContextSnapshot,
+  IBrandMemoryInsight,
   ICostReportSummary,
+  IEmailPerformanceReport,
+  IExpertPathStatus,
   OrganizationCreditUsageResponse,
-} from '@genfeedai/contracts/interfaces/billing';
-import type { NewsletterContextPreview } from '@genfeedai/props/content/artifact-editor.props';
-import type {
-  TrendContentResponse,
-  TrendCorpusFreshnessHealth,
-} from '@genfeedai/props/trends/trends-page.props';
-import type { IPaginatedBrandsResponse } from '@genfeedai/services/analytics/analytics.service';
+  SocialSourcesResponse,
+} from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -1105,7 +1095,7 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
   const { pathname } = new URL(url);
 
   if (pathname.endsWith('/analytics/brands')) {
-    const brands: IPaginatedBrandsResponse = {
+    const brands = {
       data: [],
       pagination: { limit: 64, page: 1, total: 0, totalPages: 1 },
     };
@@ -1625,7 +1615,7 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   }
 
   if (url.includes('/content')) {
-    const content: TrendContentResponse = {
+    const content = {
       items: [
         {
           contentRank: 1,
@@ -1742,7 +1732,7 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   }
 
   if (url.includes('/trends/corpus/health')) {
-    const health: TrendCorpusFreshnessHealth = {
+    const health = {
       generatedAt: new Date().toISOString(),
       providerFailures: [],
       segments: [],
@@ -1938,7 +1928,7 @@ export function buildUnhandledApiMockBody(url: string): unknown {
   }
 
   if (/\/newsletters\/[^/]+\/context\/?$/.test(pathname)) {
-    const context: NewsletterContextPreview = {
+    const context = {
       brandVoice: null,
       contextSources: [],
       recentNewsletters: [],
