@@ -589,6 +589,7 @@ export class CreditsGuard implements CanActivate {
           : {}),
       };
       request.creditsConfig = updatedCreditsConfig;
+      if (creditsConfig.isReservationDeferred) return true;
       try {
         await reserveGenerationRequestCredits({
           amount: requiredCredits,

@@ -8,6 +8,7 @@ import type {
   TextGenerationCharge,
 } from '@api/collections/articles/services/articles-content.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { appendHarnessBriefToPrompt } from '@api/services/harness/harness-brief.util';
 import { ArticleCategory } from '@genfeedai/contracts';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
@@ -28,6 +29,7 @@ export class ArticleReviewService {
     harnessContext: ArticleHarnessContext,
     focus?: string,
     onBilling?: (charge: TextGenerationCharge) => void,
+    byok?: TextByokDispatch,
   ): Promise<ArticleReviewRubric> {
     const reviewModel = modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
     const reviewPrompt = this.buildReviewPrompt({
@@ -48,6 +50,7 @@ export class ArticleReviewService {
         reviewPrompt,
         organizationId,
         harnessContext.promptBuilder,
+        byok,
       );
     onBilling?.(charge);
 
@@ -55,6 +58,7 @@ export class ArticleReviewService {
   }
 
   async reviewDraft(params: {
+    byok?: TextByokDispatch;
     draft: { label: string; summary: string; content: string };
     harnessContext?: ArticleHarnessContext;
     organizationId: string;
@@ -75,11 +79,13 @@ export class ArticleReviewService {
         }),
         params.organizationId,
         params.harnessContext?.promptBuilder,
+        params.byok,
       );
     return { charge, review: this.parseReviewRubric(output) };
   }
 
   async reviseDraft(params: {
+    byok?: TextByokDispatch;
     draft: { label: string; summary: string; content: string };
     harnessContext?: ArticleHarnessContext;
     organizationId: string;
@@ -105,6 +111,7 @@ export class ArticleReviewService {
         ),
         params.organizationId,
         params.harnessContext?.promptBuilder,
+        params.byok,
       );
     return {
       charge,

@@ -26,15 +26,19 @@ import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-
 import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
-import {
-  ArticleGenerationType,
-  GenerateArticlesDto,
-} from '@api/collections/articles/dto/generate-articles.dto';
+import { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import {
   type Article,
   type ArticleDocument,
 } from '@api/collections/articles/schemas/article.schema';
+import {
+  type ArticleGenerationActionResult,
+  type ArticleGenerationFinalState,
+  articleWorkflowRuntime,
+  finalizeArticleGeneration,
+  readArticleWorkflowByok,
+} from '@api/collections/articles/services/article-generation-workflow.util';
 import {
   ARTICLE_HEADER_PROMPT_ACTION_IDS,
   ARTICLE_HEADER_PROMPT_WORKFLOW_DEFINITION,
@@ -73,6 +77,7 @@ import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-def
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { TextByokDispatch } from '@api/services/byok/text-dispatch-byok.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -95,15 +100,7 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export type ArticleGenerationActionResult = {
-  articles: ArticleDocument[];
-  billedCredits: number;
-};
-
-type ArticleGenerationFinalState = ArticleGenerationActionResult & {
-  context: ArticleGenerationContext;
-  headerPromptItems: Array<{ articleId: string }>;
-};
+export type { ArticleGenerationActionResult } from '@api/collections/articles/services/article-generation-workflow.util';
 
 type ArticleHeaderPromptState = {
   article: ArticleDocument;
@@ -175,19 +172,22 @@ export class ArticlesService
         );
       },
     );
-    runner.registerAction(ARTICLE_GENERATE_DRAFTS_ACTION_ID, ({ input }) =>
+    runner.registerAction(ARTICLE_GENERATE_DRAFTS_ACTION_ID, (request) =>
       this.requireArticlesContentService().generateDrafts(
-        input.state as ArticleGenerationContext,
+        request.input.state as ArticleGenerationContext,
+        readArticleWorkflowByok(request.runtimeContext),
       ),
     );
-    runner.registerAction(ARTICLE_REVIEW_DRAFT_ACTION_ID, ({ input }) =>
+    runner.registerAction(ARTICLE_REVIEW_DRAFT_ACTION_ID, (request) =>
       this.requireArticlesContentService().reviewDraft(
-        input.item as ArticleGenerationWorkItem,
+        request.input.item as ArticleGenerationWorkItem,
+        readArticleWorkflowByok(request.runtimeContext),
       ),
     );
-    runner.registerAction(ARTICLE_REVISE_DRAFT_ACTION_ID, ({ input }) =>
+    runner.registerAction(ARTICLE_REVISE_DRAFT_ACTION_ID, (request) =>
       this.requireArticlesContentService().reviseDraft(
-        input.state as ArticleGenerationReviewState,
+        request.input.state as ArticleGenerationReviewState,
+        readArticleWorkflowByok(request.runtimeContext),
       ),
     );
     runner.registerAction(ARTICLE_PERSIST_DRAFT_ACTION_ID, ({ input }) =>
@@ -197,7 +197,7 @@ export class ArticlesService
       ),
     );
     runner.registerAction(ARTICLE_FINALIZE_GENERATION_ACTION_ID, ({ input }) =>
-      this.finalizeArticleGeneration(input),
+      finalizeArticleGeneration(input),
     );
     runner.registerAction(
       ARTICLE_HEADER_PROMPT_ACTION_IDS.LOAD,
@@ -209,9 +209,10 @@ export class ArticlesService
     );
     runner.registerAction(
       ARTICLE_HEADER_PROMPT_ACTION_IDS.GENERATE,
-      ({ input }) =>
+      (request) =>
         this.generateArticleHeaderPrompt(
-          input.state as ArticleHeaderPromptState,
+          request.input.state as ArticleHeaderPromptState,
+          readArticleWorkflowByok(request.runtimeContext),
         ),
     );
     runner.registerAction(
@@ -240,9 +241,10 @@ export class ArticlesService
         typeof input.focus === 'string' ? input.focus : undefined,
       ),
     );
-    runner.registerAction(ARTICLE_REVIEW_ACTION_ID, ({ input }) =>
+    runner.registerAction(ARTICLE_REVIEW_ACTION_ID, (request) =>
       this.requireArticlesContentService().reviewExistingPrepared(
-        input.state as ArticleExistingReviewContext,
+        request.input.state as ArticleExistingReviewContext,
+        readArticleWorkflowByok(request.runtimeContext),
       ),
     );
   }
@@ -724,13 +726,15 @@ export class ArticlesService
   }
 
   /**
-   * Generate articles using OpenAI assistant - delegates to ArticlesContentService
+   * Generate articles through the article workflow. `byok` rides the
+   * non-persisted `runtimeContext`, never `inputValues` (#5380).
    */
   async generateArticles(
     generateDto: GenerateArticlesDto,
     userId: string,
     organizationId: string,
     brandId: string,
+    byok?: TextByokDispatch,
   ): Promise<ArticleGenerationActionResult> {
     const { result } =
       await this.requireWorkflowRunner().runWorkflow<ArticleGenerationActionResult>(
@@ -740,46 +744,13 @@ export class ArticlesService
           inputValues: { brandId, dto: generateDto },
           metadata: { brandId, origin: 'api' },
           organizationId,
+          runtimeContext: articleWorkflowRuntime(byok),
           source: 'ArticlesService.generateArticles',
           trigger: WorkflowExecutionTrigger.API,
           userId,
         },
       );
     return result;
-  }
-
-  private finalizeArticleGeneration(
-    input: Record<string, unknown>,
-  ): ArticleGenerationFinalState {
-    const generation = input.generation as {
-      billedCredits: number;
-      context: ArticleGenerationContext;
-    };
-    const drafts = input.drafts as {
-      results?: Array<{
-        result?: { article?: ArticleDocument; billedCredits?: number };
-      }>;
-    };
-    const completed = drafts.results ?? [];
-    const articles = completed.flatMap(({ result }) =>
-      result?.article ? [result.article] : [],
-    );
-    return {
-      articles,
-      billedCredits:
-        generation.billedCredits +
-        completed.reduce(
-          (total, { result }) => total + (result?.billedCredits ?? 0),
-          0,
-        ),
-      context: generation.context,
-      headerPromptItems:
-        generation.context.generationType === ArticleGenerationType.X_ARTICLE &&
-        generation.context.generateDto.generateHeaderImage !== false &&
-        articles[0]
-          ? [{ articleId: articles[0].id }]
-          : [],
-    };
   }
 
   private async loadArticleHeaderPrompt(
@@ -798,12 +769,14 @@ export class ArticlesService
 
   private async generateArticleHeaderPrompt(
     state: ArticleHeaderPromptState,
+    byok?: TextByokDispatch,
   ): Promise<ArticleHeaderPromptState> {
     return {
       ...state,
       prompt: await this.articleInsightsService.generateHeaderPrompt(
         state.article,
         state.organizationId,
+        byok,
       ),
     };
   }
@@ -838,6 +811,7 @@ export class ArticlesService
     userId: string,
     organizationId: string,
     focus?: string,
+    byok?: TextByokDispatch,
   ): Promise<ArticleReviewActionResult> {
     const { result } =
       await this.requireWorkflowRunner().runWorkflow<ArticleReviewActionResult>(
@@ -847,6 +821,7 @@ export class ArticlesService
           inputValues: { articleId, focus },
           metadata: { origin: 'api' },
           organizationId,
+          runtimeContext: articleWorkflowRuntime(byok),
           source: 'ArticlesService.reviewArticle',
           trigger: WorkflowExecutionTrigger.API,
           userId,
@@ -1025,12 +1000,14 @@ export class ArticlesService
     articleId: string,
     userId: string,
     organizationId: string,
+    byok?: TextByokDispatch,
   ): Promise<string> {
     const { result } = await this.requireWorkflowRunner().runWorkflow<string>({
       actionType: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
       canonicalId: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
       inputValues: { request: { articleId } },
       organizationId,
+      runtimeContext: articleWorkflowRuntime(byok),
       source: 'ArticlesService.generateHeaderPrompt',
       trigger: WorkflowExecutionTrigger.API,
       userId,

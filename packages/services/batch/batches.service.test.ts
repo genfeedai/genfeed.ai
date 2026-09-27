@@ -102,19 +102,36 @@ describe('BatchesService', () => {
     });
   });
 
-  it('allows the rewrite request to outlive the ordinary read timeout', async () => {
-    mockPost.mockResolvedValue({
-      data: { data: { id: 'batch-1', attributes: { items: [] } } },
-    });
-    await service.itemAction('batch-1', {
-      action: 'rewrite',
+  it('queues a rewrite job and returns without waiting for the rewrite', async () => {
+    const job = { id: 'job-1', batchId: 'batch-1', status: 'queued' };
+    mockPost.mockResolvedValue({ data: job });
+
+    await expect(
+      service.createRewriteJob('batch-1', ['item-1']),
+    ).resolves.toEqual(job);
+    expect(mockPost).toHaveBeenCalledWith('/batch-1/rewrite-jobs', {
       itemIds: ['item-1'],
     });
-    expect(mockPost).toHaveBeenCalledWith(
-      '/batch-1/items/action',
-      { action: 'rewrite', itemIds: ['item-1'] },
-      { timeout: 600_000 },
+  });
+
+  it('reads the active rewrite job of a batch', async () => {
+    mockGet.mockResolvedValue({ data: { job: null } });
+
+    await expect(service.getActiveRewriteJob('batch-1')).resolves.toBeNull();
+    expect(mockGet).toHaveBeenCalledWith('/batch-1/rewrite-jobs/active', {
+      signal: undefined,
+    });
+  });
+
+  it('cancels a rewrite job', async () => {
+    mockPost.mockResolvedValue({
+      data: { id: 'job-1', isCancelRequested: true },
+    });
+
+    await expect(service.cancelRewriteJob('batch-1', 'job-1')).resolves.toEqual(
+      { id: 'job-1', isCancelRequested: true },
     );
+    expect(mockPost).toHaveBeenCalledWith('/batch-1/rewrite-jobs/job-1/cancel');
   });
 
   it('passes feedback through batch item actions', async () => {

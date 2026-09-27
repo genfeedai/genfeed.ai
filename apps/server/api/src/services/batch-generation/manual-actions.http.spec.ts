@@ -7,12 +7,10 @@ import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/se
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
@@ -20,7 +18,9 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, ReviewDecision } from '@genfeedai/contracts';
+import { BATCH_REWRITE_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getQueueToken } from '@nestjs/bullmq';
 import { HttpException, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
@@ -43,7 +43,15 @@ describe('Manual actions HTTP routes', () => {
   let hasCredits = true;
   const enhanceDescription = vi.fn().mockResolvedValue('Rewritten');
   const generateReply = vi.fn().mockResolvedValue('Suggested response');
-  const applyRewrites = vi.fn().mockResolvedValue({ id: 'batch-1', items: [] });
+  const rewriteQueue = {
+    add: vi.fn(
+      async (_name: string, _data: unknown, opts: { jobId: string }) => ({
+        id: opts.jobId,
+      }),
+    ),
+    getDeduplicationJobId: vi.fn().mockResolvedValue(null),
+    getJob: vi.fn(),
+  };
   const approveItems = vi.fn().mockResolvedValue({ id: 'batch-1', items: [] });
   const credits = {
     admit: vi.fn(async () => {
@@ -117,7 +125,7 @@ describe('Manual actions HTTP routes', () => {
         SocialInboxSuggestedReplyService,
         { provide: BatchGenerationService, useValue: { approveItems } },
         { provide: BatchGenerationWorkflowService, useValue: {} },
-        { provide: BatchGenerationReviewService, useValue: { applyRewrites } },
+        { provide: getQueueToken(BATCH_REWRITE_QUEUE), useValue: rewriteQueue },
         {
           provide: ActivityRecorderService,
           useValue: {
@@ -153,11 +161,6 @@ describe('Manual actions HTTP routes', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(CreditsGuard)
       .useValue(credits)
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_context: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .compile();
     app = module.createNestApplication();
     app.use(
@@ -184,42 +187,75 @@ describe('Manual actions HTTP routes', () => {
     hasCredits = true;
   });
 
-  it('rewrites via the batch action route without approving', async () => {
-    await request(app.getHttpServer())
-      .post('/batches/batch-1/items/action')
-      .send({ action: 'rewrite', itemIds: ['item-1'] })
-      .expect(200);
-    expect(enhanceDescription).toHaveBeenCalledOnce();
+  it('queues the rewrite and answers 202 before any caption is generated', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/batches/batch-1/rewrite-jobs')
+      .send({ itemIds: ['item-1'] })
+      .expect(202);
+    expect(response.body).toMatchObject({
+      batchId: 'batch-1',
+      itemIds: ['item-1'],
+      status: 'queued',
+    });
+    expect(response.body.id).toMatch(/^batch-rewrite-batch-1-/);
+    expect(rewriteQueue.add).toHaveBeenCalledOnce();
+    expect(enhanceDescription).not.toHaveBeenCalled();
     expect(approveItems).not.toHaveBeenCalled();
-    expect(applyRewrites).toHaveBeenCalledOnce();
     expect(credits.admit).toHaveBeenCalledWith(
       expect.objectContaining({ creditsOutputCount: 1 }),
       expect.objectContaining({
-        source: 'post-enhance',
         isBodyModelIgnored: true,
+        isReservationDeferred: true,
+        source: 'post-enhance',
       }),
     );
   });
   it('returns 404 across organizations for batch rewrite', async () => {
     await request(app.getHttpServer())
-      .post('/batches/batch-1/items/action')
+      .post('/batches/batch-1/rewrite-jobs')
       .set('x-test-org', 'org-2')
-      .send({ action: 'rewrite', itemIds: ['item-1'] })
+      .send({ itemIds: ['item-1'] })
       .expect(404);
-    expect(enhanceDescription).not.toHaveBeenCalled();
+    expect(rewriteQueue.add).not.toHaveBeenCalled();
+  });
+  it("hides another organization's rewrite progress", async () => {
+    rewriteQueue.getJob.mockResolvedValue({
+      data: {
+        batchId: 'batch-1',
+        itemIds: ['item-1'],
+        organizationId: 'org-2',
+      },
+      getState: vi.fn().mockResolvedValue('active'),
+      id: 'job-1',
+      progress: 0,
+      returnvalue: null,
+    });
+    await request(app.getHttpServer())
+      .get('/batches/batch-1/rewrite-jobs/job-1')
+      .expect(404);
+    await request(app.getHttpServer())
+      .post('/batches/batch-1/rewrite-jobs/job-1/cancel')
+      .expect(404);
   });
   it('guards rewrite credits while keeping approval free', async () => {
     hasCredits = false;
     await request(app.getHttpServer())
-      .post('/batches/batch-1/items/action')
-      .send({ action: 'rewrite', itemIds: ['item-1'] })
+      .post('/batches/batch-1/rewrite-jobs')
+      .send({ itemIds: ['item-1'] })
       .expect(402);
-    expect(enhanceDescription).not.toHaveBeenCalled();
+    expect(rewriteQueue.add).not.toHaveBeenCalled();
     await request(app.getHttpServer())
       .post('/batches/batch-1/items/action')
       .send({ action: 'approve', itemIds: ['item-1'] })
       .expect(200);
     expect(approveItems).toHaveBeenCalledOnce();
+  });
+  it('no longer rewrites synchronously through the item action route', async () => {
+    await request(app.getHttpServer())
+      .post('/batches/batch-1/items/action')
+      .send({ action: 'rewrite', itemIds: ['item-1'] })
+      .expect(400);
+    expect(enhanceDescription).not.toHaveBeenCalled();
   });
   it('returns a serialized suggested reply for the conversation brand', async () => {
     const response = await request(app.getHttpServer())

@@ -167,7 +167,14 @@ export default function PricingContent() {
           <p className="mb-8 max-w-3xl text-base leading-relaxed text-surface/65">
             {`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
           </p>
-          <NeuralGrid columns={3} className="gsap-grid">
+          {/*
+            Three plans: a two-column tablet step would strand the third plan on
+            a row of its own, so the plans stay stacked until all three fit.
+          */}
+          <NeuralGrid
+            columns={3}
+            className="gsap-grid md:grid-cols-1 lg:grid-cols-3"
+          >
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.tier === FEATURED_TIER;
               const isPayg = plan.type === 'payg';
@@ -286,7 +293,7 @@ export default function PricingContent() {
               className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between"
             >
               <div className="max-w-2xl">
-                <div className="mb-3 text-2xs font-black uppercase tracking-widest text-surface/45">
+                <div className="mb-3 text-xs font-bold uppercase tracking-widest text-surface/60">
                   {enterprisePlan.label}
                 </div>
                 <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
@@ -335,7 +342,7 @@ export default function PricingContent() {
           <SectionHeader
             title="What output costs."
             description="Every job shows its price before you run it. The router picks the best model for each format, and the price below is what you pay, whatever model runs."
-            className="[&_h2]:text-5xl mb-4"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
 
           <div className="grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
@@ -381,7 +388,7 @@ export default function PricingContent() {
           <SectionHeader
             title="Common Questions"
             description="Pricing is intentionally simple: free to join, credits for output, subscriptions for better rates and scale."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <FaqGrid items={FAQ_ITEMS} />

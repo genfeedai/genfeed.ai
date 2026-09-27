@@ -4,17 +4,6 @@ import { createAppNextConfig } from '@genfeedai/next-config';
 
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 
-const SOCIAL_GROWTH_PLATFORMS = [
-  'x',
-  'linkedin',
-  'instagram',
-  'tiktok',
-  'youtube',
-  'threads',
-  'facebook',
-  'pinterest',
-] as const;
-
 const config = createAppNextConfig({
   headers: async () => [
     {
@@ -104,47 +93,6 @@ const config = createAppNextConfig({
       permanent: false,
       source: '/.well-known/oauth-authorization-server',
     },
-    {
-      destination: '/analytics',
-      permanent: true,
-      source: '/intelligence',
-    },
-    {
-      destination: '/pricing',
-      permanent: true,
-      source: '/core',
-    },
-    {
-      destination: '/pricing',
-      permanent: true,
-      source: '/host',
-    },
-    {
-      destination: '/use-cases/creators',
-      permanent: true,
-      source: '/creators',
-    },
-    {
-      destination: '/use-cases/agencies',
-      permanent: true,
-      source: '/agencies',
-    },
-    {
-      destination: '/use-cases/ai-influencers',
-      permanent: true,
-      source: '/influencers',
-    },
-    {
-      destination: '/linkedin',
-      permanent: true,
-      source: '/linkedin-content',
-    },
-    // Social growth pages moved from /<platform>-growth to /<platform>.
-    ...SOCIAL_GROWTH_PLATFORMS.map((platform) => ({
-      destination: `/${platform}`,
-      permanent: true,
-      source: `/${platform}-growth`,
-    })),
   ],
   sentryProject: 'genfeed-ai',
 });

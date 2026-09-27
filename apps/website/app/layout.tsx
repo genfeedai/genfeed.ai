@@ -8,8 +8,19 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata } from '@ui/shell/metadata';
+import type { Viewport } from 'next';
 
 const { name, description, url, cards } = metadataHelper;
+
+/**
+ * The marketing site renders dark only. Without a theme colour the phone's
+ * browser chrome stays light above a black page — a bright band on every
+ * screen.
+ */
+export const viewport: Viewport = {
+  colorScheme: 'dark',
+  themeColor: '#000000',
+};
 
 export const metadata = createAppMetadata({
   description,

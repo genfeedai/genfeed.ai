@@ -1783,7 +1783,17 @@
   "batchRewrite": {
     "action": "Rewrite batch",
     "progress": "Rewriting…",
-    "error": "Unable to rewrite the selected items. Please try again."
+    "error": "Unable to start the rewrite. Please try again.",
+    "queued": "Rewrite queued — you can keep reviewing.",
+    "progressCount": "Rewriting {handled} of {total}",
+    "cancel": "Stop rewrite",
+    "cancelling": "Stopping after the current item…",
+    "cancelError": "Unable to stop the rewrite. Please try again.",
+    "completed": "{count, plural, one {# caption rewritten} other {# captions rewritten}}",
+    "partial": "{completed, plural, one {# caption rewritten} other {# captions rewritten}}; {failed, plural, one {# item was} other {# items were}} not rewritten and not charged.",
+    "failed": "No captions were rewritten, and no credits were charged.",
+    "insufficientCredits": "Not enough credits to rewrite the remaining items.",
+    "cancelled": "Rewrite stopped. {count, plural, =0 {No captions were rewritten.} one {# caption was rewritten.} other {# captions were rewritten.}}"
   },
   "appRail": {
     "apps": "Apps",

@@ -12,7 +12,9 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { PromptCategory } from '@genfeedai/contracts';
+import { ByokService } from '@api/services/byok/byok.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
+import { ByokProvider, PromptCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -38,11 +40,20 @@ describe('PromptsTransformationsController', () => {
   const modelsService = {
     findOne: vi.fn().mockResolvedValue(null),
   };
+  const byokService = { resolveApiKey: vi.fn().mockResolvedValue(undefined) };
   const transformationService = {
     createRemix: vi.fn().mockResolvedValue(prompt),
-    enhanceExisting: vi
-      .fn()
-      .mockResolvedValue({ model: 'anthropic/claude-sonnet-5', prompt }),
+    enhanceExisting: vi.fn(
+      async (
+        _promptId: string,
+        _user: User,
+        resolveApiKey?: (model: string) => Promise<string | undefined>,
+      ) => ({
+        apiKey: await resolveApiKey?.('anthropic/claude-sonnet-5'),
+        model: 'anthropic/claude-sonnet-5',
+        prompt,
+      }),
+    ),
     parse: vi.fn().mockResolvedValue({
       normalizedType: PromptCategory.MODELS_PROMPT_IMAGE,
       promptString: '{"prompt":"A mountain at sunrise"}',
@@ -53,6 +64,8 @@ describe('PromptsTransformationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PromptsTransformationsController],
       providers: [
+        TextGenerationCreditsService,
+        { provide: ByokService, useValue: byokService },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
@@ -117,6 +130,46 @@ describe('PromptsTransformationsController', () => {
     expect(transformationService.enhanceExisting).toHaveBeenCalledWith(
       promptId,
       user,
+      expect.any(Function),
     );
+  });
+
+  it("settles a deferred enhancement as BYOK when the org's key pays for the resolved Admin default model", async () => {
+    byokService.resolveApiKey.mockResolvedValue({ apiKey: 'org-or-key' });
+    const deferredRequest = {
+      creditsConfig: { amount: 0, deferred: true },
+    } as unknown as Request & {
+      creditsConfig: { amount: number; isByokBypass?: boolean };
+    };
+
+    await controller.enhanceExisting(deferredRequest, promptId, user);
+
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+      user.organizationId,
+      ByokProvider.OPENROUTER,
+    );
+    await expect(
+      transformationService.enhanceExisting.mock.results[0]?.value,
+    ).resolves.toMatchObject({ apiKey: 'org-or-key' });
+    expect(deferredRequest.creditsConfig).toMatchObject({
+      deferred: false,
+      isByokBypass: true,
+    });
+  });
+
+  it('keeps charging credits for a deferred enhancement without an org key', async () => {
+    byokService.resolveApiKey.mockResolvedValue(undefined);
+    const deferredRequest = {
+      creditsConfig: { amount: 0, deferred: true },
+    } as unknown as Request & {
+      creditsConfig: { amount: number; isByokBypass?: boolean };
+    };
+
+    await controller.enhanceExisting(deferredRequest, promptId, user);
+
+    await expect(
+      transformationService.enhanceExisting.mock.results[0]?.value,
+    ).resolves.toMatchObject({ apiKey: undefined });
+    expect(deferredRequest.creditsConfig.isByokBypass).toBeUndefined();
   });
 });

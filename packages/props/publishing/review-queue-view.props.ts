@@ -6,6 +6,7 @@ import type {
   ReviewFilterCounts,
   ReviewStatusFilter,
 } from '@props/publishing/review-filters.props';
+import type { ReviewRewriteProgressProps } from '@props/publishing/review-rewrite-progress.props';
 
 export interface ReviewQueueViewProps {
   activeFilters: readonly ReviewStatusFilter[];
@@ -23,6 +24,8 @@ export interface ReviewQueueViewProps {
   isRefreshing?: boolean;
   selectedIds: Set<string>;
   rewritingIds?: ReadonlySet<string>;
+  isRewriteStarting?: boolean;
+  rewriteProgress?: ReviewRewriteProgressProps | null;
   selectedPostId: string | null;
   visibleItems: IBatchItem[];
   onApprove: (itemId: string) => Promise<void>;

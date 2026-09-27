@@ -76,6 +76,7 @@ export * from './automation/workflow.interface';
 export * from './automation/workflow-builder.interface';
 export * from './automation/workflow-execution.interface';
 export * from './batch/batch.interface';
+export * from './batch/batch-rewrite-job.interface';
 export * from './batch/manual-review-batch-item.interface';
 export * from './billing/agent-model-access.interface';
 export * from './billing/billing-account.interface';

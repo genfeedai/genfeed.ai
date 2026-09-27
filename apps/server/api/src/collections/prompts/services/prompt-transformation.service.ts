@@ -20,6 +20,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -187,6 +188,7 @@ export class PromptTransformationService {
   async enhanceExisting(
     promptId: string,
     user: User,
+    resolveApiKey?: TextDispatchKeyResolver,
   ): Promise<{ model: string; prompt: PromptDocument | null }> {
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
@@ -249,6 +251,7 @@ export class PromptTransformationService {
       const result = await this.replicateService.generateTextCompletionSync(
         model,
         input,
+        await resolveApiKey?.(model),
       );
 
       await this.promptsService.patch(promptId, {

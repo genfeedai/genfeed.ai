@@ -1,7 +1,8 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { Status } from '@genfeedai/contracts';
+import { ByokProvider, Status } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,6 +41,9 @@ function createMocks() {
     videosService: {
       findOne: vi.fn(),
     },
+    textGenerationCreditsService: {
+      resolveDispatch: vi.fn().mockResolvedValue(undefined),
+    },
     websocketService: {
       emit: vi.fn(),
     },
@@ -61,6 +65,7 @@ describe('EvaluationsService review and comparison workflow', () => {
       mocks.evaluationsOperationsService as never,
       mocks.creditsUtilsService as never,
       mocks.websocketService as never,
+      mocks.textGenerationCreditsService as never,
       undefined,
       mocks.videosService as never,
       undefined,
@@ -125,6 +130,7 @@ describe('EvaluationsService review and comparison workflow', () => {
         expect.any(Object),
         organizationId,
         expect.any(Function),
+        undefined,
       );
     });
 
@@ -135,6 +141,7 @@ describe('EvaluationsService review and comparison workflow', () => {
         mocks.evaluationsOperationsService as never,
         mocks.creditsUtilsService as never,
         mocks.websocketService as never,
+        mocks.textGenerationCreditsService as never,
         undefined,
         mocks.videosService as never,
         undefined,
@@ -179,6 +186,7 @@ describe('EvaluationsService review and comparison workflow', () => {
         expect.any(Object),
         organizationId,
         expect.any(Function),
+        undefined,
       );
     });
   });
@@ -283,6 +291,88 @@ describe('EvaluationsService review and comparison workflow', () => {
       expect(
         mocks.creditsUtilsService.refundOrganizationCredits,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('evaluateContent BYOK (#5380)', () => {
+    const byok = { keys: { [ByokProvider.OPENROUTER]: 'org-or-key' } };
+
+    beforeEach(() => {
+      mocks.postsService.findOne.mockResolvedValue({
+        brand: { name: 'Genfeed' },
+        description: 'Launch post',
+        id: 'post-1',
+      });
+      mocks.postsService.getChildren.mockResolvedValue([]);
+      mocks.prisma.evaluation.create.mockResolvedValue({ id: 'eval-1' });
+      mocks.prisma.evaluation.findFirst.mockResolvedValue(null);
+      mocks.prisma.evaluation.update.mockResolvedValue({ id: 'eval-1' });
+      mocks.evaluationsOperationsService.evaluatePost.mockResolvedValue({
+        overallScore: 80,
+      });
+    });
+
+    it("skips the credit floor and forwards the org's key to the evaluator", async () => {
+      mocks.textGenerationCreditsService.resolveDispatch.mockResolvedValue(
+        byok,
+      );
+
+      await service.evaluateContent(
+        'post',
+        'post-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(
+        mocks.textGenerationCreditsService.resolveDispatch,
+      ).toHaveBeenCalledWith(organizationId, [DEFAULT_TEXT_MODEL]);
+      expect(
+        mocks.creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(
+          mocks.evaluationsOperationsService.evaluatePost,
+        ).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(Object),
+          organizationId,
+          expect.any(Function),
+          byok,
+        );
+      });
+    });
+
+    it('keeps the credit floor without an org key', async () => {
+      mocks.creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        true,
+      );
+
+      await service.evaluateContent(
+        'post',
+        'post-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(
+        mocks.creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(organizationId, 1);
+      await vi.waitFor(() => {
+        expect(
+          mocks.evaluationsOperationsService.evaluatePost,
+        ).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(Object),
+          organizationId,
+          expect.any(Function),
+          undefined,
+        );
+      });
     });
   });
 

@@ -31,6 +31,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { TextDispatchKeyResolver } from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -705,17 +706,11 @@ export class PostGenerationService {
     );
   }
 
-  // ==========================================================================
-  // POST ENHANCEMENT
-  // ==========================================================================
-
-  /**
-   * Generate a channel draft from a topic. Returns the draft text; the caller
-   * is responsible for persisting and serializing the result.
-   */
+  /** Drafts a channel post from a topic; the caller persists the result. */
   async generateDraftText(
     dto: PostDraftGenerationInput,
     identity: GenerationMetadata,
+    resolveApiKey?: TextDispatchKeyResolver,
   ): Promise<PostDraftGenerationResult> {
     if (!getChannelCapability(dto.platform)) {
       throw new BadRequestException('Select a supported publishing channel');
@@ -773,10 +768,14 @@ export class PostGenerationService {
       },
       identity.organizationId,
     );
+    const apiKey = await resolveApiKey?.(model);
     for (let attempt = 0; attempt < 2; attempt++) {
-      const description = (
-        await this.replicateService.generateTextCompletionSync(model, input)
-      )?.trim();
+      const output = await this.replicateService.generateTextCompletionSync(
+        model,
+        input,
+        apiKey,
+      );
+      const description = output?.trim();
       if (!description) {
         throw new BadRequestException('No draft was generated. Try again.');
       }

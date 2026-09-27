@@ -3,8 +3,8 @@ import {
   ArticleGenerationType,
   GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
+import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -22,10 +22,6 @@ import { VideoGenerationService } from '@api/collections/videos/services/video-g
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
-import {
-  assertOrganizationCreditsAvailable,
-  resolveTextModelMinimumCredits,
-} from '@api/helpers/utils/credits/organization-credits-gate.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -87,8 +83,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly articlesService: ArticlesService,
+    private readonly articleGenerationCreditsService: ArticleGenerationCreditsService,
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly imageGenerationService: ImageGenerationService,
     private readonly imageReframeService: ImageReframeService,
     private readonly imageUpscaleService: ImageUpscaleService,
@@ -151,32 +147,10 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
     await this.assertGenerationModelOverrideSupported(dto.model);
 
-    const modelConfig =
-      await this.articlesService.resolveArticleCycleModelConfig(
-        user.organizationId,
-        dto.model,
-      );
-    const minimumRequiredCredits = (
-      await Promise.all([
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.generationModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.reviewModel,
-        ),
-        resolveTextModelMinimumCredits(
-          this.modelsService,
-          modelConfig.updateModel,
-        ),
-      ])
-    ).reduce((sum, amount) => sum + amount, 0);
-
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
+    const byok = await this.articleGenerationCreditsService.admitGeneration(
+      request,
       user.organizationId,
-      minimumRequiredCredits,
+      dto,
     );
 
     const activity = await this.activityRecorder.record({
@@ -214,6 +188,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           user.userId ?? user.id,
           user.organizationId,
           brandId,
+          byok,
         );
 
       this.settleDeferredArticleCredits(request, billedCredits);
