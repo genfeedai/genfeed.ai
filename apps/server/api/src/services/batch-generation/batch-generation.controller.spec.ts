@@ -6,6 +6,7 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -172,11 +173,14 @@ describe('BatchGenerationController', () => {
 
       const result = await controller.processBatch('batch-1', user);
 
-      expect(workflowService.queueBatch).toHaveBeenCalledWith({
-        batchId: 'batch-1',
-        organizationId: 'org',
-        userId: 'usr',
-      });
+      expect(workflowService.queueBatch).toHaveBeenCalledWith(
+        {
+          batchId: 'batch-1',
+          organizationId: 'org',
+          userId: 'usr',
+        },
+        SystemWorkflowDispatchClass.INTERACTIVE,
+      );
       expect(service.processBatch).not.toHaveBeenCalled();
       expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
     });
