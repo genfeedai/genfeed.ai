@@ -50,6 +50,14 @@ interface OnboardingFixtures {
    * `brand → positioning → corpus` and hands off to `/onboarding/first-system`.
    */
   expertOnboardingPage: Page;
+
+  /**
+   * The same page signed up from a personal-inbox email (gmail.com) instead
+   * of the default work-domain address, so `resolveSignupBrandDomain` finds
+   * no brand signal and the brand step shows the website prompt instead of
+   * skipping straight to the loading step.
+   */
+  personalInboxOnboardingPage: Page;
 }
 
 /** Per-page onboarding progress recorded from the app's own PATCH calls. */
@@ -78,10 +86,13 @@ const MOCK_SESSION = {
 // Onboarding-Specific Mock Data
 // ----------------------------------------------------------------------------
 
-function generateOnboardingMockUser(completedSteps: readonly string[] = []) {
+function generateOnboardingMockUser(
+  completedSteps: readonly string[] = [],
+  email = 'onboarding@genfeed.ai',
+) {
   return {
     ...generateMockUser({
-      email: 'onboarding@genfeed.ai',
+      email,
       firstName: 'Test',
       id: MOCK_SESSION.userId,
       lastName: 'User',
@@ -139,6 +150,7 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
 function buildOnboardingBootstrapPayload(
   state: OnboardingProgressState,
   accountType?: string,
+  email?: string,
 ) {
   const organization = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
@@ -167,6 +179,7 @@ function buildOnboardingBootstrapPayload(
     ],
     currentUser: generateMockApiUser({
       id: MOCK_SESSION.userId,
+      ...(email ? { email } : {}),
       isOnboardingCompleted: state.isOnboardingCompleted,
       onboardingCompletedAt: state.isOnboardingCompleted
         ? '2026-03-10T10:00:00.000Z'
@@ -184,8 +197,11 @@ function buildOnboardingBootstrapPayload(
 // Auth Setup for Onboarding User
 // ----------------------------------------------------------------------------
 
-async function setupBetterAuthMocksForOnboarding(page: Page): Promise<void> {
-  const mockUser = generateOnboardingMockUser();
+async function setupBetterAuthMocksForOnboarding(
+  page: Page,
+  email?: string,
+): Promise<void> {
+  const mockUser = generateOnboardingMockUser([], email);
   const mockOrg = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
     name: 'Test Organization',
@@ -230,6 +246,7 @@ async function setupBetterAuthMocksForOnboarding(page: Page): Promise<void> {
 async function setupOnboardingApiMocks(
   page: Page,
   state: OnboardingProgressState,
+  email?: string,
 ): Promise<void> {
   // --- Onboarding-specific routes (registered AFTER generic setupApiMocks) ---
 
@@ -316,7 +333,7 @@ async function setupOnboardingApiMocks(
   await page.route('**/api.genfeed.ai/*/users/me', async (route) => {
     const method = route.request().method();
     const mockUser = {
-      ...generateOnboardingMockUser(state.completedSteps),
+      ...generateOnboardingMockUser(state.completedSteps, email),
       isOnboardingCompleted: state.isOnboardingCompleted,
     };
 
@@ -468,8 +485,11 @@ async function setupAuthCookies(context: BrowserContext): Promise<void> {
   ]);
 }
 
-async function injectBetterAuthState(page: Page): Promise<void> {
-  const mockUser = generateOnboardingMockUser();
+async function injectBetterAuthState(
+  page: Page,
+  email?: string,
+): Promise<void> {
+  const mockUser = generateOnboardingMockUser([], email);
 
   await page.addInitScript(
     (authState: {
@@ -551,6 +571,7 @@ async function startOnboardingSession(
   options: {
     accountType?: string;
     baseURL?: string;
+    email?: string;
     registerExtraMocks?: (page: Page) => Promise<void>;
   } = {},
 ): Promise<() => void> {
@@ -577,10 +598,21 @@ async function startOnboardingSession(
   }
 
   // Inject Better Auth auth state BEFORE any page loads
-  await injectBetterAuthState(page);
+  await injectBetterAuthState(page, options.email);
+
+  // Production carries a non-default account type from the marketing CTA into
+  // the brand step through this localStorage hint, which the brand step reads
+  // once and clears. Seed it once per tab so a reload cannot re-apply it.
+  if (options.accountType) {
+    await page.addInitScript((accountType: string) => {
+      if (sessionStorage.getItem('e2e_onboarding_account_type_seeded')) return;
+      sessionStorage.setItem('e2e_onboarding_account_type_seeded', '1');
+      localStorage.setItem('gf_onboarding_account_type', accountType);
+    }, options.accountType);
+  }
 
   // Set up Better Auth mocks with isOnboardingCompleted: false
-  await setupBetterAuthMocksForOnboarding(page);
+  await setupBetterAuthMocksForOnboarding(page, options.email);
 
   // Register generic routes first. Playwright checks matching routes in
   // reverse registration order, so the stateful onboarding routes below get
@@ -589,7 +621,11 @@ async function startOnboardingSession(
     '**/auth/bootstrap**': async (route) => {
       await route.fulfill({
         body: JSON.stringify(
-          buildOnboardingBootstrapPayload(progressState, options.accountType),
+          buildOnboardingBootstrapPayload(
+            progressState,
+            options.accountType,
+            options.email,
+          ),
         ),
         contentType: 'application/json',
         status: 200,
@@ -597,7 +633,7 @@ async function startOnboardingSession(
     },
   });
 
-  await setupOnboardingApiMocks(page, progressState);
+  await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
 
   // Bootstrap by navigating to onboarding start
@@ -633,6 +669,20 @@ export const test = base.extend<OnboardingFixtures>({
       page,
       context,
       { baseURL },
+    );
+
+    await runFixture(page);
+    assertNoBlockedRequests();
+  },
+
+  personalInboxOnboardingPage: async (
+    { page, context, baseURL },
+    runFixture,
+  ) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL, email: 'onboarding@gmail.com' },
     );
 
     await runFixture(page);

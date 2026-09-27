@@ -1,3 +1,4 @@
+import { OrganizationCategory } from '@genfeedai/contracts';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
@@ -13,6 +14,7 @@ import {
   parseReferralCode,
   persistOnboardingHandoffParams,
   persistSignupAttribution,
+  resolveBrandStepAccountType,
   resolvePendingSignupAttribution,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -410,4 +412,40 @@ describe('resolvePendingSignupAttribution', () => {
       ),
     ).toEqual({ referrerDomain: 'google.com' });
   });
+});
+
+describe('resolveBrandStepAccountType', () => {
+  it('prefers the signup CTA hint over the existing account type', () => {
+    expect(
+      resolveBrandStepAccountType(
+        OrganizationCategory.EXPERT,
+        OrganizationCategory.BUSINESS,
+      ),
+    ).toBe(OrganizationCategory.EXPERT);
+  });
+
+  it.each([OrganizationCategory.EXPERT, OrganizationCategory.AGENCY])(
+    'keeps an existing %s organization when there is no hint',
+    (existing) => {
+      expect(resolveBrandStepAccountType(null, existing)).toBe(existing);
+    },
+  );
+
+  it.each([OrganizationCategory.CREATOR, OrganizationCategory.BUSINESS])(
+    'does not let a %s hint overwrite an existing EXPERT organization',
+    (hint) => {
+      expect(
+        resolveBrandStepAccountType(hint, OrganizationCategory.EXPERT),
+      ).toBe(OrganizationCategory.EXPERT);
+    },
+  );
+
+  it.each([OrganizationCategory.BUSINESS, OrganizationCategory.CREATOR, null])(
+    'defaults %s to CREATOR when there is no hint',
+    (existing) => {
+      expect(resolveBrandStepAccountType(null, existing)).toBe(
+        OrganizationCategory.CREATOR,
+      );
+    },
+  );
 });
