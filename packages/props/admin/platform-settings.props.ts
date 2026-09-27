@@ -1,4 +1,7 @@
-import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformFeatureSettings,
+  TypedDecisionMode,
+} from '@genfeedai/contracts/interfaces';
 
 /** Feature switches whose value is a number (modes, counts, thresholds). */
 export type PlatformNumericFeatureSettingKey = {
@@ -33,7 +36,9 @@ export interface PlatformNumberSettingFieldProps {
   value: number | null;
 }
 
-export interface PlatformModeSettingFieldProps<TMode extends string> {
+export interface PlatformModeSettingFieldProps<
+  TMode extends TypedDecisionMode,
+> {
   helpText?: string;
   id: string;
   isDisabled: boolean;

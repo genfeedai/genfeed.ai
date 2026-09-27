@@ -1,5 +1,6 @@
 'use client';
 
+import type { TypedDecisionMode } from '@genfeedai/contracts/interfaces';
 import type { PlatformModeSettingFieldProps } from '@props/admin/platform-settings.props';
 import Field from '@ui/primitives/field';
 import {
@@ -11,7 +12,9 @@ import {
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
 
-export default function PlatformModeSettingField<TMode extends string>({
+export default function PlatformModeSettingField<
+  TMode extends TypedDecisionMode,
+>({
   helpText,
   id,
   isDisabled,
@@ -21,6 +24,10 @@ export default function PlatformModeSettingField<TMode extends string>({
   value,
 }: PlatformModeSettingFieldProps<TMode>) {
   const translate = useTranslations('pages.platformSettings.features.modes');
+
+  function modeLabel(mode: TypedDecisionMode): string {
+    return translate(mode);
+  }
 
   return (
     <Field label={label} htmlFor={id} helpText={helpText}>
@@ -40,7 +47,7 @@ export default function PlatformModeSettingField<TMode extends string>({
         <SelectContent>
           {modes.map((mode) => (
             <SelectItem key={mode} value={mode}>
-              {translate(mode)}
+              {modeLabel(mode)}
             </SelectItem>
           ))}
         </SelectContent>
