@@ -2218,7 +2218,7 @@ export async function mockWorkflowExecutions(
       );
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiCollection('workflow-executions', resources),
+          buildJsonApiCollection('workflow-execution', resources),
         ),
         contentType: 'application/json',
         status: 200,
@@ -2619,7 +2619,7 @@ export async function mockAutomationData(page: Page): Promise<void> {
     await route.fulfill({
       body: JSON.stringify(
         buildJsonApiCollection(
-          'workflow-executions',
+          'workflow-execution',
           filteredExecutions.map((execution) =>
             buildExecutionJsonApiResource(execution.id, execution),
           ),

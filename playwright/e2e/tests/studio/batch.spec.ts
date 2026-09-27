@@ -48,6 +48,14 @@ const BATCH_CHILD_WORKFLOW_VERSION_ID = 'workflow-1-version-1';
  * this spec previously did) mocks an endpoint the app never calls.
  */
 const BATCH_WORKFLOW_EXECUTION_CANONICAL_ID = 'workflow.batch.execute';
+// `buildBatchWorkflowExecutionDefinition`'s single node is a genfeedAction
+// envelope configured with `actionId: 'workflow.for-each'`
+// (batch-workflow-execution.definition.ts); `WorkflowExecutionGraphService
+// .buildNodeSummaries` resolves a node's wire `nodeType` from its action id
+// (`resolveNodeType` -> `getExecutableNodeOperationId`), not the envelope
+// type, so this — not `'genfeedAction'` — is the real value. Matches
+// `WORKFLOW_FOR_EACH_ACTION_ID` in system-workflow-for-each.util.ts.
+const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
 
 /**
  * One child result entry inside the parent execution's for-each node output.
@@ -115,7 +123,7 @@ function buildBatchExecutionAttributes({
     nodeResults: [
       {
         nodeId: 'execute-items',
-        nodeType: 'genfeedAction',
+        nodeType: WORKFLOW_FOR_EACH_ACTION_ID,
         output: { results },
         status,
       },
