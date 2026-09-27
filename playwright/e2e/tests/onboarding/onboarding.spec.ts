@@ -14,6 +14,13 @@ const AGENT_HANDOFF_PATH = orgPath(APP_ROUTES.AGENT.ONBOARDING);
  * operator is walked through, and continuing from it hands off to the
  * `/agent/onboarding` conversation. Providers and summary remain reachable as
  * their own destinations for Desktop and for operators who come back to them.
+ *
+ * The brand step itself auto-resolves one of two phases before it
+ * auto-advances: `loading` for a work-domain signup (the `onboardingPage`
+ * fixture), or `website-prompt` for a personal-inbox signup (the
+ * `personalInboxOnboardingPage` fixture) that needs a website URL, or an
+ * explicit skip, before the loading phase begins.
+ *
  * All API calls are mocked via onboarding.fixture.ts.
  */
 
@@ -22,60 +29,30 @@ test.describe('Onboarding Flow', () => {
     { width: 1440, height: 900 },
     { width: 390, height: 844 },
   ]) {
-    test(`keeps brand setup compact at ${viewport.width}px`, async ({
-      onboardingPage,
+    test(`keeps the website prompt compact at ${viewport.width}px`, async ({
+      personalInboxOnboardingPage,
     }, testInfo) => {
-      await onboardingPage.setViewportSize(viewport);
-      await onboardingPage.emulateMedia({ reducedMotion: 'reduce' });
-      const wizard = new OnboardingPage(onboardingPage);
-      await wizard.waitForStep(1);
-      await expect(onboardingPage.getByRole('textbox')).toHaveCount(0);
-      await onboardingPage.screenshot({
-        path: testInfo.outputPath(`brand-profile-${viewport.width}.png`),
-        fullPage: true,
+      await personalInboxOnboardingPage.setViewportSize(viewport);
+      await personalInboxOnboardingPage.emulateMedia({
+        reducedMotion: 'reduce',
       });
-      await wizard.openBrandDetails();
-      await expect(onboardingPage.getByRole('textbox')).toHaveCount(2);
-      await wizard.websiteUrlInput.fill('acme-studio.com');
-      await expect(wizard.brandNameInput).toHaveValue('Acme Studio');
-      await wizard.brandNameInput.fill('My Studio');
-      await wizard.websiteUrlInput.fill('another-domain.com');
-      await expect(wizard.brandNameInput).toHaveValue('My Studio');
-      await onboardingPage.screenshot({
-        path: testInfo.outputPath(`brand-details-${viewport.width}.png`),
-        fullPage: true,
-      });
-      await wizard.clickContinue();
-      await expect(wizard.headline).toHaveText('Give it your voice.');
-      await expect(wizard.headline).toBeFocused();
-      await expect(onboardingPage.getByRole('textbox')).toHaveCount(0);
+      const wizard = new OnboardingPage(personalInboxOnboardingPage);
+      await wizard.waitForWebsitePromptPhase();
+
       await expect(
-        onboardingPage.getByRole('button', { name: 'Founders', exact: true }),
-      ).toBeVisible();
-      await expect(
-        onboardingPage.getByRole('button', { name: 'Bold', exact: true }),
-      ).toBeVisible();
-      await expect(wizard.continueButton).toBeEnabled();
-      await expect(wizard.skipButton).toBeVisible();
-      await expect(onboardingPage.locator('body')).toHaveJSProperty(
-        'scrollWidth',
-        viewport.width,
-      );
-      const nextBounds = await wizard.continueButton.boundingBox();
-      expect(nextBounds).not.toBeNull();
+        personalInboxOnboardingPage.locator('body'),
+      ).toHaveJSProperty('scrollWidth', viewport.width);
+
+      const continueBounds = await wizard.continueButton.boundingBox();
+      expect(continueBounds).not.toBeNull();
       expect(
-        (nextBounds?.y ?? Infinity) + (nextBounds?.height ?? Infinity),
+        (continueBounds?.y ?? Infinity) + (continueBounds?.height ?? Infinity),
       ).toBeLessThan(viewport.height);
-      await onboardingPage.screenshot({
-        path: testInfo.outputPath(`brand-voice-${viewport.width}.png`),
+
+      await personalInboxOnboardingPage.screenshot({
+        path: testInfo.outputPath(`brand-website-prompt-${viewport.width}.png`),
         fullPage: true,
       });
-      await wizard.clickBack();
-      await expect(wizard.brandNameInput).toHaveValue('My Studio');
-      await expect(wizard.websiteUrlInput).toHaveValue('another-domain.com');
-      await wizard.clickBack();
-      await expect(wizard.headline).toHaveText('What do you create for?');
-      await expect(wizard.headline).toBeFocused();
     });
   }
 
@@ -128,13 +105,9 @@ test.describe('Onboarding Flow', () => {
     }) => {
       const page = new OnboardingPage(onboardingPage);
 
-      await page.assertOnStep(1);
-      await page.fillBrand({
-        brandName: 'Test Brand',
-      });
-      await page.clickContinue();
-      await onboardingPage.waitForLoadState('domcontentloaded');
-
+      // A work-domain signup skips the website prompt and lands on loading,
+      // which auto-completes the brand step once setup finishes.
+      await page.waitForLoadingPhase();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
 
       // Completing brand first is what unlocks `/workspace` at the end of this
@@ -161,54 +134,34 @@ test.describe('Onboarding Flow', () => {
   });
 
   test.describe('Step 1: Brand', () => {
-    test('should show website and a single shared name on the second step', async ({
+    test('should show the loading step and hand off to the agent for a work-domain signup', async ({
       onboardingPage,
     }) => {
       const page = new OnboardingPage(onboardingPage);
-      await page.waitForStep(1);
 
-      await page.openBrandDetails();
-      await expect(page.brandNameInput).toBeVisible();
-      await expect(onboardingPage.locator('#organization-name')).toHaveCount(0);
-      await expect(page.websiteUrlInput).toBeVisible();
-    });
-
-    test('should display correct headline', async ({ onboardingPage }) => {
-      const page = new OnboardingPage(onboardingPage);
-      await page.waitForStep(1);
-
-      await expect(page.headline).toContainText('What do you create for?');
-    });
-
-    test('should disable continue when required fields are empty', async ({
-      onboardingPage,
-    }) => {
-      const page = new OnboardingPage(onboardingPage);
-      await page.waitForStep(1);
-
-      await page.openBrandDetails();
-      await page.brandNameInput.clear();
-
-      await expect(page.continueButton).toBeDisabled();
-    });
-
-    test('should hand off to the agent with a shared brand and organization name', async ({
-      onboardingPage,
-    }) => {
-      const page = new OnboardingPage(onboardingPage);
-      await page.waitForStep(1);
-
-      await page.fillBrand({
-        brandName: 'My Test Brand',
-      });
-      await page.clickContinue();
-
+      await page.waitForLoadingPhase();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 
-    test('should allow skipping brand setup', async ({ onboardingPage }) => {
+    test('should show the website prompt for a personal inbox and proceed to loading', async ({
+      personalInboxOnboardingPage,
+    }) => {
+      const page = new OnboardingPage(personalInboxOnboardingPage);
+
+      await page.waitForWebsitePromptPhase();
+      await page.continueFromWebsitePrompt('acme-studio.com');
+
+      await page.waitForLoadingPhase();
+      await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
+    });
+
+    test('should allow skipping brand setup', async ({
+      personalInboxOnboardingPage: onboardingPage,
+    }) => {
+      // Skip from the website prompt: it waits for the operator, whereas the
+      // loading step auto-advances and would race the click.
       const page = new OnboardingPage(onboardingPage);
-      await page.waitForStep(1);
+      await page.waitForWebsitePromptPhase();
       await page.skipStep();
 
       // Production returns to root after completing onboarding. The normal
@@ -299,15 +252,6 @@ test.describe('Onboarding Flow', () => {
       await expect
         .poll(() => new URL(onboardingPage.url()).pathname)
         .toBe(APP_ROUTES.ONBOARDING.PROVIDERS);
-    });
-  });
-
-  test.describe('Navigation', () => {
-    test('should show correct step number in badge on step 1', async ({
-      onboardingPage,
-    }) => {
-      const page = new OnboardingPage(onboardingPage);
-      await page.assertOnStep(1);
     });
   });
 });
