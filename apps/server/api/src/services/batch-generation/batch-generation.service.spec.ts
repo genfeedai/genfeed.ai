@@ -7,6 +7,7 @@ import {
   AgentArtifactReferenceService,
   PostLifecycleService,
 } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
@@ -144,6 +145,10 @@ describe('BatchGenerationService approval version pins', () => {
           },
         },
         { provide: PostLifecycleService, useValue: postLifecycleService },
+        {
+          provide: ActivityRecorderService,
+          useValue: { afterCommit: vi.fn(), recordInTransaction: vi.fn() },
+        },
         BatchGenerationService,
         BatchGenerationSummaryService,
         {

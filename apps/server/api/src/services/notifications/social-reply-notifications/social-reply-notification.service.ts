@@ -1,19 +1,15 @@
 import type { CreatedSocialMessageRef } from '@api/collections/social-inbox/services/social-inbox.types';
-import { NOTIFICATION_DELIVERY_STATUS } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import {
-  defaultInAppNotificationPreference,
-  SOCIAL_REPLY_NOTIFICATION_TOPIC,
-} from '@genfeedai/contracts/interfaces';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
+import { SOCIAL_REPLY_NOTIFICATION_TOPIC } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-export const IN_APP_NOTIFICATION_CHANNEL = 'in_app';
-export const IN_APP_NOTIFICATION_PROVIDER = 'inbox';
-export const SOCIAL_REPLY_EVENT_KEY = 'social.reply.received';
 export const SOCIAL_REPLY_SOURCE_TYPE = 'social_credential';
+export const SOCIAL_REPLY_ENTITY_MODEL = 'Credential';
 
 /**
  * Carries the social inbox conversations the replies landed in, so the bell
@@ -78,10 +74,10 @@ export function formatSocialReplySummary(
 }
 
 /**
- * Producer for the `social.reply` in-app topic. One event per sync run per
+ * Records new replies as a `SOCIAL_REPLIES_RECEIVED` activity; the alert
+ * policy raises the `social.reply` bell item. One activity per sync run per
  * credential, keyed by the newest new reply id so a re-run of the same batch
- * upserts the same rows. The in-app delivery row is written as delivered: the
- * inbox trigger materializes it and the email worker never claims it.
+ * returns the first activity and writes nothing new.
  */
 @Injectable()
 export class SocialReplyNotificationService {
@@ -91,9 +87,11 @@ export class SocialReplyNotificationService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
   ) {}
 
+  /** Returns the recorded activity id, or null when nothing was recorded. */
   async recordNewReplies(input: RecordNewRepliesInput): Promise<string | null> {
     const repliesById = new Map<string, CreatedSocialMessageRef>();
     for (const reply of input.newReplies) {
@@ -145,14 +143,10 @@ export class SocialReplyNotificationService {
       return null;
     }
 
-    if (!(await this.isEnabledFor(recipientUserId))) {
-      return null;
-    }
-
     const newestReplyId = newestReply.externalMessageId;
     const accountHandle = input.accountHandle?.replace(/^@/, '') || null;
     const occurredAt = input.occurredAt ?? new Date();
-    const deduplicationKey = `${SOCIAL_REPLY_EVENT_KEY}/${input.organizationId}/${input.credentialId}/${newestReplyId}`;
+    const deduplicationKey = `${ActivityKey.SOCIAL_REPLIES_RECEIVED}/${input.organizationId}/${input.credentialId}/${newestReplyId}`;
     const payload: SocialReplyNotificationPayload = {
       accountHandle,
       brandId: input.brandId,
@@ -167,7 +161,7 @@ export class SocialReplyNotificationService {
       version: 2,
     };
 
-    return this.prisma.$transaction(async (transaction) => {
+    const recorded = await this.prisma.$transaction(async (transaction) => {
       // Authoritative check: re-read inside the same transaction as the
       // write below, closing the gap between the fast-path check above and
       // this create — a member reading the thread in that gap must still
@@ -182,44 +176,28 @@ export class SocialReplyNotificationService {
         return null;
       }
 
-      const event = await transaction.notificationEvent.upsert({
-        create: {
-          actorUserId: null,
+      return this.activityRecorder.recordInTransaction(transaction, {
+        alert: {
           deduplicationKey,
-          eventKey: SOCIAL_REPLY_EVENT_KEY,
           occurredAt,
-          organizationId: input.organizationId,
           payload: { ...payload },
-          sourceId: input.credentialId,
-          sourceType: SOCIAL_REPLY_SOURCE_TYPE,
+          source: { id: input.credentialId, type: SOCIAL_REPLY_SOURCE_TYPE },
         },
-        update: {},
-        where: scopedWhere(input.organizationId, { deduplicationKey }),
+        brandId: input.brandId,
+        entityId: input.credentialId,
+        entityModel: SOCIAL_REPLY_ENTITY_MODEL,
+        key: ActivityKey.SOCIAL_REPLIES_RECEIVED,
+        organizationId: input.organizationId,
+        source: ActivitySource.SOCIAL_INTEGRATION,
+        userId: recipientUserId,
+        value: payload.summary,
       });
-      const delivery = await transaction.notificationDelivery.upsert({
-        create: {
-          channel: IN_APP_NOTIFICATION_CHANNEL,
-          deliveredAt: occurredAt,
-          eventId: event.id,
-          idempotencyKey: `${deduplicationKey}/${recipientUserId}/${IN_APP_NOTIFICATION_CHANNEL}`,
-          nextAttemptAt: occurredAt,
-          organizationId: input.organizationId,
-          provider: IN_APP_NOTIFICATION_PROVIDER,
-          status: NOTIFICATION_DELIVERY_STATUS.DELIVERED,
-          topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
-          userId: recipientUserId,
-        },
-        update: {},
-        where: scopedWhere(input.organizationId, {
-          eventId_userId_channel: {
-            channel: IN_APP_NOTIFICATION_CHANNEL,
-            eventId: event.id,
-            userId: recipientUserId,
-          },
-        }),
-      });
-      return delivery.id;
     });
+    if (!recorded) {
+      return null;
+    }
+    await this.activityRecorder.afterCommit(recorded.commit);
+    return recorded.activity.id;
   }
 
   /**
@@ -388,22 +366,5 @@ export class SocialReplyNotificationService {
       }
     }
     return null;
-  }
-
-  private async isEnabledFor(userId: string): Promise<boolean> {
-    // tenant-scope-ignore: preferences are account-level and keyed by the recipient resolved from an organization-scoped membership above
-    const preference = await this.prisma.notificationPreference.findFirst({
-      select: { isEnabled: true },
-      where: {
-        channel: IN_APP_NOTIFICATION_CHANNEL,
-        isDeleted: false,
-        topic: SOCIAL_REPLY_NOTIFICATION_TOPIC,
-        userId,
-      },
-    });
-    return (
-      preference?.isEnabled ??
-      defaultInAppNotificationPreference(SOCIAL_REPLY_NOTIFICATION_TOPIC)
-    );
   }
 }

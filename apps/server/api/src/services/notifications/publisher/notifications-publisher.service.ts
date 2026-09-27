@@ -86,6 +86,18 @@ export class NotificationsPublisherService {
   }
 
   /**
+   * Tell each recipient's open sessions that their notification inbox gained
+   * an item. The payload only triggers an authenticated re-read of the bell.
+   */
+  async publishInboxUpdate(organizationId: string, userIds: string[]) {
+    if (userIds.length === 0) return;
+    await this.redisService.publish('notification-inbox', {
+      organizationId,
+      userIds,
+    });
+  }
+
+  /**
    * Publish ingredient status event
    */
   async publishIngredientStatus(

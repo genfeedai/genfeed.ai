@@ -42,6 +42,9 @@ export enum ActivitySource {
   MEDIA_MODERATION = 'media-moderate',
   /** Agent chat LLM rounds, settled at exact provider cost × margin. */
   AGENT_CHAT = 'agent-chat',
+  WORKFLOW_EXECUTION = 'workflow-execute',
+  AGENT_RUN = 'agent-run',
+  AGENT_REVIEW = 'agent-review',
 }
 
 /**
@@ -110,6 +113,18 @@ export enum ActivityKey {
   BRAND_RELOCATED = 'brand-relocated',
   /** A live moderation verdict flagged an asset for review (#4880). */
   MEDIA_MODERATION_FLAGGED = 'media-moderation-flagged',
+  WORKFLOW_EXECUTION_COMPLETED = 'workflow-execution-completed',
+  WORKFLOW_EXECUTION_FAILED = 'workflow-execution-failed',
+  AGENT_RUN_COMPLETED = 'agent-run-completed',
+  AGENT_RUN_FAILED = 'agent-run-failed',
+  /** The live chat stream could not deliver an agent failure to the client. */
+  AGENT_RUN_DELIVERY_FAILED = 'agent-run-delivery-failed',
+  AGENT_REVIEW_CHANGED = 'agent-review-changed',
+  AGENT_REVIEW_EXPIRED = 'agent-review-expired',
+  /** New replies to recently published posts landed in the social inbox. */
+  SOCIAL_REPLIES_RECEIVED = 'social-replies-received',
+  /** The organization's spendable credit balance fell below the alert threshold. */
+  CREDITS_LOW = 'credits-low',
 }
 
 export enum ActivityStatus {

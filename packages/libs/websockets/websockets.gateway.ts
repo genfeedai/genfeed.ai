@@ -17,6 +17,7 @@ import type {
   IngredientUpdateMessage,
   MediaFailedEvent,
   NotificationData,
+  NotificationInboxUpdateData,
   PostStatusData,
   PostUpdateMessage,
   SubscriptionUpdateMessage,
@@ -122,6 +123,7 @@ export class WebSocketGateway
       'video-complete',
       'media-failed',
       'notifications',
+      'notification-inbox',
       'ingredient-status',
       'post-status',
       'training-status',
@@ -363,6 +365,10 @@ export class WebSocketGateway
         this.handleNotification(data as NotificationData);
         break;
 
+      case 'notification-inbox':
+        this.handleNotificationInboxUpdate(data as NotificationInboxUpdateData);
+        break;
+
       case 'ingredient-status':
         this.handleIngredientStatus(data as IngredientStatusData);
         break;
@@ -535,6 +541,22 @@ export class WebSocketGateway
         .to(getUserRoomName(userId))
         .emit('notification', notification);
       this.logger.log(`Sent notification to user ${userId}`);
+    }
+  }
+
+  private handleNotificationInboxUpdate(
+    data: NotificationInboxUpdateData,
+  ): void {
+    if (!this.isServerOperational()) {
+      this.warnServerNotReady('notification-inbox', data);
+      return;
+    }
+
+    // The payload only names the organization; clients re-read their inbox.
+    for (const userId of data.userIds ?? []) {
+      this.server
+        .to(getUserRoomName(userId))
+        .emit('notification-inbox', { organizationId: data.organizationId });
     }
   }
 

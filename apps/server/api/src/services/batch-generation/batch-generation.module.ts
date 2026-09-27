@@ -12,6 +12,7 @@ import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.m
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
@@ -47,6 +48,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     ActivitiesModule,
+    ActivityRecordingModule,
     PostGenerationModule,
     ModelsModule,
     ByokModule,

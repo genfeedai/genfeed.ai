@@ -1,4 +1,6 @@
 import type {
+  IChannelDeliveryRequest,
+  IChannelDeliveryResponse,
   IChatbotMetadata,
   IDiscordEmbed,
   IEmailDeliveryErrorResponse,
@@ -39,6 +41,36 @@ export class EmailDeliveryError extends Error {
     });
     this.name = EmailDeliveryError.name;
   }
+}
+
+/** A channel message the notifications service did not accept. */
+export class ChannelDeliveryError extends Error {
+  constructor(
+    readonly retryable: boolean,
+    readonly statusCode?: number,
+    cause?: unknown,
+  ) {
+    super(`Channel delivery failed (status ${statusCode ?? 'unknown'})`, {
+      cause,
+    });
+    this.name = ChannelDeliveryError.name;
+  }
+}
+
+function readChannelDeliveryResponse(
+  value: unknown,
+): IChannelDeliveryResponse | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const status = Reflect.get(value, 'status');
+  const messageId = Reflect.get(value, 'messageId');
+  const reason = Reflect.get(value, 'reason');
+  if (status === 'delivered' && typeof messageId === 'string' && messageId) {
+    return { messageId, status };
+  }
+  if (status === 'skipped' && typeof reason === 'string' && reason) {
+    return { reason: reason.slice(0, 200), status };
+  }
+  return null;
 }
 
 function isRetryableEmailDeliveryStatus(
@@ -383,6 +415,84 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         statusCode === undefined ? undefined : { statusCode },
       );
       throw new EmailDeliveryError(
+        explicitRetryability ?? isRetryableEmailDeliveryStatus(statusCode),
+        statusCode,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Send one rendered channel message (Discord, Telegram, Slack or an
+   * explicit email) through the notifications service and wait for its
+   * acknowledgement. Called only by the durable delivery worker.
+   */
+  async deliverChannelMessage(
+    request: IChannelDeliveryRequest,
+  ): Promise<IChannelDeliveryResponse> {
+    let explicitRetryability: boolean | undefined;
+    let statusCode: number | undefined;
+    try {
+      const notificationsUrl = this.configService
+        .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
+        ?.trim();
+      const internalApiKey = this.configService
+        .get('GENFEEDAI_API_KEY')
+        ?.trim();
+      if (!notificationsUrl || !internalApiKey) {
+        throw new Error('Channel delivery is not configured');
+      }
+      const baseUrl = new URL(
+        notificationsUrl.endsWith('/')
+          ? notificationsUrl
+          : `${notificationsUrl}/`,
+      );
+      if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+        throw new Error('Notifications service URL must use HTTP or HTTPS');
+      }
+      const response = await safeFetch(
+        new URL('v1/internal/channel-deliveries', baseUrl),
+        {
+          body: JSON.stringify(request),
+          headers: {
+            Authorization: `Bearer ${internalApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal: AbortSignal.timeout(
+            NotificationsService.EMAIL_DELIVERY_TIMEOUT_MS,
+          ),
+        },
+        { allowedOrigins: [baseUrl.origin], allowPrivateNetwork: true },
+      );
+      statusCode = response.status;
+      if (!response.ok) {
+        explicitRetryability = (
+          await this.readEmailDeliveryErrorResponse(response)
+        )?.retryable;
+        throw new Error(
+          `Notifications service returned HTTP ${response.status}`,
+        );
+      }
+      const body: unknown = await response.json();
+      const outcome = readChannelDeliveryResponse(body);
+      if (!outcome) {
+        throw new Error(
+          'Notifications service returned an invalid delivery response',
+        );
+      }
+      return outcome;
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} channel delivery failed`,
+        new Error('Channel delivery request failed'),
+        {
+          action: request.message.action,
+          channel: request.message.type,
+          ...(statusCode === undefined ? {} : { statusCode }),
+        },
+      );
+      throw new ChannelDeliveryError(
         explicitRetryability ?? isRetryableEmailDeliveryStatus(statusCode),
         statusCode,
         error,

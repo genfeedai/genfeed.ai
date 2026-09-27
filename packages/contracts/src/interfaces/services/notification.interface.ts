@@ -33,6 +33,39 @@ export type INotificationPayloadTypes =
   | ILowCreditsAlertPayload
   | IRevenueNotificationPayload;
 
+/** Channels a rendered message is delivered on through the outbox (#5197). */
+export const CHANNEL_MESSAGE_TYPES = [
+  'discord',
+  'email',
+  'slack',
+  'telegram',
+] as const;
+export type ChannelMessageType = (typeof CHANNEL_MESSAGE_TYPES)[number];
+
+/** A rendered channel message: the notifications service's render vocabulary. */
+export interface IChannelMessage {
+  type: ChannelMessageType;
+  action: string;
+  payload: INotificationPayloadTypes;
+}
+
+/** Internal request from the delivery worker to the notifications service. */
+export interface IChannelDeliveryRequest {
+  idempotencyKey: string;
+  /** Email address, chat or channel id; null for the operator's channel. */
+  destination: string | null;
+  message: IChannelMessage;
+}
+
+/**
+ * `delivered` once the provider accepted the message; `skipped` when the
+ * channel is not configured on this deployment (for example no operator
+ * Discord). Provider failures are HTTP errors with `{ message, retryable }`.
+ */
+export type IChannelDeliveryResponse =
+  | { status: 'delivered'; messageId: string }
+  | { status: 'skipped'; reason: string };
+
 export interface ITelegramMessagePayload {
   chatId: string;
   message: string;

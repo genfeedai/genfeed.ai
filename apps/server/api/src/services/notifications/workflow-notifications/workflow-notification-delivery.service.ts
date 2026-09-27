@@ -1,6 +1,7 @@
 import { AgentReportDeliveryService } from '@api/services/agent-reports/agent-report-delivery.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import {
+  ChannelDeliveryError,
   EmailDeliveryError,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
@@ -16,7 +17,16 @@ import {
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { AgentFailureReason, MemberRole } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  AgentFailureReason,
+  MemberRole,
+} from '@genfeedai/contracts';
+import {
+  CHANNEL_MESSAGE_TYPES,
+  type IChannelMessage,
+} from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
@@ -24,6 +34,19 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+type ClaimedDelivery = Prisma.NotificationDeliveryGetPayload<{
+  include: {
+    event: true;
+    user: { select: { email: true; isDeleted: true } };
+  };
+}>;
+
+type RecipientDelivery = ClaimedDelivery & {
+  organizationId: string;
+  user: NonNullable<ClaimedDelivery['user']>;
+  userId: string;
+};
 
 const LOCK_LEASE_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -146,57 +169,90 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
-    if (await this.deliverAgentMessagingReport(deliveryId, delivery)) return;
+    if (delivery.message) {
+      await this.deliverChannelMessage(deliveryId, delivery);
+      return;
+    }
 
-    const isAgentRun = delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
+    const { user, userId } = delivery;
+    if (!userId || !user) {
+      await this.failPermanently(
+        deliveryId,
+        delivery.organizationId,
+        'Delivery has no recipient',
+      );
+      return;
+    }
+    const organizationId = delivery.organizationId;
+    if (!organizationId) {
+      await this.failPermanently(
+        deliveryId,
+        null,
+        'User delivery has no organization',
+      );
+      return;
+    }
+    const recipient = { ...delivery, organizationId, user, userId };
+
+    await this.deliverToRecipient(deliveryId, recipient);
+  }
+
+  /** Email and agent-report delivery to one member, after the claim. */
+  private async deliverToRecipient(
+    deliveryId: string,
+    recipient: RecipientDelivery,
+  ): Promise<void> {
+    if (await this.deliverAgentMessagingReport(deliveryId, recipient)) return;
+
+    const isAgentRun = recipient.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
     const isAgentReview =
-      isAgentRun && delivery.event.sourceType === 'agent_strategy';
+      isAgentRun && recipient.event.sourceType === 'agent_strategy';
     if (
-      delivery.channel !== EMAIL_NOTIFICATION_CHANNEL ||
-      (delivery.topic !== WORKFLOW_STATUS_NOTIFICATION_TOPIC && !isAgentRun) ||
+      recipient.channel !== EMAIL_NOTIFICATION_CHANNEL ||
+      (recipient.topic !== WORKFLOW_STATUS_NOTIFICATION_TOPIC && !isAgentRun) ||
       (!isAgentReview &&
-        delivery.event.sourceType !==
+        recipient.event.sourceType !==
           (isAgentRun ? 'agent_run' : 'workflow_execution'))
     ) {
       await this.failPermanently(
         deliveryId,
-        delivery.organizationId,
+        recipient.organizationId,
         'Invalid notification source or topic',
       );
       return;
     }
 
-    // tenant-scope-ignore: preferences are globally user-owned; delivery.userId comes from the organization-scoped claimed delivery above
+    // tenant-scope-ignore: preferences are globally user-owned; recipient.userId comes from the organization-scoped claimed delivery above
     const preference = await this.prisma.notificationPreference.findFirst({
       select: { isEnabled: true },
       where: {
         channel: EMAIL_NOTIFICATION_CHANNEL,
         isDeleted: false,
         isEnabled: true,
-        topic: delivery.topic,
-        userId: delivery.userId,
+        topic: recipient.topic,
+        userId: recipient.userId,
       },
     });
 
-    if (!preference || delivery.user.isDeleted || !delivery.user.email) {
+    if (!preference || recipient.user.isDeleted || !recipient.user.email) {
       await this.skip(
         deliveryId,
-        delivery.organizationId,
+        recipient.organizationId,
         'recipient_disabled_or_unavailable',
       );
       return;
     }
 
-    const payload = this.readPayload(delivery.event.payload);
+    const payload = this.readPayload(recipient.event.payload);
     if (
       !payload ||
       'kind' in payload !== isAgentReview ||
       ('kind' in payload &&
-        (payload.strategyId !== delivery.event.sourceId ||
-          delivery.event.eventKey !==
+        (payload.strategyId !== recipient.event.sourceId ||
+          recipient.event.eventKey !==
             (payload.expired
-              ? 'agent.review.expired'
-              : 'agent.review.changed'))) ||
+              ? ActivityKey.AGENT_REVIEW_EXPIRED
+              : ActivityKey.AGENT_REVIEW_CHANGED))) ||
       (isAgentRun &&
         !('kind' in payload) &&
         payload.status === 'failed' &&
@@ -204,7 +260,7 @@ export class WorkflowNotificationDeliveryService {
     ) {
       await this.failPermanently(
         deliveryId,
-        delivery.organizationId,
+        recipient.organizationId,
         'Invalid workflow notification payload',
       );
       return;
@@ -213,15 +269,15 @@ export class WorkflowNotificationDeliveryService {
     if (
       isAgentRun &&
       !(await this.canReceiveAgentOutcome(
-        delivery.organizationId,
-        delivery.userId,
+        recipient.organizationId,
+        recipient.userId,
         payload.strategyId,
         !isAgentReview,
       ))
     ) {
       await this.skip(
         deliveryId,
-        delivery.organizationId,
+        recipient.organizationId,
         'recipient_membership_or_agent_access_revoked',
       );
       return;
@@ -231,17 +287,75 @@ export class WorkflowNotificationDeliveryService {
       const email = this.buildEmail(payload, isAgentRun);
       const providerMessageId = await this.notificationsService.deliverEmail({
         ...email,
-        idempotencyKey: delivery.idempotencyKey,
-        to: delivery.user.email,
+        idempotencyKey: recipient.idempotencyKey,
+        to: recipient.user.email,
       });
 
       await this.markDelivered(
         deliveryId,
-        delivery.organizationId,
+        recipient.organizationId,
         providerMessageId,
       );
     } catch (error: unknown) {
       if (error instanceof EmailDeliveryError && !error.retryable) {
+        await this.failPermanently(
+          deliveryId,
+          recipient.organizationId,
+          error.message,
+        );
+        return;
+      }
+      await this.recordFailure(
+        deliveryId,
+        recipient.organizationId,
+        recipient.attemptCount,
+        error,
+      );
+    }
+  }
+
+  /**
+   * A rendered channel message (operator Discord, explicit email, Telegram or
+   * Slack). The notifications service sends it and acknowledges acceptance;
+   * the durable row records the outcome and retries transient failures.
+   */
+  private async deliverChannelMessage(
+    deliveryId: string,
+    delivery: {
+      attemptCount: number;
+      channel: string;
+      destination: string | null;
+      idempotencyKey: string;
+      message: unknown;
+      organizationId: string | null;
+    },
+  ): Promise<void> {
+    const message = readChannelMessage(delivery.message);
+    if (!message || message.type !== delivery.channel) {
+      await this.failPermanently(
+        deliveryId,
+        delivery.organizationId,
+        'Invalid channel message',
+      );
+      return;
+    }
+    try {
+      const outcome = await this.notificationsService.deliverChannelMessage({
+        destination: delivery.destination,
+        idempotencyKey: delivery.idempotencyKey,
+        message,
+      });
+      if (outcome.status === 'skipped') {
+        await this.skip(deliveryId, delivery.organizationId, outcome.reason);
+        return;
+      }
+      await this.markDelivered(
+        deliveryId,
+        delivery.organizationId,
+        outcome.messageId,
+      );
+    } catch (error: unknown) {
+      if (error instanceof ChannelDeliveryError && !error.retryable) {
         await this.failPermanently(
           deliveryId,
           delivery.organizationId,
@@ -375,7 +489,7 @@ export class WorkflowNotificationDeliveryService {
 
   private async markDelivered(
     deliveryId: string,
-    organizationId: string,
+    organizationId: string | null,
     providerMessageId: string,
   ): Promise<void> {
     await this.prisma.notificationDelivery.updateMany({
@@ -392,7 +506,7 @@ export class WorkflowNotificationDeliveryService {
 
   private async skip(
     deliveryId: string,
-    organizationId: string,
+    organizationId: string | null,
     reason: string,
   ): Promise<void> {
     await this.prisma.notificationDelivery.updateMany({
@@ -408,7 +522,7 @@ export class WorkflowNotificationDeliveryService {
 
   private async failPermanently(
     deliveryId: string,
-    organizationId: string,
+    organizationId: string | null,
     reason: string,
   ): Promise<void> {
     await this.prisma.notificationDelivery.updateMany({
@@ -423,14 +537,14 @@ export class WorkflowNotificationDeliveryService {
 
   private async recordFailure(
     deliveryId: string,
-    organizationId: string,
+    organizationId: string | null,
     attemptCount: number,
     error: unknown,
   ): Promise<void> {
     const message =
       error instanceof Error
         ? error.message.slice(0, 1000)
-        : 'Email delivery failed';
+        : 'Notification delivery failed';
     const isExhausted = attemptCount >= MAX_ATTEMPTS;
     const backoffMs = Math.min(60 * 60 * 1000, 30_000 * 2 ** attemptCount);
 
@@ -697,4 +811,24 @@ export class WorkflowNotificationDeliveryService {
         : `Your workflow ${payload.workflowLabel} completed successfully.`,
     };
   }
+}
+
+function readChannelMessage(value: unknown): IChannelMessage | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const { action, payload, type } = value as Record<string, unknown>;
+  const channel = CHANNEL_MESSAGE_TYPES.find((entry) => entry === type);
+  if (
+    !channel ||
+    typeof action !== 'string' ||
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload)
+  ) {
+    return null;
+  }
+  return {
+    action,
+    payload: payload as IChannelMessage['payload'],
+    type: channel,
+  };
 }

@@ -107,7 +107,7 @@ describe('WebSocketGateway', () => {
       expect.any(Object),
     );
 
-    expect(mockRedisService.subscribe).toHaveBeenCalledTimes(13);
+    expect(mockRedisService.subscribe).toHaveBeenCalledTimes(14);
     expect(mockRedisService.on).toHaveBeenCalledWith(
       'message',
       expect.any(Function),
@@ -682,6 +682,19 @@ describe('WebSocketGateway redis message dispatch', () => {
     );
 
     expect(serverTo).not.toHaveBeenCalled();
+  });
+
+  it('tells each inbox recipient to re-read the bell, never the organization room', () => {
+    dispatch(
+      'notification-inbox',
+      JSON.stringify({ organizationId: 'org-1', userIds: [USER_ID] }),
+    );
+
+    expect(serverTo).toHaveBeenCalledTimes(1);
+    expect(serverTo).toHaveBeenCalledWith(USER_ROOM);
+    expect(roomEmit).toHaveBeenCalledWith('notification-inbox', {
+      organizationId: 'org-1',
+    });
   });
 
   it('routes ingredient status updates', () => {

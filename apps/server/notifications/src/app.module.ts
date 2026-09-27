@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@notifications/config/config.module';
 import { ConfigService } from '@notifications/config/config.service';
 import { DevDiscordController } from '@notifications/controllers/dev.controller';
+import { ChannelDeliveriesModule } from '@notifications/services/channel-deliveries/channel-deliveries.module';
 import { ChatBotModule } from '@notifications/services/chatbot/chatbot.module';
 import { DiscordModule } from '@notifications/services/discord/discord.module';
 import { GenFeedModule } from '@notifications/services/genfeed/genfeed.module';
@@ -36,6 +37,7 @@ import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
     TerminalModule,
 
     // Services
+    ChannelDeliveriesModule,
     DiscordModule,
     ResendModule,
     SlackNotificationModule,

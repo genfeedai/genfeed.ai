@@ -1,4 +1,5 @@
 import {
+  ChannelDeliveryError,
   EmailDeliveryError,
   NotificationEvent,
   NotificationsService,
@@ -404,6 +405,85 @@ describe('NotificationsService', () => {
       const publishedData = JSON.parse(publishCall[1]);
 
       expect(publishedData.payload.from).toBeUndefined();
+    });
+  });
+
+  describe('deliverChannelMessage', () => {
+    const request = {
+      destination: null,
+      idempotencyKey: 'revenue/in_1/discord/operator',
+      message: {
+        action: 'low_credits_alert',
+        payload: { balance: 5, organizationId: 'org-1' },
+        type: 'discord' as const,
+      },
+    };
+
+    it('posts the rendered message and returns the acknowledged outcome', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({ messageId: 'message-1', status: 'delivered' }),
+          { headers: { 'Content-Type': 'application/json' }, status: 200 },
+        ),
+      );
+
+      await expect(service.deliverChannelMessage(request)).resolves.toEqual({
+        messageId: 'message-1',
+        status: 'delivered',
+      });
+      expect(mockSafeFetch).toHaveBeenCalledWith(
+        new URL('http://notifications:3011/v1/internal/channel-deliveries'),
+        expect.objectContaining({
+          body: JSON.stringify(request),
+          method: 'POST',
+        }),
+        {
+          allowedOrigins: ['http://notifications:3011'],
+          allowPrivateNetwork: true,
+        },
+      );
+      expect(mockPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    it('returns a skip outcome from an unconfigured channel', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            reason: 'channel_not_configured',
+            status: 'skipped',
+          }),
+          { status: 200 },
+        ),
+      );
+
+      await expect(service.deliverChannelMessage(request)).resolves.toEqual({
+        reason: 'channel_not_configured',
+        status: 'skipped',
+      });
+    });
+
+    it('classifies permanent and transient failures', async () => {
+      mockSafeFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: 'Invalid', retryable: false }), {
+          status: 422,
+        }),
+      );
+      await expect(service.deliverChannelMessage(request)).rejects.toEqual(
+        expect.objectContaining<Partial<ChannelDeliveryError>>({
+          retryable: false,
+          statusCode: 422,
+        }),
+      );
+
+      mockSafeFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: 'bogus' }), { status: 503 }),
+      );
+      await expect(service.deliverChannelMessage(request)).rejects.toEqual(
+        expect.objectContaining<Partial<ChannelDeliveryError>>({
+          retryable: true,
+          statusCode: 503,
+        }),
+      );
     });
   });
 

@@ -54,16 +54,17 @@
       "add": "{creditCategory, select, refund {{source, select, none {Credits refunded} other {Credit refund: {source}}}} rollover {{source, select, none {Credits rolled over} other {Credits rolled over: {source}}}} other {{source, select, none {Credits added} other {{source}}}}}",
       "remove": "{creditCategory, select, expire {{source, select, none {Credits expired} other {Credits expired: {source}}}} byok_usage {{source, select, none {AI usage} other {{source}}} (your API key)} other {{source, select, none {Credit usage — details unavailable} other {{source}}}}}",
       "remove_all": "Removed all credits",
+      "low": "Credits are running low",
       "reset": "{source, select, none {Credit balance reset} other {Credit balance reset: {source}}}",
       "change": "{creditCategory, select, byok_usage {No credits charged} reset {Balance set to {count, plural, one {{amount} credit} other {{amount} credits}}} add {+{count, plural, one {{amount} credit} other {{amount} credits}}} refund {+{count, plural, one {{amount} credit} other {{amount} credits}}} rollover {+{count, plural, one {{amount} credit} other {{amount} credits}}} other {−{count, plural, one {{amount} credit} other {{amount} credits}}}}"
     },
     "fallback": "{fallbackSubject}",
     "lifecycle": {
-      "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} import {Imported existing posts from {articleSubject}} other {Generated {articleSubject}}}",
+      "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} run {{capitalizedSubject} completed} import {Imported existing posts from {articleSubject}} other {Generated {articleSubject}}}",
       "created": "{operation, select, train {Started {subject}} other {Created {articleSubject}}}",
       "disconnected": "{capitalizedSubject} disconnected",
       "flagged": "{capitalizedSubject} flagged for review",
-      "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} import {Failed to import existing posts from {articleSubject}} other {Failed to generate {subject}}}",
+      "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} run {{capitalizedSubject} failed} deliver {Couldn't deliver the {subject} update} import {Failed to import existing posts from {articleSubject}} other {Failed to generate {subject}}}",
       "processing": "{operation, select, reframe {Reframing {articleSubject}...} upscale {Upscaling {articleSubject}...} enhance {Enhancing {articleSubject}...} remix {Remixing {articleSubject}...} train {Starting {subject}...} publish {Processing {articleSubject}...} other {Generating {articleSubject}...}}",
       "published": "Published {articleSubject}",
       "scheduled": "{operation, select, import {Scheduled import of existing posts from {articleSubject}} other {Scheduled {articleSubject}}}",
@@ -71,6 +72,13 @@
     },
     "post": {
       "ready": "Content is ready for review"
+    },
+    "agent": {
+      "review_changed": "Agent review updated",
+      "review_expired": "Agent review expired"
+    },
+    "social": {
+      "replies": "New replies to your posts"
     },
     "reconnecting": "Reconnecting to live updates. Activity is checked automatically.",
     "activeCount": "{count, plural, one {# task in progress} other {# tasks in progress}}",

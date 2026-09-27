@@ -51,6 +51,9 @@ describe('activity.enum', () => {
         'REFERRAL',
         'MEDIA_MODERATION',
         'AGENT_CHAT',
+        'WORKFLOW_EXECUTION',
+        'AGENT_RUN',
+        'AGENT_REVIEW',
       ]);
     });
 
@@ -162,6 +165,15 @@ describe('activity.enum', () => {
         'PROMPT_REMIX_FAILED',
         'BRAND_RELOCATED',
         'MEDIA_MODERATION_FLAGGED',
+        'WORKFLOW_EXECUTION_COMPLETED',
+        'WORKFLOW_EXECUTION_FAILED',
+        'AGENT_RUN_COMPLETED',
+        'AGENT_RUN_FAILED',
+        'AGENT_RUN_DELIVERY_FAILED',
+        'AGENT_REVIEW_CHANGED',
+        'AGENT_REVIEW_EXPIRED',
+        'SOCIAL_REPLIES_RECEIVED',
+        'CREDITS_LOW',
       ]);
     });
 

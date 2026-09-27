@@ -31,6 +31,12 @@ export interface NotificationData {
   organizationId?: string;
 }
 
+/** A recipient's notification inbox gained an item; clients re-read it. */
+export interface NotificationInboxUpdateData {
+  organizationId: string;
+  userIds: string[];
+}
+
 export interface IngredientStatusData {
   ingredientId: string;
   status: string;

@@ -1,5 +1,6 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { StreaksController } from '@api/collections/streaks/controllers/streaks.controller';
+import { StreaksActivityListener } from '@api/collections/streaks/listeners/streaks-activity.listener';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { Module } from '@nestjs/common';
@@ -8,6 +9,6 @@ import { Module } from '@nestjs/common';
   controllers: [StreaksController],
   exports: [StreaksService],
   imports: [CreditsModule, NotificationsModule],
-  providers: [StreaksService],
+  providers: [StreaksActivityListener, StreaksService],
 })
 export class StreaksModule {}
