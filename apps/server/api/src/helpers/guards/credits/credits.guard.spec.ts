@@ -284,9 +284,19 @@ describe('CreditsGuard', () => {
       );
       creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(3);
 
-      await expect(guard.canActivate(createContext())).rejects.toThrow(
-        new InsufficientCreditsException(5, 3),
+      // Match the fields, not a second instance: the response carries a
+      // creation timestamp that differs across milliseconds.
+      const rejection = guard.canActivate(createContext());
+
+      await expect(rejection).rejects.toBeInstanceOf(
+        InsufficientCreditsException,
       );
+      await expect(rejection).rejects.toMatchObject({
+        response: {
+          code: 'INSUFFICIENT_CREDITS',
+          meta: { available: 3, required: 5 },
+        },
+      });
     });
 
     it('returns 403 when the caller has no organization', async () => {
