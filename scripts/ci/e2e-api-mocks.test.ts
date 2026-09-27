@@ -40,7 +40,7 @@ describe('Playwright API mocks', () => {
           status: 'running',
         },
         id: 'exec-top-level',
-        type: type ?? 'workflow-executions',
+        type: type ?? 'workflow-execution',
       });
       expect(resource.attributes).not.toHaveProperty('id');
       expect(resource.attributes).not.toHaveProperty('type');
