@@ -444,8 +444,17 @@ describe('MCP setup page', () => {
     });
 
     it('rewrites every endpoint-bearing block when toolsets are selected and cleared', () => {
-      const dom = new JSDOM(renderSetupPage(), { runScripts: 'dangerously' });
+      // Parse only, then run the page's inline script against that document:
+      // jsdom's own script runner needs a vm Bun does not provide.
+      const dom = new JSDOM(renderSetupPage());
       const { document, Event } = dom.window;
+      const pageScript = Array.from(document.querySelectorAll('script'))
+        .map((script) => script.textContent ?? '')
+        .find((source) => source.includes('function applyUrl('));
+      if (!pageScript) {
+        throw new Error('expected the picker script');
+      }
+      new Function('document', 'navigator', pageScript)(document, {});
       const text = (id: string): string =>
         document.getElementById(id)?.textContent ?? '';
       const checkbox = Array.from(
