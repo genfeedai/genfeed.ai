@@ -1,10 +1,14 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
+import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import {
   PUBLISH_WEBHOOK_JOB_ID_PREFIX,
   WebhookDispatchService,
 } from '@api/services/webhook-client/webhook-dispatch.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import {
   classifyPublishWebhookError,
   createPublishWebhookEventId,
@@ -16,9 +20,11 @@ import {
   redactPublishWebhookText,
 } from '@genfeedai/contracts/api-types/contracts/publish-webhook-events.contract';
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { FIRST_SUCCESSFUL_PUBLISH_EVENT } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 
 type PublishWebhookPostSnapshot = {
   brand?: unknown;
@@ -71,10 +77,74 @@ export class PublishEventWebhookService {
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly webhookDispatchService: WebhookDispatchService,
+    @Optional()
+    private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
   async emitLegacyPostPublished(input: PublishOutcomeInput): Promise<void> {
     await this.emitLegacyPostOutcome(input, TargetExecutionState.PUBLISHED);
+    this.captureFirstSuccessfulPublishBestEffort(input);
+  }
+
+  /**
+   * Best-effort PostHog capture for `first_successful_publish`
+   * (genfeedai/genfeed.ai#4969), added to this existing dependency of
+   * `ScheduledPostDeliveryService` (and the YouTube/TikTok status crons, and
+   * the YouTube upload-completion service — every caller of
+   * `emitLegacyPostPublished`) rather than as a new dependency of any of
+   * them, to stay off the runtime-complexity ratchet those files are already
+   * near. `emitLegacyPostPublished` fires once a post is confirmed published
+   * by the provider on every platform and delivery path, so this is a
+   * strictly better hook than any single caller alone. Fires once per
+   * organization, gated on a `prisma.post.count` "first ever" check — the
+   * same best-effort idempotency style `markOnboardingCompleteFromInvoice`
+   * uses for its once-per-user flag. Never throws.
+   */
+  private captureFirstSuccessfulPublishBestEffort(
+    input: PublishOutcomeInput,
+  ): void {
+    const { funnelCaptureService, prisma } = this;
+    if (!funnelCaptureService || !prisma) {
+      return;
+    }
+
+    const organizationId = readReferenceId(input.post.organizationId);
+    const postId = readReferenceId(input.post.id);
+    if (!organizationId || !postId) {
+      return;
+    }
+
+    void (async () => {
+      const priorPublishCount = await prisma.post.count({
+        where: scopedWhere(organizationId, {
+          id: { not: postId },
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        }),
+      });
+      if (priorPublishCount > 0) {
+        return;
+      }
+      await funnelCaptureService.capture({
+        distinctId: organizationId,
+        event: FIRST_SUCCESSFUL_PUBLISH_EVENT,
+        properties: {
+          platform: input.platform ?? 'unknown',
+          surface: 'social',
+        },
+      });
+    })().catch((error: unknown) => {
+      this.logger.warn(
+        `${this.constructorName} first-publish funnel capture skipped`,
+        {
+          error: error instanceof Error ? error.message : error,
+          organizationId,
+          postId,
+        },
+      );
+      Sentry.captureException(error, { extra: { organizationId, postId } });
+    });
   }
 
   async emitLegacyPostFailed(input: PublishOutcomeInput): Promise<void> {

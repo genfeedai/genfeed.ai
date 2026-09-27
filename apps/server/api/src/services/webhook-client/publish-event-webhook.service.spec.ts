@@ -8,6 +8,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PublishEventWebhookService } from './publish-event-webhook.service';
 import { WebhookDispatchService } from './webhook-dispatch.service';
@@ -15,6 +16,7 @@ import { WebhookDispatchService } from './webhook-dispatch.service';
 vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
   assertSafeWebhookEndpoint: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 
 describe('PublishEventWebhookService', () => {
   let logger: {
@@ -427,5 +429,108 @@ describe('PublishEventWebhookService', () => {
 
     expect(queue.add).not.toHaveBeenCalled();
     expect(settingsService.recordWebhookDeliveryStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', () => {
+  function buildService(overrides?: {
+    funnelCaptureService?: { capture: ReturnType<typeof vi.fn> };
+    priorPublishCount?: number;
+  }) {
+    const prisma = {
+      post: {
+        count: vi.fn().mockResolvedValue(overrides?.priorPublishCount ?? 0),
+      },
+    };
+    const funnelCaptureService =
+      overrides?.funnelCaptureService ??
+      ({ capture: vi.fn().mockResolvedValue(undefined) } as {
+        capture: ReturnType<typeof vi.fn>;
+      });
+    const service = new PublishEventWebhookService(
+      {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+      {
+        findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      } as unknown as PostsService,
+      {
+        dispatch: vi.fn().mockResolvedValue(null),
+      } as unknown as WebhookDispatchService,
+      prisma as never,
+      funnelCaptureService as never,
+    );
+
+    return { funnelCaptureService, prisma, service };
+  }
+
+  // The fire-and-forget capture chain resolves on a later microtask than
+  // `emitLegacyPostPublished` itself — flush the queue before asserting.
+  async function flushMicrotasks(): Promise<void> {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+
+  it("captures first_successful_publish exactly once for the org's first published post", async () => {
+    const { funnelCaptureService, prisma, service } = buildService();
+
+    await service.emitLegacyPostPublished({
+      platform: 'twitter',
+      post: { id: 'post_1', organizationId: 'org_1' },
+    });
+    await flushMicrotasks();
+
+    expect(prisma.post.count).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledTimes(1);
+    expect(funnelCaptureService.capture).toHaveBeenCalledWith({
+      distinctId: 'org_1',
+      event: 'first_successful_publish',
+      properties: { platform: 'twitter', surface: 'social' },
+    });
+  });
+
+  it('is skipped when the organization already has a published post', async () => {
+    const { funnelCaptureService, service } = buildService({
+      priorPublishCount: 1,
+    });
+
+    await service.emitLegacyPostPublished({
+      platform: 'twitter',
+      post: { id: 'post_2', organizationId: 'org_1' },
+    });
+    await flushMicrotasks();
+
+    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+  });
+
+  it('is skipped without a post id or organization id', async () => {
+    const { funnelCaptureService, prisma, service } = buildService();
+
+    await service.emitLegacyPostPublished({
+      platform: 'twitter',
+      post: {},
+    });
+    await flushMicrotasks();
+
+    expect(prisma.post.count).not.toHaveBeenCalled();
+    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when the capture call fails, and reports it to Sentry', async () => {
+    const funnelCaptureService = {
+      capture: vi.fn().mockRejectedValue(new Error('network down')),
+    };
+    const { service } = buildService({ funnelCaptureService });
+
+    await expect(
+      service.emitLegacyPostPublished({
+        platform: 'twitter',
+        post: { id: 'post_3', organizationId: 'org_1' },
+      }),
+    ).resolves.toBeUndefined();
+    await flushMicrotasks();
+
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
   });
 });

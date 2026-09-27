@@ -17,6 +17,7 @@ import { CommonModule } from '@api/common/common.module';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
+import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { usesMeteredCredits } from '@genfeedai/config';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
     CreditDeductionModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
+    ServerFunnelCaptureModule,
     HttpModule,
 
     TransactionModule,

@@ -32,7 +32,6 @@ import {
 import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { ServerFunnelCaptureService } from '@api/services/analytics/server-funnel-capture.service';
 import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
@@ -45,7 +44,6 @@ import {
 } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-  ONBOARDING_COMPLETED_EVENT,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -133,8 +131,6 @@ export class AgentOnboardingToolHandler {
     private readonly videosService?: VideosService,
     @Optional()
     private readonly streamPublisher?: AgentStreamPublisherService,
-    @Optional()
-    private readonly funnelCaptureService?: ServerFunnelCaptureService,
   ) {}
 
   private async publishToolProgress(data: {
@@ -641,7 +637,9 @@ export class AgentOnboardingToolHandler {
           // journey re-check after completion (missions are idempotent and
           // this branch re-runs on every claim) never double-fires it.
           if (!wasAlreadyOnboarded) {
-            this.captureOnboardingCompletedBestEffort(String(dbUser.id));
+            this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
+              String(dbUser.id),
+            );
           }
         }
       }
@@ -748,7 +746,9 @@ export class AgentOnboardingToolHandler {
         });
 
         if (!wasAlreadyOnboarded) {
-          this.captureOnboardingCompletedBestEffort(dbUserId);
+          this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
+            dbUserId,
+          );
         }
       }
     }
@@ -765,36 +765,6 @@ export class AgentOnboardingToolHandler {
       },
       success: true,
     };
-  }
-
-  /**
-   * Fire-and-forget PostHog capture for the `onboarding_completed` funnel
-   * event (genfeedai/genfeed.ai#4969). Agent-first onboarding is the SaaS
-   * default and completes entirely server-side, so without this capture the
-   * event never lands — the wizard hook only fires for the legacy client
-   * flow. Callers gate on the user's prior `isOnboardingCompleted` value so
-   * this fires exactly once per user; failures are logged and reported to
-   * Sentry inside the capture service and never surface to the caller.
-   */
-  private captureOnboardingCompletedBestEffort(userId: string): void {
-    if (!this.funnelCaptureService) {
-      return;
-    }
-
-    // `ServerFunnelCaptureService.capture` already catches and reports its own
-    // failures — this `.catch` is defense in depth so a future change there
-    // can never turn into an unhandled rejection off an onboarding tool call.
-    void this.funnelCaptureService
-      .capture({
-        distinctId: userId,
-        event: ONBOARDING_COMPLETED_EVENT,
-      })
-      .catch((error: unknown) => {
-        this.loggerService.warn(
-          `${AgentOnboardingToolHandler.name} onboarding_completed capture failed`,
-          { error: error instanceof Error ? error.message : error, userId },
-        );
-      });
   }
 
   /**

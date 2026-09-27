@@ -124,7 +124,6 @@ import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent-source-ingest.module';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
-import { ServerFunnelCaptureModule } from '@api/services/analytics/server-funnel-capture.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -218,7 +217,6 @@ import { Module } from '@nestjs/common';
     AgentSpawnModule,
     AgentChatModelRegistryModule,
     SeoModule,
-    ServerFunnelCaptureModule,
     SkillRuntimeModule,
     TypedDecisionsModule,
   ],

@@ -198,18 +198,6 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 16,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "AgentOnboardingToolHandler.constructor"
-  },
-  {
-    "actual": 1003,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"
-  },
-  {
     "actual": 202,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
     "metric": "method-lines",
@@ -372,7 +360,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1297,
+    "actual": 1214,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
