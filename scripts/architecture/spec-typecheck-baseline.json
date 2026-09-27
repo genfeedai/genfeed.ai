@@ -12818,14 +12818,6 @@
     },
     {
       "code": 7006,
-      "count": 2,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "1cff38d0264e6f53e3b0",
-      "message": "Parameter 'job' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
       "count": 1,
       "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
       "fingerprint": "260a55df8f564f351f71",
@@ -13046,14 +13038,6 @@
       "file": "packages/pages/studio/generate/components/StudioGenerateInspector.tsx",
       "fingerprint": "46ffbb1c442ab452c83e",
       "message": "Parameter 'sibling' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioGenerateInspector.tsx",
-      "fingerprint": "c35edc764284dc07023c",
-      "message": "Parameter 'tab' implicitly has an 'any' type.",
       "workspace": "pages"
     },
     {
