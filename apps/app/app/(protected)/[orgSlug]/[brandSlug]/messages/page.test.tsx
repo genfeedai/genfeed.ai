@@ -880,9 +880,7 @@ describe('SocialMessagesPage', () => {
       screen.queryByPlaceholderText('Write a reply or DM'),
     ).not.toBeInTheDocument();
     for (const name of ['Draft reply', 'Save Draft', 'Reply', 'DM']) {
-      expect(
-        screen.queryByRole('button', { name, exact: true }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
     }
   });
 });
