@@ -13,7 +13,6 @@ const GENFEED_PLATFORMS = [
   'Threads',
   'WordPress',
   'Snapchat',
-  'WhatsApp',
   'Mastodon',
   'Ghost',
   'Shopify',
@@ -80,7 +79,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Which platforms can Muse schedule to through Genfeed?',
         answer:
-          'Every destination Genfeed supports: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, WhatsApp, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
+          'Every destination Genfeed supports: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
       },
       {
         question: 'Is Genfeed an official Muse connector?',
@@ -126,7 +125,7 @@ const briefs: readonly SeoArticleBrief[] = [
         heading: 'Which platforms Genfeed can publish to from Muse',
         paragraphs: [
           'Once the connector is live, Muse is really talking to Genfeed’s own publishing layer, not to each network directly. The same brand, asset, and approval rules apply no matter which platform a post is headed to.',
-          'Genfeed currently publishes to seventeen destinations, so a request such as “post this to Instagram and Threads” or “queue this for LinkedIn next week” routes through one connector instead of one integration per app.',
+          'Genfeed currently publishes to sixteen destinations, so a request such as “post this to Instagram and Threads” or “queue this for LinkedIn next week” routes through one connector instead of one integration per app.',
         ],
         points: [...GENFEED_PLATFORMS],
       },
@@ -162,7 +161,7 @@ const briefs: readonly SeoArticleBrief[] = [
       },
     ],
     summary:
-      'Add Genfeed as a custom connector in Meta Muse, schedule posts across 17 platforms, and keep a human review gate before anything publishes.',
+      'Add Genfeed as a custom connector in Meta Muse, schedule posts across 16 platforms, and keep a human review gate before anything publishes.',
     workflow: [
       {
         action: 'Open a chat with Muse.',
@@ -244,7 +243,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Which platforms can a Bot schedule to through Genfeed?',
         answer:
-          'All of Genfeed’s supported destinations: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, WhatsApp, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
+          'All of Genfeed’s supported destinations: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
       },
       {
         question: 'Do I need a specific plan to use Grok Bot at all?',
@@ -291,7 +290,7 @@ const briefs: readonly SeoArticleBrief[] = [
         heading: 'Which platforms a Bot can post to through Genfeed',
         paragraphs: [
           'A Grok Bot reaches social platforms the same way Genfeed does for any other client: through Genfeed’s own connectors, not by xAI or Cursor building one integration per network.',
-          'That currently covers seventeen destinations, so a routine that says “draft this week’s LinkedIn and X posts” or “queue the Shopify product update” runs through the one Genfeed connector.',
+          'That currently covers sixteen destinations, so a routine that says “draft this week’s LinkedIn and X posts” or “queue the Shopify product update” runs through the one Genfeed connector.',
         ],
         points: [...GENFEED_PLATFORMS],
       },
@@ -417,7 +416,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Which platforms can I schedule to?',
         answer:
-          'Every destination Genfeed supports: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, WhatsApp, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
+          'Every destination Genfeed supports: X, Instagram, TikTok, YouTube, Facebook, LinkedIn, Pinterest, Reddit, Threads, WordPress, Snapchat, Mastodon, Ghost, Shopify, Beehiiv, and Fanvue.',
       },
       {
         question: 'What if the OAuth session expires?',
@@ -456,7 +455,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         heading: 'Which platforms Claude Code can schedule to',
         paragraphs: [
-          'Claude Code talks to Genfeed’s own publishing layer through MCP, so the same seventeen destinations are available whether you ask it to draft one post or plan a week of content.',
+          'Claude Code talks to Genfeed’s own publishing layer through MCP, so the same sixteen destinations are available whether you ask it to draft one post or plan a week of content.',
           'A request such as “draft next week’s X and LinkedIn posts for the launch brand” routes through the one Genfeed connector rather than a separate integration per platform.',
         ],
         points: [...GENFEED_PLATFORMS],
