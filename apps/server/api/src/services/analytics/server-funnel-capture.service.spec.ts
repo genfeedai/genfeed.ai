@@ -11,6 +11,8 @@ vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 
 const SECRET_PROJECT_KEY = 'phc_test_key';
 const SECRET_MARKER = 'super-secret-rollout-plan';
+// Matches CAPTURE_TIMEOUT_MS in server-funnel-capture.service.ts.
+const CAPTURE_TIMEOUT_MS = 800;
 
 describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
   let configService: { get: ReturnType<typeof vi.fn> };
@@ -92,6 +94,43 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     expect(safeFetch).not.toHaveBeenCalled();
   });
 
+  describe('capture timeout', () => {
+    it('wires the fetch signal to the configured capture timeout and aborts it at the deadline', async () => {
+      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+      let capturedSignal: AbortSignal | undefined;
+      vi.mocked(safeFetch).mockImplementation(async (_url, init) => {
+        capturedSignal = init?.signal as AbortSignal | undefined;
+        return { ok: true, status: 200 } as never;
+      });
+
+      const capturePromise = service.capture({
+        distinctId: 'org_1',
+        event: 'onboarding_completed',
+      });
+
+      // Proves the signal is built from the service's own deadline constant
+      // (not, e.g., an unbounded signal or a hardcoded different value): if
+      // the timeout were removed, this call never happens.
+      expect(timeoutSpy).toHaveBeenCalledWith(CAPTURE_TIMEOUT_MS);
+      expect(capturedSignal).toBeInstanceOf(AbortSignal);
+      expect(capturedSignal?.aborted).toBe(false);
+
+      await capturePromise;
+
+      // AbortSignal.timeout runs on the platform's own timer, which fake
+      // timers do not intercept, so prove it actually fires by waiting past
+      // the deadline with a real timer. If the timeout were removed (no
+      // `signal` at all, or a signal that never aborts), this would hang
+      // `aborted` at false forever instead of flipping to true here.
+      await new Promise((resolve) =>
+        setTimeout(resolve, CAPTURE_TIMEOUT_MS + 100),
+      );
+      expect(capturedSignal?.aborted).toBe(true);
+
+      timeoutSpy.mockRestore();
+    }, 10_000);
+  });
+
   describe('POSTHOG_HOST validation (genfeedai/genfeed.ai#5314)', () => {
     it('rejects the capture without sending it when POSTHOG_HOST is HTTP', async () => {
       mockConfig({ POSTHOG_HOST: 'http://insecure.example.com' });
@@ -103,7 +142,10 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(safeFetch).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({ category: 'invalid_destination' });
+      expect(loggedContext).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
     });
 
     it('rejects the capture without sending it when POSTHOG_HOST is not a valid URL', async () => {
@@ -115,6 +157,11 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
 
       expect(safeFetch).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledTimes(1);
+      const [, loggedContext] = logger.warn.mock.calls[0];
+      expect(loggedContext).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     });
 
@@ -128,7 +175,10 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(safeFetch).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({ category: 'invalid_destination' });
+      expect(loggedContext).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
     });
 
     it('rejects an explicit whitespace-only POSTHOG_HOST instead of falling back to the default', async () => {
@@ -141,7 +191,10 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(safeFetch).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({ category: 'invalid_destination' });
+      expect(loggedContext).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
     });
 
     it('falls back to the public default only when POSTHOG_HOST is absent', async () => {
@@ -184,16 +237,18 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
 
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({
+      expect(loggedContext).toEqual({
         category: 'non_2xx_response',
+        event: 'onboarding_completed',
         status: 429,
       });
 
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       const [, sentryContext] = vi.mocked(Sentry.captureException).mock
         .calls[0];
-      expect(sentryContext?.extra).toMatchObject({
+      expect(sentryContext?.extra).toEqual({
         category: 'non_2xx_response',
+        event: 'onboarding_completed',
         status: 429,
       });
     });
@@ -210,7 +265,11 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
 
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({ status: 503 });
+      expect(loggedContext).toEqual({
+        category: 'non_2xx_response',
+        event: 'onboarding_completed',
+        status: 503,
+      });
     });
 
     it('treats an unfollowed 3xx redirect as a failure and never issues a second request', async () => {
@@ -233,8 +292,9 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       expect(init?.redirect).toBe('manual');
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({
+      expect(loggedContext).toEqual({
         category: 'non_2xx_response',
+        event: 'onboarding_completed',
         status: 302,
       });
     });
@@ -265,13 +325,16 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
 
       expect(logger.warn).toHaveBeenCalledTimes(1);
       const [, loggedContext] = logger.warn.mock.calls[0];
-      expect(loggedContext).toMatchObject({ category: 'request_failed' });
+      expect(loggedContext).toEqual({
+        category: 'request_failed',
+        event: 'onboarding_completed',
+      });
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('failure-report redaction (genfeedai/genfeed.ai#5314)', () => {
-    it('never attaches the original exception, and never leaks its message, the project key, or event properties', async () => {
+    it('never attaches the original exception, and never leaks its message, the distinct id, the project key, or event properties', async () => {
       // The rejected error's message deliberately embeds both the project
       // key and a payload marker (mirroring, e.g., destination-guard.ts
       // embedding an echoed redirect Location in its error message) to
@@ -286,7 +349,7 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       vi.mocked(safeFetch).mockRejectedValue(leakyError);
 
       await service.capture({
-        distinctId: 'org_1',
+        distinctId: 'org_1_super_secret_distinct_id',
         event: 'onboarding_completed',
         properties: { secretPlan: SECRET_MARKER },
       });
@@ -295,10 +358,13 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
       const [logMessage, logContext] = logger.warn.mock.calls[0];
       expect(logMessage).not.toContain(SECRET_PROJECT_KEY);
       expect(logMessage).not.toContain(SECRET_MARKER);
-      expect(JSON.stringify(logContext)).not.toContain(SECRET_PROJECT_KEY);
-      expect(JSON.stringify(logContext)).not.toContain(SECRET_MARKER);
-      expect(logContext).not.toHaveProperty('error');
-      expect(logContext).not.toHaveProperty('properties');
+      // Exhaustive: the failure context carries exactly the bounded
+      // category and event name, nothing else — no distinct id, project
+      // key, properties, or the original error at all.
+      expect(logContext).toEqual({
+        category: 'request_failed',
+        event: 'onboarding_completed',
+      });
 
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
       const [sentryErrorArg, sentryOptions] = vi.mocked(Sentry.captureException)
@@ -311,33 +377,36 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
         SECRET_PROJECT_KEY,
       );
       expect((sentryErrorArg as Error).message).not.toContain(SECRET_MARKER);
-      expect(JSON.stringify(sentryOptions?.extra)).not.toContain(
-        SECRET_PROJECT_KEY,
-      );
-      expect(JSON.stringify(sentryOptions?.extra)).not.toContain(SECRET_MARKER);
-      expect(sentryOptions?.extra).not.toHaveProperty('properties');
+      expect(sentryOptions?.extra).toEqual({
+        category: 'request_failed',
+        event: 'onboarding_completed',
+      });
     });
 
-    it('never leaks the project key when POSTHOG_HOST validation itself fails', async () => {
+    it('never leaks the project key or distinct id when POSTHOG_HOST validation itself fails', async () => {
       mockConfig({ POSTHOG_HOST: 'http://insecure.example.com' });
 
       await service.capture({
-        distinctId: 'org_1',
+        distinctId: 'org_1_super_secret_distinct_id',
         event: 'onboarding_completed',
       });
 
       const [logMessage, logContext] = logger.warn.mock.calls[0];
       expect(logMessage).not.toContain(SECRET_PROJECT_KEY);
-      expect(JSON.stringify(logContext)).not.toContain(SECRET_PROJECT_KEY);
+      expect(logContext).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
 
       const [sentryErrorArg, sentryOptions] = vi.mocked(Sentry.captureException)
         .mock.calls[0];
       expect((sentryErrorArg as Error).message).not.toContain(
         SECRET_PROJECT_KEY,
       );
-      expect(JSON.stringify(sentryOptions?.extra)).not.toContain(
-        SECRET_PROJECT_KEY,
-      );
+      expect(sentryOptions?.extra).toEqual({
+        category: 'invalid_destination',
+        event: 'onboarding_completed',
+      });
     });
   });
 });

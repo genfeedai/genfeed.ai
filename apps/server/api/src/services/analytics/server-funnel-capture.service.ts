@@ -1,3 +1,7 @@
+import {
+  FIRST_SUCCESSFUL_PUBLISH_EVENT,
+  ONBOARDING_COMPLETED_EVENT,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -7,8 +11,18 @@ import * as Sentry from '@sentry/nestjs';
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const CAPTURE_TIMEOUT_MS = 800;
 
+/**
+ * The complete, closed set of server-side funnel event names
+ * (genfeedai/genfeed.ai#4969). Not `string`: every call site must pass one
+ * of these two named constants, so `event` can never carry arbitrary or
+ * user-derived text into a log or Sentry report.
+ */
+type ServerFunnelEventName =
+  | typeof ONBOARDING_COMPLETED_EVENT
+  | typeof FIRST_SUCCESSFUL_PUBLISH_EVENT;
+
 export interface IServerFunnelCaptureInput {
-  event: string;
+  event: ServerFunnelEventName;
   /** PostHog distinct id — the user or organization this funnel step belongs to. */
   distinctId: string;
   properties?: Record<string, unknown>;
@@ -36,10 +50,11 @@ type CaptureFailureCategory =
  * `POSTHOG_HOST`, a 3xx/non-2xx capture response, or a network error — is
  * caught and reported to the logger + Sentry (genfeedai/genfeed.ai#5314)
  * instead of thrown. Failure reports are bounded to a fixed category, the
- * event name, distinct id, and status code: the original exception (and its
- * message, which can embed request/redirect data such as an echoed
- * `Location` header) is deliberately never logged or attached, alongside the
- * project key and event properties.
+ * closed-set event name, and an optional status code: the original
+ * exception (and its message, which can embed request/redirect data such as
+ * an echoed `Location` header) is deliberately never logged or attached,
+ * and neither is the distinct id (a user/organization identifier), the
+ * project key, or event properties.
  */
 @Injectable()
 export class ServerFunnelCaptureService {
@@ -70,7 +85,7 @@ export class ServerFunnelCaptureService {
       origin = this.assertHttpsOrigin(configuredHost);
       host = this.stripTrailingSlash(configuredHost);
     } catch {
-      this.reportCaptureFailure(input, 'invalid_destination');
+      this.reportCaptureFailure(input.event, 'invalid_destination');
       return;
     }
 
@@ -100,10 +115,14 @@ export class ServerFunnelCaptureService {
       );
 
       if (!response.ok) {
-        this.reportCaptureFailure(input, 'non_2xx_response', response.status);
+        this.reportCaptureFailure(
+          input.event,
+          'non_2xx_response',
+          response.status,
+        );
       }
     } catch {
-      this.reportCaptureFailure(input, 'request_failed');
+      this.reportCaptureFailure(input.event, 'request_failed');
     }
   }
 
@@ -127,22 +146,21 @@ export class ServerFunnelCaptureService {
   }
 
   /**
-   * Records a bounded capture-failure signal: a fixed category, the event
-   * name, distinct id, and optional status code. Never accepts or forwards
-   * the original exception — its message can embed request or redirect
-   * details (e.g. destination-guard's redirect error embeds the target
-   * `Location`) — and never the PostHog project key or event
-   * payload/properties.
+   * Records a bounded capture-failure signal: a fixed category, the
+   * closed-set event name, and an optional status code. Never accepts or
+   * forwards the original exception — its message can embed request or
+   * redirect details (e.g. destination-guard's redirect error embeds the
+   * target `Location`) — and never the distinct id (a user/organization
+   * identifier), the PostHog project key, or event payload/properties.
    */
   private reportCaptureFailure(
-    input: IServerFunnelCaptureInput,
+    event: ServerFunnelEventName,
     category: CaptureFailureCategory,
     status?: number,
   ): void {
     const context = {
       category,
-      distinctId: input.distinctId,
-      event: input.event,
+      event,
       ...(status === undefined ? {} : { status }),
     };
     this.logger.warn(`${this.constructorName} capture failed`, context);
