@@ -37,8 +37,6 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/claude', label: 'Claude' },
       { href: '/claude-code', label: 'Claude Code' },
       { href: '/codex', label: 'Codex' },
-      { href: '/muse', label: 'Meta Muse' },
-      { href: '/grok-bot', label: 'Grok Bot' },
     ],
     title: 'Developers',
   },
