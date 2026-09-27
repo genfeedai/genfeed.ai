@@ -89,20 +89,22 @@ const InsightListCard = memo(function InsightListCard({
     >
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {insights.map((insight) => (
-          <Button
+          <div
             key={insight.id}
-            tabIndex={insight.isRead ? -1 : 0}
             className={cn(
               'relative flex items-start gap-3 p-3 border border-border bg-background transition-[box-shadow]',
               !insight.isRead &&
                 'ring-2 ring-offset-2 ring-offset-background ring-primary/20',
             )}
-            onClick={() => !insight.isRead && onMarkRead?.(insight.id)}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
           >
-            <div className="flex-1 min-w-0 text-left">
+            <Button
+              tabIndex={insight.isRead ? -1 : 0}
+              className="flex-1 min-w-0 text-left"
+              onClick={() => !insight.isRead && onMarkRead?.(insight.id)}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            >
               <div className="flex items-center gap-2 mb-0.5">
                 <span
                   className={cn(
@@ -149,15 +151,12 @@ const InsightListCard = memo(function InsightListCard({
                   {Math.round(insight.confidence)}% confidence
                 </span>
               </div>
-            </div>
+            </Button>
 
             {onDismiss && (
               <Button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDismiss(insight.id);
-                }}
+                onClick={() => onDismiss(insight.id)}
                 variant={ButtonVariant.UNSTYLED}
                 className="p-1 rounded-full hover:bg-muted/50 transition-colors"
                 ariaLabel="Dismiss insight"
@@ -165,7 +164,7 @@ const InsightListCard = memo(function InsightListCard({
                 <X className="size-4 text-foreground/40" />
               </Button>
             )}
-          </Button>
+          </div>
         ))}
       </div>
     </Card>
