@@ -223,13 +223,14 @@ describe('AppRail', () => {
     expect(workspace).toHaveClass(
       'focus-visible:ring-2',
       'focus-visible:ring-ring/60',
-      'focus-visible:ring-offset-background',
-      'bg-foreground/[0.1]',
+      'focus-visible:ring-offset-background-secondary',
+      'rounded-lg',
+      'bg-foreground/[0.12]',
       'text-foreground',
     );
-    expect(analytics).not.toHaveClass('bg-foreground/[0.1]');
+    expect(analytics).not.toHaveClass('bg-foreground/[0.12]');
     expect(analytics).toHaveClass(
-      'text-foreground/58',
+      'text-foreground/50',
       'hover:bg-foreground/[0.06]',
       'hover:text-foreground',
     );

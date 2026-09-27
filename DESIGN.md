@@ -723,11 +723,13 @@ Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, `bg-primary` with a
-`border-r border-border` divider. It picks the app; the sidebar to its right
+Persistent top-level navigation at the far left, 52px wide, on the raised
+`bg-secondary` plane (one step above the canvas the topbar and sidebar sit on)
+with a `border-r border-border` divider. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
-Items are 36px icon-only links: `text-foreground/58` at rest,
-`hover:bg-foreground/[0.06]`, active `bg-foreground/[0.1] text-foreground`.
+Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
+`hover:bg-foreground/[0.06]`, and the active app a filled
+`bg-foreground/[0.12] text-foreground` tile.
 Each item carries a right-side tooltip (label + one-line description). Order is
 Agent, Workspace, Studio, Library, Publishing, Messages; a short divider; then
 Discovery, Analytics, Automation. Role-gated Admin sits at the bottom. Unread

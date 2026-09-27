@@ -193,7 +193,8 @@ describe('AppLayout', () => {
       'w-[var(--desktop-rail-width)]',
       'border-r',
       'border-border',
-      'bg-background',
+      // Raised one step above the canvas-level topbar and sidebar.
+      'bg-background-secondary',
     );
     expect(appRail).toContainElement(
       screen.getAllByTestId('rail-component')[0],

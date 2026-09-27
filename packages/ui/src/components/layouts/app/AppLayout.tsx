@@ -140,7 +140,7 @@ export default function AppLayout({
                 >
                   {mobileRailContent ? (
                     <div
-                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border"
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col border-r border-border bg-background-secondary"
                       data-testid="mobile-app-rail"
                     >
                       {mobileRailContent}
