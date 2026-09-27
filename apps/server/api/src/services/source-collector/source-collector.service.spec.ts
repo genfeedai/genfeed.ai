@@ -57,6 +57,13 @@ describe('SourceCollectorService', () => {
     collectTimeline: vi.fn(),
   };
 
+  const youtubePublic = {
+    name: 'app-api-key',
+    platforms: [SocialSourcePlatform.YOUTUBE],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
   const linkedinOfficial = {
     name: 'brand-oauth',
     platforms: [SocialSourcePlatform.LINKEDIN],
@@ -78,6 +85,8 @@ describe('SourceCollectorService', () => {
     instagramOfficial.canCollect.mockResolvedValue(false);
     instagramBusinessDiscovery.canCollect.mockResolvedValue(false);
     tiktokOfficial.canCollect.mockResolvedValue(false);
+    youtubeOfficial.canCollect.mockResolvedValue(false);
+    youtubePublic.canCollect.mockResolvedValue(false);
     service = new SourceCollectorService(
       logger as never,
       brandOAuth as never,
@@ -86,6 +95,7 @@ describe('SourceCollectorService', () => {
       instagramBusinessDiscovery as never,
       tiktokOfficial as never,
       youtubeOfficial as never,
+      youtubePublic as never,
       linkedinOfficial as never,
       apify as never,
     );
@@ -235,6 +245,93 @@ describe('SourceCollectorService', () => {
       'SourceCollector discarded posts without ids',
       expect.objectContaining({ discardedCount: 1, provider: 'apify' }),
     );
+  });
+
+  describe('YouTube public collection (#5159)', () => {
+    it('uses the registered YoutubePublicProvider for a public YouTube channel', async () => {
+      youtubeOfficial.canCollect.mockResolvedValue(false);
+      youtubePublic.canCollect.mockResolvedValue(true);
+      youtubePublic.collectTimeline.mockResolvedValue({
+        handle: 'creator',
+        platform: SocialSourcePlatform.YOUTUBE,
+        posts: [
+          {
+            id: 'v1',
+            platform: SocialSourcePlatform.YOUTUBE,
+            text: 'upload',
+          },
+        ],
+        provider: 'app-api-key',
+      });
+
+      const result = await service.collectTimeline(
+        SocialSourcePlatform.YOUTUBE,
+        'creator',
+        {},
+      );
+
+      expect(result.provider).toBe('app-api-key');
+      expect(result.posts).toEqual([
+        { id: 'v1', platform: SocialSourcePlatform.YOUTUBE, text: 'upload' },
+      ]);
+      expect(youtubePublic.collectTimeline).toHaveBeenCalledWith(
+        SocialSourcePlatform.YOUTUBE,
+        'creator',
+        {},
+      );
+      expect(apify.collectTimeline).not.toHaveBeenCalled();
+    });
+
+    it('does not start an Apify run when the public provider succeeds with an empty upload list', async () => {
+      youtubeOfficial.canCollect.mockResolvedValue(false);
+      youtubePublic.canCollect.mockResolvedValue(true);
+      youtubePublic.collectTimeline.mockResolvedValue({
+        handle: 'creator',
+        platform: SocialSourcePlatform.YOUTUBE,
+        posts: [],
+        provider: 'app-api-key',
+      });
+
+      const result = await service.collectTimeline(
+        SocialSourcePlatform.YOUTUBE,
+        'creator',
+        {},
+      );
+
+      expect(result.provider).toBe('app-api-key');
+      expect(result.posts).toEqual([]);
+      expect(apify.collectTimeline).not.toHaveBeenCalled();
+      expect(apify.canCollect).not.toHaveBeenCalled();
+    });
+
+    it('propagates the failure without fabricating posts when the API key is missing and Apify also cannot collect', async () => {
+      youtubeOfficial.canCollect.mockResolvedValue(false);
+      // Missing YOUTUBE_API_KEY: the provider's own canCollect reports false.
+      youtubePublic.canCollect.mockResolvedValue(false);
+      apify.canCollect.mockResolvedValue(false);
+
+      await expect(
+        service.collectTimeline(SocialSourcePlatform.YOUTUBE, 'creator', {}),
+      ).rejects.toThrow(/All source collectors failed/);
+      expect(youtubePublic.collectTimeline).not.toHaveBeenCalled();
+      expect(apify.collectTimeline).not.toHaveBeenCalled();
+    });
+
+    it('propagates the failure without fabricating posts when the public provider fails and Apify also fails', async () => {
+      youtubeOfficial.canCollect.mockResolvedValue(false);
+      youtubePublic.canCollect.mockResolvedValue(true);
+      youtubePublic.collectTimeline.mockRejectedValue(
+        new Error('YouTube public API access-denied'),
+      );
+      apify.canCollect.mockResolvedValue(true);
+      apify.collectTimeline.mockRejectedValue(new Error('apify down'));
+
+      await expect(
+        service.collectTimeline(SocialSourcePlatform.YOUTUBE, 'creator', {}),
+      ).rejects.toThrow(
+        /All source collectors failed.*app-api-key.*YouTube public API access-denied.*apify.*apify down/s,
+      );
+    });
   });
 
   describe('collectPost', () => {
