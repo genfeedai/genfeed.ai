@@ -64,13 +64,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/discovery/discovery.spec.ts',
-    reason:
-      'Discovery heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/calendar/scheduling.spec.ts',
     reason:
       'Publishing calendar assertions drifted. Evidence: run 31991510270.',
@@ -116,12 +109,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/analytics/overview.spec.ts',
     reason:
       'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/discovery/discovery-interactions.spec.ts',
-    reason: 'Discovery interaction copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

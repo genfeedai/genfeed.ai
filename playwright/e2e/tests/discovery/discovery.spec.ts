@@ -5,14 +5,22 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { DiscoveryPage } from '../../pages/discovery.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E tests for the Discovery section.
  *
  * Tests verify /discovery (redirects to /discovery/overview),
- * /discovery/overview, /discovery/socials, /discovery/ads,
- * /discovery/ads/google, and /discovery/ads/meta pages.
- * All API calls are mocked - no real backend requests occur.
+ * /discovery/overview (the Signal Desk), and /discovery/ads, including its
+ * per-platform tab filter. All API calls are mocked - no real backend
+ * requests occur.
+ *
+ * /discovery/socials, /discovery/following, /discovery/discovery,
+ * /discovery/[platform], and /discovery/ads/{google,meta,tiktok,x} were
+ * retired with no redirects by #4317 (closes #4299) — the Following filter,
+ * per-platform pages, and Socials sub-page were folded into the Desk and the
+ * Ads platform tabs. Their coverage lives in the tests below against the
+ * current routes; do not re-add tests against the retired paths.
  */
 test.describe('Discovery section', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -33,6 +41,10 @@ test.describe('Discovery section', () => {
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
     });
 
     test('should display /discovery/overview with main content', async ({
@@ -44,6 +56,10 @@ test.describe('Discovery section', () => {
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
       await expect(discoveryPage.mainContent).toBeVisible();
     });
 
@@ -54,6 +70,10 @@ test.describe('Discovery section', () => {
 
       await discoveryPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
 
       await expect(authenticatedPage).toHaveTitle(/Discovery|Genfeed/i);
     });
@@ -65,47 +85,12 @@ test.describe('Discovery section', () => {
 
       await discoveryPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
 
       await expect(discoveryPage.sidebar).toBeVisible();
-    });
-  });
-
-  test.describe('Socials Page', () => {
-    test('should display /discovery/socials with main content', async ({
-      authenticatedPage,
-    }) => {
-      const discoveryPage = new DiscoveryPage(authenticatedPage);
-
-      await discoveryPage.gotoSection('socials');
-      await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveURL(/discovery\/socials/);
-      await expect(discoveryPage.mainContent).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole('tab', { name: 'Overview' }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByText('Total Posts', { exact: true }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole('heading', { name: 'Viral Videos' }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole('heading', {
-          name: 'Trending Content Feed',
-        }),
-      ).toBeVisible();
-    });
-
-    test('should have proper page title for socials', async ({
-      authenticatedPage,
-    }) => {
-      const discoveryPage = new DiscoveryPage(authenticatedPage);
-
-      await discoveryPage.gotoSection('socials');
-      await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveTitle(/Social|Research|Genfeed/i);
     });
   });
 
@@ -117,18 +102,22 @@ test.describe('Discovery section', () => {
 
       await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.ADS,
+      );
 
       await expect(authenticatedPage).toHaveURL(/discovery\/ads/);
       await expect(discoveryPage.mainContent).toBeVisible();
       await expect(
         authenticatedPage.getByRole('tab', { name: 'Overview' }),
       ).toBeVisible();
-      await expect(
-        authenticatedPage.getByText('Public Winners', { exact: true }),
-      ).toBeVisible();
+      // "Public Winners" / "Public Niche Winners" were the pre-#4317 copy.
+      // The public-ads panel now opens with this heading (see
+      // AdsPublicDiscoveryPanel.tsx, translate('pages.adsResearch.discovery.title')).
       await expect(
         authenticatedPage.getByRole('heading', {
-          name: 'Public Niche Winners',
+          name: 'Browse saved competitor ads',
         }),
       ).toBeVisible();
     });
@@ -140,105 +129,102 @@ test.describe('Discovery section', () => {
 
       await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.ADS,
+      );
 
       await expect(authenticatedPage).toHaveTitle(
         /Ads|Intelligence|Research|Genfeed/i,
       );
     });
 
-    test('should display /discovery/ads/google with main content', async ({
+    // #4317 collapsed the /discovery/ads/{google,meta,tiktok,x} sub-pages
+    // into a platform tab/query filter (?platform=) on this one page — the
+    // per-platform capability was redesigned, not removed, so it is covered
+    // here against the current tabs instead of the retired routes.
+    test('should switch to the Google + YouTube ads tab', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('ads/google');
+      await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveURL(/discovery\/ads\/google/);
-      await expect(discoveryPage.mainContent).toBeVisible();
-    });
-
-    test('should have proper page title for Google ads', async ({
-      authenticatedPage,
-    }) => {
-      const discoveryPage = new DiscoveryPage(authenticatedPage);
-
-      await discoveryPage.gotoSection('ads/google');
-      await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveTitle(
-        /Google|Ads|Research|Genfeed/i,
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.ADS,
       );
-    });
 
-    test('should display /discovery/ads/meta with main content', async ({
-      authenticatedPage,
-    }) => {
-      const discoveryPage = new DiscoveryPage(authenticatedPage);
+      const googleTab = authenticatedPage.getByRole('tab', {
+        name: 'Google + YouTube',
+      });
+      await googleTab.click();
 
-      await discoveryPage.gotoSection('ads/meta');
-      await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveURL(/discovery\/ads\/meta/);
+      await expect(googleTab).toHaveAttribute('data-state', 'active');
+      await expect(authenticatedPage).toHaveURL(/platform=google/);
       await expect(discoveryPage.mainContent).toBeVisible();
     });
 
-    test('should have proper page title for Meta ads', async ({
-      authenticatedPage,
-    }) => {
+    test('should switch to the Meta ads tab', async ({ authenticatedPage }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('ads/meta');
+      await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.ADS,
+      );
 
-      await expect(authenticatedPage).toHaveTitle(/Meta|Ads|Research|Genfeed/i);
+      const metaTab = authenticatedPage.getByRole('tab', { name: 'Meta' });
+      await metaTab.click();
+
+      await expect(metaTab).toHaveAttribute('data-state', 'active');
+      await expect(authenticatedPage).toHaveURL(/platform=meta/);
+      await expect(discoveryPage.mainContent).toBeVisible();
     });
   });
 
   test.describe('Navigation', () => {
-    test('should maintain state after page refresh on discovery', async ({
+    test('should maintain state after page refresh on discovery overview', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('discovery');
+      await discoveryPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
+      );
+
+      // The Desk's source filter is URL-backed (`?source=`) — select a
+      // non-default tab so refresh has real state to preserve.
+      await authenticatedPage
+        .getByRole('tab', { name: 'Public trends' })
+        .click();
+      await expect(authenticatedPage).toHaveURL(/source=trends/);
 
       await authenticatedPage.reload();
       await discoveryPage.waitForPageLoad();
 
-      await expect(authenticatedPage).toHaveURL(/discovery\/discovery/);
+      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
+      await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(discoveryPage.mainContent).toBeVisible();
     });
 
-    test('should handle browser back from ads to discovery', async ({
+    test('should handle browser back from ads to discovery overview', async ({
       authenticatedPage,
     }) => {
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
-      await discoveryPage.gotoSection('discovery');
+      await discoveryPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await discoveryPage.gotoSection('ads');
       await expect(authenticatedPage).toHaveURL(/discovery\/ads/);
 
       await authenticatedPage.goBack();
-      await expect(authenticatedPage).toHaveURL(/discovery\/discovery/);
-    });
-
-    test('should display a Discovery platform page with content feed', async ({
-      authenticatedPage,
-    }) => {
-      const discoveryPage = new DiscoveryPage(authenticatedPage);
-
-      await discoveryPage.goto(`${APP_ROUTES.DISCOVERY.ROOT}/twitter`);
-      await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
-
-      await expect(authenticatedPage).toHaveURL(/discovery\/twitter/);
-      await expect(discoveryPage.mainContent).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole('tab', { name: 'X' }),
-      ).toBeVisible();
+      await expect(authenticatedPage).toHaveURL(/discovery\/overview/);
     });
   });
 });
