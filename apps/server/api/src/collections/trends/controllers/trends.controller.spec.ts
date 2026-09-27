@@ -38,6 +38,9 @@ describe('TrendsController', () => {
   let membersService: {
     findOne: ReturnType<typeof vi.fn>;
   };
+  let apiKeysService: {
+    findOne: ReturnType<typeof vi.fn>;
+  };
 
   const mockTrend = {
     growthRate: 150,
@@ -105,6 +108,9 @@ describe('TrendsController', () => {
     membersService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
+    apiKeysService = {
+      findOne: vi.fn(),
+    };
     controller = new TrendsController(
       mockTrendsService as never,
       mockTrendPreferencesService as never,
@@ -112,6 +118,7 @@ describe('TrendsController', () => {
       modelsService as never,
       brandsService as never,
       membersService as never,
+      apiKeysService as never,
     );
     discoveryController = new TrendsDiscoveryController(
       mockTrendsService as never,
@@ -644,6 +651,110 @@ describe('TrendsController', () => {
       );
       expect(result.success).toBe(true);
       expect(result.ideas).toBeDefined();
+    });
+
+    describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {
+      beforeEach(() => {
+        mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+        mockTrendsService.generateContentIdeas.mockResolvedValue(
+          new Map([['twitter', []]]),
+        );
+      });
+
+      function stubValidBrands(validBrandIds: readonly string[]): void {
+        brandsService.findOne.mockImplementation(
+          async (query: { id?: unknown; organizationId?: unknown }) => {
+            if (
+              typeof query.id === 'string' &&
+              validBrandIds.includes(query.id) &&
+              query.organizationId === mockUser.organizationId
+            ) {
+              return { id: query.id, label: 'Mock Brand' };
+            }
+            return null;
+          },
+        );
+      }
+
+      it('resolves an API-key caller\'s brand from the key\'s validated defaultBrandId, never the ambient "any org brand" convenience', async () => {
+        stubValidBrands(['key-default-brand']);
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        apiKeysService.findOne.mockResolvedValue({
+          defaultBrandId: 'key-default-brand',
+        });
+
+        await controller.getTrendIdeas(mockReq, apiKeyUser, {
+          limit: 10,
+          platform: 'twitter',
+        });
+
+        expect(apiKeysService.findOne).toHaveBeenCalledWith({
+          id: 'apikey-1',
+        });
+        expect(trendsService.getTrends).toHaveBeenCalledWith(
+          mockUser.organizationId,
+          'key-default-brand',
+          'twitter',
+          { allowFetchIfMissing: false },
+        );
+      });
+
+      it("falls back to the key owner's member currentBrandId when the key has no valid default brand", async () => {
+        stubValidBrands(['owner-current-brand']);
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        membersService.findOne.mockResolvedValue({
+          currentBrandId: 'owner-current-brand',
+        });
+
+        await controller.getTrendIdeas(mockReq, apiKeyUser, {
+          limit: 10,
+          platform: 'twitter',
+        });
+
+        expect(membersService.findOne).toHaveBeenCalledWith({
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
+        });
+        expect(trendsService.getTrends).toHaveBeenCalledWith(
+          mockUser.organizationId,
+          'owner-current-brand',
+          'twitter',
+          { allowFetchIfMissing: false },
+        );
+      });
+
+      it('rejects an API-key caller whose key has no valid default brand and whose owner has no current brand — never widens to "any brand in the org"', async () => {
+        stubValidBrands([]);
+        const apiKeyUser = {
+          ...mockUser,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        } as unknown as User;
+        apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        membersService.findOne.mockResolvedValue(null);
+
+        await expect(
+          controller.getTrendIdeas(mockReq, apiKeyUser, {
+            limit: 10,
+            platform: 'twitter',
+          }),
+        ).rejects.toThrow(
+          'brandId is required to generate trend ideas. Configure a default brand for this API key, or pass brandId explicitly.',
+        );
+        expect(trendsService.getTrends).not.toHaveBeenCalled();
+      });
     });
   });
 

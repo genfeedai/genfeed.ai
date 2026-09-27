@@ -3,6 +3,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 }));
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -123,6 +124,9 @@ describe('PostGenerationService', () => {
           fallbackKey ?? DEFAULT_MINI_TEXT_MODEL,
       ),
   };
+  const mockApiKeysService = {
+    findOne: vi.fn(),
+  };
   const mockBrandsService = {
     findOne: vi.fn().mockResolvedValue({ id: brandId, label: 'Test Brand' }),
   };
@@ -229,6 +233,7 @@ Tweet 3: Tech innovation is changing the world.`,
           provide: AgentChatModelRegistryService,
           useValue: mockAgentChatModelRegistry,
         },
+        { provide: ApiKeysService, useValue: mockApiKeysService },
         { provide: BrandsService, useValue: mockBrandsService },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: MembersService, useValue: mockMembersService },
@@ -796,6 +801,105 @@ Tweet 3: Tech innovation is changing the world.`,
       ).toHaveBeenCalledWith(expect.any(String), {
         max_tokens: 4096,
         prompt: 'test prompt',
+      });
+    });
+
+    describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {
+      function stubValidBrands(validBrandIds: readonly string[]): void {
+        mockBrandsService.findOne.mockImplementation(
+          async (query: { id?: unknown; organizationId?: unknown }) => {
+            if (
+              typeof query.id === 'string' &&
+              validBrandIds.includes(query.id) &&
+              query.organizationId === organizationId
+            ) {
+              return { id: query.id, label: 'Test Brand' };
+            }
+            return null;
+          },
+        );
+      }
+
+      beforeEach(() => {
+        mockReplicateService.generateTextCompletionSync.mockResolvedValue('[]');
+      });
+
+      it('resolves an API-key caller\'s brand from the key\'s validated defaultBrandId, never the ambient "any org brand" convenience', async () => {
+        stubValidBrands(['key-default-brand']);
+        const apiKeyIdentity = {
+          ...identity,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        };
+
+        mockApiKeysService.findOne.mockResolvedValue({
+          defaultBrandId: 'key-default-brand',
+        });
+
+        await service.generateHookVariations(
+          { count: 2, platform: 'twitter', topic: 'AI' },
+          apiKeyIdentity,
+        );
+
+        expect(mockApiKeysService.findOne).toHaveBeenCalledWith({
+          id: 'apikey-1',
+        });
+        expect(mockBrandsService.findOne).toHaveBeenCalledWith({
+          id: 'key-default-brand',
+          organizationId,
+        });
+      });
+
+      it("falls back to the key owner's member currentBrandId when the key has no valid default brand", async () => {
+        stubValidBrands(['owner-current-brand']);
+        const apiKeyIdentity = {
+          ...identity,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        };
+
+        mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        mockMembersService.findOne.mockResolvedValue({
+          currentBrandId: 'owner-current-brand',
+        });
+
+        await service.generateHookVariations(
+          { count: 2, platform: 'twitter', topic: 'AI' },
+          apiKeyIdentity,
+        );
+
+        expect(mockMembersService.findOne).toHaveBeenCalledWith({
+          organizationId,
+          userId,
+        });
+        expect(mockBrandsService.findOne).toHaveBeenCalledWith({
+          id: 'owner-current-brand',
+          organizationId,
+        });
+      });
+
+      it('rejects an API-key caller whose key has no valid default brand and whose owner has no current brand — never widens to "any brand in the org"', async () => {
+        stubValidBrands([]);
+        const apiKeyIdentity = {
+          ...identity,
+          apiKeyId: 'apikey-1',
+          isApiKey: true,
+          brandId: 'any-org-brand-ambient-fallback',
+        };
+
+        mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+        mockMembersService.findOne.mockResolvedValue(null);
+
+        await expect(
+          service.generateHookVariations(
+            { count: 2, platform: 'twitter', topic: 'AI' },
+            apiKeyIdentity,
+          ),
+        ).rejects.toThrow(
+          'brandId is required to generate hook variations. Configure a default brand for this API key, or pass brandId explicitly.',
+        );
       });
     });
   });
