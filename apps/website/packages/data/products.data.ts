@@ -507,12 +507,11 @@ export const products: Product[] = [
     name: 'MCP Server',
     pricing: {
       recommended: 'scale',
-      why: 'Includes MCP server access, unlimited API calls, and priority support for developers.',
+      why: 'MCP access comes with every plan and has no API call limits. Agents spend credits only on what they generate.',
     },
     relatedProducts: ['chatgpt', 'hire-agents', 'studio'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',
     slug: 'mcp',
-    status: 'alpha',
     tagline: 'One hosted MCP server for every AI agent',
     targetAudience: [
       'AI engineers building agents',
