@@ -240,6 +240,54 @@ describe('TrendContentIdeasService', () => {
       expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
         DEFAULT_TEXT_MODEL,
         expect.objectContaining({ prompt: expect.any(String) }),
+        undefined,
+      );
+    });
+
+    // #5375: BYOK — the resolved org key (when the guard granted a bypass)
+    // must reach the actual provider dispatch, not just the credit decision.
+    it('forwards a resolved BYOK key to replicate as apiKeyOverride', async () => {
+      await service.generateContentIdeas(
+        [makeTrend('youtube', 'shorts')],
+        3,
+        undefined,
+        undefined,
+        'org-openrouter-key',
+      );
+
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        DEFAULT_TEXT_MODEL,
+        expect.objectContaining({ prompt: expect.any(String) }),
+        'org-openrouter-key',
+      );
+    });
+
+    it('dispatches with no key override when the org has no BYOK bypass', async () => {
+      await service.generateContentIdeas([makeTrend('youtube', 'shorts')], 3);
+
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        DEFAULT_TEXT_MODEL,
+        expect.any(Object),
+        undefined,
+      );
+    });
+  });
+
+  describe('generateIdeasForPlatform (#5375 BYOK threading)', () => {
+    it('passes byokApiKeyOverride through to generateTextCompletionSync', async () => {
+      await service.generateIdeasForPlatform(
+        'tiktok',
+        [makeTrend('tiktok', 'dance challenge', 90)],
+        3,
+        undefined,
+        undefined,
+        'org-openrouter-key',
+      );
+
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        DEFAULT_TEXT_MODEL,
+        expect.any(Object),
+        'org-openrouter-key',
       );
     });
   });

@@ -208,6 +208,41 @@ describe('PromptTransformationService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  // #5375: the guard-resolved BYOK key is captured synchronously from
+  // request.creditsConfig before generateRemix fires as a detached
+  // continuation, so it must still reach the dispatch call.
+  it('forwards a resolved BYOK key to the remix completion call', async () => {
+    const request = {
+      creditsConfig: { amount: 0, byokApiKeyOverride: 'org-openrouter-key' },
+    } as unknown as Request;
+
+    await service.createRemix(request, promptId, user);
+
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.anything(),
+        'org-openrouter-key',
+      ),
+    );
+  });
+
+  it('dispatches the remix completion with no key override when the guard did not bypass', async () => {
+    const request = {
+      creditsConfig: { amount: 7 },
+    } as unknown as Request;
+
+    await service.createRemix(request, promptId, user);
+
+    await vi.waitFor(() =>
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.anything(),
+        undefined,
+      ),
+    );
+  });
+
   it('uses the parsed prompt fallback when remix templates are unavailable', async () => {
     templatesService.getRenderedPrompt.mockReset();
     templatesService.getRenderedPrompt.mockRejectedValue(

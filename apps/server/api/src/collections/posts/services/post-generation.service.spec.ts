@@ -670,6 +670,28 @@ Tweet 3: Tech innovation is changing the world.`,
         childPosts,
         dto,
         identity,
+        undefined,
+      );
+    });
+
+    // #5375: BYOK — the key captured synchronously by the controller before
+    // this fire-and-forget dispatch must reach the bounded thread service.
+    it('forwards a resolved BYOK key to the bounded service', async () => {
+      const dto = { count: 3, tone: TweetTone.PROFESSIONAL };
+      await service.expandThreadAsync(
+        originalPost,
+        childPosts,
+        dto,
+        identity,
+        'org-openrouter-key',
+      );
+
+      expect(mockPostThreadGenerationService.expandThread).toHaveBeenCalledWith(
+        originalPost,
+        childPosts,
+        dto,
+        identity,
+        'org-openrouter-key',
       );
     });
   });
@@ -754,6 +776,40 @@ Tweet 3: Tech innovation is changing the world.`,
         organizationId,
       );
     });
+
+    // #5375: BYOK — the resolved org key must reach the actual dispatch.
+    it('forwards a resolved BYOK key to the completion call', async () => {
+      await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+        'org-openrouter-key',
+      );
+
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.any(Object),
+        'org-openrouter-key',
+      );
+    });
+
+    it('dispatches with no key override when the guard did not bypass', async () => {
+      await service.enhanceDescription(
+        mockPost,
+        { prompt: 'Improve' },
+        identity,
+      );
+
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.any(Object),
+        undefined,
+      );
+    });
   });
 
   describe('generateHookVariations', () => {
@@ -799,10 +855,36 @@ Tweet 3: Tech innovation is changing the world.`,
       // The typed input object is forwarded to Replicate (no raw-string call).
       expect(
         mockReplicateService.generateTextCompletionSync,
-      ).toHaveBeenCalledWith(expect.any(String), {
-        max_tokens: 4096,
-        prompt: 'test prompt',
-      });
+      ).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          max_tokens: 4096,
+          prompt: 'test prompt',
+        },
+        undefined,
+      );
+    });
+
+    // #5375: the guard-resolved BYOK key travels on identity via the
+    // controller and must reach the actual provider dispatch.
+    it('forwards a resolved BYOK key to the completion call', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        '[]',
+      );
+
+      await service.generateHookVariations(
+        { count: 2, platform: 'twitter', topic: 'AI' },
+        identity,
+        'org-openrouter-key',
+      );
+
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        'org-openrouter-key',
+      );
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {

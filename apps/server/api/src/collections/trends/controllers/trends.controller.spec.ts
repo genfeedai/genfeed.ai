@@ -651,9 +651,56 @@ describe('TrendsController', () => {
         query.limit,
         expect.any(Function),
         { description: undefined, label: 'Mock Brand', text: undefined },
+        undefined,
       );
       expect(result.success).toBe(true);
       expect(result.ideas).toBeDefined();
+    });
+
+    // #5375: BYOK — when the guard already granted a bypass, the platform
+    // credits floor check is skipped and the resolved key reaches dispatch.
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const query: GenerateTrendIdeasDto = {
+        limit: 10,
+        platform: 'twitter',
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as Request;
+
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockResolvedValue(new Map());
+
+      await controller.getTrendIdeas(byokReq, mockUser, query);
+
+      // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
+      // whole preflight block — including this lookup — is skipped when the
+      // guard already granted a BYOK bypass.
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(trendsService.generateContentIdeas).toHaveBeenCalledWith(
+        [mockTrend],
+        query.limit,
+        expect.any(Function),
+        expect.any(Object),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const query: GenerateTrendIdeasDto = {
+        limit: 10,
+        platform: 'twitter',
+      };
+
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockResolvedValue(new Map());
+
+      await controller.getTrendIdeas(mockReq, mockUser, query);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {

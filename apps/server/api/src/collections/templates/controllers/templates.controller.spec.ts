@@ -27,6 +27,11 @@ const templateId = testId('template');
 describe('TemplatesController', () => {
   let controller: TemplatesController;
   let service: TemplatesService;
+  let creditsUtilsService: {
+    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
+    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+  };
+  let modelsService: { findOne: ReturnType<typeof vi.fn> };
 
   const mockUser: User = {
     id: 'user_123',
@@ -60,21 +65,21 @@ describe('TemplatesController', () => {
   const mockReq = {} as import('express').Request;
 
   beforeEach(async () => {
+    creditsUtilsService = {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
+    };
+    modelsService = { findOne: vi.fn().mockResolvedValue(null) };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TemplatesController],
       providers: [
         {
           provide: CreditsUtilsService,
-          useValue: {
-            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
-          },
+          useValue: creditsUtilsService,
         },
         {
           provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
+          useValue: modelsService,
         },
         {
           provide: TemplatesService,
@@ -209,8 +214,57 @@ describe('TemplatesController', () => {
         mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
+        undefined,
       );
       expect(result).toEqual(filled);
+    });
+
+    // #5375: BYOK — when the guard already granted a bypass, the platform
+    // credits floor preflight is skipped and the resolved key reaches the
+    // service call.
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const dto: UseTemplateDto = {
+        additionalInstructions: 'Make it punchier',
+        templateId,
+        variables: { name: 'John' },
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as import('express').Request;
+      mockTemplatesService.useTemplate.mockResolvedValue({
+        content: 'ok',
+        templateId: dto.templateId,
+      });
+
+      await controller.useTemplate(byokReq, dto, mockUser);
+      // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
+      // whole preflight block is skipped when the guard already bypassed.
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(service.useTemplate).toHaveBeenCalledWith(
+        dto,
+        mockUser.organizationId,
+        mockUser.id,
+        expect.any(Function),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: UseTemplateDto = {
+        additionalInstructions: 'Make it punchier',
+        templateId,
+        variables: { name: 'John' },
+      };
+      mockTemplatesService.useTemplate.mockResolvedValue({
+        content: 'ok',
+        templateId: dto.templateId,
+      });
+
+      await controller.useTemplate(mockReq, dto, mockUser);
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
@@ -231,8 +285,45 @@ describe('TemplatesController', () => {
         dto,
         mockUser.organizationId,
         expect.any(Function),
+        undefined,
       );
       expect(result).toEqual(suggestions);
+    });
+
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const dto: SuggestTemplatesDto = {
+        goal: 'increase engagement',
+        industry: 'tech',
+        platform: 'instagram',
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as import('express').Request;
+      mockTemplatesService.suggestTemplates.mockResolvedValue([mockTemplate]);
+
+      await controller.suggestTemplates(byokReq, dto, mockUser);
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(service.suggestTemplates).toHaveBeenCalledWith(
+        dto,
+        mockUser.organizationId,
+        expect.any(Function),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: SuggestTemplatesDto = {
+        goal: 'increase engagement',
+        industry: 'tech',
+        platform: 'instagram',
+      };
+      mockTemplatesService.suggestTemplates.mockResolvedValue([mockTemplate]);
+
+      await controller.suggestTemplates(mockReq, dto, mockUser);
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
