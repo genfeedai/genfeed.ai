@@ -34,7 +34,17 @@ function parseValue(
 export default function PlatformNumberSettingField(
   props: PlatformNumberSettingFieldProps,
 ) {
-  const { helpText, id, isDisabled, isInteger, label, max, min, value } = props;
+  const {
+    helpText,
+    id,
+    isDisabled,
+    isInteger,
+    label,
+    max,
+    min,
+    onValidityChange,
+    value,
+  } = props;
   const translate = useTranslations('pages.platformSettings.features');
   const [text, setText] = useState(() => formatValue(value));
   const [syncedValue, setSyncedValue] = useState(value);
@@ -54,11 +64,11 @@ export default function PlatformNumberSettingField(
 
   // The committed value never holds invalid text, so the page must know a
   // field is invalid to refuse the save instead of silently saving the last
-  // valid value. `onValidityChange` is a stable callback owned by the page.
+  // valid value.
   useEffect(() => {
     onValidityChange(id, isValid);
     return () => onValidityChange(id, true);
-  }, [id, isValid]);
+  }, [id, isValid, onValidityChange]);
   const error = !isValid
     ? translate(isInteger ? 'invalidInteger' : 'invalidNumber', { max, min })
     : undefined;
