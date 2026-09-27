@@ -1,15 +1,13 @@
 'use client';
 
 import {
-  AGENT_CLIENT_CAPABILITIES,
-  AGENT_CLIENT_EXAMPLE_PROMPTS,
-  AGENT_CLIENT_MANUAL_KEY_HEADING,
+  type AgentClientChannelPage,
+  getAgentClientChannels,
+} from '@data/agent-client-channels.data';
+import {
   type AgentClient,
-  type AgentClientChannel,
   agentClients,
-  GENFEED_MCP_DOCS_URL,
   getAgentClientCommandBlocks,
-  getAgentClientManualBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
@@ -28,25 +26,33 @@ import PageLayout from '@web-components/PageLayout';
 import { Terminal } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AgentClientContent({
-  channels,
+const LINK_CLASS_NAME =
+  'text-sm text-surface/75 transition-colors hover:text-primary';
+
+export default function AgentClientChannelContent({
   client,
+  page,
 }: {
-  channels: readonly AgentClientChannel[];
   client: AgentClient;
+  page: AgentClientChannelPage;
 }): React.ReactElement {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
-  const others = agentClients.filter((entry) => entry.slug !== client.slug);
-  const manualBlocks = getAgentClientManualBlocks(client);
+  const lowerNoun = page.noun.toLowerCase();
+  const otherChannels = getAgentClientChannels().filter(
+    (channel) => channel.slug !== page.channelSlug,
+  );
+  const otherClients = agentClients.filter(
+    (entry) => entry.slug !== client.slug,
+  );
 
   return (
     <div ref={containerRef}>
       <PageLayout
-        badge={`Genfeed MCP · ${client.name}`}
+        badge={`${client.name} · ${page.channelName}`}
         badgeIcon={Terminal}
         compact
-        description={client.description}
+        description={page.description}
         heroActions={
           <>
             <Button
@@ -63,23 +69,17 @@ export default function AgentClientContent({
               size={ButtonSize.PUBLIC}
               variant={ButtonVariant.SECONDARY}
             >
-              <a
-                href={GENFEED_MCP_DOCS_URL}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                MCP docs
-              </a>
+              <Link href={`/${client.slug}`}>{client.name} setup</Link>
             </Button>
           </>
         }
-        title={client.title}
+        title={page.title}
       >
         <WebSection className="gsap-section" maxWidth="lg" py="sm">
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description={client.connectInstruction}
-            title={`How to connect ${client.name} to Genfeed`}
+            description={`${client.connectInstruction} Then connect your ${page.channelName} account in Genfeed once.`}
+            title={`How to post to ${page.channelName} from ${client.name}`}
           />
           <div className="flex flex-col gap-4">
             {getAgentClientCommandBlocks(client).map((block) => (
@@ -92,38 +92,19 @@ export default function AgentClientContent({
           </div>
         </WebSection>
 
-        {client.manualKey && manualBlocks.length > 0 ? (
-          <WebSection
-            bg="bordered"
-            className="gsap-section"
-            maxWidth="lg"
-            py="md"
-          >
-            <SectionHeader
-              className="[&_h2]:text-4xl"
-              description={client.manualKey.authorizationInstruction}
-              title={AGENT_CLIENT_MANUAL_KEY_HEADING}
-            />
-            <div className="flex flex-col gap-4">
-              {manualBlocks.map((block) => (
-                <CommandBlock
-                  key={block.label}
-                  label={block.label}
-                  value={block.value}
-                />
-              ))}
-            </div>
-          </WebSection>
-        ) : null}
-
-        <WebSection className="gsap-section" maxWidth="xl" py="md">
+        <WebSection
+          bg="bordered"
+          className="gsap-section"
+          maxWidth="xl"
+          py="md"
+        >
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description="Ask in plain language. Drafts wait for your review before anything publishes."
-            title={`What can you ask ${client.name} to do?`}
+            description={`Ask in plain language. Genfeed holds ${lowerNoun} for review before anything goes to ${page.channelName}.`}
+            title={`What can you ask ${client.name} to do on ${page.channelName}?`}
           />
-          <NeuralGrid columns={2}>
-            {AGENT_CLIENT_EXAMPLE_PROMPTS.map((prompt) => (
+          <NeuralGrid columns={3}>
+            {page.prompts.map((prompt) => (
               <NeuralGridItem key={prompt} padding="lg">
                 <p className="text-sm leading-relaxed text-surface/75">
                   “{prompt}”
@@ -136,21 +117,26 @@ export default function AgentClientContent({
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description={client.about}
-            title={`What is ${client.name}?`}
+            description={`Everything ${client.name} can make for ${page.channelName} through Genfeed.`}
+            title={`${page.channelName} content Genfeed creates`}
           />
-          <p className="mb-6 text-center text-sm font-semibold text-surface/75">
-            Connected to Genfeed, {client.name} can:
-          </p>
           <NeuralGrid columns={2}>
-            {AGENT_CLIENT_CAPABILITIES.map((capability) => (
-              <NeuralGridItem key={capability} padding="lg">
+            {page.features.map((feature) => (
+              <NeuralGridItem key={feature} padding="lg">
                 <p className="text-sm leading-relaxed text-surface/65">
-                  {capability}
+                  {feature}
                 </p>
               </NeuralGridItem>
             ))}
           </NeuralGrid>
+          <p className="mt-6 text-center text-sm">
+            <Link
+              className={LINK_CLASS_NAME}
+              href={`/integrations/${page.channelSlug}`}
+            >
+              More about Genfeed for {page.channelName}
+            </Link>
+          </p>
         </WebSection>
 
         <WebSection
@@ -161,14 +147,13 @@ export default function AgentClientContent({
         >
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description={`${client.name} drafts and schedules for every channel you connect in Genfeed, and publishes after your review.`}
-            title={`Which platforms can ${client.name} post to?`}
+            title={`Other channels ${client.name} can post to`}
           />
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {channels.map((channel) => (
+            {otherChannels.map((channel) => (
               <li key={channel.slug}>
                 <Link
-                  className="text-sm text-surface/75 transition-colors hover:text-primary"
+                  className={LINK_CLASS_NAME}
                   href={`/${client.slug}/${channel.slug}`}
                 >
                   {channel.name}
@@ -181,15 +166,14 @@ export default function AgentClientContent({
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description="Every client connects to the same Genfeed MCP server."
-            title="Use Genfeed with other AI agents"
+            title={`Schedule ${page.channelName} ${lowerNoun} from other AI agents`}
           />
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {others.map((entry) => (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {otherClients.map((entry) => (
               <li key={entry.slug}>
                 <Link
-                  className="text-sm text-surface/75 transition-colors hover:text-primary"
-                  href={`/${entry.slug}`}
+                  className={LINK_CLASS_NAME}
+                  href={`/${entry.slug}/${page.channelSlug}`}
                 >
                   {entry.name}
                 </Link>
@@ -198,17 +182,22 @@ export default function AgentClientContent({
           </ul>
         </WebSection>
 
-        <WebSection className="gsap-section" maxWidth="md" py="md">
+        <WebSection
+          bg="bordered"
+          className="gsap-section"
+          maxWidth="md"
+          py="md"
+        >
           <SectionHeader
             className="[&_h2]:text-4xl"
-            title={`${client.name} and Genfeed: frequently asked questions`}
+            title={`${client.name} and ${page.channelName}: frequently asked questions`}
           />
-          <FaqGrid items={[...client.faq]} />
+          <FaqGrid items={[...page.faq]} />
         </WebSection>
 
         <CtaSection
-          description="Start on managed cloud, then connect this client with the steps above."
-          title={`Use Genfeed from ${client.name}.`}
+          description={`Start on managed cloud, connect ${page.channelName}, then connect ${client.name} with the steps above.`}
+          title={`Post to ${page.channelName} from ${client.name}.`}
         >
           <Button asChild size={ButtonSize.PUBLIC}>
             <a href={signUpHref} rel="noopener noreferrer" target="_blank">

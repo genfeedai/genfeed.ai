@@ -120,6 +120,23 @@ describe('page-metadata.helper', () => {
       );
     });
 
+    it('should build the description from the resolved param', async () => {
+      const generate = createDynamicPageMetadata(
+        'channel',
+        (value: string) => `Schedule ${value} posts`,
+        (value: string) => `/claude-code/${value}`,
+        (value: string) => `Create ${value} posts from Claude Code.`,
+      );
+      const props = { params: Promise.resolve({ channel: 'linkedin' }) };
+      const result = await generate(props, createMockParent() as never);
+      expect(result.description).toBe(
+        'Create linkedin posts from Claude Code.',
+      );
+      expect(result.openGraph?.description).toBe(
+        'Create linkedin posts from Claude Code.',
+      );
+    });
+
     it('should omit canonical when no path builder is given', async () => {
       const generate = createDynamicPageMetadata('slug', (v: string) => v);
       const props = { params: Promise.resolve({ slug: 'test' }) };
