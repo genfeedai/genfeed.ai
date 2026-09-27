@@ -181,7 +181,7 @@ export default function AgentClientContent({
         >
           <SectionHeader
             className="[&_h2]:text-4xl"
-            description={`${client.name} creates for every channel connected in Genfeed and publishes after your review.`}
+            description={`${client.name} drafts and schedules for every channel you connect in Genfeed, and publishes after your review.`}
             title={`Which platforms can ${client.name} post to?`}
           />
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

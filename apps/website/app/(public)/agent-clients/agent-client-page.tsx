@@ -1,15 +1,15 @@
+import { getAgentClientChannels } from '@data/agent-client-channels.data';
 import {
   type AgentClientSlug,
   buildAgentClientJsonLd,
   getAgentClient,
 } from '@data/agent-clients.data';
-import { integrations } from '@data/integrations.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import AgentClientContent from '@public/agent-clients/agent-client-content';
 import { EnvironmentService } from '@services/core/environment.service';
 
-const CHANNELS = integrations.map(({ name, slug }) => ({ name, slug }));
+const CHANNELS = getAgentClientChannels();
 
 export function createAgentClientMetadata(slug: AgentClientSlug) {
   const client = getAgentClient(slug);
