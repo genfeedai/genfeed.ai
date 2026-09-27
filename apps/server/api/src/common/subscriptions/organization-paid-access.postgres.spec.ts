@@ -32,13 +32,18 @@ const connectionString = process.env.BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL;
  * fix end to end, not just against mocks: an organization linked to a
  * billing account (#5231) is paid through that billing account's own
  * subscription row (owned by a *different* organization — the shape
- * billing accounts exist for) and through the billing account's own
- * `planTier` with no subscription row at all, exactly like the
- * organization's-own-tier fallback. An unrelated, unlinked organization
- * gets neither. Every read goes through `billingAccountScopedWhere`, so
- * this also proves the runtime tenant guard is actually satisfied by the
- * scope `resolveBillingAccountAccess`/`resolveLiveBillingAccount` register,
- * not merely that the mocked unit tests believe it would be.
+ * billing accounts exist for). Every read goes through
+ * `billingAccountScopedWhere`, so this also proves the runtime tenant guard
+ * is actually satisfied by the scope `resolveBillingAccountAccess`
+ * registers, not merely that the mocked unit tests believe it would be.
+ *
+ * It also proves the adversarial-review fix: the billing account's own
+ * `planTier` must **not** grant access once its subscription rows are gone,
+ * even though an organization's own `subscriptionTier` does — real Postgres
+ * data, not a mock, carrying a genuinely paid `planTier` with zero
+ * surviving subscription rows, exactly the state every organization whose
+ * personal billing account predates the #5231 migration backfill is in
+ * right now if it has ever cancelled.
  */
 describe.skipIf(!connectionString)(
   'OrganizationPaidAccessService PostgreSQL end-to-end (#5293)',
@@ -164,7 +169,12 @@ describe.skipIf(!connectionString)(
       ).resolves.toBe(true);
     });
 
-    it("grants paid access from the billing account's own planTier with no subscription row at all", async () => {
+    it("does not grant paid access from the billing account's own planTier once its subscription rows are gone (adversarial check, #5293)", async () => {
+      // Simulates the exact state a churned pre-#5231-migration organization
+      // is in: its personal billing account's `planTier` is frozen at
+      // whatever it was on migration day (nothing ever writes it again —
+      // there is no admin route for it), while the real subscription row
+      // that used to justify it is gone.
       const db = database();
       await db.subscription.deleteMany({ where: { billingAccountId } });
       await db.billingAccount.update({
@@ -176,7 +186,7 @@ describe.skipIf(!connectionString)(
         runWithTenantContext({ organizationId: linkedOrganizationId }, () =>
           service.hasPaidSubscription(linkedOrganizationId),
         ),
-      ).resolves.toBe(true);
+      ).resolves.toBe(false);
     });
 
     it('does not grant paid access to an unrelated organization with no billing account link', async () => {

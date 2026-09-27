@@ -38,6 +38,17 @@ describe('resolveOrganizationPaidGrant', () => {
     expect(resolveOrganizationPaidGrant([], null, NOW)).toBe(null);
   });
 
+  it('denies the post-cancellation state — zero rows, tier already reset to free (adversarial check, #5293)', () => {
+    // `StripeSubscriptionWebhookHandler.handleSubscriptionDeleted` soft-
+    // deletes the row and resets `organizationSetting.subscriptionTier` to
+    // `free` in the same handler, so a cancelled organization with no
+    // surviving rows always reaches this function with a free tier, never a
+    // stale paid one.
+    expect(resolveOrganizationPaidGrant([], SubscriptionTier.FREE, NOW)).toBe(
+      null,
+    );
+  });
+
   it('still denies a trial even when the tier reads paid, once a row exists', () => {
     // A real subscription row's own status governs once one exists — the
     // no-row fallback only applies when there is truly nothing to examine.

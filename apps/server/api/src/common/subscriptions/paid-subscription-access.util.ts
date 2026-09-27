@@ -12,12 +12,16 @@ import {
  * agent free-tier model lock, and BYOK entitlement all decide through it.
  *
  * A subscription row is not the only way to be paid: an organization with a
- * paid tier and no subscription row at all (an operator-granted tier, or a
- * linked billing account's own tier) is also a grant — see
- * {@link resolveOrganizationPaidGrant}. `OrganizationPaidAccessService`
- * additionally runs this same decision against a linked billing account's
- * subscriptions and tier, since a billing-account-linked organization has no
- * subscription rows of its own to read here.
+ * paid tier and no subscription row at all — an operator-granted tier,
+ * writable only by a superadmin or a Stripe webhook that pairs it with a
+ * real row — is also a grant; see {@link resolveOrganizationPaidGrant}.
+ * `OrganizationPaidAccessService` additionally runs this same decision
+ * against a linked billing account's own subscriptions (passing `null` for
+ * the tier — a billing account's `planTier` is not writer-disciplined the
+ * way an organization's own tier is, so it must never be trusted as a
+ * zero-row fallback; see that service's class doc), since a
+ * billing-account-linked organization has no subscription rows of its own
+ * to read here.
  */
 export interface PaidSubscriptionSnapshot {
   cancelAtPeriodEnd: boolean;

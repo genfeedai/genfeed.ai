@@ -32,11 +32,13 @@ function activeSubscription(overrides: Record<string, unknown> = {}) {
 
 /**
  * A fake Prisma client shaped for both an organization's own subscription
- * read and the #5231 billing-account scope helpers
- * (`resolveLiveBillingAccount` / `resolveBillingAccountAccess`), which read
- * `organization`, `billingAccountOrganization`, and `billingAccount`
- * directly. Defaults to "no billing account linked" so tests only need to
- * override what they are exercising.
+ * read and the #5231 billing-account scope helper
+ * (`resolveBillingAccountAccess`), which reads `organization`,
+ * `billingAccountOrganization`, and `billingAccount` directly. Defaults to
+ * "no billing account linked" so tests only need to override what they are
+ * exercising. `billingAccount.planTier` is accepted for fixture realism
+ * only — `OrganizationPaidAccessService` never reads it (see its class
+ * doc); the tests below prove that directly.
  */
 function createFakePrisma(overrides: {
   ownSubscriptions?: unknown[];
@@ -137,7 +139,16 @@ describe('OrganizationPaidAccessService', () => {
     await expect(service.hasPaidSubscription('org-1')).resolves.toBe(true);
   });
 
-  it("grants access through a linked billing account's own paid tier with no billing-account subscription row", async () => {
+  it("does not grant access from a linked billing account's own planTier when it has no subscription row (adversarial check, #5293)", async () => {
+    // BillingAccount.planTier has no write discipline: nothing keeps it in
+    // sync after the account is created, and the #5231 migration froze every
+    // pre-existing organization's personal billing account at its
+    // then-current tier. Trusting it here would let a churned organization
+    // whose billing account predates that migration keep paid access
+    // forever once its subscription rows are gone — unlike an
+    // organization's own `subscriptionTier`, which a superadmin explicitly
+    // controls and which the cancellation webhook resets to `free` in the
+    // same call that removes the row.
     const prisma = createFakePrisma({
       billingAccount: {
         id: 'ba-1',
@@ -148,9 +159,32 @@ describe('OrganizationPaidAccessService', () => {
       organization: { billingAccountId: 'ba-1', isDeleted: false },
       ownSubscriptions: [],
     });
+    const { logger, service } = createService(prisma);
+
+    await expect(service.hasPaidSubscription('org-1')).resolves.toBe(false);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("does not grant access from a linked billing account's planTier even alongside its own expired subscription row (adversarial check, #5293)", async () => {
+    const PAST = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const prisma = createFakePrisma({
+      billingAccount: {
+        id: 'ba-1',
+        isDeleted: false,
+        planTier: SubscriptionTier.ENTERPRISE,
+      },
+      billingAccountSubscriptions: [
+        activeSubscription({
+          currentPeriodEnd: PAST,
+          status: SubscriptionStatus.CANCELLED,
+        }),
+      ],
+      organization: { billingAccountId: 'ba-1', isDeleted: false },
+      ownSubscriptions: [],
+    });
     const { service } = createService(prisma);
 
-    await expect(service.hasPaidSubscription('org-1')).resolves.toBe(true);
+    await expect(service.hasPaidSubscription('org-1')).resolves.toBe(false);
   });
 
   it('grants access through a billing account linked via billingAccountOrganization (no direct FK)', async () => {
