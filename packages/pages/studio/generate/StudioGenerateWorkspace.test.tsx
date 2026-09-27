@@ -1011,19 +1011,19 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
   });
 
-  it('remixes a selected video as a video reference, not a start frame', () => {
+  it('remixes a selected image as an image reference', () => {
     const job = {
       createdAt: 1,
-      id: 'video-9',
+      id: 'image-9',
       ingredient: {
-        category: 'VIDEO',
-        cdnUrl: 'https://cdn.example/clip.mp4',
-        id: 'video-9',
-        promptText: 'Drone over the coast',
+        category: 'IMAGE',
+        cdnUrl: 'https://cdn.example/still.png',
+        id: 'image-9',
+        promptText: 'Sunlit desk',
       },
-      prompt: 'Drone over the coast',
+      prompt: 'Sunlit desk',
       status: 'GENERATED',
-      type: 'video',
+      type: 'image',
     };
     mocks.gallery.mockReturnValue({
       isLoadingGallery: false,
@@ -1040,12 +1040,12 @@ describe('StudioGenerateWorkspace', () => {
 
     expect(
       mocks.settings.mock.results.at(-1)?.value.setType,
-    ).toHaveBeenCalledWith('video');
+    ).toHaveBeenCalledWith('image');
     const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
       attachedAssets: Array<{ id: string; role?: string }>;
     };
     expect(composerProps.attachedAssets).toContainEqual(
-      expect.objectContaining({ id: 'video-9', role: 'videoReference' }),
+      expect.objectContaining({ id: 'image-9', role: 'reference' }),
     );
   });
 

@@ -7,6 +7,7 @@ import type {
   ContextSidebarProviderProps,
   ContextSidebarRegistration,
   ContextSidebarSelection,
+  ContextSidebarSelectionOrigin,
 } from '@props/ui/context-sidebar.props';
 import {
   createContext,
@@ -62,7 +63,10 @@ export function ContextSidebarProvider({
   const [desktopTarget, setDesktopTarget] = useState<HTMLElement | null>(null);
   const [mobileTarget, setMobileTarget] = useState<HTMLElement | null>(null);
   const activeRef = useRef<ActiveRegistration | null>(null);
-  const openedKeyRef = useRef<string | null>(null);
+  const openedRef = useRef<{
+    readonly key: string | null;
+    readonly origin: ContextSidebarSelectionOrigin | null;
+  }>({ key: null, origin: null });
 
   useLayoutEffect(() => {
     activeRef.current = active;
@@ -71,7 +75,7 @@ export function ContextSidebarProvider({
   const selection = active?.registration.selection ?? null;
   const activeKey = selectionKey(selection);
   const isOpenByDefault = selection?.isOpenByDefault !== false;
-  const isUserSelection = (selection?.origin ?? 'user') === 'user';
+  const origin = selection?.origin ?? null;
 
   const registerSelection = useCallback(
     (registration: ContextSidebarRegistration) => {
@@ -86,27 +90,41 @@ export function ContextSidebarProvider({
   );
 
   // Every new selection opens the sidebar; the same selection re-registering
-  // (a title refresh, a new close handler) never fights a collapse.
+  // (a title refresh, a new close handler) never fights a collapse. A tap on
+  // the item the page had picked automatically is a new user selection.
   useEffect(() => {
-    if (openedKeyRef.current === activeKey) {
-      return;
-    }
-    openedKeyRef.current = activeKey;
+    const previous = openedRef.current;
+    openedRef.current = { key: activeKey, origin };
 
     if (!activeKey) {
-      setIsOpen(false);
-      setIsMobileOpen(false);
+      if (previous.key) {
+        setIsOpen(false);
+        setIsMobileOpen(false);
+      }
       return;
     }
 
-    setIsOpen(isOpenByDefault);
+    const isNewSelection = previous.key !== activeKey;
+    const isTapOnAutomaticSelection =
+      !isNewSelection && previous.origin === 'automatic' && origin === 'user';
+    if (!isNewSelection && !isTapOnAutomaticSelection) {
+      return;
+    }
+
+    if (isTapOnAutomaticSelection || isOpenByDefault) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
     // Automatic selections never pop the drawer over the page on mobile.
     setIsMobileOpen(
       (current) =>
         isCompactViewport() &&
-        (current || (isUserSelection && isOpenByDefault)),
+        (current ||
+          (origin === 'user' &&
+            (isOpenByDefault || isTapOnAutomaticSelection))),
     );
-  }, [activeKey, isOpenByDefault, isUserSelection]);
+  }, [activeKey, isOpenByDefault, origin]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -181,7 +199,7 @@ export function ContextSidebarPanel({
   const title = selection?.title;
 
   useLayoutEffect(() => {
-    if (!registerSelection || !id || !kind || title === undefined) {
+    if (!registerSelection || !id || !kind || !origin || title === undefined) {
       return;
     }
 

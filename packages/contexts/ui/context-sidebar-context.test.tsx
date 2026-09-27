@@ -65,6 +65,7 @@ function readProbe(): {
 const ASSET: ContextSidebarSelection = {
   id: 'asset-1',
   kind: 'asset',
+  origin: 'user',
   title: 'Launch still',
 };
 
@@ -272,5 +273,41 @@ describe('ContextSidebarPanel', () => {
     expect(screen.getByTestId('drawer-outlet')).toHaveTextContent(
       'asset detail',
     );
+  });
+
+  it('opens the drawer when the user taps the item the page picked automatically', () => {
+    stubCompactViewport(true);
+    function Page() {
+      const [selection, setSelection] = useState<ContextSidebarSelection>({
+        ...ASSET,
+        origin: 'automatic',
+      });
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelection({ ...ASSET, origin: 'user' })}
+          >
+            tap same asset
+          </button>
+          <ContextSidebarPanel selection={selection}>
+            <p>{selection.origin}</p>
+          </ContextSidebarPanel>
+        </>
+      );
+    }
+
+    render(
+      <Shell>
+        <Page />
+      </Shell>,
+    );
+    expect(readProbe().isMobileOpen).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'tap same asset' }));
+
+    expect(readProbe()).toMatchObject({ isMobileOpen: true, isOpen: true });
+    expect(screen.getByTestId('drawer-outlet')).toHaveTextContent('user');
   });
 });

@@ -21,7 +21,7 @@ export interface ContextSidebarSelection {
   /** `false` keeps the desktop sidebar closed until the topbar toggle opens it. */
   readonly isOpenByDefault?: boolean;
   readonly kind: ContextSidebarSelectionKind;
-  readonly origin?: ContextSidebarSelectionOrigin;
+  readonly origin: ContextSidebarSelectionOrigin;
   readonly subtitle?: string;
   readonly title: string;
 }

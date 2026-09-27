@@ -17,6 +17,7 @@ export function WorkspaceTaskRailAdapter({
   onRequestChanges,
   onTrashOutput,
   onUnkeepOutput,
+  selectionOrigin,
   task,
 }: WorkspaceTaskRailAdapterProps) {
   return (
@@ -27,6 +28,7 @@ export function WorkspaceTaskRailAdapter({
           ? {
               id: task.id,
               kind: 'task',
+              origin: selectionOrigin,
               subtitle: task.identifier,
               title: task.title,
             }

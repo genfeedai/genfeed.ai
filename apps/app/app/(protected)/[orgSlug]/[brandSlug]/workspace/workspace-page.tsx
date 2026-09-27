@@ -22,7 +22,14 @@ import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense, startTransition, useEffect, useMemo } from 'react';
+import {
+  Suspense,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
@@ -104,6 +111,16 @@ function WorkspacePageContentContent({
     initialTimeSeriesData,
     section,
   });
+
+  // A row tap opens the mobile drawer; a `?taskId=` restored on load does not.
+  const [tappedTaskId, setTappedTaskId] = useState<string | null>(null);
+  const selectTaskFromTap = useCallback(
+    (taskId: string | null) => {
+      setTappedTaskId(taskId);
+      setSelectedTaskId(taskId);
+    },
+    [setSelectedTaskId],
+  );
   const selectedArtifactReferences = useMemo(
     () =>
       getWorkspaceOverviewArtifactReferences(selectedTask, {
@@ -281,7 +298,7 @@ function WorkspacePageContentContent({
       getRowKey={(task) => task.id}
       getItemId={(task) => task.id}
       onRowClick={(task) => {
-        setSelectedTaskId(task.id);
+        selectTaskFromTap(task.id);
         replaceTaskSearchParam(task.id);
       }}
       columns={inboxTableColumns}
@@ -382,12 +399,17 @@ function WorkspacePageContentContent({
             mutateTask={mutateTask}
             openPlanningConversation={openPlanningConversation}
             replaceTaskSearchParam={replaceTaskSearchParam}
-            setSelectedTaskId={setSelectedTaskId}
+            setSelectedTaskId={selectTaskFromTap}
           />
         ) : null}
       </div>
 
       <WorkspaceTaskRailAdapter
+        selectionOrigin={
+          selectedTask && selectedTask.id === tappedTaskId
+            ? 'user'
+            : 'automatic'
+        }
         task={selectedTask}
         busyTaskId={busyTaskId}
         onKeepOutput={(taskId, outputId) =>

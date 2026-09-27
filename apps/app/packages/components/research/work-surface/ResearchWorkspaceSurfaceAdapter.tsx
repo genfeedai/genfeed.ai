@@ -102,6 +102,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
           ? {
               id: getResearchFindingReferenceKey(finding.reference),
               kind: 'finding',
+              origin: surface?.authorizedFindingOrigin ?? 'automatic',
               subtitle: finding.reference.kind.replaceAll('-', ' '),
               title: finding.title,
             }

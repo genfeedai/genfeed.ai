@@ -277,6 +277,7 @@ export default function TaskInspectorAdapter() {
           ? {
               id: selectedTask.id,
               kind: 'task',
+              origin: selection?.selectionOrigin ?? 'automatic',
               subtitle: selectedTask.identifier,
               title: selectedTask.title,
             }

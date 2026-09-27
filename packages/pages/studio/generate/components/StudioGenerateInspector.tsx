@@ -48,7 +48,6 @@ import {
 type InspectorTab = 'history' | 'recipe' | 'used-in';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
-const REMIXABLE_TYPES = new Set(['image', 'video']);
 const downloadIngredient = createDownloadHandler();
 
 function isInspectorTab(value: string): value is InspectorTab {
@@ -417,7 +416,7 @@ export default function StudioGenerateInspector({
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       />
-      {ingredient && REMIXABLE_TYPES.has(job.type) ? (
+      {ingredient && job.type === 'image' ? (
         <Button
           className="w-full"
           icon={<Shuffle className="size-3.5" />}

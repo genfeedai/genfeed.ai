@@ -192,4 +192,18 @@ describe('TaskInspectorAdapter', () => {
 
     expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
   });
+
+  it('keeps a click as a user selection when ?taskId= re-resolves the same task', () => {
+    const { result } = renderHook(() => useTaskSelection(), {
+      wrapper: TaskSelectionProvider,
+    });
+
+    act(() => result.current?.selectTask(TASK, 'user'));
+    act(() => result.current?.selectTask(TASK));
+    expect(result.current?.selectionOrigin).toBe('user');
+
+    // A different task restored from the URL is automatic.
+    act(() => result.current?.selectTask({ ...TASK, id: 'task-102' } as Task));
+    expect(result.current?.selectionOrigin).toBe('automatic');
+  });
 });

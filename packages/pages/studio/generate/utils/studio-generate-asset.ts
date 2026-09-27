@@ -8,7 +8,7 @@ import type {
   StudioGenerateJob,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
-import { resolveRecipeForJob } from '@pages/studio/generate/utils/studio-generate-recipe';
+import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/studio-generate-types';
 
 const CATEGORY_TO_TYPE = new Map<IngredientCategory, StudioGenerateType>(
@@ -75,26 +75,31 @@ function toValidDate(value: number | string | undefined): Date | undefined {
 }
 
 /**
- * The facts the asset panel lists for a generation: the recipe that left
- * Studio wins over persisted metadata, which wins over live job fields.
+ * The facts the asset panel lists for a generation. Only persisted metadata
+ * and the recipe that actually left Studio count: the `Ingredient` model's
+ * getters invent defaults (8s, 1080×1920) that must never read as real facts.
  */
 export function resolveStudioAssetFacts(
   job: StudioGenerateJob,
 ): StudioGenerateAssetFacts {
   const ingredient = job.ingredient ?? null;
-  const recipe = resolveRecipeForJob(job);
+  const metadata =
+    ingredient && typeof ingredient.metadata === 'object'
+      ? ingredient.metadata
+      : undefined;
+  const submittedRecipe = job.recipe;
   const { height, width } = resolveStudioAssetDimensions(ingredient);
   const resolvedWidth = width ?? job.width;
   const resolvedHeight = height ?? job.height;
   const brand = ingredient?.brand;
-  const durationSeconds = recipe?.duration ?? ingredient?.metadataDuration;
+  const durationSeconds = submittedRecipe?.duration ?? metadata?.duration;
 
   return {
     aspectRatio:
-      recipe?.aspectRatio ||
-      ingredient?.aspectRatio ||
+      submittedRecipe?.aspectRatio ||
       (resolvedWidth && resolvedHeight
-        ? `${resolvedWidth}×${resolvedHeight}`
+        ? (resolveAspectRatioFromDimensions(resolvedWidth, resolvedHeight) ??
+          `${resolvedWidth}×${resolvedHeight}`)
         : undefined),
     brandLabel:
       brand && typeof brand === 'object' ? brand.label || undefined : undefined,
@@ -102,9 +107,10 @@ export function resolveStudioAssetFacts(
     durationSeconds:
       durationSeconds && durationSeconds > 0 ? durationSeconds : undefined,
     modelLabel:
-      ingredient?.metadataModelLabel ||
+      metadata?.modelLabel ||
+      metadata?.model ||
       job.modelKey ||
-      recipe?.modelKey ||
+      submittedRecipe?.modelKey ||
       undefined,
   };
 }

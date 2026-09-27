@@ -289,13 +289,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   });
 
   const handleAttachGeneratedReference = useCallback(
-    (
-      ingredient: IIngredient,
-      targetType: 'image' | 'video',
-      role: StudioGenerateReferenceRole = targetType === 'video'
-        ? 'startFrame'
-        : 'reference',
-    ) => {
+    (ingredient: IIngredient, targetType: 'image' | 'video') => {
       const previewUrl = resolveStudioAssetUrl(ingredient);
       if (!previewUrl) {
         notificationsService.info('This asset has no usable preview yet');
@@ -317,7 +311,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   id: ingredient.id,
                   thumbnailUrl: previewUrl,
                 },
-                role,
+                role: targetType === 'video' ? 'startFrame' : 'reference',
               },
             ],
       );
@@ -1141,21 +1135,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
   }, []);
-  // Remix feeds the finished asset back into the composer as a reference of
-  // its own kind: an image as an image reference, a video as a video one.
+  // Remix feeds a finished image back into the composer as an image
+  // reference. Videos are not offered: a video reference is dropped again by
+  // any model without video-reference support, including Auto.
   const handleRemixJob = useCallback(
     (job: StudioGenerateJob) => {
-      if (!job.ingredient) {
-        return;
-      }
-      if (job.type === 'image') {
-        handleAttachGeneratedReference(job.ingredient, 'image', 'reference');
-      } else if (job.type === 'video') {
-        handleAttachGeneratedReference(
-          job.ingredient,
-          'video',
-          'videoReference',
-        );
+      if (job.ingredient && job.type === 'image') {
+        handleAttachGeneratedReference(job.ingredient, 'image');
       }
     },
     [handleAttachGeneratedReference],
@@ -1320,6 +1306,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
             ? {
                 id: selectedJob.id,
                 kind: 'asset',
+                // Only a card click or a run-sibling pick selects a job.
+                origin: 'user',
                 subtitle:
                   selectedJob.modelKey || translate('inspector.autoModel'),
                 title: getStudioGenerateTypeConfig(selectedJob.type).label,

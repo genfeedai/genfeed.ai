@@ -704,6 +704,7 @@ describe('UniversalWorkspaceShell', () => {
                 ? {
                     id: 'asset-1',
                     kind: 'asset',
+                    origin: 'user',
                     subtitle: 'flux-dev',
                     title: 'Image',
                   }

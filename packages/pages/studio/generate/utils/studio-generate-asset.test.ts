@@ -323,10 +323,11 @@ describe('resolveStudioAssetFacts', () => {
       buildJob({
         createdAt: Date.UTC(2026, 7, 21, 9),
         ingredient: buildIngredient({
-          aspectRatio: '1:1',
           brand: { label: 'Northstar' } as IIngredient['brand'],
-          metadataDuration: 4,
-          metadataModelLabel: 'Veo 3',
+          metadata: {
+            duration: 4,
+            modelLabel: 'Veo 3',
+          } as IIngredient['metadata'],
         }),
         recipe: {
           aspectRatio: '9:16',
@@ -363,11 +364,28 @@ describe('resolveStudioAssetFacts', () => {
     );
 
     expect(facts).toEqual({
-      aspectRatio: '768×1024',
+      aspectRatio: '3:4',
       brandLabel: undefined,
       createdAt: undefined,
       durationSeconds: undefined,
       modelLabel: 'flux-dev',
     });
+  });
+
+  it('never reports the Ingredient model getter defaults as facts', () => {
+    // The hydrated model answers 8s and 1080×1920 when metadata is missing.
+    const ingredient = Object.defineProperties(buildIngredient(), {
+      aspectRatio: { get: () => '9:16' },
+      metadataDuration: { get: () => 8 },
+      metadataHeight: { get: () => 1920 },
+      metadataWidth: { get: () => 1080 },
+    });
+
+    const facts = resolveStudioAssetFacts(
+      buildJob({ ingredient, type: 'image' }),
+    );
+
+    expect(facts.aspectRatio).toBeUndefined();
+    expect(facts.durationSeconds).toBeUndefined();
   });
 });

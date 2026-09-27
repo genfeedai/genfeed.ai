@@ -233,13 +233,16 @@ describe('StudioGenerateInspector', () => {
 
   it('lists the asset facts it knows and omits credits', () => {
     const ingredient = {
-      aspectRatio: '16:9',
       brand: { label: 'Northstar' },
       category: IngredientCategory.VIDEO,
       createdAt: '2026-08-20T10:00:00.000Z',
       id: 'ing-7',
-      metadataDuration: 8.4,
-      metadataModelLabel: 'Veo 3',
+      metadata: {
+        duration: 8.4,
+        height: 1080,
+        modelLabel: 'Veo 3',
+        width: 1920,
+      },
     } as IIngredient;
 
     render(
@@ -268,6 +271,8 @@ describe('StudioGenerateInspector', () => {
     expect(facts).toHaveTextContent('Duration8s');
     expect(facts).toHaveTextContent('BrandNorthstar');
     expect(facts).toHaveTextContent('Created');
+    // Video references do not survive the Auto model, so videos get no Remix.
+    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
     expect(facts.textContent ?? '').not.toMatch(/credit/i);
   });
 
