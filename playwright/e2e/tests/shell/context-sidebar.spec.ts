@@ -44,7 +44,7 @@ async function mockStudioGallery(page: Page): Promise<void> {
               cdnUrl: 'https://cdn.genfeed.ai/mock/studio-portrait.jpg',
               createdAt: '2026-09-20T10:00:00.000Z',
               height: 1024,
-              metadataModel: 'flux-dev',
+              metadata: { model: 'flux-dev' },
               promptText: ASSET_PROMPT,
               status: 'GENERATED',
               width: 1024,

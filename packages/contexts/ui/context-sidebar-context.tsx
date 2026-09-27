@@ -7,7 +7,7 @@ import type {
   ContextSidebarProviderProps,
   ContextSidebarRegistration,
   ContextSidebarSelection,
-} from '@genfeedai/props/ui/context-sidebar.props';
+} from '@props/ui/context-sidebar.props';
 import {
   createContext,
   type ReactPortal,

@@ -4,7 +4,7 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@genfeedai/contexts/ui/context-sidebar-context';
-import type { ContextSidebarSelection } from '@genfeedai/props/ui/context-sidebar.props';
+import type { ContextSidebarSelection } from '@props/ui/context-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
