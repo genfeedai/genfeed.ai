@@ -508,11 +508,24 @@ jobs:
       # "cheaply derivable" affected-set turbo already computes for every
       # other --affected call in this workflow (lint, type-check, test
       # sharding above). `--affected` returns each changed package under
-      # packages/** plus every package that (transitively) depends on it, so
-      # a leaf utility change stays small while a widely-imported package
-      # (e.g. contracts) still fans out to most of the monorepo — correctly,
-      # since that IS what could break. `--dry=json` only plans the build
-      # graph; it runs nothing.
+      # packages/** plus every workspace — app or package — that
+      # (transitively) depends on it, so a leaf utility change stays small
+      # while a widely-imported package (e.g. contracts) still fans out to
+      # most of the monorepo — correctly, since that IS what could break.
+      # `--dry=json` only plans the build graph; it runs nothing.
+      #
+      # Two dry-run queries against the SAME graph, not one:
+      #   - unfiltered, to learn every affected workspace including apps
+      #     (`all_affected_names`) — narrowing the CLI query itself with
+      #     `--filter='./packages/*'` would silently drop an enrolled app
+      #     that only depends on the changed package rather than owning
+      #     changed files itself, which used to leave it out of `scoped`
+      #     below entirely (#5315).
+      #   - filtered to `./packages/*`, to learn just the affected
+      #     packages (`affected_packages`) for the "Build packages" step:
+      #     that step never builds an app, only the package dist output the
+      #     ratchet's ts programs resolve, so its filter list must stay
+      #     package-only regardless of which apps are in scope.
       - name: Resolve turbo-affected packages
         id: turbo-scope
         if: steps.scope.outputs.needs_turbo == 'true'
@@ -522,9 +535,15 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           all_workspaces=()
+          app_workspaces=()
           for config in apps/server/*/tsconfig.typecheck.specs.json \
-            apps/*/tsconfig.typecheck.specs.json \
-            packages/*/tsconfig.typecheck.specs.json; do
+            apps/*/tsconfig.typecheck.specs.json; do
+            workspace="${config%/tsconfig.typecheck.specs.json}"
+            workspace="${workspace##*/}"
+            all_workspaces+=("${workspace}")
+            app_workspaces+=("${workspace}")
+          done
+          for config in packages/*/tsconfig.typecheck.specs.json; do
             workspace="${config%/tsconfig.typecheck.specs.json}"
             all_workspaces+=("${workspace##*/}")
           done
@@ -542,12 +561,24 @@ jobs:
             });
           ')
 
+          all_affected_json="$(TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run build --affected --dry=json)"
+          mapfile -t all_affected_names < <(echo "${all_affected_json}" | node -e '
+            let data = "";
+            process.stdin.on("data", (chunk) => { data += chunk; });
+            process.stdin.on("end", () => {
+              const parsed = JSON.parse(data);
+              for (const name of parsed.packages || []) {
+                console.log(name.replace(/^@genfeedai\//, ""));
+              }
+            });
+          ')
+
           declare -A affected=()
           for workspace in ${APPS_AFFECTED}; do
             [ -n "${workspace}" ] && affected["${workspace}"]=1
           done
-          for pkg in "${affected_packages[@]}"; do
-            affected["${pkg}"]=1
+          for name in "${all_affected_names[@]}"; do
+            affected["${name}"]=1
           done
 
           scoped=()
@@ -557,14 +588,22 @@ jobs:
             fi
           done
 
+          # An affected app's own package dependency footprint isn't
+          # something this scope step derives cheaply (apps/app alone pulls
+          # in most of the monorepo per #5244's baseline): if any enrolled
+          # app ended up in scope — from its own changed files OR only
+          # because it depends on a changed package — fall back to building
+          # every package below rather than guessing which subset it needs.
+          apps_in_scope=0
+          for workspace in "${app_workspaces[@]}"; do
+            if [ -n "${affected[${workspace}]:-}" ]; then
+              apps_in_scope=1
+              break
+            fi
+          done
+
           build_filters=()
-          if [ -z "${APPS_AFFECTED// /}" ]; then
-            # Only narrow the build when nothing under apps/ is also in
-            # scope. An affected app's own package dependency footprint isn't
-            # something this scope step derives cheaply (apps/app alone pulls
-            # in most of the monorepo per #5244's baseline), so mixing an app
-            # into scope falls back to building every package below rather
-            # than guessing — same behavior as before this change.
+          if [ "${apps_in_scope}" -eq 0 ]; then
             for pkg in "${affected_packages[@]}"; do
               build_filters+=("--filter=@genfeedai/${pkg}")
             done

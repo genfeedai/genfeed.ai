@@ -1,5 +1,8 @@
 {
   "description": "Self-hosted fonts for Genfeed.ai - Satoshi + Zodiak",
+  "devDependencies": {
+    "@genfeedai/tsconfig": "workspace:*"
+  },
   "exports": {
     ".": {
       "types": "./index.ts",

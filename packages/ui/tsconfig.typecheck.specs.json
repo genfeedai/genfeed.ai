@@ -6,7 +6,7 @@
     "noEmit": true,
     "rootDir": "../.."
   },
-  "exclude": ["node_modules", "dist", "src/components"],
+  "exclude": ["node_modules", "dist"],
   "extends": "./tsconfig.json",
   "include": [
     "src/**/*.d.ts",
