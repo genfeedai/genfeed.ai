@@ -392,48 +392,49 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
     });
 
-    it('never starves an earlier live-job row even while 200+ new candidates keep arriving every tick', async () => {
+    it('recovers an early row once its job disappears after its first examination, despite 200+ new candidates arriving every tick', async () => {
       const now = Date.now();
+      // `orphan` is the oldest row, so it is examined on sweep 1 — but it
+      // still has a live job at that point (see below), so it is only
+      // *skipped*, not recovered, on its first examination. Recovering it
+      // trivially on sweep 1 (as an earlier version of this test did by
+      // giving it no live job from the start) would pass even without any
+      // pagination fix, since sweep 1 always reaches the front of the
+      // cohort regardless of cursor/boundary handling.
       const orphan: FakeRow = {
         id: 'orphan',
         organizationId: 'org-1',
         createdAt: new Date(now - 50 * 60_000),
       };
       // 199 more rows, all newer than `orphan` but still older than the
-      // 5-minute staleness bound, all permanently retaining a live job.
+      // 5-minute staleness bound, all permanently retaining a live job —
+      // together with `orphan` this fills lap 1's only page exactly.
       const fillers = buildRows(
         PAGE_SIZE - 1,
         'filler',
         new Date(now - 10 * 60_000),
       );
       staleExecutionFinder.seed([orphan, ...fillers]);
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+
+      // Sweep 1: lap 1's only page (orphan + 199 fillers, exactly 200 —
+      // full, so the lap continues). Everything, including `orphan`, still
+      // has a live job: nothing recovers yet.
+      await service.reconcile();
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+
+      // Only *after* that first examination does orphan's job disappear.
       queueService.hasClaimableSystemWorkflowJob.mockImplementation(
         async (jobId: string) => jobId !== `system-workflow-${orphan.id}`,
       );
 
-      // Sweep 1: lap 1 starts, boundary snapshot = the newest filler row.
-      // Page 1 is a full page of exactly 200 (orphan + 199 fillers) — the
-      // lap continues. `orphan` is examined here and found to have no live
-      // job, so it is recovered immediately.
-      await service.reconcile();
-      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
-        orphan.id,
-        expect.stringContaining('no worker ever picked it up'),
-      );
-      expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
-      // The very first page already carried the lap's boundary snapshot —
-      // captured via `findUpperBoundary` before this page was fetched.
-      const lap1Options = staleExecutionFinder.findMany.mock.calls[0][2];
-      expect(lap1Options?.cursor).toBeUndefined();
-      expect(lap1Options?.upperBoundary).toEqual({
-        createdAt: fillers[fillers.length - 1].createdAt,
-        id: fillers[fillers.length - 1].id,
-      });
-
-      // Between every subsequent tick, 250 brand-new candidates arrive —
-      // more than a full page, so if the lap were not capped to its
-      // original boundary, every later page would come back full forever
-      // and the lap would never reset.
+      // Each subsequent tick, 250 brand-new candidates arrive — all dated
+      // strictly after (newer than) every row already seeded, i.e. strictly
+      // beyond the current lap's cursor/boundary. If the lap were not capped
+      // to its original boundary, every later page would come back full of
+      // these arrivals forever, the lap would never reset, and `orphan` —
+      // already behind the cursor from sweep 1 — would never be examined
+      // again even though it is now genuinely orphaned.
       for (let tick = 0; tick < 5; tick++) {
         vi.setSystemTime(new Date(Date.now() + 60_000));
         const arrivals = buildRows(
@@ -445,13 +446,15 @@ describe('PendingWorkflowExecutionReconcileService', () => {
         await service.reconcile();
       }
 
-      // The lap must have completed (reset) despite the continuous
-      // arrivals: findUpperBoundary was called again for a fresh lap.
-      expect(
-        staleExecutionFinder.findUpperBoundary.mock.calls.length,
-      ).toBeGreaterThan(1);
-      // orphan was only ever recovered once, in the very first sweep.
+      // orphan is eventually recovered exactly once, via the age-appropriate
+      // recent (loud) path — it is still well within the 24h window, so a
+      // silent ancient cancellation would be the wrong action.
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
+        orphan.id,
+        expect.stringContaining('no worker ever picked it up'),
+      );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
     });
 
     it('keeps the lap boundary fixed across ticks while the date bounds keep advancing with the clock', async () => {
@@ -483,14 +486,18 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       });
     });
 
-    it('processes two rows sharing the exact same createdAt exactly once each across a page boundary', async () => {
+    it('processes two rows sharing the exact same createdAt exactly once each, straddling a page boundary', async () => {
       const now = Date.now();
       // Safely past the 5-minute staleness bound (unlike `now - 5 * 60_000`,
       // which would land exactly on the exclusive `staleBefore` edge and
       // never match) but newer than every filler.
       const tiedCreatedAt = new Date(now - 6 * 60_000);
+      // 199 fillers + tied-a fill page 1 exactly (200); tied-b is the sole
+      // row of page 2. The tie straddles the page boundary instead of both
+      // rows landing together on the same page, which is the scenario that
+      // actually exercises the id tiebreaker at the edge of a page.
       const fillers = buildRows(
-        PAGE_SIZE,
+        PAGE_SIZE - 1,
         'filler',
         new Date(now - 10 * 60_000),
       );
@@ -513,21 +520,22 @@ describe('PendingWorkflowExecutionReconcileService', () => {
           jobId !== 'system-workflow-tied-b',
       );
 
-      // Sweep 1: page 1 is the 200 fillers (full — lap continues). Neither
-      // tied row has been examined yet.
+      // Sweep 1: page 1 is 199 fillers + tied-a (full — lap continues).
+      // tied-a, sharing tied-b's createdAt but sorting first by id, is
+      // examined and recovered here; tied-b is not reached yet.
       await service.reconcile();
-      expect(workflowExecutions.completeExecution).not.toHaveBeenCalledWith(
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'tied-a',
-        expect.anything(),
+        expect.any(String),
       );
       expect(workflowExecutions.completeExecution).not.toHaveBeenCalledWith(
         'tied-b',
         expect.anything(),
       );
 
-      // Sweep 2: page 2 is exactly the two tied rows (short — lap resets).
-      // The id tiebreaker must place both after the cursor and at or before
-      // the boundary — neither skipped, neither repeated.
+      // Sweep 2: page 2 is exactly tied-b (short — lap resets). The id
+      // tiebreaker must place it strictly after tied-a's cursor position —
+      // neither skipped, nor repeated alongside tied-a.
       await service.reconcile();
 
       expect(queueService.hasClaimableSystemWorkflowJob).toHaveBeenCalledWith(
@@ -537,45 +545,61 @@ describe('PendingWorkflowExecutionReconcileService', () => {
         'system-workflow-tied-b',
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
-        'tied-a',
-        expect.any(String),
-      );
-      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'tied-b',
         expect.any(String),
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(2);
+
+      // A further lap (everything remaining is just the still-live fillers)
+      // must not re-recover either tied row — both already transitioned out
+      // of PENDING and were removed from the fake's dataset.
+      await service.reconcile();
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(2);
     });
 
-    it('applies the same boundary-snapshot bounding to the ancient cohort', async () => {
+    it('recovers an ancient orphan beyond the first page within a bounded number of sweeps, via the silent cancel path', async () => {
       const now = Date.now();
+      // 200 persistent live-job rows occupy lap 1's entire first page;
+      // `ancientOrphan`, newer than all of them (so it sorts after them),
+      // sits at row 201 and is not reached until sweep 2. Placing it first
+      // (as an earlier version of this test did) would recover it on sweep
+      // 1 regardless of whether pagination works at all — sweep 1 always
+      // reaches the front of the cohort.
+      const ancientFillers = buildRows(
+        PAGE_SIZE,
+        'ancient-filler',
+        new Date(now - 30 * 60 * 60_000),
+      );
       const ancientOrphan: FakeRow = {
         id: 'ancient-orphan',
         organizationId: 'org-1',
-        createdAt: new Date(now - 48 * 60 * 60_000),
+        createdAt: new Date(now - 25 * 60 * 60_000),
       };
-      const ancientFillers = buildRows(
-        PAGE_SIZE - 1,
-        'ancient-filler',
-        new Date(now - 25 * 60 * 60_000),
-      );
-      staleExecutionFinder.seed([ancientOrphan, ...ancientFillers]);
+      staleExecutionFinder.seed([...ancientFillers, ancientOrphan]);
       queueService.hasClaimableSystemWorkflowJob.mockImplementation(
         async (jobId: string) =>
           jobId !== `system-workflow-${ancientOrphan.id}`,
       );
 
+      // Sweep 1: page 1 is the 200 persistent-live-job fillers (full — lap
+      // continues). ancientOrphan, at row 201, is not examined yet.
       await service.reconcile();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
 
+      // Sweep 2: page 2 is just ancientOrphan (short — lap resets). It has
+      // no live job, so it is silently cancelled — the age-appropriate
+      // action for a row this old.
+      await service.reconcile();
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         ancientOrphan.id,
       );
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(1);
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
 
       // New arrivals afterward — newer than the existing ancient fillers,
       // i.e. only just old enough to qualify as ancient — must not
-      // re-trigger a duplicate cancel for the same row, nor prevent the lap
-      // from resetting.
+      // re-trigger a duplicate cancel for the same row, nor prevent the next
+      // lap from starting cleanly.
       const moreAncientRows = buildRows(
         250,
         'ancient-arrival',

@@ -41,3 +41,36 @@ export interface StalePendingSystemExecutionQueryOptions {
    */
   upperBoundary?: StalePendingSystemExecutionCursor;
 }
+
+/**
+ * One cohort's in-progress lap (#5319 second review): `boundary` is the
+ * `(createdAt, id)` snapshot captured when the lap started, and `cursor` is
+ * how far into that bounded range the lap has advanced. A cohort with no lap
+ * in progress is represented as `undefined`, not as this type — the next
+ * tick starts a fresh one (see `PendingWorkflowExecutionReconcileService`).
+ */
+export interface StalePendingSystemExecutionLap {
+  boundary: StalePendingSystemExecutionCursor;
+  cursor: StalePendingSystemExecutionCursor | undefined;
+}
+
+/**
+ * The pair of finder calls `PendingWorkflowExecutionReconcileService` needs
+ * to drive one cohort's lap: `fetchBoundary` snapshots a fresh lap's
+ * `StalePendingSystemExecutionLap.boundary` (called only when no lap is
+ * already in progress), and `fetchPage` resumes it by exactly one page,
+ * reusing `StalePendingSystemExecutionQueryOptions` rather than a bespoke
+ * shape (#5319 second review).
+ */
+export interface StalePendingSystemExecutionCohortFinder {
+  fetchBoundary: () => Promise<StalePendingSystemExecutionCursor | undefined>;
+  fetchPage: (
+    options: StalePendingSystemExecutionQueryOptions,
+  ) => Promise<StalePendingSystemExecutionCandidate[]>;
+}
+
+/** The result of driving one cohort's lap forward by one page (#5319 second review). */
+export interface StalePendingSystemExecutionSweepResult {
+  candidates: StalePendingSystemExecutionCandidate[];
+  lap: StalePendingSystemExecutionLap | undefined;
+}

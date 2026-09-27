@@ -2,8 +2,9 @@ import { StalePendingSystemExecutionFinderService } from '@api/collections/workf
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type {
-  StalePendingSystemExecutionCandidate,
-  StalePendingSystemExecutionCursor,
+  StalePendingSystemExecutionCohortFinder,
+  StalePendingSystemExecutionLap,
+  StalePendingSystemExecutionSweepResult,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -30,17 +31,6 @@ const NEVER_CLAIMED_ERROR_MESSAGE =
  * would silently break if that default ever changed.
  */
 const SWEEP_PAGE_SIZE = 200;
-
-/**
- * One cohort's in-progress lap: `boundary` is the `(createdAt, id)` snapshot
- * captured when the lap started (see `startLap`), and `cursor` is how far
- * into that bounded range the lap has advanced. `undefined` means no lap is
- * in progress — the next tick starts a fresh one.
- */
-type CohortLap = {
-  boundary: StalePendingSystemExecutionCursor;
-  cursor: StalePendingSystemExecutionCursor | undefined;
-};
 
 /**
  * Bounded-failure backstop for a stuck system-workflow run (#5162). A
@@ -73,19 +63,20 @@ type CohortLap = {
  * one bounded page (`SWEEP_PAGE_SIZE`) per tick. A page full of rows that
  * keep a live, still-claimable BullMQ job is left `PENDING` on purpose (see
  * above), so a cursor alone is not enough: `recentLap`/`ancientLap` (see
- * `CohortLap`) additionally snapshot a fixed `boundary` — the cohort's last
- * matching row — when a lap starts (`startLap`), and every page of that lap
- * is capped to `(createdAt, id) <= boundary`. Without that cap, a cohort
- * that keeps receiving 200+ new candidates between ticks would never finish
- * a lap — every page would come back full forever (the moving
- * `staleBefore`/`createdAfter` bound keeps admitting new rows faster than a
- * single page can traverse them), so the cursor would never reset, and a row
- * examined once and left pending would never get a second look even after
- * it later becomes genuinely orphaned. Capping the lap to a fixed boundary
- * guarantees it finishes within a bounded number of ticks (proportional to
- * the cohort's size *at lap start*, not however large it grows afterward);
- * once it does, the cursor resets and the very next lap re-queries the
- * current `PENDING` set from scratch, picking up that row again.
+ * `StalePendingSystemExecutionLap`) additionally snapshot a fixed `boundary`
+ * — the cohort's last matching row — when a lap starts (`startLap`), and
+ * every page of that lap is capped to `(createdAt, id) <= boundary`. Without
+ * that cap, a cohort that keeps receiving 200+ new candidates between ticks
+ * would never finish a lap — every page would come back full forever (the
+ * moving `staleBefore`/`createdAfter` bound keeps admitting new rows faster
+ * than a single page can traverse them), so the cursor would never reset,
+ * and a row examined once and left pending would never get a second look
+ * even after it later becomes genuinely orphaned. Capping the lap to a fixed
+ * boundary guarantees it finishes within a bounded number of ticks
+ * (proportional to the cohort's size *at lap start*, not however large it
+ * grows afterward); once it does, the cursor resets and the very next lap
+ * re-queries the current `PENDING` set from scratch, picking up that row
+ * again.
  *
  * Only `boundary` is frozen for a lap's duration — `staleBefore` and
  * `createdAfter` are still recomputed fresh on every tick (`reconcile`,
@@ -107,8 +98,8 @@ export class PendingWorkflowExecutionReconcileService {
    * far simpler than persisting sweep progress for what is already a
    * best-effort backstop, not a source of truth.
    */
-  private recentLap: CohortLap | undefined;
-  private ancientLap: CohortLap | undefined;
+  private recentLap: StalePendingSystemExecutionLap | undefined;
+  private ancientLap: StalePendingSystemExecutionLap | undefined;
 
   constructor(
     private readonly workflowExecutions: WorkflowExecutionsService,
@@ -156,21 +147,9 @@ export class PendingWorkflowExecutionReconcileService {
    * it back to a full page).
    */
   private async sweepCohort(
-    lap: CohortLap | undefined,
-    finder: {
-      fetchBoundary: () => Promise<
-        StalePendingSystemExecutionCursor | undefined
-      >;
-      fetchPage: (options: {
-        cursor: StalePendingSystemExecutionCursor | undefined;
-        upperBoundary: StalePendingSystemExecutionCursor;
-        limit: number;
-      }) => Promise<StalePendingSystemExecutionCandidate[]>;
-    },
-  ): Promise<{
-    candidates: StalePendingSystemExecutionCandidate[];
-    lap: CohortLap | undefined;
-  }> {
+    lap: StalePendingSystemExecutionLap | undefined,
+    finder: StalePendingSystemExecutionCohortFinder,
+  ): Promise<StalePendingSystemExecutionSweepResult> {
     const activeLap = lap ?? (await this.startLap(finder.fetchBoundary));
     if (!activeLap) {
       // Nothing currently matches this cohort — no lap to run this tick.
@@ -200,8 +179,8 @@ export class PendingWorkflowExecutionReconcileService {
   }
 
   private async startLap(
-    fetchBoundary: () => Promise<StalePendingSystemExecutionCursor | undefined>,
-  ): Promise<CohortLap | undefined> {
+    fetchBoundary: StalePendingSystemExecutionCohortFinder['fetchBoundary'],
+  ): Promise<StalePendingSystemExecutionLap | undefined> {
     const boundary = await fetchBoundary();
     return boundary ? { boundary, cursor: undefined } : undefined;
   }
