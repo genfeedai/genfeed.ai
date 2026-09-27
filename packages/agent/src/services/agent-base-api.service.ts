@@ -8,6 +8,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@helpers/data/json-api/json-api.helper';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 
 export interface AgentApiConfig {
   baseUrl: string;
@@ -52,6 +53,7 @@ export class AgentBaseApiService {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...getRequestOrganizationHeaders(),
     };
 
     if (token) {

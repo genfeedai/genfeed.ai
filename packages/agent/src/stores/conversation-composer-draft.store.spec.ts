@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  attachContentToNewConversationDraft,
+  buildConversationComposerDraftScopeKey,
   clearConversationComposerDraft,
   readConversationComposerDraft,
   writeConversationComposerAttachments,
@@ -82,5 +84,41 @@ describe('conversation composer draft persistence', () => {
     expect(readConversationComposerDraft('other:thread-1:0').plainText).toBe(
       '',
     );
+  });
+
+  it('builds the shell scope key for new and existing threads', () => {
+    expect(buildConversationComposerDraftScopeKey('acme', null)).toBe(
+      'acme:new:0',
+    );
+    expect(buildConversationComposerDraftScopeKey('acme', 'thread-1', 4)).toBe(
+      'acme:thread-1:4',
+    );
+    expect(buildConversationComposerDraftScopeKey('', null)).toBe(
+      'unknown:new:0',
+    );
+  });
+
+  it('stages an asset on the next new conversation without touching its text', () => {
+    writeConversationComposerDocument(
+      'acme:new:0',
+      { type: 'doc' },
+      'Half-written question',
+    );
+    const asset = {
+      contentTitle: 'Launch still',
+      contentType: 'image',
+      id: 'ingredient-1',
+      thumbnailUrl: 'https://cdn.example/still.png',
+    };
+
+    attachContentToNewConversationDraft('acme', asset);
+    attachContentToNewConversationDraft('acme', asset);
+
+    const draft = readConversationComposerDraft('acme:new:0');
+    expect(draft.contentReferences).toEqual([asset]);
+    expect(draft.plainText).toBe('Half-written question');
+    expect(
+      readConversationComposerDraft('acme:thread-1:0').contentReferences,
+    ).toEqual([]);
   });
 });

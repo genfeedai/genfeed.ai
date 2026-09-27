@@ -150,22 +150,27 @@ test.describe('Workspace — deep interactions', () => {
       .getByText('Launch caption', { exact: true });
     await expect(historyItem).toBeVisible();
     await historyItem.click();
-    const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
-    await expect(inspector).toBeVisible();
-    const inspectorPanel = authenticatedPage.getByRole('complementary', {
-      name: 'Workspace inspector',
+    // The selected task opens the context sidebar; closing it deselects.
+    const contextSidebar = authenticatedPage.getByRole('complementary', {
+      name: 'Selection details',
     });
-    await expect(inspectorPanel).toBeVisible();
+    await expect(contextSidebar).toBeVisible();
+    await expect(
+      contextSidebar.getByTestId('workspace-task-inspector'),
+    ).toBeVisible();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBe('workspace-task-review-1');
-    await inspectorPanel
-      .getByRole('button', { exact: true, name: 'Close inspector' })
+    await contextSidebar
+      .getByRole('button', { exact: true, name: 'Close details' })
       .click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBeNull();
-    await expect(inspector).toHaveText('Select a task to see its details.');
+    await expect(
+      authenticatedPage.getByTestId('workspace-task-inspector'),
+    ).toHaveCount(0);
+    await expect(contextSidebar).toHaveCount(0);
 
     const primaryAction = authenticatedPage
       .getByTestId('desktop-sidebar-rail')

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';

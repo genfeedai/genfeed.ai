@@ -1,7 +1,4 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type {
   BenchmarkContestant,
   BenchmarkData,
@@ -20,6 +17,7 @@ import {
 } from '@ui/primitives/table';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 
@@ -187,13 +185,11 @@ function TaskCard({ task }: { task: BenchmarkTask }) {
 }
 
 export default function BenchmarkContent({ data }: BenchmarkContentProps) {
-  const containerRef = useMarketingEntrance();
-
   const imageTasks = data?.tasks.filter((task) => !task.isDraft) ?? [];
   const draftTasks = data?.tasks.filter((task) => task.isDraft) ?? [];
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         compact
         description="An independent benchmark for image and video generation models. Public tasks, blind judging, and a match journal anyone can re-run. Genfeed competes; it does not score itself."
@@ -343,6 +339,6 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
           </div>
         )}
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

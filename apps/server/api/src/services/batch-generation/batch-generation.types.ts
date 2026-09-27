@@ -45,6 +45,8 @@ export interface BatchItemFull extends BatchItem {
     feedback?: string;
     reviewedAt: string;
     reviewerId?: string;
+    /** Background rewrite job that wrote this event (#5365 settlement marker). */
+    rewriteJobId?: string;
     versionPinId?: string;
   }>;
   gateOverallScore?: number;

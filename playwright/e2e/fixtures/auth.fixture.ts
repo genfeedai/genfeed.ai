@@ -5,6 +5,7 @@ import {
   registerProtectedAppHostFallbacks,
   setupApiMocks,
 } from '../utils/api-interceptor';
+import { E2E_BRAND_BASE } from '../utils/app-chrome';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
 import {
   mockWorkflowCrud,
@@ -92,9 +93,11 @@ const AUTOMATION_AUTH_BOOTSTRAP_PATH = '/test-org/brand-1/automation/workflows';
 
 /**
  * Set cookies that signal the E2E bypass to both middleware and tests.
- * __playwright_test  → detected by proxy.ts to skip Better Auth middleware
- * __session          → identifies the mock session (admin vs user)
- * __client_uat       → Better Auth client update timestamp
+ * __playwright_test       → detected by proxy.ts to skip Better Auth middleware
+ * __playwright_workspace  → the scope the mocked bootstrap serves; proxy.ts
+ *                           canonicalizes bare paths onto it as production does
+ * __session               → identifies the mock session (admin vs user)
+ * __client_uat            → Better Auth client update timestamp
  */
 async function setupAuthCookies(
   context: BrowserContext,
@@ -112,6 +115,15 @@ async function setupAuthCookies(
         sameSite: 'Lax' as const,
         secure: false,
         value: 'true',
+      },
+      {
+        domain,
+        httpOnly: false,
+        name: '__playwright_workspace',
+        path: '/',
+        sameSite: 'Lax' as const,
+        secure: false,
+        value: E2E_BRAND_BASE,
       },
       {
         domain,

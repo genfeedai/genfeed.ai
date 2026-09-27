@@ -1,7 +1,5 @@
-'use client';
-
-import { ButtonVariant } from '@genfeedai/contracts';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
+import { createMarkup } from '@genfeedai/helpers';
 import {
   InstagramIcon,
   LinkedinIcon,
@@ -11,27 +9,16 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { Article } from '@models/content/article.model';
-import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import { Button } from '@ui/primitives/button';
 import ArticleCover from '@website/(content)/articles/article-cover';
-import {
-  ArrowRight,
-  Calendar,
-  Clock,
-  Share2,
-  TriangleAlert,
-  User,
-} from 'lucide-react';
+import { ArrowRight, Calendar, Clock, TriangleAlert, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
+import ArticleShareButton from './article-share-button';
 
 const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -188,31 +175,20 @@ export default function ArticleDetail({
   article: Article | null;
   isPreview: boolean;
 }) {
-  const { push } = useRouter();
-
-  const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const [copied, setCopied] = useState(false);
-
-  const handleShare = async () => {
-    try {
-      await clipboardService.copyToClipboard(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      logger.error('Failed to copy to clipboard:', error);
-    }
-  };
-
   if (!article || article?.id === 'undefined') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
         <CardEmpty
           label="Article not found"
           description="The article you are looking for does not exist."
-          action={{
-            label: 'Read articles',
-            onClick: () => push('/articles'),
-          }}
+          actions={
+            <Link
+              href="/articles"
+              className="text-sm font-medium text-surface underline underline-offset-4 hover:text-surface/80"
+            >
+              Read articles
+            </Link>
+          }
         />
       </div>
     );
@@ -240,14 +216,7 @@ export default function ArticleDetail({
             )}
           </div>
 
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
-            onClick={handleShare}
-          >
-            <Share2 className="size-4" />
-            {copied ? 'Copied!' : 'Share'}
-          </Button>
+          <ArticleShareButton />
         </div>
 
         <ArticleCover
@@ -307,9 +276,14 @@ export default function ArticleDetail({
               </div>
             </header>
 
+            {/*
+              Sanitized here, on the server: the sanitizer (sanitize-html +
+              htmlparser2) never ships to readers, and the client island only
+              ever receives markup that already went through it.
+            */}
             <ArticleContent
               articleLabel={article.label}
-              html={article.content || ''}
+              sanitizedHtml={createMarkup(article.content || '').__html}
               slug={article.slug}
             />
           </div>

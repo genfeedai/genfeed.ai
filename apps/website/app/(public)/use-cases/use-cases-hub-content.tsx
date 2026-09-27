@@ -1,16 +1,12 @@
-'use client';
-
 import { useCases } from '@data/use-cases.data';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import Card from '@ui/card/Card';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 
 export default function UseCasesHubContent() {
-  const containerRef = useMarketingEntrance({ sections: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance sections={false}>
       <PageLayout
         title="Genfeed Use Cases"
         description="See how creators, agencies, e-commerce brands, and founders put Genfeed to work."
@@ -41,6 +37,6 @@ export default function UseCasesHubContent() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

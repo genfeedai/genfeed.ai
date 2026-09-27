@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';

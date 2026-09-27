@@ -1,5 +1,3 @@
-'use client';
-
 import { HOW_IT_WORKS } from '@public/skills/_data';
 import {
   NeuralGrid,

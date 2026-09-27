@@ -7,6 +7,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { CalendarPage } from '../../pages/calendar.page';
+import { orgPath } from '../../utils/app-chrome';
 import {
   assertRouteRenders,
   expectNoErrorOverlay,
@@ -146,11 +147,10 @@ test.describe('Tasks — deep interactions', () => {
   test('renders the tasks list and cycles the status filter', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.TASKS);
+    const tasksRoute = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await assertRouteRenders(authenticatedPage, tasksRoute);
 
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      APP_ROUTES.WORKSPACE.TASKS,
-    );
+    expect(new URL(authenticatedPage.url()).pathname).toBe(tasksRoute);
 
     const statusFilter = authenticatedPage.locator('select').first();
     if (await statusFilter.isVisible().catch(() => false)) {
@@ -231,14 +231,10 @@ test.describe('Tasks — deep interactions', () => {
       });
     });
 
-    await assertRouteRenders(
-      authenticatedPage,
-      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
-    );
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/task-201`);
+    await assertRouteRenders(authenticatedPage, taskRoute);
 
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
-    );
+    expect(new URL(authenticatedPage.url()).pathname).toBe(taskRoute);
 
     await expect(
       authenticatedPage.getByRole('heading', {

@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HTMLAttributes, ReactNode } from 'react';
 
