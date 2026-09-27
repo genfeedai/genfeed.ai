@@ -589,7 +589,7 @@
     "packages/ui/src/components/feedback/alert/Alert.tsx": 1,
     "packages/ui/src/components/feedback/brand-loader/BrandLoader.tsx": 1,
     "packages/ui/src/components/folders/sidebar/FoldersSidebar.tsx": 6,
-    "packages/ui/src/components/footers/SiteFooter.tsx": 15,
+    "packages/ui/src/components/footers/SiteFooter.tsx": 12,
     "packages/ui/src/components/gallery/sidebar/GallerySidebar.tsx": 7,
     "packages/ui/src/components/guards/credentials/CredentialsGuard.tsx": 3,
     "packages/ui/src/components/guards/feature/FeatureGate.tsx": 5,
