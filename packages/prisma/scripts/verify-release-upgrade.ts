@@ -218,6 +218,18 @@ try {
       noBrandMember.currentBrandId.length > 0,
     'member of a brandless org must receive a non-null currentBrandId',
   );
+  // The placeholder brand id must be a valid Genfeed entity id — every route
+  // and validator that checks a brand id (select/switch, generation, PATCH)
+  // rejects anything else. Mirrors the UUID branch of isEntityId in
+  // packages/contracts/src/api-types/helpers/entity-id.ts (that package
+  // isn't a dependency of @genfeedai/prisma, so the regex is duplicated
+  // here rather than imported).
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  assert(
+    uuidPattern.test(noBrandMember.currentBrandId),
+    `placeholder brand id must be a valid entity id, got ${noBrandMember.currentBrandId}`,
+  );
   const placeholderBrand = (
     await db.query(
       'SELECT "organizationId", "isDeleted" FROM brands WHERE id = $1',

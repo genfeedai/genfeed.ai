@@ -21,8 +21,14 @@ ALTER TABLE "members" ADD COLUMN "currentBrandId" TEXT;
 --     soft-deleted one. Give each such organization a minimal placeholder
 --     brand before the backfill below runs, so every member ends up with a
 --     real, referenceable currentBrandId instead of aborting the migration.
---     Deterministic id/slug (same convention as 20260827120000's
---     'ba_' || organizationId) keeps this idempotent across reruns.
+--     `gen_random_uuid()` (same as 20260812220000's fallback id) keeps the id
+--     a valid Genfeed entity id (packages/contracts's isEntityId only accepts
+--     UUID/CUID/CUID2/ULID) — not a deterministic id, which this app's own
+--     brand ids never are. Idempotency instead comes from the "org has no
+--     brand rows at all" NOT EXISTS guard: a rerun only ever considers
+--     organizations that still have none. The slug stays deterministic per
+--     org (org id is unique, and Brand.slug is unique across all brands) so
+--     a rerun can't collide on it either.
 INSERT INTO "brands" (
   "id",
   "organizationId",
@@ -44,10 +50,10 @@ INSERT INTO "brands" (
   "createdAt",
   "updatedAt"
 )
-SELECT DISTINCT
-  'brand_placeholder_' || m."organizationId",
-  m."organizationId",
-  'placeholder-' || m."organizationId",
+SELECT
+  gen_random_uuid()::text,
+  orgs."organizationId",
+  'placeholder-' || orgs."organizationId",
   'Placeholder Brand',
   'MONTSERRAT_BLACK'::"FontFamily",
   '#000000',
@@ -64,11 +70,13 @@ SELECT DISTINCT
   '{}'::JSONB,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
-FROM "members" m
-WHERE NOT EXISTS (
-  SELECT 1 FROM "brands" b WHERE b."organizationId" = m."organizationId"
-)
-ON CONFLICT ("id") DO NOTHING;
+FROM (
+  SELECT DISTINCT m."organizationId"
+  FROM "members" m
+  WHERE NOT EXISTS (
+    SELECT 1 FROM "brands" b WHERE b."organizationId" = m."organizationId"
+  )
+) orgs;
 
 -- 2b. Backfill from the isSelected data being retired: prefer a brand this
 --     member's user owns and had marked isSelected (excluding soft-deleted
