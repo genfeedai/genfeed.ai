@@ -114,12 +114,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       lastModified: new Date(),
       priority: 0.6,
-      url: 'https://genfeed.ai/retainer',
-    },
-    {
-      changeFrequency: 'monthly',
-      lastModified: new Date(),
-      priority: 0.6,
       url: 'https://genfeed.ai/dfy',
     },
     {
@@ -271,12 +265,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/cloud',
-    },
-    {
-      changeFrequency: 'monthly',
-      lastModified: new Date(),
-      priority: 0.7,
-      url: 'https://genfeed.ai/services',
     },
     {
       changeFrequency: 'weekly',

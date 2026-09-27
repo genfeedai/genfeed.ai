@@ -74,7 +74,6 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/use-cases/agencies', label: 'For agencies' },
       { href: '/use-cases/ai-influencers', label: 'For AI influencers' },
       { href: '/experts', label: 'For experts' },
-      { href: '/services', label: 'Services' },
       { href: '/vs', label: 'Genfeed vs alternatives' },
       { href: '/tools', label: 'Free tools' },
     ],

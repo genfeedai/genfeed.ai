@@ -35,7 +35,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-const LANDING_SLUGS = [...serviceLandingSlugs, 'retainer', 'dfy', 'fleet'];
+const LANDING_SLUGS = [...serviceLandingSlugs, 'dfy', 'fleet'];
 
 vi.mock('@web-components/landing/BookingSection', () => ({
   default: () => <section id="book">Booking calendar</section>,
@@ -71,12 +71,35 @@ describe('ServiceLandingPage', () => {
       .map((link) => link.textContent?.trim())
       .filter((label) => label === 'Book a call' || label === 'Start free');
 
-    expect(heroLinks).toEqual(['Book a call', 'Start free']);
-    expect(screen.getByRole('link', { name: 'Book a call' })).toHaveAttribute(
-      'href',
-      '/done-for-you#book',
-    );
+    expect(heroLinks.slice(0, 2)).toEqual(['Book a call', 'Start free']);
+    for (const link of screen.getAllByRole('link', { name: 'Book a call' })) {
+      expect(link).toHaveAttribute('href', '/done-for-you#book');
+    }
     expect(screen.getByText('Booking calendar')).toBeInTheDocument();
+  });
+
+  it('carries what /services used to: smaller scopes and the focused pages', () => {
+    render(<ServiceLandingPage slug="done-for-you" />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Setup and training' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Content strategy' }),
+    ).toBeInTheDocument();
+    for (const href of ['/founder-content', '/fleet', '/x', '/pinterest']) {
+      expect(
+        screen
+          .getAllByRole('link')
+          .some((link) => link.getAttribute('href') === href),
+      ).toBe(true);
+    }
+  });
+
+  it('keeps the scope sections off every other landing page', () => {
+    render(<ServiceLandingPage slug="founder-content" />);
+
+    expect(screen.queryByText('Smaller scopes')).not.toBeInTheDocument();
   });
 
   it('renders the X growth page with both paths spelled out', () => {

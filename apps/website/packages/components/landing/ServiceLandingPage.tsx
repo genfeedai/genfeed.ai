@@ -15,6 +15,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import BookingSection from '@web-components/landing/BookingSection';
+import DoneForYouScope from '@web-components/landing/DoneForYouScope';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import { pitchLandingConfigBySlug } from '@web-components/landing/pitch-pages.data';
 import {
@@ -234,7 +235,10 @@ export default function ServiceLandingPage({
         </WebSection>
 
         {slug === BOOKING_PAGE_SLUG ? (
-          <BookingSection />
+          <>
+            <DoneForYouScope />
+            <BookingSection />
+          </>
         ) : (
           <CtaSection
             bg="subtle"

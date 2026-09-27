@@ -85,7 +85,6 @@ describe('WebsiteTopbar', () => {
       ['Teams', '/cloud'],
       ['Hire Agents', '/hire-agents'],
       ['Done For You', '/done-for-you'],
-      ['Services', '/services'],
     ]) {
       expect(
         screen.getByRole('link', { name: new RegExp(label, 'i') }),

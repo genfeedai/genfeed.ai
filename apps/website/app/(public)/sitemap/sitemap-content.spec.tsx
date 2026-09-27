@@ -33,7 +33,6 @@ const DIRECTORY_EXEMPT = new Set<string>([
   '/pinterest',
   '/podcast-to-content',
   '/privacy',
-  '/retainer',
   '/sitemap',
   '/terms',
   '/threads',

@@ -11,7 +11,6 @@ import {
   ChartColumn,
   Clapperboard,
   Cpu,
-  GraduationCap,
   HeartHandshake,
   Megaphone,
   Rocket,
@@ -144,13 +143,6 @@ const SOLUTIONS_LINKS = [
     href: '/done-for-you',
     icon: HeartHandshake,
     label: 'Done For You',
-  },
-  {
-    description: 'Training and content consultancy',
-    group: 'Managed',
-    href: '/services',
-    icon: GraduationCap,
-    label: 'Services',
   },
 ];
 
