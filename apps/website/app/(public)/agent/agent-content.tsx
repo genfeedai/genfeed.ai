@@ -1,5 +1,6 @@
 'use client';
 
+import { agentClients, getAgentClient } from '@data/agent-clients.data';
 import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
@@ -25,7 +26,7 @@ const SURFACES = [
   },
   {
     description:
-      'Point Claude Code, Codex, or any Streamable HTTP client at the hosted MCP server. Your agent gets Genfeed tools and your workspace data.',
+      'Point Claude, ChatGPT, Codex, Cursor, Meta Muse, Grok Bot, or any Streamable HTTP client at the hosted MCP server. Approve OAuth once; your agent gets Genfeed tools and your workspace data.',
     icon: Plug,
     title: 'MCP server',
   },
@@ -57,16 +58,10 @@ const CLI_STEPS = [
   },
 ];
 
-const MCP_SNIPPETS = [
-  {
-    code: 'claude mcp add --transport http genfeed --scope user \\\n  https://mcp.genfeed.ai/mcp \\\n  --header "Authorization: Bearer $GENFEED_API_KEY"',
-    title: 'Claude Code',
-  },
-  {
-    code: 'codex mcp add genfeed \\\n  --url https://mcp.genfeed.ai/mcp \\\n  --bearer-token-env-var GENFEED_API_KEY',
-    title: 'Codex',
-  },
-];
+const MCP_SNIPPETS = (['claude-code', 'codex'] as const).map((slug) => {
+  const client = getAgentClient(slug);
+  return { code: client.oauth.primaryCommand ?? '', title: client.name };
+});
 
 const CAPABILITIES = [
   'Generate images and video',
@@ -264,7 +259,8 @@ export default function AgentContent() {
           <Text as="p" className="text-surface/65 mb-8">
             The hosted MCP server speaks Streamable HTTP at{' '}
             <span className="text-surface">https://mcp.genfeed.ai/mcp</span> and
-            authenticates with the same key. Create one with{' '}
+            signs in with browser OAuth, so no API key is needed. Clients
+            without OAuth can use a scoped key from{' '}
             <span className="text-surface">
               genfeed keys create -n &quot;my agent&quot; -p mcp
             </span>
@@ -283,9 +279,20 @@ export default function AgentContent() {
             ))}
           </div>
           <Text as="p" className="mt-6 text-sm text-surface/65">
-            Any Streamable HTTP MCP client works — these two are the ones we
-            document end to end.
+            Any Streamable HTTP MCP client works. Setup guides for every client:
           </Text>
+          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            {agentClients.map((client) => (
+              <li key={client.slug}>
+                <Link
+                  className="text-sm text-surface/75 transition-colors hover:text-primary"
+                  href={`/${client.slug}`}
+                >
+                  {client.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
 
         {/* Skills */}

@@ -12,6 +12,7 @@
     "@genfeedai/agent": "workspace:*"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "jsdom": "29.1.1"
   },
   "description": "Genfeed MCP Server",

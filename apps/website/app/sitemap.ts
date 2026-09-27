@@ -1,3 +1,4 @@
+import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { getAllAgentClientSlugs } from '@data/agent-clients.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
@@ -51,13 +52,49 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.7,
-      url: 'https://genfeed.ai/linkedin-content',
+      url: 'https://genfeed.ai/x-growth',
     },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.7,
-      url: 'https://genfeed.ai/x-growth',
+      url: 'https://genfeed.ai/linkedin-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/instagram-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/tiktok-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/youtube-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/threads-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/facebook-growth',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/pinterest-growth',
     },
     {
       changeFrequency: 'weekly',
@@ -340,6 +377,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  const agentClientChannelRoutes: MetadataRoute.Sitemap =
+    agentClientSlugs.flatMap((slug) =>
+      AGENT_CLIENT_CHANNEL_SLUGS.map((channel) => ({
+        changeFrequency: 'monthly' as const,
+        lastModified: new Date(),
+        priority: 0.6,
+        url: `https://genfeed.ai/${slug}/${channel}`,
+      })),
+    );
+
   const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
     changeFrequency: 'weekly',
     lastModified: new Date(),
@@ -414,6 +461,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const allRoutes = [
     ...staticRoutes,
     ...agentClientRoutes,
+    ...agentClientChannelRoutes,
     ...productRoutes,
     ...competitorRoutes,
     ...integrationRoutes,

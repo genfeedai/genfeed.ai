@@ -58,6 +58,22 @@ describe('AgentContent', () => {
 
     expect(claudeCommand).toHaveTextContent('https://mcp.genfeed.ai/mcp');
     expect(codexCommand).toHaveTextContent('https://mcp.genfeed.ai/mcp');
+    expect(claudeCommand).not.toHaveTextContent('Bearer');
+  });
+
+  it('links a setup guide for every agent client, including Meta Muse', () => {
+    render(<AgentContent />);
+
+    for (const [name, href] of [
+      ['Meta Muse', '/muse'],
+      ['Grok Bot', '/grok-bot'],
+      ['ChatGPT', '/chatgpt'],
+    ]) {
+      const hrefs = screen
+        .getAllByRole('link', { name })
+        .map((link) => link.getAttribute('href'));
+      expect(hrefs).toContain(href);
+    }
   });
 
   it('sends the hero to sign-up and the secondary action to developers', () => {
