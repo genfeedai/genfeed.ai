@@ -4,11 +4,22 @@ import {
   expect,
   test,
 } from '../../fixtures/auth.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const ALPHA_ORGANIZATION_ID = 'org_alpha_e2e';
 const BRAVO_ORGANIZATION_ID = 'org_bravo_e2e';
 const ROUTED_ORGANIZATION_STORAGE_KEY =
   'genfeed:routed-organization-context:v1';
+
+/**
+ * The organization switcher lives in the app rail (#5346) and renders the
+ * active organization as an initial tile; its full name is the accessible name.
+ */
+function organizationSwitcher(page: Page) {
+  return page
+    .getByTestId('desktop-app-rail')
+    .getByTestId('organization-switcher-trigger');
+}
 
 interface OrganizationContextMockOptions {
   failSwitch?: boolean;
@@ -127,15 +138,17 @@ test.describe('Routed organization context', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(
-      authenticatedPage
-        .getByTestId('desktop-sidebar-rail')
-        .getByTestId('organization-switcher-trigger'),
-    ).toContainText('Alpha Organization');
+    await expect(organizationSwitcher(authenticatedPage)).toHaveAccessibleName(
+      'Switch organization, Alpha Organization',
+    );
     await expect.poll(contextMock.getSwitchCount).toBe(1);
-    await expect
-      .poll(() => tenantRequestOrganizationIds.length)
-      .toBeGreaterThan(0);
+    // Settle first so late requests (e.g. the composer's mention prefetch)
+    // are part of the check, not only the ones that beat the assertion.
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      '/alpha/~/workspace',
+    );
+    expect(tenantRequestOrganizationIds.length).toBeGreaterThan(0);
     expect(tenantRequestOrganizationIds).toEqual(
       tenantRequestOrganizationIds.map(() => ALPHA_ORGANIZATION_ID),
     );
@@ -194,11 +207,9 @@ test.describe('Routed organization context', () => {
     await otherTab.goto('/alpha/moonrise/studio/generate', {
       waitUntil: 'domcontentloaded',
     });
-    await expect(
-      otherTab
-        .getByTestId('desktop-sidebar-rail')
-        .getByTestId('organization-switcher-trigger'),
-    ).toContainText('Alpha Organization');
+    await expect(organizationSwitcher(otherTab)).toHaveAccessibleName(
+      'Switch organization, Alpha Organization',
+    );
 
     sharedState.activeOrganizationId = BRAVO_ORGANIZATION_ID;
     await authenticatedPage.evaluate((storageKey) => {
@@ -206,13 +217,12 @@ test.describe('Routed organization context', () => {
     }, ROUTED_ORGANIZATION_STORAGE_KEY);
 
     await expect(otherTab).toHaveURL(/\/bravo\/~\/studio\/generate$/);
-    await expect(
-      otherTab
-        .getByTestId('desktop-sidebar-rail')
-        .getByTestId('organization-switcher-trigger'),
-    ).toContainText('Bravo Organization');
+    await expect(organizationSwitcher(otherTab)).toHaveAccessibleName(
+      'Switch organization, Bravo Organization',
+    );
     await expect(
       otherTab.getByText('Organization context changed'),
     ).toHaveCount(0);
+    await assertNoErrorBoundaryFallback(otherTab, '/bravo/~/studio/generate');
   });
 });
