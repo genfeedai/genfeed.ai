@@ -142,10 +142,13 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
   it('calls the extracted script from the "Resolve turbo-affected packages" step', () => {
     // The merge logic itself is covered above without touching ci.yml; this
     // only guards the wiring — that the step still invokes the script rather
-    // than a reintroduced inline copy of the algorithm.
+    // than a reintroduced inline copy of the algorithm. The step lives in the
+    // Plan job, directly before "Build spec typecheck matrix" reads its
+    // `workspaces`/`build_filters` outputs (ci throughput restructuring,
+    // #5362, moved scope resolution out of the spec-typecheck job itself).
     const workflow = readWorkflow('ci.yml');
     const match = workflow.match(
-      /\n {6}- name: Resolve turbo-affected packages\n([\s\S]+?)\n {6}- name: Spec Typecheck Guard Tests\n/,
+      /\n {6}- name: Resolve turbo-affected packages\n([\s\S]+?)\n {6}- name: Build spec typecheck matrix\n/,
     );
     expect(match?.[1]).toContain('bun run scripts/ci/spec-typecheck-scope.ts');
   });
