@@ -157,7 +157,7 @@ export default function StudioGenerateInspector({
       className="flex w-80 shrink-0 flex-col overflow-hidden border-l border-border bg-background"
       data-testid="studio-generate-inspector"
     >
-      <div className="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">
             {label}
@@ -181,6 +181,9 @@ export default function StudioGenerateInspector({
         ariaLabel={translate('inspector.title')}
         className="flex min-h-0 flex-1 flex-col"
         contentClassName="min-h-0 flex-1 overflow-y-auto px-4 py-3"
+        // Tabs sit under the header's divider with the panel's own gutter,
+        // aligned with the title instead of floating against the edge.
+        listClassName="mx-4 mt-3"
         items={[
           { id: 'recipe', label: translate('inspector.recipe') },
           { id: 'used-in', label: translate('inspector.usedIn') },

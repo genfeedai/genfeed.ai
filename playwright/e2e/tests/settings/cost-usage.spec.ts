@@ -1,3 +1,4 @@
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 const USAGE_ROUTES = [
@@ -24,8 +25,11 @@ test.describe('Usage with the default API fixtures', () => {
       await expect(
         authenticatedPage.getByRole('heading', { name: 'Usage', exact: true }),
       ).toBeVisible();
+      // A zero credit total renders through the shared credit formatter.
       await expect(
-        authenticatedPage.getByText('0 GEN', { exact: true }),
+        authenticatedPage
+          .getByText(formatCreditCost(0, { unit: 'GEN' }), { exact: true })
+          .first(),
       ).toBeVisible();
       await expect(
         authenticatedPage.getByRole('heading', {

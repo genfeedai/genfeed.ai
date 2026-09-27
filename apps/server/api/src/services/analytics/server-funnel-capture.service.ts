@@ -1,3 +1,4 @@
+import { ONBOARDING_COMPLETED_EVENT } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -85,4 +86,33 @@ export class ServerFunnelCaptureService {
 
     return configured.replace(/\/$/, '') || DEFAULT_POSTHOG_HOST;
   }
+}
+
+/**
+ * Single emission point for the `onboarding_completed` funnel event
+ * (genfeedai/genfeed.ai#4969, #5311). Every onboarding-completion surface —
+ * agent-first (`OnboardingCreditGrantsService#captureOnboardingCompletedBestEffort`)
+ * and the classic wizard (`UsersController#completeOnboardingFunnel`) —
+ * calls this same function instead of posting to PostHog independently, so
+ * there is exactly one place that can ever fire this event. Callers pass the
+ * `modifiedCount` result of their own atomic `isOnboardingCompleted: false`
+ * claim as the gate: only the caller that actually won the false->true
+ * transition should invoke this. `UsersController` cannot inject
+ * `OnboardingCreditGrantsService` directly without importing `CreditsModule`
+ * into `UsersModule`, which risks the same circular dependency
+ * `UserSetupModule` was split out to avoid — so both callers depend on this
+ * leaf-level function instead.
+ */
+export function captureOnboardingCompletedBestEffort(
+  funnelCaptureService: ServerFunnelCaptureService | undefined,
+  userId: string,
+): void {
+  if (!funnelCaptureService) {
+    return;
+  }
+
+  void funnelCaptureService.capture({
+    distinctId: userId,
+    event: ONBOARDING_COMPLETED_EVENT,
+  });
 }

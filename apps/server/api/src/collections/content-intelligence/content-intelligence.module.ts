@@ -5,6 +5,7 @@
  */
 
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
@@ -17,6 +18,7 @@ import { PatternStoreService } from '@api/collections/content-intelligence/servi
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
@@ -47,11 +49,13 @@ import { Module } from '@nestjs/common';
     AgentContextAssemblyModule,
     ApiKeysModule,
     ApifyModule,
+    BrandsCoreModule,
     ConfigModule,
     ContentPerformanceModule,
     ContentHarnessModule,
     HttpModule,
     LlmDispatcherModule,
+    MembersModule,
     PersonasCoreModule,
     TypedDecisionsModule,
   ],

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -56,6 +57,7 @@ export class TrendsController {
     private readonly modelsService: ModelsService,
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
+    private readonly apiKeysService: ApiKeysService,
   ) {}
 
   @Get()
@@ -99,23 +101,30 @@ export class TrendsController {
     @Query() query: GenerateTrendIdeasDto,
   ) {
     const organizationId = user.organizationId;
-    // #5219: generation always has an explicit brand. query.brandId, else
-    // the route/thread context (user.brandId), else the acting member's
-    // currentBrandId — never an org-wide guess.
-    const brand = await resolveGenerationBrand({
-      brandsService: this.brandsService,
-      contextBrandId: user.brandId,
+    // #5219/#5292: generation always has an explicit brand, resolved through
+    // the single API-key/MCP/session resolver: query.brandId, else (API-key
+    // caller) the key's validated defaultBrandId, else (every other caller)
+    // user.brandId — re-validated, since it can be briefly stale — else the
+    // acting member's currentBrandId. Never an org-wide guess.
+    const brandId = await resolveGenerationBrandIdForCaller({
       explicitBrandId: query.brandId,
-      membersService: this.membersService,
-      organizationId,
-      userId: user.userId ?? user.id,
+      noApiKeyDefaultBrandMessage:
+        'brandId is required to generate trend ideas. Configure a default brand for this API key, or pass brandId explicitly.',
+      noBrandMessage: 'brandId is required to generate trend ideas.',
+      services: {
+        apiKeysService: this.apiKeysService,
+        brandsService: this.brandsService,
+        membersService: this.membersService,
+      },
+      user,
     });
-    if (!brand?.id) {
-      throw new BadRequestException(
-        'brandId is required to generate trend ideas.',
-      );
-    }
-    const brandId = String(brand.id);
+    // Re-fetch the resolved brand's fields (description/label/text) for the
+    // idea-generation prompt context below — the resolver above only proves
+    // the id, not the full row.
+    const brand = await this.brandsService.findOne({
+      id: brandId,
+      organizationId,
+    });
     await assertOrganizationCreditsAvailable(
       this.creditsUtilsService,
       organizationId,
@@ -140,9 +149,11 @@ export class TrendsController {
       },
       {
         description:
-          typeof brand.description === 'string' ? brand.description : undefined,
-        label: typeof brand.label === 'string' ? brand.label : 'Brand',
-        text: typeof brand.text === 'string' ? brand.text : undefined,
+          typeof brand?.description === 'string'
+            ? brand.description
+            : undefined,
+        label: typeof brand?.label === 'string' ? brand.label : 'Brand',
+        text: typeof brand?.text === 'string' ? brand.text : undefined,
       },
     );
     finalizeDeferredTextCredits(req, billedCredits);

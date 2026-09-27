@@ -53,16 +53,17 @@ export default function NotificationInboxMenu() {
           }
         >
           <Bell aria-hidden="true" className="size-4" />
+          {/* One number per icon: the badge is unread notifications. Live
+              activity is a pulsing dot whose count is announced, not drawn. */}
           {activity.activeCount > 0 ? (
             <span
               role="status"
-              className="absolute -bottom-1 -right-1 rounded-full bg-muted px-1 text-[10px] tabular-nums text-foreground"
+              data-testid="notification-inbox-activity-dot"
+              className="absolute bottom-1 right-1 size-1.5 animate-pulse rounded-full bg-foreground/70 motion-reduce:animate-none"
               aria-label={translateActivity('activeCount', {
                 count: activity.activeCount,
               })}
-            >
-              {activity.activeCount}
-            </span>
+            />
           ) : null}
           {unreadCount ? (
             <span

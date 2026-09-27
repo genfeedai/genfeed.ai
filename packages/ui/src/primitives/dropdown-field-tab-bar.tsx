@@ -21,7 +21,7 @@ export default function DropdownTabBar({
   return (
     <div className="mb-2 border-b border-border px-3 pb-2">
       <Tabs value={activeTab} onValueChange={onTabChange}>
-        <TabsList aria-label="Option category">
+        <TabsList aria-label="Option category" className="ml-auto">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
