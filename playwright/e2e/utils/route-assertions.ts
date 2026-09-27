@@ -6,8 +6,9 @@ import { expect, type Page, type Response } from '@playwright/test';
  * Provides a single, robust "does this route render?" check used by the
  * dedicated per-area route specs. Mirrors the proven logic in
  * `e2e/tests/smoke/all-app-pages.spec.ts` so every spec asserts the same
- * health signals: real HTTP response, no framework error overlay, no redirect
- * to login, and a non-blank body.
+ * health signals: real HTTP response, no framework error overlay, no caught
+ * application ErrorBoundary fallback, no redirect to login, and a non-blank
+ * body.
  *
  * @module route-assertions
  */
@@ -82,6 +83,8 @@ export async function assertRouteRenders(
     page.locator('[data-nextjs-dialog]'),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
+
+  await assertNoErrorBoundaryFallback(page, route);
 
   if (!allowRedirectToLogin) {
     expect(page.url(), `${route} redirected to login`).not.toMatch(/\/login/);
