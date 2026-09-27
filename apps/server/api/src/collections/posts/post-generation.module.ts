@@ -1,4 +1,5 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -18,6 +19,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [
     ActivitiesModule,
+    ApiKeysModule,
     BrandsCoreModule,
     CredentialsCoreModule,
     MembersModule,
