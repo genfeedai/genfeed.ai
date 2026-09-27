@@ -1,10 +1,10 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
 import type { Article } from '@api/collections/articles/schemas/article.schema';
+import { ArticleGenerationCreditsService } from '@api/collections/articles/services/article-generation-credits.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -15,11 +15,15 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { ByokService } from '@api/services/byok/byok.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityKey,
   ArticleCategory,
   AssetScope,
+  ByokProvider,
   ModelCategory,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -32,6 +36,9 @@ describe('ArticlesOperationsController', () => {
   let controller: ArticlesOperationsController;
   let service: ArticlesService;
 
+  const mockByokService = {
+    resolveApiKey: vi.fn().mockResolvedValue(undefined),
+  };
   const articleId = testId('article');
   const activityId = testId('activity');
 
@@ -79,8 +86,8 @@ describe('ArticlesOperationsController', () => {
   };
 
   const mockActivitiesService = {
-    create: vi.fn(),
-    patch: vi.fn(),
+    record: vi.fn(),
+    update: vi.fn(),
   };
 
   const mockWebsocketService = {
@@ -132,8 +139,11 @@ describe('ArticlesOperationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesOperationsController],
       providers: [
+        ArticleGenerationCreditsService,
+        TextGenerationCreditsService,
+        { provide: ByokService, useValue: mockByokService },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: mockActivitiesService,
         },
         {
@@ -220,7 +230,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -238,6 +248,7 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         mockPublicMetadata.brand,
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -258,7 +269,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -272,13 +283,14 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         requestedBrandId,
+        undefined,
       );
-      expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
+      expect(mockActivitiesService.record).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({ brandId: requestedBrandId }),
       );
-      expect(mockActivitiesService.patch).toHaveBeenCalledWith(
-        activityId,
+      expect(mockActivitiesService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ id: activityId }),
         expect.objectContaining({
           brandId: requestedBrandId,
           key: ActivityKey.ARTICLE_GENERATED,
@@ -307,7 +319,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -325,6 +337,7 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         mockPublicMetadata.brand,
+        undefined,
       );
     });
 
@@ -402,7 +415,7 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockActivitiesService.create.mockResolvedValue({
+      mockActivitiesService.record.mockResolvedValue({
         id: activityId,
       });
       mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
@@ -439,7 +452,7 @@ describe('ArticlesOperationsController', () => {
       expect(mockModelsService.findOne).not.toHaveBeenCalled();
       expect(service.resolveArticleCycleModelConfig).not.toHaveBeenCalled();
       expect(service.generateArticles).not.toHaveBeenCalled();
-      expect(mockActivitiesService.create).not.toHaveBeenCalled();
+      expect(mockActivitiesService.record).not.toHaveBeenCalled();
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {
@@ -453,7 +466,7 @@ describe('ArticlesOperationsController', () => {
           reviewModel: 'default-text-model',
           updateModel: 'default-text-model',
         });
-        mockActivitiesService.create.mockResolvedValue({ id: activityId });
+        mockActivitiesService.record.mockResolvedValue({ id: activityId });
         mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
           undefined,
         );
@@ -483,6 +496,7 @@ describe('ArticlesOperationsController', () => {
           mockPublicMetadata.user,
           mockPublicMetadata.organization,
           'key-default-brand',
+          undefined,
         );
       });
 
@@ -510,6 +524,7 @@ describe('ArticlesOperationsController', () => {
           mockPublicMetadata.user,
           mockPublicMetadata.organization,
           'owner-current-brand',
+          undefined,
         );
       });
 
@@ -600,8 +615,49 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         'clarity',
+        undefined,
       );
       expect(result).toEqual(review);
+    });
+
+    it("forwards the org's key to the review workflow and skips the credit floor", async () => {
+      mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+        generationModel: 'anthropic/claude-sonnet-5',
+        reviewModel: 'anthropic/claude-sonnet-5',
+        updateModel: 'anthropic/claude-sonnet-5',
+      });
+      mockArticlesService.reviewArticle.mockResolvedValue({
+        billedCredits: 2,
+        review: { score: 80 },
+      });
+      mockByokService.resolveApiKey.mockResolvedValueOnce({
+        apiKey: 'org-or-key',
+      });
+      const request = {
+        creditsConfig: { amount: 0, deferred: true },
+      } as unknown as Request & {
+        creditsConfig: { isByokBypass?: boolean; amount?: number };
+      };
+
+      await controller.reviewArticle(
+        request,
+        articleId,
+        { focus: 'clarity' },
+        mockUser,
+      );
+
+      expect(service.reviewArticle).toHaveBeenCalledWith(
+        articleId,
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        'clarity',
+        { keys: { [ByokProvider.OPENROUTER]: 'org-or-key' } },
+      );
+      expect(request.creditsConfig).toMatchObject({
+        amount: 2,
+        deferred: false,
+        isByokBypass: true,
+      });
     });
   });
 });

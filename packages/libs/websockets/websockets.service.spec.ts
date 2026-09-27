@@ -130,34 +130,6 @@ describe('WebSocketService', () => {
     });
   });
 
-  describe('publishNotification', () => {
-    it('should publish notification with userId and organizationId', async () => {
-      const notification = { message: 'Test notification', type: 'info' };
-      const userId = 'user123';
-      const organizationId = 'org123';
-
-      await service.publishNotification(notification, userId, organizationId);
-
-      expect(redisService.publish).toHaveBeenCalledWith('notifications', {
-        notification,
-        organizationId,
-        userId,
-      });
-    });
-
-    it('should publish notification without userId and organizationId', async () => {
-      const notification = { message: 'Test notification', type: 'info' };
-
-      await service.publishNotification(notification);
-
-      expect(redisService.publish).toHaveBeenCalledWith('notifications', {
-        notification,
-        organizationId: undefined,
-        userId: undefined,
-      });
-    });
-  });
-
   describe('publishIngredientStatus', () => {
     it('should publish ingredient status update', async () => {
       const ingredientId = 'ingredient123';

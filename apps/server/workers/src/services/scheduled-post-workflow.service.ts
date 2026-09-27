@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   buildScheduledPostFailureWorkflowDefinition,
@@ -12,6 +10,7 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublishApprovalsService, type PublishResult } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -39,7 +38,7 @@ type ScheduledPostClaim = {
 @Injectable()
 export class ScheduledPostWorkflowService implements OnModuleInit {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly deliveryService: ScheduledPostDeliveryService,
     private readonly discoveryService: ScheduledPostDiscoveryService,
     private readonly executionGuard: ScheduledPostExecutionGuardService,
@@ -249,29 +248,19 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     post: PostEntity,
     result: PublishResult,
   ): Promise<void> {
-    const activityId = `post-published:${post.id}`;
-    const existing = await this.activitiesService.findOne({
-      id: activityId,
-      isDeleted: false,
-    });
-    if (existing) {
-      return;
-    }
-
     try {
-      await this.activitiesService.create(
-        new ActivityEntity({
-          id: activityId,
-          brandId: readPostString(post, ['brandId']) ?? undefined,
-          entityId: post.id,
-          entityModel: ActivityEntityModel.POST,
-          key: ActivityKey.POST_PUBLISHED,
-          organizationId: readPostString(post, ['organizationId']) ?? undefined,
-          source: ActivitySource.POST,
-          userId: readPostString(post, ['userId']) ?? undefined,
-          value: `Published to ${result.platform}: ${result.url}`,
-        }),
-      );
+      // The deterministic id makes a replayed finalization a no-op.
+      await this.activityRecorder.record({
+        brandId: readPostString(post, ['brandId']) ?? null,
+        entityId: post.id,
+        entityModel: ActivityEntityModel.POST,
+        id: `post-published:${post.id}`,
+        key: ActivityKey.POST_PUBLISHED,
+        organizationId: readPostString(post, ['organizationId']) ?? null,
+        source: ActivitySource.POST,
+        userId: readPostString(post, ['userId']) ?? null,
+        value: `Published to ${result.platform}: ${result.url}`,
+      });
     } catch (error: unknown) {
       if (!this.isUniqueConflict(error)) {
         throw error;

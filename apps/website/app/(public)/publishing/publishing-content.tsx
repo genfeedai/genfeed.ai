@@ -333,7 +333,7 @@ export default function PublishingContent() {
         {/*  Pricing CTA                                              */}
         {/* -------------------------------------------------------- */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-12 text-center">
+          <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">
               <Rocket className="size-8 text-surface" />
             </div>

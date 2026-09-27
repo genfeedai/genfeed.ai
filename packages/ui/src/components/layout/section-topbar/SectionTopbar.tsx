@@ -75,8 +75,13 @@ export default function SectionTopbar({
           className={cn(
             // 48px like the app topbar and inspector header, so dividers line
             // up across columns; also keeps forced-visible empty bars (loading
-            // / error states) the height of a populated row.
-            'flex min-h-12 w-full items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
+            // / error states) the height of a populated row. `flex-wrap`: a
+            // busy header (leading search + a full actions cluster) can
+            // exceed the row's width once the workspace inspector reserves
+            // its own column — without it, `tabs`' `min-w-0` absorbs all the
+            // overflow and can collapse to 0px (#5400), hiding the tabs
+            // entirely instead of dropping them to their own line.
+            'flex min-h-12 w-full flex-wrap items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
             !hasLeading && !hasTabs && hasActions && 'justify-end',
           )}
         >

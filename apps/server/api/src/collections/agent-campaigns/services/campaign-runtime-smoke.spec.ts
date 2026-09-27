@@ -1,5 +1,6 @@
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -132,6 +133,7 @@ describe('campaign → runtime → thread snapshot smoke', () => {
         organizationId,
         userId,
       }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({

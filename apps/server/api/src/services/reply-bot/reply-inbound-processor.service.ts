@@ -21,6 +21,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type InboundPreparation = {
@@ -65,7 +66,10 @@ export class ReplyInboundProcessorService implements OnModuleInit {
         trigger: WorkflowExecutionTrigger.EVENT,
       },
       `reply-inbound-${data.organizationId}-${data.commentId}`,
-      { replaceTerminalJob: true },
+      {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
     return { jobId };
   }

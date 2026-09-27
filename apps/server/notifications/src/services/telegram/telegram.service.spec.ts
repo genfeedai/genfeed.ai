@@ -179,100 +179,10 @@ describe('TelegramService', () => {
         values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
       });
 
-      await service.sendMessage('chat-1', 'hello');
+      await expect(service.sendMessage('chat-1', 'hello')).rejects.toThrow();
 
       expect(mockLoggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to send message to chat-1'),
-        expect.any(Error),
-        expect.any(Object),
-      );
-    });
-  });
-
-  describe('sendPhoto', () => {
-    it('should warn and skip when bot is not initialized', async () => {
-      const service = await createService({ isEnabled: false });
-
-      await service.sendPhoto('chat-1', 'https://cdn/img.png', 'caption');
-
-      expect(mockSendPhoto).not.toHaveBeenCalled();
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Bot not initialized'),
-        expect.any(Object),
-      );
-    });
-
-    it('should send a photo with caption via the bot api', async () => {
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
-
-      await service.sendPhoto('chat-1', 'https://cdn/img.png', 'caption');
-
-      expect(mockSendPhoto).toHaveBeenCalledWith(
-        'chat-1',
-        'https://cdn/img.png',
-        { caption: 'caption', parse_mode: 'Markdown' },
-      );
-    });
-
-    it('should log error when photo send fails', async () => {
-      mockSendPhoto.mockRejectedValueOnce(new Error('network'));
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
-
-      await service.sendPhoto('chat-1', 'https://cdn/img.png');
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to send photo to chat-1'),
-        expect.any(Error),
-        expect.any(Object),
-      );
-    });
-  });
-
-  describe('sendVideo', () => {
-    it('should warn and skip when bot is not initialized', async () => {
-      const service = await createService({ isEnabled: false });
-
-      await service.sendVideo('chat-1', 'https://cdn/vid.mp4');
-
-      expect(mockSendVideo).not.toHaveBeenCalled();
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Bot not initialized'),
-        expect.any(Object),
-      );
-    });
-
-    it('should send a video with caption via the bot api', async () => {
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
-
-      await service.sendVideo('chat-1', 'https://cdn/vid.mp4', 'caption');
-
-      expect(mockSendVideo).toHaveBeenCalledWith(
-        'chat-1',
-        'https://cdn/vid.mp4',
-        { caption: 'caption', parse_mode: 'Markdown' },
-      );
-    });
-
-    it('should log error when video send fails', async () => {
-      mockSendVideo.mockRejectedValueOnce(new Error('network'));
-      const service = await createService({
-        isEnabled: true,
-        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
-      });
-
-      await service.sendVideo('chat-1', 'https://cdn/vid.mp4');
-
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to send video to chat-1'),
         expect.any(Error),
         expect.any(Object),
       );

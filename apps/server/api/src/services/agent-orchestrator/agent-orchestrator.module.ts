@@ -47,6 +47,7 @@ import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
@@ -156,6 +157,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    ActivityRecordingModule,
     MediaPromptEnhancementModule,
     AgentSourceIngestModule,
     ContextsModule,

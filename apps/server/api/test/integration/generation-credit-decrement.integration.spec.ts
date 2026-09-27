@@ -207,8 +207,8 @@ const createImageGenerationService = () => {
     }),
     patch: vi.fn().mockResolvedValue(undefined),
   };
-  const activitiesService = {
-    create: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
+  const activityRecorder = {
+    record: vi.fn().mockResolvedValue({ id: 'act' }),
   };
   const websocketService = {
     publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
@@ -274,7 +274,7 @@ const createImageGenerationService = () => {
     recordGenerationCost: vi.fn().mockResolvedValue(undefined),
   };
   const providerDispatchService = new ImageGenerationProviderDispatchService(
-    activitiesService as never,
+    activityRecorder as never,
     failedGenerationService as never,
     filesClientService as never,
     generationEventWebhookService as never,

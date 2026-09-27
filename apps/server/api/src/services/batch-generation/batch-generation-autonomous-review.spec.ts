@@ -1,7 +1,7 @@
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import type { BatchItemFull } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
-import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentPublishDecision,
@@ -16,9 +16,12 @@ import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
+const reviewActivity = { key: 'agent-review-expired' };
 vi.mock(
-  '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service',
-  () => ({ recordAgentReviewOutcome: vi.fn().mockResolvedValue('delivery-1') }),
+  '@api/services/notifications/workflow-notifications/workflow-outcome-activity',
+  () => ({
+    buildAgentReviewActivity: vi.fn(async () => reviewActivity),
+  }),
 );
 
 function fixture() {
@@ -136,6 +139,7 @@ function fixture() {
       result: { decision: AgentPublishDecision.DENIED },
     })),
   };
+  const activityRecorder = { recordInTransaction: vi.fn() };
   const service = new BatchGenerationReviewService(
     prisma as unknown as ConstructorParameters<
       typeof BatchGenerationReviewService
@@ -160,8 +164,12 @@ function fixture() {
     policy as unknown as ConstructorParameters<
       typeof BatchGenerationReviewService
     >[6],
+    activityRecorder as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[7],
   );
   return {
+    activityRecorder,
     service,
     updateUnrelatedBatch: () => {
       batchUpdatedAt = new Date('2026-09-27T00:00:00Z');
@@ -186,6 +194,9 @@ describe('Autonomous review transaction boundary', () => {
     f.current().post.reviewDecision = PersistedReviewDecision.APPROVED;
     const realPolicy = new AutonomousPublishPolicyService(
       f.tx as unknown as PrismaService,
+      f.activityRecorder as unknown as ConstructorParameters<
+        typeof AutonomousPublishPolicyService
+      >[1],
     );
     f.policy.recordReviewDecision.mockImplementation((input, transaction) =>
       realPolicy.recordReviewDecision(input, transaction),
@@ -308,9 +319,14 @@ describe('Autonomous review transaction boundary', () => {
       targetExecutionState: TargetExecutionState.CANCELLED,
     });
     expect(f.current().item.reviewFeedback).toContain('expired');
-    expect(recordAgentReviewOutcome).toHaveBeenCalledWith(
+    expect(buildAgentReviewActivity).toHaveBeenCalledWith(
       f.tx,
       expect.objectContaining({ expired: true, postId: 'post-1' }),
+    );
+    // Recorded inside the batch transaction, so it commits with the expiry.
+    expect(f.activityRecorder.recordInTransaction).toHaveBeenCalledWith(
+      f.tx,
+      reviewActivity,
     );
   });
   it('preserves interactive drafts without an autonomous origin and respects a configured review window', async () => {

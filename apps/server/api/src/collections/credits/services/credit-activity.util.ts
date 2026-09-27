@@ -1,20 +1,27 @@
 import {
   getActionOriginContext,
-  withActionOriginMetadata,
+  runWithActionOrigin,
 } from '@api/action-origin/action-origin.context';
+import {
+  type RecordingClient,
+  recordActivityInTransaction,
+} from '@api/services/activity-recording/activity-recording.core';
 import {
   CreditTransactionCategory,
   getCreditActivityKey,
 } from '@genfeedai/contracts';
-import {
-  type CreditTransaction,
-  type Prisma,
-  toPrismaJson,
-} from '@genfeedai/prisma';
+import type { CreditTransaction, Prisma } from '@genfeedai/prisma';
 
-/** Persist alongside the ledger so rollback and replay cannot create false charges. */
+export type CreditActivityClient = RecordingClient &
+  Pick<Prisma.TransactionClient, 'brand'>;
+
+/**
+ * Persist alongside the ledger so rollback and replay cannot create false
+ * charges. Recorded through the recording API inside the ledger transaction;
+ * credit history keys raise no alert, so there is no post-commit effect.
+ */
 export async function recordCreditTransactionActivity(
-  tx: Pick<Prisma.TransactionClient, 'activity' | 'brand'>,
+  tx: CreditActivityClient,
   transaction: CreditTransaction,
 ): Promise<void> {
   const key = getCreditActivityKey(transaction.category);
@@ -46,34 +53,28 @@ export async function recordCreditTransactionActivity(
     : null;
   const context = getActionOriginContext();
   const actorUserId = transaction.actorUserId ?? context.actorUserId;
-  await tx.activity.create({
-    data: {
-      id: `credit-transaction:${transaction.id}`,
-      organizationId: transaction.organizationId,
-      brandId: brand?.id ?? null,
-      userId: actorUserId ?? null,
-      entityId: transaction.id,
-      entityModel: 'CreditTransaction',
-      action: key,
-      data: toPrismaJson(
-        withActionOriginMetadata(
-          {
-            key,
-            isRead: false,
-            source: transaction.source ?? 'system',
-            value: JSON.stringify({
-              category: transaction.category,
-              description: transaction.description,
-              transactionId: transaction.id,
-              value:
-                transaction.category === CreditTransactionCategory.BYOK_USAGE
-                  ? 0
-                  : transaction.amount,
-            }),
-          },
-          { ...context, ...(actorUserId ? { actorUserId } : {}) },
-        ),
-      ),
-    },
-  });
+  await runWithActionOrigin(
+    { ...context, ...(actorUserId ? { actorUserId } : {}) },
+    () =>
+      recordActivityInTransaction(tx, {
+        brandId: brand?.id ?? null,
+        entityId: transaction.id,
+        entityModel: 'CreditTransaction',
+        id: `credit-transaction:${transaction.id}`,
+        isRead: false,
+        key,
+        organizationId: transaction.organizationId,
+        source: transaction.source ?? 'system',
+        userId: actorUserId ?? null,
+        value: JSON.stringify({
+          category: transaction.category,
+          description: transaction.description,
+          transactionId: transaction.id,
+          value:
+            transaction.category === CreditTransactionCategory.BYOK_USAGE
+              ? 0
+              : transaction.amount,
+        }),
+      }),
+  );
 }

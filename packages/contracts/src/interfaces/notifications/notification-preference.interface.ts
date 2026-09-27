@@ -11,10 +11,19 @@ export const PRODUCT_EMAIL_TOPICS = [
 ] as const;
 export type ProductEmailTopic = (typeof PRODUCT_EMAIL_TOPICS)[number];
 export const SOCIAL_REPLY_NOTIFICATION_TOPIC = 'social.reply' as const;
+/** In-app alert topics raised by the activity alert policy (#5197). */
+export const ALERT_ONLY_NOTIFICATION_TOPICS = [
+  'publishing.status',
+  'integration.status',
+  'approval.requests',
+  'trends.summary',
+  'operator.alerts',
+] as const;
 export const NOTIFICATION_TOPICS = [
   'workflow.status',
   'agent.status',
   SOCIAL_REPLY_NOTIFICATION_TOPIC,
+  ...ALERT_ONLY_NOTIFICATION_TOPICS,
   ...PRODUCT_EMAIL_TOPICS,
 ] as const;
 export const PRODUCT_EMAIL_PREFERENCES = [
@@ -75,8 +84,9 @@ export function defaultProductEmailPreference(topic: string): boolean {
 export type NotificationTopic = (typeof NOTIFICATION_TOPICS)[number];
 
 /**
- * In-app (notification inbox) topics. No stored preference row means the
- * default below applies; an explicit disabled row opts the user out.
+ * In-app (notification inbox) topics with a user-facing toggle. No stored
+ * preference row means the default below applies; an explicit disabled row
+ * opts the user out. Every other alert topic is on by default.
  */
 export const IN_APP_NOTIFICATION_PREFERENCES = [
   {
@@ -91,7 +101,7 @@ export const IN_APP_NOTIFICATION_PREFERENCES = [
 export function defaultInAppNotificationPreference(topic: string): boolean {
   return (
     IN_APP_NOTIFICATION_PREFERENCES.find((entry) => entry.topic === topic)
-      ?.isDefaultEnabled ?? false
+      ?.isDefaultEnabled ?? true
   );
 }
 

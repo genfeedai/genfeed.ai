@@ -295,7 +295,7 @@ export default function AboutContent() {
           <SectionHeader
             title="What Genfeed does"
             description="One workspace for making content, posting it, and learning what works."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={3} className="gsap-grid">
@@ -314,7 +314,7 @@ export default function AboutContent() {
         <WebSection bg="bordered" maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What makes Genfeed different"
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={2}>
@@ -329,7 +329,10 @@ export default function AboutContent() {
         </WebSection>
 
         <WebSection maxWidth="md" className="gsap-section">
-          <SectionHeader title="Who uses Genfeed" className="[&_h2]:text-5xl" />
+          <SectionHeader
+            title="Who uses Genfeed"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+          />
 
           <ul className="space-y-3">
             {AUDIENCES.map((item) => (
@@ -346,7 +349,7 @@ export default function AboutContent() {
         <WebSection bg="bordered" maxWidth="lg" className="gsap-section">
           <SectionHeader
             title="The team behind Genfeed"
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={2}>
@@ -381,7 +384,7 @@ export default function AboutContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="How Genfeed works"
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={4}>
@@ -397,7 +400,10 @@ export default function AboutContent() {
         </WebSection>
 
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
-          <SectionHeader title="Key facts" className="[&_h2]:text-5xl" />
+          <SectionHeader
+            title="Key facts"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
+          />
 
           <DefinitionList className="space-y-0 divide-y divide-edge/5 border-y border-edge/5">
             {KEY_FACTS.map((fact) => (
@@ -419,7 +425,7 @@ export default function AboutContent() {
         <WebSection maxWidth="md" className="gsap-section">
           <SectionHeader
             title="Frequently asked questions"
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <FaqGrid items={[...FAQ_ITEMS]} />

@@ -52,3 +52,27 @@ export enum ReferenceImageCategory {
   STYLE = 'STYLE',
   LOGO = 'LOGO',
 }
+
+/**
+ * Lifecycle of a background Review batch rewrite (#5365). Not persisted in
+ * Postgres: the BullMQ job state is the source of truth, so these are API wire
+ * values only.
+ */
+export enum BatchRewriteJobStatus {
+  QUEUED = 'queued',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  PARTIALLY_FAILED = 'partially_failed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
+
+/** Why one item of a background batch rewrite was not rewritten. */
+export enum BatchRewriteItemFailureReason {
+  /** The draft changed after the rewrite was queued (per-post optimistic lock). */
+  CONFLICT = 'conflict',
+  INSUFFICIENT_CREDITS = 'insufficient_credits',
+  /** Published, publishing, skipped, cancelled, or no longer in the batch. */
+  NOT_REWRITABLE = 'not_rewritable',
+  GENERATION_FAILED = 'generation_failed',
+}

@@ -55,76 +55,26 @@ export class TelegramService {
     }
   }
 
-  public async sendMessage(chatId: string, text: string): Promise<void> {
+  public async sendMessage(chatId: string, text: string): Promise<boolean> {
     const url = `${TelegramService.name} ${CallerUtil.getCallerName()}`;
 
     if (!this.bot) {
       this.loggerService.warn(`${url} Bot not initialized`, this.context);
-      return;
+      return false;
     }
 
     try {
       await this.bot.api.sendMessage(chatId, text, {
         parse_mode: ParseMode.MARKDOWN,
       });
+      return true;
     } catch (error: unknown) {
       this.loggerService.error(
         `${url} Failed to send message to ${chatId}`,
         error,
         this.context,
       );
-    }
-  }
-
-  public async sendPhoto(
-    chatId: string,
-    photoUrl: string,
-    caption?: string,
-  ): Promise<void> {
-    const url = `${TelegramService.name} ${CallerUtil.getCallerName()}`;
-
-    if (!this.bot) {
-      this.loggerService.warn(`${url} Bot not initialized`, this.context);
-      return;
-    }
-
-    try {
-      await this.bot.api.sendPhoto(chatId, photoUrl, {
-        caption,
-        parse_mode: ParseMode.MARKDOWN,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} Failed to send photo to ${chatId}`,
-        error,
-        this.context,
-      );
-    }
-  }
-
-  public async sendVideo(
-    chatId: string,
-    videoUrl: string,
-    caption?: string,
-  ): Promise<void> {
-    const url = `${TelegramService.name} ${CallerUtil.getCallerName()}`;
-
-    if (!this.bot) {
-      this.loggerService.warn(`${url} Bot not initialized`, this.context);
-      return;
-    }
-
-    try {
-      await this.bot.api.sendVideo(chatId, videoUrl, {
-        caption,
-        parse_mode: ParseMode.MARKDOWN,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} Failed to send video to ${chatId}`,
-        error,
-        this.context,
-      );
+      throw error;
     }
   }
 }

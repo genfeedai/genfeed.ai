@@ -55,4 +55,10 @@ export interface CreditsConfig {
    * for the call can never disagree.
    */
   byokApiKeyOverride?: string;
+  /**
+   * The caller reserves and settles per unit of work itself (a background job
+   * that bills each completed item), so admission checks the balance without
+   * placing a request-level hold.
+   */
+  isReservationDeferred?: boolean;
 }

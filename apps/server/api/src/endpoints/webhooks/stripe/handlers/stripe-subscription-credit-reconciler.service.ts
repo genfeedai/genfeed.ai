@@ -435,8 +435,8 @@ export class StripeSubscriptionCreditReconcilerService {
   private async recordCreditsActivity(
     context: SubscriptionCreditReconciliationContext,
   ): Promise<void> {
+    // Subscription credits belong to the organization, not a brand.
     await this.supportService.recordCreditsActivity({
-      brandId: context.organizationId,
       key:
         context.subscription.plan === SubscriptionPlan.MONTHLY
           ? ActivityKey.CREDITS_ADD

@@ -150,7 +150,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         }
         heroVisual={
           <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-            <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-2xs font-bold uppercase tracking-[0.14em] text-surface/45">
+            <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-surface/60">
               Connect your agent
             </p>
             <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">
@@ -263,12 +263,14 @@ export default function DevelopersLandingPage(): React.ReactElement {
           </Heading>
           <div className="gsap-grid grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
             {agentClients.map((client) => (
+              // The link's ::after covers the card, so the whole card is the
+              // tap target while the link's name stays the client's name.
               <div
                 key={client.slug}
-                className="gsap-card gen-card-spotlight p-6"
+                className="gsap-card gen-card-spotlight relative p-6"
               >
                 <Link
-                  className="text-sm font-semibold text-surface transition-colors hover:text-primary"
+                  className="text-sm font-semibold text-surface transition-colors after:absolute after:inset-0 hover:text-primary"
                   href={`/${client.slug}`}
                 >
                   {client.name}
@@ -291,7 +293,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
 
         {/* Final CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="gen-card-spotlight p-12 text-center">
+          <div className="gen-card-spotlight p-6 text-center sm:p-12">
             <div className="flex justify-center mb-4">
               <Terminal className="size-8 text-surface" />
             </div>

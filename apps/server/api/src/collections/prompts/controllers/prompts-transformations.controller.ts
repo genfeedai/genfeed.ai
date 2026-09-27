@@ -17,6 +17,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { resolveTextModelMinimumCredits } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PromptSerializer } from '@genfeedai/serializers';
@@ -42,6 +43,7 @@ export class PromptsTransformationsController {
     readonly loggerService: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly promptTransformationService: PromptTransformationService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
   ) {}
 
   @Post('parse')
@@ -100,7 +102,14 @@ export class PromptsTransformationsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const { model, prompt } =
-      await this.promptTransformationService.enhanceExisting(promptId, user);
+      await this.promptTransformationService.enhanceExisting(
+        promptId,
+        user,
+        this.textGenerationCreditsService.deferredKeyResolver(
+          request,
+          user.organizationId,
+        ),
+      );
     finalizeDeferredTextCredits(
       request,
       await resolveTextModelMinimumCredits(this.modelsService, model),

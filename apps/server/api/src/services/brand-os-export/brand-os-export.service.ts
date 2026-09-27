@@ -1,8 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
+import { recordActivityInTransaction } from '@api/services/activity-recording/activity-recording.core';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { ActivityKey, ActivitySource, MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandOsDesignArtifact,
   IBrandOsExportState,
@@ -175,7 +176,12 @@ export class BrandOsExportService {
     });
     if (!revision) throw new NotFoundException({ message: 'Not found' });
     const artifact = this.artifact(revision, 'private');
-    await this.audit('brand_os.export.download', user, brandId, revision.id);
+    await this.audit(
+      ActivityKey.BRAND_OS_EXPORT_DOWNLOAD,
+      user,
+      brandId,
+      revision.id,
+    );
     return artifact;
   }
 
@@ -238,7 +244,7 @@ export class BrandOsExportService {
         },
       });
       await this.audit(
-        'brand_os.export.publish',
+        ActivityKey.BRAND_OS_EXPORT_PUBLISH,
         user,
         brandId,
         revisionId,
@@ -267,7 +273,7 @@ export class BrandOsExportService {
       });
       if (result.count)
         await this.audit(
-          'brand_os.export.revoke',
+          ActivityKey.BRAND_OS_EXPORT_REVOKE,
           user,
           brandId,
           undefined,
@@ -320,14 +326,14 @@ export class BrandOsExportService {
     } catch {
       throw new NotFoundException({ message: 'Not found' });
     }
-    await this.prisma.activity.create({
-      data: {
-        action: 'brand_os.export.public_read',
-        brandId: publication.brandId,
-        entityId: revision.id,
-        entityModel: 'BrandOsRevision',
-        organizationId: publication.organizationId,
-      },
+    // Audit history only: the key raises no alert, so nothing runs after commit.
+    await recordActivityInTransaction(this.prisma, {
+      brandId: publication.brandId,
+      entityId: revision.id,
+      entityModel: 'BrandOsRevision',
+      key: ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ,
+      organizationId: publication.organizationId,
+      source: ActivitySource.BRAND_OS_EXPORT,
     });
     return artifact;
   }
@@ -370,21 +376,21 @@ export class BrandOsExportService {
     if (!rows.length) throw new NotFoundException({ message: 'Not found' });
   }
   private async audit(
-    event: string,
+    event: ActivityKey,
     user: AuthenticatedUser,
     brandId: string,
     revisionId?: string,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    await tx.activity.create({
-      data: {
-        action: event,
-        brandId,
-        entityId: revisionId ?? brandId,
-        entityModel: 'BrandOsRevision',
-        organizationId: user.organizationId,
-        userId: user.userId,
-      },
+    // Audit history only: the keys raise no alert, so nothing runs after commit.
+    await recordActivityInTransaction(tx, {
+      brandId,
+      entityId: revisionId ?? brandId,
+      entityModel: 'BrandOsRevision',
+      key: event,
+      organizationId: user.organizationId,
+      source: ActivitySource.BRAND_OS_EXPORT,
+      userId: user.userId,
     });
     this.logger.log(event, {
       actorId: user.userId,

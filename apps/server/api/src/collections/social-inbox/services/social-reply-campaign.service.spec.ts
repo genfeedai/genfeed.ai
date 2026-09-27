@@ -6,6 +6,7 @@ import {
   SocialReplyCampaignRecipientStatus,
   SocialReplyCampaignStatus,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BadRequestException } from '@nestjs/common';
 
 type StoreCampaign = Record<string, unknown> & {
@@ -390,7 +391,10 @@ describe('SocialReplyCampaignService', () => {
           },
         }),
         `social-reply-campaign-${campaign.id}-1`,
-        { replaceTerminalJob: true },
+        {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+          replaceTerminalJob: true,
+        },
       );
     });
 
@@ -463,7 +467,10 @@ describe('SocialReplyCampaignService', () => {
           },
         }),
         `social-reply-campaign-${campaign.id}-2`,
-        { replaceTerminalJob: true },
+        {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+          replaceTerminalJob: true,
+        },
       );
     });
 

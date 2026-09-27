@@ -12,6 +12,11 @@ import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import {
+  type TextByokDispatch,
+  textDispatchApiKey,
+} from '@api/services/byok/text-dispatch-byok.util';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { ActivitySource, KnowledgeBaseCategory } from '@genfeedai/contracts';
 import type {
@@ -60,6 +65,7 @@ export class MasterPromptGeneratorService {
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
     private readonly loggerService: LoggerService,
+    private readonly textGenerationCreditsService: TextGenerationCreditsService,
   ) {}
 
   /**
@@ -84,11 +90,15 @@ export class MasterPromptGeneratorService {
         temperature: 0.7,
       };
 
-      await this.assertBrandProfileCreditsAvailable(billingContext);
+      const byok = await this.resolveByok(billingContext);
+      if (!byok) {
+        await this.assertBrandProfileCreditsAvailable(billingContext);
+      }
 
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
+        textDispatchApiKey(byok, DEFAULT_TEXT_MODEL),
       );
 
       if (!content) {
@@ -96,7 +106,9 @@ export class MasterPromptGeneratorService {
       }
 
       const analysis = parseGeneratedBrandProfile(content);
-      await this.settleBrandProfileCredits(billingContext);
+      if (!byok) {
+        await this.settleBrandProfileCredits(billingContext);
+      }
 
       this.loggerService.log(`${caller} completed`, { analysis });
 
@@ -157,18 +169,24 @@ export class MasterPromptGeneratorService {
         temperature: 0.7,
       };
 
-      await this.assertCreditsAvailable(billingContext);
+      const byok = await this.resolveByok(billingContext);
+      if (!byok) {
+        await this.assertCreditsAvailable(billingContext);
+      }
 
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
+        textDispatchApiKey(byok, DEFAULT_TEXT_MODEL),
       );
 
       if (!content) {
         throw new Error('No response from Replicate');
       }
 
-      await this.settleCredits(billingContext, input, content);
+      if (!byok) {
+        await this.settleCredits(billingContext, input, content);
+      }
 
       // Extract JSON from response (may contain markdown code blocks)
       const jsonMatch = content.match(/[[{][\s\S]*[\]}]/);
@@ -294,6 +312,23 @@ export class MasterPromptGeneratorService {
         'Reference for maintaining consistent tone.',
       ),
     ];
+  }
+
+  /**
+   * The single BYOK decision for a billed generation (#5380): the org's own
+   * key pays and nothing is charged. Unbilled calls stay on the platform key.
+   */
+  private async resolveByok(billingContext?: {
+    organizationId: string;
+    userId: string;
+  }): Promise<TextByokDispatch | undefined> {
+    if (!billingContext) {
+      return undefined;
+    }
+    return this.textGenerationCreditsService.resolveDispatch(
+      billingContext.organizationId,
+      [DEFAULT_TEXT_MODEL],
+    );
   }
 
   private async assertCreditsAvailable(billingContext?: {

@@ -7,7 +7,6 @@ import {
   type CreditsGuardRequest,
 } from '@api/helpers/guards/credits/credits.guard';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
-import { BatchAction } from '@api/services/batch-generation/dto/batch-action.dto';
 import type { ByokService } from '@api/services/byok/byok.service';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -16,9 +15,9 @@ import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('BatchRewriteCreditsGuard reservation handoff', () => {
+describe('BatchRewriteCreditsGuard admission', () => {
   it.each([false, true])(
-    'preserves real admission pricing and reservation on the original request (JSON:API: %s)',
+    'prices every distinct item and checks the balance without holding credits (JSON:API: %s)',
     async (isJsonApi) => {
       const credits = {
         checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
@@ -53,7 +52,6 @@ describe('BatchRewriteCreditsGuard reservation handoff', () => {
         { get: vi.fn() } as unknown as ConfigService,
       );
       const attributes = {
-        action: BatchAction.REWRITE,
         itemIds: ['item-1', 'item-2', 'item-1'],
         model: 'untrusted-model',
         outputs: 99,
@@ -71,22 +69,47 @@ describe('BatchRewriteCreditsGuard reservation handoff', () => {
       expect(models.findOne).toHaveBeenCalledWith({
         key: baseModelKey(DEFAULT_MINI_TEXT_MODEL),
       });
-      expect(credits.reserveCredits).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amount: 2,
-          actorUserId: 'user-1',
-          organizationId: 'org-1',
-        }),
+      expect(credits.checkOrganizationCreditsAvailable).toHaveBeenCalledWith(
+        'org-1',
+        2,
       );
+      // The background job reserves and settles each item itself.
+      expect(credits.reserveCredits).not.toHaveBeenCalled();
       expect(request.creditsConfig).toMatchObject({
         amount: 2,
+        isReservationDeferred: true,
         modelKey: DEFAULT_MINI_TEXT_MODEL,
-        reservationId: 'rewrite-reservation',
         source: ActivitySource.POST_ENHANCEMENT,
       });
+      expect(request.creditsConfig?.reservationId).toBeUndefined();
       expect(request.body).toEqual(
         isJsonApi ? { data: { attributes } } : attributes,
       );
+    },
+  );
+
+  it.each([
+    [[]],
+    [Array.from({ length: 101 }, (_, index) => `item-${index}`)],
+    [[1]],
+  ])(
+    'rejects an out-of-range selection before pricing it (%#)',
+    async (itemIds) => {
+      const admit = vi.fn();
+      const request = {
+        body: { itemIds },
+        user: { id: 'user-1', userId: 'user-1', organizationId: 'org-1' },
+      } as unknown as CreditsGuardRequest;
+      const context = {
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+
+      await expect(
+        new BatchRewriteCreditsGuard({
+          admit,
+        } as unknown as CreditsGuard).canActivate(context),
+      ).rejects.toThrow('Select between 1 and 100 batch items');
+      expect(admit).not.toHaveBeenCalled();
     },
   );
 });

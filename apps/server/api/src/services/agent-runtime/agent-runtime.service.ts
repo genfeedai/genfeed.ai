@@ -26,45 +26,48 @@ export class AgentRuntimeService {
   ): Promise<IAgentRuntimeTurnHandle> {
     const threadId =
       input.threadId ?? (await this.createThreadForTurn(input)).id;
-    const { executionId } = await this.workflowRunner.enqueueWorkflow({
-      actionType: AGENT_TURN_WORKFLOW_ID,
-      canonicalId: AGENT_TURN_WORKFLOW_ID,
-      ...(typeof input.metadata?.clientRequestId === 'string'
-        ? {
-            idempotencyKey: [
-              AGENT_TURN_WORKFLOW_ID,
-              input.organizationId,
-              input.userId,
-              input.metadata.clientRequestId,
-            ].join(':'),
-          }
-        : {}),
-      inputValues: {
-        request: {
-          content: input.objective,
-          strategyId: input.strategyId,
-          threadId,
-          ...(input.agentType ? { agentType: input.agentType } : {}),
-          ...(input.autonomyMode ? { autonomyMode: input.autonomyMode } : {}),
-          ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
-          ...(input.campaignId ? { campaignId: input.campaignId } : {}),
-          ...(input.creditBudget !== undefined
-            ? { creditBudget: input.creditBudget }
-            : {}),
-          ...(input.model ? { model: input.model } : {}),
+    const { executionId } = await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: AGENT_TURN_WORKFLOW_ID,
+        canonicalId: AGENT_TURN_WORKFLOW_ID,
+        ...(typeof input.metadata?.clientRequestId === 'string'
+          ? {
+              idempotencyKey: [
+                AGENT_TURN_WORKFLOW_ID,
+                input.organizationId,
+                input.userId,
+                input.metadata.clientRequestId,
+              ].join(':'),
+            }
+          : {}),
+        inputValues: {
+          request: {
+            content: input.objective,
+            strategyId: input.strategyId,
+            threadId,
+            ...(input.agentType ? { agentType: input.agentType } : {}),
+            ...(input.autonomyMode ? { autonomyMode: input.autonomyMode } : {}),
+            ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
+            ...(input.campaignId ? { campaignId: input.campaignId } : {}),
+            ...(input.creditBudget !== undefined
+              ? { creditBudget: input.creditBudget }
+              : {}),
+            ...(input.model ? { model: input.model } : {}),
+          },
         },
+        metadata: {
+          ...(input.metadata ?? {}),
+          ...(input.campaignId ? { campaignId: input.campaignId } : {}),
+          label: input.label,
+          source: input.campaignId ? 'campaign' : 'runtime',
+          threadId,
+        },
+        organizationId: input.organizationId,
+        source: 'AgentRuntimeService.startTurn',
+        userId: input.userId,
       },
-      metadata: {
-        ...(input.metadata ?? {}),
-        ...(input.campaignId ? { campaignId: input.campaignId } : {}),
-        label: input.label,
-        source: input.campaignId ? 'campaign' : 'runtime',
-        threadId,
-      },
-      organizationId: input.organizationId,
-      source: 'AgentRuntimeService.startTurn',
-      userId: input.userId,
-    });
+      { dispatchClass: input.dispatchClass },
+    );
 
     await this.appendTurnRequestedBestEffort({
       executionId,

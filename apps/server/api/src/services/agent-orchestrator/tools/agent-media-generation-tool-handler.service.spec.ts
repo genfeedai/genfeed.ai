@@ -3,6 +3,7 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler() {
@@ -1166,6 +1167,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
         organizationId: 'organization-1',
         userId: 'user-1',
       }),
+      SystemWorkflowDispatchClass.INTERACTIVE,
     );
     // Settlement is deferred to the worker on the async path.
     expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();

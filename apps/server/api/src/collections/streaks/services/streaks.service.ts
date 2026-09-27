@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { CreditsUtilsService as CreditsUtilsServiceToken } from '@api/collections/credits/services/credits.utils.service';
 import type {
   StreakDocument,
@@ -5,7 +6,7 @@ import type {
 } from '@api/collections/streaks/schemas/streak.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/contracts';
 import {
@@ -126,7 +127,7 @@ export class StreaksService {
     private readonly logger: LoggerService,
     @Inject(forwardRef(() => CreditsUtilsServiceToken))
     private readonly creditsUtilsService: CreditsUtilsServiceContract,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {}
 
   private normalizeStreakRecord(
@@ -806,24 +807,42 @@ export class StreaksService {
     return `A ${milestone.days}-day content streak milestone was reached.`;
   }
 
+  /**
+   * Operator Discord streak card, delivered through the durable outbox. One
+   * card per user, action, message and UTC day, so a retried job sends once.
+   */
   private async sendDiscordNotification(
     action: string,
     description: string,
     organizationId: string,
     userId: string,
   ): Promise<void> {
-    await this.notificationsService.sendNotification({
-      action,
-      organizationId,
-      payload: {
-        card: {
-          color: 0xf97316,
-          description,
-          title: 'GenFeed streak',
+    const day = new Date().toISOString().slice(0, 10);
+    const fingerprint = createHash('sha256')
+      .update(description)
+      .digest('hex')
+      .slice(0, 16);
+    await this.activityRecorder.dispatch({
+      deduplicationKey: `message.${action}/${organizationId}/${userId}/${day}/${fingerprint}`,
+      messages: [
+        {
+          destination: null,
+          message: {
+            action,
+            payload: {
+              card: {
+                color: 0xf97316,
+                description,
+                title: 'GenFeed streak',
+              },
+            },
+            type: 'discord',
+          },
         },
-      },
-      type: 'discord',
-      userId,
+      ],
+      organizationId,
+      source: { id: userId, type: 'streak' },
+      topic: 'operator.alerts',
     });
   }
 }

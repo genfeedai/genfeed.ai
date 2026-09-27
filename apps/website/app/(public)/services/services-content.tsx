@@ -80,7 +80,7 @@ export default function ServicesContent() {
           <SectionHeader
             title="How We Can Help"
             description="Expert content services for agencies and brands that need more than software."
-            className="[&_h2]:text-5xl mb-4"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
           />
           <NeuralGrid columns={3} className="gsap-grid">
             {SERVICE_CARDS.map((service, index) => {
@@ -161,7 +161,7 @@ export default function ServicesContent() {
           <SectionHeader
             title="Specialized Services"
             description="Deep-dive service pages for specific content needs."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
           <div className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2">
             {[
@@ -174,35 +174,35 @@ export default function ServicesContent() {
                 label: 'Founder Content',
               },
               {
-                href: '/x-growth',
+                href: '/x',
                 label: 'X Growth',
               },
               {
-                href: '/linkedin-growth',
+                href: '/linkedin',
                 label: 'LinkedIn Growth',
               },
               {
-                href: '/instagram-growth',
+                href: '/instagram',
                 label: 'Instagram Growth',
               },
               {
-                href: '/tiktok-growth',
+                href: '/tiktok',
                 label: 'TikTok Growth',
               },
               {
-                href: '/youtube-growth',
+                href: '/youtube',
                 label: 'YouTube Growth',
               },
               {
-                href: '/threads-growth',
+                href: '/threads',
                 label: 'Threads Growth',
               },
               {
-                href: '/facebook-growth',
+                href: '/facebook',
                 label: 'Facebook Growth',
               },
               {
-                href: '/pinterest-growth',
+                href: '/pinterest',
                 label: 'Pinterest Growth',
               },
               {

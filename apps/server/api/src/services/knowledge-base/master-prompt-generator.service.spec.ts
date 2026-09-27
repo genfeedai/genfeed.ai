@@ -1,7 +1,10 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { ByokProvider } from '@genfeedai/contracts';
 import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -71,9 +74,20 @@ describe('MasterPromptGeneratorService', () => {
     }),
   };
 
+  const mockTextGenerationCreditsService = {
+    resolveDispatch: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
+    mockTextGenerationCreditsService.resolveDispatch.mockResolvedValue(
+      undefined,
+    );
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: TextGenerationCreditsService,
+          useValue: mockTextGenerationCreditsService,
+        },
         MasterPromptGeneratorService,
         { provide: CreditsUtilsService, useValue: mockCreditsUtilsService },
         { provide: LoggerService, useValue: mockLogger },
@@ -180,6 +194,52 @@ describe('MasterPromptGeneratorService', () => {
       'AI brand profile generation',
       expect.any(String),
     );
+  });
+
+  it("dispatches on the org's own key and charges nothing for a BYOK org", async () => {
+    mockTextGenerationCreditsService.resolveDispatch.mockResolvedValue({
+      keys: { [ByokProvider.OPENROUTER]: 'org-or-key' },
+    });
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(makeProfileResponse()),
+    );
+
+    await service.analyzeBrandVoice(makeBrandData(), {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(
+      mockTextGenerationCreditsService.resolveDispatch,
+    ).toHaveBeenCalledWith('org-1', [DEFAULT_TEXT_MODEL]);
+    expect(
+      mockReplicateService.generateTextCompletionSync,
+    ).toHaveBeenCalledWith(
+      DEFAULT_TEXT_MODEL,
+      expect.any(Object),
+      'org-or-key',
+    );
+    expect(
+      mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('never resolves a key for an unbilled onboarding generation', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify([]),
+    );
+
+    await service.generateMasterPrompts(makeBrandData());
+
+    expect(
+      mockTextGenerationCreditsService.resolveDispatch,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockReplicateService.generateTextCompletionSync,
+    ).toHaveBeenCalledWith(DEFAULT_TEXT_MODEL, expect.any(Object), undefined);
   });
 
   it('does not charge when the generated profile is invalid', async () => {

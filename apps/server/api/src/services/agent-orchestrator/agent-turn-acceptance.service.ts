@@ -22,6 +22,7 @@ import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -113,67 +114,72 @@ export class AgentTurnAcceptanceService {
       });
     const contextId = `${threadId}:v${contextVersion}`;
     const queuedAt = new Date().toISOString();
-    const { executionId } = await this.workflowRunner.enqueueWorkflow({
-      actionType: AGENT_TURN_WORKFLOW_ID,
-      canonicalId: AGENT_TURN_WORKFLOW_ID,
-      idempotencyKey: buildAgentTurnIdempotencyKey(
-        context.organizationId,
-        context.userId,
-        request.clientRequestId,
-      ),
-      inputValues: {
-        request: {
-          content: request.content,
-          hostSupportsApproval: request.hostSupportsApproval === true,
-          clientRequestId: request.clientRequestId,
-          threadId,
-          ...(request.agentType ? { agentType: request.agentType } : {}),
-          ...(request.artifactReferences?.length
-            ? { artifactReferences: request.artifactReferences }
-            : {}),
-          ...(request.attachments?.length
-            ? { attachments: request.attachments }
-            : {}),
-          ...(thread.brandId ? { brandId: thread.brandId } : {}),
-          // Acceptance has already loaded and authorized this exact thread
-          // version. Pin it into the durable request so the execution
-          // revalidates the same scope instead of downgrading to a missing
-          // version context.
-          expectedContextVersion: contextVersion,
-          ...(request.generationMode
-            ? { generationMode: request.generationMode }
-            : {}),
-          ...(request.generationSettings
-            ? { generationSettings: request.generationSettings }
-            : {}),
-          ...(request.requestedSkillSlugs
-            ? { requestedSkillSlugs: request.requestedSkillSlugs }
-            : {}),
-          ...(request.knowledgeSelection
-            ? { knowledgeSelection: request.knowledgeSelection }
-            : {}),
-          ...(request.model ? { model: request.model } : {}),
-          ...(request.pageContext ? { pageContext: request.pageContext } : {}),
-          ...(request.agentMode !== undefined
-            ? { agentMode: request.agentMode }
-            : {}),
-          ...(request.source ? { source: request.source } : {}),
-          ...(request.systemPromptOverride
-            ? { systemPromptOverride: request.systemPromptOverride }
-            : {}),
-          ...(request.transferId ? { transferId: request.transferId } : {}),
+    const { executionId } = await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: AGENT_TURN_WORKFLOW_ID,
+        canonicalId: AGENT_TURN_WORKFLOW_ID,
+        idempotencyKey: buildAgentTurnIdempotencyKey(
+          context.organizationId,
+          context.userId,
+          request.clientRequestId,
+        ),
+        inputValues: {
+          request: {
+            content: request.content,
+            hostSupportsApproval: request.hostSupportsApproval === true,
+            clientRequestId: request.clientRequestId,
+            threadId,
+            ...(request.agentType ? { agentType: request.agentType } : {}),
+            ...(request.artifactReferences?.length
+              ? { artifactReferences: request.artifactReferences }
+              : {}),
+            ...(request.attachments?.length
+              ? { attachments: request.attachments }
+              : {}),
+            ...(thread.brandId ? { brandId: thread.brandId } : {}),
+            // Acceptance has already loaded and authorized this exact thread
+            // version. Pin it into the durable request so the execution
+            // revalidates the same scope instead of downgrading to a missing
+            // version context.
+            expectedContextVersion: contextVersion,
+            ...(request.generationMode
+              ? { generationMode: request.generationMode }
+              : {}),
+            ...(request.generationSettings
+              ? { generationSettings: request.generationSettings }
+              : {}),
+            ...(request.requestedSkillSlugs
+              ? { requestedSkillSlugs: request.requestedSkillSlugs }
+              : {}),
+            ...(request.knowledgeSelection
+              ? { knowledgeSelection: request.knowledgeSelection }
+              : {}),
+            ...(request.model ? { model: request.model } : {}),
+            ...(request.pageContext
+              ? { pageContext: request.pageContext }
+              : {}),
+            ...(request.agentMode !== undefined
+              ? { agentMode: request.agentMode }
+              : {}),
+            ...(request.source ? { source: request.source } : {}),
+            ...(request.systemPromptOverride
+              ? { systemPromptOverride: request.systemPromptOverride }
+              : {}),
+            ...(request.transferId ? { transferId: request.transferId } : {}),
+          },
         },
+        metadata: {
+          clientRequestId: request.clientRequestId,
+          contextId,
+          source: request.source ?? 'agent',
+          threadId,
+        },
+        organizationId: context.organizationId,
+        source: 'AgentTurnAcceptanceService.accept',
+        userId: context.userId,
       },
-      metadata: {
-        clientRequestId: request.clientRequestId,
-        contextId,
-        source: request.source ?? 'agent',
-        threadId,
-      },
-      organizationId: context.organizationId,
-      source: 'AgentTurnAcceptanceService.accept',
-      userId: context.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
 
     await this.publishTurnAccepted({
       clientRequestId: request.clientRequestId,

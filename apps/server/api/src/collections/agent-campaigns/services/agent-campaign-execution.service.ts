@@ -7,6 +7,7 @@ import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/consta
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -125,6 +126,8 @@ export class AgentCampaignExecutionService {
           brandId: campaign.brandId ?? undefined,
           campaignId,
           creditBudget,
+          // Live "start campaign" click from AgentCampaignsController — #5271.
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           label: `Campaign run: ${campaign.label} - ${strategy.label}`,
           model:
             typeof strategy.model === 'string' ? strategy.model : undefined,

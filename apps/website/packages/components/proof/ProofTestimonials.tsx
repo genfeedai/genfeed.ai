@@ -47,7 +47,7 @@ export default function ProofTestimonials({
       py="md"
     >
       <SectionHeader
-        className="[&_h2]:text-5xl mb-4"
+        className="[&_h2]:text-4xl sm:[&_h2]:text-5xl mb-4"
         description={copy.description}
         title={copy.title}
       />

@@ -29,7 +29,7 @@ export default function FeatureGrid({
   columns = 4,
 }: FeatureGridProps) {
   return (
-    <section className="py-32">
+    <section className="py-16 md:py-32">
       <div className="container mx-auto px-6">
         <div
           className={`grid grid-cols-1 ${GRID_COLUMNS[columns]} overflow-hidden border border-edge/5 bg-fill/5 gap-px`}
@@ -61,7 +61,7 @@ export default function FeatureGrid({
                 <Link
                   key={feature.number}
                   href={feature.href}
-                  className="group flex flex-col bg-background p-12 transition-colors hover:bg-fill/[0.02]"
+                  className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-fill/[0.02]"
                 >
                   {content}
                 </Link>
@@ -71,7 +71,7 @@ export default function FeatureGrid({
             return (
               <div
                 key={feature.number}
-                className="group flex flex-col bg-background p-12 transition-colors hover:bg-fill/[0.02]"
+                className="group flex flex-col bg-background p-6 sm:p-12 transition-colors hover:bg-fill/[0.02]"
               >
                 {content}
               </div>

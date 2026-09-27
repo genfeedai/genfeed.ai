@@ -7,7 +7,6 @@ import type { WorkflowExecutorService } from '@api/collections/workflows/service
 import type { WorkflowExecutionResult } from '@api/collections/workflows/services/workflow-executor.types';
 import {
   buildHiddenSystemWorkflowMetadata,
-  getSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
   isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -16,7 +15,6 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
 import {
-  PLATFORM_SWEEP_CANONICAL_IDS,
   PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
   PROACTIVE_AGENT_TURN_SOURCE,
   type RunSystemWorkflowInput,
@@ -48,6 +46,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   buildActionExecutionInput,
@@ -268,6 +267,7 @@ export class SystemWorkflowRunnerService
 
   async enqueueWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    options: { dispatchClass: SystemWorkflowDispatchClass },
   ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
     const definition = this.workflowDefinitions.get(input.canonicalId);
     if (!definition) {
@@ -291,6 +291,11 @@ export class SystemWorkflowRunnerService
           ...(input.metadata ?? {}),
           actionType: input.actionType,
           canonicalId: input.canonicalId,
+          // Persisted so `executeForEach` can route a `workflow.for-each`
+          // node's `scheduled`-mode children by the class of the parent that
+          // actually dispatched this run, instead of inferring it from the
+          // workflow's canonical id (#5271) — see `resolveInheritedDispatch`.
+          dispatchClass: options.dispatchClass,
           isSystemAction: true,
           source: input.source,
         },
@@ -311,6 +316,7 @@ export class SystemWorkflowRunnerService
         {
           // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
           ...(isAgentConversation ? { attempts: 1 } : {}),
+          dispatchClass: options.dispatchClass,
           ...(this.isPlatformOriginatedSource(input.source)
             ? { usePlatformQueue: true }
             : {}),
@@ -635,12 +641,17 @@ export class SystemWorkflowRunnerService
       if (!this.workflowDefinitions.has(options.childWorkflowId)) {
         throw new Error(`Unknown system workflow: ${options.childWorkflowId}`);
       }
-      // #5162 (#5252 review): a for-each fanned out from a platform-sweep
-      // workflow (e.g. analytics-sync's own children) must stay off the
-      // interactive queue too, or the sweep starves interactive turns one
-      // level removed from its own top-level dispatch instead of directly.
-      const usePlatformQueue = await this.isPlatformSweepWorkflow(
-        request.provenance.workflowId,
+      // #5271 (following up on #5162/#5252 review): a for-each fanned out
+      // from a background or platform-sweep run must keep its children off
+      // the interactive queue too, or the parent starves interactive turns
+      // one level removed from its own top-level dispatch instead of
+      // directly. Routed by the PARENT EXECUTION's own persisted dispatch —
+      // not by the workflow's canonical id — so a future interactive
+      // re-dispatch of, say, analytics-sync correctly keeps its children
+      // interactive too, instead of always landing on the platform queue.
+      const inheritedDispatch = await this.resolveInheritedDispatch(
+        request.provenance.executionId,
+        request.context.organizationId,
       );
       return scheduleForEach({
         childContexts,
@@ -649,7 +660,10 @@ export class SystemWorkflowRunnerService
         queueSystemWorkflow: (workflow, jobId, queueOptions) =>
           this.getWorkflowQueue().queueSystemWorkflow(workflow, jobId, {
             ...queueOptions,
-            ...(usePlatformQueue ? { usePlatformQueue: true } : {}),
+            dispatchClass: inheritedDispatch.dispatchClass,
+            ...(inheritedDispatch.usePlatformQueue
+              ? { usePlatformQueue: true }
+              : {}),
           }),
         request,
       });
@@ -862,29 +876,45 @@ export class SystemWorkflowRunnerService
   }
 
   /**
-   * Whether `workflowId` is the hidden system-workflow mirror for one of the
-   * canonical ids `PlatformWorkflowSchedulesService` dispatches — used to
-   * route a `workflow.for-each` node's `scheduled` children off the
-   * interactive queue when the for-each itself is running inside a
-   * platform-sweep workflow (e.g. analytics-sync).
+   * How a `workflow.for-each` node's `scheduled`-mode children should route,
+   * inherited from the PARENT EXECUTION's own persisted dispatch rather than
+   * inferred from the workflow's canonical id (#5271, replacing the
+   * `isPlatformSweepWorkflow` canonical-id check #5162/#5252 shipped).
+   *
+   * `enqueueWorkflow` persists both `source` and `dispatchClass` into
+   * `WorkflowExecution.result.metadata` at creation time — `source` was
+   * already there for `isPlatformOriginatedSource`; no schema migration was
+   * needed to add `dispatchClass` alongside it. A run started through any
+   * other path (direct `queueSystemWorkflow`, or a synchronous `runWorkflow`)
+   * never has `dispatchClass` in its metadata; those producers are already
+   * all background in nature (#5271's audit), so a missing value defaults to
+   * `BACKGROUND` rather than risking a for-each fan-out landing on the
+   * interactive queue by accident.
    */
-  private async isPlatformSweepWorkflow(workflowId: string): Promise<boolean> {
-    const workflow = await this.prisma.workflow.findFirst({
-      select: { metadata: true },
-      where: {
-        id: workflowId,
-        isDeleted: false,
-        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-      },
+  private async resolveInheritedDispatch(
+    executionId: string,
+    organizationId: string,
+  ): Promise<{
+    dispatchClass: SystemWorkflowDispatchClass;
+    usePlatformQueue: boolean;
+  }> {
+    const execution = await this.prisma.workflowExecution.findFirst({
+      select: { result: true },
+      where: { id: executionId, isDeleted: false, organizationId },
     });
-    const canonicalId = getSystemWorkflowMetadata(
-      workflow?.metadata,
-    )?.canonicalId;
-    return (
-      canonicalId !== undefined &&
-      PLATFORM_SWEEP_CANONICAL_IDS.includes(canonicalId)
+    const metadata = this.readRecord(
+      this.readRecord(execution?.result).metadata,
     );
+    const source = this.optionalString(metadata.source);
+    const dispatchClass =
+      metadata.dispatchClass === SystemWorkflowDispatchClass.INTERACTIVE
+        ? SystemWorkflowDispatchClass.INTERACTIVE
+        : SystemWorkflowDispatchClass.BACKGROUND;
+    return {
+      dispatchClass,
+      usePlatformQueue:
+        source !== undefined && this.isPlatformOriginatedSource(source),
+    };
   }
 
   private async linkPostsToExecution(

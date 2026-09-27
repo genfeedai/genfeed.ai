@@ -1,8 +1,10 @@
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { ByokProvider } from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -78,6 +80,54 @@ describe('EvaluationsOperationsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('BYOK dispatch (#5380)', () => {
+    beforeEach(() => {
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify({ overallScore: 70 }),
+      );
+    });
+
+    it("dispatches on the org's key and bills nothing", async () => {
+      const onBilling = vi.fn();
+
+      await service.evaluateArticle(
+        'Article body',
+        {},
+        testId('org'),
+        onBilling,
+        { keys: { [ByokProvider.OPENROUTER]: 'org-or-key' } },
+      );
+
+      expect(
+        mockServices.replicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(
+        DEFAULT_TEXT_MODEL,
+        expect.any(Object),
+        'org-or-key',
+      );
+      expect(onBilling).not.toHaveBeenCalled();
+    });
+
+    it('dispatches on the platform key and bills the charge otherwise', async () => {
+      const onBilling = vi.fn();
+
+      await service.evaluateArticle(
+        'Article body',
+        {},
+        testId('org'),
+        onBilling,
+      );
+
+      expect(
+        mockServices.replicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(DEFAULT_TEXT_MODEL, expect.any(Object), undefined);
+      expect(onBilling).toHaveBeenCalledWith(expect.any(Number));
+    });
   });
 
   describe('evaluateVideo', () => {

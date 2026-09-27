@@ -13,6 +13,7 @@ import {
   WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -70,18 +71,20 @@ describe('WorkflowExecutionQueueService', () => {
   let service: WorkflowExecutionQueueService;
   let mockQueue: ReturnType<typeof createMockQueue>;
   let mockPlatformQueue: ReturnType<typeof createMockQueue>;
+  let mockBackgroundQueue: ReturnType<typeof createMockQueue>;
   let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     mockQueue = createMockQueue();
     mockPlatformQueue = createMockQueue();
+    mockBackgroundQueue = createMockQueue();
     mockLogger = createMockLogger();
 
     service = new (
       WorkflowExecutionQueueService as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionQueueService
-    )(mockQueue, mockPlatformQueue, mockLogger);
+    )(mockQueue, mockPlatformQueue, mockBackgroundQueue, mockLogger);
   });
 
   describe('queueTriggerEvent', () => {
@@ -167,6 +170,7 @@ describe('WorkflowExecutionQueueService', () => {
 
       await expect(
         service.queueSystemWorkflow(input, 'clip-continuity-project-1', {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
           failureWorkflow: {
             canonicalId: 'clip.continuity.failure',
             inputValues: { projectId: 'project-1' },
@@ -204,6 +208,7 @@ describe('WorkflowExecutionQueueService', () => {
 
       await service.queueSystemWorkflow(input, 'campaign-target-1', {
         delayMs: 30_000,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       });
 
       expect(mockQueue.add).toHaveBeenCalledWith(
@@ -230,6 +235,7 @@ describe('WorkflowExecutionQueueService', () => {
       };
 
       await service.queueSystemWorkflow(input, 'system-workflow-parent', {
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         priorExecution,
       });
 
@@ -261,7 +267,9 @@ describe('WorkflowExecutionQueueService', () => {
         userId: 'user-1',
       };
 
-      await service.queueSystemWorkflow(input, 'system-workflow-exec-1');
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-1', {
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      });
 
       expect(staleJob.remove).toHaveBeenCalled();
       expect(mockQueue.add).toHaveBeenCalledWith(
@@ -288,6 +296,7 @@ describe('WorkflowExecutionQueueService', () => {
       const jobId = await service.queueSystemWorkflow(
         input,
         'system-workflow-exec-2',
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
       );
 
       expect(jobId).toBe('system-workflow-exec-2');
@@ -309,6 +318,7 @@ describe('WorkflowExecutionQueueService', () => {
       };
 
       await service.queueSystemWorkflow(input, 'system-workflow-exec-6', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         usePlatformQueue: true,
       });
 
@@ -317,6 +327,74 @@ describe('WorkflowExecutionQueueService', () => {
         expect.anything(),
         expect.anything(),
       );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('routes a background dispatch to the background queue instead of the interactive one (#5271)', async () => {
+      const input = {
+        actionType: 'rss-autopost-sweep',
+        canonicalId: 'rss-autopost-sweep',
+        organizationId: 'org-1',
+        source: 'rss_autopost_sweep',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-6b', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      });
+
+      expect(mockBackgroundQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(mockPlatformQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('keeps an interactive dispatch on the interactive queue (#5271)', async () => {
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-6c', {
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
+      expect(mockPlatformQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('a platform-sourced BACKGROUND dispatch still routes to the platform queue, not the background one (#5271)', async () => {
+      const input = {
+        actionType: 'analytics-sync',
+        canonicalId: 'analytics-sync',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-6d', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        usePlatformQueue: true,
+      });
+
+      expect(mockPlatformQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
@@ -335,6 +413,7 @@ describe('WorkflowExecutionQueueService', () => {
       };
 
       await service.queueSystemWorkflow(input, 'system-workflow-exec-7', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         usePlatformQueue: true,
       });
 
@@ -356,7 +435,9 @@ describe('WorkflowExecutionQueueService', () => {
       };
 
       await expect(
-        service.queueSystemWorkflow(input, 'system-workflow-exec-3'),
+        service.queueSystemWorkflow(input, 'system-workflow-exec-3', {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        }),
       ).rejects.toThrow(/unclaimable state "completed"/);
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('will never claim it'),
@@ -444,12 +525,12 @@ describe('WorkflowExecutionQueueService', () => {
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockQueue(), createMockLogger());
+      )(mockQueue, createMockQueue(), createMockQueue(), createMockLogger());
       const replicaB = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockQueue(), createMockLogger());
+      )(mockQueue, createMockQueue(), createMockQueue(), createMockLogger());
 
       await replicaA.upsertWorkflowScheduler({
         cronExpression: '*/5 * * * *',
@@ -601,9 +682,10 @@ describe('WorkflowExecutionQueueService', () => {
   });
 
   describe('hasClaimableSystemWorkflowJob', () => {
-    it('returns false when neither queue has the job (#5162)', async () => {
+    it('returns false when no queue has the job (#5162)', async () => {
       mockQueue.getJob.mockResolvedValue(undefined);
       mockPlatformQueue.getJob.mockResolvedValue(undefined);
+      mockBackgroundQueue.getJob.mockResolvedValue(undefined);
 
       await expect(
         service.hasClaimableSystemWorkflowJob('system-workflow-exec-8'),
@@ -618,8 +700,9 @@ describe('WorkflowExecutionQueueService', () => {
       await expect(
         service.hasClaimableSystemWorkflowJob('system-workflow-exec-9'),
       ).resolves.toBe(true);
-      // Already found on the first queue — no need to check the second.
+      // Already found on the first queue — no need to check the rest.
       expect(mockPlatformQueue.getJob).not.toHaveBeenCalled();
+      expect(mockBackgroundQueue.getJob).not.toHaveBeenCalled();
     });
 
     it('returns true when the platform-sweep queue has a claimable job', async () => {
@@ -630,6 +713,18 @@ describe('WorkflowExecutionQueueService', () => {
 
       await expect(
         service.hasClaimableSystemWorkflowJob('system-workflow-exec-10'),
+      ).resolves.toBe(true);
+    });
+
+    it('returns true when the background queue has a claimable job (#5271)', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+      mockPlatformQueue.getJob.mockResolvedValue(undefined);
+      mockBackgroundQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('delayed'),
+      });
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-10b'),
       ).resolves.toBe(true);
     });
 

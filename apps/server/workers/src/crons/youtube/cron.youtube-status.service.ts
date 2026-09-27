@@ -15,6 +15,7 @@ import {
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -127,7 +128,11 @@ export class CronYoutubeStatusService implements OnModuleInit {
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `youtube-status-sweep-${Math.floor(now.getTime() / YOUTUBE_SWEEP_INTERVAL_MS)}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

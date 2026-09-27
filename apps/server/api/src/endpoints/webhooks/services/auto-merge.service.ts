@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -8,6 +6,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -33,7 +32,7 @@ export class AutoMergeService {
   private readonly logContext = 'AutoMergeService';
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly filesClientService: FilesClientService,
@@ -245,24 +244,22 @@ export class AutoMergeService {
     const room =
       resolveRoom(userRoom, resolvedUserId) || getUserRoomName(resolvedUserId);
 
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: ingredient.brandId ?? undefined,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: organizationId,
-        source: ActivitySource.WEB,
-        userId: dbUserId,
-        value: JSON.stringify({
-          frameCount: videoIds.length,
-          groupId,
-          ingredientId: mergedIngredientId,
-          label: `Auto-merging ${videoIds.length} videos`,
-          type: 'auto-merge',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: ingredient.brandId ?? undefined,
+      entityId: ingredientData.id,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_PROCESSING,
+      organizationId: organizationId,
+      source: ActivitySource.WEB,
+      userId: dbUserId,
+      value: JSON.stringify({
+        frameCount: videoIds.length,
+        groupId,
+        ingredientId: mergedIngredientId,
+        label: `Auto-merging ${videoIds.length} videos`,
+        type: 'auto-merge',
       }),
-    );
+    });
     const activityId = activity.id.toString();
 
     if (userId) {
@@ -334,7 +331,7 @@ export class AutoMergeService {
           room,
         );
 
-        await this.activitiesService.patch(activityId, {
+        await this.activityRecorder.update(activity, {
           key: ActivityKey.VIDEO_COMPLETED,
           value: JSON.stringify({
             frameCount: videoIds.length,
@@ -386,7 +383,7 @@ export class AutoMergeService {
           room,
         );
 
-        await this.activitiesService.patch(activityId, {
+        await this.activityRecorder.update(activity, {
           key: ActivityKey.VIDEO_FAILED,
           value: JSON.stringify({
             error: errorMessage,

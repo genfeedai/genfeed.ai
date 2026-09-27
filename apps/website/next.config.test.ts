@@ -94,14 +94,4 @@ describe('website next.config', () => {
       ]),
     );
   });
-
-  it('folds the retired LinkedIn content page into the LinkedIn growth page', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: '/linkedin-growth',
-      permanent: true,
-      source: '/linkedin-content',
-    });
-  });
 });

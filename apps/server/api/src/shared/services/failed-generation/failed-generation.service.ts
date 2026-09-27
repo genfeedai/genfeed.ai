@@ -1,5 +1,5 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -33,6 +33,7 @@ export interface FailedGenerationOptions {
 export class FailedGenerationService {
   constructor(
     private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -107,7 +108,7 @@ export class FailedGenerationService {
           }
 
           // Update activity with failure data
-          await this.activitiesService.patch(existingActivity.id.toString(), {
+          await this.activityRecorder.update(existingActivity, {
             key: activityMetadata.key,
             value: JSON.stringify({
               ...parsedValue,
@@ -124,41 +125,37 @@ export class FailedGenerationService {
           });
         } else {
           // Fallback: create new activity if processing activity not found
-          await this.activitiesService.create(
-            new ActivityEntity({
-              brandId: activityMetadata.brandId,
-              entityId: ingredientId,
-              entityModel: ActivityEntityModel.INGREDIENT,
-              key: activityMetadata.key,
-              organizationId: activityMetadata.organizationId,
-              source: activityMetadata.source,
-              userId: activityMetadata.userId,
-              value: JSON.stringify({
-                error: websocketMessage || 'Generation failed',
-                ingredientId: ingredientId,
-                label:
-                  activityMetadata.key === ActivityKey.VIDEO_FAILED
-                    ? 'Video Generation'
-                    : activityMetadata.key === ActivityKey.IMAGE_FAILED
-                      ? 'Image Generation'
-                      : 'Music Generation',
-                type: 'generation',
-              }),
-            }),
-          );
-        }
-      } else {
-        // Fallback: create new activity if we can't determine processing key
-        await this.activitiesService.create(
-          new ActivityEntity({
+          await this.activityRecorder.record({
             brandId: activityMetadata.brandId,
+            entityId: ingredientId,
+            entityModel: ActivityEntityModel.INGREDIENT,
             key: activityMetadata.key,
             organizationId: activityMetadata.organizationId,
             source: activityMetadata.source,
             userId: activityMetadata.userId,
-            value: activityMetadata.value,
-          }),
-        );
+            value: JSON.stringify({
+              error: websocketMessage || 'Generation failed',
+              ingredientId: ingredientId,
+              label:
+                activityMetadata.key === ActivityKey.VIDEO_FAILED
+                  ? 'Video Generation'
+                  : activityMetadata.key === ActivityKey.IMAGE_FAILED
+                    ? 'Image Generation'
+                    : 'Music Generation',
+              type: 'generation',
+            }),
+          });
+        }
+      } else {
+        // Fallback: create new activity if we can't determine processing key
+        await this.activityRecorder.record({
+          brandId: activityMetadata.brandId,
+          key: activityMetadata.key,
+          organizationId: activityMetadata.organizationId,
+          source: activityMetadata.source,
+          userId: activityMetadata.userId,
+          value: activityMetadata.value,
+        });
       }
     }
 

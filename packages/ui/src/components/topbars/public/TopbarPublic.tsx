@@ -42,6 +42,8 @@ interface TopbarPublicProps {
   navLinks?: NavLink[];
   dropdowns?: Dropdown[];
   rightContent?: ReactNode;
+  /** Account actions shown at the top of the mobile menu. */
+  mobileActions?: ReactNode;
 }
 
 interface DropdownPosition {
@@ -73,6 +75,8 @@ const SURFACE_BLUR_PX = 24;
  * becomes a thing that responds.
  */
 const SURFACE_RAMP_PX = 160;
+
+const MOBILE_MENU_ID = 'topbar-public-mobile-menu';
 
 /**
  * Drive the bar's surface straight from scroll position.
@@ -118,6 +122,7 @@ export default function TopbarPublic({
   navLinks = EMPTY_ARRAY,
   dropdowns = EMPTY_ARRAY,
   rightContent,
+  mobileActions,
 }: TopbarPublicProps): React.ReactElement {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -129,13 +134,15 @@ export default function TopbarPublic({
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useMounted();
   const headerRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
   if (triggerRefs.current === null) {
     triggerRefs.current = new Map<string, HTMLButtonElement>();
   }
   const triggerRefsMap = triggerRefs.current;
 
-  useSurfaceProgress(headerRef, Boolean(openDropdown));
+  // The open mobile menu sits under the bar, so the bar needs its ground too.
+  useSurfaceProgress(headerRef, Boolean(openDropdown) || isMobileMenuOpen);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -146,6 +153,23 @@ export default function TopbarPublic({
     return () => {
       document.body.style.overflow = '';
     };
+  }, [isMobileMenuOpen]);
+
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsMobileMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
 
   const handleDropdownOpen = useCallback(
@@ -295,11 +319,14 @@ export default function TopbarPublic({
             {/* Mobile Hamburger - hidden on desktop */}
             <div className="lg:hidden">
               <Button
+                ref={menuButtonRef}
                 type="button"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant={ButtonVariant.UNSTYLED}
-                className="inline-flex size-10 items-center justify-center transition-colors hover:bg-foreground/5"
+                className="inline-flex size-11 items-center justify-center transition-colors hover:bg-foreground/5"
                 ariaLabel={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-controls={MOBILE_MENU_ID}
+                aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
                   <X className="size-6" />
@@ -326,12 +353,14 @@ export default function TopbarPublic({
 
       {/* Mobile Menu Portal */}
       <TopbarPublicMobileMenu
+        id={MOBILE_MENU_ID}
         mounted={mounted}
         isMobileMenuOpen={isMobileMenuOpen}
         dropdowns={dropdowns}
         navLinks={navLinks}
+        actions={mobileActions}
         pathname={pathname}
-        onClose={() => setIsMobileMenuOpen(false)}
+        onClose={closeMobileMenu}
       />
     </>
   );
