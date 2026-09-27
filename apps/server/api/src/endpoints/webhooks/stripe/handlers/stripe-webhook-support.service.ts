@@ -351,7 +351,7 @@ export class StripeWebhookSupportService {
       });
 
       if (count > 0) {
-        await this.notifyOperatorOfRevenueEvent(input, amountMinor);
+        this.notifyOperatorOfRevenueEvent(input, amountMinor);
       }
     } catch (error: unknown) {
       this.loggerService.error(
@@ -367,42 +367,44 @@ export class StripeWebhookSupportService {
   }
 
   /**
-   * Best-effort operator Discord alert for a newly-recorded revenue event.
-   * Isolated in its own try/catch (rather than relying on the caller's) so a
-   * Redis publish failure here is never mistaken for a failure to record the
-   * ledger row above, and never fails the webhook that already succeeded.
+   * Fire-and-forget operator Discord alert for a newly-recorded revenue
+   * event. Never awaited by the caller (a slow or failing Redis publish must
+   * never delay or fail the webhook that already succeeded), and isolated in
+   * its own `.catch` (rather than relying on the caller's) so a publish
+   * failure here is never mistaken for a failure to record the ledger row
+   * above.
    */
-  private async notifyOperatorOfRevenueEvent(
+  private notifyOperatorOfRevenueEvent(
     input: BillingRevenueEventInput,
     amountMinor: number,
-  ): Promise<void> {
-    try {
-      await this.notificationsService.sendRevenueNotification({
+  ): void {
+    void this.notificationsService
+      .sendRevenueNotification({
         amountMinor,
         currency: input.currency.trim().toLowerCase() || 'usd',
         organizationId: input.organizationId,
         planLabel: input.planLabel,
         source: input.source,
         userId: input.userId,
+      })
+      .catch((error: unknown) => {
+        this.loggerService.error(
+          `${this.constructorName} failed to notify operator of revenue event`,
+          {
+            error,
+            organizationId: input.organizationId,
+            source: input.source,
+            stripeObjectId: input.stripeObjectId,
+          },
+        );
+        Sentry.captureException(error, {
+          extra: {
+            organizationId: input.organizationId,
+            source: input.source,
+            stripeObjectId: input.stripeObjectId,
+          },
+        });
       });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} failed to notify operator of revenue event`,
-        {
-          error,
-          organizationId: input.organizationId,
-          source: input.source,
-          stripeObjectId: input.stripeObjectId,
-        },
-      );
-      Sentry.captureException(error, {
-        extra: {
-          organizationId: input.organizationId,
-          source: input.source,
-          stripeObjectId: input.stripeObjectId,
-        },
-      });
-    }
   }
 
   async addPurchasedCredits(
