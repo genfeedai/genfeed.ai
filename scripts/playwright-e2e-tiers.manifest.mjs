@@ -29,30 +29,9 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/dashboard/analytics.spec.ts',
-    reason:
-      'Asserts retired dashboard stat widgets. Analytics lives at /analytics/overview. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/admin/business-analytics.spec.ts',
-    reason:
-      'Admin business-analytics cards drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/settings/profile.spec.ts',
     reason:
       'Personal-settings locators drifted (`firstName` / profile-section). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/analytics/deep-pages.spec.ts',
-    reason:
-      'Insights / hooks / performance-lab / trend-turnover copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -109,13 +88,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/chat/chat-flows.spec.ts',
     reason:
       'Agent chat analytics snapshot / publish-fallback UI drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/analytics/overview.spec.ts',
-    reason:
-      'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

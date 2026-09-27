@@ -84,23 +84,33 @@ test.describe('Analytics Overview', () => {
       await analyticsPage.goto();
       await analyticsPage.waitForPageLoad();
 
-      // Navigate to trends
+      // A URL-pattern check alone would still pass on an "Organization
+      // unavailable" fallback (its suggested link also contains "trends" in
+      // the path), so also assert the real surface rendered. Each step waits
+      // for its own page to settle (`waitForPageLoad`) before the next click,
+      // since these are client-side transitions racing the analytics
+      // section's per-page data fetches under parallel load.
       await analyticsPage.navigateToTrends();
       await expect(authenticatedPage).toHaveURL(/analytics.*trends|trends/);
+      await analyticsPage.waitForPageLoad();
+      await expect(analyticsPage.mainContent).toBeVisible();
 
-      // Navigate to hooks
       await analyticsPage.navigateToHooks();
       await expect(authenticatedPage).toHaveURL(/analytics.*hooks|hooks/);
+      await analyticsPage.waitForPageLoad();
+      await expect(analyticsPage.mainContent).toBeVisible();
 
-      // Navigate to insights
       await analyticsPage.navigateToInsights();
       await expect(authenticatedPage).toHaveURL(/analytics.*insights|insights/);
+      await analyticsPage.waitForPageLoad();
+      await expect(analyticsPage.mainContent).toBeVisible();
 
-      // Navigate back to overview
       await analyticsPage.navigateToOverview();
       await expect(authenticatedPage).toHaveURL(
         /analytics.*overview|analytics/,
       );
+      await analyticsPage.waitForPageLoad();
+      await expect(analyticsPage.mainContent).toBeVisible();
     });
 
     test('should display trends page', async ({ authenticatedPage }) => {
@@ -128,19 +138,6 @@ test.describe('Analytics Overview', () => {
 
       await expect(authenticatedPage).toHaveURL(/insights/);
       await expect(analyticsPage.mainContent).toBeVisible();
-    });
-  });
-
-  test.describe('Protected Routes', () => {
-    test('should redirect unauthenticated user from trends page', async ({
-      unauthenticatedPage,
-    }) => {
-      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.TRENDS);
-
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 15000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
     });
   });
 
@@ -181,5 +178,29 @@ test.describe('Analytics Overview', () => {
 
       await expect(authenticatedPage).toHaveURL(/analytics/);
     });
+  });
+});
+
+// A sibling top-level describe, deliberately outside `Analytics Overview`:
+// that describe's `beforeEach` requests the `authenticatedPage` fixture
+// unconditionally, which sets the `__playwright_test` bypass cookie and a
+// fabricated client-side session on the shared `context`/`page`. Nesting an
+// `unauthenticatedPage` test inside it reuses that same contaminated
+// `page`/`context` (Playwright fixtures are cached per test, not per
+// fixture-name), so the request never actually reaches the app
+// unauthenticated — proxy.ts's playwright-bypass check short-circuits before
+// the session check. Compare `discovery/discovery.spec.ts`'s
+// `Discovery — unauthenticated access` describe, which uses the same
+// sibling-describe structure for this exact reason.
+test.describe('Analytics Overview — Protected Routes', () => {
+  test('should redirect unauthenticated user from trends page', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.TRENDS);
+
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
+    });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
   });
 });

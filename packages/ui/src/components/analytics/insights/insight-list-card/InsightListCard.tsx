@@ -34,6 +34,7 @@ const InsightListCard = memo(function InsightListCard({
   if (isLoading) {
     return (
       <Card
+        data-testid="insight-list-card"
         label={translate('title')}
         icon={Lightbulb}
         iconClassName="text-warning"
@@ -60,6 +61,7 @@ const InsightListCard = memo(function InsightListCard({
   if (insights.length === 0) {
     return (
       <Card
+        data-testid="insight-list-card"
         label={translate('title')}
         icon={Lightbulb}
         iconClassName="text-warning"
@@ -80,6 +82,7 @@ const InsightListCard = memo(function InsightListCard({
 
   return (
     <Card
+      data-testid="insight-list-card"
       label={translate('title')}
       icon={Lightbulb}
       iconClassName="text-warning"

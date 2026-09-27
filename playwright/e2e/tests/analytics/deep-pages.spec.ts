@@ -5,6 +5,8 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
+import { brandPath } from '../../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Analytics Deep Pages
@@ -28,34 +30,26 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.INSIGHTS);
 
       await analyticsPage.gotoSection('insights');
 
       await expect(authenticatedPage).toHaveURL(/insights/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
-    test('should show charts or metric cards on insights', async ({
-      authenticatedPage,
-    }) => {
+    test('should show the AI insights feed', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.INSIGHTS);
 
       await analyticsPage.gotoSection('insights');
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      const hasCharts = await analyticsPage.chartContainer
-        .first()
-        .isVisible()
-        .catch(() => false);
-      const hasMetrics = await analyticsPage.metricCard
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasCharts || hasMetrics,
-        'Expected charts or metric cards to be visible on insights page',
-      ).toBe(true);
+      // Insights is a generated feed (`InsightListCard`), not charts or metric
+      // cards — the page was redesigned around AI-generated recommendations.
+      await expect(analyticsPage.insightsListCard).toBeVisible();
     });
   });
 
@@ -64,42 +58,33 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.HOOKS);
 
       await analyticsPage.gotoSection('hooks');
 
       await expect(authenticatedPage).toHaveURL(/hooks/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should show hook performance data or empty state', async ({
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.HOOKS);
 
       await analyticsPage.gotoSection('hooks');
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // Hook items, table rows, or empty state should be present
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="hook-item"],' +
-            ' table tbody tr,' +
-            ' [data-testid="content-item"],' +
-            ' .hook-card',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected hook items or empty state to be visible',
-      ).toBe(true);
+      // The video hook breakdown is a `Table` (`@ui/display/table/Table`):
+      // either rows render, or the table's own `table-empty` state does —
+      // duplicates are expected across rows, hence `.first()`.
+      await expect(
+        authenticatedPage
+          .locator('table tbody tr, [data-testid="table-empty"]')
+          .first(),
+      ).toBeVisible();
     });
   });
 
@@ -108,42 +93,32 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/performance-lab/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
-    test('should show comparison UI or content area', async ({
+    test('should show the pattern grid or its empty state', async ({
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // Performance lab should have comparison elements or charts
-      const hasCharts = await analyticsPage.chartContainer
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasComparison = await authenticatedPage
-        .locator(
-          '[data-testid="comparison"],' +
-            ' [data-testid="pattern-lab"],' +
-            ' .comparison-container',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasCharts || hasComparison,
-        'Expected charts or comparison UI to be visible in performance lab',
-      ).toBe(true);
+      // `PatternLabPage` (apps/app/packages/components/performance-lab) has no
+      // pattern data under these mocks, so it renders its "No patterns found"
+      // empty state — the only comparison UI it ships today.
+      await expect(
+        authenticatedPage.getByRole('heading', { name: /no patterns found/i }),
+      ).toBeVisible();
     });
   });
 
@@ -152,37 +127,32 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/trend-turnover/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should show trend analysis content', async ({
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // Trend data, charts, or empty state
-      const hasCharts = await analyticsPage.chartContainer
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasCharts || hasEmptyState,
-        'Expected charts or empty state to be visible on trend turnover page',
-      ).toBe(true);
+      // `buildUnhandledApiMockBody`'s `/turnover` fallback (api-interceptor.ts)
+      // returns real per-platform stats, so the Platform Breakdown `Table`
+      // renders a data row rather than its empty state.
+      await expect(
+        authenticatedPage.locator('table tbody tr').first(),
+      ).toBeVisible();
     });
   });
 
@@ -191,21 +161,25 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.POSTS);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/analytics\/posts/);
       await expect(analyticsPage.mainContent).toBeVisible();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should show analytics posts filters with the default platform selected', async ({
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.POSTS);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
       await expect(
         authenticatedPage.getByPlaceholder('Search posts...'),
@@ -220,57 +194,59 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = brandPath(APP_ROUTES.ANALYTICS.POSTS);
 
-      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
+      await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
 
-      // Posts table rows, cards, or empty state
-      const hasItems = await authenticatedPage
-        .locator(
-          '[data-testid="post-item"],' +
-            ' [data-testid="content-item"],' +
-            ' table tbody tr,' +
-            ' .post-card',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasEmptyState = await authenticatedPage
-        .locator('[data-testid="empty-state"],' + ' .empty-state')
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasItems || hasEmptyState,
-        'Expected post items or empty state to be visible',
-      ).toBe(true);
+      // `AnalyticsPostsList` renders its posts in a `Table`: either rows or
+      // the table's own `table-empty` state — duplicates are expected across
+      // rows, hence `.first()`.
+      await expect(
+        authenticatedPage
+          .locator('table tbody tr, [data-testid="table-empty"]')
+          .first(),
+      ).toBeVisible();
     });
   });
+});
 
-  test.describe('Unauthenticated Access', () => {
-    test('should redirect unauthenticated user from analytics deep pages', async ({
-      unauthenticatedPage,
-    }) => {
-      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.INSIGHTS);
+// A sibling top-level describe, deliberately outside `Analytics Deep Pages`:
+// that describe's `beforeEach` requests the `authenticatedPage` fixture
+// unconditionally, which sets the `__playwright_test` bypass cookie and a
+// fabricated client-side session on the shared `context`/`page`. Nesting an
+// `unauthenticatedPage` test inside it reuses that same contaminated
+// `page`/`context` (Playwright fixtures are cached per test, not per
+// fixture-name), so the request never actually reaches the app
+// unauthenticated — proxy.ts's playwright-bypass check short-circuits before
+// the session check. Compare `discovery/discovery.spec.ts`'s
+// `Discovery — unauthenticated access` describe, which uses the same
+// sibling-describe structure for this exact reason.
+test.describe('Analytics Deep Pages — Unauthenticated Access', () => {
+  test('should redirect unauthenticated user from analytics deep pages', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.INSIGHTS);
 
-      // Should redirect to login
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 15000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    // Should redirect to login
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
     });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+  });
 
-    test('should redirect unauthenticated user from performance lab', async ({
-      unauthenticatedPage,
-    }) => {
-      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
+  test('should redirect unauthenticated user from performance lab', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto(
+      brandPath(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB),
+    );
 
-      // Should redirect to login
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 15000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    // Should redirect to login
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
     });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
   });
 });

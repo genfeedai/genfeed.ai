@@ -5,6 +5,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AdminPage } from '../../pages/admin.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Admin Business Analytics Dashboard
@@ -141,11 +142,18 @@ test.describe('Admin Business Analytics', () => {
     const admin = new AdminPage(adminPage);
     await admin.gotoAnalyticsBusiness();
     await admin.waitForPageLoad();
+    await assertNoErrorBoundaryFallback(
+      adminPage,
+      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+    );
 
-    // Mocked org names from the fixture should appear
-    const body = await adminPage.textContent('body');
-    expect(body).toContain('Acme Corp');
-    expect(body).toContain('Globex Inc');
+    // Mocked org names from the fixture should appear. The leader tables load
+    // asynchronously (`useQuery`/`getBusinessAnalytics`), so this must be an
+    // auto-retrying assertion — a one-shot `textContent()` snapshot races the
+    // fetch and can observe the pre-hydration/loading DOM.
+    const body = adminPage.locator('body');
+    await expect(body).toContainText('Acme Corp');
+    await expect(body).toContainText('Globex Inc');
   });
 
   test('business analytics tab is accessible from analytics nav', async ({
