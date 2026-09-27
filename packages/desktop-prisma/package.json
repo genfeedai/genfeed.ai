@@ -11,6 +11,7 @@
     "prisma-pglite": "3.0.1"
   },
   "devDependencies": {
+    "@genfeedai/tsconfig": "workspace:*",
     "prisma": "7.10.0"
   },
   "exports": {

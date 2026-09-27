@@ -301,6 +301,7 @@ const createService = () => {
     providerRegistry,
     {
       isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+      resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
   );
   const admissionService = new ImageGenerationAdmissionService(
@@ -777,6 +778,7 @@ describe('ImageGenerationService', () => {
       expect(falService.generateImage).toHaveBeenCalledWith(
         endpoint,
         expect.any(Object),
+        undefined,
       );
       expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });
@@ -932,6 +934,7 @@ describe('ImageGenerationService', () => {
           max_images: 3,
           sequential_image_generation: 'auto',
         }),
+        undefined,
       );
       // Batch model -> one provider call, indexed external ids on each placeholder.
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
@@ -1051,6 +1054,7 @@ describe('ImageGenerationService', () => {
           output_quality: 80,
           prompt: 'a sunset over the ocean',
         },
+        undefined,
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
@@ -1161,6 +1165,7 @@ describe('ImageGenerationService', () => {
           prompt: 'a sunset over the ocean',
           safety_filter_level: 'block_only_high',
         },
+        undefined,
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(

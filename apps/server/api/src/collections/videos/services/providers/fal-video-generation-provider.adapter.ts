@@ -85,7 +85,11 @@ export class FalVideoGenerationProviderAdapter
             },
           )
         : legacyInput;
-    const result = await this.falService.generateVideo(endpoint, input);
+    const result = await this.falService.generateVideo(
+      endpoint,
+      input,
+      params.apiKeyOverride,
+    );
     return {
       completion: 'remote-output',
       externalId: result.url,
@@ -122,7 +126,11 @@ export class FalVideoGenerationProviderAdapter
       input = { ...commonInput, image_url: firstImage };
     }
 
-    const result = await this.falService.generateVideo(destination, input);
+    const result = await this.falService.generateVideo(
+      destination,
+      input,
+      params.apiKeyOverride,
+    );
     return {
       completion: 'remote-output',
       externalId: result.url,
@@ -183,7 +191,11 @@ export class FalVideoGenerationProviderAdapter
         }
       : { ...commonInput, aspect_ratio: aspectRatio };
 
-    const result = await this.falService.generateVideo(destination, input);
+    const result = await this.falService.generateVideo(
+      destination,
+      input,
+      params.apiKeyOverride,
+    );
     return {
       completion: 'remote-output',
       externalId: result.url,

@@ -81,16 +81,12 @@ describe('LiveSessionCreditsService', () => {
   const modelsService = {
     findOne: vi.fn(),
   };
-  const byokService = {
-    isByokActiveForProvider: vi.fn(),
-  };
 
   let service: LiveSessionCreditsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue(directorPricing);
-    byokService.isByokActiveForProvider.mockResolvedValue(false);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
@@ -115,7 +111,6 @@ describe('LiveSessionCreditsService', () => {
       prisma as never,
       creditsUtilsService as never,
       modelsService as never,
-      byokService as never,
     );
   });
 
@@ -154,6 +149,40 @@ describe('LiveSessionCreditsService', () => {
       deferred: true,
       reservationId: 'reservation-1',
     });
+    expect(session.reservationId).toBe('reservation-1');
+  });
+
+  // #5294 no backend call ever establishes the live streaming session with a
+  // provider, so there is nowhere to thread an org's BYOK key — this route
+  // must always reserve and charge credits, even for a model whose provider
+  // would otherwise resolve a BYOK bypass elsewhere (e.g. Replicate).
+  it('always reserves credits for a live session, even for a Replicate-provider model', async () => {
+    modelsService.findOne.mockResolvedValue({
+      ...directorPricing,
+      provider: 'replicate',
+    });
+    const request = deferredCreditsRequest();
+
+    const session = await service.openSession({
+      dto: {
+        ceilingSeconds: 900,
+        model: MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
+        resolution: '768P',
+      },
+      now: new Date('2026-09-18T12:00:00.000Z'),
+      request,
+      user: user as never,
+    });
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 24_300 }),
+    );
+    expect(prisma.liveSession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ isByokBypass: true }),
+      }),
+    );
+    expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
     expect(session.reservationId).toBe('reservation-1');
   });
 

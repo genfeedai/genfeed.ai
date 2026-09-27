@@ -197,6 +197,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             undefined,
           );
       const brandId = this.helper.requireBrandId(params.brandId, 'imageGen');
+      // #5294 resolve the org's Replicate key once, the same way the
+      // lip-sync/TTS executors below do, so a BYOK credit bypass on this
+      // node's generation charge (VideoGenerationCreditsService et al.)
+      // can never disagree with which key actually pays for dispatch.
+      const byok = await this.byokService?.resolveApiKey(
+        context.organizationId,
+        ByokProvider.REPLICATE,
+      );
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         continuation: {
           actionId: 'imageGen',
@@ -222,7 +230,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         resultUrl: (ingredientId) =>
           this.helper.buildImageIngredientUrl(ingredientId),
         runProvider: (_ingredientId, continuationId) =>
-          replicateService.runModel(model, input, undefined, continuationId),
+          replicateService.runModel(model, input, byok?.apiKey, continuationId),
       });
 
       return {
@@ -329,6 +337,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           (reference) => reference.assetId,
         ) ?? []),
       ];
+      // #5294 resolve the org's Replicate key once, the same way the
+      // lip-sync/TTS executors below do, so a BYOK credit bypass on this
+      // node's generation charge (VideoGenerationCreditsService et al.)
+      // can never disagree with which key actually pays for dispatch.
+      const byok = await this.byokService?.resolveApiKey(
+        context.organizationId,
+        ByokProvider.REPLICATE,
+      );
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         continuation: {
           actionId: 'videoGen',
@@ -359,7 +375,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         resultUrl: (ingredientId) =>
           this.helper.buildVideoIngredientUrl(ingredientId),
         runProvider: (_ingredientId, continuationId) =>
-          replicateService.runModel(model, input, undefined, continuationId),
+          replicateService.runModel(model, input, byok?.apiKey, continuationId),
       });
 
       return {

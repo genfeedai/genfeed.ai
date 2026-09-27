@@ -24,6 +24,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
@@ -83,8 +84,12 @@ export class ImageGenerationProviderDispatchService {
   async dispatch(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationCompletionPlan | null> {
+    const byokApiKeyOverride = (
+      context.request as unknown as DeferredCreditsRequest | undefined
+    )?.creditsConfig?.byokApiKeyOverride;
     const provider = await this.providerRegistry.prepare({
       abortSignal: context.abortSignal,
+      apiKeyOverride: byokApiKeyOverride,
       brandPromptBranding: context.brandPromptBranding,
       compiledDispatch: context.compiledDispatch,
       createImageDto: context.createImageDto,
