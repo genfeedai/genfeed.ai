@@ -1593,9 +1593,10 @@ async function handleTasksRoute(route: Route): Promise<void> {
   const { pathname } = new URL(request.url());
 
   // A single task the spec did not mock does not exist: the real controller
-  // answers 404, which the detail page renders as "not found".
+  // answers 404 to reads and updates, which the detail page renders as
+  // "not found".
   if (
-    request.method() === 'GET' &&
+    ['GET', 'PATCH'].includes(request.method()) &&
     /\/tasks\/(?:by-identifier\/)?[^/]+\/?$/.test(pathname)
   ) {
     await route.fulfill({
