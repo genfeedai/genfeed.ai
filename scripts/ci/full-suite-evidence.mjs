@@ -24,7 +24,9 @@ function exactReleaseRun(run, releaseSha) {
   return (
     run?.head_sha === releaseSha &&
     run?.head_branch === 'master' &&
-    (run?.event === 'push' || run?.event === 'workflow_dispatch')
+    // The hourly master run or a manual dispatch; a release's own nested
+    // call (`workflow_call`) is not independent evidence.
+    (run?.event === 'schedule' || run?.event === 'workflow_dispatch')
   );
 }
 

@@ -14,12 +14,12 @@ import {
   selectShardCount,
 } from './pr-test-plan.mjs';
 
-test('scopes surfaces by diff on pull requests and merge-queue runs, forces them elsewhere', () => {
-  // A merge-queue run diffs the PR against the *current* master (its queue
-  // base), so the classification is at least as precise as the PR run's; only
-  // landed-trunk and release events lose the diff and force every surface.
+test('scopes surfaces by diff on pull requests only, forces them elsewhere', () => {
+  // The hourly master Full Suite and release dispatch have no diff base, so
+  // they force every surface.
   assert.equal(isChangeRunEvent('pull_request'), true);
-  assert.equal(isChangeRunEvent('merge_group'), true);
+  assert.equal(isChangeRunEvent('merge_group'), false);
+  assert.equal(isChangeRunEvent('schedule'), false);
   assert.equal(isChangeRunEvent('push'), false);
   assert.equal(isChangeRunEvent('workflow_dispatch'), false);
   assert.equal(isChangeRunEvent(undefined), false);
@@ -129,7 +129,7 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(737), 4);
 });
 
-test('a full-suite escalation carries no separate coverage plan', () => {
+test('a full-suite escalation shards each whole suite four ways', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: ['bun.lock'],
@@ -137,14 +137,19 @@ test('a full-suite escalation carries no separate coverage plan', () => {
   });
 
   assert.equal(plan.forceFull, true);
-  assert.deepEqual(plan.apiTests.matrix, { include: [] });
-  // Changed coverage rides the changed-test shards themselves (#1969); a
-  // side coverage matrix would re-run the same selection instrumented and
-  // drift out of sync with the shards that actually gate the merge.
-  assert.equal('coverageMatrix' in plan.apiTests, false);
-  assert.equal('coverageShards' in plan.apiTests, false);
-  assert.equal('coverageMatrix' in plan.appTests, false);
-  assert.equal('coverageShards' in plan.appTests, false);
+  for (const surface of [plan.appTests, plan.apiTests]) {
+    assert.equal(surface.applicable, true);
+    assert.equal(surface.shards, 4);
+    assert.deepEqual(surface.matrix, createShardMatrix(4));
+  }
+  assert.deepEqual(plan.workspaceFilters, [
+    '--filter=./packages/*',
+    '--filter=./apps/server/*',
+    '--filter=!@genfeedai/api',
+    '--filter=@genfeedai/website',
+    '--filter=@genfeedai/docs',
+    '--filter=@genfeedai/mobile',
+  ]);
 });
 
 test('creates deterministic matrix entries', () => {
@@ -236,6 +241,23 @@ test('creates a fail-closed plan with explicit applicability', () => {
     server: false,
     web: true,
   });
+  assert.deepEqual(plan.workspaceFilters, [
+    '--filter=./packages/*',
+    '--filter=@genfeedai/website',
+    '--filter=@genfeedai/docs',
+    '--filter=@genfeedai/mobile',
+  ]);
+});
+
+test('an empty affected plan runs no workspace or test shards', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['docs/testing.md'],
+  });
+
+  assert.equal(plan.appTests.applicable, false);
+  assert.equal(plan.apiTests.applicable, false);
+  assert.deepEqual(plan.workspaceFilters, []);
 });
 
 test('keeps dormant extension tests out of full-suite plans', () => {
@@ -252,155 +274,52 @@ test('keeps dormant extension tests out of full-suite plans', () => {
   assert.equal(plan.workspaceGroups.extensions, false);
 });
 
-test('keeps the workflow wired to exact changed selection and dynamic shards', () => {
+test('keeps the workflow wired to the planner matrices and outputs', () => {
   const workflowPath = fileURLToPath(
     new URL('../../.github/workflows/ci.yml', import.meta.url),
   );
   const workflow = readFileSync(workflowPath, 'utf8');
 
-  assert.match(workflow, /^ {2}test-scope:\n/m);
-  assert.match(
-    workflow,
-    /run: node scripts\/ci\/pr-test-plan\.mjs[\s\S]*?--base/,
-  );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.test-scope\.outputs\.app_matrix\) \}\}/,
-  );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.test-scope\.outputs\.api_matrix\) \}\}/,
-  );
-  assert.match(
-    workflow,
-    /--changed "\$BASE"[\s\\]*--shard=\$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/,
-  );
-  assert.match(
-    workflow,
-    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
-  );
-
-  // Changed coverage is folded into the changed-test shards (#1969): the
-  // same `--changed` selection runs once, instrumented on pull requests,
-  // instead of a standalone coverage matrix re-running it. The planner no
-  // longer exports a coverage matrix at all.
-  assert.doesNotMatch(workflow, /app_coverage_matrix|api_coverage_matrix/);
-  const coverageGates = workflow.match(
-    /WITH_COVERAGE: \$\{\{ github\.event_name == 'pull_request' \}\}/g,
-  );
-  assert.equal(
-    coverageGates?.length ?? 0,
-    4,
-    'full and changed app/API jobs must gate coverage instrumentation on pull_request',
-  );
-});
-
-test('workspace-group jobs gate on planner outputs alone, so pushes run them', () => {
-  const workflowPath = fileURLToPath(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
-  );
-  const workflow = readFileSync(workflowPath, 'utf8');
-
-  // A `github.event_name == 'pull_request'` clause in these gates silently
-  // skipped every packages/server/web test on pushes to master: red
-  // workspaces rode the trunk with no job to catch them. The planner output
-  // already carries the per-event truth (affected tasks against the PR base
-  // on pull requests, against `github.event.before` on pushes) — the gates
-  // must key off it and nothing else.
-  for (const output of [
-    'packages',
-    'server_services',
-    'web_desktop_mobile',
-    'extensions',
-  ]) {
-    assert.match(
-      workflow,
-      new RegExp(
-        `\\|\\| needs\\.test-scope\\.outputs\\.${output} == 'true'\\)`,
-      ),
-      `${output} gate must not require a pull_request event`,
-    );
-  }
-
-  // The --affected run steps need a diff base on push and merge-queue events
-  // too. One workflow-level `CI_BASE_SHA` resolves it per event (queue base →
-  // PR base → previous master head) and every step reads that variable, so a
-  // new event type is wired in exactly one place.
-  assert.match(
-    workflow,
-    /CI_BASE_SHA: \$\{\{ github\.event_name == 'merge_group' && github\.event\.merge_group\.base_sha \|\| github\.event\.pull_request\.base\.sha \|\| github\.event\.before \|\| '' \}\}/,
-    'CI_BASE_SHA must resolve merge_group → pull_request → push in that order',
-  );
-  const baseReads = workflow.match(/BASE="\$CI_BASE_SHA"/g);
-  assert.ok(
-    (baseReads?.length ?? 0) >= 6,
-    'every --affected/--changed run step must read its diff base from CI_BASE_SHA',
-  );
-  assert.doesNotMatch(
-    workflow,
-    /BASE="\$\{\{ github\.event\.pull_request\.base\.sha/,
-    'no run step may resolve its own diff base from the PR payload',
-  );
+  assert.match(workflow, /^ {2}plan:\n/m);
   assert.match(
     workflow,
     /pr-test-plan\.mjs --event "\$\{\{ github\.event_name \}\}" --base "\$CI_BASE_SHA"/,
     'the planner must diff against CI_BASE_SHA',
   );
-});
-
-test('the merge queue re-runs the gate on the queue merge commit', () => {
-  const workflowPath = fileURLToPath(
-    new URL('../../.github/workflows/ci.yml', import.meta.url),
-  );
-  const workflow = readFileSync(workflowPath, 'utf8');
-
-  // #3143: `master` merges through the GitHub merge queue. Without a
-  // `merge_group` trigger no required context ever reports on the queue's
-  // temporary merge commit and every entry times out; without the change-run
-  // gates a queue run would either skip its affected paths or diff against
-  // the wrong base.
   assert.match(
     workflow,
-    /^on:\n(?:.*\n)*? {2}merge_group:\n {4}types: \[checks_requested\]\n/m,
-    'ci.yml must subscribe to merge_group checks_requested',
+    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.app_matrix\) \}\}/,
   );
   assert.match(
     workflow,
-    /CI_IS_CHANGE_RUN: \$\{\{ github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \}\}/,
-    'affected-only paths must treat merge_group like pull_request',
+    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.api_matrix\) \}\}/,
   );
-  assert.doesNotMatch(
-    workflow,
-    /if \[ "\$\{\{ github\.event_name \}\}" = "pull_request" \]/,
-    'run steps must gate on CI_IS_CHANGE_RUN, not on the raw event name',
-  );
-  // The gate that the ruleset requires must publish on queue runs as well as
-  // PRs and pushes, or the queue never sees a verdict.
   assert.match(
     workflow,
-    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}/,
-    'tests-gate must run on merge_group',
+    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.spec_matrix\) \}\}/,
   );
-  // A merge-queue run is never cancelled: each queue entry already has a
-  // unique ref, and a cancelled run drops the entry out of the queue.
+  // Changed selection on the affected tier, the whole suite on the full tier.
+  const changedSelections = workflow.match(
+    /SELECTION=\(--passWithNoTests --changed "\$\{CI_BASE_SHA\}"\)/g,
+  );
+  assert.equal(changedSelections?.length, 2);
   assert.match(
     workflow,
-    /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/,
+    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
-  // gitleaks-action hard-fails on merge_group ("The [merge_group] event is
-  // not yet supported") — the first queue entry (#3151) failed the required
-  // Gitleaks context on it. Queue runs scan the same commit range with the
-  // gitleaks CLI instead; the action stays on PR and push events.
-  const gitleaksJob = workflow.match(/^ {2}gitleaks:\n((?: {4}.*\n|\n)+)/m);
-  assert.ok(gitleaksJob, 'ci.yml must define the gitleaks job');
+  // The planner owns workspace filters; the job gates on its output alone.
+  assert.match(workflow, /if: needs\.plan\.outputs\.workspace_tests == 'true'/);
   assert.match(
-    gitleaksJob[1],
-    /uses: gitleaks\/gitleaks-action@[0-9a-f]{40} # v\d+\.\d+\.\d+\n(?: {8}.*\n)*? {8}if: github\.event_name != 'merge_group'/,
-    'gitleaks-action must not run on merge_group',
+    workflow,
+    /WORKSPACE_FILTERS: \$\{\{ needs\.plan\.outputs\.workspace_filters \}\}/,
   );
+  // Only pull requests carry a diff base; no step resolves its own.
   assert.match(
-    gitleaksJob[1],
-    /if: github\.event_name == 'merge_group'\n(?: {8}.*\n)*? {8}run: \|\n(?: {10}.*\n)*? {10}.*ghcr\.io\/gitleaks\/gitleaks:v\d+\.\d+\.\d+ git \/repo \\\n {12}--log-opts="--no-merges \$\{CI_BASE_SHA\}\.\.HEAD"/,
-    'merge_group runs must scan CI_BASE_SHA..HEAD with the gitleaks CLI',
+    workflow,
+    /CI_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \|\| '' \}\}/,
   );
+  assert.doesNotMatch(workflow, /merge_group/);
+  // PR runs carry no coverage instrumentation; full-repository coverage
+  // stays in the weekly Coverage workflow.
+  assert.doesNotMatch(workflow, /--coverage/);
 });

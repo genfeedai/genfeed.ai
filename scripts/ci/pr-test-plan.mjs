@@ -28,16 +28,14 @@ const FORCE_FULL_PATTERNS = [
 // imports it so the gate summary can label a paused surface as dormant instead
 // of reporting it as an ordinary out-of-scope skip (#2486). A dormant group is
 // forced inapplicable here even under `--run-heavy`, so the `full-suite` label
-// escalates every other group but cannot revive this one. Re-enabling a surface
-// also requires its workflow-level `vars.ENABLE_*_CI` gate in ci.yml.
+// escalates every other group but cannot revive this one.
 export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
 
-// Events whose checkout is a proposed change diffed against a known base: the
-// pull request against its base, or the merge queue's merge commit against the
-// current master (`merge_group.base_sha`, #3143). Only these may narrow the
-// app/API surfaces by classification; every other event (master push, release
-// dispatch) forces both surfaces on and relies on the changed-file list alone.
-const CHANGE_RUN_EVENTS = new Set(['pull_request', 'merge_group']);
+// Events whose checkout is a proposed change diffed against a known base: only
+// the pull request. Only it may narrow the app/API surfaces by classification;
+// every other event (the hourly master Full Suite, release dispatch) forces
+// both surfaces on.
+const CHANGE_RUN_EVENTS = new Set(['pull_request']);
 
 export function isChangeRunEvent(eventName) {
   return CHANGE_RUN_EVENTS.has(eventName);
@@ -81,6 +79,8 @@ export function classifyChangedFiles(changedFiles) {
 
   return { api, app, forceFull: false };
 }
+
+export const FULL_SUITE_SHARDS = 4;
 
 export function selectShardCount(testFileCount) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
@@ -201,13 +201,27 @@ export function createPrTestPlan({
   const forceFull = runHeavy || classification.forceFull;
   const app = forceAllSurfaces || forceFull || classification.app;
   const api = forceAllSurfaces || forceFull || classification.api;
-  const appShardCount = forceFull ? 0 : selectShardCount(appTests.length);
-  const apiShardCount = forceFull ? 0 : selectShardCount(apiTests.length);
+  // The full tier runs each whole suite over four shards; the affected tier
+  // sizes the shards to the exact changed graph.
+  const appShardCount = forceFull
+    ? FULL_SUITE_SHARDS * Number(app)
+    : selectShardCount(appTests.length);
+  const apiShardCount = forceFull
+    ? FULL_SUITE_SHARDS * Number(api)
+    : selectShardCount(apiTests.length);
 
   const normalizedTurboTasks = Object.fromEntries(
     Object.keys(TURBO_TEST_GROUPS).map((group) => [
       group,
       Array.isArray(turboTasks[group]) ? [...turboTasks[group]].sort() : [],
+    ]),
+  );
+
+  const workspaceGroups = Object.fromEntries(
+    Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
+      group,
+      !TEMPORARILY_DISABLED_TEST_GROUPS.has(group) &&
+        (runHeavy || classification.forceFull || tasks.length > 0),
     ]),
   );
 
@@ -218,27 +232,26 @@ export function createPrTestPlan({
     forceFull,
     surfaces: { api, app },
     appTests: {
-      applicable: app && !forceFull && appTests.length > 0,
+      applicable: app && (forceFull || appTests.length > 0),
       count: appTests.length,
       files: [...appTests],
       matrix: createShardMatrix(appShardCount),
       shards: appShardCount,
     },
     apiTests: {
-      applicable: api && !forceFull && apiTests.length > 0,
+      applicable: api && (forceFull || apiTests.length > 0),
       count: apiTests.length,
       files: [...apiTests],
       matrix: createShardMatrix(apiShardCount),
       shards: apiShardCount,
     },
     turboTasks: normalizedTurboTasks,
-    workspaceGroups: Object.fromEntries(
-      Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
-        group,
-        !TEMPORARILY_DISABLED_TEST_GROUPS.has(group) &&
-          (runHeavy || classification.forceFull || tasks.length > 0),
-      ]),
-    ),
+    workspaceGroups,
+    // One turbo invocation runs every applicable group (the Test Workspaces
+    // job); its filters are the union of the applicable groups' filters.
+    workspaceFilters: Object.entries(workspaceGroups)
+      .filter(([, applies]) => applies)
+      .flatMap(([group]) => TURBO_TEST_GROUPS[group]),
   };
 }
 
@@ -370,10 +383,8 @@ function writeOutputs(plan, manifestPath) {
     app_matrix: JSON.stringify(plan.appTests.matrix),
     api_matrix: JSON.stringify(plan.apiTests.matrix),
     force_full: plan.forceFull,
-    packages: plan.workspaceGroups.packages,
-    server_services: plan.workspaceGroups.server,
-    web_desktop_mobile: plan.workspaceGroups.web,
-    extensions: plan.workspaceGroups.extensions,
+    workspace_tests: plan.workspaceFilters.length > 0,
+    workspace_filters: plan.workspaceFilters.join(' '),
     manifest: manifestPath,
   };
 
@@ -390,8 +401,16 @@ function writeSummary(plan) {
   if (!summaryPath) return;
 
   const rows = [
-    ['App changed tests', plan.appTests.count, plan.appTests.shards],
-    ['API changed tests', plan.apiTests.count, plan.apiTests.shards],
+    [
+      'App tests',
+      plan.forceFull ? 'all' : plan.appTests.count,
+      plan.appTests.shards,
+    ],
+    [
+      'API tests',
+      plan.forceFull ? 'all' : plan.apiTests.count,
+      plan.apiTests.shards,
+    ],
   ];
   const groupRows = Object.entries(plan.workspaceGroups).map(
     ([group, applies]) => [group, applies ? 'run' : 'skip'],
@@ -402,7 +421,7 @@ function writeSummary(plan) {
     `- Base: \`${plan.base}\``,
     `- Full-suite escalation: ${plan.forceFull ? 'yes' : 'no'}`,
     '',
-    '| Surface | Affected files | Changed-test shards |',
+    '| Surface | Test files | Shards |',
     '| --- | ---: | ---: |',
     ...rows.map(
       ([surface, count, shards]) => `| ${surface} | ${count} | ${shards} |`,
@@ -442,10 +461,7 @@ async function runCli() {
         })
       : Promise.resolve([]);
   // Workspace groups are computed for every event, not just pull requests.
-  // On a push to master the diff base is `github.event.before` (the previous
-  // trunk tip), so each merge validates exactly the workspaces it touched.
-  // Gating this on `pull_request` meant packages/server/web tests never ran
-  // on master pushes at all — red workspaces rode the trunk invisibly.
+  // Non-pull-request runs are heavy, so they run every active group.
   const turboTaskEntriesPromise = Promise.all(
     Object.entries(TURBO_TEST_GROUPS).map(async ([group, filters]) => [
       group,

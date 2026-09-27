@@ -147,7 +147,6 @@ test('enforces executable contracts through the aggregate suite', () => {
   for (const contractTest of [
     'scripts/ci/hosted-saas-handoff.test.mjs',
     'scripts/ci/dispatch-hosted-saas.test.mjs',
-    'scripts/ci/merge-queue-janitor.test.mjs',
     'scripts/ci/pr-validation-workflows.test.mjs',
   ]) {
     assert.match(
@@ -180,9 +179,9 @@ test('consolidates static validation into one runner slot', () => {
   // #1969: five ~1-minute jobs (format, secretlint, guards, lint, typecheck)
   // each burned a runner slot per PR and starved the org-wide pool at peak —
   // measured queue waits of 8–19 minutes for sub-minute jobs. They now run
-  // sequentially inside one static-checks job. Build starts straight off
-  // trust, and the tests gate reads static-checks directly, so the failure
-  // semantics of the old topology (any red static fails the gate) survive.
+  // sequentially inside one static-checks job, with gitleaks folded in too.
+  // The tests gate reads static-checks directly, so any red static check still
+  // fails the gate.
   const workflow = readWorkflow('ci.yml');
   const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
 
@@ -192,6 +191,10 @@ test('consolidates static validation into one runner slot', () => {
   assert.match(staticChecks, /bunx turbo run lint/);
   assert.match(staticChecks, /bunx turbo run type-check/);
   assert.match(staticChecks, /bun run test:executable-contracts/);
+  assert.match(
+    staticChecks,
+    /uses: gitleaks\/gitleaks-action@[0-9a-f]{40} # v\d+\.\d+\.\d+/,
+  );
 
   for (const retired of [
     'format',
@@ -199,6 +202,10 @@ test('consolidates static validation into one runner slot', () => {
     'typecheck',
     'guards',
     'secretlint',
+    'gitleaks',
+    'trust',
+    'test-scope',
+    'openapi-drift',
   ]) {
     assert.doesNotMatch(
       workflow,
@@ -210,8 +217,13 @@ test('consolidates static validation into one runner slot', () => {
   const build = jobBlock(workflow, 'build', 'ci.yml');
   assert.match(
     build,
-    /^ {4}needs: \[trust\]$/m,
-    'build must start immediately off trust instead of queueing behind statics',
+    /^ {4}needs: plan$/m,
+    'build must start straight off the plan instead of queueing behind statics',
+  );
+  assert.match(
+    build,
+    /scripts\/emit-openapi\.ts/,
+    'build owns the OpenAPI gate',
   );
   assert.match(
     workflow,
@@ -341,36 +353,10 @@ test('caps the CI job inventory at twenty jobs', () => {
   );
 });
 
-test('reaps zombie merge-queue runs after each master push', () => {
-  // Merged queue entries leave behind queued/in_progress merge_group runs on
-  // deleted gh-readonly-queue refs; each zombie holds a runner slot until the
-  // 6-hour timeout. The janitor cancels runs whose queue ref no longer
-  // resolves. Push-gated: every queue merge lands as a push to master, so the
-  // cleanup runs exactly when zombies can appear.
-  const workflow = readWorkflow('ci.yml');
-  const janitor = jobBlock(workflow, 'merge-queue-janitor', 'ci.yml');
-
-  assert.match(
-    janitor,
-    /if: github\.event_name == 'push'/,
-    'the janitor must run only on push events',
-  );
-  assert.match(
-    janitor,
-    /^ {6}actions: write$/m,
-    'cancelling workflow runs requires actions: write',
-  );
-  assert.match(
-    janitor,
-    /merge-queue-janitor\.mjs[\s\S]*?cleanMergeQueueRuns/,
-    'the janitor must run cleanMergeQueueRuns from scripts/ci/merge-queue-janitor.mjs',
-  );
-});
-
-test('reusable CI callers grant janitor and failure reporter permissions', () => {
+test('reusable CI callers grant the failure tracker permission ceiling', () => {
   // GitHub validates every called job before evaluating its `if` expression.
-  // A caller that omits actions:write therefore startup-fails even when the
-  // push-only janitor would be skipped for that caller's event.
+  // A caller that omits issues:write startup-fails even when the
+  // schedule-only tracker would be skipped for that caller's event.
   for (const [fileName, jobId] of [
     ['full-suite.yml', 'ci'],
     ['pr-full-suite.yml', 'full-suite'],
@@ -379,13 +365,69 @@ test('reusable CI callers grant janitor and failure reporter permissions', () =>
 
     assert.match(
       caller,
-      /^ {6}actions: write$/m,
-      `${fileName} must let reusable ci.yml grant actions:write to its janitor job`,
+      /^ {6}issues: write$/m,
+      `${fileName} must let reusable ci.yml grant issues:write to its failure tracker`,
+    );
+  }
+});
+
+test('the full suite runs hourly, never cancels, and skips a finished head', () => {
+  const workflow = readWorkflow('full-suite.yml');
+
+  assert.match(workflow, /^ {2}schedule:\n {4}- cron: '23 \* \* \* \*'/m);
+  assert.doesNotMatch(workflow, /^ {2}push:/m);
+  assert.match(
+    topLevelConcurrencyBlock(workflow, 'full-suite.yml'),
+    /^ {2}cancel-in-progress: false$/m,
+  );
+  const freshness = jobBlock(workflow, 'freshness', 'full-suite.yml');
+  assert.match(freshness, /GITHUB_EVENT_NAME\}" != "schedule"/);
+  assert.match(
+    freshness,
+    /select\(\.conclusion == \\"success\\" or \.conclusion == \\"failure\\"\)/,
+  );
+  for (const jobId of ['ci', 'build-verify', 'e2e']) {
+    assert.match(
+      jobBlock(workflow, jobId, 'full-suite.yml'),
+      /^ {4}if: needs\.freshness\.outputs\.run == 'true'$/m,
+      `${jobId} must wait on the freshness check`,
+    );
+  }
+});
+
+test('e2e nightly-only lanes never fire under the hourly Full Suite', () => {
+  // A called workflow inherits the caller's event, and the hourly Full Suite
+  // is a cron, so a bare `github.event_name == 'schedule'` would file nightly
+  // trackers and run nightly-only lanes every hour.
+  const workflow = readWorkflow('e2e.yml');
+  const bareSchedule = workflow
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .filter(
+      (line) =>
+        /github\.event_name [!=]= 'schedule'/.test(line) &&
+        !line.includes("github.workflow == 'E2E Tests'"),
+    );
+
+  assert.deepEqual(bareSchedule, []);
+});
+
+test('draft pull requests run no CI until marked ready', () => {
+  for (const [fileName, jobId] of [
+    ['ci.yml', 'plan'],
+    ['bundle-size.yml', 'detect'],
+    ['link-check.yml', 'detect'],
+  ]) {
+    const workflow = readWorkflow(fileName);
+    assert.match(
+      workflow,
+      /^ {4}types: \[opened, synchronize, reopened, ready_for_review\]$/m,
+      `${fileName} must run when a draft is marked ready`,
     );
     assert.match(
-      caller,
-      /^ {6}issues: write$/m,
-      `${fileName} must let reusable ci.yml grant issues:write to its failure reporters`,
+      jobBlock(workflow, jobId, fileName),
+      /^ {4}if: github\.event_name != 'pull_request' \|\| !github\.event\.pull_request\.draft$/m,
+      `${fileName} must skip draft pull requests`,
     );
   }
 });
@@ -567,12 +609,12 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
   const ci = readWorkflow('ci.yml');
   const dispatcher = readWorkflow('pr-full-suite.yml');
 
-  assert.match(ci, /^ {4}types: \[opened, synchronize, reopened\]$/m);
-  assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
   assert.match(
     ci,
-    /--run-heavy "\$\{\{ needs\.trust\.outputs\.heavy-tier \}\}"/,
+    /^ {4}types: \[opened, synchronize, reopened, ready_for_review\]$/m,
   );
+  assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
+  assert.match(ci, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
   assert.match(dispatcher, /if: github\.event\.label\.name == 'full-suite'/);
@@ -582,7 +624,7 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
 
 test('external contributor pull requests run the heavy tier maintainers skip', () => {
   const ci = readWorkflow('ci.yml');
-  const trust = jobBlock(ci, 'trust', 'ci.yml');
+  const trust = jobBlock(ci, 'plan', 'ci.yml');
 
   assert.match(
     trust,
@@ -605,21 +647,18 @@ test('external contributor pull requests run the heavy tier maintainers skip', (
     );
   }
 
-  // The tier is resolved once, in Trust Check. A heavy gate that re-derives it
-  // from `inputs.run_heavy_tests` would silently keep external contributors on
-  // the affected tier.
+  // The tier is resolved once, in the Plan job, and reaches every heavy
+  // decision through the planner. A job that re-derives it from
+  // `inputs.run_heavy_tests` would silently keep external contributors on the
+  // affected tier.
   assert.doesNotMatch(
-    ci.slice(ci.indexOf('  gitleaks:')),
+    ci.slice(ci.indexOf('  static-checks:')),
     /inputs\.run_heavy_tests(?![^\n]*description)/,
   );
-
-  const heavyGates = ci.match(
-    /^ {6}&& \(needs\.trust\.outputs\.heavy-tier == 'true'$/gm,
-  );
-  assert.equal(
-    heavyGates?.length,
-    4,
-    'the packages, server-services, web/desktop/mobile, and extension jobs gate on the resolved tier',
+  assert.match(trust, /--run-heavy "\$\{\{ steps\.tier\.outputs\.heavy \}\}"/);
+  assert.match(
+    trust,
+    /RUN_HEAVY: \$\{\{ steps\.tier\.outputs\.heavy == 'true' \}\}/,
   );
 });
 
@@ -652,13 +691,13 @@ test('reusable full-suite callers preserve planner applicability at the tests ga
   const ci = readWorkflow('ci.yml');
 
   for (const [environmentKey, outputKey] of [
-    ['TEST_SCOPE_APP_TESTS', 'app_tests'],
-    ['TEST_SCOPE_API_TESTS', 'api_tests'],
+    ['PLAN_APP_TESTS', 'app_tests'],
+    ['PLAN_API_TESTS', 'api_tests'],
   ]) {
     assert.match(
       ci,
       new RegExp(
-        `^ {10}${environmentKey}: \\$\\{\\{ needs\\.test-scope\\.outputs\\.${outputKey} \\}\\}$`,
+        `^ {10}${environmentKey}: \\$\\{\\{ needs\\.plan\\.outputs\\.${outputKey} \\}\\}$`,
         'm',
       ),
       `${environmentKey} must reach tests-gate from the planner`,
