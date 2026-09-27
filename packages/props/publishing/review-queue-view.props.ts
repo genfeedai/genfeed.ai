@@ -22,6 +22,7 @@ export interface ReviewQueueViewProps {
   isBatchLoading: boolean;
   isRefreshing?: boolean;
   selectedIds: Set<string>;
+  rewritingIds?: ReadonlySet<string>;
   selectedPostId: string | null;
   visibleItems: IBatchItem[];
   onApprove: (itemId: string) => Promise<void>;
@@ -29,7 +30,7 @@ export interface ReviewQueueViewProps {
   onBatchChange: (value: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
-  onBulkRewriteWithAgent: () => void;
+  onBulkRewrite: () => void;
   onDiscardBatch: () => void;
   onClosePostDetail: () => void;
   onFilterChange: (filters: ReviewStatusFilter[]) => void;

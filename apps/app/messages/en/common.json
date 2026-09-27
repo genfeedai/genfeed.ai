@@ -843,9 +843,9 @@
       "allAgents": "All agents",
       "creditsPerDay": "{credits} credits / day",
       "custom": "Custom",
-      "customAction": "Hire with agent",
-      "customDescription": "Describe the recurring content you need. Your agent will ask about platforms, topics, voice, cadence, and budget, then show the task for approval.",
-      "description": "Choose a marketplace agent or hire a custom agent through a conversation.",
+      "customAction": "Create agent",
+      "customDescription": "Set the platforms, topics, voice, cadence, and credit budget for recurring content.",
+      "description": "Choose a marketplace agent or configure a custom agent.",
       "emptySearch": "No agents match this search.",
       "featured": "Featured",
       "library": "Marketplace",
@@ -853,7 +853,21 @@
       "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
       "search": "Search agents",
-      "title": "Add agent"
+      "title": "Add agent",
+      "customAgent": "Custom agent",
+      "created": "Agent added successfully",
+      "createError": "Unable to create agent",
+      "platforms": "Platforms (comma-separated)",
+      "topics": "Topics (comma-separated)",
+      "voice": "Voice",
+      "postsPerWeek": "Posts per week",
+      "runFrequency": "Run frequency",
+      "budget": "Daily credit budget",
+      "frequency": {
+        "daily": "Daily",
+        "twice_daily": "Twice daily",
+        "every_6_hours": "Every 6 hours"
+      }
     },
     "agentHub": {
       "runNow": "Run now",
@@ -1300,12 +1314,13 @@
       "approve": "Approve",
       "automation": "Automation",
       "dm": "DM",
-      "draftWithAgent": "Draft with Agent",
       "reject": "Reject",
       "reopen": "Reopen",
       "reply": "Reply",
       "resolve": "Resolve",
-      "saveDraft": "Save Draft"
+      "saveDraft": "Save Draft",
+      "draftReply": "Draft reply",
+      "draftReplyError": "Unable to draft a reply. Please try again."
     },
     "conversation": {
       "needsReview": "Needs Review",
@@ -1723,5 +1738,19 @@
       "titleWithHandle": "{count, plural, one {# new reply} other {# new replies}} on @{handle}",
       "openSource": "Reply in Messages"
     }
+  },
+  "newsletterCreation": {
+    "title": "New newsletter",
+    "topic": "Topic",
+    "angle": "Angle (optional)",
+    "instructions": "Instructions (optional)",
+    "cancel": "Cancel",
+    "generate": "Generate draft",
+    "error": "Unable to generate newsletter"
+  },
+  "batchRewrite": {
+    "action": "Rewrite batch",
+    "progress": "Rewriting…",
+    "error": "Unable to rewrite the selected items. Please try again."
   }
 }

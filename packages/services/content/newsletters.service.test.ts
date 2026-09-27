@@ -59,6 +59,22 @@ describe('NewslettersService', () => {
     vi.clearAllMocks();
   });
 
+  it('generates a draft with topic, optional angle, and instructions', async () => {
+    mockInstance.post.mockResolvedValue({
+      data: { data: { id: 'newsletter-1', topic: 'AI' } },
+    });
+    const input = {
+      topic: 'AI',
+      angle: 'For founders',
+      instructions: 'Be concise',
+    };
+    const result = await service.generateDraft(input);
+    expect(mockInstance.post).toHaveBeenCalledWith('generate-draft', input, {
+      timeout: 600_000,
+    });
+    expect(result.id).toBe('newsletter-1');
+  });
+
   it('publishes a newsletter through PATCH action=publish', async () => {
     mockInstance.patch.mockResolvedValue({
       data: {

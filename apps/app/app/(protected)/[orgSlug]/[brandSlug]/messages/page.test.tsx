@@ -45,9 +45,8 @@ const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
   listPage: vi.fn(),
   postReply: vi.fn(),
+  suggestedReply: vi.fn(),
   replace: vi.fn(),
-  seedComposer: vi.fn(),
-  setAgentOpen: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
   syncLinkedIn: vi.fn(),
@@ -71,8 +70,6 @@ vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
     selector({
       activeThreadId: 'agent-thread-1',
-      seedComposer: mocks.seedComposer,
-      setIsOpen: mocks.setAgentOpen,
       threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
     }),
 }));
@@ -375,6 +372,10 @@ describe('SocialMessagesPage', () => {
         (await mocks.getConversation.mock.results.at(-1)?.value);
       return { ...current, unreadCount: 0 };
     });
+    mocks.suggestedReply.mockResolvedValue({
+      id: 'conversation-1',
+      draft: 'Suggested response',
+    });
     mocks.getService.mockResolvedValue({
       approveDraft: vi.fn(),
       createDraft: vi.fn(),
@@ -383,6 +384,7 @@ describe('SocialMessagesPage', () => {
       listPage: mocks.listPage,
       markRead: mocks.markRead,
       postReply: mocks.postReply,
+      suggestedReply: mocks.suggestedReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
       syncInstagram: mocks.syncInstagram,
@@ -475,12 +477,18 @@ describe('SocialMessagesPage', () => {
       expect.stringContaining('trigger=commentTrigger'),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Draft with Agent' }));
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
-      expect.stringContaining('Draft a concise public reply'),
-      'agent-thread-1',
+    fireEvent.click(screen.getByRole('button', { name: 'Draft reply' }));
+    await waitFor(() =>
+      expect(mocks.suggestedReply).toHaveBeenCalledWith(
+        'conversation-1',
+        expect.any(AbortSignal),
+      ),
     );
-    expect(mocks.setAgentOpen).toHaveBeenCalledWith(true);
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('Write a reply or DM')).toHaveValue(
+        'Suggested response',
+      ),
+    );
 
     fireEvent.change(screen.getByPlaceholderText('Write a reply or DM'), {
       target: { value: 'Thanks for the detail.' },
@@ -835,7 +843,7 @@ describe('SocialMessagesPage', () => {
     expect(screen.queryByText('Launch video')).not.toBeInTheDocument();
   });
 
-  it('renders TikTok conversations as read-only without a composer', async () => {
+  it('allows TikTok suggestions while keeping publishing disabled', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,
       hasPrevious: false,
@@ -866,16 +874,13 @@ describe('SocialMessagesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
     expect(
-      screen.getByText('TikTok conversations are read-only in Genfeed'),
+      screen.getAllByText('TikTok conversations are read-only in Genfeed')[0],
     ).toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText('Write a reply or DM'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^Reply$/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^DM$/ }),
-    ).not.toBeInTheDocument();
+      screen.getByPlaceholderText('Write a reply or DM'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Draft reply' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Reply$/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^DM$/ })).toBeDisabled();
   });
 });

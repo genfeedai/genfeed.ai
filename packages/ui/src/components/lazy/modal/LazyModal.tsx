@@ -34,6 +34,7 @@ import type {
   ModalMemberProps,
   ModalMetadataProps,
   ModalModelProps,
+  ModalNewsletterProps,
   ModalPostBatchProps,
   ModalPostProps,
   ModalPromptProps,
@@ -286,3 +287,8 @@ export const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
   { ssr: false },
 );
+
+export const LazyModalNewsletter = dynamic(
+  () => import('@ui/modals/content/newsletter/ModalNewsletter'),
+  { ssr: false },
+) as ComponentType<ModalNewsletterProps>;

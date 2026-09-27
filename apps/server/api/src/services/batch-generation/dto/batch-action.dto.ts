@@ -8,6 +8,7 @@ import {
 
 export enum BatchAction {
   APPROVE = 'approve',
+  REWRITE = 'rewrite',
   REJECT = 'reject',
   REQUEST_CHANGES = 'request_changes',
 }

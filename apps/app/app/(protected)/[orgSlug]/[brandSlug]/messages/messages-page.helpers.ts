@@ -22,6 +22,7 @@ export type MessagesPaginationState = Omit<
 >;
 
 export type MessagesBusyAction =
+  | 'suggested-reply'
   | 'draft'
   | 'dm'
   | 'reply'

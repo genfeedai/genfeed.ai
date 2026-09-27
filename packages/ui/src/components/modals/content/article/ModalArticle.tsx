@@ -168,6 +168,7 @@ export default function ModalArticle({
         logger.info('POST /articles success', result);
 
         // Call onCreated callback with the new article ID for redirect
+        closeModal(true);
         onCreated?.(result.id);
       }
     } catch (error) {

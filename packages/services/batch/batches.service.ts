@@ -17,7 +17,7 @@ export interface BatchListQuery {
 }
 
 export interface BatchActionRequest {
-  action: 'approve' | 'reject' | 'request_changes';
+  action: 'approve' | 'reject' | 'request_changes' | 'rewrite';
   feedback?: string;
   itemIds: string[];
 }
@@ -91,10 +91,13 @@ export class BatchesService extends HTTPBaseService {
     request: BatchActionRequest,
   ): Promise<IBatchSummary> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${batchId}/items/action`,
-        request,
-      );
+      const route = `/${batchId}/items/action`;
+      const response =
+        request.action === 'rewrite'
+          ? await this.instance.post<JsonApiResponseDocument>(route, request, {
+              timeout: 600_000,
+            })
+          : await this.instance.post<JsonApiResponseDocument>(route, request);
       return deserializeResource<IBatchSummary>(response.data);
     } catch (error) {
       logger.error(`POST /batches/${batchId}/items/action failed`, error);

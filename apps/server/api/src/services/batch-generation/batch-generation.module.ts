@@ -1,11 +1,16 @@
+import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
+import { ModelsModule } from '@api/collections/models/models.module';
+import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
@@ -16,10 +21,14 @@ import { BatchGenerationCreditsService } from '@api/services/batch-generation/ba
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
+import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
+import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
+import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -37,6 +46,11 @@ import { Module } from '@nestjs/common';
     BatchGenerationWorkflowService,
   ],
   imports: [
+    ActivitiesModule,
+    PostGenerationModule,
+    ModelsModule,
+    ByokModule,
+    NotificationsPublisherModule,
     AutonomousPublishingModule,
     AgentStreamPublisherModule,
     BrandsCoreModule,
@@ -52,6 +66,10 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
   ],
   providers: [
+    CreditsGuard,
+    CreditsInterceptor,
+    BatchRewriteCreditsGuard,
+    BatchGenerationRewriteService,
     AgentArtifactReferenceService,
     BatchGenerationCreationService,
     BatchGenerationCreditsService,

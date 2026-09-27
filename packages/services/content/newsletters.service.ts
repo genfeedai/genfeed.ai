@@ -72,6 +72,7 @@ export class NewslettersService extends BaseService<Newsletter> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       'generate-draft',
       data,
+      { timeout: 600_000 },
     );
     return this.mapOne(response.data);
   }

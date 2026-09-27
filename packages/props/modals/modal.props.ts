@@ -576,6 +576,10 @@ export interface ModalTrimProps {
   onClose: () => void;
 }
 
+export interface ModalNewsletterProps {
+  onCreated: (newsletterId: string) => void;
+}
+
 export interface ModalArticleProps {
   onConfirm?: (isRefreshing?: boolean) => void;
   onCreated?: (articleId: string | string[]) => void;

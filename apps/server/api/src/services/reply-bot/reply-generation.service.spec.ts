@@ -4,6 +4,12 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import {
+  ReplyLength,
+  ReplyTone,
+  SocialConversationType,
+  SystemPromptKey,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -71,6 +77,54 @@ describe('ReplyGenerationService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  it.each([SocialConversationType.DM, SocialConversationType.COMMENT])(
+    'builds a conversation-specific %s prompt and settles credits',
+    async (conversationType) => {
+      mockCreditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        true,
+      );
+      mockPromptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'Context' },
+      });
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue(
+        'A useful reply',
+      );
+      await service.generateReply({
+        organizationId: 'org-1',
+        userId: 'user-1',
+        platform: 'linkedin',
+        conversationType,
+        tweetAuthor: 'Taylor',
+        tweetContent: 'Help?',
+        tone: ReplyTone.FRIENDLY,
+        length: ReplyLength.MEDIUM,
+      });
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          systemPromptTemplate: SystemPromptKey.DEFAULT,
+          prompt: expect.stringContaining(
+            conversationType === SocialConversationType.DM
+              ? 'private direct-message'
+              : 'public conversation',
+          ),
+        }),
+        'org-1',
+      );
+      expect(mockTemplatesService.getRenderedPrompt).not.toHaveBeenCalled();
+      expect(
+        mockCreditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        expect.any(Number),
+        expect.any(String),
+        expect.any(String),
+        expect.any(Object),
+      );
+    },
+  );
 
   describe('generateReply', () => {
     const baseOptions = {

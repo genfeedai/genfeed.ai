@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import type { SocialInboxSuggestedReplyService } from '@api/collections/social-inbox/services/social-inbox-suggested-reply.service';
 import type { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { UnauthorizedException } from '@nestjs/common';
@@ -21,6 +22,7 @@ function createController() {
     controller: new SocialInboxController(
       { ingestYoutubeComments } as unknown as SocialInboxService,
       { enqueue } as unknown as SocialInboxSyncWorkflowService,
+      { suggestReply: vi.fn() } as unknown as SocialInboxSuggestedReplyService,
     ),
     enqueue,
     ingestYoutubeComments,

@@ -9,6 +9,7 @@ import {
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -48,6 +49,7 @@ function fixture() {
     config: {},
     items: [{ ...item }],
     status: BatchStatus.COMPLETED,
+    updatedAt: new Date('2026-09-20T00:00:00Z'),
   });
   const tx = {
     $queryRaw: vi.fn(async () => {
@@ -101,6 +103,7 @@ function fixture() {
     transition: vi.fn(async ({ nextState, mutation }, client) => {
       expect(client).toBe(tx);
       post = { ...post, ...mutation, targetExecutionState: nextState };
+      return { kind: 'transitioned', target: post };
     }),
   };
   const policy = {
@@ -132,6 +135,62 @@ function fixture() {
 }
 
 describe('Autonomous review transaction boundary', () => {
+  it('applies rewrites as edits, invalidates approval, and leaves publication in draft', async () => {
+    const f = fixture();
+    vi.spyOn(f.service, 'getBatch').mockResolvedValue({
+      id: 'batch-1',
+      items: [],
+    } as unknown as IBatchSummary);
+    const expectedDate = new Date('2026-09-20T00:00:00Z');
+    await f.service.applyRewrites(
+      'batch-1',
+      'org-1',
+      'user-1',
+      expectedDate,
+      new Map([['item-1', 'Rewritten caption']]),
+      new Map([['post-1', expectedDate]]),
+    );
+    expect(f.current().item.caption).toBe('Rewritten caption');
+    expect(f.current().item.reviewEvents).toEqual([
+      expect.objectContaining({
+        decision: ReviewDecision.REQUEST_CHANGES,
+        reviewerId: 'user-1',
+      }),
+    ]);
+    expect(f.policy.recordReviewDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasRewriteHistory: true,
+        decision: ReviewDecision.REQUEST_CHANGES,
+      }),
+      f.tx,
+    );
+    expect(f.approvals.invalidatePost).toHaveBeenCalled();
+    expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
+    expect(f.lifecycle.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nextState: TargetExecutionState.DRAFT,
+        mutation: expect.objectContaining({ description: 'Rewritten caption' }),
+      }),
+      f.tx,
+    );
+  });
+
+  it('rejects a rewrite of a changed batch before writing anything', async () => {
+    const f = fixture();
+    await expect(
+      f.service.applyRewrites(
+        'batch-1',
+        'org-1',
+        'user-1',
+        new Date('2026-09-19T00:00:00Z'),
+        new Map([['item-1', 'New']]),
+        new Map(),
+      ),
+    ).rejects.toThrow('Batch changed');
+    expect(f.lifecycle.transition).not.toHaveBeenCalled();
+    expect(f.tx.batch.updateMany).not.toHaveBeenCalled();
+  });
+
   it('expires a pending draft without ever creating a publish grant', async () => {
     const f = fixture();
     expect(

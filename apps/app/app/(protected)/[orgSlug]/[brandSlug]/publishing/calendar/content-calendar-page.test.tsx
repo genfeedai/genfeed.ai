@@ -20,6 +20,7 @@ import type {
   CalendarEventDrop,
   CalendarViewKey,
 } from '@props/components/calendar.props';
+import type { ModalArticleProps } from '@props/modals/modal.props';
 import {
   act,
   fireEvent,
@@ -53,6 +54,20 @@ const { notifyErrorMock, openConfirmMock, openPostRepurposeModalMock } =
     openConfirmMock: vi.fn(),
     openPostRepurposeModalMock: vi.fn(),
   }));
+
+const articleModal = vi.hoisted(() => ({
+  open: vi.fn(),
+  onCreated: undefined as ModalArticleProps['onCreated'],
+}));
+vi.mock('@helpers/ui/modal/modal.helper', () => ({
+  openModal: (...args: unknown[]) => articleModal.open(...args),
+}));
+vi.mock('@ui/lazy/modal/LazyModal', () => ({
+  LazyModalArticle: (props: ModalArticleProps) => {
+    articleModal.onCreated = props.onCreated;
+    return null;
+  },
+}));
 
 const findArticlesMock = vi.fn();
 const findReleasesMock = vi.fn();
@@ -527,6 +542,16 @@ describe('ContentCalendarPage', () => {
       'release-1',
     );
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('opens the article modal and routes to the first created article', async () => {
+    await renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: 'New article' }));
+    expect(articleModal.open).toHaveBeenCalledWith('modal-article');
+    articleModal.onCreated?.(['article-new', 'article-other']);
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/acme-org/acme-creator/publishing/posts/article-new',
+    );
   });
 
   it('sends an article to its dedicated editor rather than the release drawer', async () => {

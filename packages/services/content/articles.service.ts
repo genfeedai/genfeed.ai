@@ -132,7 +132,7 @@ export class ArticlesService extends BaseService<Article> {
     data: GenerateArticlesRequest,
   ): Promise<Article[]> {
     return await this.instance
-      .post<JsonApiResponseDocument>('generations', data)
+      .post<JsonApiResponseDocument>('generations', data, { timeout: 600_000 })
       .then((res) => this.mapMany(res.data));
   }
 

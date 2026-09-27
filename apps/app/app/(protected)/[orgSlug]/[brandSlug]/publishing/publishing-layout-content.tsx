@@ -12,7 +12,10 @@ import {
   ModalEnum,
   PostFormat,
 } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+} from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
@@ -21,7 +24,12 @@ import type {
 } from '@props/publishing/publishing-layout-content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
-import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
+import {
+  LazyModalArticle,
+  LazyModalCreateThread,
+  LazyModalNewsletter,
+  LazyModalPost,
+} from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
@@ -30,7 +38,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
-import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
@@ -87,7 +94,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();
-  const openAgentComposer = useOpenAgentComposer();
   const translate = useTranslations('pages.publishing.layout');
 
   const [state, dispatch] = useReducer(
@@ -250,21 +256,11 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
               <DropdownMenuItem onSelect={handleNewXPost}>
                 {translate('xPost')}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() =>
-                  openAgentComposer(
-                    'Help me write a new long-form article for my brand.',
-                  )
-                }
-              >
+              <DropdownMenuItem onSelect={() => openModal(ModalEnum.ARTICLE)}>
                 {translate('article')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() =>
-                  openAgentComposer(
-                    'Help me write a new newsletter for my brand.',
-                  )
-                }
+                onSelect={() => openModal(ModalEnum.NEWSLETTER)}
               >
                 {translate('newsletter')}
               </DropdownMenuItem>
@@ -274,19 +270,21 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
               <DropdownMenuItem onSelect={handleNewThread}>
                 {translate('xThread')}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() =>
-                  openAgentComposer('Draft a social post for my brand.')
-                }
-              >
-                {translate('askAgent')}
-              </DropdownMenuItem>
             </Dropdown>
           </div>
         }
       >
         {children}
       </Container>
+      <LazyModalArticle
+        onCreated={(ids) => {
+          const id = Array.isArray(ids) ? ids[0] : ids;
+          if (id) push(href(createArtifactEditorRoute('article', id)));
+        }}
+      />
+      <LazyModalNewsletter
+        onCreated={(id) => push(href(`${APP_ROUTES.EDIT.NEWSLETTER}/${id}`))}
+      />
       <LazyModalPost
         defaultPlatform={CredentialPlatform.TWITTER}
         credentials={xCredentials}

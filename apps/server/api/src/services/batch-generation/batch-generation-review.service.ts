@@ -18,7 +18,12 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 type ApproveBatchItemsContext = {
   batchId: string;
@@ -739,6 +744,111 @@ export class BatchGenerationReviewService {
         'This review action refers to an older draft version',
       );
     }
+  }
+
+  async applyRewrites(
+    batchId: string,
+    organizationId: string,
+    userId: string,
+    expectedUpdatedAt: Date,
+    captions: Map<string, string>,
+    postVersions: Map<string, Date>,
+  ): Promise<IBatchSummary> {
+    const updated = await this.withLockedBatch(
+      batchId,
+      organizationId,
+      async (transaction, batch) => {
+        if (batch.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+          throw new ConflictException(
+            'Batch changed during rewrite. Refresh and try again.',
+          );
+        }
+        const items = resolveBatchItems(batch);
+        const reviewedAt = new Date().toISOString();
+        for (const item of items) {
+          const caption = captions.get(item.id);
+          if (caption === undefined) continue;
+          if (item.postId) {
+            const post = await transaction.post.findFirst({
+              where: { id: item.postId, organizationId, isDeleted: false },
+            });
+            if (
+              !post ||
+              post.updatedAt.getTime() !==
+                postVersions.get(item.postId)?.getTime()
+            ) {
+              throw new ConflictException(
+                'Post changed during rewrite. Refresh and try again.',
+              );
+            }
+            await this.autonomousPublishPolicy.recordReviewDecision(
+              {
+                organizationId,
+                postId: item.postId,
+                userId,
+                decision: ReviewDecision.REQUEST_CHANGES,
+                previousDecision: item.reviewDecision,
+                generatedCaption: item.caption,
+                hasRewriteHistory: true,
+              },
+              transaction,
+            );
+            await this.publishApprovalsService.invalidatePost(
+              organizationId,
+              item.postId,
+              'Content rewritten',
+              userId,
+              transaction,
+            );
+            const transition = await this.postLifecycleService.transition(
+              {
+                actorId: userId,
+                organizationId,
+                postId: item.postId,
+                nextState: TargetExecutionState.DRAFT,
+                mutation: {
+                  description: caption,
+                  reviewFeedback: null,
+                  reviewVersionPinId: null,
+                  reviewDecision: PersistedReviewDecision.REQUEST_CHANGES,
+                  reviewedAt: new Date(reviewedAt),
+                },
+                reason: 'Content rewritten',
+              },
+              transaction,
+            );
+            if (transition.kind === 'stale') {
+              throw new ConflictException(
+                'Post changed during rewrite. Refresh and try again.',
+              );
+            }
+          }
+          item.caption = caption;
+          item.reviewDecision = ReviewDecision.REQUEST_CHANGES;
+          item.reviewFeedback = undefined;
+          item.reviewedAt = reviewedAt;
+          item.versionPinId = undefined;
+          item.publishApproval = undefined;
+          item.reviewEvents = [
+            ...(item.reviewEvents ?? []),
+            {
+              decision: ReviewDecision.REQUEST_CHANGES,
+              feedback: 'Content rewritten',
+              reviewedAt,
+              reviewerId: userId,
+            },
+          ];
+        }
+        await writeBatchJsonAndItemRows(transaction, {
+          batchId,
+          brandId: batch.brandId,
+          items,
+          organizationId,
+        });
+        return { ...batch, items };
+      },
+    );
+    return this.getBatch(updated.id, organizationId);
   }
 
   private async withLockedBatch<T>(
