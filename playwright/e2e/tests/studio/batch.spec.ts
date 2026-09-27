@@ -27,9 +27,13 @@ const workflow = {
   updatedAt: '2026-03-15T12:00:00.000Z',
 };
 
-const BATCH_VIDEO_COUNT = 500;
+// `BatchWorkflowExecutionService.startBatchExecution` (apps/server/api/src/
+// collections/workflows/services/batch-workflow-execution.service.ts) caps a
+// batch at `MAX_BATCH_ITEMS = 100` — the real DTO/service ceiling, not 500.
+const BATCH_VIDEO_COUNT = 100;
 const BATCH_VIDEO_DURATION_SECONDS = 5;
 const BATCH_EXECUTION_ID = 'job-1';
+const BATCH_CHILD_WORKFLOW_VERSION_ID = 'workflow-1-version-1';
 
 /**
  * Batch runs are ordinary workflow executions with a for-each shape, not a
@@ -45,13 +49,25 @@ const BATCH_EXECUTION_ID = 'job-1';
  */
 const BATCH_WORKFLOW_EXECUTION_CANONICAL_ID = 'workflow.batch.execute';
 
-/** One child result entry inside the parent execution's for-each node output. */
+/**
+ * One child result entry inside the parent execution's for-each node output.
+ * Mirrors `executeAwaitedForEach`'s real success shape (`system-workflow-
+ * for-each.util.ts`): `{ index, provenance, result }`, where the child's
+ * execution id lives under `provenance.executionId` — never a top-level
+ * `executionId` (that field only exists on the *failed*-item shape). The
+ * client's `toExecutionItem` (batch-execution.ts) supports both as a
+ * fallback, so a top-level id here would silently exercise the wrong path.
+ */
 function createBatchVideoResult(index: number) {
   const id = `video-output-${index}`;
 
   return {
-    executionId: `exec-${index}`,
     index: index - 1,
+    provenance: {
+      executionId: `exec-${index}`,
+      workflowId: workflow.id,
+      workflowLabel: workflow.name,
+    },
     result: {
       category: IngredientCategory.VIDEO,
       duration: BATCH_VIDEO_DURATION_SECONDS,
@@ -85,9 +101,17 @@ function buildBatchExecutionAttributes({
     createdAt: '2026-03-15T12:01:00.000Z',
     inputValues: {
       childWorkflowId: workflow.id,
+      childWorkflowVersionId: BATCH_CHILD_WORKFLOW_VERSION_ID,
       items: ingredientIds,
     },
-    metadata: { canonicalId: BATCH_WORKFLOW_EXECUTION_CANONICAL_ID },
+    metadata: {
+      batchExecution: {
+        childWorkflowId: workflow.id,
+        childWorkflowVersionId: BATCH_CHILD_WORKFLOW_VERSION_ID,
+        itemCount: ingredientIds.length,
+      },
+      canonicalId: BATCH_WORKFLOW_EXECUTION_CANONICAL_ID,
+    },
     nodeResults: [
       {
         nodeId: 'execute-items',
@@ -155,7 +179,7 @@ async function routeBatchWorkflow(page: Page): Promise<void> {
   });
 }
 
-test('batch generation mocks 500 five-second videos in one job', () => {
+test('batch generation mocks 100 five-second videos in one job', () => {
   const attributes = completedExecutionResource.attributes as {
     inputValues: { items: string[] };
     nodeResults: Array<{ output: { results: typeof batchVideoResults } }>;

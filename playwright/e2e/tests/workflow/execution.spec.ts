@@ -12,10 +12,7 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
-import {
-  executionsHistoryLocator,
-  WorkflowPage,
-} from '../../pages/workflow.page';
+import { WorkflowPage } from '../../pages/workflow.page';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -43,17 +40,17 @@ test.describe('Workflow Execution', () => {
 
     await expect(authenticatedPage).toHaveURL(/automation\/runs/);
     await assertNoErrorBoundaryFallback(authenticatedPage, 'automation/runs');
-    // The generic app-shell `<main>` renders on every authenticated route
-    // regardless of whether the executions list itself loaded, so it is not
-    // a real signal — assert the surface's own populated/empty/error state
-    // (same helper `workflows.spec.ts` / `workflows-templates-executions.spec.ts` use).
-    // Multiple executions each render their own row/"View Details" link, so
-    // several of `executionsHistoryLocator`'s alternatives legitimately match
-    // more than once — `.first()` is the expected multiplicity here, not an
-    // ambiguous locator being narrowed.
-    await expect(
-      executionsHistoryLocator(authenticatedPage).first(),
-    ).toBeVisible();
+    // `executionsHistoryLocator().first()` alone can match the "Recent runs"
+    // heading even while the table is still loading or came back empty — it
+    // is a health check for the surface, not proof the seeded rows rendered.
+    // Assert an actual detail link per seeded execution ID instead.
+    for (const execution of testWorkflowExecutions) {
+      await expect(
+        authenticatedPage
+          .locator(`a[href$="/automation/runs/${execution.id}"]`)
+          .first(),
+      ).toBeVisible();
+    }
   });
 
   test('should show execution details by ID', async ({ authenticatedPage }) => {
@@ -101,12 +98,25 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${completedExec.id}`,
     );
 
-    // Page should render without errors for completed execution. Assert the
-    // real "Node Execution Log" heading, not the generic app-shell `<main>`
-    // (always present regardless of this page's own load state) — see the
-    // "should show execution details by ID" test above for why.
+    // `ExecutionSummaryBar` renders the status as `{getStatusIcon(status)}
+    // {status}` — assert the real displayed status, not just the "Node
+    // Execution Log" section title, which renders identically regardless of
+    // which execution loaded. Icon + `exact: true` avoids a real collision:
+    // the workspace inspector panel also renders a same-named, differently-
+    // cased status badge ("Running"/"Failed") that a bare case-insensitive
+    // text match picks up too (see `status-helpers.ts` for the icon map).
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+      authenticatedPage.getByText(`✅ ${completedExec.status}`, {
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    // Expand the last ("publish") node and assert its real output —
+    // `testWorkflowExecutions[0].results` (`nodesCompleted`, `outputUrl`) —
+    // rendered, not just the section being present with no content.
+    await authenticatedPage.getByRole('button', { name: /publish/i }).click();
+    await expect(
+      authenticatedPage.getByText(String(completedExec.results.outputUrl)),
     ).toBeVisible();
   });
 
@@ -133,7 +143,7 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${runningExec.id}`,
     );
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+      authenticatedPage.getByText(`⏳ ${runningExec.status}`, { exact: true }),
     ).toBeVisible();
   });
 
@@ -160,7 +170,17 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${failedExec.id}`,
     );
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+      authenticatedPage.getByText(`❌ ${failedExec.status}`, { exact: true }),
+    ).toBeVisible();
+
+    // The global "Execution Error" banner (`ExecutionDetailPage.tsx`) is
+    // always visible for a failed execution — not gated behind expanding a
+    // node — and carries the real fixture error text.
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Execution Error' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(String(failedExec.results.error)),
     ).toBeVisible();
   });
 
@@ -187,10 +207,23 @@ test.describe('Workflow Execution', () => {
       `automation/runs/${execution.id}`,
     );
 
-    // Content should be rendered — see the "should show execution details
-    // by ID" test above for why this asserts the heading, not `mainContent`.
+    // "Node Execution Log" renders whether or not there are any node
+    // results (the empty state is "No node results recorded" under the same
+    // heading) — assert the fixture's 5 logs actually produced 5 rendered
+    // node rows, not the empty state.
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Node Execution Log' }),
+      authenticatedPage.getByText('No node results recorded'),
+    ).toHaveCount(0);
+    const nodeButtons = authenticatedPage.getByRole('button', {
+      name: /\(node-\d+\)/,
+    });
+    await expect(nodeButtons).toHaveCount(execution.logs.length);
+
+    // Expand the last ("publish") node and assert its real output —
+    // `testWorkflowExecutions[0].results` — rendered.
+    await authenticatedPage.getByRole('button', { name: /publish/i }).click();
+    await expect(
+      authenticatedPage.getByText(String(execution.results.outputUrl)),
     ).toBeVisible();
   });
 });
