@@ -365,15 +365,20 @@ vi.mock('@pages/studio/generate/hooks/useStudioGeneration', () => ({
 vi.mock('@pages/studio/generate/components/StudioGenerateInspector', () => ({
   default: ({
     job,
+    onRemix,
     onVary,
   }: {
     job: { id: string; prompt: string };
+    onRemix: (job: { id: string }) => void;
     onVary: (job: { id: string }) => void;
   }) => (
     <div data-testid="studio-inspector">
       <span>{job.prompt}</span>
       <button type="button" onClick={() => onVary(job)}>
         Vary
+      </button>
+      <button type="button" onClick={() => onRemix(job)}>
+        Remix
       </button>
     </div>
   ),
@@ -1004,6 +1009,44 @@ describe('StudioGenerateWorkspace', () => {
     act(() => resultsProps.onSelect(recipeJob));
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('remixes a selected video as a video reference, not a start frame', () => {
+    const job = {
+      createdAt: 1,
+      id: 'video-9',
+      ingredient: {
+        category: 'VIDEO',
+        cdnUrl: 'https://cdn.example/clip.mp4',
+        id: 'video-9',
+        promptText: 'Drone over the coast',
+      },
+      prompt: 'Drone over the coast',
+      status: 'GENERATED',
+      type: 'video',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [job],
+    });
+
+    render(<StudioGenerateWorkspace />, { wrapper: ContextSidebarHost });
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onSelect: (selected: typeof job) => void;
+    };
+    act(() => resultsProps.onSelect(job));
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).toHaveBeenCalledWith('video');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      attachedAssets: Array<{ id: string; role?: string }>;
+    };
+    expect(composerProps.attachedAssets).toContainEqual(
+      expect.objectContaining({ id: 'video-9', role: 'videoReference' }),
+    );
   });
 
   it('opens the selected asset in the context sidebar and deselects on close', () => {

@@ -1309,7 +1309,15 @@ function UniversalWorkspaceShellContent({
               }
               onOpenChange={
                 activeContextSidebar
-                  ? activeContextSidebar.setIsMobileOpen
+                  ? (isOpen: boolean) => {
+                      // Dismissing the drawer is the mobile close: it
+                      // deselects, so tapping the item again reopens it.
+                      if (isOpen) {
+                        activeContextSidebar.setIsMobileOpen(true);
+                      } else {
+                        activeContextSidebar.close();
+                      }
+                    }
                   : setIsMobileInspectorOpen
               }
             >

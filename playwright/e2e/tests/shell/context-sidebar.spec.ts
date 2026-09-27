@@ -158,16 +158,14 @@ test.describe('Context sidebar — selection driven', () => {
     ).toBeVisible();
   });
 
-  test('opens the mobile drawer on a user tap', async ({
+  test('opens the mobile drawer on a tap and deselects when dismissed', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 844, width: 390 });
     await openStudioList(authenticatedPage);
 
-    await authenticatedPage
-      .getByTestId(`studio-asset-${ASSET_ID}`)
-      .getByText(ASSET_PROMPT)
-      .click();
+    const card = authenticatedPage.getByTestId(`studio-asset-${ASSET_ID}`);
+    await card.getByText(ASSET_PROMPT).click();
 
     const drawer = authenticatedPage.getByRole('dialog', { name: 'Image' });
     await expect(drawer).toBeVisible();
@@ -175,5 +173,6 @@ test.describe('Context sidebar — selection driven', () => {
 
     await authenticatedPage.keyboard.press('Escape');
     await expect(drawer).toHaveCount(0);
+    await expect(card).toHaveAttribute('data-selected', 'false');
   });
 });

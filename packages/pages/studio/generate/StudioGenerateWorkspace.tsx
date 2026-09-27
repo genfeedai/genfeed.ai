@@ -289,7 +289,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
   });
 
   const handleAttachGeneratedReference = useCallback(
-    (ingredient: IIngredient, targetType: 'image' | 'video') => {
+    (
+      ingredient: IIngredient,
+      targetType: 'image' | 'video',
+      role: StudioGenerateReferenceRole = targetType === 'video'
+        ? 'startFrame'
+        : 'reference',
+    ) => {
       const previewUrl = resolveStudioAssetUrl(ingredient);
       if (!previewUrl) {
         notificationsService.info('This asset has no usable preview yet');
@@ -311,7 +317,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   id: ingredient.id,
                   thumbnailUrl: previewUrl,
                 },
-                role: targetType === 'video' ? 'startFrame' : 'reference',
+                role,
               },
             ],
       );
@@ -1135,12 +1141,21 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const handleCloseInspector = useCallback(() => {
     setSelectedJobId(null);
   }, []);
-  // Remix feeds the finished asset back into the composer as a reference,
-  // the same path the card's variation action takes.
+  // Remix feeds the finished asset back into the composer as a reference of
+  // its own kind: an image as an image reference, a video as a video one.
   const handleRemixJob = useCallback(
     (job: StudioGenerateJob) => {
-      if (job.ingredient && (job.type === 'image' || job.type === 'video')) {
-        handleAttachGeneratedReference(job.ingredient, job.type);
+      if (!job.ingredient) {
+        return;
+      }
+      if (job.type === 'image') {
+        handleAttachGeneratedReference(job.ingredient, 'image', 'reference');
+      } else if (job.type === 'video') {
+        handleAttachGeneratedReference(
+          job.ingredient,
+          'video',
+          'videoReference',
+        );
       }
     },
     [handleAttachGeneratedReference],
