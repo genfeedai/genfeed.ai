@@ -1,15 +1,19 @@
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import type { BatchItemFull } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentPublishDecision,
   BatchItemStatus,
   BatchStatus,
   ContentFormat,
+  PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
+import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -41,6 +45,7 @@ function fixture() {
     createdAt: new Date('2026-09-20T00:00:00Z'),
   };
   const calls: string[] = [];
+  let batchUpdatedAt = new Date('2026-09-20T00:00:00Z');
   const batch = () => ({
     id: 'batch-1',
     brandId: 'brand-1',
@@ -49,7 +54,7 @@ function fixture() {
     config: {},
     items: [{ ...item }],
     status: BatchStatus.COMPLETED,
-    updatedAt: new Date('2026-09-20T00:00:00Z'),
+    updatedAt: batchUpdatedAt,
   });
   const tx = {
     $queryRaw: vi.fn(async () => {
@@ -67,6 +72,23 @@ function fixture() {
       }),
     },
     batchItem: { upsert: vi.fn() },
+    agentStrategy: {
+      findFirst: vi.fn().mockResolvedValue({
+        isActive: true,
+        config: {},
+        policies: {
+          publishPolicy: {
+            autoPublishEnabled: true,
+            platformStates: {
+              instagram: { approvalStreak: 4, autoPublishEnabled: true },
+            },
+          },
+        },
+      }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    brand: { findFirst: vi.fn().mockResolvedValue({ agentConfig: {} }) },
+    agentPublishAudit: { create: vi.fn() },
     post: {
       findFirst: vi.fn(async () => (post.isDeleted ? null : { ...post })),
       updateMany: vi.fn(async () => ({ count: 1 })),
@@ -115,16 +137,35 @@ function fixture() {
     })),
   };
   const service = new BatchGenerationReviewService(
-    prisma as never,
-    { log: vi.fn() } as never,
-    {} as never,
-    lifecycle as never,
-    approvals as never,
-    { toBatchSummary: async (row: unknown) => row } as never,
-    policy as never,
+    prisma as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[0],
+    { log: vi.fn() } as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[1],
+    {} as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[2],
+    lifecycle as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[3],
+    approvals as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[4],
+    {
+      toBatchSummary: async (row: unknown) => row,
+    } as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[5],
+    policy as unknown as ConstructorParameters<
+      typeof BatchGenerationReviewService
+    >[6],
   );
   return {
     service,
+    updateUnrelatedBatch: () => {
+      batchUpdatedAt = new Date('2026-09-27T00:00:00Z');
+    },
     tx,
     approvals,
     lifecycle,
@@ -141,16 +182,46 @@ describe('Autonomous review transaction boundary', () => {
       id: 'batch-1',
       items: [],
     } as unknown as IBatchSummary);
+    f.current().item.reviewDecision = ReviewDecision.APPROVED;
+    f.current().post.reviewDecision = PersistedReviewDecision.APPROVED;
+    const realPolicy = new AutonomousPublishPolicyService(
+      f.tx as unknown as PrismaService,
+    );
+    f.policy.recordReviewDecision.mockImplementation((input, transaction) =>
+      realPolicy.recordReviewDecision(input, transaction),
+    );
     const expectedDate = new Date('2026-09-20T00:00:00Z');
     await f.service.applyRewrites(
       'batch-1',
       'org-1',
       'user-1',
-      expectedDate,
       new Map([['item-1', 'Rewritten caption']]),
       new Map([['post-1', expectedDate]]),
     );
     expect(f.current().item.caption).toBe('Rewritten caption');
+    expect(f.current().item.reviewDecision).toBe(ReviewDecision.UNSET);
+    expect(f.current().post.reviewDecision).toBeNull();
+    expect(f.tx.batchItem.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({ reviewDecision: null }),
+      }),
+    );
+    expect(f.tx.agentStrategy.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          policies: expect.objectContaining({
+            publishPolicy: expect.objectContaining({
+              platformStates: expect.objectContaining({
+                instagram: expect.objectContaining({
+                  approvalStreak: 0,
+                  autoPublishEnabled: false,
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
     expect(f.current().item.reviewEvents).toEqual([
       expect.objectContaining({
         decision: ReviewDecision.REQUEST_CHANGES,
@@ -164,7 +235,13 @@ describe('Autonomous review transaction boundary', () => {
       }),
       f.tx,
     );
-    expect(f.approvals.invalidatePost).toHaveBeenCalled();
+    expect(f.approvals.invalidatePost).toHaveBeenCalledWith(
+      'org-1',
+      'post-1',
+      'Content rewritten',
+      'user-1',
+      f.tx,
+    );
     expect(f.approvals.createForCurrentPost).not.toHaveBeenCalled();
     expect(f.lifecycle.transition).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -175,20 +252,47 @@ describe('Autonomous review transaction boundary', () => {
     );
   });
 
-  it('rejects a rewrite of a changed batch before writing anything', async () => {
+  it('allows unrelated batch updates after the post snapshot', async () => {
     const f = fixture();
+    vi.spyOn(f.service, 'getBatch').mockResolvedValue({
+      id: 'batch-1',
+      items: [],
+    } as unknown as IBatchSummary);
+    const versions = new Map([['post-1', f.current().post.updatedAt]]);
+    f.updateUnrelatedBatch();
     await expect(
       f.service.applyRewrites(
         'batch-1',
         'org-1',
         'user-1',
-        new Date('2026-09-19T00:00:00Z'),
         new Map([['item-1', 'New']]),
-        new Map(),
+        versions,
       ),
-    ).rejects.toThrow('Batch changed');
+    ).resolves.toMatchObject({ id: 'batch-1' });
+    expect(f.current().item.caption).toBe('New');
+    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns 409 when a selected post changes after the snapshot', async () => {
+    const f = fixture();
+    const versions = new Map([['post-1', f.current().post.updatedAt]]);
+    f.current().post.updatedAt = new Date('2026-09-27T00:00:00Z');
+    await expect(
+      f.service.applyRewrites(
+        'batch-1',
+        'org-1',
+        'user-1',
+        new Map([['item-1', 'New']]),
+        versions,
+      ),
+    ).rejects.toMatchObject({
+      constructor: ConflictException,
+      status: 409,
+    });
     expect(f.lifecycle.transition).not.toHaveBeenCalled();
     expect(f.tx.batch.updateMany).not.toHaveBeenCalled();
+    expect(f.approvals.invalidatePost).not.toHaveBeenCalled();
+    expect(f.policy.recordReviewDecision).not.toHaveBeenCalled();
   });
 
   it('expires a pending draft without ever creating a publish grant', async () => {

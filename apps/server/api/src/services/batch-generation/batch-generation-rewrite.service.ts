@@ -130,7 +130,6 @@ export class BatchGenerationRewriteService {
         batchId,
         organizationId,
         userId,
-        batch.updatedAt,
         captions,
         new Map(posts.map((post) => [post.id, post.updatedAt])),
       );

@@ -95,7 +95,6 @@ describe('Batch rewrite', () => {
       'batch-1',
       'org-1',
       'user-1',
-      updatedAt,
       new Map([['item-1', 'Rewritten']]),
       new Map([['post-1', updatedAt]]),
     );

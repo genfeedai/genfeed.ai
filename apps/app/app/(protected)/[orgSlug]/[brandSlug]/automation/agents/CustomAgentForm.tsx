@@ -2,6 +2,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
+  Platform,
 } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -17,9 +18,11 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -39,7 +42,7 @@ export default function CustomAgentForm({
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-  const [platforms, setPlatforms] = useState('');
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [topics, setTopics] = useState('');
   const [voice, setVoice] = useState('');
   const [postsPerWeek, setPostsPerWeek] = useState('7');
@@ -48,10 +51,6 @@ export default function CustomAgentForm({
   );
   const [budget, setBudget] = useState('100');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const platformList = platforms
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
   const topicList = topics
     .split(',')
     .map((value) => value.trim())
@@ -59,7 +58,7 @@ export default function CustomAgentForm({
   const dailyCreditBudget = Number(budget);
   const count = Number(postsPerWeek);
   const isValid =
-    platformList.length > 0 &&
+    platforms.length > 0 &&
     topicList.length > 0 &&
     voice.trim().length > 0 &&
     Number.isInteger(count) &&
@@ -85,7 +84,7 @@ export default function CustomAgentForm({
       isActive: true,
       label: translate('customAgent'),
       minCreditThreshold: Math.max(25, Math.floor(dailyCreditBudget / 2)),
-      platforms: [...new Set(platformList)],
+      platforms,
       preferredWorkflowTemplateId: preferredWorkflowTemplateIdForAgentType(
         AgentType.GENERAL,
       ),
@@ -130,13 +129,27 @@ export default function CustomAgentForm({
         {translate('customDescription')}
       </p>
       <FormControl label={translate('platforms')}>
-        <Input
-          aria-label={translate('platforms')}
-          value={platforms}
-          onChange={(event) => setPlatforms(event.target.value)}
-          isRequired
-          isDisabled={isSubmitting}
-        />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {Object.values(Platform).map((platform) => (
+            <div key={platform} className="flex items-center gap-2">
+              <Checkbox
+                id={`custom-agent-platform-${platform}`}
+                checked={platforms.includes(platform)}
+                disabled={isSubmitting}
+                onCheckedChange={(checked) =>
+                  setPlatforms((current) =>
+                    checked === true
+                      ? [...new Set([...current, platform])]
+                      : current.filter((value) => value !== platform),
+                  )
+                }
+              />
+              <Label htmlFor={`custom-agent-platform-${platform}`}>
+                {translate(`platformOptions.${platform}`)}
+              </Label>
+            </div>
+          ))}
+        </div>
       </FormControl>
       <FormControl label={translate('topics')}>
         <Input

@@ -737,86 +737,87 @@ export default function MessagesPage() {
                     </p>
                   </div>
                 </div>
-              ) : null}
-              <div className="border-t border-border p-4">
-                <div className="mb-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {translate('replyComposer.title')}
-                      </p>
-                      <p className="mt-1 text-xs text-foreground/45">
-                        {translate('replyComposer.description')}
-                      </p>
+              ) : (
+                <div className="border-t border-border p-4">
+                  <div className="mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {translate('replyComposer.title')}
+                        </p>
+                        <p className="mt-1 text-xs text-foreground/45">
+                          {translate('replyComposer.description')}
+                        </p>
+                      </div>
+                      <Button
+                        icon={<Sparkles className="size-4" />}
+                        isDisabled={Boolean(busyAction)}
+                        isLoading={busyAction === 'suggested-reply'}
+                        onClick={handleSuggestedReply}
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.SECONDARY}
+                      >
+                        {translate('actions.draftReply')}
+                      </Button>
                     </div>
-                    <Button
-                      icon={<Sparkles className="size-4" />}
-                      isDisabled={Boolean(busyAction)}
-                      isLoading={busyAction === 'suggested-reply'}
-                      onClick={handleSuggestedReply}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                    >
-                      {translate('actions.draftReply')}
-                    </Button>
+                  </div>
+                  <Textarea
+                    aria-label="Social reply or direct message"
+                    className="min-h-24 w-full"
+                    placeholder="Write a reply or DM"
+                    rows={4}
+                    value={draft}
+                    onChange={handleDraftChange}
+                  />
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-gray-800">
+                      {availability.canSendDm
+                        ? 'DM is available for this thread.'
+                        : availability.sendDmReason}
+                    </p>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={Boolean(busyAction) || !draft.trim()}
+                        isLoading={busyAction === 'draft'}
+                        onClick={() => handleAction('draft')}
+                      >
+                        {translate('actions.saveDraft')}
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        icon={<Send className="size-4" />}
+                        isDisabled={
+                          Boolean(busyAction) ||
+                          !draft.trim() ||
+                          !availability.canPostReply
+                        }
+                        isLoading={busyAction === 'reply'}
+                        title={availability.postReplyReason}
+                        onClick={() => handleAction('reply')}
+                      >
+                        {translate('actions.reply')}
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={
+                          Boolean(busyAction) ||
+                          !draft.trim() ||
+                          !availability.canSendDm
+                        }
+                        isLoading={busyAction === 'dm'}
+                        title={availability.sendDmReason}
+                        onClick={() => handleAction('dm')}
+                      >
+                        {translate('actions.dm')}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <Textarea
-                  aria-label="Social reply or direct message"
-                  className="min-h-24 w-full"
-                  placeholder="Write a reply or DM"
-                  rows={4}
-                  value={draft}
-                  onChange={handleDraftChange}
-                />
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-gray-800">
-                    {availability.canSendDm
-                      ? 'DM is available for this thread.'
-                      : availability.sendDmReason}
-                  </p>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={Boolean(busyAction) || !draft.trim()}
-                      isLoading={busyAction === 'draft'}
-                      onClick={() => handleAction('draft')}
-                    >
-                      {translate('actions.saveDraft')}
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.DEFAULT}
-                      size={ButtonSize.SM}
-                      icon={<Send className="size-4" />}
-                      isDisabled={
-                        Boolean(busyAction) ||
-                        !draft.trim() ||
-                        !availability.canPostReply
-                      }
-                      isLoading={busyAction === 'reply'}
-                      title={availability.postReplyReason}
-                      onClick={() => handleAction('reply')}
-                    >
-                      {translate('actions.reply')}
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={
-                        Boolean(busyAction) ||
-                        !draft.trim() ||
-                        !availability.canSendDm
-                      }
-                      isLoading={busyAction === 'dm'}
-                      title={availability.sendDmReason}
-                      onClick={() => handleAction('dm')}
-                    >
-                      {translate('actions.dm')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              )}
             </>
           ) : (
             <div

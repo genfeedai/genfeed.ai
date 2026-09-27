@@ -1,6 +1,9 @@
 import type { SocialInboxScope } from '@api/collections/social-inbox/services/social-inbox.types';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import {
+  CONVERSATION_MESSAGE_MAX_CHARS,
+  ReplyGenerationService,
+} from '@api/services/reply-bot/reply-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ReplyLength,
@@ -62,14 +65,20 @@ export class SocialInboxSuggestedReplyService {
           ? SocialConversationType.DM
           : SocialConversationType.COMMENT,
       context: [
-        conversation.sourceContentTitle,
+        conversation.sourceContentTitle?.slice(
+          0,
+          CONVERSATION_MESSAGE_MAX_CHARS,
+        ),
         ...[...messages]
           .reverse()
-          .map((message) => `${message.direction}: ${message.body}`),
+          .map(
+            (message) =>
+              `${message.direction}: ${message.body.slice(0, CONVERSATION_MESSAGE_MAX_CHARS)}`,
+          ),
       ]
         .filter(Boolean)
         .join('\n'),
-      tweetContent: inbound.body,
+      tweetContent: inbound.body.slice(0, CONVERSATION_MESSAGE_MAX_CHARS),
       tweetAuthor:
         inbound.senderName ??
         inbound.senderHandle ??

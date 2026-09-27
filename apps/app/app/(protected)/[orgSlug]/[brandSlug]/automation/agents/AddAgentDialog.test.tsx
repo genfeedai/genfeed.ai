@@ -116,10 +116,13 @@ describe('AddAgentDialog', () => {
         onOpenChange={mocks.onOpenChange}
       />,
     );
-    fireEvent.change(
-      screen.getByRole('textbox', { name: 'Platforms (comma-separated)' }),
-      { target: { value: 'twitter, linkedin' } },
-    );
+    expect(
+      screen.queryByRole('textbox', { name: 'Platforms' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'X (Twitter)' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'LinkedIn' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'YouTube' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'YouTube' }));
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Topics (comma-separated)' }),
       { target: { value: 'AI, product' } },

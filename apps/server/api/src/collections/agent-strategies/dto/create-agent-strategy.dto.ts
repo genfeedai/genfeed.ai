@@ -13,6 +13,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
+  Platform,
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -406,9 +407,14 @@ export class CreateAgentStrategyDto {
   qualityTier?: AgentPolicyQualityTier;
 
   @IsArray()
-  @IsString({ each: true })
+  @IsEnum(Platform, { each: true })
   @IsOptional()
-  @ApiProperty({ description: 'Target platforms', required: false })
+  @ApiProperty({
+    description: 'Target platforms',
+    enum: Platform,
+    isArray: true,
+    required: false,
+  })
   platforms?: string[];
 
   @IsArray()

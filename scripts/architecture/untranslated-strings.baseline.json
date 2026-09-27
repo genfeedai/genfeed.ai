@@ -67,7 +67,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 25,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/cadence-form-sheet.tsx": 9,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/calendar-slot-drawer.tsx": 1,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.tsx": 4,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/evergreen-series-controls.tsx": 17,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/release-calendar-filters.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/compare/page.tsx": 1,

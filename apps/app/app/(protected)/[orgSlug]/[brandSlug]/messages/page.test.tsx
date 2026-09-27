@@ -843,7 +843,7 @@ describe('SocialMessagesPage', () => {
     expect(screen.queryByText('Launch video')).not.toBeInTheDocument();
   });
 
-  it('allows TikTok suggestions while keeping publishing disabled', async () => {
+  it('replaces the composer with one notice for read-only TikTok threads', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,
       hasPrevious: false,
@@ -874,13 +874,15 @@ describe('SocialMessagesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText('TikTok conversations are read-only in Genfeed')[0],
+      screen.getByText('TikTok conversations are read-only in Genfeed'),
     ).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Write a reply or DM'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Draft reply' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /^Reply$/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /^DM$/ })).toBeDisabled();
+      screen.queryByPlaceholderText('Write a reply or DM'),
+    ).not.toBeInTheDocument();
+    for (const name of ['Draft reply', 'Save Draft', 'Reply', 'DM']) {
+      expect(
+        screen.queryByRole('button', { name, exact: true }),
+      ).not.toBeInTheDocument();
+    }
   });
 });

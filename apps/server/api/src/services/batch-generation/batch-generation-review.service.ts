@@ -11,6 +11,7 @@ import {
   PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
+  toPersistedReviewDecision,
 } from '@genfeedai/contracts';
 import type {
   IBatchSummary,
@@ -750,7 +751,6 @@ export class BatchGenerationReviewService {
     batchId: string,
     organizationId: string,
     userId: string,
-    expectedUpdatedAt: Date,
     captions: Map<string, string>,
     postVersions: Map<string, Date>,
   ): Promise<IBatchSummary> {
@@ -758,11 +758,6 @@ export class BatchGenerationReviewService {
       batchId,
       organizationId,
       async (transaction, batch) => {
-        if (batch.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
-          throw new ConflictException(
-            'Batch changed during rewrite. Refresh and try again.',
-          );
-        }
         const items = resolveBatchItems(batch);
         const reviewedAt = new Date().toISOString();
         for (const item of items) {
@@ -810,7 +805,9 @@ export class BatchGenerationReviewService {
                   description: caption,
                   reviewFeedback: null,
                   reviewVersionPinId: null,
-                  reviewDecision: PersistedReviewDecision.REQUEST_CHANGES,
+                  reviewDecision: toPersistedReviewDecision(
+                    ReviewDecision.UNSET,
+                  ),
                   reviewedAt: new Date(reviewedAt),
                 },
                 reason: 'Content rewritten',
@@ -824,7 +821,7 @@ export class BatchGenerationReviewService {
             }
           }
           item.caption = caption;
-          item.reviewDecision = ReviewDecision.REQUEST_CHANGES;
+          item.reviewDecision = ReviewDecision.UNSET;
           item.reviewFeedback = undefined;
           item.reviewedAt = reviewedAt;
           item.versionPinId = undefined;

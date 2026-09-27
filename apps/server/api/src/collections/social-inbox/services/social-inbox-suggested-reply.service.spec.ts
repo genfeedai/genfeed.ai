@@ -1,5 +1,6 @@
 import { SocialInboxSuggestedReplyService } from '@api/collections/social-inbox/services/social-inbox-suggested-reply.service';
 import type { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { CONVERSATION_MESSAGE_MAX_CHARS } from '@api/services/reply-bot/reply-generation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SocialConversationType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
@@ -78,6 +79,43 @@ describe('Social inbox suggested reply', () => {
       );
     },
   );
+  it('bounds each body before merging the latest 20 messages in chronological order', async () => {
+    const { service, generation, prisma } = setup();
+    prisma.socialMessage.findMany.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({
+        direction: 'inbound',
+        senderName: 'Taylor',
+        body:
+          `message-${index}:` +
+          'x'.repeat(CONVERSATION_MESSAGE_MAX_CHARS) +
+          'OMITTED',
+      })),
+    );
+    await service.suggestReply(
+      { organizationId: 'org-1', userId: 'user-1' },
+      'conversation-1',
+    );
+    expect(prisma.socialMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 20,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+    );
+    const options = generation.generateReply.mock.calls[0][0];
+    expect(options.tweetContent).toHaveLength(CONVERSATION_MESSAGE_MAX_CHARS);
+    expect(options.context).not.toContain('OMITTED');
+    const lines: string[] = options.context.split('\n');
+    expect(lines).toHaveLength(20);
+    expect(lines[0]).toContain('message-19:');
+    expect(lines[19]).toContain('message-0:');
+    expect(
+      lines.every(
+        (line) =>
+          line.length === 'inbound: '.length + CONVERSATION_MESSAGE_MAX_CHARS,
+      ),
+    ).toBe(true);
+  });
+
   it('distinguishes a public reply from a DM', async () => {
     const { service, generation } = setup('youtube', 'comment');
     await service.suggestReply(
