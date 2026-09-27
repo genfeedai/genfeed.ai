@@ -4,13 +4,13 @@ name: CI
 #   - pull_request: the affected tier. Draft pull requests run nothing; CI runs
 #     once when the PR is marked ready (`ready_for_review`) and on every push
 #     after that.
-#   - workflow_call: full-suite.yml (hourly master validation and the release
+#   - workflow_call: full-suite.yml (master validation on push and the release
 #     QA path) and pr-full-suite.yml (the `full-suite` PR label) pass
 #     `run_heavy_tests: true` for the complete matrix.
 #
-# There is no push or merge-queue trigger. Master is validated by the hourly
-# Full Suite, which inherits the `schedule` event here; the master failure
-# tracker keys off that event.
+# There is no push or merge-queue trigger of its own. Master is validated by
+# the Full Suite on every push (never cancelled mid-run), which inherits the
+# `push` event here; the master failure tracker keys off that event.
 on:
   pull_request:
     branches: [master]
@@ -44,10 +44,10 @@ permissions:
   statuses: write
 
 env:
-  # Diff base for every "changed since base" step (turbo `--affected`, vitest
-  # `--changed`, the PR test plan). Only pull requests have one; every other
-  # event runs the full paths.
-  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+  # The diff base for every "changed since base" step (turbo `--affected`,
+  # vitest `--changed`, the PR test plan) is CI_BASE_SHA, resolved once by the
+  # Plan job and passed to each job through `needs.plan.outputs.base`. Only
+  # pull requests have one; every other event runs the full paths.
   CI_IS_CHANGE_RUN: ${{ github.event_name == 'pull_request' }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -64,6 +64,7 @@ jobs:
     timeout-minutes: 15
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     outputs:
+      base: ${{ steps.base.outputs.sha }}
       heavy-tier: ${{ steps.tier.outputs.heavy }}
       app: ${{ steps.plan.outputs.app }}
       api: ${{ steps.plan.outputs.api }}
@@ -73,7 +74,7 @@ jobs:
       api_matrix: ${{ steps.plan.outputs.api_matrix }}
       force_full: ${{ steps.plan.outputs.force_full }}
       workspace_tests: ${{ steps.plan.outputs.workspace_tests }}
-      workspace_filters: ${{ steps.plan.outputs.workspace_filters }}
+      workspace_matrix: ${{ steps.plan.outputs.workspace_matrix }}
       spec_run: ${{ steps.spec-matrix.outputs.run }}
       spec_matrix: ${{ steps.spec-matrix.outputs.matrix }}
       spec_build_filters: ${{ steps.turbo-scope.outputs.build_filters }}
@@ -117,7 +118,7 @@ jobs:
             }
 
       # Trust-tiered heavy matrix (open-source PR policy). Maintainer and
-      # same-repo PRs run the affected tier; the hourly Full Suite runs the
+      # same-repo PRs run the affected tier; the master Full Suite runs the
       # complete matrix on master. A fork PR from an external contributor gets
       # the full heavy matrix on the PR itself. `run_heavy_tests` (full-suite /
       # release path) and the `full-suite` label escalate for anyone.
@@ -148,6 +149,23 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # A pull request checks out GitHub's merge commit, whose first parent is
+      # the base it was actually built on. The event payload's
+      # `pull_request.base.sha` can be far older: diffing against it drags every
+      # commit merged since into the "changed" set and escalated ordinary PRs
+      # to the full tier (e.g. a `.claude/launch.json` change on master forced
+      # a full spec typecheck on an unrelated website PR, 2026-09-27).
+      - name: Resolve diff base
+        id: base
+        run: |
+          set -euo pipefail
+          base=''
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            base="$(git rev-parse HEAD^1)"
+          fi
+          echo "sha=${base}" >>"${GITHUB_OUTPUT}"
+          echo "CI_BASE_SHA=${base}" >>"${GITHUB_ENV}"
+          echo "Diff base: ${base:-<none, full paths>}"
       - name: Setup Bun environment
         if: steps.tier.outputs.heavy != 'true'
         uses: ./.github/actions/setup-bun-env
@@ -290,7 +308,7 @@ jobs:
       # Each of the solo workspaces typechecks most of the frontend graph
       # through source-pointing path aliases and takes ~10 minutes on its own
       # (measured 2026-09-27: app 679s, agent 627s, pages 614s, props 605s,
-      # hooks 561s; the other ~30 workspaces total ~5 minutes). Run in one job
+      # ui 587s, hooks 561s; the other ~30 workspaces total ~5 minutes). Run in one job
       # they made the full ratchet a 57-minute serial walk. Each solo workspace
       # gets its own matrix leg; everything else shares one leg. A workspace
       # missing from this list is only slower, never unchecked.
@@ -298,7 +316,7 @@ jobs:
         id: spec-matrix
         env:
           SCOPED_WORKSPACES: ${{ steps.turbo-scope.outputs.workspaces || steps.scope.outputs.workspaces }}
-          SOLO_WORKSPACES: app agent hooks pages props
+          SOLO_WORKSPACES: app agent hooks pages props ui
         run: node scripts/ci/spec-typecheck-matrix.mjs
 
   # Gitleaks, format, secretlint, lint, typecheck, and the executable contracts
@@ -310,17 +328,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       # Pull requests scan their own commits; the release path scans history.
-      # The hourly Full Suite skips it: every master commit arrived through a
+      # The master Full Suite skips it: every master commit arrived through a
       # scanned pull request. Dependabot runs read the Dependabot secret store,
       # where GITLEAKS_LICENSE is empty and the action hard-fails; their
       # manifest/lockfile diffs still pass through secretlint below.
       - name: Scan for secrets with gitleaks
-        if: github.event_name != 'schedule' && github.actor != 'dependabot[bot]'
+        if: github.event_name != 'push' && github.actor != 'dependabot[bot]'
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -463,13 +483,18 @@ jobs:
           exit 1
 
   # Packages, server services (everything under apps/server except the API),
-  # and web/mobile in one turbo invocation: turbo already parallelizes the
-  # tasks, and three jobs paid three setups and three queue slots for it. The
-  # planner owns the filter list, including dormant-surface exclusion.
+  # and web/mobile. One job definition, one matrix leg per applicable group:
+  # run as a single turbo invocation the three groups contended for one
+  # runner's CPUs and took ~25 minutes, the slowest job in the graph. The
+  # planner owns the legs and their filters, including dormant-surface
+  # exclusion.
   test-workspaces:
-    name: Test Workspaces
+    name: Test Workspaces (${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -496,6 +521,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379
@@ -510,7 +536,7 @@ jobs:
       - name: Run workspace tests
         env:
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
-          WORKSPACE_FILTERS: ${{ needs.plan.outputs.workspace_filters }}
+          WORKSPACE_FILTERS: ${{ matrix.filters }}
         run: |
           set -euo pipefail
           # shellcheck disable=SC2086 # intentional word-splitting of --filter args
@@ -528,6 +554,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
     if: needs.plan.outputs.app_tests == 'true'
     strategy:
       fail-fast: false
@@ -588,6 +616,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
       KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       # Separate, fully-migrated databases on the same Postgres service
       # (#5217 / #5191): these run `prisma migrate deploy` for real, so the
@@ -649,6 +678,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: plan
+    env:
+      CI_BASE_SHA: ${{ needs.plan.outputs.base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -688,7 +719,7 @@ jobs:
   # skipped cannot produce a false-green gate; plan-filtered skips are accepted
   # only when the exact plan marked them non-applicable.
   #
-  # Runs on ready pull requests and on the hourly Full Suite (`schedule`,
+  # Runs on ready pull requests and on the master Full Suite (`push`,
   # inherited through workflow_call), whose verdict drives the master failure
   # tracker below. The release path (workflow_dispatch) is gated by its caller.
   tests-gate:
@@ -706,7 +737,7 @@ jobs:
     if: >-
       ${{ always()
       && !github.event.pull_request.draft
-      && (github.event_name == 'pull_request' || github.event_name == 'schedule') }}
+      && (github.event_name == 'pull_request' || github.event_name == 'push') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -752,11 +783,11 @@ jobs:
   # ── Master failure tracker (#2510) ──────────────────────────────────────────
   #
   # A red trunk must not depend on someone opening the Actions tab. When the
-  # hourly Full Suite's Tests Gate fails, file (or update) ONE
+  # master Full Suite's Tests Gate fails, file (or update) ONE
   # `master-ci-failure` tracking issue at native issue Priority P0; when a later
-  # hourly run is green, close every open tracker. `schedule` reaches this
-  # workflow only through full-suite.yml's call; pull requests surface a red gate
-  # on the PR itself, and the release path (workflow_dispatch) never matches.
+  # run is green, close every open tracker. `push` reaches this workflow only
+  # through full-suite.yml's call; pull requests surface a red gate on the PR
+  # itself, and the release path (workflow_dispatch) never matches.
   #
   # `!cancelled()` is load-bearing: an `if:` without a status function
   # implicitly ANDs `success()` over the (routinely partly skipped) graph, and
@@ -771,7 +802,7 @@ jobs:
     needs: [tests-gate]
     if: >-
       !cancelled()
-      && github.event_name == 'schedule'
+      && github.event_name == 'push'
       && (needs.tests-gate.result == 'failure' || needs.tests-gate.result == 'success')
     permissions:
       contents: read

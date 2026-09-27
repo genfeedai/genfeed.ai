@@ -371,43 +371,23 @@ test('reusable CI callers grant the failure tracker permission ceiling', () => {
   }
 });
 
-test('the full suite runs hourly, never cancels, and skips a finished head', () => {
+test('the full suite runs on every master push and never cancels a run', () => {
   const workflow = readWorkflow('full-suite.yml');
 
-  assert.match(workflow, /^ {2}schedule:\n {4}- cron: '23 \* \* \* \*'/m);
-  assert.doesNotMatch(workflow, /^ {2}push:/m);
+  // A cron cadence was tried and dropped: this repository's scheduled
+  // workflows start hours late, which left master unvalidated.
+  assert.match(workflow, /^ {2}push:\n {4}branches: \[master\]$/m);
+  assert.doesNotMatch(workflow, /^ {2}schedule:/m);
   assert.match(
     topLevelConcurrencyBlock(workflow, 'full-suite.yml'),
     /^ {2}cancel-in-progress: false$/m,
   );
-  const freshness = jobBlock(workflow, 'freshness', 'full-suite.yml');
-  assert.match(freshness, /GITHUB_EVENT_NAME\}" != "schedule"/);
-  assert.match(
-    freshness,
-    /select\(\.conclusion == \\"success\\" or \.conclusion == \\"failure\\"\)/,
-  );
-  // A skip must not conclude green: release evidence would read it as a pass
-  // for a SHA whose real run failed.
-  assert.match(freshness, /gh run cancel "\$\{GITHUB_RUN_ID\}"/);
-  // Fail open: a failed lookup must validate, never skip or fail the run.
-  assert.match(
-    freshness,
-    /if ! finished="\$\(gh api [\s\S]*?validating anyway\.[\s\S]*?run=true/,
-  );
-  assert.match(freshness, /^ {6}actions: write$/m);
-  for (const jobId of ['ci', 'build-verify', 'e2e']) {
-    assert.match(
-      jobBlock(workflow, jobId, 'full-suite.yml'),
-      /^ {4}if: needs\.freshness\.outputs\.run == 'true'$/m,
-      `${jobId} must wait on the freshness check`,
-    );
-  }
 });
 
-test('e2e nightly-only lanes never fire under the hourly Full Suite', () => {
-  // A called workflow inherits the caller's event, and the hourly Full Suite
-  // is a cron, so a bare `github.event_name == 'schedule'` would file nightly
-  // trackers and run nightly-only lanes every hour.
+test('e2e nightly-only lanes never fire under a cron-triggered caller', () => {
+  // A called workflow inherits the caller's event, so under a cron-triggered
+  // caller a bare `github.event_name == 'schedule'` would file nightly
+  // trackers and run nightly-only lanes on the caller's cadence.
   const workflow = readWorkflow('e2e.yml');
   const bareSchedule = workflow
     .split('\n')

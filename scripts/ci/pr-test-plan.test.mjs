@@ -15,7 +15,7 @@ import {
 } from './pr-test-plan.mjs';
 
 test('scopes surfaces by diff on pull requests only, forces them elsewhere', () => {
-  // The hourly master Full Suite and release dispatch have no diff base, so
+  // The master Full Suite and release dispatch have no diff base, so
   // they force every surface.
   assert.equal(isChangeRunEvent('pull_request'), true);
   assert.equal(isChangeRunEvent('merge_group'), false);
@@ -142,13 +142,17 @@ test('a full-suite escalation shards each whole suite four ways', () => {
     assert.equal(surface.shards, 4);
     assert.deepEqual(surface.matrix, createShardMatrix(4));
   }
-  assert.deepEqual(plan.workspaceFilters, [
-    '--filter=./packages/*',
-    '--filter=./apps/server/*',
-    '--filter=!@genfeedai/api',
-    '--filter=@genfeedai/website',
-    '--filter=@genfeedai/docs',
-    '--filter=@genfeedai/mobile',
+  assert.deepEqual(plan.workspaceMatrix.include, [
+    { group: 'packages', filters: '--filter=./packages/*' },
+    {
+      group: 'server',
+      filters: '--filter=./apps/server/* --filter=!@genfeedai/api',
+    },
+    {
+      group: 'web',
+      filters:
+        '--filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile',
+    },
   ]);
 });
 
@@ -241,12 +245,10 @@ test('creates a fail-closed plan with explicit applicability', () => {
     server: false,
     web: true,
   });
-  assert.deepEqual(plan.workspaceFilters, [
-    '--filter=./packages/*',
-    '--filter=@genfeedai/website',
-    '--filter=@genfeedai/docs',
-    '--filter=@genfeedai/mobile',
-  ]);
+  assert.deepEqual(
+    plan.workspaceMatrix.include.map((leg) => leg.group),
+    ['packages', 'web'],
+  );
 });
 
 test('an empty affected plan runs no workspace or test shards', () => {
@@ -257,7 +259,7 @@ test('an empty affected plan runs no workspace or test shards', () => {
 
   assert.equal(plan.appTests.applicable, false);
   assert.equal(plan.apiTests.applicable, false);
-  assert.deepEqual(plan.workspaceFilters, []);
+  assert.deepEqual(plan.workspaceMatrix, { include: [] });
 });
 
 test('keeps dormant extension tests out of full-suite plans', () => {
@@ -311,12 +313,20 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
   assert.match(workflow, /if: needs\.plan\.outputs\.workspace_tests == 'true'/);
   assert.match(
     workflow,
-    /WORKSPACE_FILTERS: \$\{\{ needs\.plan\.outputs\.workspace_filters \}\}/,
+    /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.workspace_matrix\) \}\}/,
   );
-  // Only pull requests carry a diff base; no step resolves its own.
-  assert.match(
-    workflow,
-    /CI_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \|\| '' \}\}/,
+  assert.match(workflow, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
+  // The diff base is the merge commit's first parent, resolved once by Plan;
+  // the payload's `pull_request.base.sha` can be stale and over-escalate.
+  assert.match(workflow, /base="\$\(git rev-parse HEAD\^1\)"/);
+  assert.doesNotMatch(workflow, /github\.event\.pull_request\.base\.sha/);
+  const baseConsumers = workflow.match(
+    /^ {6}CI_BASE_SHA: \$\{\{ needs\.plan\.outputs\.base \}\}$/gm,
+  );
+  assert.equal(
+    baseConsumers?.length,
+    5,
+    'static checks, workspace, app, API, and build jobs read the planned base',
   );
   assert.doesNotMatch(workflow, /merge_group/);
   // PR runs carry no coverage instrumentation; full-repository coverage

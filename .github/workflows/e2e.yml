@@ -642,9 +642,10 @@ jobs:
   # job closes it only after three consecutive scheduled greens. Reporter failures
   # stay visible on their own step without replacing the source job result.
   # Runs ONLY on the standalone cron. A workflow_call inherits the caller's
-  # event, and the hourly Full Suite (full-suite.yml) is itself a cron, so every
-  # nightly-only gate in this file also requires `github.workflow == 'E2E Tests'`
-  # (a called workflow reports its caller's name there).
+  # event, so a cron-triggered caller would also read 'schedule' here. Every
+  # nightly-only gate in this file therefore also requires
+  # `github.workflow == 'E2E Tests'` (a called workflow reports its caller's
+  # name there).
   # Deploy gating is untouched. Keys off the aggregated gate AND the two
   # nightly-only jobs — the authed job and the API full tier — so any red
   # nightly surfaces exactly one issue. The full tier is deliberately absent

@@ -34,8 +34,9 @@ GitHub's **Re-run failed jobs** is reserved for a transient failure on the same
 SHA; it cannot carry green jobs forward to a new commit.
 
 The post-merge contract is intentionally broader: `full-suite.yml` validates
-the `master` tip hourly with the complete heavy tier, is never cancelled, and
-skips a tip that already has a finished run. A red run opens the P0
+every `master` push with the complete heavy tier and never cancels a running
+suite; merges that land meanwhile collapse into one pending run for the newest
+head. A red run opens the P0
 `master-ci-failure` tracker; the next green run closes it. The stable Release
 workflow waits for an exact-SHA run and reuses its green result instead of
 starting a duplicate Full Suite. A hard-red exact-SHA run blocks release until its failed surfaces are
@@ -55,14 +56,17 @@ series. The merge queue was bypassed for most merges.
 
 The changes:
 
-1. The Full Suite runs hourly and is never cancelled, so every run reaches a
-   verdict; a head that already has a finished run is skipped.
+1. The Full Suite never cancels a running suite, so every run reaches a
+   verdict; merges that land meanwhile collapse into one pending run. (An
+   hourly cron was tried first and dropped: scheduled workflows here start
+   hours late.)
 2. Spec typecheck runs as a matrix: each ~10-minute workspace gets its own leg
    (`scripts/ci/spec-typecheck-matrix.mjs`).
 3. `ci.yml` went from 20 job definitions to 9: trust, test plan, and spec scope
    share the Plan job; gitleaks lives in Static Checks; OpenAPI drift lives in
-   Build; packages, server-service, and web/mobile tests share one turbo job;
-   full and changed app/API shards share one matrix job each.
+   Build; packages, server-service, and web/mobile tests share one matrix job
+   (a leg per group); full and changed app/API shards share one matrix job
+   each.
 4. Draft pull requests run no CI.
 5. The merge queue and its plumbing (merge-group triggers, the external-status
    republisher, and the zombie-run janitor) are gone.
@@ -71,6 +75,9 @@ The changes:
    workflow.
 7. The shared Bun setup no longer restores a ~1 GB lockfile-keyed `.turbo`
    snapshot on every job; the Turbo remote cache serves task outputs.
+8. Pull requests diff against the merge commit's first parent, not the event
+   payload's `pull_request.base.sha`, which can be stale and escalated
+   ordinary PRs to the full tier.
 
 ## Workflow inventory audit — 2026-09-01
 
@@ -108,8 +115,8 @@ The alternatives considered for this audit were:
 
 | Rule | Mechanical enforcement | Scope and failure behavior | Owner |
 | --- | --- | --- | --- |
-| `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; hourly `full-suite.yml` with the P0 `master-ci-failure` tracker | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces within one hourly Full Suite | GitHub setting + repository workflows |
-| Superseded PR work is disposable; landed and release work is not | Top-level workflow concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the hourly master suite, release, deploy, and shared-cache writers queue or complete | Repository code |
+| `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; push-triggered `full-suite.yml` with the P0 `master-ci-failure` tracker | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces within one Full Suite | GitHub setting + repository workflows |
+| Superseded PR work is disposable; landed and release work is not | Top-level workflow concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the master Full Suite, release, deploy, and shared-cache writers queue or complete | Repository code |
 | Changed scope must preserve dependency reachability | `scripts/ci/pr-test-plan.mjs`, Vitest `--changed`, Turbo `--affected --dry=json`, adaptive 1/2/4 shard matrices, fail-closed `Tests Gate` | Root toolchain and planner changes escalate to the full matrix; invalid or missing plans fail | Repository code |
 | Lint, format, type, build, tests, schema, and boundaries are deterministic | Frozen Bun install in `.github/actions/setup-bun-env`; format, lint, and typecheck in `Static Checks`; `Spec Typecheck`; `Build` with OpenAPI drift; and `test:executable-contracts` | Architecture contracts live in executable tests rather than new one-off workflow steps | Repository code |
 | External Actions are immutable | Every external `uses:` reference is a full 40-character upstream commit SHA; `check-github-action-versions.ts` rejects mutable refs or inconsistent SHAs | The release tag remains as a review comment; unlabeled manual SHA pins are intentionally not moved | Repository code |
