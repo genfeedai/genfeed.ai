@@ -227,7 +227,7 @@ function TabsContent({
           className,
         )}
       >
-        <div className={cn(getTabsListClassName())}>
+        <div className={getTabsListClassName('ml-auto')}>
           {normalizedTabs.map((tab) => {
             const key = getTabId(tab);
             const value = getTabId(tab);
@@ -314,7 +314,7 @@ function TabsContent({
         className,
       )}
     >
-      <TabsList aria-label={ariaLabel} className={cn('ml-auto', listClassName)}>
+      <TabsList aria-label={ariaLabel} className={listClassName ?? 'ml-auto'}>
         {normalizedTabs.map((tab) => {
           const tabItem =
             typeof tab === 'string'
