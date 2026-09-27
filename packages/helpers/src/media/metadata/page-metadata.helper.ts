@@ -84,6 +84,7 @@ export function createDynamicPageMetadata<K extends string>(
   paramKey: K,
   formatter: (value: string) => string,
   canonicalPathBuilder?: (value: string) => string,
+  descriptionBuilder?: (value: string) => string,
 ) {
   return async function generateMetadata(
     { params }: ParamsWithKey<K>,
@@ -99,7 +100,7 @@ export function createDynamicPageMetadata<K extends string>(
     return buildMetadata(
       formatter(value),
       previousImages,
-      undefined,
+      descriptionBuilder?.(value),
       canonicalPathBuilder?.(value),
     );
   };

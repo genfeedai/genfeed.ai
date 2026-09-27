@@ -31,6 +31,20 @@ describe('website sitemap', () => {
     expect(urls.has('https://genfeed.ai/contact')).toBe(true);
   });
 
+  it('lists every agent client and client-channel page', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/muse')).toBe(true);
+    expect(urls.has('https://genfeed.ai/grok-bot')).toBe(true);
+    expect(urls.has('https://genfeed.ai/claude-code/linkedin')).toBe(true);
+    expect(urls.has('https://genfeed.ai/muse/instagram')).toBe(true);
+    expect(urls.has('https://genfeed.ai/claude-code/discord')).toBe(false);
+    expect(urls.size).toBe(routes.length);
+  });
+
   it('lists the expert landing page', async () => {
     findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
 
