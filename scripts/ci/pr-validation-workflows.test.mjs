@@ -389,6 +389,11 @@ test('the full suite runs hourly, never cancels, and skips a finished head', () 
   // A skip must not conclude green: release evidence would read it as a pass
   // for a SHA whose real run failed.
   assert.match(freshness, /gh run cancel "\$\{GITHUB_RUN_ID\}"/);
+  // Fail open: a failed lookup must validate, never skip or fail the run.
+  assert.match(
+    freshness,
+    /if ! finished="\$\(gh api [\s\S]*?validating anyway\.[\s\S]*?run=true/,
+  );
   assert.match(freshness, /^ {6}actions: write$/m);
   for (const jobId of ['ci', 'build-verify', 'e2e']) {
     assert.match(

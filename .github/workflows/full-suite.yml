@@ -72,12 +72,18 @@ jobs:
             echo "run=true" >>"${GITHUB_OUTPUT}"
             exit 0
           fi
-          finished="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/full-suite.yml/runs?head_sha=${HEAD_SHA}&per_page=100" \
-            --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID}) | select(.conclusion == \"success\" or .conclusion == \"failure\")] | length")"
-          if [ "${finished}" -gt 0 ]; then
+          # Fail open: a lookup or cancel error validates rather than skips.
+          # A freshness failure would otherwise read as a finished red verdict
+          # to the next hourly run and leave the head unvalidated.
+          if ! finished="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/full-suite.yml/runs?head_sha=${HEAD_SHA}&per_page=100" \
+            --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID}) | select(.conclusion == \"success\" or .conclusion == \"failure\")] | length")"; then
+            echo "::warning::Full Suite lookup for ${HEAD_SHA} failed; validating anyway."
+            echo "run=true" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [ "${finished}" -gt 0 ] && gh run cancel "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}"; then
             echo "run=false" >>"${GITHUB_OUTPUT}"
             echo "Master ${HEAD_SHA} already has a finished Full Suite; skipping."
-            gh run cancel "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}"
           else
             echo "run=true" >>"${GITHUB_OUTPUT}"
           fi
