@@ -512,111 +512,17 @@ jobs:
       # (transitively) depends on it, so a leaf utility change stays small
       # while a widely-imported package (e.g. contracts) still fans out to
       # most of the monorepo — correctly, since that IS what could break.
-      # `--dry=json` only plans the build graph; it runs nothing.
-      #
-      # Two dry-run queries against the SAME graph, not one:
-      #   - unfiltered, to learn every affected workspace including apps
-      #     (`all_affected_names`) — narrowing the CLI query itself with
-      #     `--filter='./packages/*'` would silently drop an enrolled app
-      #     that only depends on the changed package rather than owning
-      #     changed files itself, which used to leave it out of `scoped`
-      #     below entirely (#5315).
-      #   - filtered to `./packages/*`, to learn just the affected
-      #     packages (`affected_packages`) for the "Build packages" step:
-      #     that step never builds an app, only the package dist output the
-      #     ratchet's ts programs resolve, so its filter list must stay
-      #     package-only regardless of which apps are in scope.
+      # The merge logic (which workspaces end up in scope, and whether the
+      # "Build packages" step below can narrow itself to just the affected
+      # packages) lives in scripts/ci/spec-typecheck-scope.ts, unit-tested
+      # directly in scripts/ci/spec-typecheck-scope.test.ts (#5315) instead
+      # of only through assertions on this workflow's own YAML.
       - name: Resolve turbo-affected packages
         id: turbo-scope
         if: steps.scope.outputs.needs_turbo == 'true'
         env:
           APPS_AFFECTED: ${{ steps.scope.outputs.apps_affected }}
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          all_workspaces=()
-          app_workspaces=()
-          for config in apps/server/*/tsconfig.typecheck.specs.json \
-            apps/*/tsconfig.typecheck.specs.json; do
-            workspace="${config%/tsconfig.typecheck.specs.json}"
-            workspace="${workspace##*/}"
-            all_workspaces+=("${workspace}")
-            app_workspaces+=("${workspace}")
-          done
-          for config in packages/*/tsconfig.typecheck.specs.json; do
-            workspace="${config%/tsconfig.typecheck.specs.json}"
-            all_workspaces+=("${workspace##*/}")
-          done
-          shopt -u nullglob
-
-          affected_json="$(TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run build --affected --filter='./packages/*' --dry=json)"
-          mapfile -t affected_packages < <(echo "${affected_json}" | node -e '
-            let data = "";
-            process.stdin.on("data", (chunk) => { data += chunk; });
-            process.stdin.on("end", () => {
-              const parsed = JSON.parse(data);
-              for (const name of parsed.packages || []) {
-                console.log(name.replace(/^@genfeedai\//, ""));
-              }
-            });
-          ')
-
-          all_affected_json="$(TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run build --affected --dry=json)"
-          mapfile -t all_affected_names < <(echo "${all_affected_json}" | node -e '
-            let data = "";
-            process.stdin.on("data", (chunk) => { data += chunk; });
-            process.stdin.on("end", () => {
-              const parsed = JSON.parse(data);
-              for (const name of parsed.packages || []) {
-                console.log(name.replace(/^@genfeedai\//, ""));
-              }
-            });
-          ')
-
-          declare -A affected=()
-          for workspace in ${APPS_AFFECTED}; do
-            [ -n "${workspace}" ] && affected["${workspace}"]=1
-          done
-          for name in "${all_affected_names[@]}"; do
-            affected["${name}"]=1
-          done
-
-          scoped=()
-          for workspace in "${all_workspaces[@]}"; do
-            if [ -n "${affected[${workspace}]:-}" ]; then
-              scoped+=("${workspace}")
-            fi
-          done
-
-          # An affected app's own package dependency footprint isn't
-          # something this scope step derives cheaply (apps/app alone pulls
-          # in most of the monorepo per #5244's baseline): if any enrolled
-          # app ended up in scope — from its own changed files OR only
-          # because it depends on a changed package — fall back to building
-          # every package below rather than guessing which subset it needs.
-          apps_in_scope=0
-          for workspace in "${app_workspaces[@]}"; do
-            if [ -n "${affected[${workspace}]:-}" ]; then
-              apps_in_scope=1
-              break
-            fi
-          done
-
-          build_filters=()
-          if [ "${apps_in_scope}" -eq 0 ]; then
-            for pkg in "${affected_packages[@]}"; do
-              build_filters+=("--filter=@genfeedai/${pkg}")
-            done
-          fi
-
-          echo "workspaces=${scoped[*]-}" >>"${GITHUB_OUTPUT}"
-          echo "build_filters=${build_filters[*]-}" >>"${GITHUB_OUTPUT}"
-          if [ -n "${scoped[*]-}" ]; then
-            echo "run_any=true" >>"${GITHUB_OUTPUT}"
-          else
-            echo "run_any=false" >>"${GITHUB_OUTPUT}"
-          fi
-          echo "Spec typecheck scope (turbo-resolved): ${scoped[*]:-<none>}"
+        run: bun run scripts/ci/spec-typecheck-scope.ts
       - name: Spec Typecheck Guard Tests
         if: steps.scope.outputs.run_any == 'true' || steps.turbo-scope.outputs.run_any == 'true'
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts

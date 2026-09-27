@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { resolveSpecTypecheckScope } from './spec-typecheck-scope';
 
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -41,42 +42,112 @@ function readJson(relativePath: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-function turboScopeStep(workflow: string): string {
-  const match = workflow.match(
-    /\n {6}- name: Resolve turbo-affected packages\n([\s\S]+?)\n {6}- name: Spec Typecheck Guard Tests\n/,
-  );
-  if (!match?.[1]) {
-    throw new Error(
-      'Could not find the "Resolve turbo-affected packages" step in ci.yml.',
+// A small fixture inventory shared across the scope-merge tests below: two
+// enrolled apps, a leaf-ish package (`agent`), a widely-imported one
+// (`contracts`), and two stand-ins for `packages/tsconfig`'s declared
+// consumers.
+const ALL_WORKSPACES = [
+  'api',
+  'app',
+  'agent',
+  'contracts',
+  'tsconfig-consumer-a',
+  'tsconfig-consumer-b',
+];
+const APP_WORKSPACES = ['api', 'app'];
+
+describe('resolveSpecTypecheckScope (#5315)', () => {
+  it('package-only: an affected leaf package with no dependent app narrows scope and build filters to it', () => {
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: ['agent'],
+      allAffectedNames: ['agent'],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result).toEqual({
+      buildFilters: ['--filter=@genfeedai/agent'],
+      runAny: true,
+      workspaces: ['agent'],
+    });
+  });
+
+  it("dependent-app: an app turbo's graph finds affected only through a package enters scope and disables build narrowing", () => {
+    // Neither app's OWN files changed (appsAffectedFromFiles is empty) — only
+    // turbo's unfiltered graph (allAffectedNames) reports them, exactly the
+    // case the pre-#5315 `--filter='./packages/*'`-only query dropped.
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: ['contracts'],
+      allAffectedNames: ['contracts', 'api', 'app'],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result.workspaces.slice().sort()).toEqual(
+      ['api', 'app', 'contracts'].sort(),
     );
-  }
-  return match[1];
-}
+    // An app is in scope purely through the package dependency: the build
+    // step must fall back to building every package rather than guessing
+    // which subset `api`/`app` need, so the filter list stays empty.
+    expect(result.buildFilters).toEqual([]);
+    expect(result.runAny).toBe(true);
+  });
 
-describe('spec typecheck scope (#5315)', () => {
-  it("derives app-level scope from turbo's full affected graph, not the packages-only filter", () => {
-    const step = turboScopeStep(readWorkflow('ci.yml'));
+  it('shared-tsconfig: a shared config change fans out to every declared consumer via the unfiltered graph', () => {
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: ['tsconfig-consumer-a', 'tsconfig-consumer-b'],
+      allAffectedNames: ['tsconfig-consumer-a', 'tsconfig-consumer-b', 'app'],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
 
-    // A `--filter='./packages/*'` dry-run answers "which packages should be
-    // built" but silently drops any ENROLLED APP turbo's own graph found
-    // affected only through a package dependency (#5315). The step must also
-    // query the graph without that filter so an app never falls out of
-    // `scoped` purely because the CLI query excluded it.
-    expect(step).toMatch(/bunx turbo run build --affected --dry=json\)"/);
-
-    // The packages-only query must still exist: "Build packages" never
-    // builds an app, so its filter list has to stay package-scoped
-    // regardless of which apps ended up affected.
-    expect(step).toContain(
-      "bunx turbo run build --affected --filter='./packages/*' --dry=json",
+    expect(result.workspaces.slice().sort()).toEqual(
+      ['app', 'tsconfig-consumer-a', 'tsconfig-consumer-b'].sort(),
     );
+    expect(result.buildFilters).toEqual([]);
+    expect(result.runAny).toBe(true);
+  });
 
-    // The build-narrowing decision must key off whether any ENROLLED APP —
-    // not just one with its own changed files (`APPS_AFFECTED`) — is in the
-    // merged scope, or a package-driven app inclusion would still narrow the
-    // build and starve the app's spec typecheck of package dist output.
-    expect(step).toMatch(/apps_in_scope/);
-    expect(step).not.toMatch(/if \[ -z "\$\{APPS_AFFECTED\/\/ \/\}" \]/);
+  it('no-enrolled-workspace: nothing affected disables the ratchet entirely', () => {
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: [],
+      allAffectedNames: [],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result).toEqual({ buildFilters: [], runAny: false, workspaces: [] });
+  });
+
+  it("honors an app's own changed files even when turbo's unfiltered graph doesn't independently list it", () => {
+    const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: [],
+      allAffectedNames: [],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: ['app'],
+    });
+
+    expect(result).toEqual({
+      buildFilters: [],
+      runAny: true,
+      workspaces: ['app'],
+    });
+  });
+
+  it('calls the extracted script from the "Resolve turbo-affected packages" step', () => {
+    // The merge logic itself is covered above without touching ci.yml; this
+    // only guards the wiring — that the step still invokes the script rather
+    // than a reintroduced inline copy of the algorithm.
+    const workflow = readWorkflow('ci.yml');
+    const match = workflow.match(
+      /\n {6}- name: Resolve turbo-affected packages\n([\s\S]+?)\n {6}- name: Spec Typecheck Guard Tests\n/,
+    );
+    expect(match?.[1]).toContain('bun run scripts/ci/spec-typecheck-scope.ts');
   });
 
   for (const dependent of TSCONFIG_PACKAGE_DEPENDENTS) {
