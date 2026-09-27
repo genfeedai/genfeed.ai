@@ -153,7 +153,7 @@ export class BatchGenerationRewriteRunnerService {
 
     let failure: BatchRewriteItemFailureReason | null;
     try {
-      failure = await this.applyItemRewrite(data, itemId);
+      failure = await this.applyItemRewrite(data, jobId, itemId);
     } catch (error: unknown) {
       await this.releaseItemCredits(data, reservationId);
       throw error;
@@ -170,6 +170,7 @@ export class BatchGenerationRewriteRunnerService {
 
   private async applyItemRewrite(
     data: BatchRewriteJobData,
+    jobId: string,
     itemId: string,
   ): Promise<BatchRewriteItemFailureReason | null> {
     const { batchId, brandId, organizationId, userId } = data;
@@ -182,6 +183,12 @@ export class BatchGenerationRewriteRunnerService {
       : undefined;
     if (!item || item.status !== BatchItemStatus.COMPLETED) {
       return BatchRewriteItemFailureReason.NOT_REWRITABLE;
+    }
+    // This job committed the caption before it stopped (the marker is written
+    // in the apply transaction): settle it rather than read the version bump
+    // it caused as a reviewer's edit.
+    if (item.reviewEvents?.some((event) => event.rewriteJobId === jobId)) {
+      return null;
     }
     const post = item.postId
       ? await this.prisma.post.findFirst({
@@ -228,6 +235,7 @@ export class BatchGenerationRewriteRunnerService {
         userId,
         new Map([[itemId, caption]]),
         postVersions,
+        jobId,
       );
     } catch (error: unknown) {
       if (error instanceof ConflictException) {
@@ -272,30 +280,18 @@ export class BatchGenerationRewriteRunnerService {
     itemId: string,
     reservationId: string,
   ): Promise<void> {
-    try {
-      await this.creditDeductionQueueService.queueDeduction({
-        amount: data.credits.amountPerItem,
-        description: data.credits.description,
-        idempotencyKey: `batch-rewrite-${jobId}-${itemId}`,
-        organizationId: data.organizationId,
-        reservationId,
-        source: data.credits.source,
-        type: 'deduct-credits',
-        userId: data.userId,
-      });
-    } catch (error: unknown) {
-      // The caption is already rewritten; the item stays completed.
-      this.loggerService.error(
-        'Batch rewrite credit settlement failed',
-        error,
-        {
-          ...this.context,
-          itemId,
-          jobId,
-          reservationId,
-        },
-      );
-    }
+    // A failure propagates so the job retries: the resumed run finds this
+    // job's marker on the item and settles the same hold under the same key.
+    await this.creditDeductionQueueService.queueDeduction({
+      amount: data.credits.amountPerItem,
+      description: data.credits.description,
+      idempotencyKey: `batch-rewrite-${jobId}-${itemId}`,
+      organizationId: data.organizationId,
+      reservationId,
+      source: data.credits.source,
+      type: 'deduct-credits',
+      userId: data.userId,
+    });
   }
 
   private async releaseItemCredits(

@@ -628,49 +628,21 @@ function readBootstrap(
   return pending;
 }
 
-async function resolveActiveWorkspaceSlugs(
+/**
+ * The authoritative workspace scope for a request, consulted after the
+ * request's own path, referrer, cache, and signed cookie. Better Auth reads it
+ * from the session's bootstrap; the Playwright bypass from the scope its
+ * in-browser API mock serves.
+ */
+type WorkspaceScopeAuthority = (
+  preferAvailableBrand: boolean,
+) => Promise<WorkspaceSlugs | null>;
+
+async function readBootstrapWorkspaceSlugs(
   token: string,
-  cacheKey?: string | null,
-  req?: NextRequest,
-  options?: WorkspaceSlugResolutionOptions,
-): Promise<SlugResolution | null> {
-  const preferAvailableBrand = options?.preferAvailableBrand === true;
-  const skipSlugCookie = options?.skipSlugCookie === true;
-  // Root/login recovery must come from the authenticated bootstrap. A scoped
-  // request, referrer, in-memory entry, or signed cookie proves only that the
-  // slug was syntactically valid when it was recorded; it does not prove the
-  // current session still belongs to that workspace. Letting one of those
-  // sources win here can permanently redirect `/` into an unauthorized scope.
-  const mayReuseCurrentWorkspace = !preferAvailableBrand;
-  const fromRequestPath =
-    req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
-  if (mayReuseCurrentWorkspace && fromRequestPath) {
-    const cookieValue = await encodeSlugCookie(fromRequestPath);
-    return { cookieValue, slugs: fromRequestPath };
-  }
-
-  const fromReferer = resolveRefererWorkspaceSlugs(req);
-  if (mayReuseCurrentWorkspace && fromReferer) {
-    const cookieValue = await encodeSlugCookie(fromReferer);
-    return { cookieValue, slugs: fromReferer };
-  }
-
-  const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
-  if (mayReuseCurrentWorkspace && cached) {
-    return { cookieValue: null, slugs: cached };
-  }
-
-  if (mayReuseCurrentWorkspace && req && !skipSlugCookie) {
-    const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
-    if (cookieRaw) {
-      const fromCookie = await decodeSlugCookie(cookieRaw);
-      if (fromCookie) {
-        writeWorkspaceSlugCache(cacheKey, fromCookie);
-        return { cookieValue: null, slugs: fromCookie };
-      }
-    }
-  }
-
+  req: NextRequest | undefined,
+  preferAvailableBrand: boolean,
+): Promise<WorkspaceSlugs | null> {
   const bootstrapRead = await readBootstrap(token, req);
 
   if (!bootstrapRead.isAvailable) {
@@ -729,17 +701,76 @@ async function resolveActiveWorkspaceSlugs(
     return null;
   }
 
+  return { brandCount: brands.length, brandSlug, orgSlug };
+}
+
+function bootstrapScopeAuthority(
+  token: string,
+  req?: NextRequest,
+): WorkspaceScopeAuthority {
+  return (preferAvailableBrand) =>
+    readBootstrapWorkspaceSlugs(token, req, preferAvailableBrand);
+}
+
+async function resolveActiveWorkspaceSlugs(
+  authority: WorkspaceScopeAuthority,
+  cacheKey?: string | null,
+  req?: NextRequest,
+  options?: WorkspaceSlugResolutionOptions,
+): Promise<SlugResolution | null> {
+  const preferAvailableBrand = options?.preferAvailableBrand === true;
+  const skipSlugCookie = options?.skipSlugCookie === true;
+  // Root/login recovery must come from the authenticated bootstrap. A scoped
+  // request, referrer, in-memory entry, or signed cookie proves only that the
+  // slug was syntactically valid when it was recorded; it does not prove the
+  // current session still belongs to that workspace. Letting one of those
+  // sources win here can permanently redirect `/` into an unauthorized scope.
+  const mayReuseCurrentWorkspace = !preferAvailableBrand;
+  const fromRequestPath =
+    req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
+  if (mayReuseCurrentWorkspace && fromRequestPath) {
+    const cookieValue = await encodeSlugCookie(fromRequestPath);
+    return { cookieValue, slugs: fromRequestPath };
+  }
+
+  const fromReferer = resolveRefererWorkspaceSlugs(req);
+  if (mayReuseCurrentWorkspace && fromReferer) {
+    const cookieValue = await encodeSlugCookie(fromReferer);
+    return { cookieValue, slugs: fromReferer };
+  }
+
+  const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
+  if (mayReuseCurrentWorkspace && cached) {
+    return { cookieValue: null, slugs: cached };
+  }
+
+  if (mayReuseCurrentWorkspace && req && !skipSlugCookie) {
+    const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
+    if (cookieRaw) {
+      const fromCookie = await decodeSlugCookie(cookieRaw);
+      if (fromCookie) {
+        writeWorkspaceSlugCache(cacheKey, fromCookie);
+        return { cookieValue: null, slugs: fromCookie };
+      }
+    }
+  }
+
+  const slugs = await authority(preferAvailableBrand);
+
+  if (!slugs) {
+    return null;
+  }
+
   // Validate slugs before caching and using them in redirect paths.
   // This prevents an attacker-controlled API response from injecting a slug
   // like `//attacker.example` and causing a cross-origin redirect.
   if (
-    !isValidWorkspaceOrgSlug(orgSlug) ||
-    (brandSlug && !SLUG_RE.test(brandSlug))
+    !isValidWorkspaceOrgSlug(slugs.orgSlug) ||
+    (slugs.brandSlug && !SLUG_RE.test(slugs.brandSlug))
   ) {
     return null;
   }
 
-  const slugs = { brandCount: brands.length, brandSlug, orgSlug };
   writeWorkspaceSlugCache(cacheKey, slugs);
   const cookieValue = await encodeSlugCookie(slugs);
   return { cookieValue, slugs };
@@ -828,9 +859,12 @@ async function resolveAgentOnboardingRedirect(
   orgSlug: string;
   path: string;
 } | null> {
-  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req, {
-    skipSlugCookie: true,
-  });
+  const resolution = await resolveActiveWorkspaceSlugs(
+    bootstrapScopeAuthority(token, req),
+    cacheKey,
+    req,
+    { skipSlugCookie: true },
+  );
   if (!resolution) {
     return null;
   }
@@ -976,14 +1010,14 @@ function createOrgScopedCanonicalPath(
 
 async function resolveCanonicalProtectedPath(
   pathname: string,
-  token: string,
+  authority: WorkspaceScopeAuthority,
   cacheKey?: string | null,
   req?: NextRequest,
   options?: WorkspaceSlugResolutionOptions,
 ): Promise<CanonicalResolution | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
   const resolution = await resolveActiveWorkspaceSlugs(
-    token,
+    authority,
     cacheKey,
     req,
     options,
@@ -1218,7 +1252,7 @@ async function redirectSignedInUserToDefaultRoute(
 
   const resolved = await resolveCanonicalProtectedPath(
     APP_ROUTES.WORKSPACE.OVERVIEW,
-    token,
+    bootstrapScopeAuthority(token, req),
     cacheKey,
     req,
     { preferAvailableBrand: true },
@@ -1460,70 +1494,111 @@ async function routeBetterAuthRequest(
     }
   }
 
-  const recoveredProtectedPath = getApiNamespacePoisonedProtectedPath(pathname);
-  if (recoveredProtectedPath) {
+  const resolveCanonicalPath: CanonicalPathResolver = async (
+    canonicalPathname,
+    resolutionOptions,
+  ) => {
     const resolved = await resolveCanonicalProtectedPath(
-      recoveredProtectedPath,
-      token,
+      canonicalPathname,
+      bootstrapScopeAuthority(token, req),
       sessionCookie,
       req,
-      { skipSlugCookie: true },
+      resolutionOptions,
     );
+    if (resolved || !options.preferredBearerToken) {
+      return resolved;
+    }
 
-    if (resolved) {
-      const response = redirectPreservingSearch(req, resolved.path);
+    const fallbackToken = await getBetterAuthBearerToken(req);
+    return fallbackToken
+      ? resolveCanonicalProtectedPath(
+          canonicalPathname,
+          bootstrapScopeAuthority(fallbackToken, req),
+          sessionCookie,
+          req,
+          resolutionOptions,
+        )
+      : null;
+  };
+
+  return routeWorkspacePath(
+    req,
+    resolveCanonicalPath,
+    sessionCookie,
+    async (resolved) => {
+      const authorizedCallbackPath = callbackPath
+        ? await resolveAuthorizedWorkspaceContinuation(
+            callbackPath,
+            resolved.path,
+            token,
+            req,
+          )
+        : null;
+      const response = authorizedCallbackPath
+        ? NextResponse.redirect(
+            createSafeRedirectUrl(req, authorizedCallbackPath),
+          )
+        : callbackPath
+          ? redirectDroppingSearch(req, resolved.path)
+          : redirectPreservingSearch(req, resolved.path);
       if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
       return response;
+    },
+  );
+}
+
+type CanonicalPathResolver = (
+  pathname: string,
+  options?: WorkspaceSlugResolutionOptions,
+) => Promise<CanonicalResolution | null>;
+
+function redirectToCanonicalPath(
+  req: NextRequest,
+  resolved: CanonicalResolution,
+): NextResponse {
+  const response = redirectPreservingSearch(req, resolved.path);
+  if (resolved.cookieValue) {
+    setSlugCookie(response, resolved.cookieValue);
+  }
+  return response;
+}
+
+/**
+ * Canonicalizes an authorized request onto its `/:org/:brand` or `/:org/~`
+ * workspace path. The Better Auth guard and the Playwright bypass share it so
+ * E2E enters protected routes through the same redirects as production; only
+ * the scope authority differs.
+ */
+async function routeWorkspacePath(
+  req: NextRequest,
+  resolveCanonicalPath: CanonicalPathResolver,
+  cacheKey: string | null,
+  redirectRoot: (
+    resolved: CanonicalResolution,
+  ) => Promise<NextResponse> | NextResponse = (resolved) =>
+    redirectToCanonicalPath(req, resolved),
+): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+
+  const recoveredProtectedPath = getApiNamespacePoisonedProtectedPath(pathname);
+  if (recoveredProtectedPath) {
+    const resolved = await resolveCanonicalPath(recoveredProtectedPath, {
+      skipSlugCookie: true,
+    });
+
+    if (resolved) {
+      return redirectToCanonicalPath(req, resolved);
     }
   }
 
   if (pathname === '/') {
-    let resolved = await resolveCanonicalProtectedPath(
-      APP_ROUTES.WORKSPACE.OVERVIEW,
-      token,
-      sessionCookie,
-      req,
-      { preferAvailableBrand: true },
-    );
+    const resolved = await resolveCanonicalPath(APP_ROUTES.WORKSPACE.OVERVIEW, {
+      preferAvailableBrand: true,
+    });
 
-    if (!resolved && options.preferredBearerToken) {
-      const fallbackToken = await getBetterAuthBearerToken(req);
-      resolved = fallbackToken
-        ? await resolveCanonicalProtectedPath(
-            APP_ROUTES.WORKSPACE.OVERVIEW,
-            fallbackToken,
-            sessionCookie,
-            req,
-            { preferAvailableBrand: true },
-          )
-        : null;
-    }
-
-    if (!resolved) {
-      return NextResponse.next();
-    }
-
-    const authorizedCallbackPath = callbackPath
-      ? await resolveAuthorizedWorkspaceContinuation(
-          callbackPath,
-          resolved.path,
-          token,
-          req,
-        )
-      : null;
-    const response = authorizedCallbackPath
-      ? NextResponse.redirect(
-          createSafeRedirectUrl(req, authorizedCallbackPath),
-        )
-      : callbackPath
-        ? redirectDroppingSearch(req, resolved.path)
-        : redirectPreservingSearch(req, resolved.path);
-    if (resolved.cookieValue) {
-      setSlugCookie(response, resolved.cookieValue);
-    }
-    return response;
+    return resolved ? redirectRoot(resolved) : NextResponse.next();
   }
 
   if (pathname === APP_ROUTES.SETTINGS.ROOT) {
@@ -1531,37 +1606,38 @@ async function routeBetterAuthRequest(
   }
 
   if (isBareProtectedPath(pathname)) {
-    let resolved = await resolveCanonicalProtectedPath(
-      pathname,
-      token,
-      sessionCookie,
-      req,
-    );
-
-    if (!resolved && options.preferredBearerToken) {
-      const fallbackToken = await getBetterAuthBearerToken(req);
-      resolved = fallbackToken
-        ? await resolveCanonicalProtectedPath(
-            pathname,
-            fallbackToken,
-            sessionCookie,
-            req,
-          )
-        : null;
-    }
+    const resolved = await resolveCanonicalPath(pathname);
 
     if (resolved) {
-      const response = redirectPreservingSearch(req, resolved.path);
-      if (resolved.cookieValue) {
-        setSlugCookie(response, resolved.cookieValue);
-      }
-      return response;
+      return redirectToCanonicalPath(req, resolved);
     }
-
-    return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
-  return continueWithCurrentWorkspace(req, sessionCookie);
+  return continueWithCurrentWorkspace(req, cacheKey);
+}
+
+/**
+ * Isolated Playwright builds replace Better Auth, not workspace routing. The
+ * mocked API lives in the browser, out of the proxy's reach, so the fixture
+ * declares the scope its bootstrap mock serves (e.g. `/test-org/brand-1`) in
+ * this cookie. Without it, bare paths pass through as when production cannot
+ * resolve a scope.
+ */
+const PLAYWRIGHT_WORKSPACE_COOKIE_NAME = '__playwright_workspace';
+
+function routePlaywrightBypassRequest(req: NextRequest): Promise<NextResponse> {
+  const declaredScope = req.cookies.get(
+    PLAYWRIGHT_WORKSPACE_COOKIE_NAME,
+  )?.value;
+  const declaredSlugs = declaredScope ? slugsFromPathname(declaredScope) : null;
+  const authority: WorkspaceScopeAuthority = async () => declaredSlugs;
+
+  return routeWorkspacePath(
+    req,
+    (pathname, options) =>
+      resolveCanonicalProtectedPath(pathname, authority, null, req, options),
+    null,
+  );
 }
 
 export async function proxy(req: NextRequest) {
@@ -1604,7 +1680,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isPlaywrightBypassRequest(req)) {
-    return NextResponse.next();
+    return routePlaywrightBypassRequest(req);
   }
 
   if (isDesktopSurfaceRequest(req)) {

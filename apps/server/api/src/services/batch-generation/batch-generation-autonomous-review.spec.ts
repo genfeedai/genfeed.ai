@@ -284,6 +284,39 @@ describe('Autonomous review transaction boundary', () => {
     expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
   });
 
+  it('records the rewrite job on the review event in the apply transaction', async () => {
+    const f = fixture();
+    vi.spyOn(f.service, 'getBatch').mockResolvedValue({
+      id: 'batch-1',
+      items: [],
+    } as unknown as IBatchSummary);
+
+    await f.service.applyRewrites(
+      'batch-1',
+      'org-1',
+      'user-1',
+      new Map([['item-1', 'New']]),
+      new Map([['post-1', f.current().post.updatedAt]]),
+      'job-1',
+    );
+
+    expect(f.current().item.reviewEvents?.at(-1)).toMatchObject({
+      feedback: 'Content rewritten',
+      rewriteJobId: 'job-1',
+    });
+    expect(f.tx.batchItem.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          data: expect.objectContaining({
+            reviewEvents: expect.arrayContaining([
+              expect.objectContaining({ rewriteJobId: 'job-1' }),
+            ]),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('returns 409 when a selected post changes after the snapshot', async () => {
     const f = fixture();
     const versions = new Map([['post-1', f.current().post.updatedAt]]);

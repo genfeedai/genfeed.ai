@@ -195,12 +195,13 @@ test.describe('Agent Onboarding', () => {
   }) => {
     await mockThreads(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
+    const onboardingPath = orgPath(APP_ROUTES.AGENT.ONBOARDING);
+    await authenticatedPage.goto(onboardingPath);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(APP_ROUTES.AGENT.ONBOARDING);
+      .toBe(onboardingPath);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
