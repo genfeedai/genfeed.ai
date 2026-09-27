@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
 const schemaSource = readFileSync(join(prismaDir, 'schema.prisma'), 'utf8');
@@ -91,6 +91,10 @@ describe('AdPerformance identity migration (#2511)', () => {
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
+
+// The Postgres cases seed and migrate a real schema (one seeds 20k rows and
+// runs ANALYZE); shared CI runners need more than the 5s default.
+vi.setConfig({ testTimeout: 60_000 });
 
 type ExplainRow = {
   'QUERY PLAN': unknown;
