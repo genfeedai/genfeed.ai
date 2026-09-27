@@ -25,6 +25,7 @@ export default function WorkspaceError({ error, reset }: ErrorProps) {
       resetErrorBoundary={reset}
       title="Something went wrong"
       description="The workspace could not finish loading. Try again."
+      data-testid="error-boundary-fallback"
     />
   );
 }

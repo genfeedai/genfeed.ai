@@ -81,6 +81,9 @@ describe('RoutedOrganizationBoundary', () => {
       'items-center',
       'justify-center',
     );
+    // Route smoke checks (#5070) key off this marker — an unrecoverable,
+    // page-blocking boundary failure, not a normal-looking page.
+    expect(screen.getByTestId('error-boundary-fallback')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(contextState.retry).toHaveBeenCalledTimes(1);
   });
@@ -117,6 +120,12 @@ describe('RoutedOrganizationBoundary', () => {
     ).toHaveAttribute('href', '/bravo/~/workspace/overview');
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
+    // A missing/unauthorized organization is a valid product state (the
+    // user can pick another workspace below), not a caught render exception
+    // — it must NOT trip the route smoke suite's ErrorBoundary check (#5070).
+    expect(
+      screen.queryByTestId('error-boundary-fallback'),
     ).not.toBeInTheDocument();
   });
 });

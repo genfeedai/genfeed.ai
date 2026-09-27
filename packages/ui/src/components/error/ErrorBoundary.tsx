@@ -60,20 +60,26 @@ export class ErrorBoundary extends Component<
   render() {
     const { error } = this.state;
     if (!this.state.hasError) return this.props.children;
-    if (typeof this.props.fallback === 'function') {
-      return this.props.fallback(
-        this.getFailure(error ?? new Error('An unexpected error occurred')),
-      );
-    }
-    return (
-      this.props.fallback ?? (
-        <ErrorFallback
-          error={error ?? undefined}
-          resetErrorBoundary={this.canRetry ? this.handleReset : undefined}
-          title={this.props.title}
-          description={this.props.description}
-        />
-      )
-    );
+
+    const fallbackContent =
+      typeof this.props.fallback === 'function'
+        ? this.props.fallback(
+            this.getFailure(error ?? new Error('An unexpected error occurred')),
+          )
+        : (this.props.fallback ?? (
+            <ErrorFallback
+              error={error ?? undefined}
+              resetErrorBoundary={this.canRetry ? this.handleReset : undefined}
+              title={this.props.title}
+              description={this.props.description}
+            />
+          ));
+
+    // Stable marker for the route smoke suite (and any other consumer) to
+    // detect a caught render exception, distinct from a component's own
+    // handled loading/empty/request-error UI. Wraps every fallback shape —
+    // the default ErrorFallback and a custom `fallback` render prop alike —
+    // so it survives whichever presentation a caller chooses.
+    return <div data-testid="error-boundary-fallback">{fallbackContent}</div>;
   }
 }
