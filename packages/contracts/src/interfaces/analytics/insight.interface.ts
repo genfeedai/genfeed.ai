@@ -1,5 +1,4 @@
 import type { InsightCategory, InsightImpact } from '../..';
-import type { IDateRange } from '../core/common.interface';
 
 export interface IInsightResponse {
   id: string;
@@ -16,13 +15,6 @@ export interface IInsightResponse {
   expiresAt?: Date;
   createdAt: Date;
   updatedAt?: Date;
-}
-
-export interface IReportConfig {
-  metrics?: string[];
-  groupBy?: string;
-  timeRange?: IDateRange;
-  filters?: Record<string, unknown>;
 }
 
 export interface IIngredientKPIMetrics {

@@ -5,6 +5,7 @@ store platform post IDs/URLs, and multi-platform publishing.
  */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -75,6 +76,7 @@ import { Module } from '@nestjs/common';
     AgentContextAssemblyModule,
     QueuesModule,
     ActivitiesModule,
+    ApiKeysModule,
     PostsCoreModule,
     BatchGenerationModule,
     BrandsCoreModule,

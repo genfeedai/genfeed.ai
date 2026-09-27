@@ -671,7 +671,7 @@ describe('InvitationService', () => {
       expect(result.memberId).toBe(memberId);
     });
 
-    it('refuses to create a member when the org has no brand', async () => {
+    it('refuses to create a member when the org has no brand, with a 409 rather than a raw 500', async () => {
       const { prisma, service } = buildService();
       prisma.invitation.findUnique.mockResolvedValue(makeInvitation());
       prisma.invitation.updateMany.mockResolvedValue({ count: 1 });
@@ -681,7 +681,11 @@ describe('InvitationService', () => {
       prisma.member.findFirst.mockResolvedValue(null);
       prisma.brand.findFirst.mockResolvedValue(null);
 
-      await expect(service.acceptInvitation('token-123')).rejects.toThrow(
+      // #5295: this used to throw a raw Error, which the global exception
+      // filter cannot map to anything but an unhandled 500.
+      const rejection = service.acceptInvitation('token-123');
+      await expect(rejection).rejects.toBeInstanceOf(ConflictException);
+      await expect(rejection).rejects.toThrow(
         `Cannot accept invitation: organization ${orgId} has no brand`,
       );
 

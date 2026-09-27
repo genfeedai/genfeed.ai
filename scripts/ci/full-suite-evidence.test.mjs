@@ -12,7 +12,7 @@ function run(overrides = {}) {
   return {
     id: 33504809990,
     created_at: '2026-09-01T11:53:47Z',
-    event: 'push',
+    event: 'schedule',
     head_branch: 'master',
     head_sha: RELEASE_SHA,
     html_url:
@@ -36,18 +36,53 @@ function harness(overrides = {}) {
   };
 }
 
-test('selects only exact-SHA master push or manual Full Suite evidence', () => {
+test('selects only exact-SHA hourly or manual master Full Suite evidence', () => {
   const selected = selectFullSuiteRun(
     [
       run({ id: 1, head_sha: 'a'.repeat(40) }),
       run({ id: 2, head_branch: 'feature' }),
       run({ id: 3, event: 'workflow_call' }),
+      run({ id: 5, event: 'push', created_at: '2026-09-02T00:00:00Z' }),
       run({ id: 4, event: 'workflow_dispatch' }),
     ],
     RELEASE_SHA,
   );
 
   assert.equal(selected?.id, 4);
+});
+
+test('a cancelled skip run never hides an earlier failure for the same SHA', () => {
+  const selected = selectFullSuiteRun(
+    [
+      run({ id: 1, conclusion: 'failure' }),
+      run({
+        id: 2,
+        conclusion: 'cancelled',
+        created_at: '2026-09-01T12:53:47Z',
+      }),
+    ],
+    RELEASE_SHA,
+  );
+
+  assert.equal(selected?.id, 1);
+});
+
+test('a hard-red exact-SHA run blocks release even after a later skip', async () => {
+  await assert.rejects(
+    resolveFullSuiteEvidence(
+      harness({
+        listRuns: async () => [
+          run({ id: 1, conclusion: 'failure' }),
+          run({
+            id: 2,
+            conclusion: 'cancelled',
+            created_at: '2026-09-01T12:53:47Z',
+          }),
+        ],
+      }),
+    ),
+    /concluded failure/,
+  );
 });
 
 test('prefers completed green evidence over an in-flight duplicate', () => {

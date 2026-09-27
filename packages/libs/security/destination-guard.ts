@@ -63,6 +63,13 @@ export interface DestinationGuardOptions {
    * network. Intended only for trusted service-to-service URLs.
    */
   allowPrivateNetwork?: boolean;
+  /**
+   * Schemes permitted for the destination URL and any redirect target.
+   * Defaults to http and https; pass `['https:']` to reject plaintext
+   * destinations (e.g. a security-sensitive external API host) before any
+   * connection is attempted.
+   */
+  allowedSchemes?: readonly ('http:' | 'https:')[];
   /** Maximum redirects to follow. Defaults to five. */
   maxRedirects?: number;
 }
@@ -93,10 +100,20 @@ function parseAbsoluteUrl(input: string | URL): URL {
   }
 }
 
-function assertHttpScheme(url: URL): void {
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+const DEFAULT_ALLOWED_SCHEMES: readonly ('http:' | 'https:')[] = [
+  'http:',
+  'https:',
+];
+
+function assertHttpScheme(
+  url: URL,
+  allowedSchemes: readonly ('http:' | 'https:')[] = DEFAULT_ALLOWED_SCHEMES,
+): void {
+  if (!allowedSchemes.includes(url.protocol as 'http:' | 'https:')) {
     throw new DestinationGuardError(
-      'Destination must use the http or https scheme',
+      allowedSchemes.length === 1
+        ? `Destination must use the ${allowedSchemes[0].replace(':', '')} scheme`
+        : 'Destination must use the http or https scheme',
     );
   }
 }
@@ -109,9 +126,12 @@ function assertNoEmbeddedCredentials(url: URL): void {
   }
 }
 
-function parseHttpUrl(input: string | URL): URL {
+function parseHttpUrl(
+  input: string | URL,
+  allowedSchemes?: readonly ('http:' | 'https:')[],
+): URL {
   const url = parseAbsoluteUrl(input);
-  assertHttpScheme(url);
+  assertHttpScheme(url, allowedSchemes);
   assertNoEmbeddedCredentials(url);
   return url;
 }
@@ -255,7 +275,7 @@ export async function resolveSafeDestination(
   input: string | URL,
   options: DestinationGuardOptions = {},
 ): Promise<ResolvedDestination> {
-  const url = parseHttpUrl(input);
+  const url = parseHttpUrl(input, options.allowedSchemes);
   const allowedOrigins = normalizeAllowedOrigins(options.allowedOrigins);
   const allowPrivateNetwork = options.allowPrivateNetwork ?? false;
   assertPolicy(url, allowedOrigins, allowPrivateNetwork);
@@ -611,7 +631,7 @@ export async function safeFetch(
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   assertMaxRedirects(maxRedirects);
 
-  let currentUrl = parseHttpUrl(input);
+  let currentUrl = parseHttpUrl(input, options.allowedSchemes);
   let currentInit = { ...init };
 
   for (let redirectCount = 0; ; redirectCount++) {

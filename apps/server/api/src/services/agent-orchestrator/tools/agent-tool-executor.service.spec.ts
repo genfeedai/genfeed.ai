@@ -608,6 +608,7 @@ describe('AgentToolExecutorService', () => {
     const usersService = {
       findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     };
     const authProviderService = {
       getUser: vi.fn().mockResolvedValue({
@@ -4220,10 +4221,20 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(organizationsService.patch).toHaveBeenCalled();
-    expect(usersService.patch).toHaveBeenCalledWith(
-      expect.anything(),
+    // genfeedai/genfeed.ai#5311: the false->true transition is claimed
+    // atomically via patchAll (isOnboardingCompleted: false in the WHERE
+    // clause), not a read-then-write `patch`.
+    expect(usersService.patchAll).toHaveBeenCalledWith(
+      { id: 'user-db-1', isOnboardingCompleted: false },
       expect.objectContaining({
         isOnboardingCompleted: true,
+      }),
+    );
+    expect(usersService.patch).not.toHaveBeenCalled();
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        onboardingCompleted: true,
+        userId: 'user-db-1',
       }),
     );
   });

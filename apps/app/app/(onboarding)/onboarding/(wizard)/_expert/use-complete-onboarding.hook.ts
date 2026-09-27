@@ -11,7 +11,6 @@ import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { useCallback } from 'react';
-import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 /**
@@ -26,13 +25,20 @@ export function useCompleteOnboarding(): () => Promise<void> {
   return useCallback(async () => {
     // Onboarding completion is a field write on the user resource; the
     // proactive + cache-invalidation cascade lives behind PATCH /users/me.
+    //
+    // `onboarding_completed` is captured server-side by
+    // `UsersController#completeOnboardingFunnel`, gated on actually winning
+    // the atomic isOnboardingCompleted false->true claim — not here.
+    // Capturing it unconditionally on every successful response (as this
+    // hook used to) double-emitted the funnel event whenever two wizard tabs
+    // raced, or the agent-first onboarding path completed first and this
+    // PATCH later found the user already onboarded (genfeedai/genfeed.ai#5311).
     try {
       const token = await resolveAuthToken(getToken, { forceRefresh: true });
       if (token) {
         await UsersService.getInstance(token).patchMe({
           isOnboardingCompleted: true,
         });
-        captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
       }
       await user?.reload();
     } catch (error) {

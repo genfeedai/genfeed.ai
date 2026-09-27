@@ -306,6 +306,33 @@ describe('SignUpForm', () => {
     );
   });
 
+  it('does not count the free plan handoff as plan intent (genfeedai/genfeed.ai#5311)', async () => {
+    window.history.replaceState({}, '', '/sign-up?plan=free');
+
+    render(<SignUpForm />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/onboarding/post-signup?plan=free'),
+        provider: 'google',
+      });
+    });
+    // genfeedai/genfeed.ai#5311: SIGNUP_STARTED and SIGNUP_COMPLETED must
+    // classify `?plan=free` identically — both are the free handoff, not
+    // paid-plan intent.
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: false,
+        method: 'google',
+      },
+    );
+  });
+
   it('does not persist invalid access mode or malformed credit handoff params', async () => {
     window.history.replaceState(
       {},

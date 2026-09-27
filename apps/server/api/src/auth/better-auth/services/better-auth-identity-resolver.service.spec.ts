@@ -105,6 +105,7 @@ describe('BetterAuthIdentityResolverService', () => {
     });
     membersService.findActiveForUserAccess.mockResolvedValue([
       {
+        currentBrandId: 'brand_admin',
         organizationId: 'org_admin',
         role: { key: 'admin' },
       },
@@ -124,7 +125,7 @@ describe('BetterAuthIdentityResolverService', () => {
     });
   });
 
-  it('falls back to a membership organization when the user owns none', async () => {
+  it('falls back to a membership organization when the user owns none, but leaves brandId unset without a currentBrandId', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_2' });
     membersService.findActiveForUserAccess.mockResolvedValue([
       { organizationId: 'org_member' },
@@ -132,16 +133,18 @@ describe('BetterAuthIdentityResolverService', () => {
     organizationsService.findAll.mockResolvedValue({
       docs: [{ id: 'org_member' }],
     });
-    brandsService.findOne.mockResolvedValue({ id: 'brand_member' });
 
     const identity = await resolver.resolve('user_2');
 
     expect(identity.organizationId).toBe('org_member');
-    expect(identity.brandId).toBe('brand_member');
+    // #5295: there is no "any org brand" fallback. A member with no
+    // currentBrandId resolves to an unset brandId, not a guessed brand.
+    expect(identity.brandId).toBeUndefined();
     expect(identity.isSuperAdmin).toBe(false);
+    expect(brandsService.findOne).not.toHaveBeenCalled();
   });
 
-  it('prefers a member last-used brand over the first brand', async () => {
+  it("resolves the member's currentBrandId for the organization", async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_3' });
     organizationsService.findAll.mockResolvedValue({ docs: [{ id: 'org_3' }] });
     membersService.findActiveForUserAccess.mockResolvedValue([
@@ -159,6 +162,34 @@ describe('BetterAuthIdentityResolverService', () => {
     });
     expect(usersService.patch).toHaveBeenCalledWith('user_3', {
       lastUsedOrganizationId: 'org_3',
+    });
+  });
+
+  // #5295: better-auth-identity-resolver.service.ts:233-240 used to fall back
+  // to an arbitrary "any org brand" `findOne` when the member's own
+  // currentBrandId no longer resolved (e.g. a delete raced the read). That let
+  // generation silently continue against a brand the member never selected.
+  it('leaves brandId unset — never guesses another brand — when currentBrandId no longer resolves', async () => {
+    usersService.findOne.mockResolvedValue({ id: 'user_stale_brand' });
+    organizationsService.findAll.mockResolvedValue({
+      docs: [{ id: 'org_stale_brand' }],
+    });
+    membersService.findActiveForUserAccess.mockResolvedValue([
+      { currentBrandId: 'brand_deleted', organizationId: 'org_stale_brand' },
+    ]);
+    // The member's currentBrandId points at a brand that no longer resolves
+    // (soft-deleted, or reassigned away mid-request).
+    brandsService.findOne.mockResolvedValue(null);
+
+    const identity = await resolver.resolve('user_stale_brand');
+
+    expect(identity.organizationId).toBe('org_stale_brand');
+    expect(identity.brandId).toBeUndefined();
+    expect(brandsService.findOne).toHaveBeenCalledTimes(1);
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand_deleted',
+      isDeleted: false,
+      organizationId: 'org_stale_brand',
     });
   });
 
@@ -358,7 +389,6 @@ describe('BetterAuthIdentityResolverService', () => {
       { organizationId: 'org_5' },
     ]);
     organizationsService.findAll.mockResolvedValue({ docs: [{ id: 'org_5' }] });
-    brandsService.findOne.mockResolvedValue({ id: 'brand_5' });
 
     const identity = await resolver.resolve('user_5');
 

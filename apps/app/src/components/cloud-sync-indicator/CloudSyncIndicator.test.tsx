@@ -19,13 +19,20 @@ vi.mock('@ui/primitives/button', () => ({
   Button: ({
     ariaLabel,
     children,
+    className,
     onClick,
   }: {
     ariaLabel?: string;
     children: ReactNode;
+    className?: string;
     onClick?: () => void;
   }) => (
-    <button type="button" aria-label={ariaLabel} onClick={onClick}>
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      className={className}
+      onClick={onClick}
+    >
       {children}
     </button>
   ),
@@ -93,5 +100,13 @@ describe('CloudSyncIndicator', () => {
     expect(
       screen.getByRole('button', { name: 'Cloud disconnected' }),
     ).toBeInTheDocument();
+  });
+
+  it('matches the 32px size of the other topbar controls', () => {
+    render(<CloudSyncIndicator />);
+
+    expect(
+      screen.getByRole('button', { name: 'Cloud disconnected' }),
+    ).toHaveClass('size-8');
   });
 });

@@ -75,9 +75,13 @@ describe('NotificationInboxMenu', () => {
   it('opens the live activity view when a generation is running', async () => {
     live.activeCount = 7;
     await open();
-    expect(
-      screen.getByRole('status', { name: '7 tasks in progress' }),
-    ).toHaveTextContent('7');
+    // Live activity is announced but drawn as a dot, never as a second
+    // number next to the unread badge.
+    const activityDot = screen.getByRole('status', {
+      name: '7 tasks in progress',
+    });
+    expect(activityDot).toHaveTextContent('');
+    expect(activityDot).toHaveClass('size-1.5', 'rounded-full');
     expect(screen.getByRole('tab', { name: 'Activity (7)' })).toHaveAttribute(
       'aria-selected',
       'true',

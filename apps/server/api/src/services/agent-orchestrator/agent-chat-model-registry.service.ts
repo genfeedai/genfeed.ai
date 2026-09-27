@@ -189,11 +189,22 @@ export class AgentChatModelRegistryService
     await this.loadPromise;
   }
 
+  /**
+   * Shared eligibility rule for dispatching or offering a registry row: it
+   * must be active and not a terminal Retired row. Every caller that treats a
+   * key as "usable" — the picker, the platform default, override resolution,
+   * and trust checks — filters through this one predicate so they can never
+   * drift apart.
+   */
+  private isSelectableRow(row: AgentChatRegistryRow): boolean {
+    return row.isActive && row.lifecycle !== ModelLifecycle.RETIRED;
+  }
+
   /** Explicit picker rows: Recommended, Available, and Legacy. */
   async listSelectable(): Promise<AgentChatRegistryRow[]> {
     await this.ensureFresh();
     return [...this.byKey.values()]
-      .filter((row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED)
+      .filter((row) => this.isSelectableRow(row))
       .sort((left, right) => {
         if (left.cost !== right.cost) {
           return left.cost - right.cost;
@@ -217,8 +228,8 @@ export class AgentChatModelRegistryService
     fallbackKey: string = DEFAULT_AGENT_CHAT_MODEL_KEY,
   ): Promise<string> {
     await this.ensureFresh();
-    const selectable = [...this.byKey.values()].filter(
-      (row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED,
+    const selectable = [...this.byKey.values()].filter((row) =>
+      this.isSelectableRow(row),
     );
     const marked = this.pickDeterministicDefault(
       selectable.filter((row) => row.isDefault),
@@ -387,8 +398,11 @@ export class AgentChatModelRegistryService
     }
 
     const resolved = this.followSucceededByChain(trimmed);
-    if (resolved && this.byKey.has(resolved)) {
-      return resolved;
+    if (resolved) {
+      const resolvedRow = this.byKey.get(resolved);
+      if (resolvedRow && this.isSelectableRow(resolvedRow)) {
+        return resolved;
+      }
     }
 
     this.logger.warn(
@@ -578,9 +592,7 @@ export class AgentChatModelRegistryService
     if (!row) return false;
     const resolved = await this.resolveModelKey(row.key);
     const resolvedRow = this.byKey.get(resolved);
-    return Boolean(
-      resolvedRow?.isActive && resolvedRow.lifecycle !== ModelLifecycle.RETIRED,
-    );
+    return Boolean(resolvedRow && this.isSelectableRow(resolvedRow));
   }
 
   async getCheapestSelectableKey(): Promise<string> {

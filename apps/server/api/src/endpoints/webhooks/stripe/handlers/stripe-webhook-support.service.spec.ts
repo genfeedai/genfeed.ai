@@ -898,11 +898,28 @@ describe('StripeWebhookSupportService', () => {
       expect(
         notificationsService.sendRevenueNotification,
       ).toHaveBeenCalledTimes(1);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to notify operator of revenue event'),
-        expect.objectContaining({ organizationId: 'org_1' }),
+      await vi.waitFor(() =>
+        expect(loggerService.error).toHaveBeenCalledWith(
+          expect.stringContaining('failed to notify operator of revenue event'),
+          expect.objectContaining({ organizationId: 'org_1' }),
+        ),
       );
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not wait for a stalled operator notification (genfeedai/genfeed.ai#5313)', async () => {
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
+      notificationsService.sendRevenueNotification.mockReturnValue(
+        new Promise<void>(() => undefined),
+      );
+
+      await expect(
+        service.recordRevenueEvent(baseInput),
+      ).resolves.toBeUndefined();
+
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('never notifies when the ledger write itself fails', async () => {
