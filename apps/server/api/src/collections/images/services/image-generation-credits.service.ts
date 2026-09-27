@@ -60,15 +60,15 @@ export class ImageGenerationCreditsService {
         'The selected image model is unavailable for an exact quote.',
       );
     }
-    const byokProvider = await this.resolveActiveByokProvider(
+    const byok = await this.resolveActiveByokKey(
       organizationId,
       model,
       resolvedModelDoc.provider,
     );
     return {
       unitCredits: requiredCredits,
-      billingMode: byokProvider ? ('byok' as const) : ('credits' as const),
-      provider: byokProvider ?? resolvedModelDoc.provider,
+      billingMode: byok ? ('byok' as const) : ('credits' as const),
+      provider: byok?.provider ?? resolvedModelDoc.provider,
       pricingHash: quoteSnapshotHash({
         model,
         pricing: buildPricingAuditStamp(resolvedModelDoc),
@@ -118,7 +118,7 @@ export class ImageGenerationCreditsService {
 
     const { requiredCredits, resolvedModelDoc } =
       await this.resolveRequiredCredits(createImageDto, model);
-    const byokProvider = await this.resolveActiveByokProvider(
+    const byok = await this.resolveActiveByokKey(
       organization,
       model,
       resolvedModelDoc?.provider,
@@ -144,7 +144,7 @@ export class ImageGenerationCreditsService {
         !this.providerRegistry.supports(model, resolvedModelDoc.provider) ||
         model !== approved.model ||
         requiredCredits !== approved.unitCredits ||
-        (byokProvider ? 'byok' : 'credits') !== approved.billingMode ||
+        (byok ? 'byok' : 'credits') !== approved.billingMode ||
         pricingHash !== approved.pricingHash
       ) {
         throw new ConflictException(
@@ -153,7 +153,7 @@ export class ImageGenerationCreditsService {
       }
     }
     if (
-      !byokProvider &&
+      !byok &&
       !hasGenerationSourceActionId(request) &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
@@ -172,11 +172,13 @@ export class ImageGenerationCreditsService {
       model,
       resolvedModelDoc ? buildPricingAuditStamp(resolvedModelDoc) : undefined,
     );
-    if (byokProvider) {
+    if (byok) {
       reqWithCredits.creditsConfig = {
         ...reqWithCredits.creditsConfig,
+        byokApiKeyOverride: byok.apiKey,
+        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
         isByokBypass: true,
-        provider: byokProvider,
+        provider: byok.provider,
       };
       return;
     }
@@ -203,19 +205,29 @@ export class ImageGenerationCreditsService {
     }
   }
 
-  private async resolveActiveByokProvider(
+  /**
+   * The single BYOK decision point for image generation (#5294). Resolves
+   * the org's decrypted key exactly once — the returned key is both the
+   * bypass decision (defined/undefined) and the value dispatch must use, so
+   * the credit charge and the provider call can never disagree about whose
+   * key paid.
+   */
+  private async resolveActiveByokKey(
     organizationId: string,
     modelKey: string,
     modelProvider?: string,
-  ): Promise<ByokProvider | undefined> {
+  ): Promise<
+    { provider: ByokProvider; apiKey: string; apiSecret?: string } | undefined
+  > {
     const provider = resolveModelByokProvider(modelKey, modelProvider);
-    if (
-      !provider ||
-      !(await this.byokService.isByokActiveForProvider(
-        organizationId,
-        provider,
-      ))
-    ) {
+    if (!provider) {
+      return undefined;
+    }
+    const resolved = await this.byokService.resolveApiKey(
+      organizationId,
+      provider,
+    );
+    if (!resolved) {
       return undefined;
     }
     if (!(await this.byokService.isByokBillingInGoodStanding(organizationId))) {
@@ -228,7 +240,7 @@ export class ImageGenerationCreditsService {
         HttpStatus.FORBIDDEN,
       );
     }
-    return provider;
+    return { provider, ...resolved };
   }
 
   private async resolveRequiredCredits(

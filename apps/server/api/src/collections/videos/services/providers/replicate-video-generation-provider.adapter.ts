@@ -31,6 +31,7 @@ export class ReplicateVideoGenerationProviderAdapter
     const externalId = await this.replicateService.generateTextToVideo(
       params.modelEndpoint ?? params.model,
       params.promptParams,
+      params.apiKeyOverride,
     );
     return {
       completion: 'polling',

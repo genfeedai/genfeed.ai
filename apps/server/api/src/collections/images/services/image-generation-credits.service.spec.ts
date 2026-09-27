@@ -25,8 +25,8 @@ describe('ImageGenerationCreditsService', () => {
     providerFor: vi.fn(),
   };
   const byokService = {
-    isByokActiveForProvider: vi.fn(),
     isByokBillingInGoodStanding: vi.fn(),
+    resolveApiKey: vi.fn(),
   };
 
   let service: ImageGenerationCreditsService;
@@ -35,7 +35,7 @@ describe('ImageGenerationCreditsService', () => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     providerRegistry.providerFor.mockReturnValue('fal');
-    byokService.isByokActiveForProvider.mockResolvedValue(false);
+    byokService.resolveApiKey.mockResolvedValue(undefined);
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
@@ -115,7 +115,7 @@ describe('ImageGenerationCreditsService', () => {
         if (change === 'price')
           modelsService.findOne.mockResolvedValue({ ...registered, cost: 20 });
         if (change === 'byok')
-          byokService.isByokActiveForProvider.mockResolvedValue(true);
+          byokService.resolveApiKey.mockResolvedValue({ apiKey: 'fal-key' });
         await expect(
           service.ensureDeferredCredits(
             dto as never,
@@ -132,7 +132,7 @@ describe('ImageGenerationCreditsService', () => {
 
     it('keeps the calculated base unit and reports BYOK without reserving platform credits', async () => {
       modelsService.findOne.mockResolvedValue(registered);
-      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'fal-key' });
       const quote = await service.quoteCredits(dto as never, model, 'org-1');
       expect(quote).toMatchObject({
         unitCredits: 10,
@@ -153,6 +153,7 @@ describe('ImageGenerationCreditsService', () => {
       );
       expect(request.creditsConfig).toMatchObject({
         amount: 10,
+        byokApiKeyOverride: 'fal-key',
         isByokBypass: true,
       });
       expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
@@ -286,7 +287,7 @@ describe('ImageGenerationCreditsService', () => {
       cost: 10,
       provider: ModelProvider.FAL,
     });
-    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    byokService.resolveApiKey.mockResolvedValue({ apiKey: 'fal-key' });
     const request = { creditsConfig: { deferred: true } };
 
     await service.ensureDeferredCredits(
@@ -298,6 +299,7 @@ describe('ImageGenerationCreditsService', () => {
 
     expect(request.creditsConfig).toMatchObject({
       amount: 20,
+      byokApiKeyOverride: 'fal-key',
       deferred: false,
       isByokBypass: true,
       modelKey: 'fal/model',
@@ -313,9 +315,13 @@ describe('ImageGenerationCreditsService', () => {
       cost: 10,
       provider: ModelProvider.REPLICATE,
     });
-    byokService.isByokActiveForProvider.mockImplementation(
+    byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
-        Promise.resolve(provider === ByokProvider.REPLICATE),
+        Promise.resolve(
+          provider === ByokProvider.REPLICATE
+            ? { apiKey: 'replicate-key' }
+            : undefined,
+        ),
     );
     const request = { creditsConfig: { deferred: true } };
 
@@ -326,7 +332,7 @@ describe('ImageGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
       'org-1',
       ByokProvider.HIGGSFIELD,
     );
@@ -334,6 +340,7 @@ describe('ImageGenerationCreditsService', () => {
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith('org-1', 10);
     expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
+    expect(request.creditsConfig).not.toHaveProperty('byokApiKeyOverride');
   });
 
   it('uses Higgsfield BYOK for Soul without charging platform credits', async () => {
@@ -341,9 +348,13 @@ describe('ImageGenerationCreditsService', () => {
       cost: 10,
       provider: ModelProvider.REPLICATE,
     });
-    byokService.isByokActiveForProvider.mockImplementation(
+    byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
-        Promise.resolve(provider === ByokProvider.HIGGSFIELD),
+        Promise.resolve(
+          provider === ByokProvider.HIGGSFIELD
+            ? { apiKey: 'higgsfield-key' }
+            : undefined,
+        ),
     );
     const request = { creditsConfig: { deferred: true } };
 
@@ -355,6 +366,7 @@ describe('ImageGenerationCreditsService', () => {
     );
 
     expect(request.creditsConfig).toMatchObject({
+      byokApiKeyOverride: 'higgsfield-key',
       isByokBypass: true,
       provider: ByokProvider.HIGGSFIELD,
     });
@@ -384,6 +396,88 @@ describe('ImageGenerationCreditsService', () => {
         pricingType: 'flat',
         providerCostUsd: 0.15,
       },
+    });
+  });
+
+  // #5294 — the credit decision and the provider dispatch key must be resolved
+  // from the same `resolveApiKey` call. A key that resolves to nothing (never
+  // saved, or saved for the wrong provider) must never bypass credits, and a
+  // key that resolves must always be carried on `byokApiKeyOverride` so the
+  // adapter that dispatches next actually spends it.
+  describe('BYOK dispatch-key / credit-decision agreement (#5294)', () => {
+    it('charges platform credits when GENFEED_AI hosted models run under an org Replicate key', async () => {
+      // GENFEED_AI dispatches through Genfeed's own ComfyUI fleet, never the
+      // org's Replicate account — resolveModelByokProvider must not map it.
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        provider: ModelProvider.GENFEED_AI,
+      });
+      byokService.resolveApiKey.mockResolvedValue({
+        apiKey: 'org-replicate-key',
+      });
+      const request = { creditsConfig: { deferred: true } };
+
+      await service.ensureDeferredCredits(
+        { outputs: 1, height: 1080, width: 1920 } as never,
+        'genfeed-ai/some-model',
+        'org-1',
+        request as never,
+      );
+
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
+      expect(request.creditsConfig).toMatchObject({ amount: 10 });
+      expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
+      expect(request.creditsConfig).not.toHaveProperty('byokApiKeyOverride');
+    });
+
+    it('charges credits normally when no key was ever saved for the resolved provider', async () => {
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        provider: ModelProvider.FAL,
+      });
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      const request = {
+        body: { sourceActionId: 'no-byok-key' },
+        creditsConfig: { deferred: true },
+        user: { userId: 'user-1' },
+      };
+
+      await service.ensureDeferredCredits(
+        { outputs: 1, height: 1080, width: 1920 } as never,
+        'fal/model',
+        'org-1',
+        request as never,
+      );
+
+      expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 10 }),
+      );
+      expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
+      expect(request.creditsConfig).not.toHaveProperty('byokApiKeyOverride');
+    });
+
+    it('bypasses credits and carries the exact resolved key when a Fal key is saved and active', async () => {
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        provider: ModelProvider.FAL,
+      });
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'fal-org-key' });
+      const request = { creditsConfig: { deferred: true } };
+
+      await service.ensureDeferredCredits(
+        { outputs: 1, height: 1080, width: 1920 } as never,
+        'fal/model',
+        'org-1',
+        request as never,
+      );
+
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(request.creditsConfig).toMatchObject({
+        amount: 10,
+        byokApiKeyOverride: 'fal-org-key',
+        isByokBypass: true,
+        provider: ByokProvider.FAL,
+      });
     });
   });
 });

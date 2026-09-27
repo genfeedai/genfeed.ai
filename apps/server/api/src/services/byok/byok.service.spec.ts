@@ -107,3 +107,64 @@ describe('ByokService OpenRouter validation', () => {
     });
   });
 });
+
+// #5294 `saveKey` never validated the key it persisted, so a Pro org could
+// save any string and have image/video credit services treat it as an active
+// BYOK provider. Mock `validateKey` itself here — no real provider calls.
+describe('ByokService saveKey validation (#5294)', () => {
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const existingSetting = {
+    byokKeys: {},
+    id: 'setting-1',
+    organizationId: 'org-1',
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  };
+  const tx = {
+    organizationSetting: {
+      findFirst: vi.fn().mockResolvedValue(existingSetting),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+  };
+  const prisma = {
+    $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(tx)),
+  };
+  const service = new ByokService(
+    {} as never,
+    {} as never,
+    logger as never,
+    prisma as never,
+  );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tx.organizationSetting.findFirst.mockResolvedValue(existingSetting);
+    tx.organizationSetting.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it('rejects an invalid key before persisting anything', async () => {
+    vi.spyOn(service, 'validateKey').mockResolvedValue({
+      error: 'Invalid Replicate API key',
+      isValid: false,
+    });
+
+    await expect(
+      service.saveKey('org-1', ByokProvider.REPLICATE, 'not-a-real-key'),
+    ).rejects.toThrow('Invalid Replicate API key');
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.organizationSetting.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('persists the key only after validation passes', async () => {
+    vi.spyOn(service, 'validateKey').mockResolvedValue({ isValid: true });
+
+    await service.saveKey('org-1', ByokProvider.REPLICATE, 'r8_live_key');
+
+    expect(service.validateKey).toHaveBeenCalledWith(
+      ByokProvider.REPLICATE,
+      'r8_live_key',
+      undefined,
+    );
+    expect(tx.organizationSetting.updateMany).toHaveBeenCalledOnce();
+  });
+});

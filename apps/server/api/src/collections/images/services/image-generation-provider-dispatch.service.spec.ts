@@ -379,6 +379,7 @@ describe('ImageGenerationProviderDispatchService', () => {
         prompt: 'A cinematic sunrise',
         seed: 42,
       },
+      undefined,
     );
     expect(context.pendingIngredientIds).toEqual([
       'ingredient-1',
@@ -404,6 +405,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(falService.generateImage).toHaveBeenCalledWith(
       'google/nano-banana-2-lite',
       expect.objectContaining({ prompt: 'A cinematic sunrise' }),
+      undefined,
     );
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
   });
@@ -422,6 +424,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
       'google/nano-banana-2-lite',
       expect.any(Object),
+      undefined,
     );
     expect(falService.generateImage).not.toHaveBeenCalled();
   });
@@ -522,6 +525,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
       model,
       context.providerInput,
+      undefined,
     );
     expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
     expect(metadataService.patch.mock.calls).toEqual(
@@ -599,6 +603,37 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
       compiledDispatch,
+      undefined,
+    );
+  });
+
+  it('forwards the resolved BYOK apiKeyOverride from creditsConfig into the Replicate dispatch call (#5294)', async () => {
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+    replicateService.generateTextToImage.mockResolvedValue(
+      'replicate-byok-job',
+    );
+    const context = buildContext({
+      model,
+      request: {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-replicate-key',
+          isByokBypass: true,
+          provider: 'replicate',
+        },
+      },
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      model,
+      context.providerInput,
+      'org-replicate-key',
+    );
+    expect(replicateService.getPrediction).toHaveBeenCalledWith(
+      'replicate-byok-job',
+      'org-replicate-key',
     );
   });
 
