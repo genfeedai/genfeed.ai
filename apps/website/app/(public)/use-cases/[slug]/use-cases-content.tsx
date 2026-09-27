@@ -136,7 +136,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       )}
 
       <section className="max-w-4xl mx-auto pb-20">
-        <div className="gen-card-spotlight p-10 text-center">
+        <div className="gen-card-spotlight p-6 sm:p-10 text-center">
           <Heading as="h3" className="text-3xl font-bold mb-2">
             {recommendedPlan}
           </Heading>

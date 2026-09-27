@@ -80,7 +80,7 @@ export default function HomeProviders(): React.ReactElement {
                 </Text>
 
                 {brand.categories.length > 0 && (
-                  <Text className="text-xs uppercase tracking-widest text-surface/45">
+                  <Text className="text-xs uppercase tracking-widest text-surface/60">
                     {brand.categories.join(' · ')}
                   </Text>
                 )}

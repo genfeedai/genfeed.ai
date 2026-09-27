@@ -268,7 +268,7 @@ export default function WebsiteTopbar() {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                className="h-9 px-5 text-sm uppercase"
+                className="h-11 px-5 text-sm uppercase lg:h-9"
                 trackingData={{ action: 'start_free_topbar' }}
                 trackingName="topbar_cta_click"
               >

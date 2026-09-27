@@ -241,7 +241,7 @@ export default function HireAgentsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="gen-card-spotlight p-12 text-center">
+          <div className="gen-card-spotlight p-6 sm:p-12 text-center">
             <div className="flex justify-center mb-4">
               <Users className="size-8 text-surface" />
             </div>
