@@ -32,7 +32,7 @@ export async function settle(page: Page): Promise<void> {
 
 /**
  * Standard end-of-test health assertion: a visible body, no framework error
- * overlay, and no redirect to /login.
+ * overlay or ErrorBoundary fallback, and no redirect to /login.
  *
  * @param page - Playwright page
  */
