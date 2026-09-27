@@ -11,13 +11,14 @@ import {
   resolvePublicMcpResource,
   toInlineScriptStringLiteral,
 } from '@mcp/mcp/setup-page';
+import { JSDOM } from 'jsdom';
 
 /**
  * Extracts a `function <name>(...) { ... }` declaration's exact source text
  * out of the rendered HTML's inline `<script>` block, by brace-matching from
  * the first `{` after the signature. Used to unit-test the picker's client
- * JS logic directly (no jsdom in this package's vitest environment) rather
- * than asserting on the JS source text as a string.
+ * JS logic directly (the vitest environment is node) rather than asserting
+ * on the JS source text as a string.
  */
 function extractFunctionSource(html: string, name: string): string {
   const start = html.indexOf(`function ${name}(`);
@@ -133,15 +134,19 @@ describe('MCP setup page', () => {
     const html = renderSetupPage();
     expect(html).toContain('https://mcp.genfeed.ai/mcp');
     expect(html).toContain('AI agent setup prompt');
-    expect(html).toContain('Copy AI prompt');
+    expect(html).toContain('aria-label="Copy agent setup prompt"');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
     expect(html).toContain('https://app.genfeed.ai/connect');
     expect(html).toContain('Start guided setup');
+    expect(html).toContain('Read MCP docs');
     expect(html).toContain('OAuth setup guide');
     expect(html).toContain('Authorize and verify');
     expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
+    expect(html).toContain('Muse &amp; Grok Bot');
+    expect(html).toContain('Other clients');
+    expect(html).toContain('Advanced: limit which toolsets load');
   });
 
   it('adds cookieless page and control tracking when PostHog is configured', () => {
@@ -308,10 +313,14 @@ describe('MCP setup page', () => {
   it('uses shared static UI surface primitives instead of local card CSS', () => {
     const html = renderSetupPage();
 
-    expect(html).toContain('gf-card gf-feature-card');
-    expect(html).toContain('gf-card gf-info-card');
+    expect(html).toContain('gf-card');
     expect(html).toContain('gf-button gf-button-primary');
+    expect(html).toContain('gf-button gf-button-secondary');
     expect(html).toContain('gf-code-block command');
+    expect(html).toContain('gf-badge');
+    expect(html).toContain('gf-inline-code');
+    expect(html).not.toContain('gf-card gf-feature-card');
+    expect(html).not.toContain('gf-card gf-info-card');
     expect(html).not.toContain('mcp-hero-card');
     expect(html).not.toContain('mcp-meta-card');
     expect(html).not.toContain('class="poster"');
@@ -430,6 +439,60 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="claude-code-command"');
       expect(html).toContain('id="codex-command"');
       expect(html).toContain('id="agent-setup-prompt"');
+      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('id="generic-client-config"');
+    });
+
+    it('rewrites every endpoint-bearing block when toolsets are selected and cleared', () => {
+      // Parse only, then run the page's inline script against that document:
+      // jsdom's own script runner needs a vm Bun does not provide.
+      const dom = new JSDOM(renderSetupPage());
+      const { document, Event } = dom.window;
+      const pageScript = Array.from(document.querySelectorAll('script'))
+        .map((script) => script.textContent ?? '')
+        .find((source) => source.includes('function applyUrl('));
+      if (!pageScript) {
+        throw new Error('expected the picker script');
+      }
+      new Function('document', 'navigator', pageScript)(document, {});
+      const text = (id: string): string =>
+        document.getElementById(id)?.textContent ?? '';
+      const checkbox = Array.from(
+        document.querySelectorAll<HTMLInputElement>('[data-toolset-checkbox]'),
+      ).find((input) => !input.disabled);
+      if (!checkbox) {
+        throw new Error('expected a selectable toolset');
+      }
+      const toolset = checkbox.getAttribute('data-toolset');
+      const selectedUrl = `https://mcp.genfeed.ai/mcp?toolsets=${toolset}`;
+      const toggle = (isChecked: boolean): void => {
+        checkbox.checked = isChecked;
+        checkbox.dispatchEvent(new Event('change'));
+      };
+
+      toggle(true);
+
+      expect(text('mcp-url')).toBe(selectedUrl);
+      expect(
+        document.getElementById('mcp-url-copy')?.getAttribute('data-copy'),
+      ).toBe(selectedUrl);
+      expect(text('chat-agent-prompt')).toContain(
+        `MCP server URL: ${selectedUrl}\n`,
+      );
+      expect(JSON.parse(text('generic-client-config')).url).toBe(selectedUrl);
+      expect(text('claude-code-command')).toContain(`'${selectedUrl}'`);
+      expect(text('codex-command')).toContain(`--url '${selectedUrl}'`);
+      expect(text('agent-setup-prompt')).toContain(`Endpoint: ${selectedUrl}`);
+
+      toggle(false);
+
+      expect(text('mcp-url')).toBe('https://mcp.genfeed.ai/mcp');
+      expect(JSON.parse(text('generic-client-config')).url).toBe(
+        'https://mcp.genfeed.ai/mcp',
+      );
+      expect(text('chat-agent-prompt')).not.toContain('?toolsets=');
+      expect(text('claude-code-command')).not.toContain('?toolsets=');
+      dom.window.close();
     });
 
     it('appends the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
@@ -516,6 +579,53 @@ describe('MCP setup page', () => {
       expect(html).not.toContain('</script><script>alert(1)</script>');
       expect(html).toContain(
         'var baseMcpUrl = "https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp";',
+      );
+    });
+  });
+
+  describe('Muse & Grok Bot and other MCP clients tabs', () => {
+    it('gives Meta Muse and Grok Bot a copy-paste chat prompt that builds their own connector', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain('Muse &amp; Grok Bot');
+      expect(html).toContain('id="chat-agent-prompt"');
+      expect(html).toContain('data-copy-source="chat-agent-prompt"');
+      expect(html).toContain('Add Genfeed as a custom connector.');
+      expect(html).toContain('MCP server URL: https://mcp.genfeed.ai/mcp');
+      expect(html).toContain(
+        'Send me the sign-in link and wait while I approve access in my browser.',
+      );
+    });
+
+    it('gives other MCP clients (Claude.ai, ChatGPT, Cursor, Gemini) the generic JSON config', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain('Other clients');
+      expect(html).toContain('id="generic-client-config"');
+      expect(html).toContain('data-copy-source="generic-client-config"');
+      expect(html).toContain(
+        '&quot;transport&quot;: &quot;streamable-http&quot;',
+      );
+      expect(html).toContain(
+        '&quot;url&quot;: &quot;https://mcp.genfeed.ai/mcp&quot;',
+      );
+      expect(html).toContain(
+        'Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth',
+      );
+    });
+
+    it('collapses the toolset picker into an "Advanced" disclosure below setup', () => {
+      const html = renderSetupPage();
+
+      const setupIndex = html.indexOf('id="setup-title"');
+      const toolsetsIndex = html.indexOf('<details class="toolsets">');
+      const pickerIndex = html.indexOf('class="toolset-picker"');
+
+      expect(setupIndex).toBeGreaterThan(-1);
+      expect(toolsetsIndex).toBeGreaterThan(setupIndex);
+      expect(pickerIndex).toBeGreaterThan(toolsetsIndex);
+      expect(html).toContain(
+        '<summary>Advanced: limit which toolsets load</summary>',
       );
     });
   });
