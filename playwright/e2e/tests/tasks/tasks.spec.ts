@@ -472,7 +472,7 @@ test.describe('Tasks', () => {
   test('loads the task detail page and supports status plus comment updates', async ({
     authenticatedPage,
   }) => {
-    const taskRoute = `${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`;
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`);
     await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });

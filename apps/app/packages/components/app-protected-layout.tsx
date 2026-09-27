@@ -3,6 +3,7 @@
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
+import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
@@ -516,41 +517,44 @@ function AppLayoutWithDynamicMenu({
     workspaceShellRoute,
   ]);
 
-  // Provided above AppLayout on purpose: the inspector rail lives inside the
-  // workspace shell (AppLayout's child) but its collapse toggle renders in the
-  // topbar (AppLayout's sibling prop), so the shared state has to sit above both.
+  // Provided above AppLayout on purpose: the inspector rail and the context
+  // sidebar live inside the workspace shell (AppLayout's child) but their
+  // toggle renders in the topbar (AppLayout's sibling prop), so the shared
+  // state has to sit above both.
   const mainLayout = (
     <WorkspaceInspectorProvider>
-      <AppLayout
-        bannerComponent={shellBanner}
-        breadcrumb={layoutBreadcrumb}
-        brandSlug={brandSlug}
-        pageHelp={pageHelp}
-        currentApp={currentApp}
-        menuComponent={menuComponent}
-        railComponent={railComponent}
-        topbarComponent={topbarComponent}
-        menuItems={navigationMenuItems}
-        orgSlug={orgSlug}
-        isWorkspaceShell={isWorkspaceShellMounted}
-        // Agent conversation owns its own thread scroller. Lock the shell so
-        // the credits banner cannot push min-h page content past the viewport
-        // (document scrollbar + thread scrollbar).
-        lockViewportHeight={isConversationRoute}
-      >
-        {/* The shell is the body of a frame that is already there, so a route
+      <ContextSidebarProvider>
+        <AppLayout
+          bannerComponent={shellBanner}
+          breadcrumb={layoutBreadcrumb}
+          brandSlug={brandSlug}
+          pageHelp={pageHelp}
+          currentApp={currentApp}
+          menuComponent={menuComponent}
+          railComponent={railComponent}
+          topbarComponent={topbarComponent}
+          menuItems={navigationMenuItems}
+          orgSlug={orgSlug}
+          isWorkspaceShell={isWorkspaceShellMounted}
+          // Agent conversation owns its own thread scroller. Lock the shell so
+          // the credits banner cannot push min-h page content past the viewport
+          // (document scrollbar + thread scrollbar).
+          lockViewportHeight={isConversationRoute}
+        >
+          {/* The shell is the body of a frame that is already there, so a route
           it does not know still renders — it just renders without the
           inspector rail rather than without an application around it. */}
-        {isUniversalWorkspaceShell ? (
-          agentApiService ? (
-            <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-              {children}
-            </LazyUniversalWorkspaceShell>
-          ) : null
-        ) : (
-          children
-        )}
-      </AppLayout>
+          {isUniversalWorkspaceShell ? (
+            agentApiService ? (
+              <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
+                {children}
+              </LazyUniversalWorkspaceShell>
+            ) : null
+          ) : (
+            children
+          )}
+        </AppLayout>
+      </ContextSidebarProvider>
     </WorkspaceInspectorProvider>
   );
   // Permanent frame, permanent boundary: a render failure anywhere under it is

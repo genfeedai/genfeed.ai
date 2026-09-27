@@ -53,7 +53,6 @@ describe('resolveWorkspaceInspectorBodyKind', () => {
   const none = {
     hasEffectiveSurfaceAdapter: false,
     hasPresentationAdapter: false,
-    hasResearchAdapter: false,
     hasWorkspaceAdapter: false,
     isWorkflowInspectorSurface: false,
   };
@@ -71,12 +70,6 @@ describe('resolveWorkspaceInspectorBodyKind', () => {
         hasEffectiveSurfaceAdapter: true,
       }),
     ).toBe('surface-adapter');
-    expect(
-      resolveWorkspaceInspectorBodyKind({
-        ...none,
-        hasResearchAdapter: true,
-      }),
-    ).toBe('research-adapter');
     expect(
       resolveWorkspaceInspectorBodyKind({
         ...none,

@@ -31,14 +31,18 @@ vi.mock('./workspace-task-rail-adapter', async () => {
 
   function WorkspaceTaskRailAdapter({
     onClose,
+    selectionOrigin,
     ...detailProps
-  }: WorkspaceTaskDetailProps & { onClose: () => void }) {
+  }: WorkspaceTaskDetailProps & {
+    onClose: () => void;
+    selectionOrigin: string;
+  }) {
     if (!detailProps.task) {
       return null;
     }
 
     return (
-      <div>
+      <div data-selection-origin={selectionOrigin} data-testid="task-rail">
         <WorkspaceTaskDetail {...detailProps} />
         <button type="button" onClick={onClose}>
           Close
@@ -129,6 +133,10 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   }),
 }));
 
+const navigationState = vi.hoisted(() => ({
+  searchParams: new URLSearchParams(),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => '/workspace/inbox/unread',
@@ -136,7 +144,7 @@ vi.mock('next/navigation', () => ({
     push: routerPushMock,
     replace: vi.fn(),
   }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => navigationState.searchParams,
 }));
 
 vi.mock('@services/automation/workflow-executions.service', async () => {
@@ -670,6 +678,51 @@ describe('WorkspacePageContent', () => {
         'Investigate launch comment thread',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('treats a task restored from the URL after a closed tap as automatic', async () => {
+    listMock.mockResolvedValue([
+      buildTask({
+        id: 'task-activity-1',
+        title: 'Investigate launch comment thread',
+      }),
+    ]);
+
+    const { rerender } = render(
+      <WorkspacePageContent section="inbox" defaultInboxView="all" />,
+    );
+    await waitFor(() => {
+      expect(listMock).toHaveBeenCalledWith({});
+    });
+
+    fireEvent.click(screen.getByText('Investigate launch comment thread'));
+    await waitFor(() => {
+      expect(screen.getByTestId('task-rail')).toHaveAttribute(
+        'data-selection-origin',
+        'user',
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(screen.queryByTestId('task-rail')).toBeNull();
+    });
+
+    // Back/forward restores the same task without a tap.
+    navigationState.searchParams = new URLSearchParams(
+      'taskId=task-activity-1',
+    );
+    try {
+      rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+      await waitFor(() => {
+        expect(screen.getByTestId('task-rail')).toHaveAttribute(
+          'data-selection-origin',
+          'automatic',
+        );
+      });
+    } finally {
+      navigationState.searchParams = new URLSearchParams();
+    }
   });
 
   it('surfaces the linked report thread for completed task reviews', async () => {

@@ -50,13 +50,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/workflow/execution.spec.ts',
-    reason:
-      'Workflow execution locators trip strict-mode. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/calendar/scheduling.spec.ts',
     reason:
       'Publishing calendar assertions drifted. Evidence: run 31991510270.',
@@ -71,13 +64,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/studio/batch.spec.ts',
-    reason:
-      'Studio batch nav/count assertions drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/analytics/overview.spec.ts',
     reason:
       'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
@@ -88,19 +74,6 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     file: 'playwright/e2e/tests/settings/brand-interview.spec.ts',
     reason:
       'Brand interview locators trip strict-mode. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/workflow/workflow-detail.spec.ts',
-    reason:
-      'Workflow detail locators trip strict-mode. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/automation/overview.spec.ts',
-    reason: 'Automation overview copy/nav drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -240,6 +213,7 @@ export const PLAYWRIGHT_E2E_CORE_PATHS = [
   'playwright/e2e/tests/smoke',
   'playwright/e2e/tests/core',
   'playwright/e2e/tests/chat/onboarding.spec.ts',
+  'playwright/e2e/tests/shell/context-sidebar.spec.ts',
   'playwright/e2e/tests/shell/page-context-contract.spec.ts',
   'playwright/e2e/tests/studio/clips.spec.ts',
 ];

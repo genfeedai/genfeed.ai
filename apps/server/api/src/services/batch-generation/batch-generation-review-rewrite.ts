@@ -145,12 +145,15 @@ export async function applyBatchRewrites({
   postLifecycleService,
   postVersions,
   publishApprovalsService,
+  rewriteJobId,
   transaction,
   userId,
 }: RewriteCollaborators & {
   batch: BatchWithConfig;
   batchId: string;
   captions: Map<string, string>;
+  /** Recorded on the review event, in the same transaction as the caption. */
+  rewriteJobId?: string;
 }): Promise<RewrittenBatch> {
   const items = resolveBatchItems(batch);
   const reviewedAt = new Date().toISOString();
@@ -182,6 +185,7 @@ export async function applyBatchRewrites({
         feedback: 'Content rewritten',
         reviewedAt,
         reviewerId: userId,
+        ...(rewriteJobId ? { rewriteJobId } : {}),
       },
     ];
   }

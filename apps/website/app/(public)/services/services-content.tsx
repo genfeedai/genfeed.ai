@@ -1,8 +1,5 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -13,6 +10,7 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import { serviceOffering } from '@web-components/landing/service-offering.data';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -65,10 +63,8 @@ const SERVICE_CARDS = [
 ];
 
 export default function ServicesContent() {
-  const containerRef = useMarketingEntrance();
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         badge="Services"
         badgeIcon={Sparkles}
@@ -256,6 +252,6 @@ export default function ServicesContent() {
           </Button>
         </CtaSection>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

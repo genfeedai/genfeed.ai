@@ -1,12 +1,10 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
@@ -120,11 +118,10 @@ function CatalogSignal({ models }: ModelsContentProps) {
 }
 
 export default function ModelsContent({ models }: ModelsContentProps) {
-  const containerRef = useMarketingEntrance();
   const groups = models ? groupModels(models) : [];
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         compact
         description="The models available in Genfeed, read directly from the product registry."
@@ -288,6 +285,6 @@ export default function ModelsContent({ models }: ModelsContentProps) {
           </div>
         )}
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

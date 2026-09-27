@@ -1,12 +1,10 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import HomeFooter from '@web-components/home/_footer';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import { Layers } from 'lucide-react';
 import Link from 'next/link';
 import { BrandOsFunnel } from './brand-os-funnel';
@@ -200,11 +198,10 @@ function SwatchTile({ swatch }: { swatch: Swatch }): React.ReactElement {
 }
 
 export default function BrandOSContent(): React.ReactElement {
-  const containerRef = useMarketingEntrance({ cards: false });
   const appHref = EnvironmentService.apps.app;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <main>
         {/* Hero */}
         <section className="border-b border-edge/5 bg-background py-16 sm:py-20 lg:py-24">
@@ -602,6 +599,6 @@ export default function BrandOSContent(): React.ReactElement {
         </section>
       </main>
       <HomeFooter />
-    </div>
+    </MarketingEntrance>
   );
 }

@@ -230,13 +230,13 @@ test.describe('Tasks Edge States', () => {
       includeTask: false,
     });
 
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
+    // Org-scoped: a bare protected path now redirects to its scoped
+    // canonical route (#5414), so visit the canonical destination directly.
+    const tasksRoute = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await authenticatedPage.goto(tasksRoute, {
       waitUntil: 'domcontentloaded',
     });
-    await assertNoErrorBoundaryFallback(
-      authenticatedPage,
-      APP_ROUTES.WORKSPACE.TASKS,
-    );
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksRoute);
 
     await expect(authenticatedPage.getByText('No tasks yet')).toBeVisible();
     await expect(
@@ -251,7 +251,7 @@ test.describe('Tasks Edge States', () => {
   }) => {
     await mockTaskEdgeStates(authenticatedPage);
 
-    const taskRoute = `${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`;
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`);
     await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
@@ -279,10 +279,8 @@ test.describe('Tasks Edge States', () => {
 
     // Org-scoped (#5397): the "Back to issues" link is built from
     // `useOrgUrl()`'s `href()`, which resolves the org (and brand, if any)
-    // scope from the route itself. A bare-path visit leaves that resolution
-    // to a client-side fallback that can land on a non-existent scope
-    // (#5395); starting from a scoped route keeps the asserted href
-    // deterministic.
+    // scope from the route itself; bare paths redirect to this canonical
+    // scoped route (#5414).
     const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`);
     await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',

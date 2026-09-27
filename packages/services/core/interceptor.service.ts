@@ -59,6 +59,17 @@ export function clearRequestOrganizationId(): void {
 }
 
 /**
+ * `ORGANIZATION_CONTEXT_HEADER` for raw-`fetch` tenant clients, set exactly
+ * when the axios interceptor would send it, so the API can fail closed on
+ * organization drift. Empty while no routed organization is confirmed.
+ */
+export function getRequestOrganizationHeaders(): Record<string, string> {
+  return requestOrganizationId
+    ? { [ORGANIZATION_CONTEXT_HEADER]: requestOrganizationId }
+    : {};
+}
+
+/**
  * Clear all cached HTTP service instances
  * Call this on logout/sign-out to prevent stale token usage
  */

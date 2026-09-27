@@ -722,6 +722,7 @@ export class BatchGenerationReviewService {
     userId: string,
     captions: Map<string, string>,
     postVersions: Map<string, Date>,
+    rewriteJobId?: string,
   ): Promise<IBatchSummary> {
     const updated = await this.withLockedBatch(
       batchId,
@@ -736,6 +737,7 @@ export class BatchGenerationReviewService {
           postLifecycleService: this.postLifecycleService,
           postVersions,
           publishApprovalsService: this.publishApprovalsService,
+          rewriteJobId,
           transaction,
           userId,
         }),

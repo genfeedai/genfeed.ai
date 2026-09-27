@@ -1,9 +1,7 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
@@ -70,10 +68,8 @@ const HERO_VISUAL = (
 const SHOWCASE_OUTPUTS = HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 3);
 
 export default function FeaturesPage(): React.ReactElement {
-  const containerRef = useMarketingEntrance();
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         badge="Platform Capabilities"
         badgeIcon={Layers}
@@ -200,6 +196,6 @@ export default function FeaturesPage(): React.ReactElement {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }

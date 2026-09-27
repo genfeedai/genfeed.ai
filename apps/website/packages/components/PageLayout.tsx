@@ -1,5 +1,3 @@
-'use client';
-
 import type { PageLayoutProps } from '@props/layout/page-layout.props';
 import PosterHeroPage from '@ui/marketing/PosterHeroPage';
 import ProofHeroPage from '@ui/marketing/ProofHeroPage';

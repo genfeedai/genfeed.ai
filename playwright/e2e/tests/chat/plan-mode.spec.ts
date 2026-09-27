@@ -189,14 +189,12 @@ function mockTurnAck(
 
 /**
  * Sends `prompt` from `/agent/new` and asserts the turn ack promoted the URL
- * to exactly the org-scoped `threadId` route — not just a suffix match. Under
- * concurrent workers `activeHref`'s brand-scope resolution can occasionally
- * pick a stale/loading brand (tracked in #5395); starting every test from an
- * already org-scoped route (`AgentPage.url`) removes the ambiguity that would
- * otherwise cause it, and asserting the exact destination here — rather than
- * accepting any `/agent/{threadId}` suffix and silently re-navigating to the
- * expected URL — means a wrong destination fails the test instead of being
- * quietly repaired.
+ * to exactly the org-scoped `threadId` route — not just a suffix match. Every
+ * test starts from the org-scoped `AgentPage.url`, and asserting the exact
+ * destination here — rather than accepting any `/agent/{threadId}` suffix and
+ * silently re-navigating to the expected URL — means a wrong destination
+ * (the #5395 scope nondeterminism, fixed by #5414) fails the test instead of
+ * being quietly repaired.
  */
 async function sendAndAwaitThreadRoute(
   authenticatedPage: Page,

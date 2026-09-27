@@ -1,8 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, FileText, Gavel, Mail, Scale, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -61,10 +59,8 @@ const legalInfo = [
 ];
 
 export default function TermsPage() {
-  const containerRef = useMarketingEntrance({ cards: false });
-
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <PageLayout
         badge="Legal"
         badgeIcon={FileText}
@@ -179,6 +175,6 @@ export default function TermsPage() {
           </div>
         </section>
       </PageLayout>
-    </div>
+    </MarketingEntrance>
   );
 }
