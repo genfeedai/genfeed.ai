@@ -3,6 +3,7 @@ import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { orgPath } from '../../utils/app-chrome';
 
 type TaskCreatePayload = {
   description?: string;
@@ -440,13 +441,12 @@ test.describe('Tasks', () => {
   test('loads the task detail page and supports status plus comment updates', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`, {
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`);
+    await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
 
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      `${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`,
-    );
+    expect(new URL(authenticatedPage.url()).pathname).toBe(taskRoute);
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Regression in task orchestration',
