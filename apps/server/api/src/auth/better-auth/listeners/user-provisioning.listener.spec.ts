@@ -243,12 +243,37 @@ describe('UserProvisioningListener', () => {
       expect(
         notificationsService.sendUserCreatedNotification,
       ).toHaveBeenCalledTimes(1);
-      expect(logger.error).toHaveBeenCalledTimes(1);
+      await vi.waitFor(() => expect(logger.error).toHaveBeenCalledTimes(1));
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('operator signup alert failed'),
         expect.objectContaining({ userId: 'u_8' }),
       );
       expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not wait for a stalled operator notification (genfeedai/genfeed.ai#5313)', async () => {
+      notificationsService.sendUserCreatedNotification.mockReturnValue(
+        new Promise<void>(() => undefined),
+      );
+
+      let outcome: 'blocked on notify' | 'provisioned' = 'blocked on notify';
+      const handled = listener
+        .handleUserCreated({
+          email: 'new@genfeed.ai',
+          userId: 'u_9',
+        })
+        .then(() => {
+          outcome = 'provisioned';
+        });
+
+      await drainMicrotasks();
+
+      // The stall path was genuinely exercised, and the listener settled anyway.
+      expect(
+        notificationsService.sendUserCreatedNotification,
+      ).toHaveBeenCalledTimes(1);
+      expect(outcome).toBe('provisioned');
+      await handled;
     });
   });
 });

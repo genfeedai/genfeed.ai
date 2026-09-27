@@ -717,4 +717,82 @@ describe('DiscordService', () => {
       );
     });
   });
+
+  describe('sendRevenueNotification (genfeedai/genfeed.ai#5313)', () => {
+    interface RevenueEmbed {
+      description: string;
+      fields: { inline?: boolean; name: string; value: string }[];
+    }
+
+    function lastEmbed(): RevenueEmbed {
+      return lastSendPayload().embeds?.[0] as unknown as RevenueEmbed;
+    }
+
+    function fieldValue(embed: RevenueEmbed, name: string): string | undefined {
+      return embed.fields.find((field) => field.name === name)?.value;
+    }
+
+    it('formats a USD amount by dividing by 100 minor units', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 4_500,
+        currency: 'usd',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Amount')).toBe('$45.00');
+    });
+
+    it('formats a zero-decimal JPY amount without dividing by 100', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_000,
+        currency: 'jpy',
+        organizationId: 'org_1',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      // JPY has no minor unit — Stripe's 5,000 already means ¥5,000, not ¥50.
+      expect(fieldValue(embed, 'Amount')).toBe('¥5,000');
+    });
+
+    it('always shows the revenue source in the Source field, even with a plan label', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_900,
+        currency: 'usd',
+        organizationId: 'org_1',
+        planLabel: 'Pro',
+        source: 'subscription_invoice',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Source')).toBe('Subscription invoice');
+      expect(fieldValue(embed, 'Plan')).toBe('Pro');
+      expect(embed.description).toContain('Pro');
+      expect(embed.description).toContain('Subscription invoice');
+    });
+
+    it('shows the formatted revenue source in Source and description when no plan label is known', async () => {
+      const { service } = await createService();
+
+      await service.sendRevenueNotification({
+        amountMinor: 5_900,
+        currency: 'usd',
+        organizationId: 'org_1',
+        source: 'credit_purchase',
+      });
+
+      const embed = lastEmbed();
+      expect(fieldValue(embed, 'Source')).toBe('Credit purchase');
+      expect(fieldValue(embed, 'Plan')).toBeUndefined();
+      expect(embed.description).toContain('Credit purchase');
+    });
+  });
 });

@@ -14,6 +14,7 @@ import {
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   BillingRevenueSource,
+  formatEnumLabel,
   SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/contracts';
@@ -116,12 +117,23 @@ export class StripeInvoiceWebhookHandler {
         url,
       });
 
+      const revenueTier = updatedSubscription.stripePriceId
+        ? this.supportService.resolveTierFromPriceId(
+            updatedSubscription.stripePriceId,
+          )
+        : null;
+
       await this.supportService.recordRevenueEvent({
         amountMinor: netInvoiceAmountMinor(invoice),
         currency: invoice.currency,
         occurredAt: invoicePaidAt(invoice),
         organizationId: updatedSubscription.organizationId,
-        planLabel: updatedSubscription.plan ?? undefined,
+        // Product tier (Pro, Scale, …), not `updatedSubscription.plan` — that
+        // field is the billing interval (MONTHLY/YEARLY/PAYG/ENTERPRISE) and
+        // is not a product name.
+        planLabel: revenueTier
+          ? (formatEnumLabel(revenueTier) ?? undefined)
+          : undefined,
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
         stripeObjectId: invoice.id,
         userId: updatedSubscription.userId,
