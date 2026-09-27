@@ -1,3 +1,8 @@
+import {
+  generateMockPost,
+  mockNewslettersList,
+  mockPostsList,
+} from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertHealthy, settle } from '../../utils/interaction-helpers';
 import { tryClick } from '../../utils/route-assertions';
@@ -207,6 +212,31 @@ test.describe('Posts — deep interactions', () => {
     // A dedicated `/publishing/newsletters` desk no longer exists (404s) --
     // newsletters are a `type=newsletter` filter on the unified Posts
     // content library toolbar now. See #5381.
+    //
+    // Seeds a matching and a non-matching newsletter, plus a post (a
+    // different content type) whose label also matches the search term --
+    // proving the type filter and the search narrow together (AND), not
+    // that search alone happens to return something.
+    await mockNewslettersList(authenticatedPage, [
+      {
+        id: 'newsletter-match-001',
+        label: 'Weekly Roundup',
+        summary: 'This week in review',
+      },
+      {
+        id: 'newsletter-nomatch-001',
+        label: 'Product Launch Newsletter',
+        summary: 'Announcing the new release',
+      },
+    ]);
+    await mockPostsList(authenticatedPage, [
+      generateMockPost({
+        description: 'Not a newsletter',
+        id: 'post-nomatch-001',
+        label: 'Weekly Standup Post',
+      }),
+    ]);
+
     await authenticatedPage.goto(POSTS_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
@@ -221,13 +251,28 @@ test.describe('Posts — deep interactions', () => {
     await settle(authenticatedPage);
     await expect(authenticatedPage).toHaveURL(/type=newsletter/);
 
-    const search = authenticatedPage
-      .locator('input[placeholder*="Search posts" i]')
-      .first();
-    if (await search.isVisible().catch(() => false)) {
-      await search.fill('weekly').catch(() => {});
-      await settle(authenticatedPage);
-    }
+    await expect(authenticatedPage.getByText('Weekly Roundup')).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Product Launch Newsletter'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Weekly Standup Post'),
+    ).toHaveCount(0);
+
+    const search = authenticatedPage.locator(
+      'input[placeholder*="Search posts" i]',
+    );
+    await expect(search).toBeVisible();
+    await search.fill('weekly');
+    await settle(authenticatedPage);
+
+    await expect(authenticatedPage.getByText('Weekly Roundup')).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Product Launch Newsletter'),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByText('Weekly Standup Post'),
+    ).toHaveCount(0);
 
     await assertHealthy(authenticatedPage);
   });

@@ -3796,6 +3796,57 @@ export async function mockPostsList(
 }
 
 /**
+ * Mock for the newsletters collection (`GET /newsletters`), matching
+ * `newsletterSerializerConfig` (`type: 'newsletter'`, flat attributes --
+ * no relationships).
+ */
+export async function mockNewslettersList(
+  page: Page,
+  newsletters: Array<{
+    id: string;
+    label: string;
+    status?: string;
+    summary?: string;
+    topic?: string;
+    createdAt?: string;
+    scheduledFor?: string | null;
+  }>,
+): Promise<void> {
+  await routeApiPattern(page, '/newsletters**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    const now = new Date().toISOString();
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiCollection(
+          'newsletter',
+          newsletters.map((newsletter) => ({
+            attributes: {
+              approvedAt: null,
+              content: '',
+              createdAt: newsletter.createdAt ?? now,
+              isDeleted: false,
+              label: newsletter.label,
+              publishedAt: null,
+              scheduledFor: newsletter.scheduledFor ?? null,
+              status: newsletter.status ?? 'draft',
+              summary: newsletter.summary ?? '',
+              topic: newsletter.topic ?? '',
+              updatedAt: now,
+            },
+            id: newsletter.id,
+          })),
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
+/**
  * Mock for single post detail
  */
 export async function mockPostDetail(
@@ -3861,42 +3912,66 @@ function toReleaseStatus(status: unknown): string {
 }
 
 /**
- * Builds a JSON:API `release-group` attributes payload from the same
- * `generateMockPost`-shaped fixture the rest of this file uses, so calendar
- * tests can keep authoring fixtures as flat posts. `ContentCalendarPage`
- * reads releases from `ReleaseGroupsService` (`GET /post-groups`), never
- * `/posts` -- the calendar has no post-level data source. See #5381.
+ * Builds the one channel-target a mocked release fans out to, matching
+ * `channel-target.attributes.ts` (`packages/serializers`). Returned
+ * alongside its id so callers can wire the matching
+ * `relationships.targets.data` entry -- see `buildReleaseGroupDocument`.
+ */
+function buildChannelTargetResource(
+  post: Record<string, unknown>,
+  overrides: { id?: string; status?: string; scheduledAt?: string | null } = {},
+): { id: string; attributes: Record<string, unknown> } {
+  const id = overrides.id ?? String(post.id);
+  const status = overrides.status ?? toReleaseStatus(post.status);
+  const scheduledAt =
+    overrides.scheduledAt !== undefined
+      ? overrides.scheduledAt
+      : ((post.scheduledDate as string | null) ?? null);
+
+  return {
+    attributes: {
+      attachments: [],
+      category: 'text',
+      credentialId: `mock-credential-${id}`,
+      executionState: status,
+      order: 0,
+      platform: (post.platform as string) ?? 'twitter',
+      releaseId: id,
+      scheduledAt,
+      source: 'manual',
+      statusTransitions: [],
+      timezone: 'America/New_York',
+      // ReleaseDetailDrawer reads `target.validationIssues.length`
+      // unconditionally -- the real serializer always includes the field,
+      // so an incomplete mock target crashes the drawer's ErrorBoundary on
+      // click. See #5381.
+      validationIssues: [],
+    },
+    id,
+  };
+}
+
+/**
+ * Builds a JSON:API `release-group` *attributes* payload -- `targets` is
+ * deliberately absent here: it is a relationship, never an attribute (see
+ * `buildReleaseGroupDocument`). `ContentCalendarPage` reads releases from
+ * `ReleaseGroupsService` (`GET /post-groups`), never `/posts` -- the
+ * calendar has no post-level data source. See #5381.
  */
 function buildReleaseGroupAttributes(
   post: Record<string, unknown>,
+  overrides: { status?: string; scheduledAt?: string | null } = {},
 ): Record<string, unknown> {
-  const id = String(post.id);
-  const status = toReleaseStatus(post.status);
-  const scheduledAt = (post.scheduledDate as string | null) ?? null;
-  const target = {
-    attachments: [],
-    category: 'text',
-    credentialId: `mock-credential-${id}`,
-    executionState: status,
-    id,
-    order: 0,
-    platform: (post.platform as string) ?? 'twitter',
-    releaseId: id,
-    scheduledAt,
-    source: 'manual',
-    statusTransitions: [],
-    timezone: 'America/New_York',
-    // ReleaseDetailDrawer reads `target.validationIssues.length`
-    // unconditionally -- the real serializer always includes the field
-    // (channel-target.attributes.ts), so an incomplete mock target crashes
-    // the drawer's ErrorBoundary on click. See #5381.
-    validationIssues: [],
-  };
+  const status = overrides.status ?? toReleaseStatus(post.status);
+  const scheduledAt =
+    overrides.scheduledAt !== undefined
+      ? overrides.scheduledAt
+      : ((post.scheduledDate as string | null) ?? null);
 
   return {
     analyticsComparison: {
       metricDefinitions: [],
-      releaseId: id,
+      releaseId: String(post.id),
       state: 'empty',
       targets: [],
     },
@@ -3913,9 +3988,92 @@ function buildReleaseGroupAttributes(
     status,
     statusTransitions: [],
     targetSummary: { total: 1, [status]: 1 },
-    targets: [target],
     timezone: 'America/New_York',
     title: (post.label as string) || 'Untitled post',
+  };
+}
+
+/**
+ * Builds a serializer-faithful `release-group` JSON:API document. The real
+ * `ReleaseGroupSerializer` (`release-group.config.ts`'s `targets:
+ * nestedRel('channel-target', ...)`) emits `targets` as a
+ * `relationships.targets` reference plus a sideloaded `included`
+ * `channel-target` resource, never as a plain attribute -- embedding
+ * `targets` directly under `attributes` (the pre-review shape here) skips
+ * the client's relationship-deserialization path entirely. See #5381.
+ */
+function buildReleaseGroupDocument(
+  id: string,
+  attributes: Record<string, unknown>,
+  targets: Array<{ id: string; attributes: Record<string, unknown> }>,
+) {
+  return {
+    data: {
+      attributes,
+      id,
+      relationships: {
+        targets: {
+          data: targets.map((target) => ({
+            id: target.id,
+            type: 'channel-target',
+          })),
+        },
+      },
+      type: 'release-group',
+    },
+    included: targets.map((target) => ({
+      attributes: target.attributes,
+      id: target.id,
+      type: 'channel-target',
+    })),
+  };
+}
+
+/**
+ * Same relationships-plus-`included` shape as `buildReleaseGroupDocument`,
+ * for a `GET /post-groups` collection response: one shared `included`
+ * array backs every release's `targets` relationship.
+ */
+function buildReleaseGroupCollectionDocument(
+  releases: Array<{
+    id: string;
+    attributes: Record<string, unknown>;
+    targets: Array<{ id: string; attributes: Record<string, unknown> }>;
+  }>,
+) {
+  const included: Array<{
+    attributes: Record<string, unknown>;
+    id: string;
+    type: string;
+  }> = [];
+
+  const data = releases.map((release) => {
+    for (const target of release.targets) {
+      included.push({
+        attributes: target.attributes,
+        id: target.id,
+        type: 'channel-target',
+      });
+    }
+    return {
+      attributes: release.attributes,
+      id: release.id,
+      relationships: {
+        targets: {
+          data: release.targets.map((target) => ({
+            id: target.id,
+            type: 'channel-target',
+          })),
+        },
+      },
+      type: 'release-group',
+    };
+  });
+
+  return {
+    data,
+    included,
+    meta: { page: 1, pageSize: data.length, totalCount: data.length },
   };
 }
 
@@ -3984,11 +4142,11 @@ export async function mockCalendarPosts(
     if (method === 'GET') {
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiCollection(
-            'release-group',
+          buildReleaseGroupCollectionDocument(
             mockPosts.map((post) => ({
               attributes: buildReleaseGroupAttributes(post),
               id: String(post.id),
+              targets: [buildChannelTargetResource(post)],
             })),
           ),
         ),
@@ -4022,13 +4180,25 @@ export async function mockCalendarPosts(
  * to get one, then mutate the target via `scheduleTarget` / `publishTargetNow`
  * (`PATCH /post-groups/:groupId/targets/:targetId`, body
  * `{ action, scheduledDate? }`). There is no `/posts/:id/status` or
- * `/posts/:id/schedule` endpoint. See #5381.
+ * `/posts/:id/schedule` endpoint.
+ *
+ * Pass `post` for a fully stateful mock: the release group id is derived
+ * from the post id, and once the schedule/publish PATCH lands, the mocked
+ * `GET /posts/:id` refetch reflects the new status and `scheduledAt` --
+ * exactly what `commitSchedule`'s `fetchPost(true)` observes after a real
+ * save. See #5381.
  */
 export async function mockPostPublishing(
   page: Page,
-  options: MockOptions = {},
+  options: MockOptions & { post?: Record<string, unknown> } = {},
 ): Promise<void> {
-  const { delay = 0 } = options;
+  const { delay = 0, post } = options;
+  const postId = post ? String(post.id) : null;
+  const groupId = postId ? `mock-release-${postId}` : null;
+  const state: { scheduledAt: string | null; status: string } = {
+    scheduledAt: post ? ((post.scheduledDate as string | null) ?? null) : null,
+    status: post ? toReleaseStatus(post.status) : 'draft',
+  };
 
   await routeApiPattern(page, '/post-groups/from-post', async (route) => {
     if (delay > 0) {
@@ -4037,18 +4207,24 @@ export async function mockPostPublishing(
     const body = route.request().postDataJSON() as
       | { postId?: string }
       | undefined;
-    const postId = body?.postId || 'mock-post-id';
-    const groupId = `mock-release-${postId}`;
-    await route.fulfill({
-      body: JSON.stringify(
-        buildJsonApiDocument('release-group', groupId, {
+    const requestedPostId = body?.postId || postId || 'mock-post-id';
+    const resolvedGroupId = groupId ?? `mock-release-${requestedPostId}`;
+    const attributes = post
+      ? buildReleaseGroupAttributes(post, state)
+      : {
           scheduledAt: null,
           status: 'draft',
-          targets: [
-            { executionState: 'draft', id: postId, platform: 'twitter' },
-          ],
           title: 'Untitled post',
-        }),
+        };
+    const target = post
+      ? buildChannelTargetResource(post, { id: requestedPostId, ...state })
+      : {
+          attributes: { executionState: 'draft', platform: 'twitter' },
+          id: requestedPostId,
+        };
+    await route.fulfill({
+      body: JSON.stringify(
+        buildReleaseGroupDocument(resolvedGroupId, attributes, [target]),
       ),
       contentType: 'application/json',
       status: 201,
@@ -4062,26 +4238,59 @@ export async function mockPostPublishing(
     const body = route.request().postDataJSON() as
       | { action?: string; scheduledDate?: string }
       | undefined;
-    const status =
+    state.status =
       body?.action === 'schedule'
         ? 'scheduled'
         : body?.action?.startsWith('publish')
           ? 'published'
-          : 'draft';
+          : state.status;
+    state.scheduledAt = body?.scheduledDate ?? state.scheduledAt;
+
     const segments = new URL(route.request().url()).pathname.split('/');
-    const groupId = segments.at(-3) || 'mock-release-group';
+    const requestedGroupId = segments.at(-3) || groupId || 'mock-release-group';
+    const requestedTargetId = segments.at(-1) || postId || 'mock-target-id';
+    const attributes = post
+      ? buildReleaseGroupAttributes(post, state)
+      : { scheduledAt: state.scheduledAt, status: state.status };
+    const target = post
+      ? buildChannelTargetResource(post, { id: requestedTargetId, ...state })
+      : {
+          attributes: {
+            executionState: state.status,
+            scheduledAt: state.scheduledAt,
+          },
+          id: requestedTargetId,
+        };
     await route.fulfill({
       body: JSON.stringify(
-        buildJsonApiDocument('release-group', groupId, {
-          scheduledAt: body?.scheduledDate ?? null,
-          status,
-          targets: [],
-        }),
+        buildReleaseGroupDocument(requestedGroupId, attributes, [target]),
       ),
       contentType: 'application/json',
       status: 200,
     });
   });
+
+  if (post && postId) {
+    await routeApiPattern(page, `/posts/${postId}`, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      if (delay > 0) {
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      const payload = buildPostAttributes({
+        ...post,
+        scheduledDate: state.scheduledAt,
+        status: state.status,
+      });
+      await route.fulfill({
+        body: JSON.stringify(buildJsonApiDocument('post', postId, payload)),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+  }
 
   // Mock tweet generation
   await routeApiPattern(page, '/posts/generate**', async (route) => {

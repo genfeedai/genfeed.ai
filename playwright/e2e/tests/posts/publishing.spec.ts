@@ -149,6 +149,10 @@ test.describe('Posts — Publishing', () => {
 
     await mockPostsList(authenticatedPage, [draftPost]);
     await mockPostDetail(authenticatedPage, draftPost);
+    // Layer a stateful mock on top of beforeEach's generic one: the
+    // returned release-group id is derived from this post, and the
+    // /posts/pub-sched-001 refetch after scheduling reflects the mutation.
+    await mockPostPublishing(authenticatedPage, { post: draftPost });
 
     await postsPage.gotoPostDetail('pub-sched-001');
 
@@ -200,10 +204,16 @@ test.describe('Posts — Publishing', () => {
     });
     await expect(scheduleButton).toBeEnabled();
 
-    // Require the actual mutation: `ensureFromPost` promotes the lone draft
-    // to a release group, then `scheduleTarget` PATCHes its target with the
-    // picked timestamp (see `mockPostPublishing`, #5381).
-    const [patchRequest] = await Promise.all([
+    // Require the actual mutation chain, not just "some PATCH fired":
+    // `ensureFromPost` (POST, body `{ postId }`) promotes the lone draft to
+    // a release group, and `scheduleTarget` PATCHes exactly that returned
+    // group's target with the picked timestamp.
+    const [postRequest, patchRequest] = await Promise.all([
+      authenticatedPage.waitForRequest(
+        (request) =>
+          request.method() === 'POST' &&
+          request.url().includes('/post-groups/from-post'),
+      ),
       authenticatedPage.waitForRequest(
         (request) =>
           request.method() === 'PATCH' &&
@@ -212,6 +222,18 @@ test.describe('Posts — Publishing', () => {
       ),
       scheduleButton.click(),
     ]);
+
+    expect(postRequest.postDataJSON()).toEqual({ postId: 'pub-sched-001' });
+
+    const postResponse = await postRequest.response();
+    const postResponseBody = (await postResponse?.json()) as {
+      data?: { id?: string };
+    };
+    const groupId = postResponseBody.data?.id;
+    expect(groupId).toBeTruthy();
+    expect(patchRequest.url()).toContain(
+      `/post-groups/${groupId}/targets/pub-sched-001`,
+    );
 
     const body = patchRequest.postDataJSON() as {
       action?: string;
@@ -228,10 +250,15 @@ test.describe('Posts — Publishing', () => {
     expect(sent.hour).toBe(9);
     expect(sent.minute).toBe(0);
 
-    // Resulting scheduled state: the save only reaches this success path
-    // once the target mutation and the post refetch both resolve.
+    // Resulting scheduled state: the save toast only fires once the target
+    // mutation succeeds, and the post refetch (mockPostPublishing's
+    // stateful /posts/pub-sched-001 override) now reports 'scheduled' --
+    // rendered verbatim by PostSidebarPlatformCard's status Badge.
     await expect(
       authenticatedPage.getByText('Schedule date updated'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('scheduled', { exact: true }),
     ).toBeVisible();
   });
 

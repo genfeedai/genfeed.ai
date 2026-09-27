@@ -8,6 +8,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { CalendarPage } from '../../pages/calendar.page';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Calendar — Scheduling View
@@ -19,14 +20,17 @@ import { CalendarPage } from '../../pages/calendar.page';
 interface CurrentWeekBrowserDates {
   monday9am: string;
   wednesday11am: string;
+  mondayDateKey: string;
+  wednesdayDateKey: string;
 }
 
 /**
- * Monday 9am / Wednesday 11am of the *browser's* current week, computed
- * inside the page so they agree with whatever "now" `useCalendarWeekRange`
- * and FullCalendar's own `firstDay: 1` week resolve to -- the pinned
- * `America/New_York` project timezone, never the test-runner host's, which
- * can disagree on the calendar day near midnight in either zone.
+ * Monday 9am / Wednesday 11am of the *browser's* current week, plus their
+ * FullCalendar day-cell `data-date` keys, computed inside the page so they
+ * agree with whatever "now" `useCalendarWeekRange` and FullCalendar's own
+ * `firstDay: 1` week resolve to -- the pinned `America/New_York` project
+ * timezone, never the test-runner host's, which can disagree on the
+ * calendar day near midnight in either zone.
  */
 async function currentWeekBrowserDates(
   page: Page,
@@ -43,6 +47,14 @@ async function currentWeekBrowserDates(
       d.setHours(hour, 0, 0, 0);
       return d.toISOString();
     };
+    const dateKey = (offsetDays: number) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + offsetDays);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
     // Both morning hours: FullCalendar's default event-time label omits
     // the meridiem but keeps a 12-hour clock, so "14:00" would otherwise
@@ -50,9 +62,25 @@ async function currentWeekBrowserDates(
     // unambiguous in either convention.
     return {
       monday9am: at(0, 9),
+      mondayDateKey: dateKey(0),
       wednesday11am: at(2, 11),
+      wednesdayDateKey: dateKey(2),
     };
   });
+}
+
+/**
+ * FullCalendar's own day-column container for `dateKey` (`YYYY-MM-DD`):
+ * `role="gridcell"` spans the whole vertical time-grid strip for that day
+ * and carries `data-date` -- unlike the rest of FullCalendar's DOM, whose
+ * classes are build-hashed per this app's theme (no stable `.fc-*`
+ * selectors exist), this attribute is a stable accessibility hook. Scoping
+ * a locator to it, rather than comparing bounding-box coordinates, proves
+ * actual DOM containment -- the event is *inside* that day's column, not
+ * merely positioned at some x that happens not to equal another event's x.
+ */
+function dayColumn(page: Page, dateKey: string) {
+  return page.locator(`[role="gridcell"][data-date="${dateKey}"]`);
 }
 
 test.describe('Calendar — Scheduling', () => {
@@ -110,12 +138,19 @@ test.describe('Calendar — Scheduling', () => {
 
     // Each post must render as a real, named event -- not merely "some
     // element with a calendar-event class" exists somewhere on the page --
-    // at its own scheduled time, and the two must land in different day
-    // columns (FullCalendar's internal classes are build-hashed, so day
-    // placement is asserted structurally via each event's own horizontal
-    // position rather than a CSS day-column selector).
-    const morningEvent = calendarPage.getEventByText('Morning Post');
-    const afternoonEvent = calendarPage.getEventByText('Afternoon Post');
+    // scoped inside the FullCalendar day column matching its own scheduled
+    // date, at its own scheduled time.
+    const mondayColumn = dayColumn(authenticatedPage, dates.mondayDateKey);
+    const wednesdayColumn = dayColumn(
+      authenticatedPage,
+      dates.wednesdayDateKey,
+    );
+    const morningEvent = mondayColumn.locator('.gen-calendar-event', {
+      hasText: 'Morning Post',
+    });
+    const afternoonEvent = wednesdayColumn.locator('.gen-calendar-event', {
+      hasText: 'Afternoon Post',
+    });
     await expect(morningEvent).toBeVisible();
     await expect(afternoonEvent).toBeVisible();
     await expect(morningEvent.locator('.gen-calendar-event-time')).toHaveText(
@@ -125,12 +160,17 @@ test.describe('Calendar — Scheduling', () => {
       '11:00',
     );
 
-    const morningBox = await morningEvent.boundingBox();
-    const afternoonBox = await afternoonEvent.boundingBox();
-    expect(morningBox).toBeTruthy();
-    expect(afternoonBox).toBeTruthy();
-    // Monday and Wednesday are different day columns in the week view.
-    expect(morningBox?.x).not.toBeCloseTo(afternoonBox?.x ?? Number.NaN, 0);
+    // Not cross-wired onto each other's day.
+    await expect(
+      mondayColumn.locator('.gen-calendar-event', {
+        hasText: 'Afternoon Post',
+      }),
+    ).toHaveCount(0);
+    await expect(
+      wednesdayColumn.locator('.gen-calendar-event', {
+        hasText: 'Morning Post',
+      }),
+    ).toHaveCount(0);
   });
 
   test('should navigate between months', async ({ authenticatedPage }) => {
@@ -186,11 +226,24 @@ test.describe('Calendar — Scheduling', () => {
     await expect(authenticatedPage.locator('.gen-calendar-event')).toHaveCount(
       1,
     );
-    const event = calendarPage.getEventByText('Date-specific Post');
+
+    const wednesdayColumn = dayColumn(
+      authenticatedPage,
+      dates.wednesdayDateKey,
+    );
+    const mondayColumn = dayColumn(authenticatedPage, dates.mondayDateKey);
+    const event = wednesdayColumn.locator('.gen-calendar-event', {
+      hasText: 'Date-specific Post',
+    });
     await expect(event).toBeVisible();
-    // Scheduled for Wednesday 11am -- the rendered time proves it landed on
-    // its own scheduled slot, not Monday's or any other day's.
+    // Scheduled for Wednesday 11am, inside Wednesday's own day column --
+    // not Monday's or any other day's.
     await expect(event.locator('.gen-calendar-event-time')).toHaveText('11:00');
+    await expect(
+      mondayColumn.locator('.gen-calendar-event', {
+        hasText: 'Date-specific Post',
+      }),
+    ).toHaveCount(0);
   });
 
   test('should display post details on click', async ({
@@ -249,9 +302,18 @@ test.describe('Calendar — Scheduling', () => {
 
     await calendarPage.clickViewDetails();
 
-    // The drawer's only navigation affordance opens the target's editor.
+    // The drawer's only navigation affordance opens the target's editor --
+    // require the destination actually rendered the target post (its own
+    // title heading), not merely that the URL changed.
     await expect(authenticatedPage).toHaveURL(
       /\/publishing\/posts\/cal-nav-001/,
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Navigable Post' }),
+    ).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      '/publishing/posts/cal-nav-001',
     );
   });
 
