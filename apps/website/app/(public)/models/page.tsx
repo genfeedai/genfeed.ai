@@ -2,7 +2,14 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import ModelsContent from '@public/models/models-content';
 import { getPublicModels } from '@public/models/models-loader';
 
-export const dynamic = 'force-dynamic';
+/**
+ * The catalog is the same for every visitor, so the page is rendered once and
+ * served from the full route cache instead of re-rendering per request. Five
+ * minutes keeps a registry change (or a render made while the API was down,
+ * which shows the catalog-unavailable state) short-lived; the catalog fetch
+ * itself stays in the data cache for an hour.
+ */
+export const revalidate = 300;
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'AI Model Catalog',

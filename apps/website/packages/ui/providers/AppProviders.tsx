@@ -4,10 +4,19 @@ import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
 import type { ReactNode } from 'react';
-import { Toaster } from 'sonner';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
+  { ssr: false },
+);
+
+/**
+ * Toasts only follow a click (copy, share), so the toaster loads after
+ * hydration rather than in every page's first bundle. sonner replays toasts
+ * raised before the Toaster subscribes, so none are lost while it loads.
+ */
+const LazyToaster = dynamic(
+  () => import('sonner').then((module) => module.Toaster),
   { ssr: false },
 );
 
@@ -38,7 +47,7 @@ export default function AppProviders({
       <WebMcpProvider />
       {children}
       {includeToaster ? (
-        <Toaster richColors closeButton position="top-right" theme="dark" />
+        <LazyToaster richColors closeButton position="top-right" theme="dark" />
       ) : null}
       {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
     </ThemeProvider>

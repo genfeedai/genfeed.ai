@@ -43,14 +43,18 @@ describe('website AppProviders', () => {
     );
   });
 
-  it('keeps notifications on the dark studio canvas', () => {
+  it('keeps notifications on the dark studio canvas', async () => {
     render(
       <AppProviders includeLazyModalErrorDebug={false}>
         <div>Notifications</div>
       </AppProviders>,
     );
 
-    expect(screen.getByTestId('toaster')).toHaveAttribute('data-theme', 'dark');
+    // The toaster is lazy: it mounts after hydration, off the first bundle.
+    expect(await screen.findByTestId('toaster')).toHaveAttribute(
+      'data-theme',
+      'dark',
+    );
   });
 
   it('keeps the Better Auth client out of every marketing page bundle', () => {
