@@ -1,4 +1,4 @@
-import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import type {
   AgentWorkflowState,
   Approach,

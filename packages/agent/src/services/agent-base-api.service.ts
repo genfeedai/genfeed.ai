@@ -3,12 +3,12 @@ import {
   AgentApiDecodeError,
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
-import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@helpers/data/json-api/json-api.helper';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 
 export interface AgentApiConfig {
   baseUrl: string;

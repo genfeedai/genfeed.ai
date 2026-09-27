@@ -1,4 +1,4 @@
-import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 interface UseMicrophoneInputOptions {
