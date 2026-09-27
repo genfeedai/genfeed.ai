@@ -147,3 +147,11 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     title: 'Model Fleet',
   },
 ];
+
+export const pitchLandingConfigBySlug = Object.fromEntries(
+  pitchLandingConfigs.map((config) => [config.slug, config]),
+) satisfies Record<string, ServiceLandingConfig>;
+
+export const pitchLandingSlugs = pitchLandingConfigs.map(
+  (config) => config.slug,
+);
