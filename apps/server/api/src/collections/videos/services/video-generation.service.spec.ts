@@ -267,6 +267,7 @@ describe('VideoGenerationService', () => {
       modelsService as never,
       {
         isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+        resolveApiKey: vi.fn().mockResolvedValue(undefined),
       } as never,
     );
     const executionService = new VideoGenerationExecutionService(
@@ -640,6 +641,7 @@ describe('VideoGenerationService', () => {
       expect(falService.generateVideo).toHaveBeenCalledWith(
         FAL_ENDPOINT,
         expect.any(Object),
+        undefined,
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
     });
@@ -1014,6 +1016,7 @@ describe('VideoGenerationService', () => {
           first_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-first`,
           last_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-end`,
         }),
+        undefined,
       );
     });
 
@@ -1049,6 +1052,7 @@ describe('VideoGenerationService', () => {
             'https://s3.example.com/videos/video-reference-1?signed=true',
           ],
         }),
+        undefined,
       );
     });
 

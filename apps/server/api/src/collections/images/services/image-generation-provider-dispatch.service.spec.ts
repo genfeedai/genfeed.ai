@@ -624,7 +624,7 @@ describe('ImageGenerationProviderDispatchService', () => {
           isByokBypass: true,
           provider: 'replicate',
         },
-      },
+      } as unknown as ImageGenerationContext['request'],
     });
 
     const plan = await service.dispatch(context);
