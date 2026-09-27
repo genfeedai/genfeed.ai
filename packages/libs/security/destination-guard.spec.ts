@@ -93,6 +93,38 @@ describe('destination guard', () => {
     );
   });
 
+  it('rejects an HTTP destination when allowedSchemes is https-only', async () => {
+    await expect(
+      resolveSafeDestination('http://public.example/asset', {
+        allowedSchemes: ['https:'],
+      }),
+    ).rejects.toThrow('https scheme');
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
+  it('does not connect when safeFetch rejects the scheme up front', async () => {
+    await expect(
+      safeFetch(
+        'http://public.example/asset',
+        {},
+        { allowedSchemes: ['https:'] },
+      ),
+    ).rejects.toBeInstanceOf(DestinationGuardError);
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+    expect(httpRequestMock).not.toHaveBeenCalled();
+    expect(httpsRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('allows an HTTPS destination when allowedSchemes is https-only', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    await expect(
+      resolveSafeDestination('https://public.example/asset', {
+        allowedSchemes: ['https:'],
+      }),
+    ).resolves.toMatchObject({ address: '93.184.216.34', family: 4 });
+  });
+
   it('rejects a hostname when any DNS answer is private', async () => {
     dnsLookupMock.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },
