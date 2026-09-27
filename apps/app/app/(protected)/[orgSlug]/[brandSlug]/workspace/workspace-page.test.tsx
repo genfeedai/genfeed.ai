@@ -667,6 +667,17 @@ describe('WorkspacePageContent', () => {
       'href',
       '/acme-org/acme-creator/publishing/review',
     );
+    // #5397: the "Open Inbox" link (`workspace-overview-sidebar.tsx`'s
+    // "Recent activity" card) used to build a bare
+    // `APP_ROUTES.WORKSPACE.INBOX_UNREAD` href, unlike its sibling links in
+    // this same file, which already scope through `href()`.
+    // `resolveWorkspaceShellRoute` only recognizes the scoped
+    // `/:orgSlug/:brandSlug/workspace/...` pathname, so following that link
+    // would have left the workspace inspector unable to activate.
+    expect(screen.getByRole('link', { name: 'Open Inbox' })).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/workspace/inbox?view=unread',
+    );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();
     expect(screen.getByText('Media')).toBeVisible();
