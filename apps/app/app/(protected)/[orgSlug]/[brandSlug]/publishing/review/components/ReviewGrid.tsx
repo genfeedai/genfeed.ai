@@ -6,6 +6,7 @@ import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import ReviewItemsTable from './ReviewItemsTable';
+import ReviewRewriteProgress from './ReviewRewriteProgress';
 
 /**
  * Table-only review canvas. Item detail + decisions live in the agent
@@ -17,6 +18,8 @@ export default function ReviewGrid({
   isActioning,
   items,
   selectedIds,
+  isRewriteStarting = false,
+  rewriteProgress,
   rewritingIds,
   onBulkApprove,
   onBulkReject,
@@ -28,6 +31,7 @@ export default function ReviewGrid({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
+      {rewriteProgress ? <ReviewRewriteProgress {...rewriteProgress} /> : null}
       {selectedIds.size > 0 ? (
         <Card
           // Card body defaults to flex-col — force a single horizontal row.
@@ -45,9 +49,9 @@ export default function ReviewGrid({
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <Button
               className="h-7 gap-1 px-2 text-xs"
-              isDisabled={isActioning}
+              isDisabled={isActioning || Boolean(rewriteProgress)}
               onClick={onBulkRewrite}
-              isLoading={Boolean(rewritingIds?.size)}
+              isLoading={isRewriteStarting}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}

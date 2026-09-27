@@ -10,6 +10,10 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  type TextByokDispatch,
+  textDispatchApiKey,
+} from '@api/services/byok/text-dispatch-byok.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
@@ -172,6 +176,7 @@ export class ArticleInsightsService {
   async generateHeaderPrompt(
     article: ArticleDocument,
     organizationId: string,
+    byok?: TextByokDispatch,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -215,6 +220,7 @@ export class ArticleInsightsService {
         await this.replicateService.generateTextCompletionSync(
           DEFAULT_MINI_TEXT_MODEL,
           imagePromptInput,
+          textDispatchApiKey(byok, DEFAULT_MINI_TEXT_MODEL),
         );
       if (!responseText) {
         throw new Error('Failed to generate prompt from AI service');

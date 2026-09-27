@@ -12,6 +12,7 @@ import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/work
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -601,7 +602,11 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         userId: input.userId,
       },
       `${WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP}-${jobIdentity}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

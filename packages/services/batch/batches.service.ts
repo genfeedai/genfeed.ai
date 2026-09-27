@@ -1,6 +1,9 @@
 import { BatchStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
+import type {
+  IBatchRewriteJob,
+  IBatchSummary,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -17,7 +20,7 @@ export interface BatchListQuery {
 }
 
 export interface BatchActionRequest {
-  action: 'approve' | 'reject' | 'request_changes' | 'rewrite';
+  action: 'approve' | 'reject' | 'request_changes';
   feedback?: string;
   itemIds: string[];
 }
@@ -91,16 +94,83 @@ export class BatchesService extends HTTPBaseService {
     request: BatchActionRequest,
   ): Promise<IBatchSummary> {
     try {
-      const route = `/${batchId}/items/action`;
-      const response =
-        request.action === 'rewrite'
-          ? await this.instance.post<JsonApiResponseDocument>(route, request, {
-              timeout: 600_000,
-            })
-          : await this.instance.post<JsonApiResponseDocument>(route, request);
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `/${batchId}/items/action`,
+        request,
+      );
       return deserializeResource<IBatchSummary>(response.data);
     } catch (error) {
       logger.error(`POST /batches/${batchId}/items/action failed`, error);
+      throw error;
+    }
+  }
+
+  /** Queues the rewrite and returns at once; progress arrives over the socket. */
+  async createRewriteJob(
+    batchId: string,
+    itemIds: string[],
+  ): Promise<IBatchRewriteJob> {
+    try {
+      const response = await this.instance.post<IBatchRewriteJob>(
+        `/${batchId}/rewrite-jobs`,
+        { itemIds },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error(`POST /batches/${batchId}/rewrite-jobs failed`, error);
+      throw error;
+    }
+  }
+
+  async getActiveRewriteJob(
+    batchId: string,
+    signal?: AbortSignal,
+  ): Promise<IBatchRewriteJob | null> {
+    try {
+      const response = await this.instance.get<{
+        job: IBatchRewriteJob | null;
+      }>(`/${batchId}/rewrite-jobs/active`, { signal });
+      return response.data.job;
+    } catch (error) {
+      logger.error(`GET /batches/${batchId}/rewrite-jobs/active failed`, error);
+      throw error;
+    }
+  }
+
+  async getRewriteJob(
+    batchId: string,
+    jobId: string,
+    signal?: AbortSignal,
+  ): Promise<IBatchRewriteJob> {
+    try {
+      const response = await this.instance.get<IBatchRewriteJob>(
+        `/${batchId}/rewrite-jobs/${jobId}`,
+        { signal },
+      );
+      return response.data;
+    } catch (error) {
+      logger.error(
+        `GET /batches/${batchId}/rewrite-jobs/${jobId} failed`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async cancelRewriteJob(
+    batchId: string,
+    jobId: string,
+  ): Promise<IBatchRewriteJob> {
+    try {
+      const response = await this.instance.post<IBatchRewriteJob>(
+        `/${batchId}/rewrite-jobs/${jobId}/cancel`,
+      );
+      return response.data;
+    } catch (error) {
+      logger.error(
+        `POST /batches/${batchId}/rewrite-jobs/${jobId}/cancel failed`,
+        error,
+      );
       throw error;
     }
   }

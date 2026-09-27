@@ -23,6 +23,7 @@ import {
   AgentThreadStatus,
   normalizeAgentAutonomyMode,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
@@ -424,38 +425,41 @@ export class AgentAutopilotWorkflowService {
       );
       const thread = await this.resolveStrategyThread(strategy);
       dispatchThreadId = thread.id;
-      const { executionId } = await this.workflowRunner.enqueueWorkflow({
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        inputValues: {
-          request: {
-            content: objective,
+      const { executionId } = await this.workflowRunner.enqueueWorkflow(
+        {
+          actionType: 'agent.turn.execute',
+          canonicalId: 'agent.turn.execute',
+          inputValues: {
+            request: {
+              content: objective,
+              source: 'proactive',
+              creditBudget: remainingBudget,
+              strategyId,
+              threadId: dispatchThreadId,
+              ...((config.agentType ?? strategy.agentType)
+                ? { agentType: config.agentType ?? strategy.agentType }
+                : {}),
+              autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
+              ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
+              ...(config.model ? { model: config.model } : {}),
+            },
+          },
+          metadata: {
+            ...(this.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
+            label: `Proactive: ${strategy.label}`,
+            performanceSnapshot,
+            dispatchId,
+            ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
             source: 'proactive',
-            creditBudget: remainingBudget,
             strategyId,
             threadId: dispatchThreadId,
-            ...((config.agentType ?? strategy.agentType)
-              ? { agentType: config.agentType ?? strategy.agentType }
-              : {}),
-            autonomyMode: normalizeAgentAutonomyMode(config.autonomyMode),
-            ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-            ...(config.model ? { model: config.model } : {}),
           },
+          organizationId,
+          source: PROACTIVE_AGENT_TURN_SOURCE,
+          userId,
         },
-        metadata: {
-          ...(this.buildExecutionMetadata(strategy, workflowHandoff) ?? {}),
-          label: `Proactive: ${strategy.label}`,
-          performanceSnapshot,
-          dispatchId,
-          ...(strategy.brandId ? { brandId: strategy.brandId } : {}),
-          source: 'proactive',
-          strategyId,
-          threadId: dispatchThreadId,
-        },
-        organizationId,
-        source: PROACTIVE_AGENT_TURN_SOURCE,
-        userId,
-      });
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
 
       await this.scheduleNextRun(strategyId, config.runFrequency);
       return executionId;

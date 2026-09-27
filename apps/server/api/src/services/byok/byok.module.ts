@@ -3,6 +3,7 @@ import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organiza
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
@@ -16,6 +17,7 @@ const SERVER_BYOK_RESOLVER_PROVIDER = {
     ByokProviderFactoryService,
     ByokService,
     SERVER_BYOK_RESOLVER_PROVIDER,
+    TextGenerationCreditsService,
   ],
   imports: [
     HttpModule,
@@ -26,6 +28,7 @@ const SERVER_BYOK_RESOLVER_PROVIDER = {
     ByokProviderFactoryService,
     ByokService,
     SERVER_BYOK_RESOLVER_PROVIDER,
+    TextGenerationCreditsService,
   ],
 })
 export class ByokModule {}

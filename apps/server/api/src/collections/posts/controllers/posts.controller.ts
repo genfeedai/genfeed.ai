@@ -7,7 +7,6 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -33,6 +32,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -72,7 +72,7 @@ export class PostsController extends BaseCRUDController<
   PostsQueryDto
 > {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly accountHealthService: AccountHealthService,
     private readonly credentialsService: CredentialsService,
     private readonly ingredientsService: IngredientsService,
@@ -118,7 +118,7 @@ export class PostsController extends BaseCRUDController<
         createPostDto,
         dependencies: {
           accountHealthService: this.accountHealthService,
-          activitiesService: this.activitiesService,
+          activityRecorder: this.activityRecorder,
           credentialsService: this.credentialsService,
           ingredientsService: this.ingredientsService,
           loggerService: this.loggerService,

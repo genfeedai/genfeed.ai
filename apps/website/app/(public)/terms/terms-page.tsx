@@ -73,14 +73,14 @@ export default function TermsPage() {
         description="Legal terms for using Genfeed. All purchases final. No refunds."
       >
         {/* Main Terms */}
-        <section className="py-32 gsap-hero">
+        <section className="py-16 md:py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
               <div className="grid gap-px bg-edge/5">
                 {termsOfService.map((term, index) => (
                   <div
                     key={term.title}
-                    className="bg-background p-12 group hover:bg-fill/[0.02] transition-colors"
+                    className="bg-background p-6 sm:p-12 group hover:bg-fill/[0.02] transition-colors"
                   >
                     <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                       {String(index + 1).padStart(2, '0')} / {term.shortLabel}
@@ -120,7 +120,7 @@ export default function TermsPage() {
         </section>
 
         {/* Additional Legal Info */}
-        <section className="py-32 bg-fill/[0.02] gsap-section">
+        <section className="py-16 md:py-32 bg-fill/[0.02] gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
               <h2 className="text-5xl font-semibold mb-6">
@@ -138,7 +138,7 @@ export default function TermsPage() {
                   return (
                     <div
                       key={info.title}
-                      className="bg-background p-10 group hover:bg-fill/[0.02] transition-colors"
+                      className="bg-background p-6 sm:p-10 group hover:bg-fill/[0.02] transition-colors"
                     >
                       <div className="text-surface/50 text-xs font-black uppercase tracking-widest mb-6">
                         {String(index + 1).padStart(2, '0')} / {info.shortLabel}
@@ -159,7 +159,7 @@ export default function TermsPage() {
         </section>
 
         {/* Contact CTA */}
-        <section className="py-40 gsap-section">
+        <section className="py-20 md:py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
               <Mail className="size-12 mx-auto text-surface/55 mb-8" />

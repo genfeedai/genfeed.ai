@@ -9,6 +9,7 @@ import {
   SIGNUP_PREFILL_ACTION_IDS,
 } from '@api/services/signup-prefill/signup-prefill-workflow-definition';
 import type { SignupPrefillWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export function signupPrefillJobId(userId: string): string {
@@ -75,7 +76,11 @@ export class SignupPrefillWorkflowService implements OnModuleInit {
         userId: request.userId,
       },
       signupPrefillJobId(request.userId),
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 }

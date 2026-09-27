@@ -1,4 +1,7 @@
-import { EmailDeliveryError } from '@api/services/notifications/notifications.service';
+import {
+  ChannelDeliveryError,
+  EmailDeliveryError,
+} from '@api/services/notifications/notifications.service';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { WorkflowNotificationDeliveryService } from './workflow-notification-delivery.service';
 
@@ -450,7 +453,7 @@ describe('agent completion and review notifications', () => {
   function setup(
     payload: Record<string, unknown>,
     sourceType = 'agent_run',
-    eventKey = 'workflow.execution.completed',
+    eventKey = 'workflow-execution-completed',
   ) {
     const prisma = {
       notificationDelivery: {
@@ -608,7 +611,7 @@ describe('agent completion and review notifications', () => {
       const { service, notifications, prisma } = setup(
         payload,
         'agent_strategy',
-        expired ? 'agent.review.expired' : 'agent.review.changed',
+        expired ? 'agent-review-expired' : 'agent-review-changed',
       );
       await service.deliver('delivery');
       expect(notifications.deliverEmail).toHaveBeenCalledWith(
@@ -804,5 +807,152 @@ describe('scoped agent report action', () => {
       service.deliverAgentReport('org', 'delivery', 'discord'),
     ).resolves.toEqual({ deliveryId: 'delivery', status: 'skipped' });
     expect(deliver).toHaveBeenCalledWith('delivery');
+  });
+});
+
+describe('channel message delivery (#5197)', () => {
+  const message = {
+    action: 'revenue_notification',
+    payload: {
+      amountMinor: 4900,
+      currency: 'usd',
+      organizationId: 'org-1',
+      source: 'subscription_invoice',
+    },
+    type: 'discord',
+  };
+  function setup(row: Record<string, unknown> = {}) {
+    const prisma = {
+      notificationDelivery: {
+        findUnique: vi.fn().mockResolvedValue({
+          attemptCount: 1,
+          channel: 'discord',
+          destination: null,
+          event: { payload: {}, sourceType: 'stripe_revenue' },
+          idempotencyKey: 'revenue/in_1/discord/operator',
+          message,
+          organizationId: null,
+          topic: 'operator.alerts',
+          user: null,
+          userId: null,
+          ...row,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const notifications = {
+      deliverChannelMessage: vi
+        .fn()
+        .mockResolvedValue({ messageId: 'provider-1', status: 'delivered' }),
+      deliverEmail: vi.fn(),
+    };
+    const service = new WorkflowNotificationDeliveryService(
+      prisma as never,
+      notifications as never,
+      { enqueue: vi.fn() } as never,
+      { warn: vi.fn() } as never,
+    );
+    return { notifications, prisma, service };
+  }
+
+  it('sends the stored message and records provider acceptance', async () => {
+    const { notifications, prisma, service } = setup();
+
+    await service.deliver('delivery-1');
+
+    expect(notifications.deliverChannelMessage).toHaveBeenCalledWith({
+      destination: null,
+      idempotencyKey: 'revenue/in_1/discord/operator',
+      message,
+    });
+    expect(notifications.deliverEmail).not.toHaveBeenCalled();
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        providerMessageId: 'provider-1',
+        status: 'delivered',
+      }),
+      where: { id: 'delivery-1', isDeleted: false, organizationId: null },
+    });
+  });
+
+  it('records a skip when the channel is not configured', async () => {
+    const { notifications, prisma, service } = setup();
+    notifications.deliverChannelMessage.mockResolvedValue({
+      reason: 'channel_not_configured',
+      status: 'skipped',
+    });
+
+    await service.deliver('delivery-1');
+
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        lastError: 'channel_not_configured',
+        status: 'skipped',
+      }),
+      where: { id: 'delivery-1', isDeleted: false, organizationId: null },
+    });
+  });
+
+  it('retries transient failures and fails permanent ones', async () => {
+    const transient = setup();
+    transient.notifications.deliverChannelMessage.mockRejectedValue(
+      new ChannelDeliveryError(true, 503),
+    );
+    await transient.service.deliver('delivery-1');
+    expect(
+      transient.prisma.notificationDelivery.updateMany,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'retry_pending' }),
+      }),
+    );
+
+    const permanent = setup();
+    permanent.notifications.deliverChannelMessage.mockRejectedValue(
+      new ChannelDeliveryError(false, 422),
+    );
+    await permanent.service.deliver('delivery-1');
+    expect(
+      permanent.prisma.notificationDelivery.updateMany,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
+  });
+
+  it('fails a stored message whose type does not match its channel', async () => {
+    const { notifications, prisma, service } = setup({ channel: 'telegram' });
+
+    await service.deliver('delivery-1');
+
+    expect(notifications.deliverChannelMessage).not.toHaveBeenCalled();
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastError: 'Invalid channel message',
+          status: 'failed',
+        }),
+      }),
+    );
+  });
+
+  it('fails a user delivery that lost its recipient', async () => {
+    const { prisma, service } = setup({
+      channel: 'email',
+      message: null,
+      topic: 'workflow.status',
+    });
+
+    await service.deliver('delivery-1');
+
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastError: 'Delivery has no recipient',
+          status: 'failed',
+        }),
+      }),
+    );
   });
 });

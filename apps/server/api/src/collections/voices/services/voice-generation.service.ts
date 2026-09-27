@@ -6,6 +6,7 @@ import { VoiceCreditsService } from '@api/collections/voices/services/voice-cred
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -20,6 +21,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -61,6 +63,8 @@ export class VoiceGenerationService implements OnModuleInit {
     private readonly voicesService: VoicesService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly activitiesService: ActivitiesService,
+
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly notifications: NotificationsPublisherService,
     @Optional() private readonly skillRuntime?: SkillRuntimeService,
   ) {}
@@ -184,31 +188,34 @@ export class VoiceGenerationService implements OnModuleInit {
     params: VoiceGenerationParams,
   ): Promise<void> {
     const pinnedSkills = await this.pinsForVoice(params);
-    await this.workflowRunner.enqueueWorkflow({
-      actionType: 'voice.generate',
-      canonicalId: 'voice.generate',
-      inputValues: {
-        ingredientId: params.ingredientId,
+    await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
+        inputValues: {
+          ingredientId: params.ingredientId,
+          organizationId: params.organizationId,
+          text: params.text,
+          userId: params.userId,
+          voiceId: params.voiceId,
+          ...(params.requestedSkillSlugs?.length
+            ? {
+                ...(params.brandId ? { brandId: params.brandId } : {}),
+                requestedSkillSlugs: params.requestedSkillSlugs,
+              }
+            : {}),
+          ...(pinnedSkills.length > 0 ? { pinnedSkills } : {}),
+        },
+        metadata: {
+          ingredientId: params.ingredientId,
+          retentionClass: 'ephemeral-processing',
+        },
         organizationId: params.organizationId,
-        text: params.text,
+        source: 'VoiceGenerationService.generate',
         userId: params.userId,
-        voiceId: params.voiceId,
-        ...(params.requestedSkillSlugs?.length
-          ? {
-              ...(params.brandId ? { brandId: params.brandId } : {}),
-              requestedSkillSlugs: params.requestedSkillSlugs,
-            }
-          : {}),
-        ...(pinnedSkills.length > 0 ? { pinnedSkills } : {}),
       },
-      metadata: {
-        ingredientId: params.ingredientId,
-        retentionClass: 'ephemeral-processing',
-      },
-      organizationId: params.organizationId,
-      source: 'VoiceGenerationService.generate',
-      userId: params.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
   }
 
   async executeQueuedGeneration(
@@ -301,8 +308,8 @@ export class VoiceGenerationService implements OnModuleInit {
         }),
       };
       const activity = existing
-        ? await this.activitiesService.patch(String(existing.id), data)
-        : await this.activitiesService.create(data);
+        ? ((await this.activityRecorder.update(existing, data)) ?? existing)
+        : await this.activityRecorder.record(data);
       await this.notifications.publishBackgroundTaskUpdate({
         activityId: String(activity.id),
         taskId: ingredientId,

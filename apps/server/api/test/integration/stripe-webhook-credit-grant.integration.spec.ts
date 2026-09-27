@@ -55,7 +55,6 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
@@ -78,10 +77,11 @@ import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stri
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -308,9 +308,12 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
             invalidateForUser: vi.fn().mockResolvedValue(undefined),
           },
         },
+        // The real recorder writes the revenue alert to the outbox in the
+        // ledger transaction; only the post-commit transport is stubbed.
+        ActivityRecorderService,
         {
-          provide: ActivitiesService,
-          useValue: { create: vi.fn().mockResolvedValue({}) },
+          provide: WorkflowNotificationQueueService,
+          useValue: { enqueue: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: OrganizationSettingsService,
@@ -331,20 +334,20 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           },
         },
         {
-          provide: NotificationsService,
-          useValue: {
-            sendRevenueNotification: vi.fn().mockResolvedValue(undefined),
-          },
-        },
-        {
           provide: NotificationsPublisherService,
-          useValue: { emit: vi.fn().mockResolvedValue(undefined) },
+          useValue: {
+            emit: vi.fn().mockResolvedValue(undefined),
+            publishInboxUpdate: vi.fn().mockResolvedValue(undefined),
+          },
         },
         {
           provide: CacheInvalidationService,
           useValue: { invalidate: vi.fn().mockResolvedValue(undefined) },
         },
-        { provide: EventEmitter2, useValue: { emit: vi.fn() } },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: vi.fn(), emitAsync: vi.fn().mockResolvedValue([]) },
+        },
       ],
       useMockGuards: false,
     });

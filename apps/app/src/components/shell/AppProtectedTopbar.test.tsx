@@ -1,6 +1,9 @@
 vi.mock('@/components/shell/NotificationInboxMenu', () => ({
   default: () => <div data-testid="notification-inbox" />,
 }));
+vi.mock('@/components/shell/GenerationToasts', () => ({
+  default: () => null,
+}));
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';

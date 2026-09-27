@@ -4,6 +4,7 @@ import { runWithActionOrigin } from '@api/index';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActionOrigin,
+  ActivityKey,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import {
@@ -74,9 +75,16 @@ describe('WorkflowExecutionsService', () => {
     const workflowEventWebhookService = {
       emitExecutionOutcome: vi.fn().mockResolvedValue(undefined),
     };
-    const workflowNotificationOutboxService = {
-      enqueueAfterCommit: vi.fn().mockResolvedValue(undefined),
-      recordWorkflowOutcome: vi.fn().mockResolvedValue('delivery-1'),
+    const commit = {
+      activities: [],
+      inbox: [],
+      pendingDeliveryIds: ['delivery-1'],
+    };
+    const activityRecorder = {
+      afterCommit: vi.fn().mockResolvedValue(undefined),
+      recordInTransaction: vi
+        .fn()
+        .mockResolvedValue({ activity: { id: 'activity-1' }, commit }),
     };
 
     return {
@@ -85,17 +93,16 @@ describe('WorkflowExecutionsService', () => {
         prisma as never,
         logger as never,
         workflowEventWebhookService as never,
-        workflowNotificationOutboxService as never,
+        activityRecorder as never,
         { recordRun: vi.fn() } as never,
       ),
-      workflowNotificationOutboxService,
+      activityRecorder,
       workflowEventWebhookService,
     };
   };
 
   it('records proactive report and outcome inside the terminal transaction once', async () => {
-    const { service, prisma, workflowNotificationOutboxService } =
-      makeService();
+    const { service, prisma, activityRecorder } = makeService();
     const execution = {
       id: 'execution-1',
       organizationId: 'org-1',
@@ -141,28 +148,27 @@ describe('WorkflowExecutionsService', () => {
         update: {},
       }),
     );
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledWith(
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       prisma,
       expect.objectContaining({
-        isAgentRun: true,
-        status: 'completed',
-        strategyId: 'strategy',
-        workflowOwnerUserId: 'actor',
-        summary:
-          '1 posts created; 1 published; 1 waiting for review. 2 credits used.',
+        alert: expect.objectContaining({
+          payload: expect.objectContaining({
+            strategyId: 'strategy',
+            summary:
+              '1 posts created; 1 published; 1 waiting for review. 2 credits used.',
+          }),
+        }),
+        key: ActivityKey.AGENT_RUN_COMPLETED,
+        userId: 'actor',
       }),
     );
-    expect(
-      workflowNotificationOutboxService.enqueueAfterCommit,
-    ).toHaveBeenCalledWith('delivery-1');
+    expect(activityRecorder.afterCommit).toHaveBeenCalledWith(
+      expect.objectContaining({ pendingDeliveryIds: ['delivery-1'] }),
+    );
     prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
     await service.completeExecution('execution-1');
     expect(prisma.agentStrategyReport.upsert).toHaveBeenCalledOnce();
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledOnce();
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledOnce();
   });
 
   beforeEach(() => {
@@ -489,12 +495,8 @@ describe('WorkflowExecutionsService', () => {
   });
 
   it('creates one terminal outcome when concurrent completion attempts race', async () => {
-    const {
-      prisma,
-      service,
-      workflowEventWebhookService,
-      workflowNotificationOutboxService,
-    } = makeService();
+    const { prisma, service, workflowEventWebhookService, activityRecorder } =
+      makeService();
     prisma.workflowExecution.updateMany
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 0 });
@@ -506,20 +508,16 @@ describe('WorkflowExecutionsService', () => {
       service.completeExecution('execution-1', 'Provider timed out'),
     ).resolves.toBeNull();
 
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      workflowNotificationOutboxService.enqueueAfterCommit,
-    ).toHaveBeenCalledTimes(1);
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledTimes(1);
+    expect(activityRecorder.afterCommit).toHaveBeenCalledTimes(1);
     expect(
       workflowEventWebhookService.emitExecutionOutcome,
     ).toHaveBeenCalledTimes(1);
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledWith(
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ status: 'completed' }),
+      expect.objectContaining({
+        key: ActivityKey.WORKFLOW_EXECUTION_COMPLETED,
+      }),
     );
   });
 
@@ -884,29 +882,26 @@ describe('WorkflowExecutionsService', () => {
   });
 
   it('records the workflow owner delivery in the terminal transaction', async () => {
-    const { service, workflowNotificationOutboxService } = makeService();
+    const { service, activityRecorder } = makeService();
 
     await service.completeExecution('execution-1');
 
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledWith(
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        actorUserId: 'actor-user-1',
-        executionId: 'execution-1',
-        status: 'completed',
-        workflowOwnerUserId: 'owner-user-1',
+        alert: expect.objectContaining({ actorUserId: 'actor-user-1' }),
+        entityId: 'execution-1',
+        key: ActivityKey.WORKFLOW_EXECUTION_COMPLETED,
+        userId: 'owner-user-1',
       }),
     );
-    expect(
-      workflowNotificationOutboxService.enqueueAfterCommit,
-    ).toHaveBeenCalledWith('delivery-1');
+    expect(activityRecorder.afterCommit).toHaveBeenCalledWith(
+      expect.objectContaining({ pendingDeliveryIds: ['delivery-1'] }),
+    );
   });
 
   it('targets the tenant actor for a hidden system workflow failure', async () => {
-    const { prisma, service, workflowNotificationOutboxService } =
-      makeService();
+    const { prisma, service, activityRecorder } = makeService();
     prisma.workflowExecution.findUnique.mockResolvedValueOnce({
       organizationId: 'org-1',
       result: {},
@@ -940,19 +935,16 @@ describe('WorkflowExecutionsService', () => {
       'HTTP 429 too many requests',
     );
 
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledWith(
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        actorUserId: 'actor-user-1',
-        workflowOwnerUserId: 'actor-user-1',
+        alert: expect.objectContaining({ actorUserId: 'actor-user-1' }),
+        userId: 'actor-user-1',
       }),
     );
   });
   it('persists failure classification and outbox payload in the same terminal transition', async () => {
-    const { prisma, service, workflowNotificationOutboxService } =
-      makeService();
+    const { prisma, service, activityRecorder } = makeService();
     await service.completeExecution(
       'execution-1',
       'HTTP 429 too many requests',
@@ -966,27 +958,28 @@ describe('WorkflowExecutionsService', () => {
         recovery: expect.any(String),
       }),
     );
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).toHaveBeenCalledWith(
+    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
       prisma,
-      expect.objectContaining({ failure: data.failure, isAgentRun: false }),
+      expect.objectContaining({
+        alert: expect.objectContaining({
+          payload: expect.objectContaining({
+            error: 'HTTP 429 too many requests',
+            failure: null,
+          }),
+        }),
+        key: ActivityKey.WORKFLOW_EXECUTION_FAILED,
+      }),
     );
   });
 
   it('does not create another failure notification after a terminal race', async () => {
-    const { prisma, service, workflowNotificationOutboxService } =
-      makeService();
+    const { prisma, service, activityRecorder } = makeService();
     prisma.workflowExecution.updateMany.mockResolvedValueOnce({ count: 0 });
     expect(
       await service.completeExecution('execution-1', 'HTTP 429'),
     ).toBeNull();
-    expect(
-      workflowNotificationOutboxService.recordWorkflowOutcome,
-    ).not.toHaveBeenCalled();
-    expect(
-      workflowNotificationOutboxService.enqueueAfterCommit,
-    ).not.toHaveBeenCalled();
+    expect(activityRecorder.recordInTransaction).not.toHaveBeenCalled();
+    expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -996,8 +989,7 @@ describe('WorkflowExecutionsService', () => {
   ])(
     'routes the terminal failure of %s to the agent topic',
     async (canonicalId) => {
-      const { service, prisma, workflowNotificationOutboxService } =
-        makeService();
+      const { service, prisma, activityRecorder } = makeService();
       prisma.workflowExecution.findUnique.mockResolvedValueOnce({
         organizationId: 'org-1',
         startedAt: null,
@@ -1015,13 +1007,11 @@ describe('WorkflowExecutionsService', () => {
         },
       });
       await service.completeExecution('execution-1', 'HTTP 429');
-      expect(
-        workflowNotificationOutboxService.recordWorkflowOutcome,
-      ).toHaveBeenCalledWith(
+      expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
         prisma,
         expect.objectContaining({
-          isAgentRun: true,
-          workflowOwnerUserId: 'actor-user-1',
+          key: ActivityKey.AGENT_RUN_FAILED,
+          userId: 'actor-user-1',
         }),
       );
     },
@@ -1036,8 +1026,7 @@ describe('WorkflowExecutionsService', () => {
   ])(
     'does not notify Workflow completed when %s succeeds',
     async (canonicalId) => {
-      const { service, prisma, workflowNotificationOutboxService } =
-        makeService();
+      const { service, prisma, activityRecorder } = makeService();
       prisma.workflowExecution.findUnique.mockResolvedValueOnce({
         organizationId: 'org-1',
         startedAt: null,
@@ -1055,12 +1044,8 @@ describe('WorkflowExecutionsService', () => {
         },
       });
       await service.completeExecution('execution-1');
-      expect(
-        workflowNotificationOutboxService.recordWorkflowOutcome,
-      ).not.toHaveBeenCalled();
-      expect(
-        workflowNotificationOutboxService.enqueueAfterCommit,
-      ).not.toHaveBeenCalled();
+      expect(activityRecorder.recordInTransaction).not.toHaveBeenCalled();
+      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
     },
   );
 
@@ -1090,12 +1075,8 @@ describe('WorkflowExecutionsService', () => {
   )(
     'keeps $status execution state and webhooks without notification recursion for $canonicalId',
     async ({ canonicalId, error, status }) => {
-      const {
-        service,
-        prisma,
-        workflowNotificationOutboxService,
-        workflowEventWebhookService,
-      } = makeService();
+      const { service, prisma, activityRecorder, workflowEventWebhookService } =
+        makeService();
       prisma.workflowExecution.findUnique.mockResolvedValueOnce({
         organizationId: 'org-1',
         startedAt: null,
@@ -1143,20 +1124,15 @@ describe('WorkflowExecutionsService', () => {
             : SharedWorkflowExecutionStatus.COMPLETED,
         }),
       );
-      expect(
-        workflowNotificationOutboxService.recordWorkflowOutcome,
-      ).not.toHaveBeenCalled();
-      expect(
-        workflowNotificationOutboxService.enqueueAfterCommit,
-      ).not.toHaveBeenCalled();
+      expect(activityRecorder.recordInTransaction).not.toHaveBeenCalled();
+      expect(activityRecorder.afterCommit).not.toHaveBeenCalled();
     },
   );
 
   it.each([undefined, 'Provider timed out'])(
     'still notifies a user-owned workflow with an email-like canonical ID (error=%s)',
     async (error) => {
-      const { service, prisma, workflowNotificationOutboxService } =
-        makeService();
+      const { service, prisma, activityRecorder } = makeService();
       prisma.workflowExecution.findUnique.mockResolvedValueOnce({
         organizationId: 'org-1',
         startedAt: null,
@@ -1176,19 +1152,18 @@ describe('WorkflowExecutionsService', () => {
         },
       });
       await service.completeExecution('execution-1', error);
-      expect(
-        workflowNotificationOutboxService.recordWorkflowOutcome,
-      ).toHaveBeenCalledWith(
+      expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
         prisma,
         expect.objectContaining({
-          workflowOwnerUserId: 'owner-user-1',
-          isAgentRun: false,
-          status: error ? 'failed' : 'completed',
+          key: error
+            ? ActivityKey.WORKFLOW_EXECUTION_FAILED
+            : ActivityKey.WORKFLOW_EXECUTION_COMPLETED,
+          userId: 'owner-user-1',
         }),
       );
-      expect(
-        workflowNotificationOutboxService.enqueueAfterCommit,
-      ).toHaveBeenCalledWith('delivery-1');
+      expect(activityRecorder.afterCommit).toHaveBeenCalledWith(
+        expect.objectContaining({ pendingDeliveryIds: ['delivery-1'] }),
+      );
     },
   );
 });

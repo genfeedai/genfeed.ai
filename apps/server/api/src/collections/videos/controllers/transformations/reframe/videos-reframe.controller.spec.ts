@@ -49,15 +49,14 @@ vi.mock('@api/collections/videos/services/videos.service', () => ({
 vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class {},
 }));
-vi.mock('@api/collections/activities/services/activities.service', () => ({
-  ActivitiesService: class {},
+vi.mock('@api/services/activity-recording/activity-recorder.service', () => ({
+  ActivityRecorderService: class {},
 }));
 vi.mock(
   '@api/services/notifications/publisher/notifications-publisher.service',
   () => ({ NotificationsPublisherService: class {} }),
 );
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -65,6 +64,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -109,7 +109,7 @@ describe('VideosReframeController', () => {
 
   const mockServices = {
     activitiesService: {
-      create: vi.fn().mockResolvedValue({ id: activityId }),
+      record: vi.fn().mockResolvedValue({ id: activityId }),
     },
     configService: { ingredientsEndpoint: 'https://api.example.com' },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
@@ -151,7 +151,7 @@ describe('VideosReframeController', () => {
           useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
         },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: mockServices.activitiesService,
         },
         { provide: ConfigService, useValue: mockServices.configService },

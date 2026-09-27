@@ -6,13 +6,13 @@
  */
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
-import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [McpApprovalsController],
   exports: [McpApprovalsService],
-  imports: [NotificationsPublisherModule],
+  imports: [ActivityRecordingModule],
   providers: [McpApprovalsService],
 })
 export class McpApprovalsModule {}

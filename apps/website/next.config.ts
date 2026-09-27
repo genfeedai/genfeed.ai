@@ -93,41 +93,6 @@ const config = createAppNextConfig({
       permanent: false,
       source: '/.well-known/oauth-authorization-server',
     },
-    {
-      destination: '/analytics',
-      permanent: true,
-      source: '/intelligence',
-    },
-    {
-      destination: '/pricing',
-      permanent: true,
-      source: '/core',
-    },
-    {
-      destination: '/pricing',
-      permanent: true,
-      source: '/host',
-    },
-    {
-      destination: '/use-cases/creators',
-      permanent: true,
-      source: '/creators',
-    },
-    {
-      destination: '/use-cases/agencies',
-      permanent: true,
-      source: '/agencies',
-    },
-    {
-      destination: '/use-cases/ai-influencers',
-      permanent: true,
-      source: '/influencers',
-    },
-    {
-      destination: '/linkedin-growth',
-      permanent: true,
-      source: '/linkedin-content',
-    },
   ],
   sentryProject: 'genfeed-ai',
 });

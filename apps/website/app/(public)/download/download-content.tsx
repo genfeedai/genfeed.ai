@@ -168,7 +168,7 @@ export default function DownloadContent({
           <SectionHeader
             title="Pick your platform"
             description="macOS ships first. Windows follows once the build and signing pipeline covers it."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={2}>
@@ -239,7 +239,7 @@ export default function DownloadContent({
           <SectionHeader
             title="What the desktop app adds"
             description="Everything the web app does, plus the things only a local process can do."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={3} className="gsap-grid">
@@ -260,7 +260,7 @@ export default function DownloadContent({
           <SectionHeader
             title="Running in four steps"
             description="No terminal, no clone, no local API. Download and open."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={4}>
@@ -283,7 +283,7 @@ export default function DownloadContent({
           <SectionHeader
             title="Desktop or browser"
             description="Same product and the same account. The desktop app adds a local workspace and your own generation providers."
-            className="[&_h2]:text-5xl"
+            className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 
           <NeuralGrid columns={2}>

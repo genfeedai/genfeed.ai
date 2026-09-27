@@ -1,6 +1,7 @@
 import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
+  ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/contracts';
@@ -21,8 +22,8 @@ describe('CreditDeductionProcessor', () => {
   let creditTransactionsService: {
     createTransactionEntry: ReturnType<typeof vi.fn>;
   };
-  let notificationsService: {
-    sendLowCreditsAlert: ReturnType<typeof vi.fn>;
+  let activityRecorder: {
+    record: ReturnType<typeof vi.fn>;
   };
   let publisher: { set: ReturnType<typeof vi.fn> };
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
@@ -48,8 +49,8 @@ describe('CreditDeductionProcessor', () => {
     creditTransactionsService = {
       createTransactionEntry: vi.fn().mockResolvedValue(undefined),
     };
-    notificationsService = {
-      sendLowCreditsAlert: vi.fn().mockResolvedValue(undefined),
+    activityRecorder = {
+      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
     publisher = { set: vi.fn().mockResolvedValue('OK') };
     redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
@@ -68,7 +69,7 @@ describe('CreditDeductionProcessor', () => {
     processor = new CreditDeductionProcessor(
       creditsUtilsService as never,
       creditTransactionsService as never,
-      notificationsService as never,
+      activityRecorder as never,
       redisService as never,
       logger as never,
       prisma as never,
@@ -412,9 +413,21 @@ describe('CreditDeductionProcessor', () => {
       86400,
       'NX',
     );
-    expect(notificationsService.sendLowCreditsAlert).toHaveBeenCalledWith(
-      'org-1',
-      500,
+    expect(activityRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alert: expect.objectContaining({
+          deduplicationKey: expect.stringMatching(/^credits-low\/org-1\/\d+$/),
+          operatorMessages: {
+            discord: {
+              action: 'low_credits_alert',
+              payload: { balance: 500, organizationId: 'org-1' },
+              type: 'discord',
+            },
+          },
+        }),
+        key: ActivityKey.CREDITS_LOW,
+        organizationId: 'org-1',
+      }),
     );
   });
 
@@ -424,7 +437,7 @@ describe('CreditDeductionProcessor', () => {
 
     await processor.process(buildJob({}));
 
-    expect(notificationsService.sendLowCreditsAlert).not.toHaveBeenCalled();
+    expect(activityRecorder.record).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalled();
   });
 
@@ -434,7 +447,7 @@ describe('CreditDeductionProcessor', () => {
 
     await processor.process(buildJob({}));
 
-    expect(notificationsService.sendLowCreditsAlert).not.toHaveBeenCalled();
+    expect(activityRecorder.record).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });
 

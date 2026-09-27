@@ -164,6 +164,29 @@ describe('SectionTopbar', () => {
     expect(row?.lastElementChild).toBe(tabs);
   });
 
+  it('lets the row wrap instead of collapsing tabs to 0px when leading, actions, and tabs together overflow it (#5400)', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <SectionTopbar
+        title="Discovery"
+        leading={<div data-testid="search-slot">Search</div>}
+        actions={<button type="button">Refresh</button>}
+        tabs={<div data-testid="tabs-strip">tabs</div>}
+      />,
+    );
+
+    const tabsSlot = screen.getByTestId('section-topbar-tabs');
+    const row = tabsSlot.parentElement;
+
+    // `min-w-0` on the tabs slot lets it shrink toward 0 as its siblings
+    // (`leading`, `actions`) claim space on the same line; without
+    // `flex-wrap` on that shared row, a busy header (search box + a full
+    // actions cluster) can squeeze it to a real 0px instead of dropping it
+    // to its own line.
+    expect(row).toHaveClass('flex-wrap');
+  });
+
   it('honors titleVisibility=sr-only even without a breadcrumb', () => {
     render(
       <SectionTopbar

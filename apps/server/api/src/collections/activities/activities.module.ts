@@ -1,24 +1,21 @@
 /**
  * Activities Module
- * Activity logging: user actions, audit trails, activity feeds,
-and analytics tracking.
+ * Activity history: reads, read state and the recording API that writes
+ * activities and raises their alerts (#5197).
  */
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MembersModule } from '@api/collections/members/members.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
-import { SERVER_TOKENS } from '@api/index';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { Module } from '@nestjs/common';
-
-const SERVER_ACTIVITY_WRITER_PROVIDER = {
-  provide: SERVER_TOKENS.activities,
-  useExisting: ActivitiesService,
-};
 
 @Module({
   controllers: [ActivitiesController],
-  exports: [ActivitiesService, SERVER_ACTIVITY_WRITER_PROVIDER],
-  imports: [MembersModule, StreaksModule],
-  providers: [ActivitiesService, SERVER_ACTIVITY_WRITER_PROVIDER],
+  exports: [ActivitiesService, ActivityRecordingModule],
+  // StreaksModule registers the listener that advances streaks when a
+  // qualifying activity is recorded.
+  imports: [ActivityRecordingModule, MembersModule, StreaksModule],
+  providers: [ActivitiesService],
 })
 export class ActivitiesModule {}

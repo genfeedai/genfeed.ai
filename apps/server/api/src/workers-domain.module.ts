@@ -125,6 +125,7 @@ import { BatchGenerationStreamService } from '@api/services/batch-generation/bat
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { TextGenerationCreditsService } from '@api/services/byok/text-generation-credits.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
@@ -183,7 +184,6 @@ import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
-import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { QuotaService } from '@api/services/quota/quota.service';
@@ -386,6 +386,7 @@ const WORKER_DOMAIN_SERVICES = [
   TaskQueueClientService,
   TasksService,
   TelegramDistributionService,
+  TextGenerationCreditsService,
   ThreadsPublisherService,
   ThreadsService,
   TikTokAdsService,
@@ -420,7 +421,6 @@ const WORKER_DOMAIN_SERVICES = [
   WorkflowFormatConverterService,
   WorkflowGenerationService,
   WorkflowNotificationDeliveryService,
-  WorkflowNotificationOutboxService,
   WorkflowNotificationQueueService,
   WorkflowRunControlService,
   WorkflowSchedulerService,

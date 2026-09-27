@@ -3,6 +3,7 @@ import { buildWorkflowArtifactCleanupSweepDefinition } from '@api/collections/wo
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -39,7 +40,11 @@ export class CronWorkflowArtifactsService {
         userId: WORKFLOW_HOUSEKEEPING_PRINCIPAL_ID,
       },
       `workflow-artifact-cleanup-sweep-${hourlyBucket}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
 
     this.logger.log('Queued workflow artifact cleanup workflow', {

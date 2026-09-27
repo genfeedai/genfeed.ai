@@ -4,6 +4,7 @@ import type { SystemWorkflowRunnerService } from '@api/collections/workflows/sys
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import type { BatchContentRequest } from '@api/services/batch-content/interfaces/batch-content.interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('BatchContentService', () => {
@@ -54,7 +55,7 @@ describe('BatchContentService', () => {
         userId: 'user-1',
       }),
       expect.stringMatching(/^batch-content-/),
-      { attempts: 1 },
+      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 

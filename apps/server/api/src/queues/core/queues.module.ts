@@ -20,6 +20,7 @@ import {
   HEYGEN_POLL_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { ConfigModule } from '@libs/config/config.module';
@@ -80,6 +81,15 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: WORKFLOW_BACKGROUND_QUEUE,
       },
       {
         defaultJobOptions: {

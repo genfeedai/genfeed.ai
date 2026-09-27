@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import {
   MediaAssessmentService,
   toPolicyMediaAssessment,
 } from '@api/services/media-assessment/media-assessment.service';
-import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -93,6 +94,7 @@ function boundedInteger(value: unknown, fallback: number, max: number): number {
 export class AutonomousPublishPolicyService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly activityRecorder: ActivityRecorderService,
     @Optional()
     private readonly mediaAssessmentService?: MediaAssessmentService,
   ) {}
@@ -415,7 +417,7 @@ export class AutonomousPublishPolicyService {
             : 'Platform reverted to supervised after a rejected or edited draft.',
         },
       });
-      await recordAgentReviewOutcome(transaction, {
+      const review = await buildAgentReviewActivity(transaction, {
         decisionId: decisionKey,
         userId: input.userId,
         postId: post.id,
@@ -426,6 +428,11 @@ export class AutonomousPublishPolicyService {
         autoPublishEnabled,
         approvalStreak,
       });
+      if (review) {
+        // Committed with the caller's review transaction. The in-app item is
+        // visible on commit; the delivery recovery sweep sends the email.
+        await this.activityRecorder.recordInTransaction(transaction, review);
+      }
       return {
         decisionId: decisionKey,
         userId: input.userId,

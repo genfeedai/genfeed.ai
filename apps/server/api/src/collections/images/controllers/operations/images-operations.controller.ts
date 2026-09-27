@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -28,6 +26,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -68,7 +67,7 @@ import sharp from 'sharp';
 export class ImagesOperationsController {
   constructor(
     private readonly configService: ConfigService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly filesClientService: FilesClientService,
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
@@ -206,21 +205,19 @@ export class ImagesOperationsController {
     });
 
     // Create activity for the split operation
-    await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: sourceImage.brandId ?? undefined,
-        key: ActivityKey.IMAGE_GENERATED,
-        organizationId: user.organizationId,
-        source: ActivitySource.IMAGE_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          frameCount: frameResults.length,
-          frameIds: frameResults.map((f) => f.id),
-          sourceImageId: id,
-          type: 'contact-sheet-split',
-        }),
+    await this.activityRecorder.record({
+      brandId: sourceImage.brandId ?? undefined,
+      key: ActivityKey.IMAGE_GENERATED,
+      organizationId: user.organizationId,
+      source: ActivitySource.IMAGE_GENERATION,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        frameCount: frameResults.length,
+        frameIds: frameResults.map((f) => f.id),
+        sourceImageId: id,
+        type: 'contact-sheet-split',
       }),
-    );
+    });
 
     this.loggerService.log('Contact sheet split complete', {
       frameCount: frameResults.length,

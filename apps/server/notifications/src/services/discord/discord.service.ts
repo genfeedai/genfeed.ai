@@ -81,7 +81,7 @@ export class DiscordService {
     category: IngredientCategory,
     cdnUrl: string,
     ingredient: IIngredientNotificationData,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getIngredientsWebhook(),
@@ -161,153 +161,7 @@ export class DiscordService {
     );
   }
 
-  async sendPostCard(post: {
-    platform: string;
-    externalId: string;
-    description?: string;
-    mediaUrl?: string;
-    platforms?: Array<{ platform: string; url: string }>;
-  }): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getPostsWebhook();
-
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
-
-    this.loggerService.log(`${url} received post data`, {
-      externalId: post.externalId,
-      hasDescription: !!post.description,
-      hasMediaUrl: !!post.mediaUrl,
-      platform: post.platform,
-      platformsCount: post.platforms?.length || 0,
-    });
-
-    try {
-      const platformNames: Record<string, string> = {
-        FACEBOOK: 'Facebook',
-        INSTAGRAM: 'Instagram',
-        LINKEDIN: 'LinkedIn',
-        TIKTOK: 'TikTok',
-        TWITTER: 'X (Twitter)',
-        YOUTUBE: 'YouTube',
-      };
-
-      const platformColors: Record<string, number> = {
-        FACEBOOK: 0x1877f2,
-        INSTAGRAM: 0xe4405f,
-        LINKEDIN: 0x0077b5,
-        TIKTOK: 0x000000,
-        TWITTER: 0x000000,
-        YOUTUBE: 0xff0000,
-      };
-
-      const normalizedPlatform = (post.platform || '').toUpperCase();
-      const platformName =
-        platformNames[normalizedPlatform] ||
-        this.formatPlatformName(post.platform);
-
-      const canonicalPlatformUrl =
-        post.platforms?.find(({ url }) => url)?.url ||
-        this.buildPlatformUrl(post.platform, post.externalId);
-
-      const platformCount = post.platforms?.length || 1;
-      const embedColor =
-        platformCount > 1
-          ? 0x5865f2
-          : platformColors[normalizedPlatform] || 0x5865f2;
-
-      const title =
-        platformCount > 1
-          ? `Published to ${platformCount} Platforms`
-          : `Published to ${platformName}`;
-
-      const embed: IDiscordEmbed = {
-        color: embedColor,
-        description:
-          post.description?.substring(0, 300) ||
-          'Content published successfully',
-        timestamp: new Date().toISOString(),
-        title,
-      };
-
-      if (canonicalPlatformUrl) {
-        embed.url = canonicalPlatformUrl;
-      }
-
-      if (post.mediaUrl) {
-        const isImage = post.mediaUrl.includes('/images/');
-        if (isImage) {
-          embed.image = { url: post.mediaUrl };
-        }
-      }
-
-      const actionRow = new ActionRowBuilder<ButtonBuilder>();
-
-      if (post.platforms?.length) {
-        post.platforms
-          .filter(({ url }) => url)
-          .slice(0, 5)
-          .forEach(({ platform, url }) => {
-            const platformKey = (platform || '').toUpperCase();
-            const platformDisplayName =
-              platformNames[platformKey] || this.formatPlatformName(platform);
-
-            actionRow.addComponents(
-              new ButtonBuilder()
-                .setLabel(platformDisplayName)
-                .setStyle(ButtonStyle.Link)
-                .setURL(url),
-            );
-          });
-      }
-
-      if (post.mediaUrl?.includes('/videos/')) {
-        if (actionRow.components.length < 5) {
-          actionRow.addComponents(
-            new ButtonBuilder()
-              .setLabel('View Video')
-              .setStyle(ButtonStyle.Link)
-              .setURL(post.mediaUrl),
-          );
-        }
-      }
-
-      if (actionRow.components.length === 0 && canonicalPlatformUrl) {
-        actionRow.addComponents(
-          new ButtonBuilder()
-            .setLabel(`View on ${platformName}`)
-            .setStyle(ButtonStyle.Link)
-            .setURL(canonicalPlatformUrl),
-        );
-      }
-
-      const messagePayload: WebhookMessageCreateOptions = {
-        embeds: [embed],
-      };
-
-      if (canonicalPlatformUrl) {
-        messagePayload.content = canonicalPlatformUrl;
-      }
-
-      if (actionRow.components.length > 0) {
-        messagePayload.components = [actionRow];
-      }
-
-      await webhookClient.send(messagePayload);
-
-      this.loggerService.log(`${url} succeeded`, {
-        hasMedia: !!post.mediaUrl,
-        platform: post.platform,
-        platformCount: post.platforms?.length || 0,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
-  }
-
-  async sendVercelNotification(embed: IDiscordEmbed): Promise<void> {
+  async sendVercelNotification(embed: IDiscordEmbed): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getDeploymentsWebhook(),
@@ -326,7 +180,7 @@ export class DiscordService {
     title: string;
     description: string;
     color?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getPostsWebhook(),
@@ -348,49 +202,27 @@ export class DiscordService {
     );
   }
 
+  /**
+   * Resolves `false` when the channel's webhook is not configured on this
+   * deployment. Provider failures propagate so the durable delivery retries.
+   */
   private async withWebhook(
     webhookClient: WebhookClient | null,
     context: string,
     send: (client: WebhookClient) => Promise<void>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!webhookClient) {
       this.loggerService.log(`${context} skipped - webhook not available`);
-      return;
+      return false;
     }
 
     try {
       await send(webhookClient);
+      return true;
     } catch (error: unknown) {
       this.loggerService.error(`${context} failed`, error);
+      throw error;
     }
-  }
-
-  private formatPlatformName(platform?: string): string {
-    if (!platform) {
-      return 'Platform';
-    }
-    return `${platform.charAt(0).toUpperCase()}${platform.slice(1)}`;
-  }
-
-  private readonly platformUrlTemplates: Record<string, string> = {
-    facebook: 'https://www.facebook.com/{id}',
-    instagram: 'https://www.instagram.com/p/{id}/',
-    linkedin: 'https://www.linkedin.com/feed/update/{id}',
-    tiktok: 'https://www.tiktok.com/video/{id}',
-    twitter: 'https://x.com/i/status/{id}',
-    youtube: 'https://www.youtube.com/watch?v={id}',
-  };
-
-  private buildPlatformUrl(
-    platform?: string,
-    externalId?: string,
-  ): string | null {
-    if (!platform || !externalId) {
-      return null;
-    }
-
-    const template = this.platformUrlTemplates[platform.toLowerCase()];
-    return template ? template.replace('{id}', externalId) : null;
   }
 
   private getIngredientEmbedColor(category: IngredientCategory): number {
@@ -505,7 +337,7 @@ export class DiscordService {
     provider: string;
     qualityTier?: string;
     speedTier?: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getModelsWebhook(),
@@ -590,7 +422,7 @@ export class DiscordService {
     category?: string;
     publicUrl?: string;
     thumbnailUrl?: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getPostsWebhook(),
@@ -643,7 +475,7 @@ export class DiscordService {
   async sendLowCreditsAlert(payload: {
     organizationId: string;
     balance: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getUsersWebhook(),
@@ -701,7 +533,9 @@ export class DiscordService {
     );
   }
 
-  async sendUserCreatedNotification(user: IUserCreatedPayload): Promise<void> {
+  async sendUserCreatedNotification(
+    user: IUserCreatedPayload,
+  ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getUsersWebhook(),
@@ -844,7 +678,7 @@ export class DiscordService {
   /** Operator alert for a completed Stripe checkout or paid invoice (genfeedai/genfeed.ai#4969). */
   async sendRevenueNotification(
     revenue: IRevenueNotificationPayload,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     return this.withWebhook(
       await this.discordBotService.getUsersWebhook(),

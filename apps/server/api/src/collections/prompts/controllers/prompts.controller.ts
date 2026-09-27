@@ -10,6 +10,7 @@ import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto'
 import { enhanceCreatedPrompt } from '@api/collections/prompts/enhance-created-prompt';
 import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { toPromptBrandContext } from '@api/collections/prompts/utils/prompt-text.util';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -31,14 +32,12 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
-import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivitySource,
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/contracts';
-
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -65,23 +64,6 @@ import type { Request } from 'express';
 type PromptWithIngredients = PromptDocument & {
   ingredients?: IngredientDocument[];
 };
-
-function toPromptBrandContext(
-  brand: BrandDocument | null | undefined,
-): IPromptBrandContext | undefined {
-  if (!brand) {
-    return undefined;
-  }
-
-  return {
-    backgroundColor: brand.backgroundColor ?? undefined,
-    description: brand.description ?? undefined,
-    label: brand.label ?? undefined,
-    primaryColor: brand.primaryColor ?? undefined,
-    secondaryColor: brand.secondaryColor ?? undefined,
-    text: brand.text ?? undefined,
-  };
-}
 
 function toMarketplacePromptText(prompt: PromptDocument): string {
   return prompt.enhanced?.trim() || prompt.original.trim() || 'Untitled Prompt';

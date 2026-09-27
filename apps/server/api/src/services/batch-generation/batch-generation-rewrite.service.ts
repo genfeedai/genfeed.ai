@@ -1,37 +1,204 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { randomUUID } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { resolveBatchItems } from '@api/services/batch-generation/batch-generation.types';
-import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { batchItemRowsInclude } from '@api/services/batch-generation/batch-item-rows';
+import {
+  BATCH_REWRITE_TASK_LABEL,
+  type BatchRewriteJob,
+  batchRewriteDeduplicationId,
+  isTerminalRewriteStatus,
+  NON_REWRITABLE_POST_STATES,
+  toBatchRewriteJob,
+} from '@api/services/batch-generation/batch-rewrite-job.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
   BatchItemStatus,
-  TargetExecutionState,
+  BatchRewriteJobStatus,
 } from '@genfeedai/contracts';
+import type { IBatchRewriteJob } from '@genfeedai/contracts/interfaces';
+import {
+  BATCH_REWRITE_QUEUE,
+  type BatchRewriteJobCredits,
+  type BatchRewriteJobData,
+  type BatchRewriteJobResult,
+} from '@genfeedai/contracts/queue';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
+import type { Queue } from 'bullmq';
 
+/**
+ * Admits a Review batch rewrite and hands it to the `batch-rewrite` queue
+ * (#5365). The request returns a job id immediately; the workers app runs the
+ * rewrites (`BatchGenerationRewriteRunnerService`) and reports progress over
+ * the user's websocket room.
+ */
 @Injectable()
 export class BatchGenerationRewriteService {
   constructor(
+    @InjectQueue(BATCH_REWRITE_QUEUE)
+    private readonly queue: Queue<BatchRewriteJobData, BatchRewriteJobResult>,
     private readonly prisma: PrismaService,
-    private readonly postGenerationService: PostGenerationService,
-    private readonly reviewService: BatchGenerationReviewService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  async rewriteItems(
+  async enqueue(input: {
+    batchId: string;
+    credits: BatchRewriteJobCredits;
+    itemIds: string[];
+    organizationId: string;
+    userId: string;
+  }): Promise<IBatchRewriteJob> {
+    const { batchId, organizationId, userId } = input;
+    const itemIds = [...new Set(input.itemIds)];
+    const { brandId, postVersions } = await this.loadSelection(
+      batchId,
+      itemIds,
+      organizationId,
+    );
+    if (await this.findActiveJob(batchId, organizationId)) {
+      throw new ConflictException(
+        'A rewrite is already running for this batch',
+      );
+    }
+
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.POST_PROCESSING,
+      organizationId,
+      source: ActivitySource.POST_ENHANCEMENT,
+      userId,
+      value: JSON.stringify({ batchId, itemIds, type: 'batch-rewrite' }),
+    });
+    const jobId = `batch-rewrite-${batchId}-${randomUUID()}`;
+    const job = await this.queue.add(
+      'rewrite-items',
+      {
+        activityId: activity.id,
+        batchId,
+        brandId,
+        credits: input.credits,
+        itemIds,
+        organizationId,
+        postVersions,
+        userId,
+      },
+      { deduplication: { id: batchRewriteDeduplicationId(batchId) }, jobId },
+    );
+    if (job.id !== jobId) {
+      // Another request queued a rewrite between the check above and add().
+      // The duplicate request never ran: keep the history row, raise no alert.
+      await this.activityRecorder.update(activity, {
+        alert: { channels: [] },
+        key: ActivityKey.POST_FAILED,
+        source: ActivitySource.POST_ENHANCEMENT,
+      });
+      throw new ConflictException(
+        'A rewrite is already running for this batch',
+      );
+    }
+
+    await this.websocketService.publishBackgroundTaskUpdate({
+      activityId: activity.id,
+      label: BATCH_REWRITE_TASK_LABEL,
+      progress: 0,
+      room: getUserRoomName(userId),
+      status: 'pending',
+      taskId: jobId,
+      userId,
+    });
+
+    return {
+      batchId,
+      completedItemIds: [],
+      failedItems: [],
+      id: jobId,
+      isCancelRequested: false,
+      itemIds,
+      status: BatchRewriteJobStatus.QUEUED,
+    };
+  }
+
+  async getJob(
+    batchId: string,
+    jobId: string,
+    organizationId: string,
+  ): Promise<IBatchRewriteJob> {
+    return toBatchRewriteJob(
+      await this.getOwnedJob(batchId, jobId, organizationId),
+    );
+  }
+
+  /** The batch's queued or running rewrite, so a reloaded page can resume it. */
+  async getActiveJob(
+    batchId: string,
+    organizationId: string,
+  ): Promise<IBatchRewriteJob | null> {
+    return this.findActiveJob(batchId, organizationId);
+  }
+
+  /**
+   * Stops the rewrite before its next item. Items already rewritten keep their
+   * new caption and their charge; the rest are never generated or billed.
+   */
+  async cancel(
+    batchId: string,
+    jobId: string,
+    organizationId: string,
+  ): Promise<IBatchRewriteJob> {
+    const job = await this.getOwnedJob(batchId, jobId, organizationId);
+    const current = await toBatchRewriteJob(job);
+    if (isTerminalRewriteStatus(current.status) || current.isCancelRequested) {
+      return current;
+    }
+    await job.updateData({ ...job.data, isCancelRequested: true });
+    return { ...current, isCancelRequested: true };
+  }
+
+  private async findActiveJob(
+    batchId: string,
+    organizationId: string,
+  ): Promise<IBatchRewriteJob | null> {
+    const jobId = await this.queue.getDeduplicationJobId(
+      batchRewriteDeduplicationId(batchId),
+    );
+    const job = jobId ? await this.queue.getJob(jobId) : undefined;
+    if (!job || job.data.organizationId !== organizationId) return null;
+    const current = await toBatchRewriteJob(job);
+    return isTerminalRewriteStatus(current.status) ? null : current;
+  }
+
+  /** Job ids are global in Redis; the tenant check is what scopes them. */
+  private async getOwnedJob(
+    batchId: string,
+    jobId: string,
+    organizationId: string,
+  ): Promise<BatchRewriteJob> {
+    const job = await this.queue.getJob(jobId);
+    if (
+      !job ||
+      job.data.organizationId !== organizationId ||
+      job.data.batchId !== batchId
+    ) {
+      throw new NotFoundException('Batch rewrite', jobId);
+    }
+    return job;
+  }
+
+  private async loadSelection(
     batchId: string,
     itemIds: string[],
     organizationId: string,
-    userId: string,
-  ) {
+  ): Promise<{ brandId: string; postVersions: Record<string, string> }> {
     const batch = await this.prisma.batch.findFirst({
       include: batchItemRowsInclude(organizationId),
       where: { id: batchId, organizationId, isDeleted: false },
@@ -54,111 +221,20 @@ export class BatchGenerationRewriteService {
     ) {
       throw new BadRequestException('Select completed items from this batch');
     }
+    const postIds = items.flatMap((item) => (item.postId ? [item.postId] : []));
     const posts = await this.prisma.post.findMany({
-      where: {
-        id: { in: items.flatMap((item) => (item.postId ? [item.postId] : [])) },
-        organizationId,
-        isDeleted: false,
-        brandId,
-      },
+      where: { id: { in: postIds }, organizationId, isDeleted: false, brandId },
     });
     const postMap = new Map(posts.map((post) => [post.id, post]));
-    for (const item of items) {
-      if (!item.postId) continue;
-      const post = postMap.get(item.postId);
-      if (!post) throw new NotFoundException('Post', item.postId);
-      if (
-        post.targetExecutionState === TargetExecutionState.PUBLISHED ||
-        post.targetExecutionState === TargetExecutionState.PUBLISHING ||
-        post.targetExecutionState === TargetExecutionState.SKIPPED ||
-        post.targetExecutionState === TargetExecutionState.CANCELLED
-      ) {
+    const postVersions: Record<string, string> = {};
+    for (const postId of postIds) {
+      const post = postMap.get(postId);
+      if (!post) throw new NotFoundException('Post', postId);
+      if (NON_REWRITABLE_POST_STATES.has(post.targetExecutionState)) {
         throw new BadRequestException('This post can no longer be rewritten');
       }
+      postVersions[postId] = post.updatedAt.toISOString();
     }
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        organizationId,
-        userId,
-        key: ActivityKey.POST_PROCESSING,
-        source: ActivitySource.POST_ENHANCEMENT,
-        value: JSON.stringify({
-          batchId,
-          itemIds: [...selectedIds],
-          type: 'batch-rewrite',
-        }),
-      }),
-    );
-    const task = {
-      activityId: activity.id,
-      taskId: activity.id,
-      userId,
-      room: getUserRoomName(userId),
-      label: 'Batch rewrite',
-    };
-    try {
-      await this.websocketService.publishBackgroundTaskUpdate({
-        ...task,
-        progress: 0,
-        status: 'processing',
-      });
-      const captions = new Map<string, string>();
-      for (const item of items) {
-        const post = item.postId ? postMap.get(item.postId) : undefined;
-        const caption = await this.postGenerationService.enhanceDescription(
-          {
-            description: post?.description ?? item.caption ?? item.prompt ?? '',
-            platform: post?.platform ?? item.platform ?? null,
-          },
-          {
-            prompt:
-              'Rewrite this content to improve clarity, specificity, and engagement while preserving its meaning and brand voice.',
-          },
-          { organizationId },
-        );
-        if (!caption.trim())
-          throw new BadRequestException('Rewrite returned empty content');
-        captions.set(item.id, caption);
-        await this.websocketService.publishBackgroundTaskUpdate({
-          ...task,
-          progress: Math.round((captions.size / items.length) * 90),
-          status: 'processing',
-        });
-      }
-      const result = await this.reviewService.applyRewrites(
-        batchId,
-        organizationId,
-        userId,
-        captions,
-        new Map(posts.map((post) => [post.id, post.updatedAt])),
-      );
-      await this.activitiesService.patch(activity.id, {
-        key: ActivityKey.POST_GENERATED,
-        source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId,
-      });
-      await this.websocketService.publishBackgroundTaskUpdate({
-        ...task,
-        progress: 100,
-        status: 'completed',
-      });
-      return result;
-    } catch (error) {
-      await this.activitiesService.patch(activity.id, {
-        key: ActivityKey.POST_FAILED,
-        source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId,
-      });
-      await this.websocketService.publishBackgroundTaskUpdate({
-        ...task,
-        progress: 100,
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Batch rewrite failed',
-      });
-      throw error;
-    }
+    return { brandId, postVersions };
   }
 }

@@ -1,4 +1,5 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { ActivityRecordingModule } from '@api/services/activity-recording/activity-recording.module';
 import { AgentReportDeliveryModule } from '@api/services/agent-reports/agent-report-delivery.module';
 import { EmailPerformanceController } from '@api/services/email-performance/email-performance.controller';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
@@ -10,7 +11,6 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { SocialReplyNotificationService } from '@api/services/notifications/social-reply-notifications/social-reply-notification.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
-import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -25,6 +25,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [EmailPerformanceController],
   exports: [
+    ActivityRecordingModule,
     SystemEmailEligibilityService,
     EmailPerformanceService,
     EmailPerformanceReportService,
@@ -34,10 +35,10 @@ import { Module } from '@nestjs/common';
     NotificationsService,
     SocialReplyNotificationService,
     WorkflowNotificationDeliveryService,
-    WorkflowNotificationOutboxService,
     WorkflowNotificationQueueService,
   ],
   imports: [
+    ActivityRecordingModule,
     AgentReportDeliveryModule,
     ConfigModule,
     LoggerModule,
@@ -60,7 +61,6 @@ import { Module } from '@nestjs/common';
     NotificationPreferenceService,
     SocialReplyNotificationService,
     WorkflowNotificationDeliveryService,
-    WorkflowNotificationOutboxService,
     WorkflowNotificationQueueService,
     {
       provide: SERVER_TOKENS.config,
@@ -69,10 +69,6 @@ import { Module } from '@nestjs/common';
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,
-    },
-    {
-      provide: SERVER_TOKENS.notifications,
-      useExisting: NotificationsService,
     },
     {
       provide: SERVER_TOKENS.prisma,

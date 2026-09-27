@@ -114,13 +114,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['admin.announcement.broadcast'],
     },
     {
-      classification: 'platform-maintenance',
-      file: 'apps/server/api/src/services/notifications/notifications.service.ts',
-      id: 'notification-redis-publisher',
-      reason:
-        'Infrastructure notification fan-out uses a Redis publisher; it does not publish customer content or orchestrate product behavior.',
-    },
-    {
       classification: 'workflow-adapter',
       file: 'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
       id: 'scheduled-post-delivery-action',

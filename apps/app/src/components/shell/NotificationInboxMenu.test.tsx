@@ -1,18 +1,9 @@
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import type { INotificationInboxItem } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/components/shell/ActivityFeed', () => ({
-  ActivityFeedContent: () => (
-    <a href="/workspace/activity">View all activity</a>
-  ),
-}));
-
-const live = vi.hoisted(() => ({ activeCount: 0 }));
-vi.mock('@/components/shell/use-live-activity-feed', () => ({
-  useLiveActivityFeed: () => live,
-}));
 const hook = vi.fn();
 vi.mock('@/components/shell/use-notification-inbox', () => ({
   useNotificationInbox: (...args: unknown[]) => hook(...args),
@@ -59,7 +50,6 @@ function state() {
 }
 let current: ReturnType<typeof state>;
 beforeEach(() => {
-  live.activeCount = 0;
   current = state();
   hook.mockImplementation(() => current);
 });
@@ -72,38 +62,44 @@ async function open() {
   return user;
 }
 describe('NotificationInboxMenu', () => {
-  it('opens the live activity view when a generation is running', async () => {
-    live.activeCount = 7;
+  it('shows alerts only, with no activity tab or live activity', async () => {
     await open();
-    // Live activity is announced but drawn as a dot, never as a second
-    // number next to the unread badge.
-    const activityDot = screen.getByRole('status', {
-      name: '7 tasks in progress',
-    });
-    expect(activityDot).toHaveTextContent('');
-    expect(activityDot).toHaveClass('size-1.5', 'rounded-full');
-    expect(screen.getByRole('tab', { name: 'Activity (7)' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-  });
-  it('defaults to notifications and keeps activity in a separate tab', async () => {
-    const user = await open();
-    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await user.click(screen.getByRole('tab', { name: 'Activity' }));
     expect(
-      screen.getByRole('link', { name: 'View all activity' }),
-    ).toHaveAttribute('href', '/workspace/activity');
-    expect(
-      screen.queryByRole('button', { name: 'Mark all read' }),
-    ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Notifications' }));
+      screen.getByRole('heading', { name: 'Notifications' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Mark all read' }),
     ).toBeInTheDocument();
+  });
+  it('titles a policy alert from its source activity', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'billing.credits',
+        outcome: 'failed',
+        severity: 'warning',
+        sourceHref: '/acme/workspace/activity',
+        sourceLabel: null,
+        activity: {
+          id: 'activity-1',
+          key: ActivityKey.CREDITS_LOW,
+          value: null,
+          source: ActivitySource.SCRIPT,
+          brandId: null,
+          entityId: null,
+          entityModel: null,
+          createdAt: '2026-09-05T10:00:00Z',
+        },
+      },
+    ];
+    await open();
+    expect(screen.getByText('Credits are running low')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /View details/ })).toHaveAttribute(
+      'href',
+      '/acme/workspace/activity',
+    );
   });
   it('washes the full notification row on hover, including time and mark-read', async () => {
     await open();

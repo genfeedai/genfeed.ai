@@ -15,7 +15,6 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -48,6 +47,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -86,7 +86,7 @@ describe('VideosController', () => {
   let klingAIService: vi.Mocked<KlingAIService>;
   let routerService: vi.Mocked<RouterService>;
   let pollingService: vi.Mocked<IngredientCompletionService>;
-  let activitiesService: vi.Mocked<ActivitiesService>;
+  let activitiesService: { record: ReturnType<typeof vi.fn> };
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let metadataService: vi.Mocked<MetadataService>;
   let cacheService: vi.Mocked<CacheService>;
@@ -226,9 +226,9 @@ describe('VideosController', () => {
           },
         },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: {
-            create: vi.fn().mockResolvedValue(mockActivity),
+            record: vi.fn().mockResolvedValue(mockActivity),
           },
         },
         {
@@ -496,7 +496,7 @@ describe('VideosController', () => {
     klingAIService = testingModule.get(KlingAIService);
     routerService = testingModule.get(RouterService);
     pollingService = testingModule.get(IngredientCompletionService);
-    activitiesService = testingModule.get(ActivitiesService);
+    activitiesService = testingModule.get(ActivityRecorderService);
     websocketService = testingModule.get(NotificationsPublisherService);
     metadataService = testingModule.get(MetadataService);
     cacheService = testingModule.get(CacheService);
@@ -1071,7 +1071,7 @@ describe('VideosController', () => {
       expect(brandsService.findOne).toHaveBeenCalled();
       expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
-      expect(activitiesService.create).toHaveBeenCalled();
+      expect(activitiesService.record).toHaveBeenCalled();
       expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
       expect(result).toBeDefined();
@@ -1493,7 +1493,7 @@ beforeAll(async () => {
         provide: ConfigService,
         useValue: { ingredientsEndpoint: 'https://cdn.genfeed.ai' },
       },
-      { provide: ActivitiesService, useValue: { create: vi.fn() } },
+      { provide: ActivityRecorderService, useValue: { record: vi.fn() } },
       { provide: BrandsService, useValue: { findOne: vi.fn() } },
       { provide: AssetsService, useValue: { findOne: vi.fn() } },
       {

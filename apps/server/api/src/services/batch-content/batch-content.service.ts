@@ -16,6 +16,7 @@ import type {
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { isExecutableSkillSlug } from '@api/services/skill-executor/skill-workflow-definition';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ForbiddenException,
@@ -78,7 +79,7 @@ export class BatchContentService implements OnModuleInit {
         userId,
       },
       `batch-content-${randomUUID()}`,
-      { attempts: 1 },
+      { attempts: 1, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     return { jobId, status: 'queued' };
   }

@@ -68,13 +68,14 @@ describe.skipIf(!redisAvailable)(
       });
       queues.push(queue);
 
-      // Only scheduler upsert/removal is exercised here — the platform queue
-      // is irrelevant, so the same queue instance stands in for it.
+      // Only scheduler upsert/removal is exercised here — the platform and
+      // background queues are irrelevant, so the same queue instance stands
+      // in for both.
       const service = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(queue, queue, createMockLogger());
+      )(queue, queue, queue, createMockLogger());
 
       return { queue, service };
     }

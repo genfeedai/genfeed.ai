@@ -130,7 +130,6 @@ Primary config highlights:
 - `PLAYWRIGHT_SKIP_WEBSERVER=1` disables the managed server.
 - `workers: 1` (serial) despite `fullyParallel: true`. Retries: CI 2 / local 0.
 - Timeouts: test 120s, expect 60s, action 15s, nav 30s. Viewport 1280×720, locale en-US, TZ America/New_York.
-- `toHaveScreenshot: { maxDiffPixels: 100, threshold: 0.2 }`.
 - `globalSetup` = `playwright/e2e/global-setup.ts`, `globalTeardown` = `playwright/e2e/global-teardown.ts`.
 
 ### Root Playwright scripts (`package.json`)
@@ -180,8 +179,7 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
   (authenticated storage state, curated protected routes, 600s).
 - **core + ~25 domain dirs** — admin, agents, analytics, auth, automation, brands, calendar, chat, compose,
   core, dashboard, editor, library, onboarding, overview, posts, research, responsive, settings, studio,
-  tasks, visual, website, workflow(s), workspace. ~50 spec files.
-- **visual/** — `visual-regression.spec.ts`; baselines in `__screenshots__/` via `snapshotPathTemplate`.
+  tasks, website, workflow(s), workspace. ~50 spec files.
 - **pages/** — one Page Object per area (login, dashboard, studio, settings, …) via `pages/index.ts`.
 - **utils/** — `route-assertions.ts`, `interaction-helpers.ts`, `network-guard.ts`, `api-interceptor.ts`.
 
@@ -231,7 +229,6 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 - **`tasks.e2e-spec.ts`** is back in the full API E2E tier via `E2ETestModule.forTasks()`.
 - **`workers: 1` + `fullyParallel: true`** is contradictory; masks races that surface if workers increase.
 - **Playwright browser cache** has no restore-key fallback — any `bun.lock` change forces full Chromium re-download.
-- **Visual baselines** (`__screenshots__/`) are OS/font-sensitive — diffs across environments.
 - **Not a regular PR gate** — the full E2E suite runs nightly/manual and through `full-suite.yml` / production QA, so an ordinary PR can merge before the nightly or release gate catches an E2E-only regression.
 
 ---

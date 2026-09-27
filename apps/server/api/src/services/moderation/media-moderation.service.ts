@@ -1,4 +1,4 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MEDIA_MODERATION_SELECT,
@@ -108,7 +108,7 @@ export class MediaModerationService {
     private readonly mediaPerceptionService: MediaPerceptionService,
     @Inject(MODERATION_PROVIDER)
     private readonly provider: IModerationProvider,
-    private readonly activities: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
@@ -426,14 +426,14 @@ export class MediaModerationService {
       if (!ingredient?.brandId) {
         return;
       }
-      await this.activities.create({
+      await this.activityRecorder.record({
         brandId: ingredient.brandId,
         entityId: job.ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MEDIA_MODERATION_FLAGGED,
         organizationId: job.organizationId,
         source: ActivitySource.MEDIA_MODERATION,
-        userId: ingredient.userId ?? undefined,
+        userId: ingredient.userId ?? null,
         value: JSON.stringify({
           flaggedCategories: verdict.flaggedCategories,
           ingredientId: job.ingredientId,
