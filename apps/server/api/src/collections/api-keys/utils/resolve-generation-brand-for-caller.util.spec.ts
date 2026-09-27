@@ -1,18 +1,40 @@
+import type { ResolveGenerationBrandApiKeysServiceLike } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
+import type {
+  ResolveGenerationBrandMembersServiceLike,
+  ResolveGenerationBrandServiceLike,
+} from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { BadRequestException } from '@nestjs/common';
+import type { Mock } from 'vitest';
 
 describe('resolveGenerationBrandIdForCaller', () => {
   const organizationId = 'org-1';
   const userId = 'user-1';
 
-  let apiKeysService: { findOne: ReturnType<typeof vi.fn> };
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let membersService: { findOne: ReturnType<typeof vi.fn> };
+  let apiKeysService: {
+    findOne: Mock<ResolveGenerationBrandApiKeysServiceLike['findOne']>;
+  };
+  let brandsService: {
+    findOne: Mock<ResolveGenerationBrandServiceLike['findOne']>;
+  };
+  let membersService: {
+    findOne: Mock<ResolveGenerationBrandMembersServiceLike['findOne']>;
+  };
 
   beforeEach(() => {
-    apiKeysService = { findOne: vi.fn() };
-    brandsService = { findOne: vi.fn().mockResolvedValue(null) };
-    membersService = { findOne: vi.fn().mockResolvedValue(null) };
+    apiKeysService = {
+      findOne: vi.fn<ResolveGenerationBrandApiKeysServiceLike['findOne']>(),
+    };
+    brandsService = {
+      findOne: vi
+        .fn<ResolveGenerationBrandServiceLike['findOne']>()
+        .mockResolvedValue(null),
+    };
+    membersService = {
+      findOne: vi
+        .fn<ResolveGenerationBrandMembersServiceLike['findOne']>()
+        .mockResolvedValue(null),
+    };
   });
 
   function stubValidBrands(validBrandIds: readonly string[]): void {

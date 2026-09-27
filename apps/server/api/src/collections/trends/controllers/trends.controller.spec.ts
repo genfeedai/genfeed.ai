@@ -16,7 +16,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
-import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
+import {
+  GenerateTrendIdeasDto,
+  Platform,
+} from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
@@ -690,7 +693,7 @@ describe('TrendsController', () => {
 
         await controller.getTrendIdeas(mockReq, apiKeyUser, {
           limit: 10,
-          platform: 'twitter',
+          platform: Platform.TWITTER,
         });
 
         expect(apiKeysService.findOne).toHaveBeenCalledWith({
@@ -719,7 +722,7 @@ describe('TrendsController', () => {
 
         await controller.getTrendIdeas(mockReq, apiKeyUser, {
           limit: 10,
-          platform: 'twitter',
+          platform: Platform.TWITTER,
         });
 
         expect(membersService.findOne).toHaveBeenCalledWith({
@@ -748,7 +751,7 @@ describe('TrendsController', () => {
         await expect(
           controller.getTrendIdeas(mockReq, apiKeyUser, {
             limit: 10,
-            platform: 'twitter',
+            platform: Platform.TWITTER,
           }),
         ).rejects.toThrow(
           'brandId is required to generate trend ideas. Configure a default brand for this API key, or pass brandId explicitly.',

@@ -7,6 +7,7 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { HookPlatform } from '@api/collections/posts/dto/generate-hooks.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -829,8 +830,9 @@ Tweet 3: Tech innovation is changing the world.`,
         const apiKeyIdentity = {
           ...identity,
           apiKeyId: 'apikey-1',
-          isApiKey: true,
           brandId: 'any-org-brand-ambient-fallback',
+          id: userId,
+          isApiKey: true,
         };
 
         mockApiKeysService.findOne.mockResolvedValue({
@@ -838,7 +840,7 @@ Tweet 3: Tech innovation is changing the world.`,
         });
 
         await service.generateHookVariations(
-          { count: 2, platform: 'twitter', topic: 'AI' },
+          { count: 2, platform: HookPlatform.TWITTER, topic: 'AI' },
           apiKeyIdentity,
         );
 
@@ -856,8 +858,9 @@ Tweet 3: Tech innovation is changing the world.`,
         const apiKeyIdentity = {
           ...identity,
           apiKeyId: 'apikey-1',
-          isApiKey: true,
           brandId: 'any-org-brand-ambient-fallback',
+          id: userId,
+          isApiKey: true,
         };
 
         mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
@@ -866,7 +869,7 @@ Tweet 3: Tech innovation is changing the world.`,
         });
 
         await service.generateHookVariations(
-          { count: 2, platform: 'twitter', topic: 'AI' },
+          { count: 2, platform: HookPlatform.TWITTER, topic: 'AI' },
           apiKeyIdentity,
         );
 
@@ -885,8 +888,9 @@ Tweet 3: Tech innovation is changing the world.`,
         const apiKeyIdentity = {
           ...identity,
           apiKeyId: 'apikey-1',
-          isApiKey: true,
           brandId: 'any-org-brand-ambient-fallback',
+          id: userId,
+          isApiKey: true,
         };
 
         mockApiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
@@ -894,7 +898,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
         await expect(
           service.generateHookVariations(
-            { count: 2, platform: 'twitter', topic: 'AI' },
+            { count: 2, platform: HookPlatform.TWITTER, topic: 'AI' },
             apiKeyIdentity,
           ),
         ).rejects.toThrow(
