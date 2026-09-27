@@ -161,6 +161,14 @@ const checks = [
     ],
     name: 'Project reference dependency parity',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-activity-recording-boundary.ts',
+    ],
+    name: 'Activity recording boundary (#5197)',
+  },
 ] as const;
 
 let failed = false;
