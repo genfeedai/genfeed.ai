@@ -90,6 +90,10 @@ describe.skipIf(!redisAvailable)(
           .fn()
           .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
         findManyAncient: vi.fn().mockResolvedValue([]),
+        findUpperBoundary: vi
+          .fn()
+          .mockResolvedValue({ createdAt: new Date(), id: executionId }),
+        findUpperBoundaryAncient: vi.fn().mockResolvedValue(undefined),
       };
       const logger = createMockLogger();
       const service = new PendingWorkflowExecutionReconcileService(
@@ -116,6 +120,10 @@ describe.skipIf(!redisAvailable)(
           .fn()
           .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
         findManyAncient: vi.fn().mockResolvedValue([]),
+        findUpperBoundary: vi
+          .fn()
+          .mockResolvedValue({ createdAt: new Date(), id: executionId }),
+        findUpperBoundaryAncient: vi.fn().mockResolvedValue(undefined),
       };
       const logger = createMockLogger();
       const service = new PendingWorkflowExecutionReconcileService(
@@ -146,6 +154,10 @@ describe.skipIf(!redisAvailable)(
         findManyAncient: vi
           .fn()
           .mockResolvedValue([{ id: executionId, organizationId: 'org-1' }]),
+        findUpperBoundary: vi.fn().mockResolvedValue(undefined),
+        findUpperBoundaryAncient: vi
+          .fn()
+          .mockResolvedValue({ createdAt: new Date(), id: executionId }),
       };
       const logger = createMockLogger();
       const service = new PendingWorkflowExecutionReconcileService(
