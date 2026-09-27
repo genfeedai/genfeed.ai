@@ -26,6 +26,13 @@
       "port": 3111
     },
     {
+      "name": "website-debug",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run --cwd apps/website dev:debug"],
+      "port": 3002,
+      "url": "http://genfeed.localhost:3002"
+    },
+    {
       "name": "app-debug",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run --cwd apps/app dev:debug"],
