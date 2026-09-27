@@ -506,7 +506,7 @@ export default function StudioGenerateInspector({
             label: translate('inspector.history'),
           },
         ]}
-        onTabChange={(tab) => {
+        onTabChange={(tab: string) => {
           if (isInspectorTab(tab)) {
             setTabSelection({ jobId: job.id, tab });
           }
