@@ -94,7 +94,12 @@ test.describe('Library Media Types', () => {
       await expect
         .poll(() => currentRoute(authenticatedPage))
         .toBe(brandPath(APP_ROUTES.LIBRARY.MUSIC));
-      await expect(authenticatedPage.getByText(/music/i).first()).toBeVisible();
+      // Music and audio share the library's single "Audio" type filter.
+      await expect(
+        authenticatedPage
+          .getByRole('button', { name: 'Audio', exact: true })
+          .first(),
+      ).toBeVisible();
     });
 
     test('should show music tracks or empty state', async ({
