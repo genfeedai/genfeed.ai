@@ -7,6 +7,7 @@ import {
   BATCH_GENERATION_ACTION_IDS,
   BATCH_GENERATION_WORKFLOW_ID,
 } from '@api/services/batch-generation/batch-generation-workflow-definition';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -112,7 +113,11 @@ describe('BatchGenerationWorkflowService', () => {
         userId: 'user-1',
       }),
       batchGenerationJobId('batch-1'),
-      { attempts: 1, replaceTerminalJob: true },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   });
 

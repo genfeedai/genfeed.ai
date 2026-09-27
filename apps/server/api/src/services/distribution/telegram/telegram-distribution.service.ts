@@ -14,6 +14,7 @@ import {
   PublishStatus,
 } from '@genfeedai/contracts';
 import type { TelegramDistributionWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -223,7 +224,12 @@ export class TelegramDistributionService implements OnModuleInit {
         userId: options.userId,
       },
       `telegram-distribute-${distributionId}`,
-      { attempts: 3, delayMs, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        delayMs,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
 
     return { distributionId };

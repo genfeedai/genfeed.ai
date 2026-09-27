@@ -4,6 +4,7 @@ import {
   WORKSPACE_TASK_WORKFLOW_IDS,
   type WorkspaceTaskWorkflowRequest,
 } from '@api/services/task-orchestration/workspace-task-workflow-definition';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -29,7 +30,7 @@ export class WorkspaceTaskWorkflowQueueService {
         userId: request.userId,
       },
       `workspace-task-${request.taskId}`,
-      { attempts: 2 },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
     );
   }
 }

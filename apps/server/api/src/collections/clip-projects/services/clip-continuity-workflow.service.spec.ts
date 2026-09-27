@@ -6,6 +6,7 @@ import type {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 import { ClipContinuityWorkflowService } from './clip-continuity-workflow.service';
@@ -96,6 +97,7 @@ describe('ClipContinuityWorkflowService', () => {
       }),
       'clip-continuity-project-1-generation-execution-1',
       {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         failureWorkflow: {
           canonicalId: 'clip.continuity.failure',
           inputValues: { projectId: 'project-1' },

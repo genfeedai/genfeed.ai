@@ -7,6 +7,7 @@ import type {
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const AGENT_INPUT_RESPONSE_WORKFLOW_ID = 'agent.thread.input-response';
@@ -43,27 +44,30 @@ export class AgentOrchestratorService {
     request: AgentThreadUiActionRequest,
     context: AgentChatContext,
   ): Promise<{ executionId: string; status: 'queued'; threadId: string }> {
-    const { executionId } = await this.workflowRunner.enqueueWorkflow({
-      actionType: AGENT_UI_ACTION_WORKFLOW_ID,
-      canonicalId: AGENT_UI_ACTION_WORKFLOW_ID,
-      inputValues: {
-        request: {
-          action: request.action,
-          threadId: request.threadId,
-          ...(request.brandId !== undefined
-            ? { brandId: request.brandId }
-            : {}),
-          ...(request.expectedContextVersion !== undefined
-            ? { expectedContextVersion: request.expectedContextVersion }
-            : {}),
-          ...(request.payload ? { payload: request.payload } : {}),
+    const { executionId } = await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: AGENT_UI_ACTION_WORKFLOW_ID,
+        canonicalId: AGENT_UI_ACTION_WORKFLOW_ID,
+        inputValues: {
+          request: {
+            action: request.action,
+            threadId: request.threadId,
+            ...(request.brandId !== undefined
+              ? { brandId: request.brandId }
+              : {}),
+            ...(request.expectedContextVersion !== undefined
+              ? { expectedContextVersion: request.expectedContextVersion }
+              : {}),
+            ...(request.payload ? { payload: request.payload } : {}),
+          },
         },
+        metadata: { threadId: request.threadId },
+        organizationId: context.organizationId,
+        source: 'AgentOrchestratorService.handleThreadUiAction',
+        userId: context.userId,
       },
-      metadata: { threadId: request.threadId },
-      organizationId: context.organizationId,
-      source: 'AgentOrchestratorService.handleThreadUiAction',
-      userId: context.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
     return { executionId, status: 'queued', threadId: request.threadId };
   }
 
@@ -75,22 +79,25 @@ export class AgentOrchestratorService {
     threadId: string;
     userId: string;
   }): Promise<boolean> {
-    await this.workflowRunner.enqueueWorkflow({
-      actionType: AGENT_INPUT_RESPONSE_WORKFLOW_ID,
-      canonicalId: AGENT_INPUT_RESPONSE_WORKFLOW_ID,
-      inputValues: {
-        request: {
-          answer: params.answer,
-          scope: params.scope,
-          threadId: params.threadId,
-          ...(params.fieldId ? { fieldId: params.fieldId } : {}),
+    await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: AGENT_INPUT_RESPONSE_WORKFLOW_ID,
+        canonicalId: AGENT_INPUT_RESPONSE_WORKFLOW_ID,
+        inputValues: {
+          request: {
+            answer: params.answer,
+            scope: params.scope,
+            threadId: params.threadId,
+            ...(params.fieldId ? { fieldId: params.fieldId } : {}),
+          },
         },
+        metadata: { threadId: params.threadId },
+        organizationId: params.organizationId,
+        source: 'AgentOrchestratorService.resumeRecurringTaskDraftFromInput',
+        userId: params.userId,
       },
-      metadata: { threadId: params.threadId },
-      organizationId: params.organizationId,
-      source: 'AgentOrchestratorService.resumeRecurringTaskDraftFromInput',
-      userId: params.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+    );
     return true;
   }
 }

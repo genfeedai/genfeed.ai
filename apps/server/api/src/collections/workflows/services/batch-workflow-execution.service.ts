@@ -6,6 +6,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import {
   BadRequestException,
   Injectable,
@@ -51,25 +52,28 @@ export class BatchWorkflowExecutionService implements OnModuleInit {
 
     await this.assertIngredientsOwned(ingredientIds, input.organizationId);
 
-    const { executionId } = await this.workflowRunner.enqueueWorkflow({
-      actionType: BATCH_WORKFLOW_EXECUTION_ID,
-      canonicalId: BATCH_WORKFLOW_EXECUTION_ID,
-      inputValues: {
-        childWorkflowId: workflow.id,
-        childWorkflowVersionId: workflow.versionId,
-        items: ingredientIds,
-      },
-      metadata: {
-        batchExecution: {
+    const { executionId } = await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: BATCH_WORKFLOW_EXECUTION_ID,
+        canonicalId: BATCH_WORKFLOW_EXECUTION_ID,
+        inputValues: {
           childWorkflowId: workflow.id,
           childWorkflowVersionId: workflow.versionId,
-          itemCount: ingredientIds.length,
+          items: ingredientIds,
         },
+        metadata: {
+          batchExecution: {
+            childWorkflowId: workflow.id,
+            childWorkflowVersionId: workflow.versionId,
+            itemCount: ingredientIds.length,
+          },
+        },
+        organizationId: input.organizationId,
+        source: 'WorkflowBatchController.startBatchExecution',
+        userId: input.userId,
       },
-      organizationId: input.organizationId,
-      source: 'WorkflowBatchController.startBatchExecution',
-      userId: input.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+    );
 
     return executionId;
   }

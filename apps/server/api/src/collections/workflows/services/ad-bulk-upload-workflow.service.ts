@@ -9,6 +9,7 @@ import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/s
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
@@ -265,7 +266,10 @@ export class AdBulkUploadWorkflowService {
         userId,
       },
       `ad-bulk-upload-${request.jobId}`,
-      { attempts: 1 },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
     );
     return { jobId: request.jobId, workflowJobId };
   }

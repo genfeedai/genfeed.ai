@@ -15,6 +15,7 @@ import {
   SocialConversationType,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 @Injectable()
@@ -100,6 +101,7 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
         userId: input.userId,
       },
       `social-inbox-sync-${input.organizationId}-${input.platform ?? Platform.YOUTUBE}-${input.conversationType ?? SocialConversationType.COMMENT}-${input.credentialId ?? 'all'}-${Date.now()}`,
+      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
     );
   }
 

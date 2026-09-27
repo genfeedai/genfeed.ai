@@ -23,6 +23,7 @@ import type {
   SocialSourceHistoryImportWorkflowInput,
   SocialSourceMetadata,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -180,7 +181,11 @@ export class SocialSourceHistoryImportService {
         userId,
       },
       `social-source-history-import-${source.id}`,
-      { attempts: 2, replaceTerminalJob: true },
+      {
+        attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
 
     this.logger.log('Scheduled social account history import', {

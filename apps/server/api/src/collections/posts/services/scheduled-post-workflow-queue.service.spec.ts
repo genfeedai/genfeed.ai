@@ -1,5 +1,6 @@
 import { SCHEDULED_POST_WORKFLOW_ID } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 
 describe('ScheduledPostWorkflowQueueService', () => {
   it('queues the immutable graph with one attempt and terminal replacement', async () => {
@@ -30,6 +31,7 @@ describe('ScheduledPostWorkflowQueueService', () => {
       'scheduled-post-operation-1',
       {
         attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         failureWorkflow: {
           canonicalId: 'scheduled-post.publish.failure',
           inputValues: { request: input },

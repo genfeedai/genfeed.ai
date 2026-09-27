@@ -5,6 +5,7 @@ import {
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -29,6 +30,7 @@ export class ScheduledPostWorkflowQueueService {
       `scheduled-post-${input.operationId ?? input.postId}`,
       {
         attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         failureWorkflow: {
           canonicalId: SCHEDULED_POST_FAILURE_WORKFLOW_ID,
           inputValues: { request: input },

@@ -13,6 +13,7 @@ import type {
   KnowledgeSourceBackfillWorkflowInput,
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 @Injectable()
@@ -104,7 +105,11 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         source: 'knowledge-source',
       },
       `knowledge-source-ingest-${request.sourceId}-${request.versionId}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 
@@ -121,7 +126,11 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         source: 'knowledge-source-backfill',
       },
       `knowledge-source-backfill-${request.organizationId}`,
-      { attempts: 1, replaceTerminalJob: true },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 }

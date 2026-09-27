@@ -20,6 +20,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/contracts';
 import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -184,31 +185,34 @@ export class VoiceGenerationService implements OnModuleInit {
     params: VoiceGenerationParams,
   ): Promise<void> {
     const pinnedSkills = await this.pinsForVoice(params);
-    await this.workflowRunner.enqueueWorkflow({
-      actionType: 'voice.generate',
-      canonicalId: 'voice.generate',
-      inputValues: {
-        ingredientId: params.ingredientId,
+    await this.workflowRunner.enqueueWorkflow(
+      {
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
+        inputValues: {
+          ingredientId: params.ingredientId,
+          organizationId: params.organizationId,
+          text: params.text,
+          userId: params.userId,
+          voiceId: params.voiceId,
+          ...(params.requestedSkillSlugs?.length
+            ? {
+                ...(params.brandId ? { brandId: params.brandId } : {}),
+                requestedSkillSlugs: params.requestedSkillSlugs,
+              }
+            : {}),
+          ...(pinnedSkills.length > 0 ? { pinnedSkills } : {}),
+        },
+        metadata: {
+          ingredientId: params.ingredientId,
+          retentionClass: 'ephemeral-processing',
+        },
         organizationId: params.organizationId,
-        text: params.text,
+        source: 'VoiceGenerationService.generate',
         userId: params.userId,
-        voiceId: params.voiceId,
-        ...(params.requestedSkillSlugs?.length
-          ? {
-              ...(params.brandId ? { brandId: params.brandId } : {}),
-              requestedSkillSlugs: params.requestedSkillSlugs,
-            }
-          : {}),
-        ...(pinnedSkills.length > 0 ? { pinnedSkills } : {}),
       },
-      metadata: {
-        ingredientId: params.ingredientId,
-        retentionClass: 'ephemeral-processing',
-      },
-      organizationId: params.organizationId,
-      source: 'VoiceGenerationService.generate',
-      userId: params.userId,
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+    );
   }
 
   async executeQueuedGeneration(

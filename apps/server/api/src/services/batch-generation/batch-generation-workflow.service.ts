@@ -18,6 +18,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin } from '@genfeedai/contracts';
 import type { BatchGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -74,7 +75,11 @@ export class BatchGenerationWorkflowService implements OnModuleInit {
           userId: request.userId,
         },
         batchGenerationJobId(request.batchId),
-        { attempts: 1, replaceTerminalJob: true },
+        {
+          attempts: 1,
+          dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+          replaceTerminalJob: true,
+        },
       ),
     );
   }

@@ -30,6 +30,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
@@ -131,7 +132,11 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         userId: input.userId,
       },
       `analytics-sync-${input.organizationId}-${input.brandId ?? 'all'}-${this.windowKey(5 * 60 * 1000)}`,
-      { attempts: 1, replaceTerminalJob: true },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
     return { jobId, workflowId: definition.canonicalId };
   }
@@ -151,7 +156,10 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         userId: input.userId,
       },
       `analytics-refresh-${input.organizationId}-${this.windowKey(HOUR_MS)}`,
-      { attempts: 1 },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
     );
     return { jobId, workflowId: definition.canonicalId };
   }
@@ -174,7 +182,10 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         userId: input.userId,
       },
       `analytics-post-refresh-${input.postId}-${this.windowKey(HOUR_MS)}`,
-      { attempts: 1 },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
     );
     return { jobId, workflowId: canonicalId };
   }

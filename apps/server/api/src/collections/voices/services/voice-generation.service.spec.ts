@@ -10,6 +10,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -228,6 +229,9 @@ describe('VoiceGenerationService', () => {
         organizationId,
         userId,
       }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
     );
     expect(result).toMatchObject({
       id: ingredientId,
@@ -283,6 +287,9 @@ describe('VoiceGenerationService', () => {
           requestedSkillSlugs: ['narration'],
         }),
       }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
     );
   });
 
@@ -317,6 +324,9 @@ describe('VoiceGenerationService', () => {
           userId,
           voiceId: 'voice-1',
         },
+      }),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       }),
     );
   });

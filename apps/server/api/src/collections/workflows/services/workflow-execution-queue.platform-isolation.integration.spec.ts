@@ -1,13 +1,9 @@
 import net from 'node:net';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import {
-  buildHiddenSystemWorkflowMetadata,
-  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-  SYSTEM_WORKFLOW_METADATA_KEY,
-} from '@api/collections/workflows/system-workflow.contract';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Queue, Worker } from 'bullmq';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -107,6 +103,7 @@ describe.skipIf(!redisAvailable)(
     const runId = `${process.pid}-${Date.now()}`;
     const interactiveQueueName = `workflow-execution-isolation-test-${runId}`;
     const platformQueueName = `platform-system-workflow-isolation-test-${runId}`;
+    const backgroundQueueName = `workflow-background-isolation-test-${runId}`;
     const queues: Queue[] = [];
     const workers: Worker[] = [];
 
@@ -121,6 +118,7 @@ describe.skipIf(!redisAvailable)(
      * `isPlatformSweepWorkflow` lookup, both run for real.
      */
     function createRunner(prismaOverrides: Record<string, unknown> = {}): {
+      backgroundQueue: Queue;
       interactiveQueue: Queue;
       platformQueue: Queue;
       runner: SystemWorkflowRunnerService;
@@ -131,13 +129,16 @@ describe.skipIf(!redisAvailable)(
       const platformQueue = new Queue(platformQueueName, {
         connection: { url: redisUrl },
       });
-      queues.push(interactiveQueue, platformQueue);
+      const backgroundQueue = new Queue(backgroundQueueName, {
+        connection: { url: redisUrl },
+      });
+      queues.push(interactiveQueue, platformQueue, backgroundQueue);
 
       const queueService = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(interactiveQueue, platformQueue, createMockLogger());
+      )(interactiveQueue, platformQueue, backgroundQueue, createMockLogger());
 
       const workflowExecutions = {
         createExecution: vi.fn().mockImplementation(async () => ({
@@ -148,6 +149,7 @@ describe.skipIf(!redisAvailable)(
 
       const prisma = {
         workflow: { findFirst: vi.fn().mockResolvedValue(null) },
+        workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
         ...prismaOverrides,
       };
 
@@ -183,11 +185,11 @@ describe.skipIf(!redisAvailable)(
         },
       );
 
-      return { interactiveQueue, platformQueue, runner };
+      return { backgroundQueue, interactiveQueue, platformQueue, runner };
     }
 
     // Fresh Redis state per test: every test in this file shares the same
-    // two queue *names*, so a job left over from an earlier test would
+    // three queue *names*, so a job left over from an earlier test would
     // otherwise be picked up by a later test's worker too.
     beforeEach(async () => {
       const interactiveQueue = new Queue(interactiveQueueName, {
@@ -196,18 +198,25 @@ describe.skipIf(!redisAvailable)(
       const platformQueue = new Queue(platformQueueName, {
         connection: { url: redisUrl },
       });
+      const backgroundQueue = new Queue(backgroundQueueName, {
+        connection: { url: redisUrl },
+      });
       await Promise.all([
         interactiveQueue.obliterate({ force: true }),
         platformQueue.obliterate({ force: true }),
+        backgroundQueue.obliterate({ force: true }),
       ]);
-      await Promise.all([interactiveQueue.close(), platformQueue.close()]);
+      await Promise.all([
+        interactiveQueue.close(),
+        platformQueue.close(),
+        backgroundQueue.close(),
+      ]);
     });
 
     afterAll(async () => {
       await Promise.all(workers.map((worker) => worker.close()));
-      const [first, second] = queues;
       await Promise.all(
-        [first, second].map((queue) => queue?.obliterate({ force: true })),
+        queues.map((queue) => queue.obliterate({ force: true })),
       );
       await Promise.all(queues.map((queue) => queue.close()));
     });
@@ -240,13 +249,16 @@ describe.skipIf(!redisAvailable)(
       const { interactiveQueue, platformQueue, runner } = createRunner();
       runner.registerWorkflow({ ...definition, canonicalId: 'analytics-sync' });
 
-      await runner.enqueueWorkflow({
-        actionType: 'analytics-sync',
-        canonicalId: 'analytics-sync',
-        organizationId: 'org-1',
-        source: 'PlatformWorkflowSchedulesService',
-        userId: 'user-1',
-      });
+      await runner.enqueueWorkflow(
+        {
+          actionType: 'analytics-sync',
+          canonicalId: 'analytics-sync',
+          organizationId: 'org-1',
+          source: 'PlatformWorkflowSchedulesService',
+          userId: 'user-1',
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
 
       expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
         1,
@@ -263,13 +275,16 @@ describe.skipIf(!redisAvailable)(
         canonicalId: 'agent.turn.execute',
       });
 
-      await runner.enqueueWorkflow({
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        organizationId: 'org-1',
-        source: 'proactive',
-        userId: 'user-1',
-      });
+      await runner.enqueueWorkflow(
+        {
+          actionType: 'agent.turn.execute',
+          canonicalId: 'agent.turn.execute',
+          organizationId: 'org-1',
+          source: 'proactive',
+          userId: 'user-1',
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
 
       expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
         1,
@@ -286,13 +301,16 @@ describe.skipIf(!redisAvailable)(
         canonicalId: 'agent.turn.execute',
       });
 
-      await runner.enqueueWorkflow({
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        organizationId: 'org-1',
-        source: 'AgentTurnAcceptanceService.accept',
-        userId: 'user-1',
-      });
+      await runner.enqueueWorkflow(
+        {
+          actionType: 'agent.turn.execute',
+          canonicalId: 'agent.turn.execute',
+          organizationId: 'org-1',
+          source: 'AgentTurnAcceptanceService.accept',
+          userId: 'user-1',
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+      );
 
       expect(
         await interactiveQueue.getJobs(['waiting', 'delayed']),
@@ -346,13 +364,16 @@ describe.skipIf(!redisAvailable)(
       // Back up the platform queue via the real sweep-dispatch path — the
       // kind of burst #5162 was about.
       for (let index = 0; index < 5; index += 1) {
-        await runner.enqueueWorkflow({
-          actionType: 'agent.autopilot.proactive',
-          canonicalId: 'agent.autopilot.proactive',
-          organizationId: 'org-1',
-          source: 'PlatformWorkflowSchedulesService',
-          userId: 'user-1',
-        });
+        await runner.enqueueWorkflow(
+          {
+            actionType: 'agent.autopilot.proactive',
+            canonicalId: 'agent.autopilot.proactive',
+            organizationId: 'org-1',
+            source: 'PlatformWorkflowSchedulesService',
+            userId: 'user-1',
+          },
+          { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+        );
       }
 
       await vi.waitFor(
@@ -363,13 +384,16 @@ describe.skipIf(!redisAvailable)(
       // The platform queue is now busy. A real interactive turn enqueued via
       // the real routing path *after* the backlog must still complete
       // quickly — it is on a physically separate queue with its own worker.
-      await runner.enqueueWorkflow({
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
-        organizationId: 'org-1',
-        source: 'AgentTurnAcceptanceService.accept',
-        userId: 'user-1',
-      });
+      await runner.enqueueWorkflow(
+        {
+          actionType: 'agent.turn.execute',
+          canonicalId: 'agent.turn.execute',
+          organizationId: 'org-1',
+          source: 'AgentTurnAcceptanceService.accept',
+          userId: 'user-1',
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+      );
 
       const interactiveJobs = await interactiveQueue.getJobs([
         'waiting',
@@ -405,15 +429,36 @@ describe.skipIf(!redisAvailable)(
       await Promise.all([platformWorker.close(), interactiveWorker.close()]);
     }, 15000);
 
-    it('executeForEach routes scheduled children to the platform queue when the parent is a platform-sweep workflow (isPlatformSweepWorkflow)', async () => {
+    // #5271: `executeForEach`'s `scheduled`-mode children now route by the
+    // PARENT EXECUTION's own persisted dispatch (`resolveInheritedDispatch`,
+    // reading `WorkflowExecution.result.metadata`) instead of the removed
+    // `isPlatformSweepWorkflow` canonical-id lookup. Each test below stubs
+    // `prisma.workflowExecution.findFirst` to return the parent's persisted
+    // metadata directly — this is what a real `enqueueWorkflow` call would
+    // have written via `createExecution`.
+    type ExecuteForEach = (request: {
+      context: { organizationId: string; userId: string };
+      input: Record<string, unknown>;
+      provenance: { executionId: string; workflowId: string };
+    }) => Promise<unknown>;
+
+    function bindExecuteForEach(
+      runner: SystemWorkflowRunnerService,
+    ): ExecuteForEach {
+      return (
+        runner as unknown as { executeForEach: ExecuteForEach }
+      ).executeForEach.bind(runner);
+    }
+
+    it('executeForEach routes scheduled children to the platform queue when the parent execution was platform-sourced', async () => {
       const { interactiveQueue, platformQueue, runner } = createRunner({
-        workflow: {
+        workflowExecution: {
           findFirst: vi.fn().mockResolvedValue({
-            metadata: {
-              sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-              [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata(
-                { canonicalId: 'analytics-sync' },
-              ),
+            result: {
+              metadata: {
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+                source: 'PlatformWorkflowSchedulesService',
+              },
             },
           }),
         },
@@ -421,22 +466,7 @@ describe.skipIf(!redisAvailable)(
       runner.onModuleInit();
       runner.registerWorkflow(definition);
 
-      // Call the private `executeForEach` directly: it only needs
-      // `request.provenance.workflowId` (to resolve `isPlatformSweepWorkflow`
-      // via the real `prisma.workflow.findFirst` mock above) and
-      // `request.input` — standing up the full engine adapter just to reach
-      // it through a registered node executor would add scaffolding without
-      // exercising anything this test doesn't already cover.
-      type ExecuteForEach = (request: {
-        context: { organizationId: string; userId: string };
-        input: Record<string, unknown>;
-        provenance: { executionId: string; workflowId: string };
-      }) => Promise<unknown>;
-      const executeForEach = (
-        runner as unknown as { executeForEach: ExecuteForEach }
-      ).executeForEach.bind(runner);
-
-      await executeForEach({
+      await bindExecuteForEach(runner)({
         context: { organizationId: 'org-1', userId: 'user-1' },
         input: {
           childWorkflowId: definition.canonicalId,
@@ -452,6 +482,136 @@ describe.skipIf(!redisAvailable)(
 
       expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
         1,
+      );
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
+
+    it('executeForEach routes scheduled children to the background queue when the parent execution was BACKGROUND and not platform-sourced', async () => {
+      const { backgroundQueue, interactiveQueue, platformQueue, runner } =
+        createRunner({
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              result: {
+                metadata: {
+                  dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+                  source: 'rss_autopost_sweep',
+                },
+              },
+            }),
+          },
+        });
+      runner.onModuleInit();
+      runner.registerWorkflow(definition);
+
+      await bindExecuteForEach(runner)({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: {
+          childWorkflowId: definition.canonicalId,
+          items: ['a'],
+          itemInputKey: 'item',
+          mode: 'scheduled',
+        },
+        provenance: {
+          executionId: 'parent-execution',
+          workflowId: 'background-workflow-1',
+        },
+      });
+
+      expect(
+        await backgroundQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(1);
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        0,
+      );
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
+
+    it('executeForEach routes scheduled children to the interactive queue when the parent execution was a real interactive dispatch (#5271, issue #2 scenario)', async () => {
+      // The scenario the issue's own decision #3 named: a future admin/
+      // user-facing action manually re-runs a template like analytics-sync
+      // for one organization. That top-level dispatch is INTERACTIVE, so its
+      // workflow.for-each children must behave like interactive work too —
+      // not fall back to the platform queue just because the canonical id
+      // matches a platform-swept template (the bug `isPlatformSweepWorkflow`
+      // had).
+      const { backgroundQueue, interactiveQueue, platformQueue, runner } =
+        createRunner({
+          workflowExecution: {
+            findFirst: vi.fn().mockResolvedValue({
+              result: {
+                metadata: {
+                  dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+                  source: 'AnalyticsSyncController.manualRerun',
+                },
+              },
+            }),
+          },
+        });
+      runner.onModuleInit();
+      runner.registerWorkflow(definition);
+
+      await bindExecuteForEach(runner)({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: {
+          childWorkflowId: definition.canonicalId,
+          items: ['a'],
+          itemInputKey: 'item',
+          mode: 'scheduled',
+        },
+        provenance: {
+          executionId: 'parent-execution',
+          workflowId: 'manually-triggered-analytics-sync-1',
+        },
+      });
+
+      expect(
+        await interactiveQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(1);
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        0,
+      );
+      expect(
+        await backgroundQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
+    });
+
+    it('executeForEach defaults scheduled children to the background queue when the parent execution has no persisted dispatchClass', async () => {
+      // A run started through a path other than `enqueueWorkflow` (direct
+      // `queueSystemWorkflow`, or a synchronous `runWorkflow`) never has
+      // `dispatchClass` in its metadata — every one of those producers is
+      // already background in nature (#5271's own audit), so the fail-safe
+      // default must never let a for-each fan-out land on the interactive
+      // queue by accident.
+      const { backgroundQueue, interactiveQueue, platformQueue, runner } =
+        createRunner({
+          workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+        });
+      runner.onModuleInit();
+      runner.registerWorkflow(definition);
+
+      await bindExecuteForEach(runner)({
+        context: { organizationId: 'org-1', userId: 'user-1' },
+        input: {
+          childWorkflowId: definition.canonicalId,
+          items: ['a'],
+          itemInputKey: 'item',
+          mode: 'scheduled',
+        },
+        provenance: {
+          executionId: 'parent-execution',
+          workflowId: 'unknown-workflow-1',
+        },
+      });
+
+      expect(
+        await backgroundQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(1);
+      expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        0,
       );
       expect(
         await interactiveQueue.getJobs(['waiting', 'delayed']),

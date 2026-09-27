@@ -7,6 +7,7 @@ import type { SystemWorkflowRunnerService } from '@api/collections/workflows/sys
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
@@ -155,15 +156,18 @@ export class PlatformWorkflowSchedulesService {
             select: { id: true },
           });
           if (inFlight) continue;
-          await this.runner.enqueueWorkflow({
-            actionType: canonicalId,
-            canonicalId,
-            idempotencyKey: `platform:${templateId}:${organization.id}:${slot}`,
-            organizationId: organization.id,
-            userId: organization.userId,
-            source: PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-          });
+          await this.runner.enqueueWorkflow(
+            {
+              actionType: canonicalId,
+              canonicalId,
+              idempotencyKey: `platform:${templateId}:${organization.id}:${slot}`,
+              organizationId: organization.id,
+              userId: organization.userId,
+              source: PLATFORM_WORKFLOW_SCHEDULE_SOURCE,
+              trigger: WorkflowExecutionTrigger.SCHEDULED,
+            },
+            { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+          );
         } catch (error) {
           const failure = new Error(
             `Platform workflow ${templateId} failed for organization ${organization.id}`,

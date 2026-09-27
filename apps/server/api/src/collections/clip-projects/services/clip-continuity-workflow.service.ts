@@ -21,6 +21,7 @@ import {
   type VideoContinuityClipFinding,
   type VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -194,6 +195,7 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
         },
         `clip-continuity-${projectId}-${generationWorkflowExecutionId}`,
         {
+          dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
           failureWorkflow: {
             canonicalId: CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
             inputValues: { projectId },

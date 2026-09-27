@@ -10,6 +10,7 @@ import {
   isSupportedAvatarVideoProviderName,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -31,6 +32,7 @@ export class ClipFactoryWorkflowQueueService {
       `clip-factory-${job.projectId}`,
       {
         attempts: 2,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
         failureWorkflow: {
           canonicalId: CLIP_FACTORY_FAILURE_WORKFLOW_ID,
           inputValues: { job },

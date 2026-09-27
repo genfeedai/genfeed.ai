@@ -16,6 +16,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IWarmupPreparation } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromWebsiteScrape,
@@ -457,30 +458,33 @@ export class WarmupPreparationService {
         'Imported reviewed starter brand asset.',
       );
     }
-    const execution = await this.workflows.enqueueWorkflow({
-      canonicalId: 'article.generation',
-      actionType: 'create_article',
-      organizationId,
-      userId: actorUserId,
-      source: 'WarmupPreparationService',
-      idempotencyKey: key,
-      inputValues: {
-        brandId,
-        dto: {
-          prompt:
-            dto.prompt ||
-            'Write a useful introductory LinkedIn article using the reviewed brand positioning and voice. Keep it an unpublished draft for customer review.',
-          count: 1,
-          category: 'linkedin-article',
-          generateHeaderImage: false,
+    const execution = await this.workflows.enqueueWorkflow(
+      {
+        canonicalId: 'article.generation',
+        actionType: 'create_article',
+        organizationId,
+        userId: actorUserId,
+        source: 'WarmupPreparationService',
+        idempotencyKey: key,
+        inputValues: {
+          brandId,
+          dto: {
+            prompt:
+              dto.prompt ||
+              'Write a useful introductory LinkedIn article using the reviewed brand positioning and voice. Keep it an unpublished draft for customer review.',
+            count: 1,
+            category: 'linkedin-article',
+            generateHeaderImage: false,
+          },
+        },
+        metadata: {
+          brandId,
+          warmupAccountId: account.id,
+          preparedByUserId: actorUserId,
         },
       },
-      metadata: {
-        brandId,
-        warmupAccountId: account.id,
-        preparedByUserId: actorUserId,
-      },
-    });
+      { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+    );
     await this.update(
       account,
       actorUserId,

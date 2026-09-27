@@ -13,6 +13,7 @@ import {
   WORKSPACE_TASK_WORKFLOW_DEFINITIONS,
   type WorkspaceTaskWorkflowRequest,
 } from '@api/services/task-orchestration/workspace-task-workflow-definition';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -211,27 +212,30 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   ): Promise<AgentExecutionState> {
     const item = this.readAgentExecutionItem(request.input.request);
     return this.withTaskFailure(item, async () => {
-      const { executionId } = await this.workflowRunner.enqueueWorkflow({
-        actionType: AGENT_TURN_WORKFLOW_ID,
-        canonicalId: AGENT_TURN_WORKFLOW_ID,
-        idempotencyKey: `${this.requiredString(request.provenance.idempotencyKey, 'workflow action idempotency key')}:agent-turn`,
-        inputValues: {
-          request: {
-            agentType: item.subtask.agentType,
-            content: item.subtask.brief,
+      const { executionId } = await this.workflowRunner.enqueueWorkflow(
+        {
+          actionType: AGENT_TURN_WORKFLOW_ID,
+          canonicalId: AGENT_TURN_WORKFLOW_ID,
+          idempotencyKey: `${this.requiredString(request.provenance.idempotencyKey, 'workflow action idempotency key')}:agent-turn`,
+          inputValues: {
+            request: {
+              agentType: item.subtask.agentType,
+              content: item.subtask.brief,
+            },
           },
+          metadata: {
+            label: item.subtask.label,
+            parentExecutionId: request.provenance.executionId,
+            parentNodeId: request.provenance.nodeId,
+            source: 'workspace-task',
+            workspaceTaskId: item.taskId,
+          },
+          organizationId: item.organizationId,
+          source: 'WorkspaceTaskWorkflowService.enqueueAgentExecution',
+          userId: item.userId,
         },
-        metadata: {
-          label: item.subtask.label,
-          parentExecutionId: request.provenance.executionId,
-          parentNodeId: request.provenance.nodeId,
-          source: 'workspace-task',
-          workspaceTaskId: item.taskId,
-        },
-        organizationId: item.organizationId,
-        source: 'WorkspaceTaskWorkflowService.enqueueAgentExecution',
-        userId: item.userId,
-      });
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
       return { ...item, executionId };
     });
   }

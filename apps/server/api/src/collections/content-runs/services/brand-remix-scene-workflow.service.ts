@@ -8,6 +8,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -86,7 +87,11 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
         source: 'brand-remix-scenes',
       },
       `remix-${runId}-${operation.id}-${operation.sequence}`,
-      { attempts: 1, delayMs },
+      {
+        attempts: 1,
+        delayMs,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
     );
   }
   private async step(job: z.infer<typeof jobSchema>) {
