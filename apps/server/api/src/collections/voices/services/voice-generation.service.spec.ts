@@ -41,10 +41,11 @@ describe('VoiceGenerationService', () => {
     enqueueWorkflow: ReturnType<typeof vi.fn>;
     registerAction: ReturnType<typeof vi.fn>;
   };
+  // One mock stands in for the activity lookup and the recording API.
   let activities: {
     findOne: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
+    record: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
   let notifications: { publishBackgroundTaskUpdate: ReturnType<typeof vi.fn> };
   let service: VoiceGenerationService;
@@ -83,8 +84,8 @@ describe('VoiceGenerationService', () => {
     };
     activities = {
       findOne: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
-      patch: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
+      record: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
+      update: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
     };
     notifications = { publishBackgroundTaskUpdate: vi.fn() };
     service = new VoiceGenerationService(
@@ -94,6 +95,7 @@ describe('VoiceGenerationService', () => {
       credits as unknown as VoiceCreditsService,
       voices as unknown as VoicesService,
       workflowRunner as never,
+      activities as never,
       activities as never,
       notifications as never,
     );
@@ -106,7 +108,7 @@ describe('VoiceGenerationService', () => {
       status: IngredientStatus.PROCESSING,
     });
     await service.generate(user, { text: 'Hello', voiceId: 'voice-1' });
-    expect(activities.create).toHaveBeenCalledWith(
+    expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({
         entityId: ingredientId,
         organizationId,
@@ -129,8 +131,8 @@ describe('VoiceGenerationService', () => {
       text: 'Hello',
       voiceId: 'voice-1',
     });
-    expect(activities.patch).toHaveBeenCalledWith(
-      'voice-activity',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'voice-activity' }),
       expect.objectContaining({
         key: ActivityKey.VOICE_GENERATED,
         entityId: ingredientId,
@@ -257,6 +259,7 @@ describe('VoiceGenerationService', () => {
       credits as unknown as VoiceCreditsService,
       voices as unknown as VoicesService,
       workflowRunner as never,
+      activities as never,
       activities as never,
       notifications as never,
       skillRuntime as never,
@@ -440,7 +443,7 @@ describe('VoiceGenerationService', () => {
       { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
     );
-    expect(activities.create).toHaveBeenCalledWith(
+    expect(activities.record).toHaveBeenCalledWith(
       expect.objectContaining({
         key: ActivityKey.VOICE_FAILED,
         organizationId,

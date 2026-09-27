@@ -1,6 +1,6 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
+import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -125,31 +125,31 @@ export function createQuotaExceededActivity(
   post: PostEntity,
   quotaCheck: QuotaCheckResult,
   platform: string,
-): ActivityEntity {
-  return new ActivityEntity({
-    brandId: readPostString(post, ['brandId']) ?? undefined,
+): RecordActivityInput {
+  return {
+    brandId: readPostString(post, ['brandId']) ?? null,
     entityId: post.id,
     entityModel: ActivityEntityModel.POST,
     key: ActivityKey.POST_FAILED,
-    organizationId: readPostString(post, ['organizationId']) ?? undefined,
+    organizationId: readPostString(post, ['organizationId']) ?? null,
     source: ActivitySource.POST,
-    userId: readPostString(post, ['userId']) ?? undefined,
+    userId: readPostString(post, ['userId']) ?? null,
     value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
-  });
+  };
 }
 
 export function createPublishFailedActivity(
   post: PostEntity,
   errorMessage: string,
-): ActivityEntity {
-  return new ActivityEntity({
-    brandId: readPostString(post, ['brandId']) ?? undefined,
+): RecordActivityInput {
+  return {
+    brandId: readPostString(post, ['brandId']) ?? null,
     entityId: post.id,
     entityModel: ActivityEntityModel.POST,
     key: ActivityKey.POST_FAILED,
-    organizationId: readPostString(post, ['organizationId']) ?? undefined,
+    organizationId: readPostString(post, ['organizationId']) ?? null,
     source: ActivitySource.POST,
-    userId: readPostString(post, ['userId']) ?? undefined,
+    userId: readPostString(post, ['userId']) ?? null,
     value: errorMessage,
-  });
+  };
 }

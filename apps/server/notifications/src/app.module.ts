@@ -10,7 +10,6 @@ import { ChannelDeliveriesModule } from '@notifications/services/channel-deliver
 import { ChatBotModule } from '@notifications/services/chatbot/chatbot.module';
 import { DiscordModule } from '@notifications/services/discord/discord.module';
 import { GenFeedModule } from '@notifications/services/genfeed/genfeed.module';
-import { NotificationHandlerService } from '@notifications/services/notification-handler.service';
 import { ResendModule } from '@notifications/services/resend/resend.module';
 import { SlackNotificationModule } from '@notifications/services/slack/slack.module';
 import { TelegramModule } from '@notifications/services/telegram/telegram.module';
@@ -43,6 +42,5 @@ import { WebhooksModule } from '@notifications/webhooks/webhooks.module';
     SlackNotificationModule,
     TelegramModule,
   ],
-  providers: [NotificationHandlerService],
 })
 export class AppModule {}

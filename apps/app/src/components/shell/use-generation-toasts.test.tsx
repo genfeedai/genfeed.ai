@@ -69,8 +69,8 @@ vi.mock('@/hooks/i18n/useActivityMessageFormatter', () => ({
 
 import {
   ACTIVITY_RECONCILE_MS,
-  useLiveActivityFeed,
-} from './use-live-activity-feed';
+  useGenerationToasts,
+} from './use-generation-toasts';
 
 function fixture(overrides: Partial<IActivity> = {}): IActivity {
   return {
@@ -98,17 +98,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 afterEach(() => vi.useRealTimers());
-describe('live generation activity', () => {
+describe('generation toasts', () => {
   it('reads scoped durable records after socket updates and missed-event recovery', () => {
     mock.active = [fixture()];
-    const { unmount } = renderHook(() => useLiveActivityFeed());
+    const { unmount } = renderHook(() => useGenerationToasts());
     mock.invalidate.mockClear();
     act(() => {
       mock.handlers.get('background-task-update')?.();
       mock.handlers.get('background-task-update')?.();
       vi.advanceTimersByTime(150);
     });
-    expect(mock.invalidate).toHaveBeenCalledTimes(2);
+    expect(mock.invalidate).toHaveBeenCalledTimes(1);
     const predicate = mock.invalidate.mock.calls[0][0].predicate;
     expect(predicate({ queryKey: ['activities', 'alice', 'org-1'] })).toBe(
       true,
@@ -118,31 +118,30 @@ describe('live generation activity', () => {
       false,
     );
     act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS));
-    expect(mock.invalidate).toHaveBeenCalledTimes(4);
+    expect(mock.invalidate).toHaveBeenCalledTimes(2);
     unmount();
     expect(mock.handlers.size).toBe(0);
   });
   it('stops polling once nothing is running and the socket is connected', () => {
-    // The bell mounts on every page, so an unconditional interval polled the
-    // activity and inbox endpoints forever.
-    renderHook(() => useLiveActivityFeed());
+    // Mounted on every page, so an unconditional interval would poll the
+    // activity endpoints forever.
+    renderHook(() => useGenerationToasts());
     mock.invalidate.mockClear();
     act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS * 4));
     expect(mock.invalidate).not.toHaveBeenCalled();
     act(() => window.dispatchEvent(new Event('focus')));
-    expect(mock.invalidate).toHaveBeenCalledTimes(2);
+    expect(mock.invalidate).toHaveBeenCalledTimes(1);
   });
   it('keeps polling while the socket cannot deliver updates', () => {
     mock.connectionState = 'disconnected';
-    renderHook(() => useLiveActivityFeed());
+    renderHook(() => useGenerationToasts());
     mock.invalidate.mockClear();
     act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS));
-    expect(mock.invalidate).toHaveBeenCalledTimes(2);
+    expect(mock.invalidate).toHaveBeenCalledTimes(1);
   });
-  it('counts active jobs outside recent history and shows each own completion once', () => {
+  it('tracks active jobs outside recent history and shows each own completion once', () => {
     mock.active = [fixture()];
-    const { result, rerender } = renderHook(() => useLiveActivityFeed());
-    expect(result.current.activeCount).toBe(1);
+    const { rerender } = renderHook(() => useGenerationToasts());
     expect(mock.success).not.toHaveBeenCalled();
     mock.active = [];
     mock.recent = [
@@ -152,7 +151,6 @@ describe('live generation activity', () => {
       }),
     ];
     rerender();
-    expect(result.current.activeCount).toBe(0);
     expect(mock.success).toHaveBeenCalledTimes(1);
     mock.recent = [...mock.recent];
     rerender();
@@ -167,14 +165,17 @@ describe('live generation activity', () => {
       fixture({ userId: 'bob' }),
       fixture({ id: 'foreign', organizationId: 'org-2' }),
     ];
-    const { result, rerender } = renderHook(() => useLiveActivityFeed());
-    expect(result.current.activeCount).toBe(1);
+    const { rerender } = renderHook(() => useGenerationToasts());
     mock.active = [];
-    mock.recent = [fixture({ userId: 'bob', key: ActivityKey.IMAGE_FAILED })];
+    mock.recent = [
+      fixture({ userId: 'bob', key: ActivityKey.IMAGE_FAILED }),
+      fixture({
+        id: 'foreign',
+        organizationId: 'org-2',
+        key: ActivityKey.IMAGE_FAILED,
+      }),
+    ];
     rerender();
     expect(mock.warning).not.toHaveBeenCalled();
-    mock.organizationId = 'org-2';
-    rerender();
-    expect(result.current.filteredActivities).toEqual([]);
   });
 });

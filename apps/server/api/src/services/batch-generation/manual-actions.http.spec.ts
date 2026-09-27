@@ -1,5 +1,4 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
@@ -10,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
@@ -119,10 +119,10 @@ describe('Manual actions HTTP routes', () => {
         { provide: BatchGenerationWorkflowService, useValue: {} },
         { provide: BatchGenerationReviewService, useValue: { applyRewrites } },
         {
-          provide: ActivitiesService,
+          provide: ActivityRecorderService,
           useValue: {
-            create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
-            patch: vi.fn(),
+            record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+            update: vi.fn(),
           },
         },
         {

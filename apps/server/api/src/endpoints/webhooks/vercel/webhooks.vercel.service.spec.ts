@@ -1,5 +1,5 @@
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -7,7 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('VercelWebhookService', () => {
   let service: VercelWebhookService;
   const notificationsService = {
-    sendVercelNotification: vi.fn(),
+    dispatch: vi.fn(),
   };
 
   const configService = {
@@ -18,7 +18,7 @@ describe('VercelWebhookService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VercelWebhookService,
-        { provide: NotificationsService, useValue: notificationsService },
+        { provide: ActivityRecorderService, useValue: notificationsService },
         { provide: ConfigService, useValue: configService },
         {
           provide: LoggerService,
@@ -90,11 +90,24 @@ describe('VercelWebhookService', () => {
 
       await service.handleWebhook(payload);
 
-      expect(notificationsService.sendVercelNotification).toHaveBeenCalledWith(
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
-          embed: expect.objectContaining({
-            title: '✅ Deployment ready',
-          }),
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'vercel_notification',
+                payload: {
+                  embed: expect.objectContaining({
+                    title: '✅ Deployment ready',
+                  }),
+                },
+                type: 'discord',
+              },
+            },
+          ],
+          organizationId: null,
+          topic: 'operator.alerts',
         }),
       );
     });
@@ -114,11 +127,24 @@ describe('VercelWebhookService', () => {
 
       await service.handleWebhook(payload);
 
-      expect(notificationsService.sendVercelNotification).toHaveBeenCalledWith(
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
-          embed: expect.objectContaining({
-            title: '❌ Deployment failed',
-          }),
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'vercel_notification',
+                payload: {
+                  embed: expect.objectContaining({
+                    title: '❌ Deployment failed',
+                  }),
+                },
+                type: 'discord',
+              },
+            },
+          ],
+          organizationId: null,
+          topic: 'operator.alerts',
         }),
       );
     });
@@ -134,11 +160,56 @@ describe('VercelWebhookService', () => {
 
       await service.handleWebhook(payload);
 
-      expect(notificationsService.sendVercelNotification).toHaveBeenCalledWith(
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
-          embed: expect.any(Object),
+          messages: [
+            {
+              destination: null,
+              message: {
+                action: 'vercel_notification',
+                payload: {
+                  embed: expect.objectContaining({
+                    title: '🛑 Deployment canceled',
+                  }),
+                },
+                type: 'discord',
+              },
+            },
+          ],
+          organizationId: null,
+          topic: 'operator.alerts',
         }),
       );
+    });
+
+    it('keys delivery on the Vercel event id so a retried event sends once', async () => {
+      await service.handleWebhook({
+        id: 'evt_1',
+        payload: { project: { name: 'test-project' } },
+        type: 'deployment.canceled',
+      });
+
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ deduplicationKey: 'message.vercel/evt_1' }),
+      );
+    });
+
+    it('never collapses distinct cancels of one project without an event id', async () => {
+      const cancel = {
+        payload: { project: { name: 'test-project' } },
+        type: 'deployment.canceled',
+      };
+      const now = vi.spyOn(Date, 'now');
+      now.mockReturnValueOnce(1).mockReturnValueOnce(2);
+
+      await service.handleWebhook(cancel);
+      await service.handleWebhook(cancel);
+
+      const keys = notificationsService.dispatch.mock.calls.map(
+        ([input]) => input.deduplicationKey,
+      );
+      expect(new Set(keys).size).toBe(2);
+      now.mockRestore();
     });
   });
 });

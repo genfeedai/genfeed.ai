@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -20,6 +18,7 @@ import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.uti
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -65,7 +64,7 @@ function toPromptBrandContext(
 @Injectable()
 export class PromptTransformationService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -142,20 +141,18 @@ export class PromptTransformationService {
       systemPromptKey,
       user.organizationId,
     );
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_REMIX,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          promptId: data.id.toString(),
-          sourcePromptId: promptId,
-          type: 'remix',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: promptBrandId ?? user.brandId,
+      key: ActivityKey.PROMPT_REMIX_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.PROMPT_REMIX,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        promptId: data.id.toString(),
+        sourcePromptId: promptId,
+        type: 'remix',
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -195,16 +192,14 @@ export class PromptTransformationService {
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
       await this.parseStoredPrompt(prompt);
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_ENHANCEMENT,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({ promptId, type: 'enhance' }),
-      }),
-    );
+    const activity = await this.activityRecorder.record({
+      brandId: promptBrandId ?? user.brandId,
+      key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.PROMPT_ENHANCEMENT,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({ promptId, type: 'enhance' }),
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -260,7 +255,7 @@ export class PromptTransformationService {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activitiesService.patch(activity.id.toString(), {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
         value: JSON.stringify({
           progress: 100,
@@ -274,7 +269,7 @@ export class PromptTransformationService {
         prompt: await this.promptsService.findOne({ id: promptId }),
       };
     } catch (error: unknown) {
-      await this.activitiesService.patch(activity.id.toString(), {
+      await this.activityRecorder.update(activity, {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
         value: JSON.stringify({
           error: errorMessage(error),
@@ -430,30 +425,36 @@ export class PromptTransformationService {
         enhanced: result,
         status: PromptStatus.GENERATED,
       });
-      await this.activitiesService.patch(activityId, {
-        key: ActivityKey.PROMPT_REMIX_COMPLETED,
-        value: JSON.stringify({
-          progress: 100,
-          promptId: data.id.toString(),
-          sourcePromptId: promptId,
-          type: 'remix',
-        }),
-      });
+      await this.activityRecorder.update(
+        { id: activityId, organizationId },
+        {
+          key: ActivityKey.PROMPT_REMIX_COMPLETED,
+          value: JSON.stringify({
+            progress: 100,
+            promptId: data.id.toString(),
+            sourcePromptId: promptId,
+            type: 'remix',
+          }),
+        },
+      );
       await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
         result,
         status: Status.COMPLETED,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      await this.activitiesService.patch(activityId, {
-        key: ActivityKey.PROMPT_REMIX_FAILED,
-        value: JSON.stringify({
-          error: errorMessage(error),
-          promptId: data.id.toString(),
-          sourcePromptId: promptId,
-          type: 'remix',
-        }),
-      });
+      await this.activityRecorder.update(
+        { id: activityId, organizationId },
+        {
+          key: ActivityKey.PROMPT_REMIX_FAILED,
+          value: JSON.stringify({
+            error: errorMessage(error),
+            promptId: data.id.toString(),
+            sourcePromptId: promptId,
+            type: 'remix',
+          }),
+        },
+      );
       await this.refundRemixCredits(organizationId, userId, chargedCredits);
       await this.promptsService.patch(data.id, {
         status: PromptStatus.FAILED,

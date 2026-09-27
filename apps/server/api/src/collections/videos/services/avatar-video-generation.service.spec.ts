@@ -99,7 +99,7 @@ describe('AvatarVideoGenerationService', () => {
       publishVideoProgress: vi.fn().mockResolvedValue(undefined),
     };
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: 'avatar-activity' }),
+      record: vi.fn().mockResolvedValue({ id: 'avatar-activity' }),
     };
     const lifecycleService = new AvatarVideoLifecycleService(
       activitiesService as never,

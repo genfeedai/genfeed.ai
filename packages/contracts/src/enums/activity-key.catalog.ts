@@ -88,6 +88,10 @@ export type ActivityMessageId =
   | 'activity.agent.review_expired'
   | 'activity.social.replies'
   | 'activity.credits.low'
+  | 'activity.review.requested'
+  | 'activity.report.delivered'
+  | 'activity.trends.ready'
+  | 'activity.approval.requested'
   | 'activity.fallback';
 
 export interface ActivityMessageDescriptor {
@@ -182,6 +186,16 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.AGENT_REVIEW_EXPIRED]: 'activity.agent.review_expired',
   [ActivityKey.SOCIAL_REPLIES_RECEIVED]: 'activity.social.replies',
   [ActivityKey.CREDITS_LOW]: 'activity.credits.low',
+  [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: 'activity.review.requested',
+  [ActivityKey.WORKFLOW_REPORT_DELIVERED]: 'activity.report.delivered',
+  [ActivityKey.TREND_SUMMARY_READY]: 'activity.trends.ready',
+  [ActivityKey.MCP_APPROVAL_REQUESTED]: 'activity.approval.requested',
+  // Audit rows keep their humanized fallback label.
+  [ActivityKey.POST_LIFECYCLE_TRANSITION]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_DOWNLOAD]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLISH]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_REVOKE]: 'activity.fallback',
+  [ActivityKey.BRAND_OS_EXPORT_PUBLIC_READ]: 'activity.fallback',
 } as const satisfies Readonly<Record<ActivityKey, ActivityMessageId>>;
 
 const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
@@ -851,6 +865,18 @@ export function formatActivityMessage(
 
     case 'activity.credits.low':
       return 'Credits are running low';
+
+    case 'activity.review.requested':
+      return 'Review needed';
+
+    case 'activity.report.delivered':
+      return 'Workflow report ready';
+
+    case 'activity.trends.ready':
+      return 'Trend summary ready';
+
+    case 'activity.approval.requested':
+      return 'Tool approval needed';
 
     default:
       return descriptor.params.fallbackSubject;

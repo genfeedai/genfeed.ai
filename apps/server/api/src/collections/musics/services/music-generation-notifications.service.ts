@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import {
@@ -23,7 +22,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class MusicGenerationNotificationsService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly musicsService: MusicsService,
     private readonly websocketService: NotificationsPublisherService,
@@ -36,22 +35,20 @@ export class MusicGenerationNotificationsService {
     model: string;
     user: User;
   }): Promise<void> {
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: params.brandId,
-        entityId: params.ingredientId,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.MUSIC_PROCESSING,
-        organizationId: params.user.organizationId,
-        source: ActivitySource.MUSIC_GENERATION,
-        userId: params.user.userId ?? params.user.id,
-        value: JSON.stringify({
-          ingredientId: params.ingredientId,
-          model: params.model,
-          type: 'generation',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: params.brandId,
+      entityId: params.ingredientId,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.MUSIC_PROCESSING,
+      organizationId: params.user.organizationId,
+      source: ActivitySource.MUSIC_GENERATION,
+      userId: params.user.userId ?? params.user.id,
+      value: JSON.stringify({
+        ingredientId: params.ingredientId,
+        model: params.model,
+        type: 'generation',
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -74,7 +71,7 @@ export class MusicGenerationNotificationsService {
     promptId: string;
     user: User;
   }): Promise<void> {
-    const activity = await this.activitiesService.create({
+    const activity = await this.activityRecorder.record({
       brandId: params.brandId,
       entityId: params.ingredientId,
       entityModel: ActivityEntityModel.INGREDIENT,

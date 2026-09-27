@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -29,6 +28,7 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -78,7 +78,8 @@ type GenerationMetadata = Pick<
 export class PostGenerationService {
   constructor(
     private readonly accountPublishingContextService: AccountPublishingContextService,
-    private readonly activitiesService: ActivitiesService,
+
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly apiKeysService: ApiKeysService,
     private readonly brandsService: BrandsService,
@@ -469,23 +470,21 @@ export class PostGenerationService {
     // Create the PROCESSING activity inside the try so a failure here cannot
     // exit the method while leaving the already-created posts stuck in
     // PROCESSING — the catch marks every post FAILED regardless (issue #861).
-    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
+    let activity: ActivityDocument | undefined;
 
     try {
-      activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: identity.brandId,
-          key: ActivityKey.POST_PROCESSING,
-          organizationId: identity.organizationId,
-          source: ActivitySource.POST_GENERATION,
-          userId: identity.userId,
-          value: JSON.stringify({
-            count: dto.count,
-            topic: dto.topic?.substring(0, 100),
-            type: `${dto.format}-generation`,
-          }),
+      activity = await this.activityRecorder.record({
+        brandId: identity.brandId,
+        key: ActivityKey.POST_PROCESSING,
+        organizationId: identity.organizationId,
+        source: ActivitySource.POST_GENERATION,
+        userId: identity.userId,
+        value: JSON.stringify({
+          count: dto.count,
+          topic: dto.topic?.substring(0, 100),
+          type: `${dto.format}-generation`,
         }),
-      );
+      });
 
       const prompt = await this.buildAccountGenerationPrompt(
         dto,
@@ -548,7 +547,7 @@ export class PostGenerationService {
         );
       }
       try {
-        await this.activitiesService.patch(activity.id.toString(), {
+        await this.activityRecorder.update(activity, {
           key:
             completedCount === createdPosts.length
               ? ActivityKey.POST_GENERATED
@@ -577,7 +576,7 @@ export class PostGenerationService {
 
       if (activity) {
         try {
-          await this.activitiesService.patch(activity.id.toString(), {
+          await this.activityRecorder.update(activity, {
             key: ActivityKey.POST_FAILED,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
@@ -628,18 +627,16 @@ export class PostGenerationService {
         result: updatedPost,
         status: Status.COMPLETED,
       });
-      await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: identity.brandId,
-          entityId: postId,
-          entityModel: ActivityEntityModel.POST,
-          key: ActivityKey.POST_GENERATED,
-          organizationId: identity.organizationId,
-          source: ActivitySource.POST_GENERATION,
-          userId: identity.userId,
-          value: postId,
-        }),
-      );
+      await this.activityRecorder.record({
+        brandId: identity.brandId,
+        entityId: postId,
+        entityModel: ActivityEntityModel.POST,
+        key: ActivityKey.POST_GENERATED,
+        organizationId: identity.organizationId,
+        source: ActivitySource.POST_GENERATION,
+        userId: identity.userId,
+        value: postId,
+      });
 
       try {
         await this.recordGeneratedPostLineage({

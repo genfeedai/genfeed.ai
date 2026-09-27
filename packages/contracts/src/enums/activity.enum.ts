@@ -45,6 +45,9 @@ export enum ActivitySource {
   WORKFLOW_EXECUTION = 'workflow-execute',
   AGENT_RUN = 'agent-run',
   AGENT_REVIEW = 'agent-review',
+  MCP_APPROVAL = 'mcp-approval',
+  POST_LIFECYCLE = 'post-lifecycle',
+  BRAND_OS_EXPORT = 'brand-os-export',
 }
 
 /**
@@ -125,6 +128,21 @@ export enum ActivityKey {
   SOCIAL_REPLIES_RECEIVED = 'social-replies-received',
   /** The organization's spendable credit balance fell below the alert threshold. */
   CREDITS_LOW = 'credits-low',
+  /** A workflow review gate paused for human approval. */
+  WORKFLOW_REVIEW_REQUESTED = 'workflow-review-requested',
+  /** A workflow reportDelivery node sent its report to the bell. */
+  WORKFLOW_REPORT_DELIVERED = 'workflow-report-delivered',
+  /** A scheduled trend summary is ready. */
+  TREND_SUMMARY_READY = 'trend-summary-ready',
+  /** An MCP tool call is waiting for approval. */
+  MCP_APPROVAL_REQUESTED = 'mcp-approval-requested',
+  /** Audit: a post moved between lifecycle states. */
+  POST_LIFECYCLE_TRANSITION = 'post.lifecycle.transition',
+  /** Audit: Brand OS export access and publication. */
+  BRAND_OS_EXPORT_DOWNLOAD = 'brand_os.export.download',
+  BRAND_OS_EXPORT_PUBLISH = 'brand_os.export.publish',
+  BRAND_OS_EXPORT_REVOKE = 'brand_os.export.revoke',
+  BRAND_OS_EXPORT_PUBLIC_READ = 'brand_os.export.public_read',
 }
 
 export enum ActivityStatus {

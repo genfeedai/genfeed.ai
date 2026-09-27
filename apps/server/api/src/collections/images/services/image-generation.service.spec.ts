@@ -187,7 +187,7 @@ const createService = () => {
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const activitiesService = {
-    create: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
+    record: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
   };
   const websocketService = {
     publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),

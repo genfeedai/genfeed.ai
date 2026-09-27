@@ -141,6 +141,29 @@ export const ACTIVITY_ALERT_POLICIES = {
     severity: 'warning',
     topic: 'billing.credits',
   },
+  [ActivityKey.WORKFLOW_REVIEW_REQUESTED]: {
+    recipients: [
+      { channels: ['in_app'], recipient: 'actor' },
+      { channels: ['email', 'slack'], recipient: 'explicit' },
+    ],
+    severity: 'warning',
+    topic: 'approval.requests',
+  },
+  [ActivityKey.MCP_APPROVAL_REQUESTED]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'warning',
+    topic: 'approval.requests',
+  },
+  [ActivityKey.WORKFLOW_REPORT_DELIVERED]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'info',
+    topic: 'workflow.status',
+  },
+  [ActivityKey.TREND_SUMMARY_READY]: {
+    recipients: [{ channels: ['in_app'], recipient: 'actor' }],
+    severity: 'info',
+    topic: 'trends.summary',
+  },
 } as const satisfies Readonly<
   Partial<Record<ActivityKey, ActivityAlertPolicy>>
 >;

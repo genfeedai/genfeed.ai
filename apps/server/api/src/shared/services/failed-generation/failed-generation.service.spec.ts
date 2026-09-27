@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   type FailedGenerationOptions,
@@ -13,7 +14,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FailedGenerationService', () => {
   let service: FailedGenerationService;
-  let activitiesService: vi.Mocked<ActivitiesService>;
+  // One mock serves the activity lookup and the recording API.
+  let activitiesService: {
+    findByActionValue: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    record: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
   let websocketService: vi.Mocked<NotificationsPublisherService>;
 
   const mockIngredientId = '550e8400-e29b-41d4-a716-446655440001';
@@ -32,12 +39,13 @@ describe('FailedGenerationService', () => {
         {
           provide: ActivitiesService,
           useValue: {
-            create: vi.fn(),
+            record: vi.fn(),
             findByActionValue: vi.fn().mockResolvedValue(null),
             findOne: vi.fn().mockResolvedValue(null),
-            patch: vi.fn(),
+            update: vi.fn(),
           },
         },
+        { provide: ActivityRecorderService, useExisting: ActivitiesService },
         {
           provide: NotificationsPublisherService,
           useValue: {
@@ -90,11 +98,11 @@ describe('FailedGenerationService', () => {
       };
 
       mockService.patch.mockResolvedValue({});
-      activitiesService.create.mockResolvedValue({} as never);
+      activitiesService.record.mockResolvedValue({} as never);
 
       await service.handleFailedGeneration(mockService, options);
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
           organizationId: expect.any(String),
@@ -114,7 +122,7 @@ describe('FailedGenerationService', () => {
 
       await service.handleFailedGeneration(mockService, options);
 
-      expect(activitiesService.create).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
     });
 
     it('should use publishMediaFailed when specified', async () => {
@@ -284,7 +292,7 @@ describe('FailedGenerationService', () => {
         status: IngredientStatus.FAILED,
       });
 
-      expect(activitiesService.create).toHaveBeenCalledWith(
+      expect(activitiesService.record).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.IMAGE_FAILED,
           source: ActivitySource.SCRIPT,
@@ -333,7 +341,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(imagesService.patch).toHaveBeenCalled();
-      expect(activitiesService.create).not.toHaveBeenCalled();
+      expect(activitiesService.record).not.toHaveBeenCalled();
     });
   });
 

@@ -1,7 +1,7 @@
 import type { UserSetupResult } from '@api/collections/users/services/user-setup.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -32,7 +32,7 @@ export class UserProvisioningListener {
     private readonly userSetupService: UserSetupService,
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly signupPrefillWorkflowService: SignupPrefillWorkflowService,
-    private readonly notificationsService: NotificationsService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -117,10 +117,22 @@ export class UserProvisioningListener {
    * sign-in, which has already committed above.
    */
   private notifyOperatorOfNewUser(event: IBetterAuthUserCreatedEvent): void {
-    void this.notificationsService
-      .sendUserCreatedNotification({
-        email: event.email ?? undefined,
-        id: event.userId,
+    void this.activityRecorder
+      .dispatch({
+        deduplicationKey: `message.user-created/${event.userId}`,
+        messages: [
+          {
+            destination: null,
+            message: {
+              action: 'user_notification',
+              payload: { email: event.email ?? undefined, id: event.userId },
+              type: 'discord',
+            },
+          },
+        ],
+        organizationId: null,
+        source: { id: event.userId, type: 'user' },
+        topic: 'operator.alerts',
       })
       .catch((error: unknown) => {
         this.logger.error(`${this.context} operator signup alert failed`, {

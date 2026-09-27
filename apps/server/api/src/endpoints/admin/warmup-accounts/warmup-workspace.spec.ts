@@ -106,7 +106,10 @@ function fixture() {
         return { ...balance };
       }),
     },
-    activity: { create: vi.fn().mockResolvedValue({}) },
+    activity: {
+      create: vi.fn().mockResolvedValue({}),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     creditTransaction: {
       findFirst: vi
         .fn()

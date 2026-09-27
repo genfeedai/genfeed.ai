@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import {
   ArticleGenerationType,
   GenerateArticlesDto,
@@ -32,6 +30,8 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import type { ActivityRef } from '@api/services/activity-recording/activity-recording.types';
 import type { AgentEndpointRequest } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import type {
@@ -85,7 +85,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   private static readonly ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly articlesService: ArticlesService,
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -179,20 +179,18 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       minimumRequiredCredits,
     );
 
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        key: ActivityKey.ARTICLE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.ARTICLE_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          count: dto.count || 1,
-          prompt: dto.prompt?.substring(0, 100),
-          type: generationType,
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.ARTICLE_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.ARTICLE_GENERATION,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        count: dto.count || 1,
+        prompt: dto.prompt?.substring(0, 100),
+        type: generationType,
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
@@ -233,13 +231,10 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           isRead: false,
         };
         if (index === 0) {
-          await this.activitiesService.patch(
-            activity.id.toString(),
-            completion,
-          );
+          await this.activityRecorder.update(activity, completion);
           isCompletionRecorded = true;
         } else {
-          await this.activitiesService.create(completion);
+          await this.activityRecorder.record(completion);
         }
 
         await this.websocketService.publishBackgroundTaskUpdate({
@@ -264,7 +259,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
     } catch (error: unknown) {
       if (!isCompletionRecorded) {
         await this.recordArticleGenerationFailure(
-          activity.id.toString(),
+          activity,
           error,
           isXArticle,
           user.id,
@@ -544,7 +539,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
   }
 
   private async recordArticleGenerationFailure(
-    activityId: string,
+    activity: ActivityRef,
     error: unknown,
     isXArticle: boolean,
     userId: string,
@@ -552,7 +547,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
     const errorMessage =
       (error as Error)?.message || 'Article generation failed';
 
-    await this.activitiesService.patch(activityId, {
+    const activityId = activity.id;
+    await this.activityRecorder.update(activity, {
       key: ActivityKey.ARTICLE_FAILED,
       value: JSON.stringify({
         error: errorMessage,

@@ -2,7 +2,6 @@ import { Status } from '@genfeedai/contracts';
 import type {
   IBackgroundTaskUpdatePayload,
   IMediaResult,
-  INotificationData,
 } from '@genfeedai/contracts/interfaces';
 import { RedisService } from '@libs/redis/redis.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -72,17 +71,6 @@ export class NotificationsPublisherService {
     room?: string,
   ) {
     await this.publishMediaStatus(path, Status.FAILED, error, userId, room);
-  }
-
-  /**
-   * Publish notification event
-   */
-  async publishNotification(data: {
-    userId?: string;
-    organizationId?: string;
-    notification: INotificationData;
-  }) {
-    await this.redisService.publish('notifications', data);
   }
 
   /**

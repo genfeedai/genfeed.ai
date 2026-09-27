@@ -1,7 +1,6 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { resolveBatchItems } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { batchItemRowsInclude } from '@api/services/batch-generation/batch-item-rows';
@@ -22,7 +21,7 @@ export class BatchGenerationRewriteService {
     private readonly prisma: PrismaService,
     private readonly postGenerationService: PostGenerationService,
     private readonly reviewService: BatchGenerationReviewService,
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -76,20 +75,18 @@ export class BatchGenerationRewriteService {
         throw new BadRequestException('This post can no longer be rewritten');
       }
     }
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        organizationId,
-        userId,
-        key: ActivityKey.POST_PROCESSING,
-        source: ActivitySource.POST_ENHANCEMENT,
-        value: JSON.stringify({
-          batchId,
-          itemIds: [...selectedIds],
-          type: 'batch-rewrite',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId,
+      key: ActivityKey.POST_PROCESSING,
+      organizationId,
+      source: ActivitySource.POST_ENHANCEMENT,
+      userId,
+      value: JSON.stringify({
+        batchId,
+        itemIds: [...selectedIds],
+        type: 'batch-rewrite',
       }),
-    );
+    });
     const task = {
       activityId: activity.id,
       taskId: activity.id,
@@ -133,11 +130,10 @@ export class BatchGenerationRewriteService {
         captions,
         new Map(posts.map((post) => [post.id, post.updatedAt])),
       );
-      await this.activitiesService.patch(activity.id, {
+      await this.activityRecorder.update(activity, {
+        isRead: false,
         key: ActivityKey.POST_GENERATED,
         source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId,
       });
       await this.websocketService.publishBackgroundTaskUpdate({
         ...task,
@@ -146,11 +142,10 @@ export class BatchGenerationRewriteService {
       });
       return result;
     } catch (error) {
-      await this.activitiesService.patch(activity.id, {
+      await this.activityRecorder.update(activity, {
+        isRead: false,
         key: ActivityKey.POST_FAILED,
         source: ActivitySource.POST_ENHANCEMENT,
-        isRead: false,
-        organizationId,
       });
       await this.websocketService.publishBackgroundTaskUpdate({
         ...task,

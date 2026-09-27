@@ -54,6 +54,9 @@ describe('activity.enum', () => {
         'WORKFLOW_EXECUTION',
         'AGENT_RUN',
         'AGENT_REVIEW',
+        'MCP_APPROVAL',
+        'POST_LIFECYCLE',
+        'BRAND_OS_EXPORT',
       ]);
     });
 
@@ -174,6 +177,15 @@ describe('activity.enum', () => {
         'AGENT_REVIEW_EXPIRED',
         'SOCIAL_REPLIES_RECEIVED',
         'CREDITS_LOW',
+        'WORKFLOW_REVIEW_REQUESTED',
+        'WORKFLOW_REPORT_DELIVERED',
+        'TREND_SUMMARY_READY',
+        'MCP_APPROVAL_REQUESTED',
+        'POST_LIFECYCLE_TRANSITION',
+        'BRAND_OS_EXPORT_DOWNLOAD',
+        'BRAND_OS_EXPORT_PUBLISH',
+        'BRAND_OS_EXPORT_REVOKE',
+        'BRAND_OS_EXPORT_PUBLIC_READ',
       ]);
     });
 

@@ -15,6 +15,9 @@ export const SOCIAL_REPLY_NOTIFICATION_TOPIC = 'social.reply' as const;
 export const ALERT_ONLY_NOTIFICATION_TOPICS = [
   'publishing.status',
   'integration.status',
+  'approval.requests',
+  'trends.summary',
+  'operator.alerts',
 ] as const;
 export const NOTIFICATION_TOPICS = [
   'workflow.status',

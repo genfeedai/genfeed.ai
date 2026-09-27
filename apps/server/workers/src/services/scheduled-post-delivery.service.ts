@@ -1,4 +1,3 @@
-import type { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -21,6 +20,7 @@ import {
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
+import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
@@ -874,7 +874,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     code: string,
     message: string,
     isRetryable: boolean,
-    activity: ActivityEntity = createPublishFailedActivity(post, message),
+    activity: RecordActivityInput = createPublishFailedActivity(post, message),
   ): Promise<PublishResult> {
     const persisted = await this.persistPublishState(
       post,

@@ -25,6 +25,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [EmailPerformanceController],
   exports: [
+    ActivityRecordingModule,
     SystemEmailEligibilityService,
     EmailPerformanceService,
     EmailPerformanceReportService,
@@ -68,10 +69,6 @@ import { Module } from '@nestjs/common';
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,
-    },
-    {
-      provide: SERVER_TOKENS.notifications,
-      useExisting: NotificationsService,
     },
     {
       provide: SERVER_TOKENS.prisma,
