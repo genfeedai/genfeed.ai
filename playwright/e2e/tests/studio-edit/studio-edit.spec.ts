@@ -1,10 +1,15 @@
+import { EditorProjectStatus, IngredientFormat } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Page } from '@playwright/test';
+import type { IEditorProject } from '@genfeedai/contracts/interfaces';
+import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { StudioPage } from '../../pages/studio.page';
 import { brandPath } from '../../utils/app-chrome';
-import { assertRouteRenders } from '../../utils/route-assertions';
+import {
+  assertRouteRenders,
+  expectNoErrorOverlay,
+} from '../../utils/route-assertions';
 
 /**
  * E2E Tests for Studio Edit (the Remotion timeline, merged into Studio in #2309)
@@ -25,73 +30,138 @@ const EDIT_ROUTE = brandPath(APP_ROUTES.STUDIO.EDIT);
 const EDIT_NEW_ROUTE = brandPath(APP_ROUTES.STUDIO.EDIT_NEW);
 const PROJECT_ID = 'editor-project-1';
 const PROJECT_ROUTE = brandPath(`${APP_ROUTES.STUDIO.EDIT}/${PROJECT_ID}`);
+const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
+// EditorToolbar's FORMAT_OPTIONS label for IngredientFormat.LANDSCAPE.
+const LANDSCAPE_FORMAT_LABEL = '16:9';
+
+// Shaped by IEditorProject and serialized as editorProjectSerializerConfig
+// (JSON:API type `editor-project`).
+const project: Pick<
+  IEditorProject,
+  'id' | 'name' | 'settings' | 'status' | 'totalDurationFrames' | 'tracks'
+> = {
+  id: PROJECT_ID,
+  name: 'Untitled Project',
+  settings: {
+    backgroundColor: '#000000',
+    format: IngredientFormat.LANDSCAPE,
+    fps: 30,
+    height: 1080,
+    width: 1920,
+  },
+  status: EditorProjectStatus.DRAFT,
+  totalDurationFrames: 300,
+  tracks: [],
+};
+
+function projectDocument() {
+  return {
+    attributes: project,
+    id: PROJECT_ID,
+    type: 'editor-project',
+  };
+}
+
+async function fulfillJson(
+  route: Route,
+  status: number,
+  body: unknown,
+): Promise<void> {
+  await route.fulfill({
+    body: JSON.stringify(body),
+    contentType: 'application/json',
+    status,
+  });
+}
+
+interface EditorProjectsMockOptions {
+  /** Projects returned by the list GET (default: none). */
+  listedProjects?: ReturnType<typeof projectDocument>[];
+  /** Status of the create POST (default: 201 with the project). */
+  createStatus?: 201 | 500;
+  /** Number of list GETs that fail with 500 before succeeding (default: 0). */
+  listFailures?: number;
+}
 
 /**
- * /studio/edit/new (new-editor-project-page.tsx) is a transient redirect: it
- * POSTs a new project on mount and replaces the URL with
- * `/studio/edit/:id` on success, or back to `/studio/edit` if the create call
- * fails. A test that asserts it as a stable landing URL never mocks the
- * create call, so it always takes the failure branch — the project never
- * exists — and lands back on the plain list.
+ * One handler for every `/editor-projects` call: list GET, create POST and
+ * detail GET are all answered here, so nothing reaches the real network or
+ * the strict network guard.
  */
-async function mockEditorProject(page: Page): Promise<void> {
-  const project = {
-    id: PROJECT_ID,
-    name: 'Untitled Project',
-    settings: {
-      backgroundColor: '#000000',
-      format: 'LANDSCAPE',
-      fps: 30,
-      height: 1080,
-      width: 1920,
-    },
-    status: 'DRAFT',
-    totalDurationFrames: 300,
-    tracks: [],
-  };
+async function mockEditorProjects(
+  page: Page,
+  {
+    createStatus = 201,
+    listFailures = 0,
+    listedProjects = [],
+  }: EditorProjectsMockOptions = {},
+): Promise<void> {
+  let remainingListFailures = listFailures;
 
-  await page.route('**/api.genfeed.ai/*/editor-projects**', async (route) => {
+  await page.route(EDITOR_PROJECTS_PATTERN, async (route) => {
     const request = route.request();
     const method = request.method();
-    const url = request.url();
+    const { pathname } = new URL(request.url());
+    const isDetail = pathname.endsWith(`/editor-projects/${PROJECT_ID}`);
 
-    if (method === 'POST' && !url.endsWith(`/${PROJECT_ID}`)) {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            attributes: project,
-            id: PROJECT_ID,
-            type: 'editor-projects',
-          },
-        }),
-        contentType: 'application/json',
-        status: 201,
+    if (method === 'POST' && !isDetail) {
+      if (createStatus === 500) {
+        await fulfillJson(route, 500, {
+          errors: [{ title: 'Internal Server Error' }],
+        });
+        return;
+      }
+      await fulfillJson(route, 201, { data: projectDocument() });
+      return;
+    }
+
+    if (method === 'GET' && isDetail) {
+      await fulfillJson(route, 200, { data: projectDocument() });
+      return;
+    }
+
+    if (method === 'GET') {
+      if (remainingListFailures > 0) {
+        remainingListFailures -= 1;
+        await fulfillJson(route, 500, {
+          errors: [{ title: 'Internal Server Error' }],
+        });
+        return;
+      }
+      await fulfillJson(route, 200, {
+        data: listedProjects,
+        meta: { totalCount: listedProjects.length },
       });
       return;
     }
 
-    if (method === 'GET' && url.endsWith(`/${PROJECT_ID}`)) {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            attributes: project,
-            id: PROJECT_ID,
-            type: 'editor-projects',
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    // fallback(), not continue(): the latter sends the request straight to
-    // the real network, bypassing setupApiMocks' generic catch-all
-    // (registered earlier, so lower priority) that would otherwise answer
-    // the plain projects-list GET with an empty collection.
+    // Any other editor-projects call falls back to setupApiMocks' mocked
+    // catch-all (registered earlier, so lower priority) — never the network.
     await route.fallback();
   });
 }
+
+/** The editor surface for PROJECT_ID, reached through a client transition. */
+async function expectProjectEditor(page: Page): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`${PROJECT_ROUTE}$`));
+  await expectNoErrorOverlay(page);
+
+  // Real controls (EditorToolbar.tsx): Save starts disabled (nothing to save
+  // yet); Render is always enabled and always present.
+  await expect(
+    page.getByRole('button', { exact: true, name: 'Render' }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole('button', { exact: true, name: 'Save' }),
+  ).toBeDisabled();
+  // The format selector reflects the project's contract format.
+  await expect(
+    page.getByRole('combobox').filter({ hasText: LANDSCAPE_FORMAT_LABEL }),
+  ).toBeVisible();
+}
+
+const newProjectLink = (page: Page) =>
+  page.getByRole('link', { exact: true, name: 'New Project' });
 
 test.describe('Studio Edit', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -102,38 +172,37 @@ test.describe('Studio Edit', () => {
   });
 
   test.describe('Studio Edit Projects Page', () => {
-    test('should display the projects list with a New Project action', async ({
+    test('should list existing projects with a New Project action', async ({
       authenticatedPage,
     }) => {
+      await mockEditorProjects(authenticatedPage, {
+        listedProjects: [projectDocument()],
+      });
+
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // Real content (editor-projects-page.tsx): a "New Project" link is
-      // rendered whether or not the org already has projects.
+      // Real content (editor-projects-page.tsx): one card per project, with
+      // its contract format and status, plus the header "New Project" link.
       await expect(
-        authenticatedPage.getByRole('link', {
-          name: 'New Project',
+        authenticatedPage.getByRole('link', { name: 'Open Untitled Project' }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText(IngredientFormat.LANDSCAPE, {
           exact: true,
         }),
       ).toBeVisible();
+      await expect(
+        authenticatedPage.getByText(EditorProjectStatus.DRAFT, {
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(newProjectLink(authenticatedPage)).toBeVisible();
     });
 
     test('should display the empty state with a Start New Project action', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/editor-projects**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            await route.fulfill({
-              body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
+      await mockEditorProjects(authenticatedPage);
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
@@ -150,112 +219,78 @@ test.describe('Studio Edit', () => {
     test('should render the projects list on mobile viewport', async ({
       authenticatedPage,
     }) => {
+      await mockEditorProjects(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
       await expect(
-        authenticatedPage.getByRole('link', {
-          name: 'New Project',
-          exact: true,
+        authenticatedPage.getByRole('heading', {
+          name: 'Create Your First Project',
         }),
       ).toBeVisible();
+      await expect(newProjectLink(authenticatedPage)).toBeVisible();
     });
 
     test('should render the projects list on tablet viewport', async ({
       authenticatedPage,
     }) => {
+      await mockEditorProjects(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 1024, width: 768 });
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
       await expect(
-        authenticatedPage.getByRole('link', {
-          name: 'New Project',
-          exact: true,
+        authenticatedPage.getByRole('heading', {
+          name: 'Create Your First Project',
         }),
       ).toBeVisible();
+      await expect(newProjectLink(authenticatedPage)).toBeVisible();
     });
   });
 
+  /**
+   * /studio/edit/new (new-editor-project-page.tsx) is a transient redirect: it
+   * POSTs a new project on mount and replaces the URL with `/studio/edit/:id`
+   * on success, or back to `/studio/edit` if the create call fails.
+   */
   test.describe('New Editor Project', () => {
     test('creates a project and lands on its editor with real toolbar controls', async ({
       authenticatedPage,
     }) => {
-      await mockEditorProject(authenticatedPage);
+      await mockEditorProjects(authenticatedPage);
 
-      await authenticatedPage.goto(EDIT_NEW_ROUTE, {
-        timeout: 60000,
-        waitUntil: 'domcontentloaded',
-      });
+      await assertRouteRenders(authenticatedPage, EDIT_NEW_ROUTE);
 
-      // new-editor-project-page.tsx replaces the URL once create() resolves.
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${PROJECT_ROUTE}$`),
-      );
-      await assertRouteRenders(authenticatedPage, PROJECT_ROUTE);
-
-      // Real controls (EditorToolbar.tsx): Save starts disabled (nothing to
-      // save yet); Render is always enabled and always present.
-      await expect(
-        authenticatedPage.getByRole('button', { name: 'Save' }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole('button', { name: 'Save' }),
-      ).toBeDisabled();
-      await expect(
-        authenticatedPage.getByRole('button', { name: 'Render' }),
-      ).toBeEnabled();
+      await expectProjectEditor(authenticatedPage);
     });
 
     test('renders on mobile viewport', async ({ authenticatedPage }) => {
-      await mockEditorProject(authenticatedPage);
+      await mockEditorProjects(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(EDIT_NEW_ROUTE, {
-        timeout: 60000,
-        waitUntil: 'domcontentloaded',
-      });
+      await assertRouteRenders(authenticatedPage, EDIT_NEW_ROUTE);
 
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${PROJECT_ROUTE}$`),
-      );
-      await assertRouteRenders(authenticatedPage, PROJECT_ROUTE);
-      await expect(
-        authenticatedPage.getByRole('button', { name: 'Render' }),
-      ).toBeVisible();
+      await expectProjectEditor(authenticatedPage);
     });
 
     test('falls back to the projects list when project creation fails', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/editor-projects**',
-        async (route) => {
-          if (route.request().method() === 'POST') {
-            await route.fulfill({
-              body: JSON.stringify({
-                errors: [{ title: 'Internal Server Error' }],
-              }),
-              contentType: 'application/json',
-              status: 500,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
+      await mockEditorProjects(authenticatedPage, { createStatus: 500 });
 
-      await authenticatedPage.goto(EDIT_NEW_ROUTE, {
-        timeout: 60000,
-        waitUntil: 'domcontentloaded',
-      });
+      await assertRouteRenders(authenticatedPage, EDIT_NEW_ROUTE);
 
       // new-editor-project-page.tsx's catch branch replaces the URL with the
       // plain list — the real, current behaviour of a failed create, not a
       // crash or a blank page.
       await expect(authenticatedPage).toHaveURL(new RegExp(`${EDIT_ROUTE}$`));
-      await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
+      await expectNoErrorOverlay(authenticatedPage);
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'Create Your First Project',
+        }),
+      ).toBeVisible();
     });
   });
 
@@ -263,16 +298,23 @@ test.describe('Studio Edit', () => {
     test('should navigate from studio hub to editor', async ({
       authenticatedPage,
     }) => {
+      await mockEditorProjects(authenticatedPage);
       const studioPage = new StudioPage(authenticatedPage);
 
-      await studioPage.goto();
-      await studioPage.waitForPageLoad();
+      await assertRouteRenders(authenticatedPage, studioPage.url);
 
-      await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
+      // The Studio app nav (studio-menu-items.config.ts) links to Edit.
+      await authenticatedPage
+        .getByRole('complementary', { exact: true, name: 'Navigation' })
+        .getByRole('link', { exact: true, name: 'Edit' })
+        .click();
+
+      await expect(authenticatedPage).toHaveURL(new RegExp(`${EDIT_ROUTE}$`));
+      await expectNoErrorOverlay(authenticatedPage);
+      await expect(newProjectLink(authenticatedPage)).toBeVisible();
       await expect(
-        authenticatedPage.getByRole('link', {
-          name: 'New Project',
-          exact: true,
+        authenticatedPage.getByRole('heading', {
+          name: 'Create Your First Project',
         }),
       ).toBeVisible();
     });
@@ -280,23 +322,15 @@ test.describe('Studio Edit', () => {
     test('should navigate from the projects list to a new project', async ({
       authenticatedPage,
     }) => {
-      await mockEditorProject(authenticatedPage);
+      await mockEditorProjects(authenticatedPage);
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // Real control, no if/else fallback: editor-projects-page.tsx always
-      // renders the "New Project" header action regardless of whether the
-      // org has existing projects (Container's `right` slot).
-      await authenticatedPage
-        .getByRole('link', { name: 'New Project', exact: true })
-        .click();
+      // editor-projects-page.tsx always renders the "New Project" header
+      // action regardless of whether the org has existing projects
+      // (Container's `right` slot).
+      await newProjectLink(authenticatedPage).click();
 
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${PROJECT_ROUTE}$`),
-      );
-      await assertRouteRenders(authenticatedPage, PROJECT_ROUTE);
-      await expect(
-        authenticatedPage.getByRole('button', { name: 'Render' }),
-      ).toBeVisible();
+      await expectProjectEditor(authenticatedPage);
     });
   });
 
@@ -304,33 +338,7 @@ test.describe('Studio Edit', () => {
     test('should show a retryable error state, not crash, when the projects list request fails', async ({
       authenticatedPage,
     }) => {
-      let hasFailed = false;
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/editor-projects**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            if (!hasFailed) {
-              hasFailed = true;
-              await route.fulfill({
-                body: JSON.stringify({
-                  errors: [{ title: 'Internal Server Error' }],
-                }),
-                contentType: 'application/json',
-                status: 500,
-              });
-              return;
-            }
-            // Retry succeeds — proves "Try again" actually re-fetches.
-            await route.fulfill({
-              body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
+      await mockEditorProjects(authenticatedPage, { listFailures: 1 });
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
@@ -338,7 +346,7 @@ test.describe('Studio Edit', () => {
       // distinct alert, not the empty-state affordance and not a crash.
       // Scoped past Next.js's own `role="alert"` route announcer
       // (#__next-route-announcer__, present on every page) via `.filter()`
-      // rather than `.first()` — the announcer is a always-present
+      // rather than `.first()` — the announcer is an always-present
       // incidental duplicate, not an ambiguity in this app's own markup.
       const errorAlert = authenticatedPage
         .getByRole('alert')
@@ -357,6 +365,7 @@ test.describe('Studio Edit', () => {
           name: 'Create Your First Project',
         }),
       ).toBeVisible();
+      await expect(errorAlert).toHaveCount(0);
     });
   });
 });
@@ -365,12 +374,11 @@ test.describe('Studio Edit — Unauthenticated Access', () => {
   test('should redirect editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.STUDIO.EDIT, {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
+    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.STUDIO.EDIT, {
+      allowRedirectToLogin: true,
     });
 
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
+    await expect(unauthenticatedPage).toHaveURL(/\/login\?callbackUrl=/, {
       timeout: 10000,
     });
   });
@@ -378,12 +386,11 @@ test.describe('Studio Edit — Unauthenticated Access', () => {
   test('should redirect new editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW, {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
+    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.STUDIO.EDIT_NEW, {
+      allowRedirectToLogin: true,
     });
 
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
+    await expect(unauthenticatedPage).toHaveURL(/\/login\?callbackUrl=/, {
       timeout: 10000,
     });
   });
@@ -391,15 +398,15 @@ test.describe('Studio Edit — Unauthenticated Access', () => {
   test('should redirect editor detail page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(
+    await assertRouteRenders(
+      unauthenticatedPage,
       `${APP_ROUTES.STUDIO.EDIT}/test-project-id`,
       {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
+        allowRedirectToLogin: true,
       },
     );
 
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
+    await expect(unauthenticatedPage).toHaveURL(/\/login\?callbackUrl=/, {
       timeout: 10000,
     });
   });

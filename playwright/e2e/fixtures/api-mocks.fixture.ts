@@ -85,6 +85,24 @@ function buildAvatarIdentityFixture(
   };
 }
 
+function avatarMetadataId(avatar: MockAvatarIdentityFixture): string {
+  return `${avatar.id}-metadata`;
+}
+
+// IngredientSerializer emits metadata as relationship linkage plus an
+// `included` resource, not as an embedded attribute.
+function buildAvatarMetadataResource(avatar: MockAvatarIdentityFixture) {
+  return {
+    attributes: {
+      description: `${avatar.label} fixture`,
+      extension: avatar.extension,
+      label: avatar.label,
+    },
+    id: avatarMetadataId(avatar),
+    type: 'metadata',
+  };
+}
+
 function buildAvatarIngredientDocument(avatar: MockAvatarIdentityFixture) {
   return {
     attributes: {
@@ -95,17 +113,25 @@ function buildAvatarIngredientDocument(avatar: MockAvatarIdentityFixture) {
       category: IngredientCategory.AVATAR,
       createdAt: new Date().toISOString(),
       id: avatar.id,
-      metadata: {
-        description: `${avatar.label} fixture`,
-        extension: avatar.extension,
-        label: avatar.label,
-      },
       parent: avatar.parent ?? null,
       status: 'generated',
       updatedAt: new Date().toISOString(),
     },
     id: avatar.id,
-    type: 'ingredients',
+    relationships: {
+      metadata: {
+        data: { id: avatarMetadataId(avatar), type: 'metadata' },
+      },
+    },
+    type: 'ingredient',
+  };
+}
+
+function buildAvatarIngredientCollection(avatars: MockAvatarIdentityFixture[]) {
+  return {
+    data: avatars.map(buildAvatarIngredientDocument),
+    included: avatars.map(buildAvatarMetadataResource),
+    meta: { page: 1, pageSize: avatars.length, totalCount: avatars.length },
   };
 }
 
@@ -3177,7 +3203,7 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
               name: 'Brand 1',
             },
             id: 'brand-1',
-            type: 'brands',
+            type: 'brand',
           },
         ],
         meta: {
@@ -3214,28 +3240,15 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
     });
   });
 
-  // useBrandProviderState's settings query reads from the auth bootstrap
-  // payload FIRST (BrandProvider's 60s shared, per-session-key client cache;
-  // see loadClientProtectedBootstrap) whenever bootstrap's organizationId
-  // matches the route's resolved org, and only falls back to the direct GET
-  // mocked above otherwise. setupApiMocks' default bootstrap mock resolves
-  // with a matching org id and its own generic settings, short-circuiting
-  // before the direct GET mock is ever consulted. Overriding the bootstrap
-  // response's settings would only fix the FIRST read: refreshSettings()
-  // (called after every save) does not clear that 60s client cache, so a
-  // matching org id would keep serving the pre-save snapshot after a save.
-  // Deliberately mismatching organizationId here routes every settings read
-  // — initial load and post-save refresh alike — through the direct GET/PATCH
-  // mock above, which is always live against the mutable `settings` value.
+  // Organization settings also ship in the protected bootstrap payload, which
+  // BrandProvider reads first. Serve the same mutable settings there so the
+  // post-save refresh goes through the production bootstrap path (#5416).
   await routeApiPattern(page, '/auth/bootstrap**', async (route) => {
     const bootstrap = buildProtectedAppBootstrapPayload();
     await route.fulfill({
       body: JSON.stringify({
         ...bootstrap,
-        access: {
-          ...bootstrap.access,
-          organizationId: `${bootstrap.access.organizationId}-settings-test-bypass`,
-        },
+        settings: { ...bootstrap.settings, ...settings },
       }),
       contentType: 'application/json',
       status: 200,
@@ -3247,14 +3260,13 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
     '/organizations/**/ingredients**',
     async (route) => {
       await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            buildAvatarIngredientDocument(avatars.source),
-            buildAvatarIngredientDocument(avatars.fallback),
-            buildAvatarIngredientDocument(avatars.video),
-          ],
-          meta: { page: 1, pageSize: 3, totalCount: 3 },
-        }),
+        body: JSON.stringify(
+          buildAvatarIngredientCollection([
+            avatars.source,
+            avatars.fallback,
+            avatars.video,
+          ]),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -3310,7 +3322,7 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
           {
             attributes: brand,
             id: brand.id,
-            type: 'brands',
+            type: 'brand',
           },
         ],
         meta: {
@@ -3330,7 +3342,7 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
         data: {
           attributes: brand,
           id: brand.id,
-          type: 'brands',
+          type: 'brand',
         },
       }),
       contentType: 'application/json',
@@ -3350,7 +3362,7 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
         data: {
           attributes: brand,
           id: brand.id,
-          type: 'brands',
+          type: 'brand',
         },
       }),
       contentType: 'application/json',
@@ -3437,13 +3449,9 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
     });
   });
 
-  const avatarIngredientsListBody = JSON.stringify({
-    data: [
-      buildAvatarIngredientDocument(avatars.source),
-      buildAvatarIngredientDocument(avatars.video),
-    ],
-    meta: { page: 1, pageSize: 2, totalCount: 2 },
-  });
+  const avatarIngredientsListBody = JSON.stringify(
+    buildAvatarIngredientCollection([avatars.source, avatars.video]),
+  );
 
   await routeApiPattern(
     page,
@@ -3477,12 +3485,16 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
       extractRequestPayload(route).category ?? 'avatar',
     );
 
+    const updated = {
+      ...current,
+      extension:
+        nextCategory === 'image' ? ('jpg' as const) : current.extension,
+    };
+
     await route.fulfill({
       body: JSON.stringify({
-        data: buildAvatarIngredientDocument({
-          ...current,
-          extension: nextCategory === 'image' ? 'jpg' : current.extension,
-        }),
+        data: buildAvatarIngredientDocument(updated),
+        included: [buildAvatarMetadataResource(updated)],
       }),
       contentType: 'application/json',
       status: 200,

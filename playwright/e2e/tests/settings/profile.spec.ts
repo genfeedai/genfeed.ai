@@ -1,409 +1,269 @@
-import {
-  mockActiveSubscription,
-  mockUserProfile,
-} from '../../fixtures/api-mocks.fixture';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
+import type { Page, Route } from '@playwright/test';
+import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { formData, testUsers } from '../../fixtures/test-data.fixture';
 import { SettingsPage } from '../../pages/settings.page';
-import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import { selectVisibleRadixOption } from '../../utils/radix-select';
 
 /**
- * E2E Tests for Profile Settings
+ * E2E Tests for Personal Settings
  *
- * Tests verify the personal settings surface: read-only profile identity,
- * preferences, and cross-scope settings navigation. All API calls are
- * mocked - no real backend requests occur.
+ * Personal settings (settings-profile-page.tsx) shows the signed-in identity
+ * read-only — name and email come from the auth session, with no editable
+ * name/bio form or avatar upload (read-only since the page entered this
+ * monorepo in 2df1de337) — plus persisted preferences: language, appearance,
+ * Advanced Mode and the default Agent mode. All API calls are mocked.
+ *
+ * The auth fixture signs in "Test User" <test@genfeed.ai>.
  */
-test.describe('Profile Settings', () => {
+const USER_NAME = 'Test User';
+const USER_EMAIL = 'test@genfeed.ai';
+const ME_SETTINGS_PATTERN = '**/api.genfeed.ai/v1/users/me/settings';
+
+/**
+ * Capture PATCH /users/me/settings bodies and answer with `status`.
+ */
+async function mockMeSettingsPatch(
+  page: Page,
+  status: 200 | 500,
+): Promise<Partial<ISetting>[]> {
+  const patches: Partial<ISetting>[] = [];
+
+  await page.route(ME_SETTINGS_PATTERN, async (route: Route) => {
+    if (route.request().method() !== 'PATCH') {
+      await route.fallback();
+      return;
+    }
+
+    const body = route.request().postDataJSON() as {
+      data?: { attributes?: Partial<ISetting> };
+    };
+    const attributes = body.data?.attributes ?? {};
+    patches.push(attributes);
+
+    await route.fulfill({
+      body: JSON.stringify(
+        status === 200
+          ? { data: { attributes, id: 'setting-1', type: 'setting' } }
+          : { errors: [{ status: '500', title: 'Internal Server Error' }] },
+      ),
+      contentType: 'application/json',
+      status,
+    });
+  });
+
+  return patches;
+}
+
+test.describe('Personal Settings', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
       plan: 'pro',
     });
-    await mockUserProfile(authenticatedPage, testUsers.default);
   });
 
   test.describe('Page Load', () => {
-    test('should display the settings page', async ({ authenticatedPage }) => {
+    test('redirects bare /settings to personal settings', async ({
+      authenticatedPage,
+    }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.goto();
 
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should display profile section', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        '/settings/personal',
-      );
-
-      // Personal settings home renders the read-only "Profile Information"
-      // card (name/email from the auth provider) — there is no separate
-      // profile tab in the redesigned Settings sidebar IA.
       await expect(settingsPage.profileSection).toBeVisible();
     });
 
-    test('should display navigation tabs', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        '/settings/personal',
-      );
-
-      // Settings navigation is now the shared app sidebar, not an in-page tab
-      // bar — see settingsNav's own comment in settings.page.ts.
-      await expect(settingsPage.settingsNav).toBeVisible();
-    });
-  });
-
-  test.describe('Profile Form', () => {
-    test('should display profile information', async ({
+    test('shows the account settings navigation', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        '/settings/personal',
-      );
 
-      // Personal settings (settings-profile-page.tsx) shows read-only
-      // identity sourced from the auth provider — name and email are
-      // displayed, not editable form fields. There is no first/last name or
-      // bio form in the shipped product.
+      for (const name of ['Personal', 'Notifications', 'Progress', 'Help']) {
+        await expect(
+          settingsPage.settingsNav.getByRole('link', { exact: true, name }),
+        ).toBeVisible();
+      }
+    });
+  });
+
+  test.describe('Profile Identity', () => {
+    test('displays the signed-in name and email read-only', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+
+      await settingsPage.goto();
+
       await expect(settingsPage.profileSection).toBeVisible();
       await expect(
-        authenticatedPage.getByText('Name', { exact: true }),
+        settingsPage.canvas.getByText(USER_NAME, { exact: true }),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByText('Email', { exact: true }),
+        settingsPage.canvas.getByText(USER_EMAIL, { exact: true }),
+      ).toBeVisible();
+      // Identity is owned by the auth provider: the page offers no text
+      // field to edit it.
+      await expect(settingsPage.canvas.getByRole('textbox')).toHaveCount(0);
+    });
+
+    test('shows the account avatar in the sidebar account menu', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+
+      await settingsPage.goto();
+
+      await expect(settingsPage.accountMenuAvatar).toBeVisible();
+      await expect(settingsPage.accountMenuAvatar).toHaveAccessibleName(
+        USER_NAME,
+      );
+    });
+  });
+
+  test.describe('Preferences', () => {
+    test('persists the default agent mode', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      const patches = await mockMeSettingsPatch(authenticatedPage, 200);
+
+      await settingsPage.goto();
+      await expect(settingsPage.agentModeTrigger).toContainText('Manual');
+
+      await selectVisibleRadixOption(
+        authenticatedPage,
+        settingsPage.agentModeTrigger,
+        'Plan',
+      );
+
+      await expect.poll(() => patches).toEqual([{ agentMode: 'plan' }]);
+      await expect(
+        settingsPage.canvas.getByText(/^Plan — the Agent drafts a plan/),
       ).toBeVisible();
     });
 
-    test('should pre-fill existing profile data', async ({
+    test('persists the appearance preference', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
+      const patches = await mockMeSettingsPatch(authenticatedPage, 200);
 
       await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
+      await expect(settingsPage.appearanceTrigger).toContainText('Dark');
 
-      // Fields might be pre-filled
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should allow editing first name', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.firstNameInput
-        .fill(formData.profile.firstName)
-        .catch(() => {});
-
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should allow editing last name', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.lastNameInput
-        .fill(formData.profile.lastName)
-        .catch(() => {});
-
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should allow editing bio', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.bioInput.fill(formData.profile.bio).catch(() => {});
-
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-  });
-
-  test.describe('Profile Save', () => {
-    test('should save profile changes', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      // Mock successful save
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/users/**',
-        async (route) => {
-          const method = route.request().method();
-
-          if (method === 'PATCH' || method === 'PUT') {
-            await route.fulfill({
-              body: JSON.stringify({
-                data: {
-                  attributes: {
-                    ...testUsers.default,
-                    firstName: formData.profile.firstName,
-                    lastName: formData.profile.lastName,
-                  },
-                  id: 'user-1',
-                  type: 'users',
-                },
-              }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-
-          await route.continue();
-        },
-      );
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage
-        .updateProfile({
-          firstName: formData.profile.firstName,
-          lastName: formData.profile.lastName,
-        })
-        .catch(() => {});
-
-      // Should show success or remain on page
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should show success message after save', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/users/**',
-        async (route) => {
-          const method = route.request().method();
-
-          if (method === 'PATCH' || method === 'PUT') {
-            await route.fulfill({
-              body: JSON.stringify({
-                data: { attributes: {}, id: 'user-1', type: 'users' },
-              }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-
-          await route.continue();
-        },
-      );
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage
-        .updateProfile({ firstName: 'Updated' })
-        .catch(() => {});
-
-      // Success message might appear
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should handle save error', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/users/**',
-        async (route) => {
-          const method = route.request().method();
-
-          if (method === 'PATCH' || method === 'PUT') {
-            await route.fulfill({
-              body: JSON.stringify({
-                errors: [{ detail: 'Invalid data', title: 'Validation error' }],
-              }),
-              contentType: 'application/json',
-              status: 400,
-            });
-            return;
-          }
-
-          await route.continue();
-        },
-      );
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.updateProfile({ firstName: '' }).catch(() => {});
-
-      // Should remain on settings page
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-  });
-
-  test.describe('Avatar Upload', () => {
-    // Obsolete: a personal avatar UPLOAD control never shipped in this
-    // product — identity (name, email, avatar) is sourced from the auth
-    // provider (use-auth-user.ts's toAuthUser()/normalizeAuthAvatarUrl) with
-    // no in-app editor. Confirmed by an app-wide search: no
-    // `input[type="file"]` for an avatar exists outside onboarding/studio
-    // upload flows unrelated to the personal profile. The "current avatar"
-    // coverage is kept below, pointed at where the avatar actually renders
-    // today (the sidebar account menu).
-    test('should display current avatar', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-      await assertNoErrorBoundaryFallback(
+      await selectVisibleRadixOption(
         authenticatedPage,
-        '/settings/personal',
+        settingsPage.appearanceTrigger,
+        'Light',
       );
 
-      await expect(settingsPage.avatarImage).toBeVisible();
-    });
-  });
-
-  test.describe('Form Validation', () => {
-    test('should validate required fields', async ({ authenticatedPage }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
-
-      // Clear required fields
-      await settingsPage.firstNameInput.clear().catch(() => {});
-      await settingsPage.lastNameInput.clear().catch(() => {});
-
-      // Try to save
-      await settingsPage.saveProfileButton.click().catch(() => {});
-
-      // Should show validation errors or prevent save
-      await expect(authenticatedPage).toHaveURL(/settings/);
+      await expect.poll(() => patches).toEqual([{ theme: 'light' }]);
+      await expect(settingsPage.appearanceTrigger).toContainText('Light');
+      await expect(
+        authenticatedPage.getByText(
+          'Failed to save your appearance preference.',
+        ),
+      ).toHaveCount(0);
     });
 
-    test('should show validation errors for invalid input', async ({
+    test('reverts the appearance and reports an error when saving fails', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
+      const patches = await mockMeSettingsPatch(authenticatedPage, 500);
 
       await settingsPage.goto();
-      await settingsPage.goToProfile().catch(() => {});
-      await settingsPage.waitForPageLoad();
+      await expect(settingsPage.appearanceTrigger).toContainText('Dark');
 
-      const errors = await settingsPage.getValidationErrors().catch(() => []);
-      expect(Array.isArray(errors)).toBe(true);
+      // Not selectVisibleRadixOption: it expects the trigger to keep the new
+      // value, but a failed save reverts it.
+      await settingsPage.appearanceTrigger.click();
+      await authenticatedPage
+        .getByRole('option', { exact: true, name: 'Light' })
+        .click();
+
+      await expect(
+        authenticatedPage.getByText(
+          'Failed to save your appearance preference.',
+        ),
+      ).toBeVisible();
+      await expect.poll(() => patches).toEqual([{ theme: 'light' }]);
+      await expect(settingsPage.appearanceTrigger).toContainText('Dark');
     });
   });
 
   test.describe('Settings Navigation', () => {
-    test('should navigate to billing settings', async ({
+    test('navigates to notifications settings from the sidebar', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
+      await settingsPage.navigateFromSidebar(
+        'Notifications',
+        APP_ROUTES.SETTINGS.NOTIFICATIONS,
+      );
 
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Email Notifications',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('switch', { name: 'Workflow Emails' }),
+      ).toBeVisible();
+    });
+
+    test('opens organization billing settings', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+
+      // Billing lives in the Organization scope, which the Account sidebar
+      // does not link to; goToBilling() switches scope by URL.
       await settingsPage.goToBilling();
 
-      await expect(authenticatedPage).toHaveURL(/settings|billing/);
-    });
-
-    test('should navigate to notifications settings', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-
-      await settingsPage.goToNotifications();
-
-      await expect(authenticatedPage).toHaveURL(/settings|notifications/);
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        '/settings/notifications',
-      );
-    });
-
-    // Obsolete: no security settings page (password change, 2FA, session
-    // management) exists anywhere in the product. Confirmed by an app-wide
-    // search for a `/settings/security` route/directory and for
-    // two-factor/session-revoke UI — none exists, and there is no route
-    // constant for it in routes.constant.ts.
-
-    test('should navigate to API keys settings', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-
-      // API keys moved from a same-scope Personal tab to the Organization
-      // scope's Developer group — goToApiKeys() now navigates there directly
-      // (with the explicit E2E org slug, deterministic across parallel runs).
-      await settingsPage.goToApiKeys();
-
-      await expect(authenticatedPage).toHaveURL(/settings|api/);
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        '/test-org/~/settings/api-keys',
-      );
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          level: 1,
+          name: 'Credits',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Balance',
+        }),
+      ).toBeVisible();
     });
   });
 
   test.describe('Responsive Design', () => {
-    test('should display settings on mobile viewport', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
+    for (const viewport of [
+      { height: 667, name: 'mobile', width: 375 },
+      { height: 1024, name: 'tablet', width: 768 },
+    ]) {
+      test(`displays personal settings on ${viewport.name} viewport`, async ({
+        authenticatedPage,
+      }) => {
+        const settingsPage = new SettingsPage(authenticatedPage);
 
-      await authenticatedPage.setViewportSize({ height: 667, width: 375 });
+        await authenticatedPage.setViewportSize({
+          height: viewport.height,
+          width: viewport.width,
+        });
+        await settingsPage.goto();
 
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
-
-    test('should display settings on tablet viewport', async ({
-      authenticatedPage,
-    }) => {
-      const settingsPage = new SettingsPage(authenticatedPage);
-
-      await authenticatedPage.setViewportSize({ height: 1024, width: 768 });
-
-      await settingsPage.goto();
-      await settingsPage.waitForPageLoad();
-
-      await expect(authenticatedPage).toHaveURL(/settings/);
-    });
+        await expect(settingsPage.profileSection).toBeVisible();
+        await expect(
+          settingsPage.canvas.getByText(USER_EMAIL, { exact: true }),
+        ).toBeVisible();
+        await expect(settingsPage.appearanceTrigger).toBeVisible();
+      });
+    }
   });
 });

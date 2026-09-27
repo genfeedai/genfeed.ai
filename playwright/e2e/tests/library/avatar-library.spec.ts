@@ -19,10 +19,34 @@ async function useListView(page: Page): Promise<void> {
   await page.getByRole('radio', { name: 'List' }).click();
 }
 
+/**
+ * Navigate with the explicit E2E org+brand slugs (brandPath), not the bare
+ * path: the proxy's active-workspace resolution for a bare `/library/*` path
+ * is cached server-side per session and is not deterministic across parallel
+ * workers sharing one dev server. Library places are query filters on
+ * `/library/assets` (#5135), so the avatars route lands on
+ * `/library/assets?categories=AVATAR`.
+ */
+async function gotoAvatarLibrary(page: Page): Promise<void> {
+  const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);
+  await page.goto(avatarsRoute, {
+    timeout: 60000,
+    waitUntil: 'domcontentloaded',
+  });
+  await assertNoErrorBoundaryFallback(page, avatarsRoute);
+  await expect(page).toHaveURL(/library\/assets\?categories=AVATAR/);
+}
+
 async function openAvatarRow(page: Page, label: string): Promise<void> {
   const row = page.locator('tr', { hasText: label });
   await expect(row).toBeVisible({ timeout: 30000 });
   await row.locator('[data-testid="action-button"]').click();
+
+  // The details panel (IngredientTabsInfo) is open once its label field shows
+  // this ingredient's metadata label — the positive signal the absence checks
+  // below depend on.
+  await expect(page.getByText('Core Metadata')).toBeVisible();
+  await expect(page.locator('input[name="label"]')).toHaveValue(label);
 }
 
 test.describe('Avatar Library', () => {
@@ -39,40 +63,20 @@ test.describe('Avatar Library', () => {
   test('shows avatar source and video assets in the filtered avatar library', async ({
     authenticatedPage,
   }) => {
-    // Navigate with the explicit E2E org+brand slugs (brandPath), not the
-    // bare path: the proxy's active-workspace resolution for a bare
-    // `/library/*` path is cached server-side per session and is not
-    // deterministic across parallel workers sharing one dev server.
-    const avatarsRoute = brandPath(APP_ROUTES.LIBRARY.AVATARS);
-    await authenticatedPage.goto(avatarsRoute, {
-      timeout: 60000,
-      waitUntil: 'domcontentloaded',
-    });
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-    await assertNoErrorBoundaryFallback(authenticatedPage, avatarsRoute);
-
-    // Library moved to query-param routes (#5135): APP_ROUTES.LIBRARY.AVATARS
-    // now resolves to /library/assets?categories=AVATAR, not /library/avatars.
-    await expect(authenticatedPage).toHaveURL(
-      /library\/assets\?categories=AVATAR/,
-    );
+    await gotoAvatarLibrary(authenticatedPage);
     await useListView(authenticatedPage);
     await expect(
-      authenticatedPage.getByText('Avatar Action Source'),
+      authenticatedPage.locator('tr', { hasText: 'Avatar Action Source' }),
     ).toBeVisible({ timeout: 30000 });
     await expect(
-      authenticatedPage.getByText('Avatar Action Video'),
+      authenticatedPage.locator('tr', { hasText: 'Avatar Action Video' }),
     ).toBeVisible({ timeout: 30000 });
   });
 
   test('opens avatar source details with default-avatar actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS), {
-      timeout: 60000,
-      waitUntil: 'domcontentloaded',
-    });
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await gotoAvatarLibrary(authenticatedPage);
     await useListView(authenticatedPage);
 
     await openAvatarRow(authenticatedPage, 'Avatar Action Source');
@@ -88,11 +92,7 @@ test.describe('Avatar Library', () => {
   test('hides default-avatar actions for avatar video variants', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS), {
-      timeout: 60000,
-      waitUntil: 'domcontentloaded',
-    });
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await gotoAvatarLibrary(authenticatedPage);
     await useListView(authenticatedPage);
 
     await openAvatarRow(authenticatedPage, 'Avatar Action Video');

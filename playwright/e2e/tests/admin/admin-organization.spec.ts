@@ -7,20 +7,29 @@ import { assertRouteRenders } from '../../utils/route-assertions';
  *
  * Uses the adminPage fixture (admin role). Auth, Better Auth, and all API calls are
  * mocked; unknown local API routes auto-return empty collections so each page
- * renders without per-route mocks. Interactions are best-effort via tryClick.
+ * renders without per-route mocks.
  */
 test.describe('Admin Organization', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-    APP_ROUTES.ADMIN.ORGANIZATION,
-    APP_ROUTES.ADMIN.FOLDERS,
+    {
+      heading: 'All Organizations',
+      route: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+    },
+    { heading: 'All Organizations', route: APP_ROUTES.ADMIN.ORGANIZATION },
+    { heading: 'Folders', route: APP_ROUTES.ADMIN.FOLDERS },
   ];
 
-  for (const route of routes) {
+  for (const { heading, route } of routes) {
     test(`renders ${route}`, async ({ adminPage }) => {
       await assertRouteRenders(adminPage, route);
+
+      await expect(
+        adminPage
+          .getByRole('main')
+          .getByRole('heading', { exact: true, name: heading }),
+      ).toBeVisible();
     });
   }
 
@@ -28,10 +37,22 @@ test.describe('Admin Organization', () => {
     adminPage,
   }) => {
     await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATION);
-    expect(adminPage.url()).toContain(APP_ROUTES.ADMIN.ORGANIZATION);
-    expect(adminPage.url()).not.toContain(
-      APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+
+    expect(new URL(adminPage.url()).pathname).toBe(
+      APP_ROUTES.ADMIN.ORGANIZATION,
     );
+    // The organizations list itself, without the analytics tab bar that
+    // ANALYTICS_ORGANIZATIONS wraps it in.
+    await expect(
+      adminPage
+        .getByRole('main')
+        .getByRole('heading', { exact: true, name: 'All Organizations' }),
+    ).toBeVisible();
+    await expect(
+      adminPage
+        .getByRole('main')
+        .getByRole('heading', { exact: true, name: 'Analytics' }),
+    ).toHaveCount(0);
   });
 
   test('folders view stays interactive', async ({ adminPage }) => {
