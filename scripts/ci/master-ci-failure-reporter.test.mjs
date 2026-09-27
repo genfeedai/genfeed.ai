@@ -672,7 +672,7 @@ test('resolveMasterCiFailure does not close a scheduled-failure tracker that onl
 
 // ── Workflow contract (#2510) ───────────────────────────────────────────────
 //
-// The hourly master Full Suite must reach a conclusive Tests Gate, and a red
+// The master Full Suite must reach a conclusive Tests Gate, and a red
 // gate must file the tracker. These pins fail the build if either half
 // regresses to PR-only.
 
@@ -690,12 +690,12 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('tests-gate runs on the hourly master suite as well as pull requests', () => {
+test('tests-gate runs on the master suite as well as pull requests', () => {
   const gate = ciJob('tests-gate');
   assert.match(
     gate,
-    /github\.event_name == 'pull_request' \|\| github\.event_name == 'schedule'/,
-    'tests-gate must produce a conclusive result on the hourly master run (#2510)',
+    /github\.event_name == 'pull_request' \|\| github\.event_name == 'push'/,
+    'tests-gate must produce a conclusive result on the master push run (#2510)',
   );
 });
 
@@ -712,7 +712,7 @@ test('a red master gate files the tracker and a green one resolves it', () => {
     /!cancelled\(\)/,
     'the tracker must opt out of transitive skip propagation (#2625)',
   );
-  assert.match(tracker, /github\.event_name == 'schedule'/);
+  assert.match(tracker, /github\.event_name == 'push'/);
   assert.match(tracker, /issues: write/);
 
   const report = tracker.slice(

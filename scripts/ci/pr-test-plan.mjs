@@ -33,7 +33,7 @@ export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
 
 // Events whose checkout is a proposed change diffed against a known base: only
 // the pull request. Only it may narrow the app/API surfaces by classification;
-// every other event (the hourly master Full Suite, release dispatch) forces
+// every other event (the master Full Suite, release dispatch) forces
 // both surfaces on.
 const CHANGE_RUN_EVENTS = new Set(['pull_request']);
 
@@ -247,11 +247,17 @@ export function createPrTestPlan({
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
-    // One turbo invocation runs every applicable group (the Test Workspaces
-    // job); its filters are the union of the applicable groups' filters.
-    workspaceFilters: Object.entries(workspaceGroups)
-      .filter(([, applies]) => applies)
-      .flatMap(([group]) => TURBO_TEST_GROUPS[group]),
+    // One Test Workspaces matrix leg per applicable group. A single turbo
+    // invocation over every group contended for one runner's CPUs and made it
+    // the slowest job in the graph.
+    workspaceMatrix: {
+      include: Object.entries(workspaceGroups)
+        .filter(([, applies]) => applies)
+        .map(([group]) => ({
+          group,
+          filters: TURBO_TEST_GROUPS[group].join(' '),
+        })),
+    },
   };
 }
 
@@ -383,8 +389,8 @@ function writeOutputs(plan, manifestPath) {
     app_matrix: JSON.stringify(plan.appTests.matrix),
     api_matrix: JSON.stringify(plan.apiTests.matrix),
     force_full: plan.forceFull,
-    workspace_tests: plan.workspaceFilters.length > 0,
-    workspace_filters: plan.workspaceFilters.join(' '),
+    workspace_tests: plan.workspaceMatrix.include.length > 0,
+    workspace_matrix: JSON.stringify(plan.workspaceMatrix),
     manifest: manifestPath,
   };
 

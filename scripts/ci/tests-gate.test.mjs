@@ -206,7 +206,7 @@ test('a genuine failure keeps a superseded run red', () => {
   assert.ok(result.failures.includes('Static checks failure'));
 });
 
-test('hourly master runs never read as superseded', () => {
+test('master runs never read as superseded', () => {
   assert.deepEqual(readSupersession({}), {
     superseded: false,
     supersededBy: null,
@@ -289,12 +289,12 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
-  // Ready pull requests and the hourly master Full Suite (`schedule`,
-  // inherited through workflow_call) reach a conclusive gate (#2510); drafts
-  // and the release path (workflow_dispatch) do not.
+  // Ready pull requests and the master Full Suite (`push`, inherited through
+  // workflow_call) reach a conclusive gate (#2510); drafts and the release
+  // path (workflow_dispatch) do not.
   assert.match(
     workflow,
-    /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& !github\.event\.pull_request\.draft\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'schedule'\) \}\}\n/m,
+    /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& !github\.event\.pull_request\.draft\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'push'\) \}\}\n/m,
   );
 
   for (const job of [
