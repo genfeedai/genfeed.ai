@@ -180,8 +180,7 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
   (authenticated storage state, curated protected routes, 600s).
 - **core + ~25 domain dirs** — admin, agents, analytics, auth, automation, brands, calendar, chat, compose,
   core, dashboard, editor, library, onboarding, overview, posts, research, responsive, settings, studio,
-  tasks, visual, website, workflow(s), workspace. ~50 spec files.
-- **visual/** — `visual-regression.spec.ts`; baselines in `__screenshots__/` via `snapshotPathTemplate`.
+  tasks, website, workflow(s), workspace. ~50 spec files.
 - **pages/** — one Page Object per area (login, dashboard, studio, settings, …) via `pages/index.ts`.
 - **utils/** — `route-assertions.ts`, `interaction-helpers.ts`, `network-guard.ts`, `api-interceptor.ts`.
 
