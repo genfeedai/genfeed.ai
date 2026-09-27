@@ -92,6 +92,12 @@ describe.skipIf(!connectionString)(
 
       const db = database();
       await db.user.create({ data: { handle: userId, id: userId } });
+      await db.user.create({
+        data: { handle: `${userId}-a`, id: `${userId}-a` },
+      });
+      await db.user.create({
+        data: { handle: `${userId}-b`, id: `${userId}-b` },
+      });
       await db.organization.create({
         data: {
           id: organizationId,
@@ -150,12 +156,6 @@ describe.skipIf(!connectionString)(
           roleKey: MemberRole.OWNER,
           userId: `${userId}-b`,
         },
-      });
-      await db.user.create({
-        data: { handle: `${userId}-a`, id: `${userId}-a` },
-      });
-      await db.user.create({
-        data: { handle: `${userId}-b`, id: `${userId}-b` },
       });
     });
 
