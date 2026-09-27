@@ -268,7 +268,7 @@ describe('StudioGenerateInspector', () => {
     expect(facts).toHaveTextContent('Duration8s');
     expect(facts).toHaveTextContent('BrandNorthstar');
     expect(facts).toHaveTextContent('Created');
-    expect(facts).not.toHaveTextContent(/credit/i);
+    expect(facts.textContent ?? '').not.toMatch(/credit/i);
   });
 
   it('pins download, use in post, remix and Ask Agent for a finished asset', async () => {
