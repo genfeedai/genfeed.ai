@@ -8,10 +8,11 @@ import {
   isPublishingMcpApprovalTool,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { scopedWhere } from '@api/index';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -33,7 +34,7 @@ export class McpApprovalsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly activityRecorder: ActivityRecorderService,
   ) {
     super(prisma, 'mcpApproval', logger);
   }
@@ -108,18 +109,20 @@ export class McpApprovalsService extends BaseService<
     }
 
     try {
-      await this.notificationsPublisher.publishNotification({
-        organizationId,
-        userId,
-        notification: {
-          type: 'mcp_approval_pending',
-          title: 'MCP Tool Approval Required',
-          message: `MCP tool "${toolName}" requires approval`,
-          metadata: {
-            approvalId: approval.id,
-            toolName,
-          },
+      // The alert policy puts the request in the requester's bell.
+      await this.activityRecorder.record({
+        alert: {
+          deduplicationKey: `${ActivityKey.MCP_APPROVAL_REQUESTED}/${approval.id}`,
+          source: { id: approval.id, type: 'mcp_approval' },
         },
+        data: { approvalId: approval.id, toolName },
+        entityId: approval.id,
+        entityModel: 'McpApproval',
+        key: ActivityKey.MCP_APPROVAL_REQUESTED,
+        organizationId,
+        source: ActivitySource.MCP_APPROVAL,
+        userId,
+        value: toolName,
       });
     } catch (error: unknown) {
       this.logger?.error('Failed to publish MCP approval notification', {

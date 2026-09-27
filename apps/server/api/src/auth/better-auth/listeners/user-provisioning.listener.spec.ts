@@ -2,8 +2,8 @@ import type {
   UserSetupResult,
   UserSetupService,
 } from '@api/collections/users/services/user-setup.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import * as Sentry from '@sentry/nestjs';
@@ -50,7 +50,7 @@ describe('UserProvisioningListener', () => {
     enqueuePrefill: ReturnType<typeof vi.fn>;
   };
   let notificationsService: {
-    sendUserCreatedNotification: ReturnType<typeof vi.fn>;
+    dispatch: ReturnType<typeof vi.fn>;
   };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -70,7 +70,7 @@ describe('UserProvisioningListener', () => {
       enqueuePrefill: vi.fn().mockResolvedValue(undefined),
     };
     notificationsService = {
-      sendUserCreatedNotification: vi.fn().mockResolvedValue(undefined),
+      dispatch: vi.fn().mockResolvedValue(undefined),
     };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -78,7 +78,7 @@ describe('UserProvisioningListener', () => {
       userSetupService as unknown as UserSetupService,
       lifecycleEmailService as unknown as LifecycleEmailService,
       signupPrefillQueueService as unknown as SignupPrefillWorkflowService,
-      notificationsService as unknown as NotificationsService,
+      notificationsService as unknown as ActivityRecorderService,
       logger as unknown as LoggerService,
     );
   });
@@ -99,12 +99,22 @@ describe('UserProvisioningListener', () => {
     );
     expect(logger.log).toHaveBeenCalledTimes(1);
     expect(logger.error).not.toHaveBeenCalled();
-    expect(
-      notificationsService.sendUserCreatedNotification,
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      notificationsService.sendUserCreatedNotification,
-    ).toHaveBeenCalledWith({ email: 'new@genfeed.ai', id: 'u_1' });
+    expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
+    expect(notificationsService.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          expect.objectContaining({
+            message: expect.objectContaining({
+              action: 'user_notification',
+              payload: expect.objectContaining({
+                email: 'new@genfeed.ai',
+                id: 'u_1',
+              }),
+            }),
+          }),
+        ],
+      }),
+    );
   });
 
   it('schedules the background brand prefill with the signup email', async () => {
@@ -208,12 +218,22 @@ describe('UserProvisioningListener', () => {
         userId: 'u_6',
       });
 
-      expect(
-        notificationsService.sendUserCreatedNotification,
-      ).toHaveBeenCalledTimes(1);
-      expect(
-        notificationsService.sendUserCreatedNotification,
-      ).toHaveBeenCalledWith({ email: 'vincent@genfeed.ai', id: 'u_6' });
+      expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                action: 'user_notification',
+                payload: expect.objectContaining({
+                  email: 'vincent@genfeed.ai',
+                  id: 'u_6',
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
     });
 
     it('is skipped when the handler never provisions a user (replay-safe: no separate debounce needed)', async () => {
@@ -223,13 +243,11 @@ describe('UserProvisioningListener', () => {
 
       await listener.handleUserCreated({ email: null, userId: 'u_7' });
 
-      expect(
-        notificationsService.sendUserCreatedNotification,
-      ).not.toHaveBeenCalled();
+      expect(notificationsService.dispatch).not.toHaveBeenCalled();
     });
 
     it('does not fail provisioning when the operator notifier fails, and reports it to Sentry', async () => {
-      notificationsService.sendUserCreatedNotification.mockRejectedValue(
+      notificationsService.dispatch.mockRejectedValue(
         new Error('redis publish failed'),
       );
 
@@ -240,9 +258,7 @@ describe('UserProvisioningListener', () => {
         }),
       ).resolves.toBeUndefined();
 
-      expect(
-        notificationsService.sendUserCreatedNotification,
-      ).toHaveBeenCalledTimes(1);
+      expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
       await vi.waitFor(() => expect(logger.error).toHaveBeenCalledTimes(1));
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('operator signup alert failed'),
@@ -252,7 +268,7 @@ describe('UserProvisioningListener', () => {
     });
 
     it('does not wait for a stalled operator notification (genfeedai/genfeed.ai#5313)', async () => {
-      notificationsService.sendUserCreatedNotification.mockReturnValue(
+      notificationsService.dispatch.mockReturnValue(
         new Promise<void>(() => undefined),
       );
 
@@ -269,9 +285,7 @@ describe('UserProvisioningListener', () => {
       await drainMicrotasks();
 
       // The stall path was genuinely exercised, and the listener settled anyway.
-      expect(
-        notificationsService.sendUserCreatedNotification,
-      ).toHaveBeenCalledTimes(1);
+      expect(notificationsService.dispatch).toHaveBeenCalledTimes(1);
       expect(outcome).toBe('provisioned');
       await handled;
     });

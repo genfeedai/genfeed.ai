@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -11,6 +9,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -41,7 +40,7 @@ const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 @Injectable()
 export class ImageReframeService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly imagesService: ImagesService,
@@ -146,23 +145,21 @@ export class ImageReframeService {
     });
 
     const websocketUrl = WebSocketPaths.image(ingredientData.id);
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: parent.brandId ?? user.brandId,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.IMAGE_REFRAME_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.IMAGE_REFRAME,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          ingredientId: ingredientData.id.toString(),
-          model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-          sourceId: parent.id.toString(),
-          type: 'transformation',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: parent.brandId ?? user.brandId,
+      entityId: ingredientData.id,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.IMAGE_REFRAME_PROCESSING,
+      organizationId: user.organizationId,
+      source: ActivitySource.IMAGE_REFRAME,
+      userId: user.userId ?? user.id,
+      value: JSON.stringify({
+        ingredientId: ingredientData.id.toString(),
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+        sourceId: parent.id.toString(),
+        type: 'transformation',
       }),
-    );
+    });
 
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),

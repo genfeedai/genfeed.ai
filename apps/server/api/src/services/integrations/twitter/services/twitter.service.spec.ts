@@ -1,3 +1,5 @@
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+
 const mockSendDm = vi.fn();
 
 vi.mock('twitter-api-v2', () => {
@@ -65,7 +67,7 @@ describe('TwitterService', () => {
       providers: [
         TwitterService,
         TwitterResponseMapper,
-        { provide: SERVER_TOKENS.activities, useValue: {} },
+        { provide: ActivityRecorderService, useValue: {} },
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {
           provide: SERVER_TOKENS.credentials,

@@ -1,6 +1,7 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
@@ -65,6 +66,7 @@ export class CronIngredientsService {
 
   constructor(
     private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly filesClientService: FilesClientService,
@@ -205,7 +207,7 @@ export class CronIngredientsService {
             parsedValue = { ingredientId: existingActivity.value };
           }
 
-          await this.activitiesService.patch(existingActivity.id.toString(), {
+          await this.activityRecorder.update(existingActivity, {
             key: keys.failed,
             value: JSON.stringify({
               ...parsedValue,

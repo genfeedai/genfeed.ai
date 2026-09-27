@@ -1,4 +1,4 @@
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import {
@@ -90,7 +90,7 @@ function makeHarness(
   const ingredientFindFirst = vi
     .fn()
     .mockResolvedValue({ brandId: 'brand-1', userId: 'user-1' });
-  const activities = { create: vi.fn().mockResolvedValue({}) };
+  const activities = { record: vi.fn().mockResolvedValue({}) };
   const getForAsset = vi
     .fn()
     .mockResolvedValue(
@@ -111,7 +111,7 @@ function makeHarness(
     } as unknown as PrismaService,
     { getForAsset } as unknown as MediaPerceptionService,
     provider as unknown as IModerationProvider,
-    activities as unknown as ActivitiesService,
+    activities as unknown as ActivityRecorderService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
     logger as unknown as LoggerService,
   );
@@ -178,7 +178,7 @@ describe('MediaModerationService.moderate', () => {
     expect(create.verdict.triggers).toEqual([
       expect.objectContaining({ frameIndex: 1, source: 'frame' }),
     ]);
-    expect(h.activities.create).toHaveBeenCalledWith(
+    expect(h.activities.record).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         entityId: 'asset-1',
@@ -199,7 +199,7 @@ describe('MediaModerationService.moderate', () => {
     expect(create.isFlagged).toBe(false);
     expect(create.verdict.isFlagged).toBe(false);
     expect(create.candidateVerdict.flaggedCategories).toEqual(['violence']);
-    expect(h.activities.create).not.toHaveBeenCalled();
+    expect(h.activities.record).not.toHaveBeenCalled();
     expect(h.logger.log).toHaveBeenCalledWith(
       expect.stringContaining('would flag'),
       expect.objectContaining({ flaggedCategories: ['violence'] }),

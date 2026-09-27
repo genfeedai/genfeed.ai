@@ -4,6 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { AggregatePaginateResult } from '@api/helpers/types/aggregate-paginate-result';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
@@ -14,7 +15,11 @@ import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredie
 
 describe('CronIngredientsService', () => {
   let service: CronIngredientsService;
-  let activitiesService: vi.Mocked<ActivitiesService>;
+  // One mock serves the activity lookup and the recording API.
+  let activitiesService: {
+    findOne: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
   let filesClientService: vi.Mocked<FilesClientService>;
@@ -62,9 +67,10 @@ describe('CronIngredientsService', () => {
           provide: ActivitiesService,
           useValue: {
             findOne: vi.fn(),
-            patch: vi.fn(),
+            update: vi.fn(),
           },
         },
+        { provide: ActivityRecorderService, useExisting: ActivitiesService },
         {
           provide: IngredientsService,
           useValue: {
@@ -121,7 +127,7 @@ describe('CronIngredientsService', () => {
 
   afterEach(() => {
     activitiesService.findOne.mockReset();
-    activitiesService.patch.mockReset();
+    activitiesService.update.mockReset();
     vi.clearAllMocks();
   });
 

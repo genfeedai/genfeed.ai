@@ -16,7 +16,6 @@ import type {
   IngredientStatusData,
   IngredientUpdateMessage,
   MediaFailedEvent,
-  NotificationData,
   NotificationInboxUpdateData,
   PostStatusData,
   PostUpdateMessage,
@@ -122,7 +121,6 @@ export class WebSocketGateway
       'video-progress',
       'video-complete',
       'media-failed',
-      'notifications',
       'notification-inbox',
       'ingredient-status',
       'post-status',
@@ -361,10 +359,6 @@ export class WebSocketGateway
         this.handleMediaFailed(data as MediaFailedEvent);
         break;
 
-      case 'notifications':
-        this.handleNotification(data as NotificationData);
-        break;
-
       case 'notification-inbox':
         this.handleNotificationInboxUpdate(data as NotificationInboxUpdateData);
         break;
@@ -521,27 +515,6 @@ export class WebSocketGateway
     });
 
     this.logger.error(`Sent media failed to ${targetRoom}: ${path}`, error);
-  }
-
-  private handleNotification(data: NotificationData): void {
-    if (!this.isServerOperational()) {
-      this.warnServerNotReady('notification', data);
-      return;
-    }
-
-    const { userId, notification, organizationId } = data;
-
-    if (organizationId) {
-      this.server
-        .to(`org-${organizationId}`)
-        .emit('notification', notification);
-      this.logger.log(`Sent notification to org ${organizationId}`);
-    } else if (userId) {
-      this.server
-        .to(getUserRoomName(userId))
-        .emit('notification', notification);
-      this.logger.log(`Sent notification to user ${userId}`);
-    }
   }
 
   private handleNotificationInboxUpdate(

@@ -1,6 +1,4 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -9,6 +7,7 @@ import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { assertPostBrandAccess } from '@api/collections/posts/services/post-draft-scope.util';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import {
   ActivityEntityModel,
@@ -29,7 +28,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 type PostCreateDependencies = {
   accountHealthService: AccountHealthService;
-  activitiesService: ActivitiesService;
+  activityRecorder: ActivityRecorderService;
   credentialsService: CredentialsService;
   ingredientsService: IngredientsService;
   loggerService: LoggerService;
@@ -275,21 +274,18 @@ export async function createPost({
     visibility: requestedVisibility,
   });
 
-  await dependencies.activitiesService.create(
-    new ActivityEntity({
-      brandId: firstIngredient?.brandId ?? identity.brandId,
-      entityId: data.id,
-      entityModel: ActivityEntityModel.POST,
-      key: warmupHoldReason
-        ? ActivityKey.POST_CREATED
-        : ActivityKey.VIDEO_SCHEDULED,
-      organizationId:
-        firstIngredient?.organizationId ?? identity.organizationId,
-      source: ActivitySource.SCRIPT,
-      userId: identity.userId,
-      value: (data.id as string).toString(),
-    }),
-  );
+  await dependencies.activityRecorder.record({
+    brandId: firstIngredient?.brandId ?? identity.brandId,
+    entityId: data.id,
+    entityModel: ActivityEntityModel.POST,
+    key: warmupHoldReason
+      ? ActivityKey.POST_CREATED
+      : ActivityKey.VIDEO_SCHEDULED,
+    organizationId: firstIngredient?.organizationId ?? identity.organizationId,
+    source: ActivitySource.SCRIPT,
+    userId: identity.userId,
+    value: (data.id as string).toString(),
+  });
 
   if (
     effectiveExecutionState !== TargetExecutionState.DRAFT &&

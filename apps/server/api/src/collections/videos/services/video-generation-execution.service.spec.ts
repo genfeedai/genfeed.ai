@@ -29,7 +29,7 @@ function buildContext(
 describe('VideoGenerationExecutionService', () => {
   function createHarness() {
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),

@@ -1,5 +1,5 @@
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -51,15 +51,15 @@ function setup() {
     applyRewrites: vi.fn().mockResolvedValue({ id: 'batch-1' }),
   };
   const activities = {
-    create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
-    patch: vi.fn(),
+    record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+    update: vi.fn(),
   };
   const websocket = { publishBackgroundTaskUpdate: vi.fn() };
   const service = new BatchGenerationRewriteService(
     prisma as unknown as PrismaService,
     generation as unknown as PostGenerationService,
     review as unknown as BatchGenerationReviewService,
-    activities as unknown as ActivitiesService,
+    activities as unknown as ActivityRecorderService,
     websocket as unknown as NotificationsPublisherService,
   );
   return { service, prisma, generation, review, activities, websocket };
@@ -98,8 +98,8 @@ describe('Batch rewrite', () => {
       new Map([['item-1', 'Rewritten']]),
       new Map([['post-1', updatedAt]]),
     );
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
       expect.objectContaining({
         key: ActivityKey.POST_GENERATED,
         isRead: false,
@@ -118,7 +118,7 @@ describe('Batch rewrite', () => {
       service.rewriteItems('batch-1', ['item-1'], 'other-org', 'user-1'),
     ).rejects.toThrow();
     expect(generation.enhanceDescription).not.toHaveBeenCalled();
-    expect(activities.create).not.toHaveBeenCalled();
+    expect(activities.record).not.toHaveBeenCalled();
   });
   it('rejects a brandless batch before generating or creating an activity', async () => {
     const { service, prisma, generation, activities } = setup();
@@ -134,7 +134,7 @@ describe('Batch rewrite', () => {
     ).rejects.toThrow('Rewrite needs a brand-scoped batch');
     expect(prisma.post.findMany).not.toHaveBeenCalled();
     expect(generation.enhanceDescription).not.toHaveBeenCalled();
-    expect(activities.create).not.toHaveBeenCalled();
+    expect(activities.record).not.toHaveBeenCalled();
   });
 
   it('rejects foreign item IDs before generation', async () => {
@@ -153,8 +153,8 @@ describe('Batch rewrite', () => {
       service.rewriteItems('batch-1', ['item-1'], 'org-1', 'user-1'),
     ).rejects.toThrow('Provider unavailable');
     expect(review.applyRewrites).not.toHaveBeenCalled();
-    expect(activities.patch).toHaveBeenCalledWith(
-      'activity-1',
+    expect(activities.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'activity-1' }),
       expect.objectContaining({ key: ActivityKey.POST_FAILED }),
     );
     expect(websocket.publishBackgroundTaskUpdate).toHaveBeenLastCalledWith(

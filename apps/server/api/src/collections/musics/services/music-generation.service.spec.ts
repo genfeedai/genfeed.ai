@@ -61,7 +61,7 @@ describe('MusicGenerationService', () => {
     let mediaCount = 0;
     let generationCount = 0;
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: 'activity-1' }),
+      record: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     };
     const brandsService = {
       findOne: vi.fn().mockResolvedValue({
@@ -268,7 +268,7 @@ describe('MusicGenerationService', () => {
         promptId: 'prompt-1',
       }),
     );
-    expect(created.activitiesService.create).toHaveBeenCalledWith(
+    expect(created.activitiesService.record).toHaveBeenCalledWith(
       expect.objectContaining({ key: ActivityKey.MUSIC_PROCESSING }),
     );
     expect(

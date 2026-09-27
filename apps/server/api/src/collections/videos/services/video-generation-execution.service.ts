@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type {
@@ -19,6 +17,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -44,7 +43,7 @@ type StartedVideoGeneration = VideoGenerationProviderResult & {
 @Injectable()
 export class VideoGenerationExecutionService {
   constructor(
-    private readonly activitiesService: ActivitiesService,
+    private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -399,22 +398,20 @@ export class VideoGenerationExecutionService {
   private async createPlaceholderActivity(
     params: CreateVideoPlaceholderActivityParams,
   ): Promise<void> {
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: params.brandId,
-        entityId: params.ingredientId,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: params.organizationId,
-        source: ActivitySource.VIDEO_GENERATION,
-        userId: params.userId,
-        value: JSON.stringify({
-          ingredientId: params.ingredientId.toString(),
-          model: params.model,
-          type: 'generation',
-        }),
+    const activity = await this.activityRecorder.record({
+      brandId: params.brandId,
+      entityId: params.ingredientId,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_PROCESSING,
+      organizationId: params.organizationId,
+      source: ActivitySource.VIDEO_GENERATION,
+      userId: params.userId,
+      value: JSON.stringify({
+        ingredientId: params.ingredientId.toString(),
+        model: params.model,
+        type: 'generation',
       }),
-    );
+    });
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
       label: 'Video Generation',

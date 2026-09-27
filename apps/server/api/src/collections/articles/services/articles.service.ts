@@ -53,10 +53,8 @@ import type {
   ArticleReviewRubric,
 } from '@api/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
-import {
-  assertArticleOwnershipIds,
-  readNonEmptyString,
-} from '@api/collections/articles/utils/article-input-boundary.util';
+import { assertArticleOwnershipIds } from '@api/collections/articles/utils/article-input-boundary.util';
+import { buildArticlePublishedDispatch } from '@api/collections/articles/utils/article-published-notification.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -73,9 +71,9 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { scopedWhere } from '@api/index';
+import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -139,7 +137,7 @@ export class ArticlesService
     private readonly articleInsightsService: ArticleInsightsService,
     private readonly articleRemixService: ArticleRemixService,
     @Optional()
-    private readonly notificationsService?: NotificationsService,
+    private readonly activityRecorder?: ActivityRecorderService,
     @Optional()
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional()
@@ -553,7 +551,7 @@ export class ArticlesService
   ): Promise<void> {
     if (
       !isPublishingUpdate ||
-      !this.notificationsService ||
+      !this.activityRecorder ||
       !this.organizationSettingsService ||
       !this.configService
     ) {
@@ -570,24 +568,16 @@ export class ArticlesService
         return;
       }
 
-      // PUBLISHED articles are public, so generate URL if slug exists
-      const publicUrl = result.slug
-        ? `${this.configService.get('GENFEEDAI_PUBLIC_URL')}/articles/${result.slug}`
-        : undefined;
-      // `articles.label` is NOT NULL, so the update result always carries it.
-      const articleLabel = String(result.label);
-      const articleSlug = readNonEmptyString(result.slug) ?? result.id;
-
-      await this.notificationsService.sendArticleNotification({
-        category: readNonEmptyString(result.category),
-        label: articleLabel,
-        publicUrl,
-        slug: articleSlug,
-        summary: readNonEmptyString(result.summary),
-      });
+      await this.activityRecorder.dispatch(
+        buildArticlePublishedDispatch(
+          result,
+          organizationId,
+          this.configService.get('GENFEEDAI_PUBLIC_URL'),
+        ),
+      );
 
       this.logger.log(
-        `${this.constructorName} sent Discord notification for published article`,
+        `${this.constructorName} recorded Discord notification for published article`,
         {
           articleId: result.id,
           slug: result.slug,
