@@ -507,7 +507,7 @@ export const products: Product[] = [
     name: 'MCP Server',
     pricing: {
       recommended: 'scale',
-      why: 'MCP access comes with every plan and has no API call limits. Agents spend credits only on what they generate.',
+      why: 'MCP access comes with every plan. Tool calls have no usage cap, only a standard per-minute rate limit; agents spend credits on what they generate.',
     },
     relatedProducts: ['chatgpt', 'hire-agents', 'studio'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',

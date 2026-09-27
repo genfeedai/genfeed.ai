@@ -12,7 +12,9 @@ import { getIntegrationBySlug } from '@data/integrations.data';
  * account, and a page under `/integrations/<slug>`. Channels without a
  * publisher (Discord, Telegram, Slack, Twitch, Medium) and WhatsApp, which
  * sends from Genfeed's own number rather than a connected account, stay off
- * this list so no page promises posting there.
+ * this list so no page promises posting there. Shopify and Fanvue have
+ * publishers but are storefront and creator-subscription destinations, not
+ * the social scheduling these agent pages target, so they are left out too.
  */
 export const AGENT_CLIENT_CHANNEL_SLUGS = [
   'x-twitter',
