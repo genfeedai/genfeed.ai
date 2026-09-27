@@ -49,6 +49,12 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('InsightsOverview', () => {
   beforeEach(() => {
     vi.clearAllMocks();

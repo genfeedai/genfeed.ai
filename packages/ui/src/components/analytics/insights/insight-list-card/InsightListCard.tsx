@@ -9,6 +9,7 @@ import { Badge, type BadgeProps } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Lightbulb, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useMemo } from 'react';
 
 const IMPACT_BADGE_VARIANT: Record<InsightImpact, BadgeProps['variant']> = {
@@ -24,6 +25,7 @@ const InsightListCard = memo(function InsightListCard({
   onDismiss,
   className,
 }: InsightListCardProps) {
+  const translate = useTranslations('ui.insightListCard');
   const unreadCount = useMemo(
     () => insights.filter((insight) => !insight.isRead).length,
     [insights],
@@ -32,7 +34,7 @@ const InsightListCard = memo(function InsightListCard({
   if (isLoading) {
     return (
       <Card
-        label="AI Insights"
+        label={translate('title')}
         icon={Lightbulb}
         iconClassName="text-warning"
         className={className}
@@ -58,17 +60,18 @@ const InsightListCard = memo(function InsightListCard({
   if (insights.length === 0) {
     return (
       <Card
-        label="AI Insights"
+        label={translate('title')}
         icon={Lightbulb}
         iconClassName="text-warning"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <Lightbulb className="size-12 text-foreground/30 mb-3" />
-          <p className="text-foreground/70 font-medium">No insights yet</p>
+          <p className="text-foreground/70 font-medium">
+            {translate('emptyTitle')}
+          </p>
           <p className="text-sm text-foreground/50">
-            Insights are generated automatically as your content performance
-            data comes in.
+            {translate('emptyDescription')}
           </p>
         </div>
       </Card>
@@ -77,13 +80,13 @@ const InsightListCard = memo(function InsightListCard({
 
   return (
     <Card
-      label="AI Insights"
+      label={translate('title')}
       icon={Lightbulb}
       iconClassName="text-warning"
       description={
         unreadCount > 0
-          ? `${unreadCount} unread insight${unreadCount === 1 ? '' : 's'}`
-          : 'All insights read'
+          ? translate('unreadCount', { count: unreadCount })
+          : translate('allRead')
       }
       className={className}
     >
@@ -148,7 +151,9 @@ const InsightListCard = memo(function InsightListCard({
                   }
                 />
                 <span className="tabular-nums">
-                  {Math.round(insight.confidence)}% confidence
+                  {translate('confidence', {
+                    value: Math.round(insight.confidence),
+                  })}
                 </span>
               </div>
             </Button>
@@ -159,7 +164,7 @@ const InsightListCard = memo(function InsightListCard({
                 onClick={() => onDismiss(insight.id)}
                 variant={ButtonVariant.UNSTYLED}
                 className="p-1 rounded-full hover:bg-muted/50 transition-colors"
-                ariaLabel="Dismiss insight"
+                ariaLabel={translate('dismissAriaLabel')}
               >
                 <X className="size-4 text-foreground/40" />
               </Button>
