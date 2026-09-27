@@ -672,8 +672,9 @@ test('resolveMasterCiFailure does not close a scheduled-failure tracker that onl
 
 // ── Workflow contract (#2510) ───────────────────────────────────────────────
 //
-// Master pushes must reach a conclusive Tests Gate, and a red gate must file
-// the tracker. These pins fail the build if either half regresses to PR-only.
+// The hourly master Full Suite must reach a conclusive Tests Gate, and a red
+// gate must file the tracker. These pins fail the build if either half
+// regresses to PR-only.
 
 const CI_WORKFLOW = readFileSync(
   fileURLToPath(new URL('../../.github/workflows/ci.yml', import.meta.url)),
@@ -689,24 +690,36 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('tests-gate runs on master pushes and merge-queue runs as well as pull requests', () => {
+test('tests-gate runs on the hourly master suite as well as pull requests', () => {
   const gate = ciJob('tests-gate');
   assert.match(
     gate,
-    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}/,
-    'tests-gate must produce a conclusive result on push (#2510) and merge_group (#3143) events',
+    /github\.event_name == 'pull_request' \|\| github\.event_name == 'schedule'/,
+    'tests-gate must produce a conclusive result on the hourly master run (#2510)',
   );
 });
 
 test('a red master gate files the tracker and a green one resolves it', () => {
-  const report = ciJob('master-failure-report');
-  assert.match(report, /needs: \[tests-gate\]/);
-  assert.match(report, /group: master-ci-failure-tracker/);
-  assert.match(report, /cancel-in-progress: false/);
-  assert.match(report, /!cancelled\(\)/);
-  assert.match(report, /github\.event_name == 'push'/);
-  assert.match(report, /needs\.tests-gate\.result == 'failure'/);
-  assert.match(report, /issues: write/);
+  const tracker = ciJob('master-failure-tracker');
+  assert.match(tracker, /needs: \[tests-gate\]/);
+  assert.match(tracker, /group: master-ci-failure-tracker/);
+  assert.match(tracker, /cancel-in-progress: false/);
+  // Without a status function the implicit `success()` spans the transitive
+  // needs graph, where skipped test lanes are routine — the resolve arm was
+  // skipped on every green master run until this was pinned (#2625).
+  assert.match(
+    tracker,
+    /!cancelled\(\)/,
+    'the tracker must opt out of transitive skip propagation (#2625)',
+  );
+  assert.match(tracker, /github\.event_name == 'schedule'/);
+  assert.match(tracker, /issues: write/);
+
+  const report = tracker.slice(
+    tracker.indexOf('- name: Open or update tracking issue'),
+    tracker.indexOf('- name: Close open master-ci-failure trackers'),
+  );
+  assert.match(report, /if: needs\.tests-gate\.result == 'failure'/);
   assert.match(report, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(report, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/);
   assert.match(report, /projectGithub: github/);
@@ -717,20 +730,9 @@ test('a red master gate files the tracker and a green one resolves it', () => {
     'Project #12 writes must use the existing PAT, not repository GITHUB_TOKEN',
   );
 
-  const resolve = ciJob('master-failure-resolve');
-  assert.match(resolve, /needs: \[tests-gate\]/);
-  assert.match(resolve, /group: master-ci-failure-tracker/);
-  assert.match(resolve, /cancel-in-progress: false/);
-  // Without a status function the implicit `success()` spans the transitive
-  // needs graph, where skipped test lanes are routine — the resolve arm was
-  // skipped on every green master push until this was pinned (#2625).
-  assert.match(
-    resolve,
-    /!cancelled\(\)/,
-    'master-failure-resolve must opt out of transitive skip propagation (#2625)',
+  const resolve = tracker.slice(
+    tracker.indexOf('- name: Close open master-ci-failure trackers'),
   );
-  assert.match(resolve, /github\.event_name == 'push'/);
-  assert.match(resolve, /needs\.tests-gate\.result == 'success'/);
-  assert.match(resolve, /issues: write/);
-  assert.match(resolve, /master-ci-failure-reporter\.mjs/);
+  assert.match(resolve, /if: needs\.tests-gate\.result == 'success'/);
+  assert.match(resolve, /resolveMasterCiFailure/);
 });

@@ -50,7 +50,7 @@ export class UserProvisioningListener {
       );
       await this.scheduleLifecycleEmails(event.userId);
       this.scheduleBrandPrefill(event, setupResult);
-      await this.notifyOperatorOfNewUser(event);
+      this.notifyOperatorOfNewUser(event);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -112,25 +112,24 @@ export class UserProvisioningListener {
    * `handleUserCreated` only runs from Better Auth's `user.create.after` hook
    * (or the checkout handler's one-time emit for a checkout-first account),
    * so this fires exactly once per created user — no separate debounce is
-   * needed. Best-effort: a notification outage must never fail provisioning,
-   * which has already committed above.
+   * needed. Fire-and-forget by design, matching {@link scheduleBrandPrefill}:
+   * a slow or failing notification transport must never delay or fail
+   * sign-in, which has already committed above.
    */
-  private async notifyOperatorOfNewUser(
-    event: IBetterAuthUserCreatedEvent,
-  ): Promise<void> {
-    try {
-      await this.notificationsService.sendUserCreatedNotification({
+  private notifyOperatorOfNewUser(event: IBetterAuthUserCreatedEvent): void {
+    void this.notificationsService
+      .sendUserCreatedNotification({
         email: event.email ?? undefined,
         id: event.userId,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(`${this.context} operator signup alert failed`, {
+          error: error instanceof Error ? error.message : error,
+          userId: event.userId,
+        });
+        Sentry.captureException(error, {
+          extra: { userId: event.userId },
+        });
       });
-    } catch (error: unknown) {
-      this.logger.error(`${this.context} operator signup alert failed`, {
-        error: error instanceof Error ? error.message : error,
-        userId: event.userId,
-      });
-      Sentry.captureException(error, {
-        extra: { userId: event.userId },
-      });
-    }
   }
 }

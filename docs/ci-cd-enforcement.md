@@ -27,17 +27,50 @@ added by the fix. Do not rerun the entire repository locally just because one CI
 surface failed.
 
 After a code fix is pushed, GitHub sees a new commit SHA and recomputes the
-affected graph for that SHA. The pull-request and merge-queue workflows run the
-cheap static/security gates plus the changed surfaces and their dependents.
+affected graph for that SHA. The pull-request workflow runs the cheap
+static/security gates plus the changed surfaces and their dependents. Draft
+pull requests run no CI; it starts when the PR is marked ready for review.
 GitHub's **Re-run failed jobs** is reserved for a transient failure on the same
 SHA; it cannot carry green jobs forward to a new commit.
 
 The post-merge contract is intentionally broader: `full-suite.yml` validates
-each surviving `master` tip once. The stable Release workflow waits for that
-exact-SHA run and reuses its green result instead of starting a duplicate Full
-Suite. A hard-red exact-SHA run blocks release until its failed surfaces are
+the `master` tip hourly with the complete heavy tier, is never cancelled, and
+skips a tip that already has a finished run. A red run opens the P0
+`master-ci-failure` tracker; the next green run closes it. The stable Release
+workflow waits for an exact-SHA run and reuses its green result instead of
+starting a duplicate Full Suite. A hard-red exact-SHA run blocks release until its failed surfaces are
 fixed on a new SHA. Missing or infrastructure-cancelled evidence falls back to
 the reusable Full Suite so verification is never skipped.
+
+## CI throughput audit — 2026-09-27
+
+Over ~19 hours the repository used 205 runner-hours across 604 runs. Pull
+request CI took a median 30 minutes (p90 121) wall clock for ~15 minutes of
+critical-path compute; the rest was runner queueing (job wait p90 27 minutes,
+peak queue depth 154). The Full Suite ran on every master push with
+cancel-in-progress, but at ~60 minutes against a merge every ~23 minutes, 51 of
+60 runs were cancelled, so master saw ~5 heavy verdicts a day. 57 of those 60
+minutes were the spec-typecheck ratchet walking five ~10-minute workspaces in
+series. The merge queue was bypassed for most merges.
+
+The changes:
+
+1. The Full Suite runs hourly and is never cancelled, so every run reaches a
+   verdict; a head that already has a finished run is skipped.
+2. Spec typecheck runs as a matrix: each ~10-minute workspace gets its own leg
+   (`scripts/ci/spec-typecheck-matrix.mjs`).
+3. `ci.yml` went from 20 job definitions to 9: trust, test plan, and spec scope
+   share the Plan job; gitleaks lives in Static Checks; OpenAPI drift lives in
+   Build; packages, server-service, and web/mobile tests share one turbo job;
+   full and changed app/API shards share one matrix job each.
+4. Draft pull requests run no CI.
+5. The merge queue and its plumbing (merge-group triggers, the external-status
+   republisher, and the zombie-run janitor) are gone.
+6. The observation-only changed-code coverage was removed after two months
+   without promotion; full-repository coverage stays in the weekly Coverage
+   workflow.
+7. The shared Bun setup no longer restores a ~1 GB lockfile-keyed `.turbo`
+   snapshot on every job; the Turbo remote cache serves task outputs.
 
 ## Workflow inventory audit — 2026-09-01
 
@@ -75,15 +108,15 @@ The alternatives considered for this audit were:
 
 | Rule | Mechanical enforcement | Scope and failure behavior | Owner |
 | --- | --- | --- | --- |
-| `master` is PR-only | GitHub ruleset `Passing CI on master`; `ALLGREEN` merge queue; required `Tests Gate`; `merge_group` triggers in `ci.yml` and `pr-title.yml` | Every grouped entry must pass its own aggregate gate on current `master`; missing required contexts time out the queue entry | GitHub setting + repository workflows |
-| Superseded PR work is disposable; landed and release work is not | Top-level workflow concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; `master`, merge queue, release, deploy, and shared-cache writers queue or complete | Repository code |
+| `master` is PR-only | GitHub ruleset `Passing CI on master`; required `Tests Gate`; hourly `full-suite.yml` with the P0 `master-ci-failure` tracker | Every PR must pass its own aggregate gate; integration drift between concurrently merged PRs surfaces within one hourly Full Suite | GitHub setting + repository workflows |
+| Superseded PR work is disposable; landed and release work is not | Top-level workflow concurrency plus `scripts/ci/ci-concurrency.test.ts` and `scripts/ci/pr-validation-workflows.test.mjs` | PR runs cancel within one PR/ref; the hourly master suite, release, deploy, and shared-cache writers queue or complete | Repository code |
 | Changed scope must preserve dependency reachability | `scripts/ci/pr-test-plan.mjs`, Vitest `--changed`, Turbo `--affected --dry=json`, adaptive 1/2/4 shard matrices, fail-closed `Tests Gate` | Root toolchain and planner changes escalate to the full matrix; invalid or missing plans fail | Repository code |
-| Lint, format, type, build, tests, schema, and boundaries are deterministic | Frozen Bun install in `.github/actions/setup-bun-env`; `Format`, `Lint`, `Typecheck`, `Spec Typecheck`, `Build`, OpenAPI drift, and `test:executable-contracts` | Architecture contracts live in executable tests rather than new one-off workflow steps | Repository code |
+| Lint, format, type, build, tests, schema, and boundaries are deterministic | Frozen Bun install in `.github/actions/setup-bun-env`; format, lint, and typecheck in `Static Checks`; `Spec Typecheck`; `Build` with OpenAPI drift; and `test:executable-contracts` | Architecture contracts live in executable tests rather than new one-off workflow steps | Repository code |
 | External Actions are immutable | Every external `uses:` reference is a full 40-character upstream commit SHA; `check-github-action-versions.ts` rejects mutable refs or inconsistent SHAs | The release tag remains as a review comment; unlabeled manual SHA pins are intentionally not moved | Repository code |
 | Action updates remain routine | `bun run deps:update` calls `deps:update:actions`; the updater resolves the latest release tag to its upstream commit SHA and rewrites workflows plus composite actions | A failed lookup leaves the existing immutable pin unchanged; the weekly PR exposes every SHA change for review | Repository code |
 | Untrusted pull-request code stays outside privileged event context | Code validation runs on `pull_request`; an executable workflow contract limits `pull_request_target` to `pr-title.yml` and rejects checkout or local-action execution there | Fork code cannot turn metadata validation into execution with the base repository token | Repository code |
 | Fork code never receives repository secrets | GitHub fork approval policy requires approval for every external contributor; CI uses `pull_request`, and GitHub withholds secrets from fork runs | Maintainers review and apply `run-ci`; secret-consuming publish/deploy paths are not PR-triggered | GitHub setting + repository workflows |
-| Secret regressions fail before merge | Required `Gitleaks` and changed-file `Secretlint`; staged-content secret scan remains mandatory before commits | Merge-queue entries re-scan the queue diff; findings fail the required context | Repository code + required checks |
+| Secret regressions fail before merge | Gitleaks and changed-file secretlint inside `Static Checks`, held by the required `Tests Gate`; staged-content secret scan remains mandatory before commits | Findings fail Static Checks and therefore the gate | Repository code + required checks |
 | Failure evidence must be actionable and bounded | Exact test-plan artifacts, Vitest JSON reports, Playwright traces/screenshots, coverage reports, SARIF uploads, and job summaries use explicit retention and `if: always()`/`failure()` where applicable | Artifacts diagnose the exact run without making advisory coverage a merge gate | Repository code |
 | Production deploys only from public-repository `master` CI | Manual `Release` pins one master SHA; `Deploy hosted SaaS` validates ancestry and exact SHA; deploy jobs use the `production` environment | Community and hosted lanes ship the same SHA; failed release gates do not publish a new version | Repository workflow + environment |
 | Production environment accepts only `master` | GitHub `production` deployment branch policy allowlists `master` | Environment-scoped secrets and variables are unavailable before the job reaches the environment | GitHub setting |
@@ -94,20 +127,10 @@ The alternatives considered for this audit were:
 These controls are not stored in the repository and must be checked after
 organization or repository policy changes:
 
-- Active master ruleset `17728734` currently requires `Format`, `Gitleaks`,
-  `Lint`, `Secretlint (changed files)`, `Typecheck`, `PR Title`, `license/cla`,
+- Active master ruleset `17728734` requires `PR Title`, `license/cla`,
   `Socket Security: Project Report`, and the exact aggregate context
-  `Tests Gate`. Its merge queue uses `ALLGREEN`, so every entry in a grouped
-  merge must pass its own required checks. [GitHub documents](https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28)
-  that `HEADGREEN` only requires the group's head commit to pass; that setting
-  is unsafe for this repository's independently sharded queue entries.
-- The setting change is evidence-backed. PR #3372 merged at 12:07:05Z while
-  its merge-group package test was still running and later failed because
-  `Tests Gate` was not required. Adding the context made the aggregate wait for
-  all planned dependencies, but PR #3368 still merged at 13:41:29Z under
-  `HEADGREEN` before its own App shard 4 and `Tests Gate` failed at 13:45Z.
-  Read-back after the correction confirms active `ALLGREEN` and all nine
-  required contexts. The remaining App contract repair is owned by #3380.
+  `Tests Gate`, with no merge queue. Every other check (gitleaks, format,
+  lint, typecheck, spec typecheck, tests, build) is held by `Tests Gate`.
 - Repository Actions currently default `GITHUB_TOKEN` to write. Workflows
   override that default, but administrators should change the repository
   default to read-only so a newly added workflow fails safe.

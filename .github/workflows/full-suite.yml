@@ -1,22 +1,21 @@
-# Full Suite — THE master-push pipeline (ci.yml has no push trigger of its
-# own), and the caller for release verification.
+# Full Suite — THE master validation pipeline, and the caller for release
+# verification.
 #
-# Runs on every push to master, plus on demand: Actions → "Full Suite
-# (CI + Release Gates + E2E)" → Run workflow → pick the branch.
+# Runs hourly on master, plus on demand: Actions → "Full Suite (CI + Release
+# Gates + E2E)" → Run workflow → pick the branch.
 #
-# Master push coverage exists because the merge queue only requires the light PR
-# tier (tests gate, typecheck, lint, format, secret scans). Spec typecheck,
-# executable contracts, package tests, the full API/app shards, and API E2E live
-# here. Before v0.1.67 this workflow first ran at release cut, so a burst of
-# merges could land unvalidated at that tier and the release then paid for every
-# one of them at once — five attempts across roughly ten hours. Running on push
-# surfaces a red master within one Full Suite of the merge that caused it.
+# Pull requests run the affected tier only. The complete heavy tier (full
+# API/app shards, full spec typecheck, workspace tests, build & boot, E2E)
+# validates master here. It used to run on every master push with
+# cancel-in-progress, but a ~60-minute suite against a merge every ~23 minutes
+# meant 51 of 60 runs were cancelled and master saw ~5 verdicts a day
+# (2026-09-27 audit). Now it runs on a fixed cadence and is never cancelled, so
+# every run finishes and covers everything merged since the previous one. A
+# master head that already has a finished run is skipped, so idle hours cost
+# one tiny job.
 #
-# The nested CI Gate also carries ci.yml's push-gated master jobs — the
-# tests-gate push arm, the master failure tracker (#2510), and the merge-queue
-# janitor (#1969) — because a reusable workflow inherits the caller's
-# originating `push` event. Removing this workflow's push trigger would
-# silently disable all three.
+# The nested CI Gate carries ci.yml's master failure tracker (#2510), which
+# keys off the `schedule` event this workflow passes down.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
 # this file only orders the public release-prep gates. Community self-hosted image
@@ -25,37 +24,78 @@
 name: Full Suite (CI + Release Gates + E2E)
 
 on:
-  push:
-    branches: [master]
+  schedule:
+    - cron: '23 * * * *' # hourly, off the top-of-hour rush
   workflow_dispatch:
   workflow_call:
 
 concurrency:
   # Include the workflow name so a workflow_call invocation (where github.workflow
   # is the caller's name, e.g. the stable release) does not share a group with a
-  # manual workflow_dispatch on the same ref, and the event name so a master push
-  # never shares a group with a release verifying that same ref.
+  # manual workflow_dispatch on the same ref, and the event name so the hourly
+  # run never shares a group with a release verifying that same ref.
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
-  # Master pushes supersede each other: master is cumulative, so the newest run
-  # validates a superset of every run it cancels, and a merge burst gets one
-  # honest signal instead of a queue of stale ones. Release/deploy QA runs still
-  # queue rather than cancelling — the caller owns any safe supersession rule.
-  # (github.event_name resolves to the CALLER's event under workflow_call, and
-  # both callers are workflow_dispatch, so a release can never match 'push'.)
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # Never cancel a running suite: a newer run only replaces the *pending* one,
+  # and it validates a superset of what that pending run would have.
+  cancel-in-progress: false
 
 # Least-privilege default token; jobs that need more request it explicitly.
 permissions:
   contents: read
 
 jobs:
+  # Hourly runs skip a master head that already has a finished (green or red)
+  # Full Suite: re-running identical code buys nothing, and a red head keeps
+  # its open P0 tracker until a new commit lands. A cancelled run does not
+  # count. Manual and release runs always proceed.
+  #
+  # A skip cancels its own run. Left alone it would conclude `success` with
+  # every validation job skipped, and release evidence would read that as a
+  # green verdict for a SHA whose real run failed.
+  freshness:
+    name: Master Freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Skip a master head that already has a finished Full Suite
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" != "schedule" ]; then
+            echo "run=true" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          # Fail open: a lookup or cancel error validates rather than skips.
+          # A freshness failure would otherwise read as a finished red verdict
+          # to the next hourly run and leave the head unvalidated.
+          if ! finished="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/full-suite.yml/runs?head_sha=${HEAD_SHA}&per_page=100" \
+            --jq "[.workflow_runs[] | select(.id != ${GITHUB_RUN_ID}) | select(.conclusion == \"success\" or .conclusion == \"failure\")] | length")"; then
+            echo "::warning::Full Suite lookup for ${HEAD_SHA} failed; validating anyway."
+            echo "run=true" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [ "${finished}" -gt 0 ] && gh run cancel "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}"; then
+            echo "run=false" >>"${GITHUB_OUTPUT}"
+            echo "Master ${HEAD_SHA} already has a finished Full Suite; skipping."
+          else
+            echo "run=true" >>"${GITHUB_OUTPUT}"
+          fi
+
   ci:
     name: CI Gate
     # Nested reusable workflows cannot elevate permissions past this job's
     # ceiling. Mirror ci.yml's requested token scopes explicitly so callers of
     # full-suite can validate the complete workflow graph at startup.
+    needs: freshness
+    if: needs.freshness.outputs.run == 'true'
     permissions:
-      actions: write
       contents: read
       issues: write
       pull-requests: write
@@ -70,6 +110,8 @@ jobs:
 
   build-verify:
     name: Build & Boot Check
+    needs: freshness
+    if: needs.freshness.outputs.run == 'true'
     permissions:
       contents: read
       packages: write
@@ -80,6 +122,8 @@ jobs:
 
   e2e:
     name: E2E Suite
+    needs: freshness
+    if: needs.freshness.outputs.run == 'true'
     # Deliberately NOT `needs: [ci, build-verify]`. e2e.yml checks out, builds,
     # and starts its own postgres/redis services, so the old dependency bought
     # ordering only — and ordering cost the v0.1.67 release three sequential

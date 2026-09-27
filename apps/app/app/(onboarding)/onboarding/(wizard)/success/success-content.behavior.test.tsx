@@ -163,9 +163,14 @@ describe('SuccessContent behavior', () => {
     await waitFor(() => {
       expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     });
-    expect(analyticsMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+    // genfeedai/genfeed.ai#5311: `onboarding_completed` is captured
+    // server-side (gated on the atomic completion claim), never by this
+    // client hook — an unconditional client capture here would double-emit
+    // the event whenever two wizard tabs raced or the agent-first path
+    // completed first.
+    expect(analyticsMocks.captureAnalyticsEvent).not.toHaveBeenCalledWith(
       'onboarding_completed',
-      {},
+      expect.anything(),
     );
 
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.previewUrl)).toBeNull();

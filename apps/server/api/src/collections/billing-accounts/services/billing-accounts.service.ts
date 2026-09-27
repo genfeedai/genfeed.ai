@@ -35,6 +35,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   crossOrgUnsafe,
+  runWithTenantContext,
   withBillingAccountScopeRollback,
 } from '@libs/prisma/tenant-context';
 import {
@@ -234,19 +235,42 @@ export class BillingAccountsService {
       throw new NotFoundException('BillingAccount');
     }
 
+    // Proven against the CALLER's own tenant context (the session
+    // organization's billing account) — this check happens BEFORE the
+    // cross-org switch below and is never skipped by it.
     await this.requireRole(account.id, input.actorUserId, MUTATING_ROLE);
 
-    // resolveBillingAccountAccess registers its scope as active for the rest
-    // of the request the instant it resolves, even though it ran inside this
-    // still-uncommitted transaction. If the transaction later rolls back
-    // (any throw below), that registration must not outlive it (#5217,
-    // minor) — the org was never durably linked, so the scope was never
-    // really proven.
-    const linkedAccount = await withBillingAccountScopeRollback(() =>
-      this.prisma.$transaction(
-        (tx) => this.runLinkOrganizationTransaction(tx, input, account.id),
-        { isolationLevel: 'Serializable' },
-      ),
+    // The organization being linked (input.organizationId) is not
+    // necessarily the caller's own session organization — an owner who
+    // administers both attaches a second org to the billing account they
+    // already administer on the first (#5296). Every guard-visible read and
+    // write below needs proof scoped to the TARGET organization
+    // (assertOrganizationLinkable's org-admin-on-target check, and
+    // resolveBillingAccountAccess re-resolving the scope once the link
+    // lands), which is only reachable by explicitly authorizing this one
+    // cross-org step: switch the tenant context to the target organization
+    // now that the billing-account-admin check above has passed.
+    //
+    // This switch grants no rights by itself — assertOrganizationLinkable's
+    // org-admin-on-target check is the very first statement that runs once
+    // the context switches, before any write, so a caller who administers
+    // billing-account access on their own org but not the target org is
+    // still rejected. Neither check can be skipped.
+    const linkedAccount = await runWithTenantContext(
+      { organizationId: input.organizationId },
+      () =>
+        // resolveBillingAccountAccess registers its scope as active for the
+        // rest of the request the instant it resolves, even though it ran
+        // inside this still-uncommitted transaction. If the transaction
+        // later rolls back (any throw below), that registration must not
+        // outlive it (#5217, minor) — the org was never durably linked, so
+        // the scope was never really proven.
+        withBillingAccountScopeRollback(() =>
+          this.prisma.$transaction(
+            (tx) => this.runLinkOrganizationTransaction(tx, input, account.id),
+            { isolationLevel: 'Serializable' },
+          ),
+        ),
     );
 
     this.logger.log('Linked organization to billing account', {

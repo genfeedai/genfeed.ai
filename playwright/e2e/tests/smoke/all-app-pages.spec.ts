@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Page, Response } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { buildUnhandledApiMockBody } from '../../utils/api-interceptor';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const appRoot = path.join(process.cwd(), 'apps/app/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
@@ -467,6 +468,8 @@ async function assertRouteLoads(
     page.locator('[data-nextjs-dialog]'),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
+
+  await assertNoErrorBoundaryFallback(page, route);
 
   if (!options.allowRedirectToLogin) {
     expect(page.url(), `${route} redirected to login`).not.toMatch(/\/login/);

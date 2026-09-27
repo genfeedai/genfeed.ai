@@ -152,7 +152,7 @@ imports changes. The Full Suite runs it on every push to `master`.
 | Moderation job | Throws; BullMQ retries it (3 attempts, backoff from 60s). No verdict or activity is written |
 | Vision job | Records a paid attempt on each try, up to 3 in total; no evaluation is written |
 | Text-decision job | Writes nothing, and throws so the job retries with the same backoff |
-| Auto-publish and the agent tool | Held for review with "Media checks are still running…"; never rejected |
+| Auto-publish and the agent tool | Held for review with "Media checks are still running…" (`perception:checks_pending`) while retries remain; once vision's 3 attempts are exhausted, held instead with "Vision review could not complete after repeated attempts…" (`vision:unavailable`). Never rejected either way |
 | Badges and cards | Moderation, vision and text badges are missing; readiness diagnostics still show |
 
 **What "zero user-visible impact" means.** With all gates in `shadow`, a
@@ -169,10 +169,23 @@ Moderation and text decisions recover on their own once the provider returns.
 
 Vision does not. Each retry of the shared job spends one of the asset's 3 paid
 vision attempts, so an outage of the vision model, or of any other gate while
-vision is also failing, exhausts them within minutes. An asset that ran out of
-attempts stays `checks_pending` for good while vision is `live`, and needs a
-human approval. **Switch vision to `shadow` as soon as an outage is detected**;
-waiting it out does not work.
+vision is also failing, exhausts them within minutes. While attempts remain,
+the asset reads as `perception:checks_pending`, the same as any other
+in-progress check. Once an asset runs out of attempts, the assessment reports
+`vision:unavailable` instead — a distinct "could not complete after repeated
+attempts" message, not the generic still-running one — for good while vision
+is `live`, and needs a human approval, not a retry. **Switch vision to
+`shadow` as soon as an outage is detected**; waiting it out does not work.
+
+**Dangling evaluations.** `visionEvaluationId` is a plain string reference, not
+a database foreign key. If the `Evaluation` row it points to is ever gone
+(soft-deleted, or the id never resolved), the assessment never reads that as
+"no flags": while attempts remain below the cap it holds the asset as
+`perception:checks_pending`, and once the cap is reached it reports the same
+`vision:unavailable` reason as an ordinary exhaustion. Reusing a sibling's
+evaluation for identical bytes is validated the same way — a sibling whose
+evaluation has gone dangling has that link cleared so it re-enters the sweep,
+instead of quietly reusing a result that no longer exists.
 
 **Failed perception.** When perception's transcript, OCR or scene description
 failed for good, the text questions are never asked over what remains, because

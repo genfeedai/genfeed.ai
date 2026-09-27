@@ -23,4 +23,12 @@ describe('app/global-error.tsx', () => {
     expect(source).not.toContain('<html data-theme="dark"');
     expect(source).toContain('gf-studio-app');
   });
+
+  it('marks its fallback for the route smoke suite (#5070)', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'app/global-error.tsx'),
+      'utf8',
+    );
+    expect(source).toContain('data-testid="error-boundary-fallback"');
+  });
 });

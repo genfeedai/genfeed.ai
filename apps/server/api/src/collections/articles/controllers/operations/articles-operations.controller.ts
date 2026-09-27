@@ -11,13 +11,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { resolveGenerationBrandIdForCaller } from '@api/collections/api-keys/utils/resolve-generation-brand-for-caller.util';
 import {
   ArticleGenerationType,
   GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { ReviewArticleDto } from '@api/collections/articles/dto/review-article.dto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -86,8 +90,11 @@ export class ArticlesOperationsController {
 
   constructor(
     private readonly activitiesService: ActivitiesService,
+    private readonly apiKeysService: ApiKeysService,
     private readonly articlesService: ArticlesService,
+    private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly membersService: MembersService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly websocketService: NotificationsPublisherService,
@@ -106,7 +113,7 @@ export class ArticlesOperationsController {
     @Body() dto: GenerateArticlesDto,
     @CurrentUser() user: User,
   ) {
-    const brandId = dto.brandId || user.brandId;
+    const brandId = await this.resolveBrandId(dto, user);
     const generationType = dto.type || ArticleGenerationType.STANDARD;
     const isXArticle = generationType === ArticleGenerationType.X_ARTICLE;
 
@@ -327,6 +334,36 @@ export class ArticlesOperationsController {
       status: 'failed',
       taskId: activityId,
       userId,
+    });
+  }
+
+  /**
+   * Generation always has an explicit brand (#5219), resolved through the
+   * single API-key/MCP/session resolver (#5292) — no more "any brand in this
+   * org" fallback for an API-key caller:
+   *   1. The request's own brandId.
+   *   2. For an API-key caller, the key's validated `defaultBrandId`; for
+   *      every other (app) caller, `user.brandId` — the member's
+   *      `currentBrandId` invariant, re-validated here since it can be
+   *      briefly stale (e.g. right after a brand delete).
+   *   3. The acting member's own `currentBrandId` in this org — for an
+   *      API-key call, the KEY OWNER's member row.
+   */
+  private resolveBrandId(
+    dto: GenerateArticlesDto,
+    user: User,
+  ): Promise<string> {
+    return resolveGenerationBrandIdForCaller({
+      explicitBrandId: dto.brandId,
+      noApiKeyDefaultBrandMessage:
+        'brandId is required to generate articles. Configure a default brand for this API key, or pass brandId explicitly.',
+      noBrandMessage: 'brandId is required to generate articles.',
+      services: {
+        apiKeysService: this.apiKeysService,
+        brandsService: this.brandsService,
+        membersService: this.membersService,
+      },
+      user,
     });
   }
 

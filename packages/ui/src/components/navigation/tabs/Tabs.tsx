@@ -91,6 +91,7 @@ function TabsContent({
   onTabChange,
   className = '',
   contentClassName,
+  listClassName,
   fullWidth = true,
   stopClickPropagation = false,
   testId,
@@ -226,7 +227,7 @@ function TabsContent({
           className,
         )}
       >
-        <div className={cn(getTabsListClassName())}>
+        <div className={getTabsListClassName('ml-auto')}>
           {normalizedTabs.map((tab) => {
             const key = getTabId(tab);
             const value = getTabId(tab);
@@ -313,7 +314,7 @@ function TabsContent({
         className,
       )}
     >
-      <TabsList aria-label={ariaLabel} className="ml-auto">
+      <TabsList aria-label={ariaLabel} className={listClassName ?? 'ml-auto'}>
         {normalizedTabs.map((tab) => {
           const tabItem =
             typeof tab === 'string'
