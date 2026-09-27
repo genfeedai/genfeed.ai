@@ -37,4 +37,12 @@ export interface CreditsConfig {
   provider?: ByokProvider;
   isByokBypass?: boolean;
   pricingMetadata?: CreditsPricingMetadata;
+  /**
+   * Set on routes whose provider dispatch never receives an org's resolved
+   * BYOK key (#5294) — CreditsGuard must charge credits normally even when
+   * the org has an active key for the resolved provider, since the platform
+   * key pays regardless. Remove this once the route threads
+   * `creditsConfig.byokApiKeyOverride` into its dispatch call.
+   */
+  disallowByokBypass?: boolean;
 }

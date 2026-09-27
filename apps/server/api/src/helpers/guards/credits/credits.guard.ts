@@ -501,9 +501,14 @@ export class CreditsGuard implements CanActivate {
       }
 
       // --- Per-provider BYOK bypass ---
-      let byokProvider: ByokProvider | undefined = creditsConfig.provider;
+      // #5294 disallowByokBypass routes never thread the org's key into their
+      // provider call, so a bypass here would let the platform key pay while
+      // the org pays nothing. Skip resolution entirely and fall through to
+      // the normal credit charge below.
+      let byokProvider: ByokProvider | undefined =
+        creditsConfig.disallowByokBypass ? undefined : creditsConfig.provider;
 
-      if (!byokProvider) {
+      if (!byokProvider && !creditsConfig.disallowByokBypass) {
         const effectiveModelKey = modelKey || creditsConfig.modelKey;
         byokProvider = resolveModelByokProvider(
           effectiveModelKey,

@@ -44,6 +44,8 @@ export class ImagesUpscaleController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @Credits({
     description: 'Image upscaling',
+    // #5294 ImageUpscaleService dispatches to Replicate with no key override.
+    disallowByokBypass: true,
     modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
     source: ActivitySource.IMAGE_UPSCALE,
   })

@@ -788,6 +788,56 @@ describe('CreditsGuard', () => {
     });
   });
 
+  // #5294 disallowByokBypass marks routes whose provider dispatch never
+  // receives the org's resolved key (image/video upscale, reframe,
+  // training) — the guard must charge credits normally even though the org
+  // has an active key, since the platform key still pays for dispatch.
+  it('charges credits normally when disallowByokBypass is set, even with an explicit provider and active BYOK', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 10,
+      disallowByokBypass: true,
+      provider: ByokProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    const context = createContext();
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+
+    expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 10);
+    expect(
+      context.switchToHttp().getRequest().creditsConfig,
+    ).not.toHaveProperty('isByokBypass');
+  });
+
+  it('charges credits normally when disallowByokBypass is set and the model resolves a BYOK provider', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      disallowByokBypass: true,
+      modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+    });
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+
+    const context = createContext({
+      model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+    });
+    await guard.canActivate(context);
+
+    expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 10);
+    expect(
+      context.switchToHttp().getRequest().creditsConfig,
+    ).not.toHaveProperty('isByokBypass');
+  });
+
   it('stores creditsConfig on the request after successful check', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 7 });
     const ctx = createContext();

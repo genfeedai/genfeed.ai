@@ -84,6 +84,8 @@ export class VideosReframeController {
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video reframe',
+    // #5294 dispatch calls replicateService.generateTextToVideo with no key override.
+    disallowByokBypass: true,
     modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
     source: ActivitySource.VIDEO_REFRAME,
   })
