@@ -6,6 +6,7 @@ import {
   SocialSourceType,
 } from '@genfeedai/contracts';
 import type {
+  AdsResearchFilters,
   AdsResearchItem,
   AdsResearchResponse,
   ISocialSource,
@@ -4925,10 +4926,56 @@ export async function mockDiscoveryDeskFollowingFeed(
  * without a query string) across every host variant without also matching
  * `/ads/research/watchlist-readiness`.
  */
+/**
+ * Mirrors `AdsResearchService.normalizeFilters` (apps/server/api/src/
+ * endpoints/ads-research/ads-research.service.ts) — the real `listAds()`
+ * always echoes the request back as `filters` with these exact server
+ * defaults applied, never `{}`.
+ */
+function normalizeAdsFilters(
+  searchParams: URLSearchParams,
+): AdsResearchFilters {
+  const raw: AdsResearchFilters = {
+    adAccountId: searchParams.get('adAccountId') || undefined,
+    brandId: searchParams.get('brandId') || undefined,
+    brandName: searchParams.get('brandName') || undefined,
+    channel: (searchParams.get('channel') as AdsChannel) || undefined,
+    credentialId: searchParams.get('credentialId') || undefined,
+    industry: searchParams.get('industry') || undefined,
+    limit: searchParams.get('limit')
+      ? Number(searchParams.get('limit'))
+      : undefined,
+    loginCustomerId: searchParams.get('loginCustomerId') || undefined,
+    metric:
+      (searchParams.get('metric') as AdsResearchFilters['metric']) || undefined,
+    platform:
+      (searchParams.get('platform') as AdsResearchFilters['platform']) ||
+      undefined,
+    source:
+      (searchParams.get('source') as AdsResearchFilters['source']) || undefined,
+    timeframe:
+      (searchParams.get('timeframe') as AdsResearchFilters['timeframe']) ||
+      undefined,
+  };
+
+  return {
+    ...raw,
+    channel: raw.channel || AdsChannel.ALL,
+    limit: raw.limit ? Math.min(raw.limit, 24) : 12,
+    metric: raw.metric || 'performanceScore',
+    source: raw.source || 'all',
+    timeframe: raw.timeframe || 'last_30_days',
+  };
+}
+
 export async function mockAdsResearchResults(page: Page): Promise<void> {
+  // `mapPublicItem`/`mapResearchItem` in the real service always emit
+  // `channel: AdsChannel.ALL` — `AdsChannel` only varies on connected-account
+  // ads pulled from a live ad account, never on the public archive rows this
+  // mock stands in for.
   const items: AdsResearchItem[] = [
     {
-      channel: AdsChannel.DISPLAY,
+      channel: AdsChannel.ALL,
       explanation: 'High CTR carousel promoting a seasonal discount.',
       id: 'ads-research-meta-1',
       metrics: { clicks: 420, ctr: 3.1, impressions: 13_500 },
@@ -4938,7 +4985,7 @@ export async function mockAdsResearchResults(page: Page): Promise<void> {
       title: 'Meta Winter Sale Carousel',
     },
     {
-      channel: AdsChannel.SEARCH,
+      channel: AdsChannel.ALL,
       explanation: 'Top-performing search ad bundling three SKUs.',
       id: 'ads-research-google-1',
       metrics: { clicks: 310, ctr: 4.4, impressions: 7_050 },
@@ -4950,25 +4997,23 @@ export async function mockAdsResearchResults(page: Page): Promise<void> {
   ];
 
   await page.route(/\/ads\/research\/?(?:\?.*)?$/, async (route) => {
-    const requestedPlatform = new URL(route.request().url()).searchParams.get(
-      'platform',
-    );
+    const searchParams = new URL(route.request().url()).searchParams;
+    const requestedPlatform = searchParams.get('platform');
     const matching = requestedPlatform
       ? items.filter((item) => item.platform === requestedPlatform)
       : items;
+    const filters = normalizeAdsFilters(searchParams);
 
     const response: AdsResearchResponse = {
       connectedAds: [],
-      filters: {},
+      filters,
       publicAds: matching,
       summary: {
         connectedCount: 0,
         publicCount: matching.length,
         reviewPolicy: 'Review required.',
-        selectedPlatform:
-          (requestedPlatform as AdsResearchResponse['summary']['selectedPlatform']) ??
-          'all',
-        selectedSource: 'all',
+        selectedPlatform: filters.platform ?? 'all',
+        selectedSource: filters.source ?? 'all',
       },
     };
 
