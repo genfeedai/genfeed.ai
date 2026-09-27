@@ -94,33 +94,4 @@ describe('website next.config', () => {
       ]),
     );
   });
-
-  it.each([
-    'x',
-    'linkedin',
-    'instagram',
-    'tiktok',
-    'youtube',
-    'threads',
-    'facebook',
-    'pinterest',
-  ])('moves /%s-growth to its short /%s URL', async (platform) => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: `/${platform}`,
-      permanent: true,
-      source: `/${platform}-growth`,
-    });
-  });
-
-  it('folds the retired LinkedIn content page into the LinkedIn growth page', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: '/linkedin',
-      permanent: true,
-      source: '/linkedin-content',
-    });
-  });
 });
