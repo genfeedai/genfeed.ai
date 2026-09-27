@@ -47,6 +47,7 @@ import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
+import { AgentWorkflowToolOfficialResolverService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-official-resolver.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import {
@@ -999,6 +1000,7 @@ describe('AgentToolExecutorService', () => {
       batchGenerationService as never,
     );
     const onboardingCreditGrantsService = {
+      captureOnboardingCompletedBestEffort: vi.fn(),
       completeMissions: vi
         .fn()
         .mockImplementation(async (_organizationId: string, ids: string[]) =>
@@ -1059,6 +1061,11 @@ describe('AgentToolExecutorService', () => {
         membersService as never,
         systemWorkflowCatalogService as never,
         workflowCreateService,
+        new AgentWorkflowToolOfficialResolverService(
+          systemWorkflowCatalogService as never,
+          workflowsService as never,
+          marketplaceApiClient as never,
+        ),
         marketplaceApiClient as never,
         marketplaceInstallService as never,
         workflowInstallCacheService as never,
@@ -5930,6 +5937,10 @@ describe('AgentToolExecutorService', () => {
             workflowsService as never,
             brandsService as never,
             membersService as never,
+          ),
+          new AgentWorkflowToolOfficialResolverService(
+            { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
+            workflowsService as never,
           ),
         ),
         new AgentWorkflowToolCreateService(

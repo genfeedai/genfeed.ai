@@ -1,6 +1,6 @@
+import { OrganizationPaidAccessModule } from '@api/common/subscriptions/organization-paid-access.module';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
-import { ByokModule } from '@api/services/byok/byok.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -14,7 +14,7 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [AgentChatModelRegistryService, AgentModelAccessService],
-  imports: [ByokModule, LoggerModule, PrismaModule],
+  imports: [LoggerModule, OrganizationPaidAccessModule, PrismaModule],
   providers: [AgentChatModelRegistryService, AgentModelAccessService],
 })
 export class AgentChatModelRegistryModule {}

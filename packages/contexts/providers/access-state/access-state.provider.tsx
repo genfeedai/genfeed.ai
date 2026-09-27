@@ -2,7 +2,7 @@
 
 import { isSaaS } from '@genfeedai/config/deployment';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -25,7 +25,6 @@ export interface AccessStateContextValue {
   refreshAccessState: () => Promise<void>;
   isSuperAdmin: boolean;
   isSubscribed: boolean;
-  isByok: boolean;
   hasPaygCredits: boolean;
   canAccessApp: boolean;
   needsOnboarding: boolean;
@@ -126,12 +125,11 @@ export function AccessStateProvider({
   const isSubscribed =
     accessState?.subscriptionStatus === SubscriptionStatus.ACTIVE ||
     accessState?.subscriptionStatus === SubscriptionStatus.TRIALING;
-  const isByok = accessState?.subscriptionTier === SubscriptionTier.BYOK;
   const hasPaygCredits =
     (accessState?.creditsBalance ?? 0) > 0 ||
     accessState?.hasEverHadCredits === true;
   const needsOnboarding = accessState?.isOnboardingCompleted !== true;
-  const canAccessApp = isSuperAdmin || isSubscribed || isByok;
+  const canAccessApp = isSuperAdmin || isSubscribed;
 
   // First-asset unlock gate. SaaS-only (isSaaS excludes cloud-connected Desktop);
   // super-admins bypass. Fail-open: locked ONLY when both flags are explicitly
@@ -177,7 +175,6 @@ export function AccessStateProvider({
       dismissAssetGate,
       hasPaygCredits,
       isAssetGateLocked,
-      isByok,
       isLoading,
       isSubscribed,
       isSuperAdmin,
@@ -190,7 +187,6 @@ export function AccessStateProvider({
       dismissAssetGate,
       hasPaygCredits,
       isAssetGateLocked,
-      isByok,
       isLoading,
       isSubscribed,
       isSuperAdmin,

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   >(),
   desktop: false,
   getByokAllProviders: vi.fn(),
+  isBillingEnabled: true,
   isReady: true,
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   organizationId: 'org-1',
   removeByokProviderKey: vi.fn(),
   saveByokProviderKey: vi.fn(),
+  subscriptionTier: 'pro' as string | undefined,
   validateByokProviderKey: vi.fn(),
 }));
 
@@ -25,7 +27,21 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     isReady: mocks.isReady,
     organizationId: mocks.organizationId,
+    settings: { subscriptionTier: mocks.subscriptionTier },
   }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBillingHint: () => mocks.isBillingEnabled,
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/acme/~${path}` }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -76,6 +92,7 @@ vi.mock('lucide-react', () => ({
   Clock3: () => <span data-testid="hi-clock" />,
   Eye: () => <span data-testid="hi-eye" />,
   ListTodo: () => <span data-testid="hi-list-todo" />,
+  Lock: () => <span data-testid="hi-lock" />,
   Pause: () => <span data-testid="hi-pause" />,
   Play: () => <span data-testid="hi-play" />,
   Plus: () => <span data-testid="hi-plus" />,
@@ -144,7 +161,9 @@ describe('SettingsIntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.desktop = false;
+    mocks.isBillingEnabled = true;
     mocks.isReady = true;
+    mocks.subscriptionTier = 'pro';
     mocks.organizationId = 'org-1';
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     mocks.removeByokProviderKey.mockResolvedValue({});
@@ -181,6 +200,42 @@ describe('SettingsIntegrationsPage', () => {
         'OpenAI API key saved',
       );
     });
+  });
+
+  it('shows the Pro upgrade prompt and blocks new keys on the free tier', async () => {
+    mocks.subscriptionTier = 'free';
+
+    render(<SettingsIntegrationsPage />);
+
+    await screen.findByText('OpenAI');
+    expect(
+      screen.getByText('Bring your own keys is included with Pro'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Upgrade to Pro' }),
+    ).toHaveAttribute('href', '/acme/~/settings/subscription');
+    expect(
+      screen.queryByRole('button', { name: 'Add Key' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Replace Key' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Remove Replicate key' }),
+    ).toBeInTheDocument();
+  });
+
+  it('never gates BYOK on deployments without organization billing', async () => {
+    mocks.isBillingEnabled = false;
+    mocks.subscriptionTier = 'free';
+
+    render(<SettingsIntegrationsPage />);
+
+    await screen.findByText('OpenAI');
+    expect(
+      screen.queryByText('Bring your own keys is included with Pro'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Key' })).toBeInTheDocument();
   });
 
   it('renders desktop local provider settings without waiting for organization readiness', () => {

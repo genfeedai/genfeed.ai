@@ -203,7 +203,6 @@ export class CreditTransactionsService extends BaseService<
 
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.CREDITS_USAGE(organizationId),
-      CACHE_PATTERNS.CREDITS_BYOK(organizationId),
       CACHE_PATTERNS.CREDITS_LAST_PURCHASE_BASELINE(organizationId),
     );
 

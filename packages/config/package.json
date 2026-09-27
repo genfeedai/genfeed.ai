@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/pricing": "workspace:*",
     "dotenv": "18.0.3",
     "jose": "^6.2.12",
     "joi": "18.2.9"

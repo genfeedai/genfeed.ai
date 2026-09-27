@@ -19,7 +19,6 @@ describe('VideoGenerationCreditsService parity with the Agent quote', () => {
   };
   const modelsService = { findOne: vi.fn() };
   const byokService = {
-    isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
     resolveApiKey: vi.fn().mockResolvedValue(undefined),
   };
   const service = new VideoGenerationCreditsService(

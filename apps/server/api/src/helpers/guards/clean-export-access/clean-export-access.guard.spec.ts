@@ -157,10 +157,8 @@ describe('CleanExportAccessGuard', () => {
       }
     });
 
-    it('blocks BYOK (free) tier', () => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
-        SubscriptionTier.BYOK,
-      );
+    it('blocks the retired byok tier', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('byok');
       const ctx = buildContext(buildUser());
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
@@ -216,7 +214,7 @@ describe('CleanExportAccessGuard', () => {
       vi.stubEnv('GENFEED_CLOUD', undefined);
     });
 
-    it.each([SubscriptionTier.FREE, SubscriptionTier.BYOK])(
+    it.each([SubscriptionTier.FREE, 'byok'])(
       'allows %s tier off cloud (no managed tiers/billing)',
       (tier) => {
         vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);

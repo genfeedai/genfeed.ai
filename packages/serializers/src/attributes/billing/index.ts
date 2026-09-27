@@ -1,5 +1,4 @@
 export * from '@serializers/attributes/billing/billing-account.attributes';
-export * from '@serializers/attributes/billing/byok-usage-summary.attributes';
 export * from '@serializers/attributes/billing/cost-report-entry.attributes';
 export * from '@serializers/attributes/billing/cost-report-summary.attributes';
 export * from '@serializers/attributes/billing/credit-transaction.attributes';

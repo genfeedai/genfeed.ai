@@ -6,7 +6,6 @@ export default defineConfig({
     alias: {
       '@config': path.resolve(__dirname, './src'),
       '@genfeedai/helpers': path.resolve(__dirname, '../helpers/src'),
-      '@genfeedai/pricing': path.resolve(__dirname, '../pricing/src/index.ts'),
     },
   },
   test: {

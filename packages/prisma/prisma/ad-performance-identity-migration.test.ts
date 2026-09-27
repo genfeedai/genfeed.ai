@@ -217,7 +217,29 @@ describePostgres('AdPerformance identity backfill on PostgreSQL', () => {
           "updatedAt" timestamp NOT NULL
         );
       `);
+      // An empty, never-analyzed table costs both org-leading indexes alike, so
+      // the planner may serve the identity lookup from the list index with an
+      // identityKey filter. Seed a realistic spread across orgs, platforms,
+      // granularities and dates, then ANALYZE, so the plans follow selectivity.
+      await client.query(`
+        INSERT INTO "ad_performance"
+          ("id", "organizationId", "credentialId", "adPlatform", "data", "updatedAt")
+        SELECT
+          'row-' || g,
+          'org-' || (g % 20),
+          'cred-' || (g % 20),
+          (ARRAY['meta', 'google-ads', 'tiktok'])[1 + g % 3],
+          jsonb_build_object(
+            'date', to_char(DATE '2026-01-01' + (g % 180), 'YYYY-MM-DD'),
+            'granularity', (ARRAY['account', 'campaign', 'adset', 'ad'])[1 + (g / 3) % 4],
+            'externalAccountId', 'acct-' || (g % 20),
+            'externalCampaignId', 'camp-' || g
+          ),
+          '2026-08-01'
+        FROM generate_series(1, 20000) AS g
+      `);
       await client.query(migrationSource);
+      await client.query('ANALYZE "ad_performance"');
       await client.query('SET enable_seqscan = off');
 
       const upsertPlan = await client.query<ExplainRow>(

@@ -25,7 +25,6 @@ describe('ImageGenerationCreditsService', () => {
     providerFor: vi.fn(),
   };
   const byokService = {
-    isByokBillingInGoodStanding: vi.fn(),
     resolveApiKey: vi.fn(),
   };
 
@@ -36,7 +35,6 @@ describe('ImageGenerationCreditsService', () => {
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     providerRegistry.providerFor.mockReturnValue('fal');
     byokService.resolveApiKey.mockResolvedValue(undefined);
-    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );

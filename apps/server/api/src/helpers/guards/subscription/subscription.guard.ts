@@ -3,9 +3,8 @@ import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
-  getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -79,8 +78,7 @@ export class SubscriptionGuard implements CanActivate {
     const subscriptionStatus = getStripeSubscriptionStatus(user, request);
     const isActive =
       subscriptionStatus === SubscriptionStatus.ACTIVE ||
-      subscriptionStatus === SubscriptionStatus.TRIALING ||
-      getSubscriptionTier(user, request) === SubscriptionTier.BYOK;
+      subscriptionStatus === SubscriptionStatus.TRIALING;
 
     if (!isActive) {
       this.loggerService.warn('SubscriptionGuard: No active subscription', {

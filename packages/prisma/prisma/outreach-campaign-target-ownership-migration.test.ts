@@ -121,13 +121,17 @@ describePostgres('outreach campaign target ownership on PostgreSQL', () => {
 
       await client.query(migrationSource);
 
+      // The rejected insert aborts the enclosing transaction; roll back to a
+      // savepoint so the claim checks below still run inside it.
+      await client.query('SAVEPOINT before_foreign_target');
       await expect(
         client.query(`
           INSERT INTO "campaign_targets"
             ("id", "organizationId", "campaignId")
           VALUES ('t_foreign', 'org_2', 'c1')
         `),
-      ).rejects.toThrow();
+      ).rejects.toThrow(/campaign_targets_campaignId_organizationId_fkey/);
+      await client.query('ROLLBACK TO SAVEPOINT before_foreign_target');
 
       const firstClaim = await client.query(`
         UPDATE "campaign_targets"

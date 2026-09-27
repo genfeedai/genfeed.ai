@@ -1,5 +1,6 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
+import { AgentWorkflowToolOfficialResolverService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-official-resolver.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -99,6 +100,10 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
       { findOne: vi.fn().mockResolvedValue(null) } as never,
       systemWorkflowCatalogService as never,
       createService as never,
+      new AgentWorkflowToolOfficialResolverService(
+        systemWorkflowCatalogService as never,
+        workflowsService as never,
+      ),
       undefined,
       undefined,
       cacheService as never,

@@ -42,7 +42,18 @@ type Violation = {
 };
 
 function readJsonFile(filePath: string): Record<string, unknown> {
-  return JSON.parse(readFileSync(filePath, 'utf8')) as Record<string, unknown>;
+  const configSource = ts.readConfigFile(filePath, ts.sys.readFile);
+
+  if (configSource.error) {
+    throw new Error(
+      `Failed to parse ${filePath}: ${ts.flattenDiagnosticMessageText(
+        configSource.error.messageText,
+        '\n',
+      )}`,
+    );
+  }
+
+  return configSource.config as Record<string, unknown>;
 }
 
 function resolveExtendsPath(

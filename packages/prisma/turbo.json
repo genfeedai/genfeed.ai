@@ -11,9 +11,11 @@
     "build": {
       "inputs": ["$TURBO_DEFAULT$", "generated/**", "prisma/schema.prisma"]
     },
+    // Turbo's strict env mode strips undeclared variables; without
+    // DATABASE_URL here every Postgres-backed migration test skips in CI.
     "test": {
       "cache": false,
-      "passThroughEnv": ["KNOWLEDGE_TEST_DATABASE_URL"]
+      "passThroughEnv": ["DATABASE_URL", "KNOWLEDGE_TEST_DATABASE_URL"]
     }
   }
 }

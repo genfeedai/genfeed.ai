@@ -1,7 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -9,23 +8,24 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
-  ByokBillingStatus,
+  BillingRevenueSource,
   CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/contracts';
-import {
-  type ISubscriptionOssReadModel,
-  SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/contracts/interfaces/billing';
+import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 
 describe('StripeWebhookSupportService', () => {
   let service: StripeWebhookSupportService;
@@ -33,6 +33,9 @@ describe('StripeWebhookSupportService', () => {
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const prisma = {
+    billingRevenueEvent: {
+      createMany: vi.fn(),
+    },
     creditTransaction: {
       findFirst: vi.fn(),
     },
@@ -57,7 +60,6 @@ describe('StripeWebhookSupportService', () => {
     getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model_1']),
     patch: vi.fn(),
   };
-  const organizationsService = { findOne: vi.fn() };
   const subscriptionsService = { findByStripeCustomerId: vi.fn() };
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const requestContextCacheService = {
@@ -73,6 +75,9 @@ describe('StripeWebhookSupportService', () => {
     resolveMonthlyCredits: vi.fn(),
     resolvePlanCredits: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+  };
+  const notificationsService = {
+    sendRevenueNotification: vi.fn().mockResolvedValue(undefined),
   };
 
   const priceConfig: Record<string, string> = {
@@ -95,6 +100,7 @@ describe('StripeWebhookSupportService', () => {
       async (_key: string, fn: () => Promise<unknown>) => await fn(),
     );
     prisma.creditTransaction.findFirst.mockResolvedValue(null);
+    prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
     organizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
       ['model_1'],
     );
@@ -116,7 +122,6 @@ describe('StripeWebhookSupportService', () => {
           provide: OrganizationSettingsService,
           useValue: organizationSettingsService,
         },
-        { provide: OrganizationsService, useValue: organizationsService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: UsersService, useValue: usersService },
         {
@@ -127,6 +132,7 @@ describe('StripeWebhookSupportService', () => {
           provide: AccessBootstrapCacheService,
           useValue: accessBootstrapCacheService,
         },
+        { provide: NotificationsService, useValue: notificationsService },
       ],
     }).compile();
 
@@ -421,7 +427,7 @@ describe('StripeWebhookSupportService', () => {
         brandId: 'org_1',
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
-        value: 'BYOK platform fee paid: $12.50',
+        value: 'Subscription credits granted',
       });
 
       expect(activitiesService.create).toHaveBeenCalledWith({
@@ -429,7 +435,7 @@ describe('StripeWebhookSupportService', () => {
         key: ActivityKey.CREDITS_ADD,
         organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
-        value: 'BYOK platform fee paid: $12.50',
+        value: 'Subscription credits granted',
       });
     });
   });
@@ -517,40 +523,6 @@ describe('StripeWebhookSupportService', () => {
       );
       expect(loggerService.log.mock.calls[0][1]).not.toHaveProperty('email');
     });
-
-    it('persists the tier through updateOrganizationTierAndModels when given', async () => {
-      const subscription = {
-        cancelAtPeriodEnd: false,
-        id: 'sub_db_1',
-        isDeleted: false,
-        organizationId: 'org_1',
-        status: 'active',
-        userId: 'user_1',
-      } satisfies ISubscriptionOssReadModel;
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
-        subscription,
-      );
-      usersService.findOne.mockResolvedValue({
-        id: 'user_1',
-        email: 'ada@example.com',
-        isOnboardingCompleted: true,
-      });
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-
-      await service.markOnboardingCompleteFromSession(
-        session,
-        'test',
-        SubscriptionTier.BYOK,
-      );
-
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        id: 'user_1',
-      });
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        enabledModelIds: ['model_1'],
-        subscriptionTier: SubscriptionTier.BYOK,
-      });
-    });
   });
 
   describe('setHasEverHadCredits', () => {
@@ -587,58 +559,6 @@ describe('StripeWebhookSupportService', () => {
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to set hasEverHadCredits flag'),
         expect.objectContaining({ organizationId: 'org_1' }),
-      );
-    });
-  });
-
-  describe('setByokBillingStatus', () => {
-    it('patches the billing status on the org setting', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-
-      await service.setByokBillingStatus(
-        'org_1',
-        ByokBillingStatus.ACTIVE,
-        'in_1',
-        'test',
-        'failed to reset byokBillingStatus after payment',
-      );
-
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        byokBillingStatus: ByokBillingStatus.ACTIVE,
-      });
-      expect(
-        requestContextCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        accessBootstrapCacheService.invalidateForOrganization,
-      ).toHaveBeenCalledWith('org_1');
-      expect(
-        organizationSettingsService.patch.mock.invocationCallOrder[0],
-      ).toBeLessThan(
-        requestContextCacheService.invalidateForOrganization.mock
-          .invocationCallOrder[0],
-      );
-    });
-
-    it('logs patch failures with the caller-provided message', async () => {
-      organizationSettingsService.findOne.mockResolvedValue({ id: 'os_1' });
-      organizationSettingsService.patch.mockRejectedValueOnce(
-        new Error('boom'),
-      );
-
-      await service.setByokBillingStatus(
-        'org_1',
-        ByokBillingStatus.PAST_DUE,
-        'in_1',
-        'test',
-        'failed to set past_due status after payment failure',
-      );
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'failed to set past_due status after payment failure',
-        ),
-        expect.objectContaining({ invoiceId: 'in_1', organizationId: 'org_1' }),
       );
     });
   });
@@ -919,6 +839,114 @@ describe('StripeWebhookSupportService', () => {
         expect.stringContaining('failed to upsert subscription lead'),
         expect.objectContaining({ organizationId: 'org_1' }),
       );
+    });
+  });
+
+  describe('recordRevenueEvent (genfeedai/genfeed.ai#4969)', () => {
+    const baseInput = {
+      amountMinor: 4900,
+      currency: 'usd',
+      occurredAt: new Date('2026-09-27T00:00:00.000Z'),
+      organizationId: 'org_1',
+      source: BillingRevenueSource.CREDIT_PURCHASE,
+      stripeObjectId: 'cs_test_1',
+      userId: 'user_1',
+    };
+
+    it('notifies the operator exactly once when the ledger row is newly inserted', async () => {
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
+
+      await service.recordRevenueEvent(baseInput);
+
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).toHaveBeenCalledTimes(1);
+      expect(notificationsService.sendRevenueNotification).toHaveBeenCalledWith(
+        {
+          amountMinor: 4900,
+          currency: 'usd',
+          organizationId: 'org_1',
+          planLabel: undefined,
+          source: BillingRevenueSource.CREDIT_PURCHASE,
+          userId: 'user_1',
+        },
+      );
+    });
+
+    it('is skipped on a webhook replay — the unique stripeObjectId skips the insert', async () => {
+      // `createMany({ skipDuplicates: true })` reports 0 rows written when the
+      // unique `stripeObjectId` already exists — the exact replay case.
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 0 });
+
+      await service.recordRevenueEvent(baseInput);
+
+      expect(prisma.billingRevenueEvent.createMany).toHaveBeenCalledTimes(1);
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when the notifier fails, and reports it to Sentry', async () => {
+      notificationsService.sendRevenueNotification.mockRejectedValue(
+        new Error('redis publish failed'),
+      );
+
+      await expect(
+        service.recordRevenueEvent(baseInput),
+      ).resolves.toBeUndefined();
+
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).toHaveBeenCalledTimes(1);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to notify operator of revenue event'),
+        expect.objectContaining({ organizationId: 'org_1' }),
+      );
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    });
+
+    it('never notifies when the ledger write itself fails', async () => {
+      prisma.billingRevenueEvent.createMany.mockRejectedValue(
+        new Error('db down'),
+      );
+
+      await expect(
+        service.recordRevenueEvent(baseInput),
+      ).resolves.toBeUndefined();
+
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).not.toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to record revenue event'),
+        expect.objectContaining({ organizationId: 'org_1' }),
+      );
+    });
+
+    it('passes the caller-supplied plan label through for subscription revenue', async () => {
+      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
+
+      await service.recordRevenueEvent({
+        ...baseInput,
+        planLabel: 'pro',
+        source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+      });
+
+      expect(notificationsService.sendRevenueNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planLabel: 'pro',
+          source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+        }),
+      );
+    });
+
+    it('never records or notifies for a non-positive amount', async () => {
+      await service.recordRevenueEvent({ ...baseInput, amountMinor: 0 });
+
+      expect(prisma.billingRevenueEvent.createMany).not.toHaveBeenCalled();
+      expect(
+        notificationsService.sendRevenueNotification,
+      ).not.toHaveBeenCalled();
     });
   });
 });

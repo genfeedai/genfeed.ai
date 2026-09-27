@@ -70,7 +70,7 @@ describe('resolveResearchCollectionAccess', () => {
     ).toBe('paid_through');
   });
 
-  it('denies trials, BYOK, API-key-only orgs, and expired or unpaid rows', () => {
+  it('denies trials, free-tier, API-key-only orgs, and expired or unpaid rows', () => {
     const denied = [
       subscription({ status: SubscriptionStatus.TRIALING }),
       subscription({ plan: null, status: SubscriptionStatus.ACTIVE }),
@@ -91,7 +91,7 @@ describe('resolveResearchCollectionAccess', () => {
           subscriptionTier:
             row.status === SubscriptionStatus.TRIALING
               ? SubscriptionTier.PRO
-              : SubscriptionTier.BYOK,
+              : SubscriptionTier.FREE,
           subscriptions: [row],
         }).isAllowed,
       ).toBe(false);
@@ -107,13 +107,13 @@ describe('resolveResearchCollectionAccess', () => {
     ).toBe('research_paid_access_required');
   });
 
-  it('does not let a BYOK tier override a paid plan on the subscription row', () => {
+  it('does not let a free tier override a paid plan on the subscription row', () => {
     expect(
       resolveResearchCollectionAccess({
         isHostedSaas: true,
         now: NOW,
         subscriptionReadFailed: false,
-        subscriptionTier: SubscriptionTier.BYOK,
+        subscriptionTier: SubscriptionTier.FREE,
         subscriptions: [subscription({ plan: 'yearly' })],
       }),
     ).toEqual({ isAllowed: true, reason: 'active_paid' });

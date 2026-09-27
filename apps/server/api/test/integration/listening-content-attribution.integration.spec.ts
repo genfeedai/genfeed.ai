@@ -239,6 +239,15 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
   it('keeps evidence, release, publication, and measurement identities stable', async () => {
     const primary = await seedFixture('primary');
     const foreign = await seedFixture('foreign');
+    // Other E2E files share this database (#3994), so every count is scoped
+    // to the two fixture organizations.
+    const fixtureScope = {
+      where: {
+        organizationId: {
+          in: [primary.organizationId, foreign.organizationId],
+        },
+      },
+    };
     const now = new Date();
     const previousStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
     const previousEnd = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -280,8 +289,8 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
       false,
     );
 
-    expect(await db.sourcePost.count()).toBe(4);
-    expect(await db.listeningEvidence.count()).toBe(4);
+    expect(await db.sourcePost.count(fixtureScope)).toBe(4);
+    expect(await db.listeningEvidence.count(fixtureScope)).toBe(4);
     expect(collectTimeline).toHaveBeenCalledTimes(3);
 
     const sourcePost = await db.sourcePost.findFirst({
@@ -341,7 +350,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         listeningThemeId: primaryAnalysis.themeId,
       }),
     ).rejects.toThrow('Listening attribution evidence is unavailable');
-    await expectNoDownstreamWrites();
+    await expectNoDownstreamWrites(fixtureScope);
 
     const attributionInput = {
       actionType: SourcePostActionType.REPLY,
@@ -363,7 +372,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     );
 
     expect(duplicateDelivery.draftId).toBe(firstDelivery.draftId);
-    expect(await db.post.count()).toBe(1);
+    expect(await db.post.count(fixtureScope)).toBe(1);
     await expectOutcome(primaryAnalysis, {
       actionId: firstDelivery.draftId,
       latestPostAnalyticsId: null,
@@ -589,11 +598,13 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     return outcomes[0];
   }
 
-  async function expectNoDownstreamWrites(): Promise<void> {
-    expect(await db.post.count()).toBe(0);
-    expect(await db.postGroup.count()).toBe(0);
-    expect(await db.publishApproval.count()).toBe(0);
-    expect(await db.postAnalytics.count()).toBe(0);
+  async function expectNoDownstreamWrites(
+    scope: Record<string, unknown>,
+  ): Promise<void> {
+    expect(await db.post.count(scope)).toBe(0);
+    expect(await db.postGroup.count(scope)).toBe(0);
+    expect(await db.publishApproval.count(scope)).toBe(0);
+    expect(await db.postAnalytics.count(scope)).toBe(0);
   }
 
   async function seedFixture(suffix: string): Promise<Fixture> {

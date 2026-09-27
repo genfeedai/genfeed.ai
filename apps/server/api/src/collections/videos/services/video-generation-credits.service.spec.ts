@@ -24,7 +24,6 @@ describe('VideoGenerationCreditsService', () => {
     findOne: vi.fn(),
   };
   const byokService = {
-    isByokBillingInGoodStanding: vi.fn(),
     resolveApiKey: vi.fn(),
   };
 
@@ -34,7 +33,6 @@ describe('VideoGenerationCreditsService', () => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     byokService.resolveApiKey.mockResolvedValue(undefined);
-    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );

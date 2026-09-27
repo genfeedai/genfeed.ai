@@ -1,7 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -14,12 +13,12 @@ import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webho
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   type ActivitySource,
   type BillingRevenueSource,
-  type ByokBillingStatus,
   CreditTransactionCategory,
   SubscriptionPlan,
   SubscriptionTier,
@@ -32,6 +31,7 @@ import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 const CHECKOUT_SESSION_NAMESPACE = 'stripe-checkout-session';
@@ -61,6 +61,8 @@ export type BillingRevenueEventInput = {
   source: BillingRevenueSource;
   stripeObjectId: string;
   userId?: string | null;
+  /** Human-readable plan/product name for the operator alert, e.g. `Pro`, `Scale`. */
+  planLabel?: string;
 };
 
 type PurchasedCreditsReference = {
@@ -114,12 +116,12 @@ export class StripeWebhookSupportService {
     private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly organizationsService: OrganizationsService,
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly usersService: UsersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -311,9 +313,13 @@ export class StripeWebhookSupportService {
   /** Add purchased credits with the standard 1-year expiration. */
   /**
    * Record a customer payment in the revenue ledger that platform-admin unit
-   * economics reads. Idempotent per Stripe object (webhook replays hit the
-   * unique `stripeObjectId` and are skipped). Best-effort: the payment's credits are already granted, so a
-   * ledger failure is logged, never thrown.
+   * economics reads, then alert the operator (genfeedai/genfeed.ai#4969).
+   * Idempotent per Stripe object (webhook replays hit the unique
+   * `stripeObjectId` and are skipped) — every caller (checkout and invoice
+   * handlers) reuses this one insert as the sole idempotency key, so the
+   * operator alert below only fires on the row this call actually inserts,
+   * never on a replay. Best-effort: the payment's credits are already
+   * granted, so a ledger or notification failure is logged, never thrown.
    */
   async recordRevenueEvent(input: BillingRevenueEventInput): Promise<void> {
     const amountMinor = Math.round(input.amountMinor);
@@ -329,7 +335,7 @@ export class StripeWebhookSupportService {
     try {
       // The unique Stripe object id is the replay guard: a duplicate webhook
       // delivery is skipped by the constraint instead of read-then-written.
-      await this.prisma.billingRevenueEvent.createMany({
+      const { count } = await this.prisma.billingRevenueEvent.createMany({
         data: [
           {
             amountMinor,
@@ -343,6 +349,10 @@ export class StripeWebhookSupportService {
         ],
         skipDuplicates: true,
       });
+
+      if (count > 0) {
+        await this.notifyOperatorOfRevenueEvent(input, amountMinor);
+      }
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} failed to record revenue event`,
@@ -353,6 +363,45 @@ export class StripeWebhookSupportService {
           stripeObjectId: input.stripeObjectId,
         },
       );
+    }
+  }
+
+  /**
+   * Best-effort operator Discord alert for a newly-recorded revenue event.
+   * Isolated in its own try/catch (rather than relying on the caller's) so a
+   * Redis publish failure here is never mistaken for a failure to record the
+   * ledger row above, and never fails the webhook that already succeeded.
+   */
+  private async notifyOperatorOfRevenueEvent(
+    input: BillingRevenueEventInput,
+    amountMinor: number,
+  ): Promise<void> {
+    try {
+      await this.notificationsService.sendRevenueNotification({
+        amountMinor,
+        currency: input.currency.trim().toLowerCase() || 'usd',
+        organizationId: input.organizationId,
+        planLabel: input.planLabel,
+        source: input.source,
+        userId: input.userId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to notify operator of revenue event`,
+        {
+          error,
+          organizationId: input.organizationId,
+          source: input.source,
+          stripeObjectId: input.stripeObjectId,
+        },
+      );
+      Sentry.captureException(error, {
+        extra: {
+          organizationId: input.organizationId,
+          source: input.source,
+          stripeObjectId: input.stripeObjectId,
+        },
+      });
     }
   }
 
@@ -451,7 +500,6 @@ export class StripeWebhookSupportService {
   async markOnboardingCompleteFromSession(
     session: StripeCheckoutSession,
     url: string,
-    subscriptionTier?: SubscriptionTier,
   ): Promise<void> {
     // Try finding user via subscription
     const subscription = await this.subscriptionsService.findByStripeCustomerId(
@@ -483,34 +531,6 @@ export class StripeWebhookSupportService {
       return;
     }
 
-    // Persist the subscription tier to the org settings (epic #735, Phase C —
-    // OrganizationSetting.subscriptionTier replaces the legacy auth provider metadata write;
-    // updateOrganizationTierAndModels is the canonical tier writer).
-    if (subscriptionTier) {
-      const organizationId = subscription?.organizationId
-        ? subscription.organizationId
-        : String(
-            (
-              await this.organizationsService.findOne({
-                userId: String(dbUser.id),
-              })
-            )?.id ?? '',
-          );
-      if (organizationId) {
-        await this.updateOrganizationTierAndModels(
-          organizationId,
-          subscriptionTier,
-          url,
-        );
-      } else {
-        // The tier is now DB-canonical (no legacy auth provider fallback), so surface a failure
-        // to resolve the org rather than silently dropping the tier write.
-        this.loggerService.warn(
-          `${url} could not resolve organization to persist subscription tier`,
-          { sessionId: session.id, subscriptionTier, userId: dbUser.id },
-        );
-      }
-    }
     await this.markOnboardingComplete(dbUser);
     await this.invalidateUserCaches(String(dbUser.id));
 
@@ -546,39 +566,6 @@ export class StripeWebhookSupportService {
       this.loggerService.warn(`${url} failed to set hasEverHadCredits flag`, {
         error: (error as Error)?.message,
         organizationId,
-      });
-    }
-  }
-
-  /**
-   * Patch the org's BYOK billing status. Patch failures are logged with the
-   * caller-provided message, never thrown.
-   */
-  async setByokBillingStatus(
-    organizationId: string,
-    status: ByokBillingStatus,
-    invoiceId: string,
-    url: string,
-    failureLogMessage: string,
-  ): Promise<void> {
-    const orgSetting = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (!orgSetting) {
-      return;
-    }
-
-    try {
-      await this.organizationSettingsService.patch(orgSetting.id.toString(), {
-        byokBillingStatus: status,
-      });
-      await this.invalidateOrganizationCaches(organizationId);
-    } catch (patchError: unknown) {
-      this.loggerService.error(`${url} ${failureLogMessage}`, {
-        invoiceId,
-        organizationId,
-        patchError,
       });
     }
   }

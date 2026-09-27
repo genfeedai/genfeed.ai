@@ -20,7 +20,6 @@ import {
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { isEEEnabled } from '@genfeedai/config';
 import { BillingAccountMemberRole } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
@@ -281,116 +280,6 @@ export class StripeController {
       },
       checkoutRequest,
     );
-  }
-
-  @Post('setup-intent')
-  async createSetupCheckout(
-    @CurrentUser() user: User,
-    @Req() request: Request,
-  ) {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url);
-
-    if (!user.organizationId) {
-      return returnBadRequest({
-        message: 'Organization is required',
-        success: false,
-      });
-    }
-
-    const origin = readRequestOrigin(request);
-    if (!origin) {
-      return returnBadRequest({
-        message: 'Origin is required',
-        success: false,
-      });
-    }
-
-    try {
-      const { emailAddresses } = user;
-      const email = emailAddresses?.[0]?.emailAddress;
-
-      if (!email) {
-        return returnBadRequest({
-          message: 'User email is required',
-          success: false,
-        });
-      }
-
-      const dbUser = await this.usersService.findOne({
-        id: user.id,
-      });
-      if (!dbUser) {
-        return returnNotFound('User', user.id);
-      }
-
-      let subscription = await this.subscriptionsService.findByOrganizationId(
-        user.organizationId,
-      );
-
-      const organization = await this.organizationsService.findOne({
-        id: user.organizationId,
-        isDeleted: false,
-      });
-      if (!organization) {
-        return returnNotFound('Organization', user.organizationId);
-      }
-
-      await this.billingAccountsService.ensureForOrganization({
-        label: organization.label,
-        organizationId: user.organizationId,
-        userId: dbUser.id.toString(),
-      });
-      const domainAccount =
-        await this.billingAccountsService.resolveForOrganization(
-          user.organizationId,
-        );
-      await this.billingAccountsService.requireRole(
-        domainAccount.id,
-        dbUser.id.toString(),
-        BillingAccountMemberRole.ADMINISTRATOR,
-      );
-
-      const billingAccount =
-        await this.billingAccountService.resolveOrProvision({
-          billingAccountId: domainAccount.id,
-          billingEmail: email,
-          organizationId: user.organizationId,
-          organizationLabel: organization.label,
-          stripeCustomerId: subscription?.stripeCustomerId,
-          userId: dbUser.id.toString(),
-        });
-
-      if (!subscription) {
-        subscription = await this.subscriptionsService.createForOrganization(
-          organization,
-          email,
-          dbUser.id.toString(),
-        );
-      }
-      if (subscription.customerId !== billingAccount.customerId) {
-        await this.subscriptionsService.patch(subscription.id, {
-          customerId: billingAccount.customerId,
-        });
-      }
-
-      const result = await this.stripeService.createSetupCheckoutSession(
-        billingAccount.stripeCustomerId,
-        `${origin}/agent/onboarding`,
-        `${origin}${isEEEnabled() ? '/onboarding/providers' : '/onboarding/brand'}`,
-      );
-
-      return serializeSingle(request, StripeUrlSerializer, result);
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      return returnBadRequest({
-        message: 'Failed to create setup checkout session',
-        success: false,
-      });
-    }
   }
 
   @Get('portal')
