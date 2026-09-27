@@ -4291,13 +4291,15 @@ export async function mockPostPublishing(
     const body = route.request().postDataJSON() as
       | { action?: string; scheduledDate?: string }
       | undefined;
-    state.status =
-      body?.action === 'schedule'
-        ? 'scheduled'
-        : body?.action?.startsWith('publish')
-          ? 'published'
-          : state.status;
-    state.scheduledAt = body?.scheduledDate ?? state.scheduledAt;
+    // `publishTargetNow` schedules the target for now and enqueues execution,
+    // so both actions answer with a scheduled release; completion comes later.
+    const isPublishNow = body?.action?.startsWith('publish') ?? false;
+    if (body?.action === 'schedule' || isPublishNow) {
+      state.status = 'scheduled';
+      state.scheduledAt = isPublishNow
+        ? new Date().toISOString()
+        : (body?.scheduledDate ?? state.scheduledAt);
+    }
 
     const segments = new URL(route.request().url()).pathname.split('/');
     const requestedGroupId = segments.at(-3) || groupId || 'mock-release-group';
@@ -4334,7 +4336,8 @@ export async function mockPostPublishing(
       const payload = buildPostAttributes({
         ...post,
         scheduledDate: state.scheduledAt,
-        status: state.status,
+        // Target execution state -> PostStatus (`published` is `public`).
+        status: state.status === 'published' ? PostStatus.PUBLIC : state.status,
       });
       await route.fulfill({
         body: JSON.stringify(buildJsonApiDocument('post', postId, payload)),

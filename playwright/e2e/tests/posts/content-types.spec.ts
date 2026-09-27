@@ -40,6 +40,10 @@ test.describe('Posts — Content Types', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Generate', exact: true }),
     ).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      brandPath(APP_ROUTES.STUDIO.GENERATE),
+    );
   });
 
   test('review page shows review queue', async ({ authenticatedPage }) => {
@@ -52,6 +56,10 @@ test.describe('Posts — Content Types', () => {
     await expect(
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),
     ).toBeVisible();
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      APP_ROUTES.PUBLISHING.REVIEW,
+    );
   });
 });
 
