@@ -40,3 +40,5 @@ export const socialConversationAttributes = createEntityAttributes([
 export const socialInboxUnreadCountAttributes = createEntityAttributes([
   'unreadCount',
 ]);
+
+export const socialSuggestedReplyAttributes = createEntityAttributes(['draft']);

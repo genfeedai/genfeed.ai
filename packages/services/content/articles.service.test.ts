@@ -105,10 +105,14 @@ describe('ArticlesService', () => {
       prompt: 'Write about AI',
     });
 
-    expect(http.post).toHaveBeenCalledWith('generations', {
-      count: 2,
-      prompt: 'Write about AI',
-    });
+    expect(http.post).toHaveBeenCalledWith(
+      'generations',
+      {
+        count: 2,
+        prompt: 'Write about AI',
+      },
+      { timeout: 600_000 },
+    );
     expect(result[0]).toBeInstanceOf(Article);
   });
 

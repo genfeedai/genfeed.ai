@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddAgentDialog from './AddAgentDialog';
 
 const mocks = vi.hoisted(() => ({
-  openAgentComposer: vi.fn(),
+  create: vi.fn(),
   onCreated: vi.fn(),
   onOpenChange: vi.fn(),
 }));
@@ -52,8 +52,17 @@ vi.mock('../hire/ContentTeamHirePage', () => ({
   ),
 }));
 
-vi.mock('@/hooks/use-open-agent-composer', () => ({
-  useOpenAgentComposer: () => mocks.openAgentComposer,
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({ brandId: 'brand-1', pageScope: 'brand' }),
+  isBrandResourceReady: () => true,
+}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({ create: mocks.create }),
+}));
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ success: vi.fn(), error: vi.fn() }),
+  },
 }));
 
 describe('AddAgentDialog', () => {
@@ -70,9 +79,16 @@ describe('AddAgentDialog', () => {
     );
     await waitFor(() => expect(mocks.onCreated).toHaveBeenCalledOnce());
     expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
-    expect(mocks.openAgentComposer).not.toHaveBeenCalled();
   });
   beforeEach(() => {
+    class MockResizeObserver {
+      disconnect = vi.fn();
+      observe = vi.fn();
+      unobserve = vi.fn();
+    }
+
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
     vi.clearAllMocks();
     mocks.onCreated.mockResolvedValue(undefined);
   });
@@ -96,12 +112,10 @@ describe('AddAgentDialog', () => {
     expect(screen.getByTestId('dialog-content')).not.toHaveClass('max-w-5xl');
     // Radix tabs activate on pointer down, not click.
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Custom' }));
-    expect(
-      screen.getByRole('button', { name: 'Hire with agent' }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Create agent' })).toBeVisible();
   });
 
-  it('opens the composer with an approval-first recurring-content prompt and closes', async () => {
+  it('creates a custom strategy, refreshes the roster, and closes', async () => {
     render(
       <AddAgentDialog
         initialMode="custom"
@@ -110,15 +124,59 @@ describe('AddAgentDialog', () => {
         onOpenChange={mocks.onOpenChange}
       />,
     );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Hire with agent' }));
-
-    await waitFor(() => {
-      expect(mocks.openAgentComposer).toHaveBeenCalledWith(
-        'Help me hire an agent to create recurring content for this brand. Ask for my platforms, topics, voice, cadence, and credit budget, then show the recurring task for approval.',
-      );
-      expect(mocks.onCreated).not.toHaveBeenCalled();
-      expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
+    expect(
+      screen.queryByRole('textbox', { name: 'Platforms' }),
+    ).not.toBeInTheDocument();
+    const platformLabels = [
+      'YouTube',
+      'TikTok',
+      'Instagram',
+      'X (Twitter)',
+      'LinkedIn',
+      'WordPress',
+      'Facebook',
+    ];
+    const platformOptions = screen.getAllByRole('checkbox');
+    expect(platformOptions).toHaveLength(platformLabels.length);
+    platformLabels.forEach((label, index) => {
+      expect(platformOptions[index]).toHaveAccessibleName(label);
+      expect(platformOptions[index]).toBeVisible();
     });
+    expect(
+      screen.queryByRole('checkbox', { name: 'Google Ads' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Slack' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'X (Twitter)' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'LinkedIn' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'YouTube' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'YouTube' }));
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Topics (comma-separated)' }),
+      { target: { value: 'AI, product' } },
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Voice' }), {
+      target: { value: 'Direct and friendly' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create agent' }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          platforms: ['twitter', 'linkedin'],
+          topics: ['AI', 'product'],
+          voice: 'Direct and friendly',
+          dailyCreditBudget: 100,
+          weeklyCreditBudget: 500,
+          minCreditThreshold: 50,
+          postsPerWeek: 7,
+          runFrequency: 'daily',
+          autonomyMode: 'SUPERVISED',
+        }),
+      ),
+    );
+    expect(mocks.onCreated).toHaveBeenCalledOnce();
+    expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
   });
 });

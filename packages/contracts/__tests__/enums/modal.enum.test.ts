@@ -3,12 +3,13 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
-    it('should have 61 members', () => {
-      expect(Object.values(ModalEnum)).toHaveLength(61);
+    it('should have 62 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(62);
     });
 
     it('should have correct values', () => {
       expect(ModalEnum.ARTICLE).toBe('modal-article');
+      expect(ModalEnum.NEWSLETTER).toBe('modal-newsletter');
       expect(ModalEnum.ARTICLE_GENERATE).toBe('modal-generate-article');
       expect(ModalEnum.AVATAR).toBe('modal-avatar');
       expect(ModalEnum.BLACKLIST).toBe('modal-blacklist');

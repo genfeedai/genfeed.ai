@@ -40,7 +40,7 @@ const mockItems = [
 const baseHandlers = {
   onBulkApprove: vi.fn(),
   onBulkReject: vi.fn(),
-  onBulkRewriteWithAgent: vi.fn(),
+  onBulkRewrite: vi.fn(),
   onSelectItem: vi.fn(),
   onToggleSelect: vi.fn(),
 };
@@ -117,7 +117,7 @@ describe('ReviewGrid', () => {
     const onToggleSelect = vi.fn();
     const onBulkApprove = vi.fn();
     const onBulkReject = vi.fn();
-    const onBulkRewriteWithAgent = vi.fn();
+    const onBulkRewrite = vi.fn();
 
     render(
       <ReviewGrid
@@ -127,7 +127,7 @@ describe('ReviewGrid', () => {
         selectedIds={new Set(['item-1'])}
         onBulkApprove={onBulkApprove}
         onBulkReject={onBulkReject}
-        onBulkRewriteWithAgent={onBulkRewriteWithAgent}
+        onBulkRewrite={onBulkRewrite}
         onSelectItem={onSelectItem}
         onToggleSelect={onToggleSelect}
       />,
@@ -138,14 +138,32 @@ describe('ReviewGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'catalog:actions.rewriteWithAgent' }),
+      screen.getByRole('button', { name: 'catalog:batchRewrite.action' }),
     );
 
     expect(onSelectItem).toHaveBeenCalledWith('item-1');
     expect(onToggleSelect).toHaveBeenCalledWith('item-1');
     expect(onBulkApprove).toHaveBeenCalledTimes(1);
     expect(onBulkReject).toHaveBeenCalledTimes(1);
-    expect(onBulkRewriteWithAgent).toHaveBeenCalledTimes(1);
+    expect(onBulkRewrite).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows selected-row progress and disables decisions while rewriting', () => {
+    render(
+      <ReviewGrid
+        activeItem={mockItems[0]}
+        items={mockItems}
+        selectedIds={new Set(['item-1'])}
+        rewritingIds={new Set(['item-1'])}
+        isActioning
+        {...baseHandlers}
+      />,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('catalog:progress');
+    expect(screen.getByRole('button', { name: /^Approve$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', { name: /Deselect item/i }),
+    ).toBeDisabled();
   });
 
   it('counts and filters review statuses', () => {

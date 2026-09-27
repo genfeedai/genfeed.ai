@@ -10,6 +10,7 @@ import type {
   SocialInboxUnreadCountQuery,
   SocialMessage,
   SocialMessageQuery,
+  SocialSuggestedReply,
 } from '@genfeedai/contracts/interfaces';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
@@ -39,6 +40,18 @@ export class SocialMessagesService extends BaseService<
 
   public static getInstance(token: string): SocialMessagesService {
     return BaseService.getDataServiceInstance(SocialMessagesService, token);
+  }
+
+  async suggestedReply(
+    conversationId: string,
+    signal?: AbortSignal,
+  ): Promise<SocialSuggestedReply> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `${conversationId}/suggested-reply`,
+      {},
+      { signal, timeout: 120_000 },
+    );
+    return this.extractResource<SocialSuggestedReply>(response.data);
   }
 
   list(params: SocialInboxQuery = {}): Promise<SocialConversationModel[]> {

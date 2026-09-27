@@ -3,7 +3,6 @@ import type {
   AddAgentMode,
 } from '@props/automation/add-agent-dialog.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
-import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +12,8 @@ import {
 } from '@ui/primitives/dialog';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
+import CustomAgentForm from './CustomAgentForm';
 
 export type { AddAgentMode } from '@props/automation/add-agent-dialog.props';
 
@@ -24,7 +23,6 @@ export default function AddAgentDialog({
   onCreated,
   onOpenChange,
 }: AddAgentDialogProps) {
-  const openAgentComposer = useOpenAgentComposer();
   const translate = useTranslations('common.automation.agentCreation');
   const [mode, setMode] = useState<AddAgentMode>(initialMode);
 
@@ -61,21 +59,7 @@ export default function AddAgentDialog({
           {mode === 'library' ? (
             <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
           ) : (
-            <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
-                {translate('customDescription')}
-              </p>
-              <Button
-                onClick={() => {
-                  openAgentComposer(
-                    'Help me hire an agent to create recurring content for this brand. Ask for my platforms, topics, voice, cadence, and credit budget, then show the recurring task for approval.',
-                  );
-                  onOpenChange(false);
-                }}
-              >
-                {translate('customAction')}
-              </Button>
-            </div>
+            <CustomAgentForm onCreated={handleCreated} />
           )}
         </Tabs>
       </DialogContent>

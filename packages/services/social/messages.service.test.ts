@@ -84,6 +84,23 @@ describe('SocialMessagesService', () => {
     });
   });
 
+  it('requests and deserializes a suggested reply with cancellation', async () => {
+    const controller = new AbortController();
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument({ draft: 'Suggested text' }, { id: conversationId }),
+      ),
+    );
+    await expect(
+      service.suggestedReply(conversationId, controller.signal),
+    ).resolves.toEqual({ id: conversationId, draft: 'Suggested text' });
+    expect(http.post).toHaveBeenCalledWith(
+      `${conversationId}/suggested-reply`,
+      {},
+      { signal: controller.signal, timeout: 120_000 },
+    );
+  });
+
   it('getConversation fetches a single conversation', async () => {
     http.get.mockResolvedValue(
       axiosResponse(

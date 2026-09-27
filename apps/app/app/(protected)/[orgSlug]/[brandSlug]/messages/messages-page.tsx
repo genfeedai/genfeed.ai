@@ -231,8 +231,6 @@ export default function MessagesPage() {
   const activeThread = useAgentChatStore((state) =>
     state.threads.find((thread) => thread.id === state.activeThreadId),
   );
-  const seedAgentComposer = useAgentChatStore((state) => state.seedComposer);
-  const setAgentOpen = useAgentChatStore((state) => state.setIsOpen);
 
   const routeBrandId = useMemo(() => {
     if (!brandSlug) {
@@ -374,6 +372,7 @@ export default function MessagesPage() {
     handleAction,
     handleApproveDraft,
     handleDraftChange,
+    handleSuggestedReply,
     handleRejectDraft,
     handleStatusChange,
     handleSync,
@@ -433,37 +432,6 @@ export default function MessagesPage() {
     selectedConversation?.conversationType === SocialConversationType.DM;
   const isTikTokReadOnly = selectedConversation?.platform === Platform.TIKTOK;
 
-  const handleDraftWithAgent = useCallback(() => {
-    if (
-      !activeThreadId ||
-      !selectedConversation ||
-      !canAttachReferences ||
-      isTikTokReadOnly
-    ) {
-      return;
-    }
-
-    if (!isConversationReferenced) {
-      handleToggleConversationReference();
-    }
-
-    const replyKind = isDmThread ? 'direct-message response' : 'public reply';
-    seedAgentComposer(
-      `Draft a concise ${replyKind} for the selected Messages conversation. Match the brand voice, answer the sender's actual point, and do not publish or send anything until I approve it.`,
-      activeThreadId,
-    );
-    setAgentOpen(true);
-  }, [
-    activeThreadId,
-    canAttachReferences,
-    handleToggleConversationReference,
-    isConversationReferenced,
-    isDmThread,
-    isTikTokReadOnly,
-    seedAgentComposer,
-    selectedConversation,
-    setAgentOpen,
-  ]);
   const availability = isTikTokReadOnly
     ? {
         canPostReply: false,
@@ -783,17 +751,13 @@ export default function MessagesPage() {
                       </div>
                       <Button
                         icon={<Sparkles className="size-4" />}
-                        isDisabled={!canAttachReferences || Boolean(busyAction)}
-                        onClick={handleDraftWithAgent}
+                        isDisabled={Boolean(busyAction)}
+                        isLoading={busyAction === 'suggested-reply'}
+                        onClick={handleSuggestedReply}
                         size={ButtonSize.SM}
-                        title={
-                          canAttachReferences
-                            ? 'Attach this conversation and draft with the agent'
-                            : 'Select an agent thread for this brand first'
-                        }
                         variant={ButtonVariant.SECONDARY}
                       >
-                        {translate('actions.draftWithAgent')}
+                        {translate('actions.draftReply')}
                       </Button>
                     </div>
                   </div>

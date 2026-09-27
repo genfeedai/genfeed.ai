@@ -24,12 +24,11 @@ import { PostsRetryController } from '@api/collections/posts/controllers/operati
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
+import { PostGenerationModule } from '@api/collections/posts/post-generation.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
-import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
-import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
@@ -71,6 +70,7 @@ import { Module } from '@nestjs/common';
     ReviewablePostsService,
   ],
   imports: [
+    PostGenerationModule,
     AnalyticsCollectionModule,
     AgentChatModelRegistryModule,
     AgentContextAssemblyModule,
@@ -103,10 +103,8 @@ import { Module } from '@nestjs/common';
   providers: [
     CreditsGuard,
     CreditsInterceptor,
-    PostGenerationService,
     PostRetryService,
     PostRepurposeService,
-    PostThreadGenerationService,
     PostVariationService,
     PostVariationSourceGuard,
     ReviewablePostsService,

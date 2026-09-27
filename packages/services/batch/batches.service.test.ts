@@ -33,9 +33,9 @@ vi.mock('@services/core/interceptor.service', () => {
       post: mockPost,
     };
 
-    static getBaseServiceInstance<T>(
-      ServiceClass: new (...args: any[]) => T,
-      ...args: any[]
+    static getBaseServiceInstance<T, Args extends unknown[]>(
+      ServiceClass: new (...args: Args) => T,
+      ...args: Args
     ): T {
       return new ServiceClass(...args);
     }
@@ -100,6 +100,21 @@ describe('BatchesService', () => {
       id: 'batch-1',
       status: 'PARTIAL',
     });
+  });
+
+  it('allows the rewrite request to outlive the ordinary read timeout', async () => {
+    mockPost.mockResolvedValue({
+      data: { data: { id: 'batch-1', attributes: { items: [] } } },
+    });
+    await service.itemAction('batch-1', {
+      action: 'rewrite',
+      itemIds: ['item-1'],
+    });
+    expect(mockPost).toHaveBeenCalledWith(
+      '/batch-1/items/action',
+      { action: 'rewrite', itemIds: ['item-1'] },
+      { timeout: 600_000 },
+    );
   });
 
   it('passes feedback through batch item actions', async () => {

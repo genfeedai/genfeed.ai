@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom/vitest';
+import type {
+  ModalArticleProps,
+  ModalNewsletterProps,
+} from '@props/modals/modal.props';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +11,10 @@ import PublishingLayoutContent from './publishing-layout-content';
 const usePathnameMock = vi.fn();
 const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
-const openAgentComposerMock = vi.fn();
+const modalCallbacks = vi.hoisted(() => ({
+  article: undefined as ModalArticleProps['onCreated'],
+  newsletter: undefined as ModalNewsletterProps['onCreated'] | undefined,
+}));
 const openModalMock = vi.fn();
 const pushMock = vi.fn();
 const hrefMock = vi.fn((path: string) => `/acme/main${path}`);
@@ -32,6 +39,14 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 }));
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
+  LazyModalArticle: (props: ModalArticleProps) => {
+    modalCallbacks.article = props.onCreated;
+    return null;
+  },
+  LazyModalNewsletter: (props: ModalNewsletterProps) => {
+    modalCallbacks.newsletter = props.onCreated;
+    return null;
+  },
   LazyModalCreateThread: () => null,
   LazyModalPost: () => null,
 }));
@@ -54,10 +69,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: hrefMock }),
 }));
 
-vi.mock('@/hooks/use-open-agent-composer', () => ({
-  useOpenAgentComposer: () => openAgentComposerMock,
-}));
-
 class MockIntersectionObserver {
   disconnect() {}
   observe() {}
@@ -69,7 +80,6 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 describe('PublishingLayoutContent', () => {
   beforeEach(() => {
     brandMock.label = 'Acme Creator';
-    openAgentComposerMock.mockReset();
     openModalMock.mockReset();
     pushMock.mockReset();
     hrefMock.mockClear();
@@ -152,10 +162,9 @@ describe('PublishingLayoutContent', () => {
     await waitFor(() =>
       expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );
-    expect(openAgentComposerMock).not.toHaveBeenCalled();
   });
 
-  it('keeps agent assistance optional with a clean prompt', async () => {
+  it('opens article and newsletter modals and routes creation to their editors', async () => {
     const user = userEvent.setup();
     render(
       <PublishingLayoutContent>
@@ -163,9 +172,24 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
     await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('menuitem', { name: /ask agent/i }));
-    expect(openAgentComposerMock).toHaveBeenCalledWith(
-      'Draft a social post for my brand.',
+    expect(
+      screen.queryByRole('menuitem', { name: /ask agent/i }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: /^article$/i }));
+    expect(openModalMock).toHaveBeenCalledWith('modal-article');
+    modalCallbacks.article?.(['article-1', 'article-2']);
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/acme/main/publishing/posts/article-1',
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('button', { name: /new post/i }));
+    await user.click(screen.getByRole('menuitem', { name: /^newsletter$/i }));
+    expect(openModalMock).toHaveBeenCalledWith('modal-newsletter');
+    modalCallbacks.newsletter?.('newsletter-1');
+    expect(pushMock).toHaveBeenLastCalledWith(
+      '/acme/main/edit/newsletter/newsletter-1',
     );
   });
 

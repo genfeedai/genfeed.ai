@@ -310,3 +310,8 @@ export interface SocialReplyCampaignRecipientQuery {
   page?: number;
   status?: SocialReplyCampaignRecipientStatus;
 }
+
+export interface SocialSuggestedReply {
+  id: string;
+  draft: string;
+}

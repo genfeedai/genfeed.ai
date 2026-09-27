@@ -7,6 +7,7 @@ import {
   ButtonVariant,
   CalendarSlotState,
   formatPlatformLabel,
+  ModalEnum,
   PostCategory,
   PostRepurposeMode,
   parsePlatform,
@@ -23,6 +24,7 @@ import type {
   IPostingCadence,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
+import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
@@ -88,8 +90,6 @@ import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 import CadenceFormSheet from './cadence-form-sheet';
 import {
@@ -157,7 +157,6 @@ export default function ContentCalendarPage({
 
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
-  const openAgentComposer = useOpenAgentComposer();
   const [slots, setSlots] = useState<ICalendarSlot[]>([]);
   const [cadences, setCadences] = useState<IPostingCadence[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
@@ -1233,13 +1232,9 @@ export default function ContentCalendarPage({
       <Button
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}
-        tooltip="Write an article with the agent"
-        aria-label="Write an article"
-        onClick={() =>
-          openAgentComposer(
-            'Help me write a new long-form article for my brand.',
-          )
-        }
+        tooltip={translate('newArticle')}
+        aria-label={translate('newArticle')}
+        onClick={() => openModal(ModalEnum.ARTICLE)}
       >
         <FileText className="size-3.5" />
       </Button>

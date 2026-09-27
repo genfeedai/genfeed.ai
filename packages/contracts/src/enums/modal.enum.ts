@@ -1,5 +1,6 @@
 export enum ModalEnum {
   ARTICLE = 'modal-article',
+  NEWSLETTER = 'modal-newsletter',
   ARTICLE_GENERATE = 'modal-generate-article',
   AVATAR = 'modal-avatar',
   BLACKLIST = 'modal-blacklist',

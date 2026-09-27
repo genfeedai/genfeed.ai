@@ -1,14 +1,11 @@
 'use client';
 
 import Loading from '@ui/loading/default/Loading';
-import { Suspense, useCallback } from 'react';
-import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
-import { buildReviewBatchRewriteAgentPrompt } from '@/lib/publishing/agent-seeded-actions';
+import { Suspense } from 'react';
 import ReviewQueueView from './components/ReviewQueueView';
 import { useReviewQueueContent } from './useReviewQueueContent';
 
 function ReviewQueueContentContent() {
-  const openAgentComposer = useOpenAgentComposer();
   const {
     activeFilters,
     activeItem,
@@ -32,6 +29,8 @@ function ReviewQueueContentContent() {
     handleAssignItem,
     handleBatchChange,
     handleBulkAction,
+    handleBulkRewrite,
+    rewritingIds,
     handleDiscardBatch,
     handleFilterChange,
     handleRequestChanges,
@@ -41,19 +40,6 @@ function ReviewQueueContentContent() {
     handleUnassignItem,
     setSelectedPostId,
   } = useReviewQueueContent();
-
-  const handleBulkRewriteWithAgent = useCallback(() => {
-    if (!activeBatchId || selectedIds.size === 0) {
-      return;
-    }
-
-    openAgentComposer(
-      buildReviewBatchRewriteAgentPrompt({
-        batchId: activeBatchId,
-        itemIds: Array.from(selectedIds),
-      }),
-    );
-  }, [activeBatchId, openAgentComposer, selectedIds]);
 
   if (isBatchesLoading) {
     return <Loading />;
@@ -82,7 +68,8 @@ function ReviewQueueContentContent() {
       onBatchChange={handleBatchChange}
       onBulkApprove={() => handleBulkAction('approve')}
       onBulkReject={() => handleBulkAction('reject')}
-      onBulkRewriteWithAgent={handleBulkRewriteWithAgent}
+      onBulkRewrite={handleBulkRewrite}
+      rewritingIds={rewritingIds}
       onDiscardBatch={handleDiscardBatch}
       onClosePostDetail={() => setSelectedPostId(null)}
       onFilterChange={handleFilterChange}

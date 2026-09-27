@@ -800,7 +800,7 @@ export class PostGenerationService {
   }
 
   async enhanceDescription(
-    post: PostDocument,
+    post: Pick<PostDocument, 'description' | 'platform'>,
     dto: EnhancePostDto,
     identity: Pick<AuthenticatedUser, 'organizationId'>,
   ): Promise<string> {

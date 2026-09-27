@@ -5,6 +5,7 @@ import {
   WorkflowInputOverrideDto,
 } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
+import { Platform } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
@@ -96,5 +97,28 @@ describe('CreateAgentStrategyDto', () => {
         (error) => error.property === 'skillSlugs',
       ),
     ).toBe(true);
+  });
+});
+
+describe('CreateAgentStrategyDto platforms', () => {
+  it('accepts canonical platform values', async () => {
+    const dto = plainToInstance(CreateAgentStrategyDto, {
+      platforms: Object.values(Platform),
+    });
+    expect(
+      (await validate(dto)).filter((error) => error.property === 'platforms'),
+    ).toEqual([]);
+  });
+
+  it.each([
+    { platforms: ['linkedn'] },
+    { platforms: ['LinkedIn'] },
+    { platforms: [Platform.TWITTER, 'unknown'] },
+  ])('rejects invalid platform values: %j', async ({ platforms }) => {
+    const dto = plainToInstance(CreateAgentStrategyDto, { platforms });
+    expect(
+      (await validate(dto)).find((error) => error.property === 'platforms')
+        ?.constraints,
+    ).toHaveProperty('isEnum');
   });
 });

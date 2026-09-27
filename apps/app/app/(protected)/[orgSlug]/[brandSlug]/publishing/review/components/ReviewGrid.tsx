@@ -17,9 +17,10 @@ export default function ReviewGrid({
   isActioning,
   items,
   selectedIds,
+  rewritingIds,
   onBulkApprove,
   onBulkReject,
-  onBulkRewriteWithAgent,
+  onBulkRewrite,
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
@@ -45,13 +46,14 @@ export default function ReviewGrid({
             <Button
               className="h-7 gap-1 px-2 text-xs"
               isDisabled={isActioning}
-              onClick={onBulkRewriteWithAgent}
+              onClick={onBulkRewrite}
+              isLoading={Boolean(rewritingIds?.size)}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
               <Sparkles className="size-3.5" />
-              {translate('actions.rewriteWithAgent')}
+              {translate('batchRewrite.action')}
             </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"
@@ -83,6 +85,7 @@ export default function ReviewGrid({
         activeItemId={activeItem?.id ?? null}
         items={items}
         selectedIds={selectedIds}
+        rewritingIds={rewritingIds}
         onSelectItem={onSelectItem}
         onToggleSelect={onToggleSelect}
       />

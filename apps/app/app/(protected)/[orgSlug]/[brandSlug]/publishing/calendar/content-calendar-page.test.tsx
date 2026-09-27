@@ -54,6 +54,20 @@ const { notifyErrorMock, openConfirmMock, openPostRepurposeModalMock } =
     openPostRepurposeModalMock: vi.fn(),
   }));
 
+const articleModal = vi.hoisted(() => ({
+  open: vi.fn(),
+  mount: vi.fn(),
+}));
+vi.mock('@helpers/ui/modal/modal.helper', () => ({
+  openModal: (...args: unknown[]) => articleModal.open(...args),
+}));
+vi.mock('@ui/lazy/modal/LazyModal', () => ({
+  LazyModalArticle: () => {
+    articleModal.mount();
+    return null;
+  },
+}));
+
 const findArticlesMock = vi.fn();
 const findReleasesMock = vi.fn();
 const updateReleaseMock = vi.fn();
@@ -527,6 +541,13 @@ describe('ContentCalendarPage', () => {
       'release-1',
     );
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('opens the layout article modal without mounting a duplicate', async () => {
+    await renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: 'New article' }));
+    expect(articleModal.open).toHaveBeenCalledWith('modal-article');
+    expect(articleModal.mount).not.toHaveBeenCalled();
   });
 
   it('sends an article to its dedicated editor rather than the release drawer', async () => {

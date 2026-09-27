@@ -1,8 +1,11 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -23,6 +26,10 @@ describe('BatchGenerationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BatchGenerationController],
       providers: [
+        {
+          provide: BatchGenerationRewriteService,
+          useValue: { rewriteItems: vi.fn() },
+        },
         {
           provide: MembersService,
           useValue: { find: vi.fn().mockResolvedValue([]), findOne: vi.fn() },
@@ -61,6 +68,13 @@ describe('BatchGenerationController', () => {
         },
       ],
     })
+      .overrideGuard(BatchRewriteCreditsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();

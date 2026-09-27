@@ -3,13 +3,16 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationRewriteService } from '@api/services/batch-generation/batch-generation-rewrite.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
 import { AssignBatchItemDto } from '@api/services/batch-generation/dto/assign-batch-item.dto';
 import {
   BatchAction,
@@ -32,6 +35,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -45,6 +49,7 @@ export class BatchGenerationController {
     private readonly batchGenerationService: BatchGenerationService,
     private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
     private readonly loggerService: LoggerService,
+    private readonly rewriteService: BatchGenerationRewriteService,
   ) {}
 
   @Post()
@@ -168,7 +173,11 @@ export class BatchGenerationController {
 
   @Post(':id/items/action')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Approve or reject batch items' })
+  @UseGuards(BatchRewriteCreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @ApiOperation({
+    summary: 'Approve, reject, request changes, or rewrite batch items',
+  })
   async itemAction(
     @Req() req: Request,
     @Param('id') id: string,
@@ -180,7 +189,14 @@ export class BatchGenerationController {
       const userId = user.userId ?? user.id;
 
       let data: unknown;
-      if (dto.action === BatchAction.APPROVE) {
+      if (dto.action === BatchAction.REWRITE) {
+        data = await this.rewriteService.rewriteItems(
+          id,
+          dto.itemIds,
+          organization,
+          userId,
+        );
+      } else if (dto.action === BatchAction.APPROVE) {
         data = await this.batchGenerationService.approveItems(
           id,
           dto.itemIds,

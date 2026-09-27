@@ -2,6 +2,7 @@ import { buildSerializer } from '@serializers/builders';
 import {
   socialConversationSerializerConfig,
   socialInboxUnreadCountSerializerConfig,
+  socialSuggestedReplySerializerConfig,
 } from '@serializers/configs';
 
 export const { SocialConversationSerializer } = buildSerializer(
@@ -12,4 +13,9 @@ export const { SocialConversationSerializer } = buildSerializer(
 export const { SocialInboxUnreadCountSerializer } = buildSerializer(
   'server',
   socialInboxUnreadCountSerializerConfig,
+);
+
+export const { SocialSuggestedReplySerializer } = buildSerializer(
+  'server',
+  socialSuggestedReplySerializerConfig,
 );

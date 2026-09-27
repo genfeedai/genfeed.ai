@@ -7,6 +7,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import {
@@ -48,6 +49,8 @@ function buildReviewQuery(input: {
 }
 
 export function useReviewQueueContent() {
+  const translate = useTranslations('common.batchRewrite');
+  const [rewritingIds, setRewritingIds] = useState<Set<string>>(new Set());
   const { openConfirm } = useConfirmModal();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const queryClient = useQueryClient();
@@ -394,6 +397,34 @@ export function useReviewQueueContent() {
     ],
   );
 
+  const handleBulkRewrite = useCallback(async () => {
+    if (!activeBatchId || selectedIds.size === 0 || isActioning) return;
+    const itemIds = [...selectedIds];
+    setIsActioning(true);
+    setRewritingIds(new Set(itemIds));
+    try {
+      const service = await getBatchesService();
+      await service.itemAction(activeBatchId, { action: 'rewrite', itemIds });
+      await refreshBatch();
+      setSelectedIds(new Set());
+    } catch (error) {
+      logger.error('Batch rewrite failed', error);
+      notifications.error(translate('error'));
+      await refreshBatch();
+    } finally {
+      setIsActioning(false);
+      setRewritingIds(new Set());
+    }
+  }, [
+    activeBatchId,
+    selectedIds,
+    isActioning,
+    getBatchesService,
+    refreshBatch,
+    notifications,
+    translate,
+  ]);
+
   const updateBatchCaches = useCallback(
     (batch: IBatchSummary) => {
       queryClient.setQueryData(['review-batch', batch.id], batch);
@@ -702,6 +733,8 @@ export function useReviewQueueContent() {
     handleAssignItem,
     handleBatchChange,
     handleBulkAction,
+    handleBulkRewrite,
+    rewritingIds,
     handleDiscardBatch,
     handleFilterChange,
     handleRequestChanges,

@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   useCallback,
@@ -44,6 +45,8 @@ export function useMessagesActions({
   selectedConversation,
   selectedId,
 }: UseMessagesActionsParams) {
+  const translate = useTranslations('common.messages.actions');
+  const suggestionAbortRef = useRef<AbortController | null>(null);
   const [draft, setDraft] = useState('');
   const [references, setReferences] = useState<SocialInboxReference[]>([]);
   const [busyAction, setBusyAction] = useState<MessagesBusyAction>(null);
@@ -64,6 +67,52 @@ export function useMessagesActions({
       setReferences([]);
     }
   }, [canAttachReferences]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const controller = new AbortController();
+    suggestionAbortRef.current = controller;
+    return () => controller.abort();
+  }, [selectedId]);
+
+  const handleSuggestedReply = useCallback(async () => {
+    const controller = suggestionAbortRef.current;
+    if (
+      !selectedId ||
+      !controller ||
+      controller.signal.aborted ||
+      actionInFlightRef.current
+    )
+      return;
+    const actionKey = `suggested-reply:${selectedId}`;
+    const revision = draftRevisionRef.current;
+    actionInFlightRef.current = actionKey;
+    setBusyAction('suggested-reply');
+    setError(null);
+    try {
+      const service = await getMessagesService();
+      if (controller.signal.aborted) return;
+      const result = await service.suggestedReply(
+        selectedId,
+        controller.signal,
+      );
+      if (!controller.signal.aborted && draftRevisionRef.current === revision) {
+        draftRevisionRef.current += 1;
+        pendingIdempotencyKeysRef.current.clear();
+        setDraft(result.draft);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setError(
+          error instanceof Error ? error.message : translate('draftReplyError'),
+        );
+    } finally {
+      if (actionInFlightRef.current === actionKey) {
+        actionInFlightRef.current = null;
+        setBusyAction(null);
+      }
+    }
+  }, [getMessagesService, selectedId, translate]);
 
   const refreshAfterAction = useCallback(async () => {
     try {
@@ -455,6 +504,7 @@ export function useMessagesActions({
     handleAction,
     handleApproveDraft,
     handleDraftChange,
+    handleSuggestedReply,
     handleRejectDraft,
     handleStatusChange,
     handleSync,

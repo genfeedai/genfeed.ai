@@ -1,4 +1,5 @@
-import { AgentType } from '@genfeedai/contracts';
+import { AgentType, Platform } from '@genfeedai/contracts';
+import { PUBLISH_PLATFORMS } from '@genfeedai/contracts/constants';
 import {
   LinkedinIcon,
   XTwitterIcon,
@@ -50,54 +51,79 @@ export const AGENT_TYPE_ICON_COMPONENTS: Record<AgentType, AgentTypeIcon> = {
 
 export const AGENT_TYPE_DEFAULTS: Record<
   AgentType,
-  { defaultBudget: number; platforms: string[] }
+  { defaultBudget: number; platforms: Platform[] }
 > = {
   [AgentType.GENERAL]: {
     defaultBudget: 100,
-    platforms: ['twitter', 'instagram', 'linkedin'],
+    platforms: [Platform.TWITTER, Platform.INSTAGRAM, Platform.LINKEDIN],
   },
-  [AgentType.X_CONTENT]: { defaultBudget: 50, platforms: ['twitter'] },
+  [AgentType.X_CONTENT]: { defaultBudget: 50, platforms: [Platform.TWITTER] },
   [AgentType.IMAGE_CREATOR]: {
     defaultBudget: 200,
-    platforms: ['instagram', 'twitter'],
+    platforms: [Platform.INSTAGRAM, Platform.TWITTER],
   },
   [AgentType.VIDEO_CREATOR]: {
     defaultBudget: 500,
-    platforms: ['tiktok', 'youtube', 'instagram'],
+    platforms: [Platform.TIKTOK, Platform.YOUTUBE, Platform.INSTAGRAM],
   },
   [AgentType.AI_AVATAR]: {
     defaultBudget: 300,
-    platforms: ['tiktok', 'youtube'],
+    platforms: [Platform.TIKTOK, Platform.YOUTUBE],
   },
   [AgentType.ARTICLE_WRITER]: {
     defaultBudget: 500,
-    platforms: ['linkedin', 'wordpress'],
+    platforms: [Platform.LINKEDIN, Platform.WORDPRESS],
   },
   [AgentType.LINKEDIN_CONTENT]: {
     defaultBudget: 200,
-    platforms: ['linkedin'],
+    platforms: [Platform.LINKEDIN],
   },
   [AgentType.ADS_SCRIPT_WRITER]: {
     defaultBudget: 300,
-    platforms: ['instagram', 'tiktok', 'youtube', 'facebook'],
+    platforms: [
+      Platform.INSTAGRAM,
+      Platform.TIKTOK,
+      Platform.YOUTUBE,
+      Platform.FACEBOOK,
+    ],
   },
   [AgentType.SHORT_FORM_WRITER]: {
     defaultBudget: 200,
-    platforms: ['tiktok', 'instagram'],
+    platforms: [Platform.TIKTOK, Platform.INSTAGRAM],
   },
   [AgentType.CTA_CONTENT]: {
     defaultBudget: 150,
-    platforms: ['instagram', 'linkedin', 'twitter', 'youtube'],
+    platforms: [
+      Platform.INSTAGRAM,
+      Platform.LINKEDIN,
+      Platform.TWITTER,
+      Platform.YOUTUBE,
+    ],
   },
   [AgentType.YOUTUBE_SCRIPT]: {
     defaultBudget: 400,
-    platforms: ['youtube'],
+    platforms: [Platform.YOUTUBE],
   },
   [AgentType.BRAND_INTERVIEW]: {
     defaultBudget: 200,
-    platforms: ['linkedin', 'youtube'],
+    platforms: [Platform.LINKEDIN, Platform.YOUTUBE],
   },
 };
+
+const publishPlatformValues = {
+  [Platform.YOUTUBE]: Platform.YOUTUBE,
+  [Platform.TIKTOK]: Platform.TIKTOK,
+  [Platform.INSTAGRAM]: Platform.INSTAGRAM,
+  [Platform.TWITTER]: Platform.TWITTER,
+  [Platform.LINKEDIN]: Platform.LINKEDIN,
+};
+
+export const AGENT_PLATFORM_OPTIONS: readonly Platform[] = [
+  ...new Set([
+    ...PUBLISH_PLATFORMS.map(({ platform }) => publishPlatformValues[platform]),
+    ...Object.values(AGENT_TYPE_DEFAULTS).flatMap(({ platforms }) => platforms),
+  ]),
+];
 
 export const AGENT_TYPE_OPTIONS = (Object.values(AgentType) as AgentType[]).map(
   (value) => ({

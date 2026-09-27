@@ -16,6 +16,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import ReviewPostHoverPreview from './ReviewPostHoverPreview';
 import {
@@ -33,9 +34,11 @@ export default function ReviewItemsTable({
   activeItemId,
   items,
   selectedIds,
+  rewritingIds,
   onSelectItem,
   onToggleSelect,
 }: ReviewItemsTableProps) {
+  const translate = useTranslations('common.batchRewrite');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -100,6 +103,7 @@ export default function ReviewItemsTable({
               aria-label={isSelected ? 'Deselect item' : 'Select item'}
               className="size-4 border border-border bg-background shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary"
               isChecked={isSelected}
+              isDisabled={Boolean(rewritingIds?.size)}
               name={`review-select-${item.id}`}
               onCheckedChange={() => {
                 onToggleSelect(item.id);
@@ -150,7 +154,11 @@ export default function ReviewItemsTable({
             >
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="line-clamp-1 text-sm font-medium text-foreground">
-                  {title}
+                  {rewritingIds?.has(item.id) ? (
+                    <span role="status">{translate('progress')}</span>
+                  ) : (
+                    title
+                  )}
                 </span>
                 <span className="line-clamp-1 text-xs text-muted-foreground">
                   {[
@@ -226,7 +234,14 @@ export default function ReviewItemsTable({
         ),
       },
     ],
-    [browserTimezone, onSelectItem, onToggleSelect, selectedIds],
+    [
+      browserTimezone,
+      onSelectItem,
+      onToggleSelect,
+      selectedIds,
+      rewritingIds,
+      translate,
+    ],
   );
 
   return (

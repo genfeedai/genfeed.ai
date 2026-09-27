@@ -5,9 +5,10 @@ export interface ReviewGridProps {
   isActioning: boolean;
   items: IBatchItem[];
   selectedIds: Set<string>;
+  rewritingIds?: ReadonlySet<string>;
   onBulkApprove: () => void;
   onBulkReject: () => void;
-  onBulkRewriteWithAgent: () => void;
+  onBulkRewrite: () => void;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }

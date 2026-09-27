@@ -22,7 +22,6 @@ const mocks = vi.hoisted(() => ({
   notificationsService: {
     info: vi.fn(),
   },
-  openAgentComposer: vi.fn(),
   openConfirm: vi.fn(),
   replace: vi.fn(),
   setFiltersNode: vi.fn(),
@@ -71,17 +70,13 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@/hooks/use-open-agent-composer', () => ({
-  useOpenAgentComposer: () => mocks.openAgentComposer,
-}));
-
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
     isActioning,
     items,
     onBulkApprove,
     onBulkReject,
-    onBulkRewriteWithAgent,
+    onBulkRewrite,
     onSelectItem,
     onToggleSelect,
     selectedIds,
@@ -90,7 +85,7 @@ vi.mock('./components/ReviewGrid', () => ({
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
-    onBulkRewriteWithAgent: () => void;
+    onBulkRewrite: () => void;
     onSelectItem: (itemId: string) => void;
     onToggleSelect: (itemId: string) => void;
     selectedIds: Set<string>;
@@ -124,8 +119,8 @@ vi.mock('./components/ReviewGrid', () => ({
       <button type="button" onClick={() => onBulkReject()}>
         Bulk Reject
       </button>
-      <button type="button" onClick={() => onBulkRewriteWithAgent()}>
-        Rewrite selected with agent
+      <button type="button" onClick={() => onBulkRewrite()}>
+        Rewrite batch
       </button>
     </div>
   ),
@@ -899,24 +894,34 @@ describe('ReviewQueueContent', () => {
     );
   });
 
-  it('seeds a selected-item rewrite with the batch and review item IDs', async () => {
+  it('rewrites selected items through the API and refreshes on completion', async () => {
     mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
-
+    let complete: (() => void) | undefined;
+    const itemAction = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    mocks.getBatchesService.mockResolvedValue({ itemAction });
     render(<ReviewQueueContent />);
-    expect(await screen.findByText('Review Grid')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-1' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-2' }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Rewrite selected with agent' }),
+      await screen.findByRole('button', { name: 'Toggle item-1' }),
     );
-
-    expect(mocks.openAgentComposer).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /batch ID batch-1.*Review item IDs: item-1, item-2.*without approving or scheduling/i,
-      ),
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rewrite batch' }));
+    await waitFor(() =>
+      expect(itemAction).toHaveBeenCalledWith('batch-1', {
+        action: 'rewrite',
+        itemIds: ['item-1', 'item-2'],
+      }),
     );
+    expect(screen.getByText('Actioning: true')).toBeInTheDocument();
+    await act(async () => complete?.());
+    await waitFor(() =>
+      expect(screen.getByText('Actioning: false')).toBeInTheDocument(),
+    );
+    expect(itemAction).toHaveBeenCalledOnce();
   });
 
   it('renders loading, empty, selected-batch error, and unresolved detail states', () => {

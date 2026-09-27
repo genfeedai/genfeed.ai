@@ -13,10 +13,13 @@ import {
   SocialInboxUnreadCountQueryDto,
   SocialMessagesQueryDto,
 } from '@api/collections/social-inbox/dto/social-inbox-query.dto';
+import { SocialSuggestedReplyParamsDto } from '@api/collections/social-inbox/dto/social-suggested-reply.dto';
+import { SuggestedReplyCreditsGuard } from '@api/collections/social-inbox/guards/suggested-reply-credits.guard';
 import {
   type SocialInboxScope,
   SocialInboxService,
 } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxSuggestedReplyService } from '@api/collections/social-inbox/services/social-inbox-suggested-reply.service';
 import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import type {
   SocialInboxSyncConversationType,
@@ -27,6 +30,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import {
   serializeCollection,
   serializeSingle,
@@ -45,11 +49,13 @@ import {
   SocialConversationSerializer,
   SocialInboxUnreadCountSerializer,
   SocialMessageSerializer,
+  SocialSuggestedReplySerializer,
 } from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -70,6 +76,7 @@ export class SocialInboxController {
   constructor(
     private readonly socialInboxService: SocialInboxService,
     private readonly syncWorkflowService: SocialInboxSyncWorkflowService,
+    private readonly suggestedReplyService: SocialInboxSuggestedReplyService,
   ) {}
 
   @Get()
@@ -270,6 +277,24 @@ export class SocialInboxController {
       body.unreadCountSeen,
     );
     return serializeSingle(request, SocialConversationSerializer, data);
+  }
+
+  @Post(':conversationId/suggested-reply')
+  @HttpCode(200)
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @UseGuards(SubscriptionGuard, SuggestedReplyCreditsGuard)
+  @ApiOperation({ summary: 'Suggest a reply without saving or sending it' })
+  async suggestedReply(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param() params: SocialSuggestedReplyParamsDto,
+  ): Promise<JsonApiSingleResponse> {
+    const data = await this.suggestedReplyService.suggestReply(
+      this.buildScope(user),
+      params.conversationId,
+    );
+    return serializeSingle(request, SocialSuggestedReplySerializer, data);
   }
 
   @Post(':conversationId/drafts')

@@ -48,6 +48,11 @@ import {
   pinApprovedDrafts,
   scheduleApprovedReviewPost,
 } from '@api/services/batch-generation/batch-generation-review-approval';
+import {
+  applyBatchRewrites,
+  assertExpectedPostSet,
+  assertExpectedPostVersion,
+} from '@api/services/batch-generation/batch-generation-review-rewrite';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
   batchItemRowsInclude,
@@ -223,7 +228,7 @@ export class BatchGenerationReviewService {
       async (transaction, batchRecord) => {
         const batchItems = resolveBatchItems(batchRecord);
         const itemIdSet = new Set(itemIds);
-        this.assertExpectedPostSet(batchItems, itemIds, expectedPostVersions);
+        assertExpectedPostSet(batchItems, itemIds, expectedPostVersions);
         return this.approveItemsInTransaction(transaction, {
           batchId,
           batchItems,
@@ -265,8 +270,7 @@ export class BatchGenerationReviewService {
     } = params;
     const { publishApprovals, versionPinIds } = await pinApprovedDrafts({
       agentArtifactReferenceService: this.agentArtifactReferenceService,
-      assertExpectedPostVersion: (postId, updatedAt, expected) =>
-        this.assertExpectedPostVersion(postId, updatedAt, expected),
+      assertExpectedPostVersion,
       autonomous,
       autonomousPublishPolicy: this.autonomousPublishPolicy,
       batchId,
@@ -515,7 +519,7 @@ export class BatchGenerationReviewService {
       orgId,
       async (transaction, batch) => {
         const items = resolveBatchItems(batch);
-        this.assertExpectedPostSet(items, itemIds, expectedPostVersions);
+        assertExpectedPostSet(items, itemIds, expectedPostVersions);
         const reviewedAt = new Date().toISOString();
         for (const item of items) {
           if (
@@ -533,7 +537,7 @@ export class BatchGenerationReviewService {
               post.targetExecutionState === TargetExecutionState.CANCELLED
             )
               continue;
-            this.assertExpectedPostVersion(
+            assertExpectedPostVersion(
               post.id,
               post.updatedAt,
               expectedPostVersions,
@@ -706,39 +710,31 @@ export class BatchGenerationReviewService {
     });
   }
 
-  private assertExpectedPostSet(
-    items: BatchItemFull[],
-    itemIds: string[],
-    expected?: Record<string, string>,
-  ): void {
-    if (!expected) return;
-    const selected = items.filter((item) => itemIds.includes(item.id));
-    if (
-      selected.length !== new Set(itemIds).size ||
-      selected.some(
-        (item) => !item.postId || !Object.hasOwn(expected, item.postId),
-      )
-    ) {
-      throw new BadRequestException(
-        'This review action no longer refers to the expected draft',
-      );
-    }
-  }
-
-  private assertExpectedPostVersion(
-    postId: string,
-    updatedAt: Date,
-    expected?: Record<string, string>,
-  ): void {
-    if (
-      expected &&
-      (!Object.hasOwn(expected, postId) ||
-        updatedAt.toISOString() !== expected[postId])
-    ) {
-      throw new BadRequestException(
-        'This review action refers to an older draft version',
-      );
-    }
+  async applyRewrites(
+    batchId: string,
+    organizationId: string,
+    userId: string,
+    captions: Map<string, string>,
+    postVersions: Map<string, Date>,
+  ): Promise<IBatchSummary> {
+    const updated = await this.withLockedBatch(
+      batchId,
+      organizationId,
+      (transaction, batch) =>
+        applyBatchRewrites({
+          autonomousPublishPolicy: this.autonomousPublishPolicy,
+          batch,
+          batchId,
+          captions,
+          organizationId,
+          postLifecycleService: this.postLifecycleService,
+          postVersions,
+          publishApprovalsService: this.publishApprovalsService,
+          transaction,
+          userId,
+        }),
+    );
+    return this.getBatch(updated.id, organizationId);
   }
 
   private async withLockedBatch<T>(
