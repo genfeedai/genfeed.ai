@@ -123,14 +123,18 @@ test.describe('Studio Edit', () => {
       );
       const buttons = authenticatedPage.locator('button');
 
-      // Page should have toolbar or interactive elements
-      const hasToolbar = await toolbar
-        .first()
-        .isVisible()
-        .catch(() => false);
-      const buttonCount = await buttons.count().catch(() => 0);
-
-      expect(hasToolbar || buttonCount > 0).toBe(true);
+      // Page should have toolbar or interactive elements. Bare paths redirect
+      // into the brand scope first, so wait for the editor to mount.
+      await expect
+        .poll(async () => {
+          const hasToolbar = await toolbar
+            .first()
+            .isVisible()
+            .catch(() => false);
+          const buttonCount = await buttons.count().catch(() => 0);
+          return hasToolbar || buttonCount > 0;
+        })
+        .toBe(true);
     });
 
     test('should display save or publish controls', async ({
