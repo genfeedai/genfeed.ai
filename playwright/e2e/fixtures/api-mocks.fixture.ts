@@ -159,7 +159,11 @@ function buildJsonApiResource<T extends Record<string, unknown>>(
 export function buildExecutionJsonApiResource(
   id: string,
   attributes: Record<string, unknown>,
-  type = 'workflow-executions',
+  // The real serializer config (workflow-execution.config.ts) declares the
+  // singular `type: 'workflow-execution'` and every serializer mode sets
+  // `pluralizeType: false` (serializer.helper.ts), so the wire type is never
+  // pluralized. Every existing caller in this file relies on this default.
+  type = 'workflow-execution',
 ) {
   const resourceAttributes = { ...attributes };
   delete resourceAttributes.id;
