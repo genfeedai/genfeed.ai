@@ -1,4 +1,5 @@
 import { PostStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -7,6 +8,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { PostsPage } from '../../pages/posts.page';
+import { brandPath } from '../../utils/app-chrome';
 
 /**
  * E2E Tests for Posts Management
@@ -22,16 +24,19 @@ test.describe('Posts — Management', () => {
     });
   });
 
-  test('should display posts page with tabs', async ({ authenticatedPage }) => {
+  test('should display posts page with filter controls', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);
     await postsPage.gotoNotPosted();
 
-    // All tabs should be visible
-    await expect(postsPage.notPostedTab).toBeVisible();
-    await expect(postsPage.publishedTab).toBeVisible();
-    await expect(postsPage.engageTab).toBeVisible();
+    // Lifecycle state is a deep link, not a tab; the toolbar's content-type,
+    // channel, and status filters are the current UI for narrowing the list.
+    await expect(postsPage.contentTypeFilterTrigger).toBeVisible();
+    await expect(postsPage.channelFilterTrigger).toBeVisible();
+    await expect(postsPage.statusFilterTrigger).toBeVisible();
   });
 
   test('should show not-posted posts by default', async ({
@@ -63,20 +68,123 @@ test.describe('Posts — Management', () => {
     );
   });
 
-  test('should navigate between post tabs', async ({ authenticatedPage }) => {
+  test('should navigate between post lifecycle filters', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
-    await mockPostsList(authenticatedPage);
+    // One fixture per lifecycle bucket. Content library filtering is entirely
+    // client-side (the collection query has no status param -- see
+    // publishing-content-library.tsx), so a single unfiltered mock lets each
+    // URL-driven filter narrow the same fixed set.
+    const draft = generateMockPost({
+      id: 'lifecycle-draft-001',
+      label: 'Lifecycle Draft Post',
+      status: PostStatus.DRAFT,
+    });
+    const scheduled = generateMockPost({
+      id: 'lifecycle-sched-001',
+      label: 'Lifecycle Scheduled Post',
+      scheduledDate: new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+      status: PostStatus.SCHEDULED,
+    });
+    const published = generateMockPost({
+      id: 'lifecycle-pub-001',
+      label: 'Lifecycle Published Post',
+      platformUrl: 'https://twitter.com/mock/status/789',
+      status: PostStatus.PUBLIC,
+    });
+
+    await mockPostsList(authenticatedPage, [draft, scheduled, published]);
     await postsPage.gotoNotPosted();
     await postsPage.assertOnNotPostedTab();
+
+    await expect(
+      authenticatedPage.getByText('Lifecycle Draft Post'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Lifecycle Scheduled Post'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Lifecycle Published Post'),
+    ).toHaveCount(0);
 
     // Navigate to published
     await postsPage.switchToPublished();
     await postsPage.assertOnPublishedTab();
 
+    await expect(
+      authenticatedPage.getByText('Lifecycle Published Post'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Lifecycle Draft Post'),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByText('Lifecycle Scheduled Post'),
+    ).toHaveCount(0);
+
     // Navigate back to not posted
     await postsPage.switchToNotPosted();
     await postsPage.assertOnNotPostedTab();
+    await expect(
+      authenticatedPage.getByText('Lifecycle Draft Post'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Lifecycle Published Post'),
+    ).toHaveCount(0);
+  });
+
+  test('should narrow the list with the status filter control', async ({
+    authenticatedPage,
+  }) => {
+    const postsPage = new PostsPage(authenticatedPage);
+
+    const draft = generateMockPost({
+      id: 'status-filter-draft-001',
+      label: 'Status Filter Draft',
+      status: PostStatus.DRAFT,
+    });
+    const scheduled = generateMockPost({
+      id: 'status-filter-sched-001',
+      label: 'Status Filter Scheduled',
+      scheduledDate: new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
+      status: PostStatus.SCHEDULED,
+    });
+
+    await mockPostsList(authenticatedPage, [draft, scheduled]);
+    // The bare list route -- not a `publicationState` deep link -- so the
+    // status multiselect starts genuinely empty. Toggling a status while
+    // `publicationState=not-posted` is still in the URL merges the picked
+    // status alongside the inherited 'not-posted' bucket value, which
+    // matches "everything but published" and does not narrow further.
+    await authenticatedPage.goto(brandPath(APP_ROUTES.PUBLISHING.POSTS));
+    await postsPage.waitForPageLoad();
+
+    await expect(
+      authenticatedPage.getByText('Status Filter Draft'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Status Filter Scheduled'),
+    ).toBeVisible();
+
+    // Open the real status multiselect and pick a single, specific status.
+    await postsPage.statusFilterTrigger.click();
+    await authenticatedPage
+      .getByRole('option', { name: 'Draft', exact: true })
+      .click();
+    await authenticatedPage.keyboard.press('Escape');
+
+    await expect(authenticatedPage).toHaveURL(/[?&]status=draft(?:&|$)/);
+    await expect(
+      authenticatedPage.getByText('Status Filter Draft'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Status Filter Scheduled'),
+    ).toHaveCount(0);
   });
 
   test('should display post cards with content preview', async ({

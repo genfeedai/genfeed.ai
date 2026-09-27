@@ -73,7 +73,13 @@ function Calendar({
           'relative flex h-10 w-full items-center justify-center pr-16 pt-1',
         month_grid: 'w-full border-collapse',
         months: 'flex flex-col sm:flex-row gap-4',
-        nav: 'absolute right-1 top-0 flex h-10 items-center gap-1',
+        // Higher than `dropdown`'s z-[2]: react-day-picker renders the
+        // month/year caption after nav in the DOM. `months` is a flex
+        // container, so its flex-item children (nav and each `month`)
+        // paint in DOM order when z-index is auto on both -- without an
+        // explicit z-index here, a later `month` div can visually and
+        // hit-test above nav, swallowing clicks meant for these buttons.
+        nav: 'absolute right-1 top-0 z-[3] flex h-10 items-center gap-1',
         outside:
           'text-muted-foreground/60 aria-selected:bg-muted aria-selected:text-muted-foreground',
         range_end: '',
