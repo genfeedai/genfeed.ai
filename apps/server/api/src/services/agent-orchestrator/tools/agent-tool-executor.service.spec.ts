@@ -1000,6 +1000,7 @@ describe('AgentToolExecutorService', () => {
       batchGenerationService as never,
     );
     const onboardingCreditGrantsService = {
+      captureOnboardingCompletedBestEffort: vi.fn(),
       completeMissions: vi
         .fn()
         .mockImplementation(async (_organizationId: string, ids: string[]) =>

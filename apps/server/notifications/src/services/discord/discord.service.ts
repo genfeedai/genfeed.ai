@@ -2,6 +2,7 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IDiscordEmbed,
   IIngredientNotificationData,
+  IRevenueNotificationPayload,
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
@@ -758,6 +759,74 @@ export class DiscordService {
           email: user.email,
           isInvited: user.isInvited,
           userId: user.id,
+        });
+      },
+    );
+  }
+
+  private static readonly REVENUE_SOURCE_LABELS: Record<string, string> = {
+    credit_purchase: 'Credit purchase',
+    subscription_invoice: 'Subscription invoice',
+  };
+
+  private formatRevenueAmount(amountMinor: number, currency: string): string {
+    const normalizedCurrency = currency.trim().toUpperCase() || 'USD';
+    try {
+      return new Intl.NumberFormat('en-US', {
+        currency: normalizedCurrency,
+        style: 'currency',
+      }).format(amountMinor / 100);
+    } catch {
+      return `${(amountMinor / 100).toFixed(2)} ${normalizedCurrency}`;
+    }
+  }
+
+  private formatRevenueSourceLabel(source: string): string {
+    return DiscordService.REVENUE_SOURCE_LABELS[source] ?? source;
+  }
+
+  /** Operator alert for a completed Stripe checkout or paid invoice (genfeedai/genfeed.ai#4969). */
+  async sendRevenueNotification(
+    revenue: IRevenueNotificationPayload,
+  ): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getUsersWebhook(),
+      url,
+      async (webhookClient) => {
+        const amount = this.formatRevenueAmount(
+          revenue.amountMinor,
+          revenue.currency,
+        );
+        const label =
+          revenue.planLabel || this.formatRevenueSourceLabel(revenue.source);
+
+        const embed: IDiscordEmbed = {
+          color: 0x2ecc71,
+          description: `**${amount}** — ${label}`,
+          fields: [
+            {
+              inline: true,
+              name: 'Organization',
+              value: revenue.organizationId,
+            },
+            { inline: true, name: 'Amount', value: amount },
+            { inline: true, name: 'Source', value: label },
+          ],
+          timestamp: new Date().toISOString(),
+          title: 'Revenue Received',
+        };
+
+        await webhookClient.send({
+          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          embeds: [embed],
+          username: 'Genfeed.ai',
+        });
+
+        this.loggerService.log(`${url} succeeded`, {
+          amountMinor: revenue.amountMinor,
+          organizationId: revenue.organizationId,
+          source: revenue.source,
         });
       },
     );

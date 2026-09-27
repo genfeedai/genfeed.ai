@@ -121,6 +121,7 @@ export class StripeInvoiceWebhookHandler {
         currency: invoice.currency,
         occurredAt: invoicePaidAt(invoice),
         organizationId: updatedSubscription.organizationId,
+        planLabel: updatedSubscription.plan ?? undefined,
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
         stripeObjectId: invoice.id,
         userId: updatedSubscription.userId,

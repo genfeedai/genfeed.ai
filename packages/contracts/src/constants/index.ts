@@ -16,6 +16,7 @@ export * from './error-messages.constant';
 export * from './expert-path.constant';
 export * from './expert-positioning.constant';
 export * from './feature-flags.constant';
+export * from './funnel-events.constant';
 export * from './gallery.constant';
 export * from './generation-dimensions.constant';
 export * from './library.constant';

@@ -212,6 +212,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         currency: 'usd',
         occurredAt: new Date(1_790_000_000 * 1000),
         organizationId: 'org_1',
+        planLabel: SubscriptionPlan.MONTHLY,
         source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
         stripeObjectId: 'in_123',
         userId: 'user_1',

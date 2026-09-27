@@ -626,11 +626,21 @@ export class AgentOnboardingToolHandler {
         });
 
         if (dbUser?.id) {
+          const wasAlreadyOnboarded = dbUser.isOnboardingCompleted === true;
           await this.usersService.patch(dbUser.id, {
             isOnboardingCompleted: true,
             onboardingCompletedAt: new Date(),
             onboardingStepsCompleted: ['brand', 'plan'],
           });
+
+          // Capture the funnel event only on the true->false transition so a
+          // journey re-check after completion (missions are idempotent and
+          // this branch re-runs on every claim) never double-fires it.
+          if (!wasAlreadyOnboarded) {
+            this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
+              String(dbUser.id),
+            );
+          }
         }
       }
 
@@ -728,11 +738,18 @@ export class AgentOnboardingToolHandler {
 
       if (dbUser) {
         dbUserId = String(dbUser.id);
+        const wasAlreadyOnboarded = dbUser.isOnboardingCompleted === true;
         await this.usersService.patch(dbUser.id, {
           isOnboardingCompleted: true,
           onboardingCompletedAt: new Date(),
           onboardingStepsCompleted: ['brand', 'plan'],
         });
+
+        if (!wasAlreadyOnboarded) {
+          this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
+            dbUserId,
+          );
+        }
       }
     }
 
