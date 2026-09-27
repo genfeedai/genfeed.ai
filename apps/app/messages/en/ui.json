@@ -147,5 +147,14 @@
   },
   "agentModelLockNotice": {
     "freePlan": "Free plans run every agent on {model}. <upgrade>Upgrade</upgrade> to choose any model."
+  },
+  "insightListCard": {
+    "title": "AI Insights",
+    "unreadCount": "{count, plural, one {# unread insight} other {# unread insights}}",
+    "allRead": "All insights read",
+    "emptyTitle": "No insights yet",
+    "emptyDescription": "Insights are generated automatically as your content performance data comes in.",
+    "confidence": "{value}% confidence",
+    "dismissAriaLabel": "Dismiss insight"
   }
 }

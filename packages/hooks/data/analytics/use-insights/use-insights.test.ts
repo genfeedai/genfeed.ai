@@ -2,15 +2,8 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock dependencies
-const mockDateRange = {
-  endDate: new Date('2024-01-31'),
-  startDate: new Date('2024-01-01'),
-};
-
 vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: vi.fn(() => ({
-    dateRange: mockDateRange,
     refreshTrigger: 0,
   })),
 }));
@@ -36,22 +29,9 @@ const mockInsightsService = {
   markAsRead: vi.fn().mockResolvedValue(undefined),
 };
 
-const mockPredictiveService = {
-  getContentInsights: vi.fn().mockResolvedValue({
-    alerts: [],
-    anomalies: [],
-    audiences: [],
-    suggestions: [],
-    trends: [],
-  }),
-};
-
 vi.mock('@genfeedai/services/analytics/insights.service', () => ({
   InsightsService: {
     getInstance: vi.fn(() => mockInsightsService),
-  },
-  PredictiveAnalyticsService: {
-    getInstance: vi.fn(() => mockPredictiveService),
   },
 }));
 
@@ -62,13 +42,6 @@ describe('useInsights', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInsightsService.getInsights.mockResolvedValue([]);
-    mockPredictiveService.getContentInsights.mockResolvedValue({
-      alerts: [],
-      anomalies: [],
-      audiences: [],
-      suggestions: [],
-      trends: [],
-    });
   });
 
   afterEach(() => {
@@ -76,7 +49,7 @@ describe('useInsights', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with default empty arrays', async () => {
+    it('should initialize with an empty insights array', async () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
       });
@@ -86,11 +59,6 @@ describe('useInsights', () => {
       });
 
       expect(result.current.insights).toEqual([]);
-      expect(result.current.anomalies).toEqual([]);
-      expect(result.current.trends).toEqual([]);
-      expect(result.current.suggestions).toEqual([]);
-      expect(result.current.audiences).toEqual([]);
-      expect(result.current.alerts).toEqual([]);
     });
 
     it('should accept brandId option', async () => {
@@ -125,7 +93,7 @@ describe('useInsights', () => {
       expect(typeof result.current.isRefreshing).toBe('boolean');
     });
 
-    it('should return error state', async () => {
+    it('should return a null error when the fetch succeeds', async () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
       });
@@ -135,6 +103,7 @@ describe('useInsights', () => {
       });
 
       expect(result.current.error).toBeNull();
+      expect(result.current.status).toBe('empty');
     });
   });
 
@@ -145,21 +114,14 @@ describe('useInsights', () => {
       });
 
       expect(result.current).toHaveProperty('insights');
-      expect(result.current).toHaveProperty('anomalies');
-      expect(result.current).toHaveProperty('trends');
-      expect(result.current).toHaveProperty('suggestions');
-      expect(result.current).toHaveProperty('audiences');
-      expect(result.current).toHaveProperty('alerts');
       expect(result.current).toHaveProperty('isLoading');
       expect(result.current).toHaveProperty('isRefreshing');
       expect(result.current).toHaveProperty('error');
-      expect(result.current).toHaveProperty('contentInsightsStatus');
-      expect(result.current).toHaveProperty('contentInsightsUnavailableReason');
+      expect(result.current).toHaveProperty('status');
+      expect(result.current).toHaveProperty('unavailableReason');
       expect(result.current).toHaveProperty('refresh');
       expect(result.current).toHaveProperty('markInsightRead');
       expect(result.current).toHaveProperty('dismissInsight');
-      expect(result.current).toHaveProperty('markAlertRead');
-      expect(result.current).toHaveProperty('dismissAlert');
     });
 
     it('should return functions for actions', () => {
@@ -170,41 +132,11 @@ describe('useInsights', () => {
       expect(typeof result.current.refresh).toBe('function');
       expect(typeof result.current.markInsightRead).toBe('function');
       expect(typeof result.current.dismissInsight).toBe('function');
-      expect(typeof result.current.markAlertRead).toBe('function');
-      expect(typeof result.current.dismissAlert).toBe('function');
-    });
-  });
-
-  describe('alert management', () => {
-    it('should mark alert as read locally', () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      act(() => {
-        result.current.markAlertRead('alert-1');
-      });
-
-      // Local state should be updated
-      expect(typeof result.current.markAlertRead).toBe('function');
-    });
-
-    it('should dismiss alert locally', () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      act(() => {
-        result.current.dismissAlert('alert-1');
-      });
-
-      // Local state should be updated
-      expect(typeof result.current.dismissAlert).toBe('function');
     });
   });
 
   describe('insight actions', () => {
-    it('should call markAsRead on insight service', async () => {
+    it('should call markAsRead on the insights service', async () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
       });
@@ -220,7 +152,7 @@ describe('useInsights', () => {
       expect(mockInsightsService.markAsRead).toHaveBeenCalledWith('insight-1');
     });
 
-    it('should call markAsDismissed on insight service', async () => {
+    it('should call markAsDismissed on the insights service', async () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
       });
@@ -238,7 +170,7 @@ describe('useInsights', () => {
       );
     });
 
-    it('should handle markInsightRead error gracefully', async () => {
+    it('should handle markInsightRead errors gracefully', async () => {
       mockInsightsService.markAsRead.mockRejectedValueOnce(
         new Error('API error'),
       );
@@ -259,7 +191,7 @@ describe('useInsights', () => {
       expect(mockInsightsService.markAsRead).toHaveBeenCalled();
     });
 
-    it('should handle dismissInsight error gracefully', async () => {
+    it('should handle dismissInsight errors gracefully', async () => {
       mockInsightsService.markAsDismissed.mockRejectedValueOnce(
         new Error('API error'),
       );
@@ -305,89 +237,13 @@ describe('useInsights', () => {
     });
   });
 
-  describe('data arrays validation', () => {
-    it('insights should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.insights)).toBe(true);
-    });
-
-    it('anomalies should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.anomalies)).toBe(true);
-    });
-
-    it('trends should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.trends)).toBe(true);
-    });
-
-    it('suggestions should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.suggestions)).toBe(true);
-    });
-
-    it('audiences should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.audiences)).toBe(true);
-    });
-
-    it('alerts should be an array', async () => {
-      const { result } = renderHook(() => useInsights(), {
-        wrapper: createQueryWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(Array.isArray(result.current.alerts)).toBe(true);
-    });
-  });
-
   describe('disabled state', () => {
     it('should not fetch data when disabled', () => {
       renderHook(() => useInsights({ enabled: false }), {
         wrapper: createQueryWrapper(),
       });
 
-      // Services should not be called when disabled
       expect(mockInsightsService.getInsights).not.toHaveBeenCalled();
-      expect(mockPredictiveService.getContentInsights).not.toHaveBeenCalled();
     });
   });
 
@@ -431,15 +287,15 @@ describe('useInsights', () => {
   });
 });
 
-describe('predictive analytics unavailable state', () => {
+describe('insights unavailable state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPredictiveService.getContentInsights.mockRejectedValue(
+    mockInsightsService.getInsights.mockRejectedValue(
       new Error('Not available'),
     );
   });
 
-  it('returns empty insight arrays and exposes the provider error', async () => {
+  it('returns an empty insights array and exposes the provider error', async () => {
     const { result } = renderHook(() => useInsights(), {
       wrapper: createQueryWrapper(),
     });
@@ -451,14 +307,9 @@ describe('predictive analytics unavailable state', () => {
       { timeout: 3000 },
     );
 
-    expect(result.current.contentInsightsStatus).toBe('unavailable');
-    expect(result.current.contentInsightsUnavailableReason).toBe(
-      'Not available',
-    );
-    expect(result.current.alerts).toEqual([]);
-    expect(result.current.anomalies).toEqual([]);
-    expect(result.current.suggestions).toEqual([]);
-    expect(result.current.trends).toEqual([]);
+    expect(result.current.status).toBe('unavailable');
+    expect(result.current.unavailableReason).toBe('Not available');
+    expect(result.current.insights).toEqual([]);
     expect(result.current.error?.message).toBe('Not available');
   });
 });
