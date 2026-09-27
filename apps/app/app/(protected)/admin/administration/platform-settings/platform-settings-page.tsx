@@ -155,6 +155,27 @@ export default function PlatformSettingsPage() {
     useState<TypedDecisionProviderName>(parseTypedDecisionProvider(undefined));
   const [featureSettings, setFeatureSettings] =
     useState<IPlatformFeatureSettings>(DEFAULT_PLATFORM_FEATURE_SETTINGS);
+  const [invalidFeatureFieldIds, setInvalidFeatureFieldIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+
+  const handleFeatureFieldValidity = useCallback(
+    (fieldId: string, isValid: boolean) => {
+      setInvalidFeatureFieldIds((current) => {
+        if (current.has(fieldId) !== isValid) {
+          return current;
+        }
+        const next = new Set(current);
+        if (isValid) {
+          next.delete(fieldId);
+        } else {
+          next.add(fieldId);
+        }
+        return next;
+      });
+    },
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -259,6 +280,11 @@ export default function PlatformSettingsPage() {
       notificationsService.warning(
         `Agent chat margin: ${agentChatResolved.error}`,
       );
+      return;
+    }
+
+    if (invalidFeatureFieldIds.size > 0) {
+      notificationsService.warning(translate('features.invalidSubmit'));
       return;
     }
 
@@ -415,6 +441,7 @@ export default function PlatformSettingsPage() {
           <PlatformFeatureSettingsFields
             settings={featureSettings}
             onChange={setFeatureSettings}
+            onValidityChange={handleFeatureFieldValidity}
             isDisabled={isSaving}
           />
 

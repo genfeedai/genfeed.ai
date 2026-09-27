@@ -4,7 +4,7 @@ import type { PlatformNumberSettingFieldProps } from '@props/admin/platform-sett
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function formatValue(value: number | null): string {
   return value === null ? '' : String(value);
@@ -50,10 +50,18 @@ export default function PlatformNumberSettingField(
   }
 
   const parsed = parseValue(text, props);
-  const error =
-    parsed === undefined
-      ? translate(isInteger ? 'invalidInteger' : 'invalidNumber', { max, min })
-      : undefined;
+  const isValid = parsed !== undefined;
+
+  // The committed value never holds invalid text, so the page must know a
+  // field is invalid to refuse the save instead of silently saving the last
+  // valid value. `onValidityChange` is a stable callback owned by the page.
+  useEffect(() => {
+    onValidityChange(id, isValid);
+    return () => onValidityChange(id, true);
+  }, [id, isValid]);
+  const error = !isValid
+    ? translate(isInteger ? 'invalidInteger' : 'invalidNumber', { max, min })
+    : undefined;
 
   return (
     <Field label={label} htmlFor={id} helpText={helpText} error={error}>

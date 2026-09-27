@@ -447,7 +447,7 @@ describe('PlatformSettingsPage', () => {
       expect(options).toEqual(['off', 'shadow']);
     });
 
-    it('keeps an out-of-range confidence out of the payload', async () => {
+    it('blocks saving while a switch value is invalid', async () => {
       render(<PlatformSettingsPage />);
 
       const input = await screen.findByLabelText(
@@ -460,9 +460,17 @@ describe('PlatformSettingsPage', () => {
       ).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
+      expect(mocks.warning).toHaveBeenCalledWith(
+        'Fix the highlighted feature switch values before saving',
+      );
+      expect(mocks.updateSettings).not.toHaveBeenCalled();
+
+      fireEvent.change(input, { target: { value: '0.9' } });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
       await waitFor(() => {
         expect(mocks.updateSettings).toHaveBeenCalledWith(
-          expect.objectContaining({ untrustedContentMinConfidence: 0.95 }),
+          expect.objectContaining({ untrustedContentMinConfidence: 0.9 }),
         );
       });
     });

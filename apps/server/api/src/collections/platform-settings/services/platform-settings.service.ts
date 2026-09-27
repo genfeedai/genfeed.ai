@@ -104,6 +104,7 @@ export class PlatformSettingsService
       const settings = await this.getSingleton();
       setRuntimeMarginMultiplier(settings.marginMultiplierGeneration);
       setRuntimeAgentChatMarginMultiplier(settings.marginMultiplierAgentChat);
+      this.cacheFeatureSettings(parsePlatformFeatureSettings(settings));
     } catch (error) {
       this.logger?.warn(
         `Failed to hydrate margin multipliers on boot; using defaults ${DEFAULT_GENERATION_MARGIN_MULTIPLIER} (generation) / ${DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER} (agent chat)`,
@@ -186,12 +187,18 @@ export class PlatformSettingsService
     try {
       value = parsePlatformFeatureSettings(await this.getSingleton());
     } catch (error: unknown) {
-      value =
-        this.featureSettingsCache?.value ?? DEFAULT_PLATFORM_FEATURE_SETTINGS;
+      const lastKnown = this.featureSettingsCache?.value;
       this.logger?.warn(
         'Failed to read platform feature settings; keeping the last known values',
-        { error },
+        { error, hasLastKnownValues: Boolean(lastKnown) },
       );
+      if (!lastKnown) {
+        // Never cache a guess: the defaults are permissive for some switches
+        // (email verification off), so the next call must retry the read
+        // rather than serve them for a whole TTL after the database recovers.
+        return DEFAULT_PLATFORM_FEATURE_SETTINGS;
+      }
+      value = lastKnown;
     }
 
     if (generation === this.featureSettingsGeneration) {

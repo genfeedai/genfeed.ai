@@ -43,6 +43,7 @@ const MODERATION_CATEGORIES = Object.values(ModerationCategory);
 export default function PlatformFeatureSettingsFields({
   isDisabled,
   onChange,
+  onValidityChange,
   settings,
 }: PlatformFeatureSettingsFieldsProps) {
   const translate = useTranslations('pages.platformSettings.features');
@@ -85,6 +86,7 @@ export default function PlatformFeatureSettingsFields({
         max={confidence.max}
         value={settings[key]}
         isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
         onCommit={updateNumber(key)}
       />
     );
@@ -115,6 +117,7 @@ export default function PlatformFeatureSettingsFields({
         max={mediaPerceptionFrameCount.max}
         value={settings.mediaPerceptionFrameCount}
         isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
         onCommit={updateNumber('mediaPerceptionFrameCount')}
       />
       <PlatformNumberSettingField
@@ -125,6 +128,7 @@ export default function PlatformFeatureSettingsFields({
         max={mediaPerceptionLookbackHours.max}
         value={settings.mediaPerceptionLookbackHours}
         isDisabled={isDisabled}
+        onValidityChange={onValidityChange}
         onCommit={updateNumber('mediaPerceptionLookbackHours')}
       />
       <Field
@@ -222,6 +226,7 @@ export default function PlatformFeatureSettingsFields({
           placeholder={String(DEFAULT_MODERATION_THRESHOLDS[category])}
           value={settings.moderationThresholds[category] ?? null}
           isDisabled={isDisabled}
+          onValidityChange={onValidityChange}
           onCommit={(value) => updateThreshold(category, value)}
         />
       ))}

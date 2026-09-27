@@ -14,6 +14,8 @@ export type PlatformNumericFeatureSettingKey = {
 export interface PlatformFeatureSettingsFieldsProps {
   isDisabled: boolean;
   onChange: (next: IPlatformFeatureSettings) => void;
+  /** Reports each numeric field's validity so the page can block a save. */
+  onValidityChange: (fieldId: string, isValid: boolean) => void;
   settings: IPlatformFeatureSettings;
 }
 
@@ -32,6 +34,7 @@ export interface PlatformNumberSettingFieldProps {
   max: number;
   min: number;
   onCommit: (value: number | null) => void;
+  onValidityChange: (fieldId: string, isValid: boolean) => void;
   placeholder?: string;
   value: number | null;
 }

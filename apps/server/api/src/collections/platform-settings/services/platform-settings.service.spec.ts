@@ -415,12 +415,36 @@ describe('PlatformSettingsService', () => {
       expect(logger.warn).toHaveBeenCalled();
     });
 
-    it('falls back to the defaults when the first read fails', async () => {
-      vi.spyOn(service, 'getSingleton').mockRejectedValue(new Error('db down'));
+    it('serves the defaults uncached when nothing was ever read', async () => {
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockRejectedValueOnce(new Error('db down'))
+        .mockResolvedValue({
+          ...row,
+          isEmailVerificationRequired: true,
+        } as never);
 
       await expect(service.getFeatureSettings()).resolves.toEqual(
         DEFAULT_PLATFORM_FEATURE_SETTINGS,
       );
+      // The database recovered: the next call reads it instead of serving a
+      // cached permissive guess for the rest of the TTL.
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isEmailVerificationRequired: true,
+      });
+      expect(getSingleton).toHaveBeenCalledTimes(2);
+    });
+
+    it('warms the switches cache on boot', async () => {
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockResolvedValue(row as never);
+
+      await service.onModuleInit();
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isMediaPerceptionEnabled: false,
+      });
+      expect(getSingleton).toHaveBeenCalledTimes(1);
     });
 
     it('patches switches, stores the recording start as a date and clears an empty model', async () => {

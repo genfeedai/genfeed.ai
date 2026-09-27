@@ -2995,6 +2995,7 @@
       "confidenceHelp": "Minimum confidence between 0 and 1. Lower answers keep the deterministic path.",
       "invalidNumber": "Enter a number from {min} to {max}",
       "invalidInteger": "Enter a whole number from {min} to {max}",
+      "invalidSubmit": "Fix the highlighted feature switch values before saving",
       "media": {
         "heading": "Media checks",
         "perceptionLabel": "Media perception",
