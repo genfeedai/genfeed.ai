@@ -756,7 +756,8 @@ navigation drawer beside the menu.
 Web shortcuts are `G` followed by `1`–`9` within one second; the desktop client
 uses `⌘1`–`⌘9`. Numbers follow the visible rail order; Admin is never numbered.
 Typing into inputs, textareas, editable content, or menus/dialogs suppresses these
-shortcuts. Digit shortcuts follow physical number-row keys across keyboard layouts.
+shortcuts. The G prefix accepts physical `KeyG` or a key that types `g`. Digit
+shortcuts accept physical number-row and numpad keys across keyboard layouts.
 The palette shows localized “Go to <App>” commands with the same shortcuts and
 resolves Agent/Studio through the selected brand on organization-scoped pages.
 Only the rail at the active viewport breakpoint registers commands/listeners.

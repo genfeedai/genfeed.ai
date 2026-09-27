@@ -6,6 +6,37 @@ afterEach(() => {
 });
 
 describe('app rail keyboard shortcuts', () => {
+  it('arms the web sequence when a non-KeyG key types g', () => {
+    const navigate = vi.fn(() => true);
+    const { handleKeyDown } = createAppRailShortcutHandler(false, navigate);
+    handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyT', key: 'g' }));
+    expect(navigate).not.toHaveBeenCalled();
+    const event = new KeyboardEvent('keydown', {
+      code: 'Digit1',
+      key: '1',
+      cancelable: true,
+    });
+    handleKeyDown(event);
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(0);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it.each([false, true])('accepts Numpad1 for desktop=%s', (isDesktop) => {
+    const navigate = vi.fn(() => true);
+    const { handleKeyDown } = createAppRailShortcutHandler(isDesktop, navigate);
+    if (!isDesktop)
+      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
+    const event = new KeyboardEvent('keydown', {
+      code: 'Numpad1',
+      key: '1',
+      metaKey: isDesktop,
+      cancelable: true,
+    });
+    handleKeyDown(event);
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(0);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it('requires G then a number within one second and consumes the sequence', () => {
     let time = 0;
     const navigate = vi.fn(() => true);

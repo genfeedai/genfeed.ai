@@ -27,7 +27,7 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    const isNumber = /^Digit[1-9]$/.test(event.code);
+    const digitMatch = /^(?:Digit|Numpad)([1-9])$/.exec(event.code);
     if (isDesktop) {
       reset();
       if (
@@ -35,8 +35,8 @@ export function createAppRailShortcutHandler(
         !event.ctrlKey &&
         !event.altKey &&
         !event.shiftKey &&
-        isNumber &&
-        navigate(Number(event.code.slice(-1)) - 1)
+        digitMatch &&
+        navigate(Number(digitMatch[1]) - 1)
       ) {
         event.preventDefault();
       }
@@ -46,18 +46,14 @@ export function createAppRailShortcutHandler(
       reset();
       return;
     }
-    if (event.code === 'KeyG') {
+    if (event.code === 'KeyG' || event.key.toLowerCase() === 'g') {
       sequenceStartedAt = now();
       return;
     }
     const isWithinWindow =
       sequenceStartedAt !== undefined && now() - sequenceStartedAt <= 1000;
     reset();
-    if (
-      isWithinWindow &&
-      isNumber &&
-      navigate(Number(event.code.slice(-1)) - 1)
-    ) {
+    if (isWithinWindow && digitMatch && navigate(Number(digitMatch[1]) - 1)) {
       event.preventDefault();
     }
   };
