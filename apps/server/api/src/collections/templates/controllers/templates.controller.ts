@@ -14,6 +14,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -27,7 +28,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TemplateFilterUtil } from '@api/helpers/utils/template-filter/template-filter.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { TemplateSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -159,7 +160,9 @@ export class TemplatesController {
   @Post(':templateId/use')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Template AI refinement (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -170,7 +173,8 @@ export class TemplatesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    if (dto.additionalInstructions?.trim()) {
+    const creditsConfig = (req as CreditsGuardRequest).creditsConfig;
+    if (dto.additionalInstructions?.trim() && !creditsConfig?.isByokBypass) {
       await assertOrganizationCreditsAvailable(
         this.creditsUtilsService,
         organization,
@@ -185,6 +189,7 @@ export class TemplatesController {
       (amount) => {
         billedCredits += amount;
       },
+      creditsConfig?.byokApiKeyOverride,
     );
     finalizeDeferredTextCredits(req, billedCredits);
     return result; // Returns filled template content, not a template document
@@ -196,7 +201,9 @@ export class TemplatesController {
   @Post('suggest')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Template suggestion ranking (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -207,11 +214,14 @@ export class TemplatesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organization,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
+    const creditsConfig = (request as CreditsGuardRequest).creditsConfig;
+    if (!creditsConfig?.isByokBypass) {
+      await assertOrganizationCreditsAvailable(
+        this.creditsUtilsService,
+        organization,
+        await getDefaultTextMinimumCredits(this.modelsService),
+      );
+    }
     let billedCredits = 0;
     const templates = await this.templatesService.suggestTemplates(
       dto,
@@ -219,6 +229,7 @@ export class TemplatesController {
       (amount) => {
         billedCredits += amount;
       },
+      creditsConfig?.byokApiKeyOverride,
     );
     finalizeDeferredTextCredits(request, billedCredits);
     return serializeCollection(request, TemplateSerializer, {
