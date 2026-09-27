@@ -73,6 +73,9 @@ const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
   },
 ];
 
+const LEGAL_LINK_CLASS =
+  'flex min-h-10 items-center transition-colors hover:text-foreground md:inline md:min-h-0';
+
 const VARIANT_CLASSES: Record<FooterVariant, string> = {
   default: 'border-t border-border bg-background text-foreground',
 };
@@ -128,14 +131,18 @@ export default function SiteFooter({
             </div>
           </div>
 
-          {/* Navigation + Newsletter */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
+          {/*
+            Navigation + Newsletter. Phones get one stacked column: two columns
+            squeezed long labels into wraps and made each row a narrow target.
+            Below `sm` every link is a 40px row so a thumb can hit it.
+          */}
+          <div className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-3 sm:gap-y-10 lg:grid-cols-5">
             {sections.map((section) => (
               <div key={section.title}>
-                <h3 className="mb-4 text-xs font-semibold text-foreground">
+                <h3 className="mb-2 text-xs font-semibold text-foreground sm:mb-4">
                   {section.title}
                 </h3>
-                <ul className="space-y-3 text-sm text-muted-foreground">
+                <ul className="text-sm text-muted-foreground sm:space-y-3">
                   {section.links.map((link) => (
                     <li key={link.href}>
                       <Link
@@ -144,7 +151,7 @@ export default function SiteFooter({
                           rel: 'noopener noreferrer',
                           target: '_blank',
                         })}
-                        className="transition-colors hover:text-foreground"
+                        className="flex min-h-10 items-center transition-colors hover:text-foreground sm:inline sm:min-h-0"
                       >
                         {link.label}
                       </Link>
@@ -215,33 +222,24 @@ export default function SiteFooter({
           </Card>
         )}
 
-        {/* Bottom Bar */}
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-border py-6 text-xs text-muted-foreground md:flex-row">
+        {/* Bottom Bar — on phones the legal links stack above the copyright */}
+        <div className="flex flex-col-reverse items-start gap-4 border-t border-border py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>
             &copy;{' '}
             <ClientDateTime format={(date) => date.getFullYear().toString()} />{' '}
             GENFEED.AI. ALL RIGHTS RESERVED.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-6">
-            <Link
-              href="/terms"
-              className="transition-colors hover:text-foreground"
-            >
+          <div className="flex flex-col md:flex-row md:gap-6">
+            <Link href="/terms" className={LEGAL_LINK_CLASS}>
               Terms
             </Link>
 
-            <Link
-              href="/privacy"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/privacy" className={LEGAL_LINK_CLASS}>
               Privacy
             </Link>
 
-            <Link
-              href="/sitemap"
-              className="transition-colors hover:text-foreground"
-            >
+            <Link href="/sitemap" className={LEGAL_LINK_CLASS}>
               {sitemapLabel}
             </Link>
           </div>
