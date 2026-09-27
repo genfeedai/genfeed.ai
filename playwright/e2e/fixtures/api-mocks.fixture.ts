@@ -6,10 +6,13 @@ import {
   SocialSourceType,
 } from '@genfeedai/contracts';
 import type {
+  AdsResearchItem,
+  AdsResearchResponse,
   ISocialSource,
   ISourcePost,
   SocialSourcesResponse,
 } from '@genfeedai/contracts/interfaces';
+import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -4900,6 +4903,77 @@ export async function mockDiscoveryDeskFollowingFeed(
   await routeApiPattern(page, '/social-sources/feed**', async (route) => {
     await route.fulfill({
       body: JSON.stringify(feed),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
+/**
+ * Mock for the Ads Research list endpoint (`/ads/research`) that honors the
+ * requested platform, mirroring the real `AdsResearchController` /
+ * `useAdsResearchPageClient.ts`'s `filters.platform` (server-side) contract —
+ * the inherited fallback (`buildUnhandledApiMockBody`'s `/ads/research`
+ * branch) always returns empty arrays regardless of platform, which let a
+ * platform-tab switch look like it worked (URL + tab state changed) without
+ * proving the results actually changed. Search itself stays client-side
+ * (`useAdsResearchPageClient.ts` filters `allAds` by title/headline/body/
+ * accountName locally), so this only needs to seed distinguishable ads, not
+ * parse the search query.
+ *
+ * Registered as a single regex route so it matches `/ads/research` (with or
+ * without a query string) across every host variant without also matching
+ * `/ads/research/watchlist-readiness`.
+ */
+export async function mockAdsResearchResults(page: Page): Promise<void> {
+  const items: AdsResearchItem[] = [
+    {
+      channel: AdsChannel.DISPLAY,
+      explanation: 'High CTR carousel promoting a seasonal discount.',
+      id: 'ads-research-meta-1',
+      metrics: { clicks: 420, ctr: 3.1, impressions: 13_500 },
+      platform: AdsPlatform.META,
+      source: 'public',
+      sourceId: 'meta-src-1',
+      title: 'Meta Winter Sale Carousel',
+    },
+    {
+      channel: AdsChannel.SEARCH,
+      explanation: 'Top-performing search ad bundling three SKUs.',
+      id: 'ads-research-google-1',
+      metrics: { clicks: 310, ctr: 4.4, impressions: 7_050 },
+      platform: AdsPlatform.GOOGLE,
+      source: 'public',
+      sourceId: 'google-src-1',
+      title: 'Google Search Bundle Deal',
+    },
+  ];
+
+  await page.route(/\/ads\/research\/?(?:\?.*)?$/, async (route) => {
+    const requestedPlatform = new URL(route.request().url()).searchParams.get(
+      'platform',
+    );
+    const matching = requestedPlatform
+      ? items.filter((item) => item.platform === requestedPlatform)
+      : items;
+
+    const response: AdsResearchResponse = {
+      connectedAds: [],
+      filters: {},
+      publicAds: matching,
+      summary: {
+        connectedCount: 0,
+        publicCount: matching.length,
+        reviewPolicy: 'Review required.',
+        selectedPlatform:
+          (requestedPlatform as AdsResearchResponse['summary']['selectedPlatform']) ??
+          'all',
+        selectedSource: 'all',
+      },
+    };
+
+    await route.fulfill({
+      body: JSON.stringify(response),
       contentType: 'application/json',
       status: 200,
     });

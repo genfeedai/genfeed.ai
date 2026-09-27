@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
+  mockAdsResearchResults,
   mockAnalyticsData,
   mockDiscoveryDeskFollowingFeed,
 } from '../../fixtures/api-mocks.fixture';
@@ -147,6 +148,7 @@ test.describe('Discovery section', () => {
     test('should switch to the Google + YouTube ads tab', async ({
       authenticatedPage,
     }) => {
+      await mockAdsResearchResults(authenticatedPage);
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
       await discoveryPage.gotoSection('ads');
@@ -156,24 +158,29 @@ test.describe('Discovery section', () => {
         APP_ROUTES.DISCOVERY.ADS,
       );
 
-      // Keyboard-activate rather than click: the header's tab row can lay
-      // out under another header control at this viewport width, which
-      // fails a pointer click's hit-test even though the tab is visible and
-      // enabled. A role="tab" button must support keyboard activation per
-      // the WAI-ARIA tab pattern, and it exercises the same `onTabChange`
-      // handler as a click.
       const googleTab = authenticatedPage.getByRole('tab', {
         name: 'Google + YouTube',
       });
-      await googleTab.focus();
-      await googleTab.press('Enter');
+      await googleTab.click();
 
       await expect(googleTab).toHaveAttribute('data-state', 'active');
       await expect(authenticatedPage).toHaveURL(/platform=google/);
       await expect(discoveryPage.mainContent).toBeVisible();
+      // The platform filter is server-side — only the Google ad renders.
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'Google Search Bundle Deal',
+        }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'Meta Winter Sale Carousel',
+        }),
+      ).toBeHidden();
     });
 
     test('should switch to the Meta ads tab', async ({ authenticatedPage }) => {
+      await mockAdsResearchResults(authenticatedPage);
       const discoveryPage = new DiscoveryPage(authenticatedPage);
 
       await discoveryPage.gotoSection('ads');
@@ -184,12 +191,21 @@ test.describe('Discovery section', () => {
       );
 
       const metaTab = authenticatedPage.getByRole('tab', { name: 'Meta' });
-      await metaTab.focus();
-      await metaTab.press('Enter');
+      await metaTab.click();
 
       await expect(metaTab).toHaveAttribute('data-state', 'active');
       await expect(authenticatedPage).toHaveURL(/platform=meta/);
       await expect(discoveryPage.mainContent).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'Meta Winter Sale Carousel',
+        }),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', {
+          name: 'Google Search Bundle Deal',
+        }),
+      ).toBeHidden();
     });
   });
 
@@ -218,10 +234,7 @@ test.describe('Discovery section', () => {
       const trendsTab = authenticatedPage.getByRole('tab', {
         name: 'Public trends',
       });
-      // Keyboard-activate — see the Google/Meta tab tests above for why a
-      // click's hit-test can be unreliable in this crowded header.
-      await trendsTab.focus();
-      await trendsTab.press('Enter');
+      await trendsTab.click();
       await expect(authenticatedPage).toHaveURL(/source=trends/);
       await expect(
         authenticatedPage.getByText('Workflow demo clip'),

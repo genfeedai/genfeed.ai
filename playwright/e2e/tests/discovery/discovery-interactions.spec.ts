@@ -1,5 +1,6 @@
 import {
   mockActiveSubscription,
+  mockAdsResearchResults,
   mockAnalyticsData,
   mockDiscoveryDeskFollowingFeed,
 } from '../../fixtures/api-mocks.fixture';
@@ -29,6 +30,12 @@ import {
  * that only exercised those routes were deleted rather than rewritten; the
  * Desk source-tab test below covers the same "switch between sources /
  * platforms" intent against the routes that replaced them.
+ *
+ * Functional tab interactions use ordinary pointer clicks (#5400 fixed
+ * SectionTopbar so the Desk's tab row wraps instead of collapsing to 0px
+ * under the workspace-inspector rail at 1280px). Keyboard operability of
+ * the same tabs is covered separately below by a dedicated,
+ * explicitly-named accessibility test.
  */
 
 const BASE = '/test-org/brand-1/discovery';
@@ -106,15 +113,7 @@ test.describe('Discovery — deep interactions', () => {
     const trendsTab = authenticatedPage.getByRole('tab', {
       name: 'Public trends',
     });
-    // The Desk's crowded header (search + source tabs + view toggle +
-    // sources menu + refresh, all in one row) can lay the tab out under the
-    // fixed workspace-inspector rail at this viewport width, which fails a
-    // pointer click's hit-test even though the tab itself is visible and
-    // enabled. Activate it by keyboard instead — a `role="tab"` button must
-    // support this per the WAI-ARIA tab pattern, and it exercises the same
-    // `onTabChange` handler as a click.
-    await trendsTab.focus();
-    await trendsTab.press('Enter');
+    await trendsTab.click();
     await expect(trendsTab).toHaveAttribute('data-state', 'active');
     await expect(authenticatedPage).toHaveURL(/source=trends/);
     await expect(
@@ -127,8 +126,7 @@ test.describe('Discovery — deep interactions', () => {
     const ownedTab = authenticatedPage.getByRole('tab', {
       name: 'My accounts',
     });
-    await ownedTab.focus();
-    await ownedTab.press('Enter');
+    await ownedTab.click();
     await expect(ownedTab).toHaveAttribute('data-state', 'active');
     await expect(authenticatedPage).toHaveURL(/source=owned/);
     await expect(
@@ -142,8 +140,7 @@ test.describe('Discovery — deep interactions', () => {
     ).toBeVisible();
 
     const allTab = authenticatedPage.getByRole('tab', { name: 'All' });
-    await allTab.focus();
-    await allTab.press('Enter');
+    await allTab.click();
     await expect(allTab).toHaveAttribute('data-state', 'active');
     await expect(
       authenticatedPage.getByText('Workflow demo clip'),
@@ -155,14 +152,69 @@ test.describe('Discovery — deep interactions', () => {
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/overview`);
   });
 
+  test('accessibility: Desk source tabs are keyboard operable', async ({
+    authenticatedPage,
+  }) => {
+    await mockDiscoveryDeskFollowingFeed(authenticatedPage);
+
+    await assertRouteRenders(authenticatedPage, `${BASE}/overview`);
+
+    // WAI-ARIA tab pattern: a role="tab" button must be operable by
+    // keyboard, not only by pointer. This is a dedicated accessibility
+    // check, kept separate from the functional coverage above (which now
+    // uses ordinary pointer clicks after #5400 fixed the header so the
+    // tabs no longer collapse under the workspace-inspector rail).
+    const trendsTab = authenticatedPage.getByRole('tab', {
+      name: 'Public trends',
+    });
+    await trendsTab.focus();
+    await trendsTab.press('Enter');
+    await expect(trendsTab).toHaveAttribute('data-state', 'active');
+    await expect(authenticatedPage).toHaveURL(/source=trends/);
+
+    const allTab = authenticatedPage.getByRole('tab', { name: 'All' });
+    await allTab.focus();
+    await allTab.press('Enter');
+    await expect(allTab).toHaveAttribute('data-state', 'active');
+  });
+
   test('Ads page renders, refresh re-fetches, and platform tabs switch with observable state', async ({
     authenticatedPage,
   }) => {
+    await mockAdsResearchResults(authenticatedPage);
+
     await assertRouteRenders(authenticatedPage, `${BASE}/ads`);
+
+    // Both seeded ads (one Meta, one Google) render on the default "all"
+    // platform filter.
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Meta Winter Sale Carousel',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Google Search Bundle Deal',
+      }),
+    ).toBeVisible();
 
     const search = authenticatedPage.getByPlaceholder('Search ads');
     await expect(search).toBeVisible();
-    await search.fill('niche');
+    await search.fill('winter');
+
+    // Search is client-side over the fetched ads (title/headline/body/
+    // accountName) — it must narrow to the matching ad only.
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Meta Winter Sale Carousel',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Google Search Bundle Deal',
+      }),
+    ).toBeHidden();
+    await search.fill('');
 
     const refreshButton = authenticatedPage.getByRole('button', {
       name: 'Refresh',
@@ -176,25 +228,41 @@ test.describe('Discovery — deep interactions', () => {
     await refreshButton.click();
     await refetched;
 
-    // Keyboard-activate rather than click: the header's tab row can lay
-    // out under another header control at this viewport width right after
-    // the refresh spinner swaps back to an icon, which fails a pointer
-    // click's hit-test even though the tab is visible and enabled (see the
-    // Desk source-tabs test above for the same reasoning).
     const googleTab = authenticatedPage.getByRole('tab', {
       name: 'Google + YouTube',
     });
-    await googleTab.focus();
-    await googleTab.press('Enter');
+    await googleTab.click();
     await expect(googleTab).toHaveAttribute('data-state', 'active');
     await expect(authenticatedPage).toHaveURL(/platform=google/);
+    // The platform filter is server-side (`filters.platform` on
+    // `service.list()`) — the mock must honor it, so only the Google ad
+    // should remain.
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Google Search Bundle Deal',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Meta Winter Sale Carousel',
+      }),
+    ).toBeHidden();
 
     const metaTab = authenticatedPage.getByRole('tab', { name: 'Meta' });
-    await metaTab.focus();
-    await metaTab.press('Enter');
+    await metaTab.click();
     await expect(metaTab).toHaveAttribute('data-state', 'active');
     await expect(googleTab).toHaveAttribute('data-state', 'inactive');
     await expect(authenticatedPage).toHaveURL(/platform=meta/);
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Meta Winter Sale Carousel',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Google Search Bundle Deal',
+      }),
+    ).toBeHidden();
 
     await assertNoErrorBoundaryFallback(authenticatedPage, `${BASE}/ads`);
   });
