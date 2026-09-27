@@ -8,9 +8,11 @@ import { getIntegrationBySlug } from '@data/integrations.data';
 
 /**
  * Channels an agent can publish to through Genfeed. Each slug has a publisher
- * in `apps/server/api/src/services/integrations/publishers` and a page under
- * `/integrations/<slug>`. Channels without a publisher (Discord, Telegram,
- * Slack, Twitch, Medium) stay off this list so no page promises posting there.
+ * in `apps/server/api/src/services/integrations/publishers`, a user-connected
+ * account, and a page under `/integrations/<slug>`. Channels without a
+ * publisher (Discord, Telegram, Slack, Twitch, Medium) and WhatsApp, which
+ * sends from Genfeed's own number rather than a connected account, stay off
+ * this list so no page promises posting there.
  */
 export const AGENT_CLIENT_CHANNEL_SLUGS = [
   'x-twitter',
@@ -23,7 +25,6 @@ export const AGENT_CLIENT_CHANNEL_SLUGS = [
   'pinterest',
   'reddit',
   'snapchat',
-  'whatsapp',
   'mastodon',
   'wordpress',
   'ghost',
@@ -34,6 +35,11 @@ export type AgentClientChannelSlug =
   (typeof AGENT_CLIENT_CHANNEL_SLUGS)[number];
 
 interface ChannelCopy {
+  /**
+   * Set when Genfeed connects the channel with a key the user pastes into
+   * Genfeed (Ghost Admin API key, Beehiiv API key) instead of OAuth.
+   */
+  keyName?: string;
   /** Plural noun for what gets scheduled, title-cased: "Posts", "Videos". */
   noun: string;
   prompts: readonly [string, string, string];
@@ -41,6 +47,7 @@ interface ChannelCopy {
 
 const CHANNEL_COPY: Record<AgentClientChannelSlug, ChannelCopy> = {
   beehiiv: {
+    keyName: 'Beehiiv API key',
     noun: 'Newsletters',
     prompts: [
       'Turn this week’s three best posts into a Beehiiv newsletter draft.',
@@ -57,6 +64,7 @@ const CHANNEL_COPY: Record<AgentClientChannelSlug, ChannelCopy> = {
     ],
   },
   ghost: {
+    keyName: 'Ghost Admin API key',
     noun: 'Posts',
     prompts: [
       'Turn this podcast transcript into a Ghost blog post draft.',
@@ -126,14 +134,6 @@ const CHANNEL_COPY: Record<AgentClientChannelSlug, ChannelCopy> = {
       'Generate a vertical product video for TikTok and schedule it for Friday at 9am.',
       'Write three hook variations for this clip and hold them for review.',
       'Cut this podcast episode into five TikTok clips with captions.',
-    ],
-  },
-  whatsapp: {
-    noun: 'Messages',
-    prompts: [
-      'Draft a WhatsApp update announcing this week’s offer.',
-      'Generate a matching square image and hold both for review.',
-      'Send the approved update on Thursday at noon.',
     ],
   },
   wordpress: {
@@ -206,7 +206,7 @@ export function buildAgentClientChannelPage(
     throw new Error(`Missing integration for agent channel: ${channelSlug}`);
   }
 
-  const { noun, prompts } = CHANNEL_COPY[channelSlug];
+  const { keyName, noun, prompts } = CHANNEL_COPY[channelSlug];
   const lowerNoun = noun.toLowerCase();
   const channelName = integration.name;
 
@@ -220,7 +220,9 @@ export function buildAgentClientChannelPage(
         question: `Can ${client.name} post to ${channelName}?`,
       },
       {
-        answer: `No. You connect ${channelName} in Genfeed once. ${client.name} reaches Genfeed over MCP with browser OAuth and never sees your ${channelName} credentials.`,
+        answer: keyName
+          ? `Yes, once. Genfeed connects ${channelName} with your ${keyName}, which you add in Genfeed. ${client.name} reaches Genfeed over MCP with browser OAuth and never receives that key.`
+          : `No. You connect ${channelName} in Genfeed once by signing in. ${client.name} reaches Genfeed over MCP with browser OAuth and never sees your ${channelName} credentials.`,
         question: `Do I need a ${channelName} API key?`,
       },
       {

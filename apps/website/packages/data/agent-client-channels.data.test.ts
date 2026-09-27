@@ -44,6 +44,34 @@ describe('agent client channel pages', () => {
     );
   });
 
+  it.each([
+    ['ghost', 'Ghost Admin API key'],
+    ['beehiiv', 'Beehiiv API key'],
+  ] as const)(
+    'discloses that %s needs a provider key in Genfeed',
+    (slug, keyName) => {
+      const page = buildAgentClientChannelPage(getAgentClient('claude'), slug);
+      const answer = page.faq.find((item) =>
+        item.question.endsWith('API key?'),
+      )?.answer;
+
+      expect(answer).toMatch(/^Yes, once\./);
+      expect(answer).toContain(keyName);
+    },
+  );
+
+  it('tells OAuth channels no API key is needed', () => {
+    const page = buildAgentClientChannelPage(
+      getAgentClient('claude'),
+      'linkedin',
+    );
+    const answer = page.faq.find((item) =>
+      item.question.endsWith('API key?'),
+    )?.answer;
+
+    expect(answer).toMatch(/^No\./);
+  });
+
   it('titles a page with the channel noun and client name', () => {
     const page = buildAgentClientChannelPage(
       getAgentClient('claude-code'),
