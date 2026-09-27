@@ -119,6 +119,27 @@ describe('AddAgentDialog', () => {
     expect(
       screen.queryByRole('textbox', { name: 'Platforms' }),
     ).not.toBeInTheDocument();
+    const platformLabels = [
+      'YouTube',
+      'TikTok',
+      'Instagram',
+      'X (Twitter)',
+      'LinkedIn',
+      'WordPress',
+      'Facebook',
+    ];
+    const platformOptions = screen.getAllByRole('checkbox');
+    expect(platformOptions).toHaveLength(platformLabels.length);
+    platformLabels.forEach((label, index) => {
+      expect(platformOptions[index]).toHaveAccessibleName(label);
+      expect(platformOptions[index]).toBeVisible();
+    });
+    expect(
+      screen.queryByRole('checkbox', { name: 'Google Ads' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: 'Slack' }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'X (Twitter)' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'LinkedIn' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'YouTube' }));

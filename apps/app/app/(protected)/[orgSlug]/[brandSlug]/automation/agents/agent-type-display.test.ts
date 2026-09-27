@@ -1,6 +1,8 @@
-import { AgentType } from '@genfeedai/contracts';
+import { AgentType, Platform } from '@genfeedai/contracts';
+import { PUBLISH_PLATFORMS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_PLATFORM_OPTIONS,
   AGENT_TYPE_DEFAULTS,
   AGENT_TYPE_ICON_COMPONENTS,
   AGENT_TYPE_LABELS,
@@ -10,6 +12,27 @@ import {
 } from './agent-type-display';
 
 describe('agent-type-display', () => {
+  it('includes publish platforms followed by every preset platform without duplicates', () => {
+    expect(AGENT_PLATFORM_OPTIONS).toEqual([
+      Platform.YOUTUBE,
+      Platform.TIKTOK,
+      Platform.INSTAGRAM,
+      Platform.TWITTER,
+      Platform.LINKEDIN,
+      Platform.WORDPRESS,
+      Platform.FACEBOOK,
+    ]);
+    expect(AGENT_PLATFORM_OPTIONS.slice(0, PUBLISH_PLATFORMS.length)).toEqual(
+      PUBLISH_PLATFORMS.map(({ platform }) => platform),
+    );
+    for (const { platforms } of Object.values(AGENT_TYPE_DEFAULTS)) {
+      expect(AGENT_PLATFORM_OPTIONS).toEqual(expect.arrayContaining(platforms));
+    }
+    expect(new Set(AGENT_PLATFORM_OPTIONS).size).toBe(
+      AGENT_PLATFORM_OPTIONS.length,
+    );
+  });
+
   it('covers every AgentType with a label, icon, and default budget', () => {
     for (const type of Object.values(AgentType)) {
       expect(AGENT_TYPE_LABELS[type].length).toBeGreaterThan(0);

@@ -2,7 +2,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
-  Platform,
+  type Platform,
 } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -33,6 +33,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { AGENT_PLATFORM_OPTIONS } from './agent-type-display';
 
 export default function CustomAgentForm({
   onCreated,
@@ -130,7 +131,7 @@ export default function CustomAgentForm({
       </p>
       <FormControl label={translate('platforms')}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {Object.values(Platform).map((platform) => (
+          {AGENT_PLATFORM_OPTIONS.map((platform) => (
             <div key={platform} className="flex items-center gap-2">
               <Checkbox
                 id={`custom-agent-platform-${platform}`}
