@@ -261,6 +261,14 @@ describe.skipIf(!connectionString)(
     });
 
     it('links a second organization through the real controller path when the session organization differs from the target (#5296)', async () => {
+      // The session organization must already administer a billing account
+      // before it can link a second one — direct attachment, the same
+      // precondition `resolveForOrganization` expects of any caller.
+      await database().organization.update({
+        data: { billingAccountId: billingAccountIds[0] },
+        where: { id: organizationIds[0] },
+      });
+
       const user = {
         id: userId,
         organizationId: organizationIds[0],
@@ -303,6 +311,13 @@ describe.skipIf(!connectionString)(
     });
 
     it('rejects linking a target organization the actor does not administer, through the real controller path (#5296)', async () => {
+      // The session organization must already administer a billing account
+      // before it can attempt to link a second one.
+      await database().organization.update({
+        data: { billingAccountId: billingAccountIds[0] },
+        where: { id: organizationIds[0] },
+      });
+
       // Demote the actor to a non-admin role on the TARGET organization
       // only — they remain OWNER of the session organization (and so still
       // pass the billing-account-admin check on its billing account); only
