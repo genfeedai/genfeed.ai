@@ -16,4 +16,16 @@ describe('SiteFooter theme contract', () => {
     expect(source).not.toContain('[color-scheme:dark]');
     expect(source).not.toMatch(/\b(?:bg-black|text-white|border-white)\b/);
   });
+
+  it('stacks every link into one column on phones', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/footers/SiteFooter.tsx'),
+      'utf8',
+    );
+
+    expect(source).toContain('grid grid-cols-1');
+    expect(source).not.toMatch(/(?<![\w:])grid-cols-2\b/);
+    expect(source).toContain('flex flex-col md:flex-row');
+    expect(source).toContain('min-h-10');
+  });
 });

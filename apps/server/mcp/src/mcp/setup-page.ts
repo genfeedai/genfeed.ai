@@ -2,7 +2,10 @@ import process from 'node:process';
 import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
-import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import {
+  buildConnectGenfeedChatPrompt,
+  buildConnectGenfeedInstructions,
+} from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
@@ -287,6 +290,31 @@ export function getPublicAppUrl(): string {
   return readPublicUrl('GENFEED_APP_URL', DEFAULT_APP_URL);
 }
 
+/**
+ * A `<pre><code></code></pre>` command/prompt block paired with its own copy
+ * button. Every setup tab uses this so the picker script below only has to
+ * know a handful of element ids, not one bespoke markup shape per client.
+ * `multiline` swaps in the scrollable `prompt-block` treatment for the two
+ * blocks long enough to need it (the chat prompt and the shell-agent
+ * prompt); single-line commands render as a plain code block.
+ */
+function renderCommandBlock(params: {
+  id: string;
+  label: string;
+  multiline?: boolean;
+  textSafe: string;
+  ui: typeof staticSurfaceClassNames;
+}): string {
+  const { id, label, multiline, textSafe, ui } = params;
+  const preClass = multiline
+    ? `${ui.codeBlock} command prompt-block`
+    : `${ui.codeBlock} command`;
+  return `<div class="code-row">
+          <pre class="${preClass}"><code id="${id}">${textSafe}</code></pre>
+          <button class="${ui.buttonSecondary} copy" type="button" data-copy-source="${id}" aria-label="${label}">Copy</button>
+        </div>`;
+}
+
 export function renderSetupPage(): string {
   const ui = staticSurfaceClassNames;
   const mcpUrl = getPublicMcpUrl();
@@ -302,10 +330,17 @@ export function renderSetupPage(): string {
   const docsUrlSafe = escapeHtml(docsUrl);
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
+
   const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
+  const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
+  const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
+
   const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
   const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
+  const genericConfigSafe = escapeHtml(generic.configuration);
+  const genericAuthSafe = escapeHtml(generic.authorizationInstruction);
+  const chatPromptSafe = escapeHtml(chatPrompt);
   const agentSetupPromptSafe = escapeHtml(
     buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
@@ -331,7 +366,8 @@ export function renderSetupPage(): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Genfeed MCP Server</title>
+<meta name="description" content="Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required." />
+<title>Genfeed MCP Server — connect any AI agent</title>
 <style>
 /* Self-hosted Satoshi (the product's sans). One variable face covers 300-900,
    so the MCP page renders in the same brand type as the marketing site and app
@@ -424,11 +460,7 @@ a { color: inherit; text-decoration: none; }
 }
 .nav-link:hover { color: var(--gf-text-primary); }
 .hero {
-  display: grid;
-  min-height: 540px;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
-  gap: 56px;
-  align-items: center;
+  max-width: 680px;
   border-bottom: 1px solid var(--gf-border);
   padding: 58px 0 64px;
 }
@@ -443,123 +475,41 @@ a { color: inherit; text-decoration: none; }
   text-transform: uppercase;
 }
 .hero h1 {
-  max-width: 680px;
   margin: 18px 0 0;
   color: var(--gf-text-primary);
   font-family: var(--gf-font-sans);
-  font-size: 68px;
+  font-size: 56px;
   font-weight: 600;
-  line-height: 0.98;
-  letter-spacing: -0.035em;
-}
-.hero h1 em {
-  display: block;
-  color: var(--gf-text-muted);
-  font-style: normal;
-  font-weight: 600;
+  line-height: 1.03;
+  letter-spacing: -0.03em;
 }
 .lede {
-  max-width: 600px;
-  margin: 22px 0 0;
+  max-width: 560px;
+  margin: 20px 0 0;
   color: var(--gf-text-muted);
   font-size: 14px;
   line-height: 1.8;
+}
+.hero-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 620px;
+  margin-top: 28px;
+}
+.hero-endpoint .endpoint-code {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: var(--gf-text-primary);
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 30px;
-}
-.flow {
-  display: grid;
-  gap: 8px;
-  border-top: 1px solid var(--gf-border);
-  padding-top: 18px;
-}
-.flow-row {
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  border-bottom: 1px solid var(--gf-divider-subtle);
-  padding: 10px 0;
-}
-.flow-row:last-child { border-bottom: 0; }
-.flow-name {
-  color: var(--gf-text-primary);
-  font-size: 12px;
-  font-weight: 750;
-}
-.flow-copy {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--gf-text-muted);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--gf-text-muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.status-dot::before {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--gf-success);
-  content: "";
-}
-.platforms {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  border-top: 1px solid var(--gf-border);
-  padding-top: 18px;
-}
-.platform::before {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  content: "";
-}
-.platform.youtube::before { background: var(--gf-platform-youtube); }
-.platform.tiktok::before { background: var(--gf-platform-tiktok); }
-.platform.linkedin::before { background: var(--gf-platform-linkedin); }
-.endpoint-band {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, auto) auto;
-  gap: 18px;
-  align-items: end;
-  border-bottom: 1px solid var(--gf-border);
-  padding: 30px 0;
-}
-.endpoint-band > div {
-  min-width: 0;
-}
-.endpoint-copy {
-  min-width: 0;
-}
-.endpoint-copy p {
-  margin: 8px 0 0;
-  color: var(--gf-text-muted);
-  font-size: 13px;
-}
-.endpoint-code {
-  min-width: 0;
-  color: var(--gf-text-primary);
-  line-height: 1.6;
-  white-space: nowrap;
+  margin-top: 24px;
 }
 .copy {
-  align-self: end;
-  justify-self: start;
+  flex-shrink: 0;
 }
 .section {
   border-bottom: 1px solid var(--gf-border);
@@ -591,22 +541,30 @@ a { color: inherit; text-decoration: none; }
   font-size: 14px;
   line-height: 1.8;
 }
+.section-copy a {
+  color: var(--gf-text-secondary);
+  text-decoration: underline;
+}
+.section-copy a:hover { color: var(--gf-text-primary); }
 .tablist {
   display: flex;
-  flex-wrap: wrap;
   gap: 0;
+  overflow-x: auto;
   border-bottom: 1px solid var(--gf-border);
+  scrollbar-width: none;
 }
 .tab {
+  flex: 0 0 auto;
   min-height: 46px;
+  white-space: nowrap;
   border: 0;
   border-right: 1px solid var(--gf-border);
   background: transparent;
   color: var(--gf-text-muted);
-  padding: 0 18px;
+  padding: 0 16px;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .tab[aria-selected="true"] {
@@ -618,43 +576,6 @@ a { color: inherit; text-decoration: none; }
   padding: 0 26px 6px;
 }
 .tabpanel.is-active { display: block; }
-.agent-prompt-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 230px;
-  gap: 24px;
-  padding: 24px 0 20px;
-}
-.agent-prompt-copy {
-  min-width: 0;
-}
-.agent-prompt-copy p {
-  margin: 0 0 14px;
-  color: var(--gf-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
-}
-.prompt-block {
-  max-height: 430px;
-  margin: 0;
-  overflow: auto;
-  white-space: pre-wrap;
-}
-.prompt-actions {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  border-left: 1px solid var(--gf-divider-subtle);
-  padding-left: 22px;
-}
-.prompt-note {
-  margin: 0;
-  color: var(--gf-text-muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
 .setup-title-row {
   display: flex;
   flex-wrap: wrap;
@@ -712,16 +633,45 @@ a { color: inherit; text-decoration: none; }
 code, pre {
   font-family: "SF Mono", SFMono-Regular, Consolas, Menlo, monospace;
 }
-pre.command {
-  margin: 12px 0 0;
+.code-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
 }
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+.code-row pre {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
 }
-.mcp-warning-note {
-  margin-top: 14px;
+.prompt-block {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.toolsets-section {
+  padding: 44px 0;
+}
+.toolsets summary {
+  cursor: pointer;
+  color: var(--gf-text-primary);
+  font-size: 13px;
+  font-weight: 750;
+  list-style: none;
+}
+.toolsets summary::-webkit-details-marker { display: none; }
+.toolsets summary::before {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--gf-text-faint);
+  content: "▸";
+  transition: transform 150ms ease-out;
+}
+.toolsets[open] summary::before {
+  transform: rotate(90deg);
+}
+.toolsets .section-copy {
+  margin: 14px 0 20px;
 }
 .toolset-picker {
   display: grid;
@@ -763,18 +713,19 @@ pre.command {
   color: var(--gf-text-muted);
   font-size: 12px;
 }
-.warning-mark {
-  color: var(--gf-warning);
-  font-weight: 900;
-}
 .site-footer {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
   padding: 36px 0 44px;
   color: var(--gf-text-faint);
   font-size: 11px;
+}
+.footer-note {
+  max-width: 560px;
+  margin: 0;
+  line-height: 1.6;
 }
 .footer-links {
   display: flex;
@@ -791,46 +742,30 @@ pre.command {
 }
 .footer-links a:hover { color: var(--gf-text-primary); }
 @media (max-width: 920px) {
-  .hero,
-  .section-head,
-  .meta-grid,
-  .endpoint-band {
+  .section-head {
     grid-template-columns: 1fr;
   }
-  .hero {
-    min-height: auto;
-    gap: 34px;
-    padding: 48px 0 54px;
-  }
-  .hero h1 { font-size: 58px; }
-  .copy { justify-self: start; }
+  .hero h1 { font-size: 46px; }
 }
 @media (max-width: 640px) {
   .page { width: min(100vw - 24px, 1120px); }
   .site-nav { align-items: flex-start; padding: 12px 0; }
   .nav-links { gap: 10px; }
   .nav-link { display: none; }
-  .hero h1 { font-size: 42px; }
-  .flow-row { grid-template-columns: 1fr; gap: 3px; }
-  .flow-copy { white-space: normal; }
+  .hero { padding: 44px 0 48px; }
+  .hero h1 { font-size: 36px; }
+  .hero-endpoint { gap: 8px; }
   .section { padding: 56px 0; }
+  .toolsets-section { padding: 36px 0; }
   .section-title { font-size: 34px; }
   .tabpanel { padding: 0 16px 4px; }
-  .agent-prompt-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  .prompt-actions {
-    border-left: 0;
-    border-top: 1px solid var(--gf-divider-subtle);
-    padding-top: 16px;
-    padding-left: 0;
-  }
+  .tablist { flex-wrap: wrap; }
   .tab {
     flex: 1 1 100%;
     border-bottom: 1px solid var(--gf-border);
     padding: 0 10px;
   }
+  .code-row { gap: 8px; }
   .step { grid-template-columns: 1fr; gap: 8px; }
   .step-number { font-size: 26px; }
   .site-footer { grid-template-columns: 1fr; }
@@ -848,83 +783,23 @@ ${postHogSnippet}
     </a>
     <div class="nav-links" aria-label="MCP navigation">
       <a class="nav-link" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Docs</a>
-      <a class="nav-link" href="/v1/config" rel="noopener noreferrer">Config</a>
-      <a class="nav-link" href="/v1/health" rel="noopener noreferrer">Health</a>
       <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Connect Genfeed</a>
     </div>
   </nav>
 
   <header class="hero">
-    <div>
-      <p class="eyebrow">&lt; MCP server &gt;</p>
-      <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
-      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with browser authorization. Manual API keys remain an advanced option.</p>
-      <div class="hero-actions">
-        <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Start guided setup</a>
-        <a class="${ui.buttonSecondary}" href="${oauthDocsUrlSafe}" rel="noopener noreferrer">OAuth setup guide</a>
-        <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
-      </div>
-    </div>
-
-    <aside class="${ui.featureCard}" aria-label="Genfeed MCP workflow preview">
-      <div class="${ui.featureCardInner}">
-        <div>
-          <p class="${ui.featureCardKicker}">AI model context protocol</p>
-          <h2 class="${ui.featureCardTitle}">Agent workspace access.</h2>
-          <p class="${ui.featureCardCopy}">Read, create, publish, and measure from your AI client.</p>
-        </div>
-        <div class="flow" aria-label="Content operating loop">
-          <div class="flow-row">
-            <span class="flow-name">Research</span>
-            <span class="flow-copy">Topics, analytics, audience signals</span>
-            <span class="status-dot">Live</span>
-          </div>
-          <div class="flow-row">
-            <span class="flow-name">Generate</span>
-            <span class="flow-copy">Media and campaign assets</span>
-            <span class="status-dot">Ready</span>
-          </div>
-          <div class="flow-row">
-            <span class="flow-name">Publish</span>
-            <span class="flow-copy">Posts and workflows</span>
-            <span class="status-dot">Guarded</span>
-          </div>
-        </div>
-        <div class="platforms" aria-label="Platform publishing preview">
-          <span class="${ui.chip} platform youtube">YouTube</span>
-          <span class="${ui.chip} platform tiktok">TikTok</span>
-          <span class="${ui.chip} platform linkedin">LinkedIn</span>
-        </div>
-      </div>
-    </aside>
-  </header>
-
-  <section class="endpoint-band" aria-labelledby="endpoint-title">
-    <div class="endpoint-copy">
-      <p class="meta-label" id="endpoint-title">Endpoint</p>
-      <p>Hosted Streamable HTTP. Use localhost only for self-hosting.</p>
-    </div>
-    <div>
+    <p class="eyebrow">MCP server</p>
+    <h1>Connect any AI agent to Genfeed.</h1>
+    <p class="lede">Create, schedule, publish, and measure content through your AI client — sign in with browser OAuth, no API key required.</p>
+    <div class="hero-endpoint">
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
+      <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
     </div>
-    <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
-  </section>
-
-  <section class="section" aria-labelledby="toolsets-title">
-    <div class="section-head">
-      <div>
-        <p class="section-kicker">Toolsets</p>
-        <h2 class="section-title" id="toolsets-title">Pick what <em>loads.</em></h2>
-      </div>
-      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to the toolsets your agent needs. Leave the others unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
+    <div class="hero-actions">
+      <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Start guided setup</a>
+      <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
     </div>
-
-    <div class="${ui.card}">
-      <div class="toolset-picker" role="group" aria-label="Toolsets to include">
-        ${toolsetOptions}
-      </div>
-    </div>
-  </section>
+  </header>
 
   <section class="section" aria-labelledby="setup-title">
     <div class="section-head">
@@ -932,34 +807,19 @@ ${postHogSnippet}
         <p class="section-kicker">Setup</p>
         <h2 class="section-title" id="setup-title">One server. <em>Any client.</em></h2>
       </div>
-      <p class="section-copy">Add Genfeed to your client and approve access in your browser. No API key is required. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code> and approve in the browser. Do not paste a secret.</p>
+      <p class="section-copy">Add Genfeed to your client and approve access in your browser. No API key is required. Need more detail? Read the <a href="${oauthDocsUrlSafe}" rel="noopener noreferrer">OAuth setup guide</a>. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code> and approve in the browser — do not paste a secret.</p>
     </div>
 
     <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
-        <button class="tab" id="tab-agent-prompt" type="button" role="tab" aria-selected="true" aria-controls="panel-agent-prompt" data-tab="agent-prompt">AI prompt</button>
-        <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="false" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
+        <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
         <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
+        <button class="tab" id="tab-chat-agent" type="button" role="tab" aria-selected="false" aria-controls="panel-chat-agent" data-tab="chat-agent">Muse &amp; Grok Bot</button>
+        <button class="tab" id="tab-other-clients" type="button" role="tab" aria-selected="false" aria-controls="panel-other-clients" data-tab="other-clients">Other clients</button>
+        <button class="tab" id="tab-agent-prompt" type="button" role="tab" aria-selected="false" aria-controls="panel-agent-prompt" data-tab="agent-prompt">Agent prompt</button>
       </div>
 
-      <section class="tabpanel is-active" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
-        <div class="setup-title-row">
-          <h3 class="instruction-title">AI agent setup prompt</h3>
-          <span class="${ui.badge}">Copy/paste</span>
-        </div>
-        <div class="agent-prompt-grid">
-          <div class="agent-prompt-copy">
-            <p>Drop this into Claude Code, Codex, or another local agent with shell access. The agent detects the client, configures Genfeed, starts browser authorization, and verifies access with a scoped read.</p>
-            <pre class="${ui.codeBlock} command prompt-block"><code id="agent-setup-prompt">${agentSetupPromptSafe}</code></pre>
-          </div>
-          <div class="prompt-actions">
-            <button class="${ui.buttonPrimary} copy" type="button" data-copy-source="agent-setup-prompt" aria-label="Copy AI setup prompt">Copy AI prompt</button>
-            <p class="prompt-note">You complete sign-in and consent in your browser. Copying this prompt does not authorize your client.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="tabpanel" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
+      <section class="tabpanel is-active" id="panel-claude-code" role="tabpanel" aria-labelledby="tab-claude-code" data-panel="claude-code">
         <div class="setup-title-row">
           <h3 class="instruction-title">Claude Code setup</h3>
           <span class="${ui.badge}">HTTP transport</span>
@@ -968,23 +828,16 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Choose browser authorization</p>
-              <p class="step-copy">Add the server below without an Authorization header.</p>
+              <p class="step-title">Add the MCP server</p>
+              <p class="step-copy">Registers the hosted endpoint in user scope with browser OAuth — no Authorization header.</p>
+              ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Add MCP server</p>
-              <p class="step-copy">Register the hosted endpoint in user scope.</p>
-              <pre class="${ui.codeBlock} command"><code id="claude-code-command">${claudeCommandSafe}</code></pre>
-            </div>
-          </li>
-          <li class="step">
-            <span class="step-number">03</span>
-            <div>
-              <p class="step-title">Verify</p>
-              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and authenticate in your browser. Then ask your agent to list your Genfeed brands to verify access.</p>
+              <p class="step-title">Authorize and verify</p>
+              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and sign in. Then ask it to list your Genfeed brands.</p>
             </div>
           </li>
         </ol>
@@ -999,24 +852,89 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Choose browser authorization</p>
-              <p class="step-copy">Add the server below without a bearer-token environment variable.</p>
+              <p class="step-title">Add the MCP server</p>
+              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>. No bearer-token variable needed.</p>
+              ${renderCommandBlock({ id: 'codex-command', label: 'Copy Codex command', textSafe: codexCommandSafe, ui })}
             </div>
           </li>
           <li class="step">
             <span class="step-number">02</span>
             <div>
-              <p class="step-title">Add MCP server</p>
-              <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>.</p>
-              <pre class="${ui.codeBlock} command"><code id="codex-command">${codexCommandSafe}</code></pre>
+              <p class="step-title">Authorize and verify</p>
+              <p class="step-copy">If browser authorization did not open during setup, run this. Approve access, then ask Codex to list your Genfeed brands.</p>
+              ${renderCommandBlock({ id: 'codex-login-command', label: 'Copy Codex login command', textSafe: 'codex mcp login genfeed', ui })}
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="tabpanel" id="panel-chat-agent" role="tabpanel" aria-labelledby="tab-chat-agent" data-panel="chat-agent">
+        <div class="setup-title-row">
+          <h3 class="instruction-title">Muse &amp; Grok Bot</h3>
+          <span class="${ui.badge}">Chat-built connector</span>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-number">01</span>
+            <div>
+              <p class="step-title">Paste this prompt</p>
+              <p class="step-copy">Meta Muse and Grok Bot can build their own MCP connector directly from a chat prompt.</p>
+              ${renderCommandBlock({ id: 'chat-agent-prompt', label: 'Copy chat agent prompt', multiline: true, textSafe: chatPromptSafe, ui })}
             </div>
           </li>
           <li class="step">
-            <span class="step-number">03</span>
+            <span class="step-number">02</span>
+            <div>
+              <p class="step-title">Approve in your browser</p>
+              <p class="step-copy">Approve the sign-in link it sends back. Never share a password, token, or API key in the chat.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="tabpanel" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
+        <div class="setup-title-row">
+          <h3 class="instruction-title">Other MCP clients</h3>
+          <span class="${ui.badge}">Claude.ai, ChatGPT, Cursor, Gemini</span>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-number">01</span>
+            <div>
+              <p class="step-title">Add this server configuration</p>
+              <p class="step-copy">Paste this into your client's remote MCP server settings.</p>
+              ${renderCommandBlock({ id: 'generic-client-config', label: 'Copy client configuration', multiline: true, textSafe: genericConfigSafe, ui })}
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-number">02</span>
             <div>
               <p class="step-title">Authorize and verify</p>
-              <p class="step-copy">If setup did not open authorization, run the command below. Approve in your browser, then ask Codex to list your Genfeed brands.</p>
-              <pre class="${ui.codeBlock} command"><code>codex mcp login genfeed</code></pre>
+              <p class="step-copy">${genericAuthSafe} Then ask your agent to list your Genfeed brands.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="tabpanel" id="panel-agent-prompt" role="tabpanel" aria-labelledby="tab-agent-prompt" data-panel="agent-prompt">
+        <div class="setup-title-row">
+          <h3 class="instruction-title">AI agent setup prompt</h3>
+          <span class="${ui.badge}">Copy/paste</span>
+        </div>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-number">01</span>
+            <div>
+              <p class="step-title">Give this to a local shell agent</p>
+              <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It detects the client, configures Genfeed, starts browser authorization, and verifies access with a scoped read.</p>
+              ${renderCommandBlock({ id: 'agent-setup-prompt', label: 'Copy agent setup prompt', multiline: true, textSafe: agentSetupPromptSafe, ui })}
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-number">02</span>
+            <div>
+              <p class="step-title">Complete sign-in in your browser</p>
+              <p class="step-copy">You approve access yourself. Copying this prompt does not authorize your client.</p>
             </div>
           </li>
         </ol>
@@ -1024,49 +942,26 @@ ${postHogSnippet}
     </div>
   </section>
 
-  <section class="section" aria-labelledby="details-title">
-    <div class="section-head">
-      <div>
-        <p class="section-kicker">Details</p>
-        <h2 class="section-title" id="details-title">Endpoint. <em>Authorization.</em></h2>
+  <section class="section toolsets-section" aria-label="Advanced toolset configuration">
+    <details class="toolsets">
+      <summary>Advanced: limit which toolsets load</summary>
+      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
+      <div class="${ui.card}">
+        <div class="toolset-picker" role="group" aria-label="Toolsets to include">
+          ${toolsetOptions}
+        </div>
       </div>
-      <p class="section-copy">MCP calls go to <code class="${ui.inlineCode}">${mcpUrlSafe}</code> and use the permissions you authorized.</p>
-    </div>
-
-    <div class="meta-grid">
-      <article class="${ui.infoCard}">
-        <p class="meta-label">Authentication</p>
-        <h3>Browser OAuth</h3>
-        <p>Your client manages the access token after sign-in and consent. For clients without OAuth, choose Advanced: manual API key in guided setup. The CLI one-command path is <code class="${ui.inlineCode}">genfeed login</code>. CI overrides the stored key with <code class="${ui.inlineCode}">GENFEED_API_KEY</code> instead of a pasted secret. <code class="${ui.inlineCode}">genfeed keys create -p mcp</code> still works after login.</p>
-        <a href="${connectUrlSafe}" rel="noopener noreferrer">Open guided setup</a>
-      </article>
-      <article class="${ui.infoCard}">
-        <p class="meta-label">Transport</p>
-        <h3>HTTP transport</h3>
-        <p>Register Genfeed as a remote MCP server. No <code class="${ui.inlineCode}">npx</code> or localhost for cloud.</p>
-        <a href="/v1/config" rel="noopener noreferrer">View config</a>
-      </article>
-      <article class="${ui.infoCard}">
-        <p class="meta-label">Status</p>
-        <h3>Health checks</h3>
-        <p>Use health and config to debug routing or stale client settings.</p>
-        <a href="/v1/health" rel="noopener noreferrer">View health</a>
-      </article>
-    </div>
-
-    <div class="${ui.warningNote} mcp-warning-note" role="note">
-      <span class="warning-mark">!</span>
-      <span>If access is denied or login expires, restart authorization in your client. Use the advanced manual-key path if OAuth is unsupported. Keep tokens out of shared logs.</span>
-    </div>
+    </details>
   </section>
 
   <footer class="site-footer">
-    <span>Genfeed.ai MCP</span>
+    <p class="footer-note">OAuth login only — the manual API-key fallback lives in guided setup. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code>. Keep tokens out of shared logs.</p>
     <div class="footer-links">
       <a href="${docsUrlSafe}" rel="noopener noreferrer">Documentation</a>
       <a href="${docsGuideUrlSafe}" rel="noopener noreferrer">MCP guide</a>
       <a href="/v1/config" rel="noopener noreferrer">Config</a>
       <a href="/v1/health" rel="noopener noreferrer">Health</a>
+      <a href="https://genfeed.ai" rel="noopener noreferrer">genfeed.ai</a>
     </div>
   </footer>
 </main>
@@ -1084,7 +979,7 @@ ${postHogSnippet}
 
   document.querySelectorAll('[role="tab"][data-tab]').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      setActiveTab(tab.getAttribute('data-tab') || 'agent-prompt');
+      setActiveTab(tab.getAttribute('data-tab') || 'claude-code');
     });
     tab.addEventListener('keydown', function (event) {
       if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
@@ -1095,7 +990,7 @@ ${postHogSnippet}
         : (index - 1 + tabs.length) % tabs.length;
       event.preventDefault();
       tabs[nextIndex].focus();
-      setActiveTab(tabs[nextIndex].getAttribute('data-tab') || 'agent-prompt');
+      setActiveTab(tabs[nextIndex].getAttribute('data-tab') || 'claude-code');
     });
   });
 
@@ -1189,14 +1084,14 @@ ${postHogSnippet}
     function applyUrl(nextUrl) {
       var nextShellUrl = shellQuote(nextUrl);
 
-      var mcpUrlEl = document.getElementById('mcp-url');
-      if (mcpUrlEl) {
-        mcpUrlEl.textContent = replaceAll(
-          mcpUrlEl.textContent || '',
-          currentUrl,
-          nextUrl,
-        );
-      }
+      // Blocks that only ever embed the endpoint as plain text (never inside
+      // a shell-quoted command): the endpoint display, the chat-agent prompt
+      // (Muse/Grok Bot), and the generic client JSON config.
+      ['mcp-url', 'chat-agent-prompt', 'generic-client-config'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = replaceAll(el.textContent || '', currentUrl, nextUrl);
+      });
 
       var promptEl = document.getElementById('agent-setup-prompt');
       if (promptEl) {
