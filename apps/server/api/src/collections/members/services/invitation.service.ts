@@ -640,7 +640,10 @@ export class InvitationService {
       where: { isDeleted: false, organizationId: invitation.organizationId },
     });
     if (!defaultBrand) {
-      throw new Error(
+      // A raw Error here surfaces as an unhandled 500 (#5295) — the caller
+      // gets no signal that the invitation itself is unacceptable, only a
+      // generic server failure.
+      throw new ConflictException(
         `Cannot accept invitation: organization ${invitation.organizationId} has no brand`,
       );
     }

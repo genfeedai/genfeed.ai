@@ -151,6 +151,108 @@ describe('TerminalGateway', () => {
   );
 
   it.each([
+    ['surplus fields', 'Bearer session-token extra'],
+    ['single field', 'Bearer'],
+  ])(
+    // #5318: a malformed presented Bearer header must be rejected outright,
+    // never downgraded to the session-cookie fallback — even when a valid
+    // cookie is present.
+    'rejects a %s Authorization header even with a valid session cookie present',
+    async (_label, authorization) => {
+      const terminalService = createTerminalService();
+      const gateway = new TerminalGateway(terminalService as never);
+      const socket = {
+        disconnect: vi.fn(),
+        emit: vi.fn(),
+        handshake: {
+          address: '127.0.0.1',
+          auth: {},
+          headers: {
+            authorization,
+            cookie: 'better-auth.session_token=session-123',
+            origin: 'http://localhost:3000',
+          },
+        },
+        id: 'socket-1',
+      } as unknown as Socket;
+
+      await gateway.handleConnection(socket);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(verifyMock).not.toHaveBeenCalled();
+      expect(socket.emit).toHaveBeenCalledWith('terminal:error', {
+        message: 'Local terminal requires an authenticated session.',
+      });
+      expect(socket.disconnect).toHaveBeenCalledWith(true);
+    },
+  );
+
+  // #5318: a header presenting a non-Bearer scheme entirely (e.g. an
+  // nginx reverse-proxy adding its own `Basic` auth in front of the app)
+  // carries no Bearer credential at all, so it must be treated the same
+  // as an absent header and still allow the cookie fallback -- unlike a
+  // malformed *Bearer* attempt, which is rejected outright above.
+  it('falls back to the session cookie when a non-Bearer scheme header is presented', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = {
+      disconnect: vi.fn(),
+      emit: vi.fn(),
+      handshake: {
+        address: '127.0.0.1',
+        auth: {},
+        headers: {
+          authorization: 'Basic session-token',
+          cookie: 'better-auth.session_token=session-123',
+          origin: 'http://localhost:3000',
+        },
+      },
+      id: 'socket-1',
+    } as unknown as Socket;
+
+    await gateway.handleConnection(socket);
+
+    expect(verifyMock).toHaveBeenCalledWith('cookie-token');
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  // #5318: a well-formed Bearer header that fails verification must keep
+  // the documented session-cookie fallback (unlike a malformed header).
+  it('falls back to the session cookie when a well-formed Bearer header fails verification', async () => {
+    verifyMock
+      .mockRejectedValueOnce(new Error('invalid signature'))
+      .mockResolvedValueOnce({ sub: TEST_USER_ID });
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = {
+      disconnect: vi.fn(),
+      emit: vi.fn(),
+      handshake: {
+        address: '127.0.0.1',
+        auth: {},
+        headers: {
+          authorization: 'Bearer stale-header-token',
+          cookie: 'better-auth.session_token=session-123',
+          origin: 'http://localhost:3000',
+        },
+      },
+      id: 'socket-1',
+    } as unknown as Socket;
+
+    await gateway.handleConnection(socket);
+
+    expect(verifyMock).toHaveBeenNthCalledWith(1, 'stale-header-token');
+    expect(verifyMock).toHaveBeenNthCalledWith(2, 'cookie-token');
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ['bearer', 'bearer session-token'],
     ['BEARER', 'BEARER session-token'],
     ['BeArEr', 'BeArEr session-token'],

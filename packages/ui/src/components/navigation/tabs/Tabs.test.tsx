@@ -271,6 +271,26 @@ describe('Tabs', () => {
     );
   });
 
+  it('lets a panel host place the tab list inside its own gutter', () => {
+    render(
+      <Tabs
+        items={[
+          { id: 'recipe', label: 'Recipe' },
+          { id: 'history', label: 'History' },
+        ]}
+        activeTab="recipe"
+        listClassName="mx-4 mt-3"
+      >
+        <div>Recipe body</div>
+      </Tabs>,
+    );
+
+    const tabList = screen.getByRole('tablist');
+
+    expect(tabList).toHaveClass('mx-4', 'mt-3');
+    expect(tabList).not.toHaveClass('ml-auto');
+  });
+
   it('renders navigation tabs with href as links', () => {
     const handleTabChange = vi.fn();
     render(

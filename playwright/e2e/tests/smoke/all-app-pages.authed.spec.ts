@@ -5,6 +5,7 @@ import {
 import { expect, type Page, type Response, test } from '@playwright/test';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { setupStrictNetworkGuard } from '../../utils/network-guard';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * Real-Better Auth authenticated route smoke.
@@ -35,6 +36,8 @@ async function assertRouteLoads(page: Page, route: string): Promise<void> {
     page.locator('[data-nextjs-dialog]'),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
+
+  await assertNoErrorBoundaryFallback(page, route);
 
   const bodySignal = await page.locator('body').evaluate((body) => ({
     textLength: body.textContent?.trim().length ?? 0,

@@ -18,10 +18,9 @@ jobs:
   full-suite:
     name: Dispatch Full Suite
     if: github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci'
-    # GitHub validates nested permissions before push-only job conditions.
-    # Match the janitor and failure reporters even when PRs skip those jobs.
+    # GitHub validates nested permissions before evaluating job conditions.
+    # Match the failure tracker's ceiling even though PRs skip that job.
     permissions:
-      actions: write
       contents: read
       issues: write
       pull-requests: write

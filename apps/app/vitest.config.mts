@@ -10,7 +10,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isShardRun = process.argv.some(
   (arg) => arg === '--shard' || arg.startsWith('--shard='),
 );
-const isChangedCodeCoverageRun = process.env.CHANGED_CODE_COVERAGE === '1';
 
 export default mergeConfig(
   baseConfig,
@@ -120,20 +119,19 @@ export default mergeConfig(
         provider: 'v8',
         reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
         reportsDirectory: './coverage',
-        // Full-repo gate only. Shards and changed-code runs see a subset, so
+        // Full-repo gate only. Shards see a subset, so
         // checking these floors there is guaranteed to fail and would also
         // abort before the weekly merge job can upload blobs.
-        thresholds:
-          isShardRun || isChangedCodeCoverageRun
-            ? undefined
-            : {
-                // Weekly merged report 2026-08-10 (run 31367395806):
-                // 67.66% branches, 74.96% functions, 79.02% lines, 78.41% statements.
-                branches: 65,
-                functions: 72,
-                lines: 77,
-                statements: 76,
-              },
+        thresholds: isShardRun
+          ? undefined
+          : {
+              // Weekly merged report 2026-08-10 (run 31367395806):
+              // 67.66% branches, 74.96% functions, 79.02% lines, 78.41% statements.
+              branches: 65,
+              functions: 72,
+              lines: 77,
+              statements: 76,
+            },
       },
       // Memory hygiene: the forks pool reuses one worker process across every
       // file in a shard, and isolate:true does NOT reclaim retained references

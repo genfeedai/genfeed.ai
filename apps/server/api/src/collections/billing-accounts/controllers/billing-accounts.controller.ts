@@ -11,6 +11,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BillingAccountSerializer } from '@genfeedai/serializers';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -59,9 +60,19 @@ export class BillingAccountsController {
       billingAccountId: account.id,
       organizationId: body.organizationId,
     });
-    const snapshot = await this.billingAccountsService.getSnapshot(
-      body.organizationId,
-      user.userId ?? user.id,
+    // The snapshot is for the just-linked TARGET organization, not the
+    // caller's own session organization — linkOrganization above already
+    // proved, via its own explicit tenant-context switch (#5296), that the
+    // actor administers both the billing account and the target
+    // organization, so reading the target's now-shared billing-account
+    // snapshot under that same explicit cross-org step is safe here too.
+    const snapshot = await runWithTenantContext(
+      { organizationId: body.organizationId },
+      () =>
+        this.billingAccountsService.getSnapshot(
+          body.organizationId,
+          user.userId ?? user.id,
+        ),
     );
     return serializeSingle(request, BillingAccountSerializer, snapshot);
   }

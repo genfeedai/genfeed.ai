@@ -1,4 +1,7 @@
-import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
+import {
+  isBearerScheme,
+  parseAuthorizationHeader,
+} from '@libs/auth/authorization-header';
 import { BetterAuthJwksVerifier } from '@libs/auth/better-auth-jwks.verifier';
 import { Logger } from '@nestjs/common';
 import {
@@ -251,6 +254,10 @@ export class TerminalGateway
   private async resolveAuthenticatedUserId(
     client: Socket,
   ): Promise<string | null> {
+    if (this.hasMalformedBearerHeader(client)) {
+      return null;
+    }
+
     const token = this.extractToken(client);
 
     if (token) {
@@ -266,6 +273,30 @@ export class TerminalGateway
     }
 
     return this.verifyToken(client, cookieToken);
+  }
+
+  /**
+   * A presented Authorization header that attempts the Bearer scheme but
+   * fails strict parsing (blank token, or surplus whitespace-separated
+   * fields — see `parseAuthorizationHeader`) is a malformed credential, not
+   * an absent one. It must be rejected outright rather than silently
+   * downgraded to the session-cookie fallback. A well-formed Bearer token
+   * that fails verification is a different case and keeps the documented
+   * cookie fallback via `resolveAuthenticatedUserId`'s normal flow. Mirrors
+   * the shared Bearer contract enforced by
+   * `CombinedAuthGuard.canActivate` (apps/server/api) via the same
+   * `isBearerScheme` / `parseAuthorizationHeader` helpers.
+   */
+  private hasMalformedBearerHeader(client: Socket): boolean {
+    const headerToken = client.handshake.headers.authorization;
+    if (typeof headerToken !== 'string') {
+      return false;
+    }
+
+    return (
+      isBearerScheme(headerToken) &&
+      parseAuthorizationHeader(headerToken)?.normalizedScheme !== 'bearer'
+    );
   }
 
   private async verifyToken(

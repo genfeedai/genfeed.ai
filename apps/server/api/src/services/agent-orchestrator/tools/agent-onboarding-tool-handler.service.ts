@@ -626,17 +626,23 @@ export class AgentOnboardingToolHandler {
         });
 
         if (dbUser?.id) {
-          const wasAlreadyOnboarded = dbUser.isOnboardingCompleted === true;
-          await this.usersService.patch(dbUser.id, {
-            isOnboardingCompleted: true,
-            onboardingCompletedAt: new Date(),
-            onboardingStepsCompleted: ['brand', 'plan'],
-          });
+          // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
+          // clause, so the false->true transition itself is the concurrency
+          // fence (mirrors AssetGateService#markFirstAssetGenerated). A
+          // racing completion call — this journey re-check firing twice, or
+          // `completeOnboarding` below — matches 0 rows and never
+          // double-fires the funnel event or clobbers the already-persisted
+          // completion time.
+          const { modifiedCount } = await this.usersService.patchAll(
+            { id: dbUser.id, isOnboardingCompleted: false },
+            {
+              isOnboardingCompleted: true,
+              onboardingCompletedAt: new Date(),
+              onboardingStepsCompleted: ['brand', 'plan'],
+            },
+          );
 
-          // Capture the funnel event only on the true->false transition so a
-          // journey re-check after completion (missions are idempotent and
-          // this branch re-runs on every claim) never double-fires it.
-          if (!wasAlreadyOnboarded) {
+          if (modifiedCount === 1) {
             this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
               String(dbUser.id),
             );
@@ -738,14 +744,22 @@ export class AgentOnboardingToolHandler {
 
       if (dbUser) {
         dbUserId = String(dbUser.id);
-        const wasAlreadyOnboarded = dbUser.isOnboardingCompleted === true;
-        await this.usersService.patch(dbUser.id, {
-          isOnboardingCompleted: true,
-          onboardingCompletedAt: new Date(),
-          onboardingStepsCompleted: ['brand', 'plan'],
-        });
 
-        if (!wasAlreadyOnboarded) {
+        // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
+        // clause, so the false->true transition itself is the concurrency
+        // fence. A racing completion call — this tool firing twice, or the
+        // journey re-check above — matches 0 rows and never double-fires the
+        // funnel event or clobbers the already-persisted completion time.
+        const { modifiedCount } = await this.usersService.patchAll(
+          { id: dbUser.id, isOnboardingCompleted: false },
+          {
+            isOnboardingCompleted: true,
+            onboardingCompletedAt: new Date(),
+            onboardingStepsCompleted: ['brand', 'plan'],
+          },
+        );
+
+        if (modifiedCount === 1) {
           this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
             dbUserId,
           );

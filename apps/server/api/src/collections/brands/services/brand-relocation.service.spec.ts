@@ -500,6 +500,25 @@ describe('BrandRelocationService', () => {
     });
   });
 
+  // #5295: `isDeleted` is deliberately absent from RELOCATION_PASSTHROUGH_FIELDS.
+  // Co-patching it here would soft-delete the brand as part of a relocation,
+  // bypassing BrandsService.remove()'s last-brand guard and member
+  // reassignment entirely. Soft delete only goes through remove().
+  it('never co-patches isDeleted through the relocation passthrough', async () => {
+    primeRelocatableBrand();
+
+    await service.relocateToOrganization(
+      BRAND_ID,
+      { isDeleted: true, organizationId: DEST_ORG } as never,
+      { isSuperAdmin: true, userId: USER_ID },
+    );
+
+    expect(getDelegate('brand').updateMany).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: { id: BRAND_ID },
+    });
+  });
+
   it('moves a sole-brand workflow and its execution history with the brand', async () => {
     primeRelocatableBrand();
     mockBrandWorkflows([{ id: 'wf_sole' }]);

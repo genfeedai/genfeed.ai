@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsController } from '@api/collections/billing-accounts/controllers/billing-accounts.controller';
+import type { BillingAccountMigrationService } from '@api/collections/billing-accounts/services/billing-account-migration.service';
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -18,6 +22,7 @@ import { PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
+import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   afterAll,
@@ -102,6 +107,17 @@ describe.skipIf(!connectionString)(
     const stripeWebhookBilling = new StripeWebhookBillingService(
       guardedPrisma,
       billingAccounts,
+    );
+    // The real controller (#5296) — not a hand-rolled call sequence — so a
+    // regression test that drives it exercises the exact tenant-context
+    // shape a real request produces: the interceptor sets the context from
+    // the SESSION organization, and `linkOrganization`'s body carries a
+    // different TARGET organization. `migrationService` is unused by
+    // `linkOrganization`/`getCurrent` and is never constructed through Nest
+    // DI here, so a stub is safe.
+    const billingAccountsController = new BillingAccountsController(
+      billingAccounts,
+      {} as BillingAccountMigrationService,
     );
 
     let userId: string;
@@ -242,6 +258,99 @@ describe.skipIf(!connectionString)(
         where: { organizationId: organizationIds[0] },
       });
       expect(wallet.billingAccountId).toBe(billingAccountIds[0]);
+    });
+
+    it('links a second organization through the real controller path when the session organization differs from the target (#5296)', async () => {
+      // The session organization must already administer a billing account
+      // before it can link a second one — direct attachment, the same
+      // precondition `resolveForOrganization` expects of any caller.
+      await database().organization.update({
+        data: { billingAccountId: billingAccountIds[0] },
+        where: { id: organizationIds[0] },
+      });
+
+      const user = {
+        id: userId,
+        organizationId: organizationIds[0],
+        userId,
+      } as AuthenticatedUser;
+      const request = {
+        context: { organizationId: organizationIds[0] },
+        originalUrl: '/billing-accounts/current/organizations',
+      } as RequestWithContext;
+
+      // The tenant interceptor sets the context from the SESSION
+      // organization (organizationIds[0]) before the controller runs; the
+      // request body targets a DIFFERENT organization (organizationIds[1]).
+      // This is exactly the shape #5296 reported as broken through the real
+      // endpoint — every prior spec in this file instead ran
+      // `linkOrganization` with the tenant context set to the target
+      // organization, which hid the bug.
+      const response = await runWithTenantContext(
+        { organizationId: organizationIds[0] },
+        () =>
+          billingAccountsController.linkOrganization(user, request, {
+            organizationId: organizationIds[1],
+          }),
+      );
+      expect(response.data?.id).toBe(billingAccountIds[0]);
+
+      const db = database();
+      const targetOrganization = await db.organization.findUniqueOrThrow({
+        where: { id: organizationIds[1] },
+      });
+      expect(targetOrganization.billingAccountId).toBe(billingAccountIds[0]);
+
+      const link = await db.billingAccountOrganization.findFirstOrThrow({
+        where: {
+          billingAccountId: billingAccountIds[0],
+          organizationId: organizationIds[1],
+        },
+      });
+      expect(link.status).toBe(BillingAccountOrganizationStatus.LINKED);
+    });
+
+    it('rejects linking a target organization the actor does not administer, through the real controller path (#5296)', async () => {
+      // The session organization must already administer a billing account
+      // before it can attempt to link a second one.
+      await database().organization.update({
+        data: { billingAccountId: billingAccountIds[0] },
+        where: { id: organizationIds[0] },
+      });
+
+      // Demote the actor to a non-admin role on the TARGET organization
+      // only — they remain OWNER of the session organization (and so still
+      // pass the billing-account-admin check on its billing account); only
+      // the org-admin-on-target check, reachable only inside the explicit
+      // cross-org tenant-context switch, should reject this.
+      await database().member.updateMany({
+        data: { roleKey: MemberRole.USER },
+        where: { organizationId: organizationIds[1], userId },
+      });
+
+      const user = {
+        id: userId,
+        organizationId: organizationIds[0],
+        userId,
+      } as AuthenticatedUser;
+      const request = {
+        context: { organizationId: organizationIds[0] },
+        originalUrl: '/billing-accounts/current/organizations',
+      } as RequestWithContext;
+
+      await expect(
+        runWithTenantContext({ organizationId: organizationIds[0] }, () =>
+          billingAccountsController.linkOrganization(user, request, {
+            organizationId: organizationIds[1],
+          }),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      const db = database();
+      const targetOrganization = await db.organization.findUniqueOrThrow({
+        where: { id: organizationIds[1] },
+      });
+      expect(targetOrganization.billingAccountId).toBeNull();
     });
 
     it('resolves via the LINKED BillingAccountOrganization branch, not direct attachment', async () => {

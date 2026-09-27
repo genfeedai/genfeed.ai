@@ -85,6 +85,34 @@ export function parseOnboardingAccountType(
   );
 }
 
+/**
+ * Account types an organization only reaches by choosing them. New
+ * organizations default to BUSINESS, so an existing BUSINESS or CREATOR
+ * category is not evidence of a choice and brand setup may replace it.
+ */
+const PRESERVED_ONBOARDING_ACCOUNT_TYPES: ReadonlySet<OrganizationCategory> =
+  new Set([OrganizationCategory.AGENCY, OrganizationCategory.EXPERT]);
+
+/**
+ * Account type the brand step writes: an organization's existing EXPERT or
+ * AGENCY type, otherwise the signup CTA hint, otherwise CREATOR. Brand setup
+ * never overwrites a specialised path an organization already chose, whether
+ * onboarding is replayed without the hint or a stale hint is still stored.
+ */
+export function resolveBrandStepAccountType(
+  requestedAccountType: OrganizationCategory | null,
+  existingAccountType: OrganizationCategory | null,
+): OrganizationCategory {
+  if (
+    existingAccountType &&
+    PRESERVED_ONBOARDING_ACCOUNT_TYPES.has(existingAccountType)
+  ) {
+    return existingAccountType;
+  }
+
+  return requestedAccountType ?? OrganizationCategory.CREATOR;
+}
+
 const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
 
 export function parseReferralCode(value?: string | null): string | null {
@@ -172,6 +200,22 @@ export function resolveSelectedPlanParam(
 
   const resolved = planSlugPriceIds[trimmed.toLowerCase()];
   return resolved ?? trimmed;
+}
+
+/**
+ * `?plan=payg` and `?plan=free` are free handoffs, not a paid-plan signal.
+ * Signup and onboarding-completion funnel events must classify a plan the
+ * same way, or the signup->checkout funnel alert skews toward a near-zero
+ * conversion rate (genfeedai/genfeed.ai#4969, #5311).
+ */
+export function isFreePlanHandoff(rawPlan?: string | null): boolean {
+  const normalizedPlan = rawPlan?.trim().toLowerCase();
+  return normalizedPlan === 'payg' || normalizedPlan === 'free';
+}
+
+/** Canonical paid-plan-intent predicate shared by SIGNUP_STARTED and SIGNUP_COMPLETED. */
+export function hasPaidPlanIntent(rawPlan?: string | null): boolean {
+  return Boolean(rawPlan?.trim()) && !isFreePlanHandoff(rawPlan);
 }
 
 export function getSelectedOnboardingAccessMode(

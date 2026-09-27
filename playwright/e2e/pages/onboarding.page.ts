@@ -11,6 +11,11 @@ import { expect } from '@playwright/test';
  * `/agent/onboarding` conversation. Providers and summary stay reachable as
  * their own destinations, so specs enter that tail directly via `goto()`.
  *
+ * The brand step itself resolves one of two phases before it auto-advances:
+ * `loading` for a work-domain signup (skips straight through), or
+ * `website-prompt` for a personal-inbox signup, which needs a website URL
+ * (or an explicit skip) before the loading phase begins.
+ *
  * @module onboarding.page
  */
 
@@ -24,7 +29,6 @@ export class OnboardingPage {
   readonly skipButton: Locator;
   readonly loadingSpinner: Locator;
 
-  readonly brandNameInput: Locator;
   readonly websiteUrlInput: Locator;
 
   readonly providerCards: Locator;
@@ -41,10 +45,9 @@ export class OnboardingPage {
     this.headline = page.locator('h1').first();
     this.backButton = page.getByRole('button', { name: 'Back' });
     this.continueButton = page.getByRole('button', { name: 'Continue' });
-    this.skipButton = page.getByRole('button', { name: /Skip Onboarding/i });
+    this.skipButton = page.getByRole('button', { name: /Skip for now/i });
     this.loadingSpinner = page.locator('.animate-spin');
 
-    this.brandNameInput = page.locator('#brand-name');
     this.websiteUrlInput = page.locator('#brand-website-url');
 
     this.providerCards = page.locator('.provider-card');
@@ -99,26 +102,50 @@ export class OnboardingPage {
       .toBe(expectedPath);
   }
 
-  async fillBrand(data: {
-    brandName: string;
-    websiteUrl?: string;
-  }): Promise<void> {
-    await this.openBrandDetails();
-    await this.brandNameInput.fill(data.brandName);
-    if (data.websiteUrl) {
-      await this.websiteUrlInput.fill(data.websiteUrl);
-    }
-    await this.continueButton.click();
-    await expect(this.headline).toHaveText('Give it your voice.');
+  /**
+   * Work-domain signups skip the website prompt entirely — the brand step
+   * lands on the loading phase as soon as `currentUser` resolves and
+   * auto-advances the wizard from there.
+   */
+  async waitForLoadingPhase(): Promise<void> {
+    await expect(this.headline).toHaveText('Setting up your workspace');
   }
 
-  async openBrandDetails(accountType: RegExp = /^Business/): Promise<void> {
-    if (await this.brandNameInput.isVisible()) return;
-    const option = this.page.getByRole('button', { name: accountType });
-    await option.click();
-    await expect(option).toHaveAttribute('aria-pressed', 'true');
+  /**
+   * Personal-inbox signups (gmail.com, …) see this instead of the loading
+   * phase — `resolveSignupBrandDomain` found no brand signal to seed from.
+   */
+  async waitForWebsitePromptPhase(): Promise<void> {
+    await expect(this.headline).toHaveText("What's your website?");
+  }
+
+  /**
+   * Holds brand setup on its loading step: setup awaits the organization
+   * account-type PATCH, so that response waits until the returned release
+   * runs. Register it before the action that starts setup.
+   */
+  async holdBrandSetup(): Promise<() => void> {
+    let release: () => void = () => {};
+    const isReleased = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await this.page.route(/\/organizations\/[^/?]+$/, async (route) => {
+      if (route.request().method() === 'PATCH') {
+        await isReleased;
+      }
+      await route.fallback();
+    });
+
+    return release;
+  }
+
+  /** Continues from the website prompt, optionally filling in a website. */
+  async continueFromWebsitePrompt(websiteUrl?: string): Promise<void> {
+    if (websiteUrl) {
+      await this.websiteUrlInput.fill(websiteUrl);
+    }
     await this.continueButton.click();
-    await expect(this.brandNameInput).toBeVisible();
   }
 
   async clickContinue(): Promise<void> {

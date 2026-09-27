@@ -34,6 +34,7 @@ function perceptionRow(ingredientId: string, overrides = {}) {
     transcript: null,
     transcriptStatus: 'unavailable',
     updatedAt: NOW,
+    visionAttempts: 0,
     visionEvaluationId: null,
     ...overrides,
   };
@@ -243,6 +244,75 @@ describe('MediaAssessmentService', () => {
         source: 'vision',
       }),
     ]);
+  });
+
+  it('holds an asset with exhausted vision retries for review as unavailable, not still running (#5316)', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1', { visionAttempts: 3 })],
+    });
+
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        code: 'vision:unavailable',
+        message:
+          'Vision review could not complete after repeated attempts; this asset needs manual review.',
+        source: 'vision',
+      }),
+    ]);
+  });
+
+  it('holds an asset with exhausted retries and a dangling evaluation link as unavailable, not still running (#5316)', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      evaluations: [],
+      perceptions: [
+        perceptionRow('asset-1', {
+          visionAttempts: 3,
+          visionEvaluationId: 'evaluation-deleted',
+        }),
+      ],
+    });
+
+    const assessment = await service.assessPublishMedia(REQUEST);
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        code: 'vision:unavailable',
+        message:
+          'Vision review could not complete after repeated attempts; this asset needs manual review.',
+        source: 'vision',
+      }),
+    ]);
+  });
+
+  it('never blocks on exhausted vision retries in shadow mode', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'shadow', MODERATION_MODE: 'off' },
+      perceptions: [perceptionRow('asset-1', { visionAttempts: 3 })],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: false,
+      reasons: [],
+    });
+  });
+
+  it('treats a dangling vision evaluation link as unchecked, never as passing (#5316)', async () => {
+    const { service } = makeHarness({
+      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      evaluations: [],
+      perceptions: [
+        perceptionRow('asset-1', { visionEvaluationId: 'evaluation-deleted' }),
+      ],
+    });
+
+    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
+      isBlocking: true,
+      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
+    });
   });
 
   it('reports pending perception without blocking', async () => {
