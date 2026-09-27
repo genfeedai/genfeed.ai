@@ -1,4 +1,8 @@
 import {
+  collectAssistantMessageIds,
+  findRecoveredAssistantMessage,
+} from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
+import {
   AGENT_DRAFT_SUGGESTION_EVENT,
   type AgentDraftSuggestionPayload,
 } from '@genfeedai/agent/hooks/use-agent-draft-context';
@@ -10,7 +14,6 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
-import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { reconcileGenerationDecision } from '@genfeedai/agent/utils/reconcile-generation-decision';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import type { AgentThreadMode } from '@genfeedai/contracts';
@@ -34,6 +37,47 @@ export type HandleUiActionDeps = {
   threads: AgentThread[];
   upsertThread: (thread: AgentThread) => void;
 };
+
+/**
+ * `POST .../ui-actions` (`AgentOrchestratorService.handleThreadUiAction`)
+ * only enqueues the `agent.thread.ui-action` workflow and acks
+ * `{executionId, status: 'queued', threadId}` — the same async contract as a
+ * turn. There is no synchronous `message` on that response; the resulting
+ * assistant reply lands through the thread's normal message stream. Poll for
+ * it the same way `agent-chat-stream.completion.ts`'s
+ * `resolveStreamFromMessages` recovers a turn whose socket event never
+ * arrives — a much shorter interval/timeout than a turn's, since a ui-action
+ * is a single mutation, not an LLM generation.
+ */
+export const UI_ACTION_RECONCILE_POLL_INTERVAL_MS = 1_000;
+export const UI_ACTION_RECONCILE_TIMEOUT_MS = 20_000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function waitForUiActionMessage(
+  apiService: Pick<AgentApiService, 'getMessages'>,
+  threadId: string,
+  preExistingAssistantIds: ReadonlySet<string>,
+): Promise<AgentChatMessage | null> {
+  const startedAt = Date.now();
+
+  for (;;) {
+    const messages = await apiService.getMessages(threadId, { limit: 100 });
+    const recovered = findRecoveredAssistantMessage(
+      messages,
+      preExistingAssistantIds,
+    );
+    if (recovered) {
+      return recovered;
+    }
+    if (Date.now() - startedAt >= UI_ACTION_RECONCILE_TIMEOUT_MS) {
+      return null;
+    }
+    await delay(UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+  }
+}
 
 function reconcileMutationApproval(
   actions: unknown,
@@ -208,11 +252,18 @@ export async function handleAgentUiAction(
   deps.setError(null);
 
   try {
+    const activeThreadId = deps.activeThreadId;
     const currentThread = deps.threads.find(
-      (thread) => thread.id === deps.activeThreadId,
+      (thread) => thread.id === activeThreadId,
     );
-    const response = await deps.apiService.respondToUiAction(
-      deps.activeThreadId,
+    const preExistingAssistantIds = collectAssistantMessageIds(
+      useAgentChatStore
+        .getState()
+        .messages.filter((message) => message.threadId === activeThreadId),
+    );
+
+    const ack = await deps.apiService.respondToUiAction(
+      activeThreadId,
       action,
       payload,
       undefined,
@@ -222,16 +273,33 @@ export async function handleAgentUiAction(
       },
     );
 
-    const returnedActions = response.message.metadata?.uiActions;
+    const recovered = await waitForUiActionMessage(
+      deps.apiService,
+      ack.threadId,
+      preExistingAssistantIds,
+    );
+
+    if (!recovered) {
+      // The workflow was accepted (the ack above didn't throw) — it just
+      // hasn't produced a reply within the poll window. Don't report this
+      // as a failure: the mutation itself likely already applied server
+      // side, and a later reload/reconciliation will show its result.
+      deps.setError(
+        'This is taking longer than expected. It was accepted and may still complete — check back shortly.',
+      );
+      return true;
+    }
+
+    const returnedActions = recovered.metadata?.uiActions;
     const reconciledApprovals =
       action === 'confirm_mutation' || action === 'decline_mutation'
-        ? reconcileMutationApproval(returnedActions, payload, response.threadId)
+        ? reconcileMutationApproval(returnedActions, payload, ack.threadId)
         : action === 'confirm_generate_media' ||
             action === 'decline_generate_media'
           ? reconcileGenerationDecision(
               returnedActions,
               payload?.sourceActionId,
-              response.threadId,
+              ack.threadId,
             )
           : new Set<unknown>();
 
@@ -246,30 +314,42 @@ export async function handleAgentUiAction(
     }
 
     const existingThread = deps.threads.find(
-      (thread) => thread.id === response.threadId,
+      (thread) => thread.id === ack.threadId,
     );
 
+    // The ack carries no updated scope/credits — refetch them so the next
+    // ui-action's `expectedContextVersion` isn't stale. Best-effort: a
+    // failure here shouldn't hide the message that already arrived.
+    const [updatedThread, creditsInfo] = await Promise.all([
+      deps.apiService.getThread(ack.threadId).catch(() => null),
+      deps.apiService.getCreditsInfo().catch(() => null),
+    ]);
+
     syncAgentThreadFromTurn({
-      activeThreadId: deps.activeThreadId,
-      brandId: response.brandId,
-      contextVersion: response.contextVersion,
+      activeThreadId,
+      brandId:
+        updatedThread?.brandId ??
+        existingThread?.brandId ??
+        currentThread?.brandId ??
+        null,
+      contextVersion:
+        updatedThread?.contextVersion ?? existingThread?.contextVersion,
       createdAt: existingThread?.createdAt,
       mode: existingThread?.mode ?? deps.draftAgentMode,
       setActiveThread: deps.setActiveThread,
-      threadId: response.threadId,
+      threadId: ack.threadId,
       title: existingThread?.title ?? 'Agent thread',
       upsertThread: deps.upsertThread,
     });
 
-    deps.setCreditsRemaining(response.creditsRemaining);
+    if (creditsInfo) {
+      deps.setCreditsRemaining(creditsInfo.balance);
+    }
 
     deps.addMessage({
-      content: response.message.content,
-      createdAt: new Date().toISOString(),
-      id: `assistant-${Date.now()}`,
+      ...recovered,
       metadata: {
-        toolCalls: response.toolCalls.map(mapToolCallResponse),
-        ...response.message.metadata,
+        ...recovered.metadata,
         ...(Array.isArray(returnedActions)
           ? {
               uiActions: returnedActions.filter(
@@ -278,10 +358,9 @@ export async function handleAgentUiAction(
             }
           : {}),
       },
-      role: 'assistant',
-      threadId: response.threadId,
     });
-    const returnedPlan = response.message.metadata?.proposedPlan as
+
+    const returnedPlan = recovered.metadata?.proposedPlan as
       | typeof deps.latestProposedPlan
       | undefined;
     deps.setLatestProposedPlan(
@@ -297,7 +376,7 @@ export async function handleAgentUiAction(
           : null),
     );
 
-    const metadata = response.message.metadata;
+    const metadata = recovered.metadata;
     const uiBlocksState =
       metadata?.uiBlocks &&
       typeof metadata.uiBlocks === 'object' &&

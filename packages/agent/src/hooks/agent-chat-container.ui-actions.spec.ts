@@ -6,11 +6,17 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { HandleUiActionDeps } from './agent-chat-container.ui-actions';
-import { handleAgentUiAction } from './agent-chat-container.ui-actions';
+import {
+  type HandleUiActionDeps,
+  handleAgentUiAction,
+  UI_ACTION_RECONCILE_TIMEOUT_MS,
+} from './agent-chat-container.ui-actions';
 import { AGENT_DRAFT_SUGGESTION_EVENT } from './use-agent-draft-context';
 
-function makeThread(id: string): AgentThread {
+function makeThread(
+  id: string,
+  overrides: Partial<AgentThread> = {},
+): AgentThread {
   return {
     brandId: 'brand-1',
     contextVersion: 3,
@@ -19,19 +25,38 @@ function makeThread(id: string): AgentThread {
     status: AgentThreadStatus.ACTIVE,
     title: 'Thread',
     updatedAt: '2026-03-20T10:00:00.000Z',
+    ...overrides,
   } as AgentThread;
 }
 
-function makeResponse(overrides: Record<string, unknown> = {}) {
+/**
+ * `POST .../ui-actions` (`AgentOrchestratorService.handleThreadUiAction`)
+ * only enqueues a workflow and acks `{executionId, status, threadId}` — it
+ * never carries a `message`. Real assertion coverage for this file means
+ * mocking exactly that ack, not the synchronous shape the client used to
+ * (incorrectly) assume.
+ */
+function makeAck(overrides: Record<string, unknown> = {}) {
   return {
-    brandId: 'brand-1',
-    contextVersion: 4,
-    creditsRemaining: 90,
-    message: { content: 'Done.', metadata: {} },
+    executionId: 'exec-1',
+    status: 'queued' as const,
     threadId: 'thread-1',
-    toolCalls: [],
     ...overrides,
   };
+}
+
+function makeRecoveredMessage(
+  overrides: Partial<AgentChatMessage> = {},
+): AgentChatMessage {
+  return {
+    content: 'Done.',
+    createdAt: '2026-03-20T10:05:00.000Z',
+    id: 'assistant-recovered-1',
+    metadata: {},
+    role: 'assistant',
+    threadId: 'thread-1',
+    ...overrides,
+  } as AgentChatMessage;
 }
 
 function seedUiAction(actionId: string): void {
@@ -57,7 +82,16 @@ function makeDeps(
     activeUiAction: null,
     addMessage: vi.fn(),
     apiService: {
-      respondToUiAction: vi.fn().mockResolvedValue(makeResponse()),
+      getCreditsInfo: vi
+        .fn()
+        .mockResolvedValue({ balance: 90, modelAccess: {}, modelCosts: {} }),
+      getMessages: vi.fn().mockResolvedValue([makeRecoveredMessage()]),
+      getThread: vi.fn().mockResolvedValue(
+        makeThread('thread-1', {
+          contextVersion: 4,
+        }),
+      ),
+      respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
     } as unknown as AgentApiService,
     draftAgentMode: AgentThreadMode.MANUAL,
     followLatestTurn: vi.fn(),
@@ -115,34 +149,26 @@ describe('handleAgentUiAction', () => {
         addMessage: (message) =>
           useAgentChatStore.getState().addMessage(message),
       });
-      vi.mocked(deps.apiService.respondToUiAction).mockResolvedValue(
-        makeResponse({
-          message: {
-            content: `The action ${executionStatus}.`,
-            metadata: {
-              uiActions: [
-                { id: 'unrelated', type: 'next_steps_card' },
-                {
-                  ...sourceCard,
-                  data: {
-                    ...sourceCard.data,
-                    status,
-                    executionStatus,
-                  },
+      const preExisting = useAgentChatStore.getState().messages;
+      vi.mocked(deps.apiService.getMessages).mockResolvedValue([
+        ...preExisting,
+        makeRecoveredMessage({
+          content: `The action ${executionStatus}.`,
+          metadata: {
+            uiActions: [
+              { id: 'unrelated', type: 'next_steps_card' },
+              {
+                ...sourceCard,
+                data: {
+                  ...sourceCard.data,
+                  status,
+                  executionStatus,
                 },
-              ],
-            },
+              },
+            ],
           },
-          toolCalls: [
-            {
-              id: 'tool-1',
-              name: 'delete_draft',
-              status: executionStatus === 'completed' ? 'completed' : 'failed',
-              result: { success: executionStatus === 'completed' },
-            },
-          ],
-        }) as Awaited<ReturnType<AgentApiService['respondToUiAction']>>,
-      );
+        }),
+      ]);
       await handleAgentUiAction(
         executionStatus === 'cancelled'
           ? 'decline_mutation'
@@ -270,18 +296,30 @@ describe('handleAgentUiAction', () => {
     expect(deps.apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
-  it('runs a thread-bound action and applies the response', async () => {
-    const respondToUiAction = vi
+  it('runs a thread-bound action and reconciles the eventual message through the async ack', async () => {
+    const respondToUiAction = vi.fn().mockResolvedValue(makeAck());
+    const getMessages = vi
       .fn()
-      .mockResolvedValue(makeResponse({ creditsRemaining: 42 }));
+      .mockResolvedValue([makeRecoveredMessage({ content: 'Done.' })]);
+    const getThread = vi
+      .fn()
+      .mockResolvedValue(makeThread('thread-1', { contextVersion: 4 }));
+    const getCreditsInfo = vi
+      .fn()
+      .mockResolvedValue({ balance: 42, modelAccess: {}, modelCosts: {} });
     const deps = makeDeps({
       apiService: {
+        getCreditsInfo,
+        getMessages,
+        getThread,
         respondToUiAction,
       } as unknown as AgentApiService,
     });
 
     await handleAgentUiAction('start_interview', { step: 1 }, deps);
 
+    // The ack is the request-side contract only: it never carries a message,
+    // credits, or context version — those come from the reconciliation below.
     expect(respondToUiAction).toHaveBeenCalledWith(
       'thread-1',
       'start_interview',
@@ -289,6 +327,7 @@ describe('handleAgentUiAction', () => {
       undefined,
       { brandId: 'brand-1', expectedContextVersion: 3 },
     );
+    expect(getMessages).toHaveBeenCalledWith('thread-1', { limit: 100 });
     expect(deps.setActiveUiAction).toHaveBeenNthCalledWith(
       1,
       'start_interview',
@@ -308,7 +347,7 @@ describe('handleAgentUiAction', () => {
     expect(deps.setLatestProposedPlan).toHaveBeenCalledWith(null);
   });
 
-  it('marks the source UI action completed after a successful response', async () => {
+  it('marks the source UI action completed after the reconciled message arrives', async () => {
     const deps = makeDeps();
     seedUiAction('brand-voice-card-1');
 
@@ -322,6 +361,43 @@ describe('handleAgentUiAction', () => {
       useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
         ?.status,
     ).toBe('completed');
+  });
+
+  it('does not resolve the source UI action while reconciliation is still pending', async () => {
+    vi.useFakeTimers();
+    const deps = makeDeps({
+      apiService: {
+        getCreditsInfo: vi
+          .fn()
+          .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
+        // No new assistant message ever appears — the workflow never
+        // produces a reply within the poll window.
+        getMessages: vi.fn().mockResolvedValue([]),
+        getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+        respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+      } as unknown as AgentApiService,
+    });
+    seedUiAction('brand-voice-card-1');
+
+    const resultPromise = handleAgentUiAction(
+      'confirm_save_brand_voice_profile',
+      { sourceActionId: 'brand-voice-card-1' },
+      deps,
+    );
+    await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
+    const result = await resultPromise;
+    vi.useRealTimers();
+
+    // Accepted, not failed: the workflow may still complete server-side.
+    expect(result).toBe(true);
+    expect(deps.setError).toHaveBeenCalledWith(
+      expect.stringContaining('taking longer than expected'),
+    );
+    expect(deps.addMessage).not.toHaveBeenCalled();
+    expect(
+      useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
+        ?.status,
+    ).toBeUndefined();
   });
 
   it('does not dispatch a delayed thread-list refresh after a UI action', async () => {
@@ -342,9 +418,16 @@ describe('handleAgentUiAction', () => {
   it('switches the active thread when the response lands elsewhere', async () => {
     const deps = makeDeps({
       apiService: {
+        getCreditsInfo: vi
+          .fn()
+          .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
+        getMessages: vi
+          .fn()
+          .mockResolvedValue([makeRecoveredMessage({ threadId: 'thread-2' })]),
+        getThread: vi.fn().mockResolvedValue(makeThread('thread-2')),
         respondToUiAction: vi
           .fn()
-          .mockResolvedValue(makeResponse({ threadId: 'thread-2' })),
+          .mockResolvedValue(makeAck({ threadId: 'thread-2' })),
       } as unknown as AgentApiService,
     });
 

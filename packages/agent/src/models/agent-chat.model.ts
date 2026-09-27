@@ -602,6 +602,21 @@ export interface AgentChatResponse {
   creditsRemaining: number;
 }
 
+/**
+ * The real shape of `POST /agent/threads/:threadId/ui-actions`
+ * (`AgentOrchestratorService.handleThreadUiAction` on the server) — it only
+ * enqueues the `agent.thread.ui-action` workflow and acks, the same async
+ * contract as a turn (`AgentChatStreamResponse`). There is no synchronous
+ * `message`/`toolCalls`/credits on this response; the resulting assistant
+ * message arrives through the thread's normal message stream, and callers
+ * must reconcile it the same way a turn does (poll `getMessages`).
+ */
+export interface AgentUiActionAckResponse {
+  executionId: string;
+  status: 'queued';
+  threadId: string;
+}
+
 export interface AgentMemoryEntry {
   id: string;
   campaignId?: string;

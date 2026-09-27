@@ -119,6 +119,7 @@ export type {
   AgentToolCall,
   AgentToolCallSummary,
   AgentUiAction,
+  AgentUiActionAckResponse,
   AgentUiActionHandler,
   AgentWorkEvent,
   AgentWorkEventPayload,

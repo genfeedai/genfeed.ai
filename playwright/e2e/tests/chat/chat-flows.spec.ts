@@ -158,7 +158,6 @@ async function mockThreadReplay(
               createdAt: now,
               metadata: {},
               role: 'user',
-              threadId,
             },
             {
               content: options.assistantContent,
@@ -167,10 +166,13 @@ async function mockThreadReplay(
                 uiActions: options.uiActions ?? [],
               },
               role: 'assistant',
-              threadId,
             },
           ],
-          'messages',
+          // Matches `ThreadMessageSerializer` (`thread-message.config.ts`):
+          // resource type is 'thread-message', and `threadId` is never one
+          // of its attributes -- the client fills it in client-side from
+          // the request URL (`mapMessagesToThread`), not from the payload.
+          'thread-message',
           'mock-message',
         ),
       ),
@@ -272,6 +274,14 @@ test.describe('Agent Chat', () => {
           payload?: Record<string, unknown>;
         }
       | undefined;
+    // `POST .../ui-actions` only acks the enqueued workflow — it never
+    // carries a message (see `AgentUiActionAckResponse`). The client
+    // reconciles the eventual assistant reply by polling
+    // `GET .../messages`, so this mock's `getMessages` route (registered
+    // after `mockThreadReplay`'s, which it supersedes) grows a new message
+    // once the ack fires, the same way the real workflow's completion would
+    // append one to the thread.
+    let postConfirmMessage: Record<string, unknown> | null = null;
 
     await mockThreadReplay(authenticatedPage, {
       assistantContent,
@@ -287,55 +297,78 @@ test.describe('Agent Chat', () => {
     await mockTurnAck(authenticatedPage, threadId);
 
     await authenticatedPage.route(
+      `**/threads/${threadId}/messages**`,
+      async (route) => {
+        const baseMessages = [
+          {
+            content: 'publish this',
+            createdAt: new Date().toISOString(),
+            metadata: {},
+            role: 'user',
+          },
+          {
+            content: assistantContent,
+            createdAt: new Date().toISOString(),
+            metadata: { uiActions: publishUiActions },
+            role: 'assistant',
+          },
+          ...(postConfirmMessage ? [postConfirmMessage] : []),
+        ];
+        await route.fulfill({
+          body: JSON.stringify(
+            wrapCollectionInJsonApi(
+              baseMessages,
+              'thread-message',
+              'mock-message',
+            ),
+          ),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+
+    await authenticatedPage.route(
       `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
         uiActionRequest = route.request().postDataJSON() as {
           action: string;
           payload?: Record<string, unknown>;
         };
+        postConfirmMessage = {
+          content: 'Publish confirmed. Your post is ready to review.',
+          createdAt: new Date().toISOString(),
+          metadata: {
+            uiActions: [
+              {
+                ctas: [
+                  {
+                    href: '/content/posts',
+                    label: 'Open Posts',
+                  },
+                  {
+                    href: '/content/posts/published',
+                    label: 'Open Published',
+                  },
+                ],
+                description: 'Published successfully.',
+                id: 'publish-success-preview',
+                title: 'Post published from chat',
+                type: 'content_preview_card',
+              },
+            ],
+          },
+          role: 'assistant',
+        };
 
         await route.fulfill({
           body: JSON.stringify({
-            brandId: null,
-            contextVersion: 1,
-            creditsRemaining: 118,
-            creditsUsed: 0,
-            message: {
-              content: 'Publish confirmed. Your post is ready to review.',
-              metadata: {
-                uiActions: [
-                  {
-                    ctas: [
-                      {
-                        href: '/content/posts',
-                        label: 'Open Posts',
-                      },
-                      {
-                        href: '/content/posts/published',
-                        label: 'Open Published',
-                      },
-                    ],
-                    description: 'Published successfully.',
-                    id: 'publish-success-preview',
-                    title: 'Post published from chat',
-                    type: 'content_preview_card',
-                  },
-                ],
-              },
-              role: 'assistant',
-            },
+            executionId: 'exec-ui-action-e2e',
+            status: 'queued',
             threadId,
-            toolCalls: [
-              {
-                creditsUsed: 0,
-                durationMs: 240,
-                status: 'completed',
-                toolName: 'create_post',
-              },
-            ],
           }),
           contentType: 'application/json',
-          status: 200,
+          status: 202,
         });
       },
     );
@@ -496,7 +529,12 @@ test.describe('Agent Chat', () => {
     await mockThreadReplay(authenticatedPage, {
       assistantContent,
       threadId,
-      title: 'Post analytics snapshot',
+      // Distinct from the action's own 'Post analytics snapshot' title:
+      // the thread title also renders as an sr-only heading in the
+      // conversation column (`AgentChatContainerThreadView.tsx`'s
+      // `<h2 className="sr-only">{activeThreadTitle}</h2>`), and an
+      // identical string collides with any heading-role assertion.
+      title: 'Analytics flow thread',
       uiActions: analyticsUiActions,
       userContent: 'show analytics',
     });
@@ -515,15 +553,23 @@ test.describe('Agent Chat', () => {
     const conversation = authenticatedPage.getByTestId(
       'agent-conversation-column',
     );
-    await expect(
-      conversation.getByRole('heading', {
-        name: 'Post analytics snapshot',
-      }),
-    ).toBeVisible();
-    await expect(conversation.getByText('12.4K')).toBeVisible();
-    await expect(conversation.getByText('8.2%').first()).toBeVisible();
-    await expect(conversation.getByText('380')).toBeVisible();
-    await expect(conversation.getByText('24')).toBeVisible();
+    // `AnalyticsSnapshotCard` renders a static 'Analytics summary' heading
+    // (it never renders the ui-action's own `title`) — scope the metric
+    // assertions to that card's container rather than the whole column.
+    const analyticsHeading = conversation.getByRole('heading', {
+      name: 'Analytics summary',
+    });
+    await expect(analyticsHeading).toBeVisible();
+    // `Card` (`packages/ui/src/components/card/Card.tsx`) always renders its
+    // root with a literal 'rounded-card' class -- the nearest such ancestor
+    // is this action's card.
+    const analyticsCard = analyticsHeading.locator(
+      'xpath=ancestor::*[contains(concat(" ", @class, " "), " rounded-card ")][1]',
+    );
+    await expect(analyticsCard.getByText('12.4K')).toBeVisible();
+    await expect(analyticsCard.getByText('8.2%').first()).toBeVisible();
+    await expect(analyticsCard.getByText('380')).toBeVisible();
+    await expect(analyticsCard.getByText('24')).toBeVisible();
   });
 
   test('shows publish fallback when selected content has no post analytics yet (reload)', async ({

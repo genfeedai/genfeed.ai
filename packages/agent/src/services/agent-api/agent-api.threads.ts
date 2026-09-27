@@ -5,6 +5,7 @@ import type {
   AgentChatStreamResponse,
   AgentThread,
   AgentThreadSnapshot,
+  AgentUiActionAckResponse,
   CreateThreadPayload,
   SendMessagePayload,
   UpdateAgentThreadContextPayload,
@@ -457,8 +458,8 @@ export async function respondToUiAction(
   payload?: Record<string, unknown>,
   signal?: AbortSignal,
   scope?: AgentScopePayload,
-): Promise<AgentChatResponse> {
-  return api.fetchJson<AgentChatResponse>(
+): Promise<AgentUiActionAckResponse> {
+  return api.fetchJson<AgentUiActionAckResponse>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,
     {
       body: JSON.stringify({ action, payload, ...(scope ?? {}) }),

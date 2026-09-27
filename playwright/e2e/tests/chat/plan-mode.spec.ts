@@ -111,7 +111,9 @@ async function mockThreadView(
 
   await page.route(`**/threads/${threadId}/messages**`, async (route) => {
     await route.fulfill({
-      body: JSON.stringify(wrapCollectionInJsonApi([], 'messages', 'message')),
+      body: JSON.stringify(
+        wrapCollectionInJsonApi([], 'thread-message', 'message'),
+      ),
       contentType: 'application/json',
       status: 200,
     });
@@ -246,6 +248,31 @@ test.describe('Agent Plan Mode', () => {
     await mockThreadView(authenticatedPage, threadId, proposedPlan);
     const turnAck = await mockTurnAck(authenticatedPage, threadId);
 
+    // `POST .../ui-actions` only acks the enqueued workflow (see
+    // `AgentUiActionAckResponse`) -- it never carries a message. The client
+    // reconciles the eventual assistant reply by polling
+    // `GET .../messages`, so this route (registered after
+    // `mockThreadView`'s, which it supersedes) starts out empty and grows
+    // the post-approval message once the ack fires.
+    let postApprovalMessage: Record<string, unknown> | null = null;
+
+    await authenticatedPage.route(
+      `**/threads/${threadId}/messages**`,
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify(
+            wrapCollectionInJsonApi(
+              postApprovalMessage ? [postApprovalMessage] : [],
+              'thread-message',
+              'message',
+            ),
+          ),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+
     await authenticatedPage.route(
       `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
@@ -253,24 +280,22 @@ test.describe('Agent Plan Mode', () => {
           action: string;
           payload?: Record<string, unknown>;
         };
+        postApprovalMessage = {
+          content:
+            'Executed the approved plan. The toggle, review state, and UI actions are now wired.',
+          createdAt: new Date().toISOString(),
+          metadata: {},
+          role: 'assistant',
+        };
 
         await route.fulfill({
           body: JSON.stringify({
-            brandId: null,
-            contextVersion: 1,
-            creditsRemaining: 116,
-            creditsUsed: 2,
-            message: {
-              content:
-                'Executed the approved plan. The toggle, review state, and UI actions are now wired.',
-              metadata: {},
-              role: 'assistant',
-            },
+            executionId: 'exec-ui-action-e2e',
+            status: 'queued',
             threadId,
-            toolCalls: [],
           }),
           contentType: 'application/json',
-          status: 200,
+          status: 202,
         });
       },
     );
@@ -357,10 +382,12 @@ test.describe('Agent Plan Mode', () => {
                   createdAt: proposedPlan.createdAt,
                   metadata: { proposedPlan, reviewRequired: true },
                   role: 'assistant',
-                  threadId,
                 },
               ],
-              'messages',
+              // Matches `ThreadMessageSerializer`: resource type is
+              // 'thread-message', and `threadId` is never an attribute --
+              // the client fills it in client-side from the request URL.
+              'thread-message',
               'message',
             ),
           ),
@@ -414,6 +441,30 @@ test.describe('Agent Plan Mode', () => {
     await mockThreadView(authenticatedPage, threadId, initialPlan);
     await mockTurnAck(authenticatedPage, threadId);
 
+    // `POST .../ui-actions` only acks the enqueued workflow -- the client
+    // reconciles the eventual assistant reply by polling
+    // `GET .../messages`, so this route (registered after
+    // `mockThreadView`'s, which it supersedes) starts out empty and grows
+    // the revised-plan message once the ack fires.
+    let postRevisionMessage: Record<string, unknown> | null = null;
+
+    await authenticatedPage.route(
+      `**/threads/${threadId}/messages**`,
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify(
+            wrapCollectionInJsonApi(
+              postRevisionMessage ? [postRevisionMessage] : [],
+              'thread-message',
+              'message',
+            ),
+          ),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+
     await authenticatedPage.route(
       `**/threads/${threadId}/ui-actions`,
       async (route: Route) => {
@@ -421,35 +472,33 @@ test.describe('Agent Plan Mode', () => {
           action: string;
           payload?: Record<string, unknown>;
         };
+        postRevisionMessage = {
+          content:
+            'I revised the plan and kept execution paused for another review.',
+          createdAt: new Date().toISOString(),
+          metadata: {
+            proposedPlan: {
+              ...initialPlan,
+              content:
+                '1. Add a thread-level plan mode toggle.\n2. Add an awaiting approval status.\n3. Keep execution paused until explicit approval.',
+              lastReviewAction: 'request_changes',
+              revisionNote:
+                'Show clearer plan status in the conversation and keep execution paused.',
+              updatedAt: '2026-03-26T10:05:00.000Z',
+            },
+            reviewRequired: true,
+          },
+          role: 'assistant',
+        };
 
         await route.fulfill({
           body: JSON.stringify({
-            brandId: null,
-            contextVersion: 1,
-            creditsRemaining: 116,
-            creditsUsed: 2,
-            message: {
-              content:
-                'I revised the plan and kept execution paused for another review.',
-              metadata: {
-                proposedPlan: {
-                  ...initialPlan,
-                  content:
-                    '1. Add a thread-level plan mode toggle.\n2. Add an awaiting approval status.\n3. Keep execution paused until explicit approval.',
-                  lastReviewAction: 'request_changes',
-                  revisionNote:
-                    'Show clearer plan status in the conversation and keep execution paused.',
-                  updatedAt: '2026-03-26T10:05:00.000Z',
-                },
-                reviewRequired: true,
-              },
-              role: 'assistant',
-            },
+            executionId: 'exec-ui-action-e2e',
+            status: 'queued',
             threadId,
-            toolCalls: [],
           }),
           contentType: 'application/json',
-          status: 200,
+          status: 202,
         });
       },
     );
