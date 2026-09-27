@@ -17,6 +17,7 @@ import { OrganizationsOperationsController } from '@api/collections/organization
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
@@ -68,6 +69,10 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
     WebhookClientModule,
   ],
-  providers: [MemberCreditsGuard, OrganizationsOperationsService],
+  providers: [
+    AgentPolicyOverridesService,
+    MemberCreditsGuard,
+    OrganizationsOperationsService,
+  ],
 })
 export class OrganizationsModule {}

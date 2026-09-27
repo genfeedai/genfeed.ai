@@ -78,8 +78,9 @@ test.describe('Studio clip factory — deep interactions', () => {
   test('renders the clip factory input form', async ({ authenticatedPage }) => {
     await assertRouteRenders(authenticatedPage, CLIPS_ROUTE);
 
+    await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
     await expect(
-      authenticatedPage.locator('text=AI Clip Factory').first(),
+      authenticatedPage.getByRole('button', { name: /start clip factory/i }),
     ).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });

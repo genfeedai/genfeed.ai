@@ -61,13 +61,16 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   })
   readonly isSocialHistoryImportEnabled?: boolean;
 
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Whether the brand is marked as deleted',
-    required: false,
+  // isDeleted is deliberately not a settable field here (#5295). A plain
+  // PATCH bypassed remove()'s last-brand guard and member reassignment,
+  // letting an organization end up with zero live brands and members
+  // pointing at a soft-deleted row. Soft delete only goes through
+  // BrandsService.remove() (DELETE /brands/:id).
+  @Equals(undefined, {
+    message: 'isDeleted cannot be set through a brand update; use DELETE',
   })
-  readonly isDeleted?: boolean;
+  @ApiHideProperty()
+  readonly isDeleted?: unknown;
 
   @IsObject()
   @IsOptional()

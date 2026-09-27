@@ -74,7 +74,7 @@ export default {
         {
           backgroundColor: '#FAFAFA',
           dark: {
-            backgroundColor: '#0A0A0A',
+            backgroundColor: '#000000',
             image: './assets/images/splash-icon-dark.png',
           },
           image: './assets/images/splash-icon.png',
@@ -105,7 +105,7 @@ export default {
     splash: {
       backgroundColor: '#FAFAFA',
       dark: {
-        backgroundColor: '#0A0A0A',
+        backgroundColor: '#000000',
         image: './assets/images/splash-icon-dark.png',
       },
       image: './assets/images/splash-icon.png',

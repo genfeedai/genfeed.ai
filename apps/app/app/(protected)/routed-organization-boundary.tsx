@@ -101,6 +101,7 @@ export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
           title={translate('failure.title')}
           description={translate('failure.description')}
           resetErrorBoundary={retry}
+          data-testid="error-boundary-fallback"
         />
       </main>
     );

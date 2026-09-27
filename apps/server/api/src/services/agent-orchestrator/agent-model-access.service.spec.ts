@@ -34,6 +34,17 @@ function createService(options: {
   subscriptionReadFails?: boolean;
 }) {
   const prisma = {
+    // No linked billing account by default: the org row carries no
+    // `billingAccountId` and has no LINKED `billingAccountOrganization`
+    // row, so `resolveLiveBillingAccount`/`resolveBillingAccountAccess`
+    // resolve to "not linked" rather than throwing an unrelated error.
+    billingAccount: { findFirst: vi.fn().mockResolvedValue(null) },
+    billingAccountOrganization: { findMany: vi.fn().mockResolvedValue([]) },
+    organization: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ billingAccountId: null, isDeleted: false }),
+    },
     organizationSetting: {
       findFirst: vi
         .fn()

@@ -1,10 +1,14 @@
 import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
+// #5294 GENFEED_AI is intentionally absent: those models dispatch through
+// Genfeed's own hosted fleet (ComfyUI/Replicate deployments the org does not
+// own), never through a caller-supplied key. Mapping it to REPLICATE let an
+// org's own Replicate BYOK key bypass credits for hosted generation that
+// still ran — and was paid for — on Genfeed's platform key.
 const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
   [ModelProvider.REPLICATE]: ByokProvider.REPLICATE,
   [ModelProvider.FAL]: ByokProvider.FAL,
   [ModelProvider.OPENROUTER]: ByokProvider.OPENROUTER,
-  [ModelProvider.GENFEED_AI]: ByokProvider.REPLICATE,
 };
 
 /**
@@ -36,7 +40,6 @@ const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
   ['leonardoai', ByokProvider.LEONARDOAI],
   ['fal-ai/', ByokProvider.FAL],
   ['x-ai/', ByokProvider.OPENROUTER],
-  ['genfeed-ai/', ByokProvider.REPLICATE],
 ];
 
 /**

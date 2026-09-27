@@ -29,6 +29,9 @@ describe('workspace error boundary', () => {
     expect(
       screen.getByText('The workspace could not finish loading. Try again.'),
     ).toBeVisible();
+    // Route smoke checks (#5070) key off this marker to catch a caught
+    // segment error that would otherwise look like a normal page.
+    expect(screen.getByTestId('error-boundary-fallback')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 

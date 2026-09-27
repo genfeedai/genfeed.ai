@@ -231,7 +231,7 @@ describe('proxy', () => {
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
 
-      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname));
 
       expect(response.status).toBe(200);
       expect(response.headers.get('location')).toBeNull();
@@ -244,7 +244,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/api/werwer/workspace/inbox/unread'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -261,7 +260,7 @@ describe('proxy', () => {
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
 
-      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname));
 
       expect(response.status).toBe(200);
       expect(response.headers.get('location')).toBeNull();
@@ -280,7 +279,6 @@ describe('proxy', () => {
         makeSignedInRequest(pathname, {
           search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
         }),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -293,7 +291,7 @@ describe('proxy', () => {
   it('redirects a signed-in user on /login without callbackUrl to workspace overview', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/login'), {} as never);
+    const response = await proxy(makeSignedInRequest('/login'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -308,7 +306,6 @@ describe('proxy', () => {
       makeSignedInRequest('/login', {
         search: '?callbackUrl=%2Fapi%2Fversion',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -331,7 +328,6 @@ describe('proxy', () => {
       makeSignedInRequest('/login', {
         search: `?callbackUrl=${encodeURIComponent(callbackUrl)}`,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -348,7 +344,6 @@ describe('proxy', () => {
         search:
           '?callbackUrl=%2Facme%2Fforeign-brand%2Flibrary%2Fassets%3Ftab%3Ddrafts',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -365,7 +360,6 @@ describe('proxy', () => {
         search:
           '?callbackUrl=%2Facme%2Fmoonrise-studio%2Flibrary%2Fassets%3Ftab%3Ddrafts',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -382,7 +376,6 @@ describe('proxy', () => {
         '/',
         '?callbackUrl=%2Facme%2F~%2Fsettings%2Fcredits',
       ),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -400,7 +393,6 @@ describe('proxy', () => {
       makeSignedInRequest('/login', {
         search: '?callbackUrl=%2Fdefault%2F%7E%2Fsettings%2Fcredits',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -450,7 +442,6 @@ describe('proxy', () => {
         search:
           '?callbackUrl=%2Facme%2Fsecond-brand%2Flibrary%2Fassets%3Ftab%3Ddrafts',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -462,7 +453,7 @@ describe('proxy', () => {
   it('keeps logout reachable for a signed-in user', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/logout'), {} as never);
+    const response = await proxy(makeSignedInRequest('/logout'));
 
     expect(response.status).not.toBe(307);
     expect(response.headers.get('location')).toBeNull();
@@ -478,7 +469,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedOutRequest('/acme/moonrise-studio/workspace'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -497,7 +487,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedOutRequest('/acme/moonrise-studio/library?tab=drafts'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -508,12 +497,39 @@ describe('proxy', () => {
     );
   });
 
+  it('lets signed-out users render the agent-auth claim step', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest(
+        '/agent-auth/claim',
+        `?claim_attempt_token=${'a'.repeat(32)}`,
+      ),
+    );
+
+    expect(response.status).not.toBe(307);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('does not expose similarly prefixed agent-auth routes without a session', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest('/agent-auth/claim-preview'),
+    );
+
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
+      '/login',
+    );
+  });
+
   it.each(['/forgot-password', '/reset-password'])(
     'lets signed-out users render public reset route %s',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
 
-      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname));
 
       expect(response.status).not.toBe(307);
       expect(response.headers.get('location')).toBeNull();
@@ -539,7 +555,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest(pathname, { search: '?view=runs' }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -551,7 +566,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest(APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -561,10 +575,7 @@ describe('proxy', () => {
   it('does not treat the deleted request-access route as public', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedOutRequest('/request-access'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedOutRequest('/request-access'));
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get('location') ?? '');
@@ -578,10 +589,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/workspace'));
 
     expect(response.status).toBe(307);
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
@@ -595,7 +603,7 @@ describe('proxy', () => {
   it('redirects signed-in root to the active workspace overview', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -610,7 +618,6 @@ describe('proxy', () => {
       makeSignedInRequest('/', {
         search: '?taskSource=workspace&taskId=task-42',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -656,7 +663,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -709,7 +716,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/default/workspace'),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -725,7 +731,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/~/agent/onboarding'),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -741,7 +746,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/~/agent/onboarding'),
-        {} as never,
       );
 
       expect(response.headers.get('location')).toBeNull();
@@ -754,7 +758,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/default-organization/~/agent/onboarding'),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -769,7 +772,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/default/workspace'),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -784,7 +786,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/~/agent/onboarding'),
-        {} as never,
       );
 
       expect(response.headers.get('location')).toBeNull();
@@ -796,10 +797,7 @@ describe('proxy', () => {
         mockIncompleteUser();
 
         const { default: proxy } = await import('./proxy');
-        const response = await proxy(
-          makeSignedInRequest(pathname),
-          {} as never,
-        );
+        const response = await proxy(makeSignedInRequest(pathname));
 
         expect(response.headers.get('location')).toBeNull();
       },
@@ -822,10 +820,7 @@ describe('proxy', () => {
         });
 
         const { default: proxy } = await import('./proxy');
-        const response = await proxy(
-          makeSignedInRequest(pathname),
-          {} as never,
-        );
+        const response = await proxy(makeSignedInRequest(pathname));
 
         expect(response.headers.get('location')).toBeNull();
       },
@@ -837,10 +832,7 @@ describe('proxy', () => {
         mockIncompleteUser();
 
         const { default: proxy } = await import('./proxy');
-        const response = await proxy(
-          makeSignedInRequest(pathname),
-          {} as never,
-        );
+        const response = await proxy(makeSignedInRequest(pathname));
 
         expect(response.status).toBe(307);
         expect(response.headers.get('location')).toBe(
@@ -855,10 +847,7 @@ describe('proxy', () => {
         mockIncompleteUser();
 
         const { default: proxy } = await import('./proxy');
-        const response = await proxy(
-          makeSignedInRequest(pathname),
-          {} as never,
-        );
+        const response = await proxy(makeSignedInRequest(pathname));
 
         expect(response.headers.get('location')).toBeNull();
       },
@@ -868,10 +857,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedOutRequest('/onboarding/brand'),
-        {} as never,
-      );
+      const response = await proxy(makeSignedOutRequest('/onboarding/brand'));
 
       expect(response.headers.get('location')).toBeNull();
       expect(fetchMock).not.toHaveBeenCalled();
@@ -882,10 +868,7 @@ describe('proxy', () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/onboarding/brand'),
-        {} as never,
-      );
+      const response = await proxy(makeSignedInRequest('/onboarding/brand'));
 
       expect(response.headers.get('location')).toBeNull();
     });
@@ -897,7 +880,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/default/workspace'),
-        {} as never,
       );
 
       expect(response.headers.get('location')).toBeNull();
@@ -907,10 +889,7 @@ describe('proxy', () => {
       mockIncompleteUser([]);
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/onboarding/brand'),
-        {} as never,
-      );
+      const response = await proxy(makeSignedInRequest('/onboarding/brand'));
 
       expect(response.headers.get('location')).toBeNull();
     });
@@ -922,7 +901,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/default/workspace'),
-        {} as never,
       );
 
       expect(response.headers.get('location')).toBe(
@@ -939,10 +917,7 @@ describe('proxy', () => {
       mockIncompleteUser([]);
 
       const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/settings'),
-        {} as never,
-      );
+      const response = await proxy(makeSignedInRequest('/settings'));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -958,7 +933,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeSignedInRequest('/acme/default/workspace'),
-        {} as never,
       );
 
       expect(response.headers.get('location')).toBeNull();
@@ -1002,7 +976,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1042,7 +1016,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1084,7 +1058,6 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
     const orgScopedResponse = await proxy(
       makeSignedInRequest('/settings/members'),
-      {} as never,
     );
     const cookieValue = (orgScopedResponse.headers.get('set-cookie') ?? '')
       .match(/gf_ws=([^;]+)/)
@@ -1096,7 +1069,6 @@ describe('proxy', () => {
       makeSignedInRequest('/', {
         extraCookies: { gf_ws: cookieValue ?? '' },
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1132,7 +1104,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/onboarding/brand',
@@ -1174,7 +1146,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1198,7 +1170,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(200);
   });
@@ -1219,7 +1191,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/'), {} as never);
+    const response = await proxy(makeSignedInRequest('/'));
 
     expect(response.status).toBe(200);
   });
@@ -1229,7 +1201,7 @@ describe('proxy', () => {
     // must not append a noisy `callbackUrl=/` param (Finding #25 guard).
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedOutRequest('/'), {} as never);
+    const response = await proxy(makeSignedOutRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1245,7 +1217,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     for (const pathname of ['/settings', '/workspace']) {
-      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname));
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
@@ -1257,10 +1229,7 @@ describe('proxy', () => {
   it('redirects signed-in flat protected routes to the canonical org and brand path', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/workspace'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1282,7 +1251,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest(pathname, { search: '?view=kanban' }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -1294,7 +1262,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/workspace/tasks', { search: '?view=kanban' }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1335,20 +1302,14 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const postsResponse = await proxy(
-      makeSignedInRequest('/publishing'),
-      {} as never,
-    );
+    const postsResponse = await proxy(makeSignedInRequest('/publishing'));
 
     expect(postsResponse.status).toBe(307);
     expect(postsResponse.headers.get('location')).toBe(
       'http://localhost:3000/acme/~/publishing',
     );
 
-    const workspaceResponse = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const workspaceResponse = await proxy(makeSignedInRequest('/workspace'));
 
     expect(workspaceResponse.status).toBe(307);
     expect(workspaceResponse.headers.get('location')).toBe(
@@ -1388,10 +1349,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const rootResponse = await proxy(
-      makeSignedInRequest('/automation'),
-      {} as never,
-    );
+    const rootResponse = await proxy(makeSignedInRequest('/automation'));
 
     expect(rootResponse.status).toBe(307);
     expect(rootResponse.headers.get('location')).toBe(
@@ -1400,7 +1358,6 @@ describe('proxy', () => {
 
     const workflowsResponse = await proxy(
       makeSignedInRequest('/automation/workflows'),
-      {} as never,
     );
 
     expect(workflowsResponse.status).toBe(307);
@@ -1443,10 +1400,7 @@ describe('proxy', () => {
 
     // `/~/discovery` mirrors the brand tree in full, so a brandless org keeps the
     // requested surface instead of collapsing onto the org overview.
-    const adsResponse = await proxy(
-      makeSignedInRequest('/discovery/ads'),
-      {} as never,
-    );
+    const adsResponse = await proxy(makeSignedInRequest('/discovery/ads'));
 
     expect(adsResponse.status).toBe(307);
     expect(adsResponse.headers.get('location')).toBe(
@@ -1486,13 +1440,9 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const personalHome = await proxy(
-      makeSignedInRequest('/settings/personal'),
-      {} as never,
-    );
+    const personalHome = await proxy(makeSignedInRequest('/settings/personal'));
     const notifications = await proxy(
       makeSignedInRequest('/settings/notifications'),
-      {} as never,
     );
 
     expect(personalHome.status).toBe(200);
@@ -1533,10 +1483,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/workspace'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1578,7 +1525,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/acme/~/workspace/overview'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1626,7 +1572,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/acme/moonrise-studio/publishing'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1638,7 +1583,7 @@ describe('proxy', () => {
   it('redirects signed-in flat agent to the canonical brand-scoped agent path', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/agent'), {} as never);
+    const response = await proxy(makeSignedInRequest('/agent'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1653,7 +1598,6 @@ describe('proxy', () => {
       makeSignedInRequest('/', {
         referer: 'http://localhost:3000/default/default/agent',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1669,7 +1613,6 @@ describe('proxy', () => {
 
     const staleResponse = await proxy(
       makeSignedInRequest('/default/default/agent'),
-      {} as never,
     );
     const staleCookie = (staleResponse.headers.get('set-cookie') ?? '')
       .match(/gf_ws=([^;]+)/)
@@ -1681,7 +1624,6 @@ describe('proxy', () => {
       makeSignedInRequest('/', {
         extraCookies: { gf_ws: staleCookie ?? '' },
       }),
-      {} as never,
     );
 
     expect(recoveredResponse.status).toBe(307);
@@ -1702,7 +1644,6 @@ describe('proxy', () => {
       makeSignedInRequest('/library/assets', {
         referer: 'http://localhost:3000/demo/FUDNEWS/library/images',
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -1717,7 +1658,6 @@ describe('proxy', () => {
 
     const scopedResponse = await proxy(
       makeSignedInRequest('/demo/FUDNEWS/library/images'),
-      {} as never,
     );
 
     expect(scopedResponse.headers.get('location')).toBeNull();
@@ -1730,7 +1670,6 @@ describe('proxy', () => {
       makeSignedInRequest('/library/assets', {
         extraCookies: { gf_ws: cookieValue ?? '' },
       }),
-      {} as never,
     );
 
     expect(unscopedResponse.status).toBe(307);
@@ -1747,7 +1686,6 @@ describe('proxy', () => {
         referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
         rsc: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -1763,7 +1701,6 @@ describe('proxy', () => {
         nextUrl: '/acme/moonrise-studio/agent/thread-1',
         rsc: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -1779,7 +1716,6 @@ describe('proxy', () => {
         nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
         rsc: true,
       }),
-      {} as never,
     );
 
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
@@ -1797,7 +1733,6 @@ describe('proxy', () => {
       makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
         rsc: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -1819,7 +1754,6 @@ describe('proxy', () => {
         referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
         rsc: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -1863,7 +1797,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/agent'), {} as never);
+    const response = await proxy(makeSignedInRequest('/agent'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1874,7 +1808,7 @@ describe('proxy', () => {
   it('keeps signed-in personal settings on the canonical personal route', async () => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/settings'), {} as never);
+    const response = await proxy(makeSignedInRequest('/settings'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -1913,7 +1847,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeDesktopRequest('/workspace', { desktopToken, hasSession }),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -1938,7 +1871,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeDesktopRequest('/login', { desktopToken, hasSession }),
-        {} as never,
       );
 
       if (hasSession) {
@@ -1956,7 +1888,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeDesktopRequest('/logout', { desktopToken, hasSession }),
-        {} as never,
       );
 
       expect(response.status).toBe(200);
@@ -1970,7 +1901,6 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
         makeDesktopRequest('/', { desktopToken, hasSession }),
-        {} as never,
       );
 
       expect(response.status).toBe(307);
@@ -1989,7 +1919,6 @@ describe('proxy', () => {
         desktopToken: 'gf_valid_desktop_token',
         hasSession: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2008,7 +1937,6 @@ describe('proxy', () => {
         desktopVersion: '0.1.9',
         hasSession: false,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(426);
@@ -2032,7 +1960,6 @@ describe('proxy', () => {
         desktopVersion: 'not-a-version',
         hasSession: false,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(426);
@@ -2045,7 +1972,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/onboarding/brand', { hasSession: false }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -2059,7 +1985,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/onboarding/summary', { hasSession: false }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2077,7 +2002,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/onboarding/providers', { hasSession: false }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -2091,7 +2015,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/desktop/local', { hasSession: false }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -2105,7 +2028,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/desktop/local-preview', { hasSession: false }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2124,7 +2046,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/onboarding/brand', { hasSession: true }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -2138,7 +2059,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeDesktopRequest('/acme/~/agent', { hasSession: true }),
-      {} as never,
     );
 
     expect(response.status).toBe(200);
@@ -2195,7 +2115,6 @@ describe('proxy', () => {
         desktopToken: 'stale_desktop_token',
         hasSession: true,
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2214,7 +2133,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/settings/organization/members'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2228,7 +2146,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest('/settings/brands/moonrise-studio/voice'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2268,10 +2185,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/workspace'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -2289,7 +2203,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedOutRequest('/settings/organization/members'),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2307,7 +2220,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/login'), {} as never);
+    const response = await proxy(makeSignedInRequest('/login'));
 
     expect(response.status).toBe(200);
   });
@@ -2318,7 +2231,7 @@ describe('proxy', () => {
 
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
-    const response = await proxy(makeSignedOutRequest('/'), {} as never);
+    const response = await proxy(makeSignedOutRequest('/'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
@@ -2332,10 +2245,7 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    const firstResponse = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const firstResponse = await proxy(makeSignedInRequest('/workspace'));
 
     expect(firstResponse.status).toBe(307);
     expect(firstResponse.headers.get('location')).toBe(
@@ -2353,7 +2263,6 @@ describe('proxy', () => {
       makeSignedInRequest('/publishing', {
         extraCookies: { gf_ws: cookieValue ?? '' },
       }),
-      {} as never,
     );
 
     expect(secondResponse.status).toBe(307);
@@ -2387,7 +2296,6 @@ describe('proxy', () => {
       makeSignedInRequest('/workspace', {
         extraCookies: { gf_ws: 'tampered.cookie' },
       }),
-      {} as never,
     );
 
     expect(response.status).toBe(307);
@@ -2400,10 +2308,7 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest('/workspace'),
-      {} as never,
-    );
+    const response = await proxy(makeSignedInRequest('/workspace'));
 
     expect(response.status).toBe(307);
     // The onboarding gate and workspace-slug resolution both need the same
@@ -2420,7 +2325,7 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedOutRequest('/logout'), {} as never);
+    const response = await proxy(makeSignedOutRequest('/logout'));
 
     const setCookieHeader = response.headers.get('set-cookie') ?? '';
     expect(setCookieHeader).toContain('gf_ws');

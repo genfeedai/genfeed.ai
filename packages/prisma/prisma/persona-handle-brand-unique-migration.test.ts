@@ -94,11 +94,11 @@ describePostgres('persona handle unique index on PostgreSQL', () => {
       `);
 
       expect(rows.rows).toEqual([
+        { handle: 'anna', id: 'p_deleted', isDeleted: true },
         { handle: null, id: 'p_dup', isDeleted: false },
         { handle: null, id: 'p_empty', isDeleted: false },
         { handle: 'anna', id: 'p_keep', isDeleted: false },
         { handle: 'anna', id: 'p_other_brand', isDeleted: false },
-        { handle: 'anna', id: 'p_deleted', isDeleted: true },
       ]);
 
       await client.query('SAVEPOINT before_conflict');

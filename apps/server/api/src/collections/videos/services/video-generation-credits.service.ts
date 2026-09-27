@@ -101,13 +101,13 @@ export class VideoGenerationCreditsService {
 
     const { requiredCredits, resolvedModelDoc } =
       await this.resolveRequiredCredits(createVideoDto, model);
-    const byokProvider = await this.resolveActiveByokProvider(
+    const byok = await this.resolveActiveByokKey(
       organization,
       model,
       resolvedModelDoc?.provider,
     );
     if (
-      !byokProvider &&
+      !byok &&
       !hasGenerationSourceActionId(request) &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
@@ -126,11 +126,13 @@ export class VideoGenerationCreditsService {
       model,
       resolvedModelDoc ? buildPricingAuditStamp(resolvedModelDoc) : undefined,
     );
-    if (byokProvider) {
+    if (byok) {
       reqWithCredits.creditsConfig = {
         ...reqWithCredits.creditsConfig,
+        byokApiKeyOverride: byok.apiKey,
+        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
         isByokBypass: true,
-        provider: byokProvider,
+        provider: byok.provider,
       };
       return;
     }
@@ -209,7 +211,7 @@ export class VideoGenerationCreditsService {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: baseModelKey(model),
     });
-    const byokProvider = await this.resolveActiveByokProvider(
+    const byok = await this.resolveActiveByokKey(
       organization,
       model,
       resolvedModelDoc?.provider,
@@ -220,11 +222,13 @@ export class VideoGenerationCreditsService {
       deferred: true,
       modelKey: model,
     };
-    if (byokProvider) {
+    if (byok) {
       reqWithCredits.creditsConfig = {
         ...reqWithCredits.creditsConfig,
+        byokApiKeyOverride: byok.apiKey,
+        ...(byok.apiSecret ? { byokApiSecretOverride: byok.apiSecret } : {}),
         isByokBypass: true,
-        provider: byokProvider,
+        provider: byok.provider,
       };
       return;
     }
@@ -306,22 +310,32 @@ export class VideoGenerationCreditsService {
     }
   }
 
-  private async resolveActiveByokProvider(
+  /**
+   * The single BYOK decision point for video generation (#5294). Resolves
+   * the org's decrypted key exactly once — the returned key is both the
+   * bypass decision (defined/undefined) and the value dispatch must use, so
+   * the credit charge and the provider call can never disagree about whose
+   * key paid.
+   */
+  private async resolveActiveByokKey(
     organizationId: string,
     modelKey: string,
     modelProvider?: string,
-  ): Promise<ByokProvider | undefined> {
+  ): Promise<
+    { provider: ByokProvider; apiKey: string; apiSecret?: string } | undefined
+  > {
     const provider = resolveModelByokProvider(modelKey, modelProvider);
-    if (
-      !provider ||
-      !(await this.byokService.isByokActiveForProvider(
-        organizationId,
-        provider,
-      ))
-    ) {
+    if (!provider) {
       return undefined;
     }
-    return provider;
+    const resolved = await this.byokService.resolveApiKey(
+      organizationId,
+      provider,
+    );
+    if (!resolved) {
+      return undefined;
+    }
+    return { provider, ...resolved };
   }
 
   private async resolveRequiredCredits(

@@ -34,8 +34,10 @@ test.describe('Studio Edit — Interactions', () => {
       .first();
     await expect(newProjectLink).toBeVisible({ timeout: 15_000 });
 
+    // #5165 removed the Features marketing grid; the default mock returns no
+    // projects, so the list renders its empty state instead.
     await expect(
-      authenticatedPage.getByText('Features', { exact: false }).first(),
+      authenticatedPage.getByText('Create Your First Project'),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

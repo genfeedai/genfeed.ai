@@ -88,6 +88,7 @@ const UI_TEST_MESSAGES = {
   common: {
     appRail: {
       apps: 'Apps',
+      navigation: 'App navigation',
       goTo: 'Go to {app}',
       opening: 'Opening app.',
       locked: '{app} — locked. Generate your first asset to unlock.',
@@ -133,6 +134,9 @@ const UI_TEST_MESSAGES = {
         label: 'Admin',
         description: 'Platform management.',
       },
+    },
+    sidebar: {
+      collapse: 'Collapse sidebar',
     },
     oauth: {
       platformCallback: {

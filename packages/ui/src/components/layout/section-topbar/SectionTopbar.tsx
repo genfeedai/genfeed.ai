@@ -73,14 +73,11 @@ export default function SectionTopbar({
         <h1 className="sr-only">{title}</h1>
         <div
           className={cn(
-            'flex w-full items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
+            // 48px like the app topbar and inspector header, so dividers line
+            // up across columns; also keeps forced-visible empty bars (loading
+            // / error states) the height of a populated row.
+            'flex min-h-12 w-full items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
             !hasLeading && !hasTabs && hasActions && 'justify-end',
-            // Forced-visible bars must match a populated row's height (a
-            // size-8 action plus this row's own py-1.5 ≈ 44px/min-h-11) —
-            // otherwise the empty band during a loading/error state is a
-            // fraction of that, and the page still jumps once real actions
-            // or tabs mount into it.
-            forceVisible && 'min-h-11',
           )}
         >
           {hasLeading ? (

@@ -49,6 +49,8 @@ export class ImagesReframeController {
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @Credits({
     description: 'Image reframe',
+    // #5294 no allowByokBypass: ImageReframeService dispatches to Replicate
+    // with no key override, so credits charge normally by default.
     modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
     source: ActivitySource.IMAGE_REFRAME,
   })

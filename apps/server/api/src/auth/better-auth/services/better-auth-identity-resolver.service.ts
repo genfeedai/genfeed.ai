@@ -204,6 +204,16 @@ export class BetterAuthIdentityResolverService {
     }
   }
 
+  /**
+   * Resolves the brand for generation from the member's own `currentBrandId`
+   * only. There is deliberately no "any org brand" fallback (#5295): guessing
+   * a brand let generation silently run against whichever row `findOne`
+   * happened to return first — including, after a brand delete landed
+   * between requests, a brand the member never selected. An unset or
+   * no-longer-live `currentBrandId` resolves to `undefined` instead, so
+   * `resolveGenerationBrand` can fail the request with a clear 400 rather
+   * than generating against the wrong brand.
+   */
   private async resolveBrandId(
     organizationId: string,
     members: MemberDocument[],
@@ -216,26 +226,18 @@ export class BetterAuthIdentityResolverService {
       'currentBrandId',
     );
 
-    if (currentBrandId) {
-      const currentBrand = await this.brandsService.findOne({
-        id: currentBrandId,
-        isDeleted: false,
-        organizationId: organizationId,
-      });
-      const brandId = getEntityId(
-        currentBrand as Record<string, unknown> | null | undefined,
-      );
-      if (brandId) {
-        return brandId;
-      }
+    if (!currentBrandId) {
+      return undefined;
     }
 
-    const firstBrand = await this.brandsService.findOne({
+    const currentBrand = await this.brandsService.findOne({
+      id: currentBrandId,
       isDeleted: false,
       organizationId: organizationId,
     });
+
     return (
-      getEntityId(firstBrand as Record<string, unknown> | null | undefined) ||
+      getEntityId(currentBrand as Record<string, unknown> | null | undefined) ||
       undefined
     );
   }

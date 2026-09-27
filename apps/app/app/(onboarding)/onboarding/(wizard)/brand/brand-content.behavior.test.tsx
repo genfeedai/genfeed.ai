@@ -244,6 +244,20 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
     }, LOADING_STEP_WAIT_OPTIONS);
   });
 
+  it('keeps an existing EXPERT organization when no account type is requested', async () => {
+    currentUserState.currentUser = { email: 'vincent@acme.com' };
+    findMeOrganizationsMock.mockResolvedValue([
+      { accountType: 'EXPERT', id: 'org-1' },
+    ]);
+
+    render(<BrandContent />);
+
+    await waitFor(() => {
+      expect(updateAccountTypeMock).toHaveBeenCalledWith('org-1', 'EXPERT');
+    }, LOADING_STEP_WAIT_OPTIONS);
+    expect(updateAccountTypeMock).not.toHaveBeenCalledWith('org-1', 'CREATOR');
+  });
+
   it('asks a personal inbox for a website before loading', async () => {
     currentUserState.currentUser = { email: 'vincent@gmail.com' };
 

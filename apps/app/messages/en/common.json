@@ -275,6 +275,8 @@
     "merge": "Merge"
   },
   "sidebar": {
+    "clearBrandSelection": "Clear brand selection",
+    "collapse": "Collapse sidebar",
     "newConversation": "New Conversation",
     "newConversationAriaLabel": "Start a new conversation",
     "newTask": "New Task",
@@ -1726,6 +1728,7 @@
   },
   "appRail": {
     "apps": "Apps",
+    "navigation": "App navigation",
     "goTo": "Go to {app}",
     "opening": "Opening app.",
     "locked": "{app} — locked. Generate your first asset to unlock.",

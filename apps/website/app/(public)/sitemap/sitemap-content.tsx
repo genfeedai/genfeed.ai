@@ -55,6 +55,8 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/gemini', label: 'Gemini' },
       { href: '/openclaw', label: 'OpenClaw' },
       { href: '/grok', label: 'Grok' },
+      { href: '/grok-bot', label: 'Grok Bot' },
+      { href: '/muse', label: 'Meta Muse' },
       { href: '/extension', label: 'Chrome extension' },
       { href: '/integrations', label: 'Integrations' },
       { href: '/self-hosted', label: 'Self-hosted' },

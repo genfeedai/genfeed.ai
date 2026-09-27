@@ -40,15 +40,25 @@ export class ReplicateImageGenerationProviderAdapter
   private async waitForLocalPrediction(
     predictionId: string,
     signal?: AbortSignal,
+    apiKeyOverride?: string,
   ): Promise<string[]> {
     const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
 
     while (Date.now() < deadline) {
-      await this.cancelIfPredictionAborted(predictionId, signal);
+      await this.cancelIfPredictionAborted(
+        predictionId,
+        signal,
+        apiKeyOverride,
+      );
       const prediction = (await this.replicateService.getPrediction(
         predictionId,
+        apiKeyOverride,
       )) as ReplicatePrediction;
-      await this.cancelIfPredictionAborted(predictionId, signal);
+      await this.cancelIfPredictionAborted(
+        predictionId,
+        signal,
+        apiKeyOverride,
+      );
       const outputUrls = this.resolveLocalPredictionResult(
         prediction,
         predictionId,
@@ -70,11 +80,12 @@ export class ReplicateImageGenerationProviderAdapter
   private async cancelIfPredictionAborted(
     predictionId: string,
     signal?: AbortSignal,
+    apiKeyOverride?: string,
   ): Promise<void> {
     if (!signal?.aborted) {
       return;
     }
-    await this.replicateService.cancelPrediction(predictionId);
+    await this.replicateService.cancelPrediction(predictionId, apiKeyOverride);
     throw new GenerationCancelledError();
   }
 
@@ -152,6 +163,7 @@ export class ReplicateImageGenerationProviderAdapter
         const generationId = await this.replicateService.generateTextToImage(
           request.modelEndpoint ?? request.model,
           input,
+          request.apiKeyOverride,
         );
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
@@ -167,7 +179,11 @@ export class ReplicateImageGenerationProviderAdapter
           canReceiveProviderWebhooks(),
         );
         const outputUrls = shouldPollForOutput
-          ? await this.waitForLocalPrediction(generationId, request.abortSignal)
+          ? await this.waitForLocalPrediction(
+              generationId,
+              request.abortSignal,
+              request.apiKeyOverride,
+            )
           : undefined;
 
         return {

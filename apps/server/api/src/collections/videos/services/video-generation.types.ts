@@ -13,6 +13,13 @@ export interface DispatchVideoGenerationParams {
   duration?: number;
   height: number;
   imageUrl?: string;
+  /**
+   * The org's own resolved BYOK key (#5294), set only when the credits
+   * decision actually bypassed platform credits for this dispatch. Replicate
+   * and Fal adapters must forward it as `apiKeyOverride`; providers that
+   * cannot honor it always charge credits (see `resolveModelByokProvider`).
+   */
+  apiKeyOverride?: string;
   model: string;
   modelEndpoint?: string;
   modelInputSchema?: Record<string, unknown>;

@@ -94,6 +94,30 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       promptParams,
+      undefined,
+    );
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the Replicate dispatch call (#5294)', async () => {
+    const replicateService = {
+      generateTextToVideo: vi.fn().mockResolvedValue('pred_byok'),
+    };
+    const adapter = new ReplicateVideoGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+    const promptParams = {
+      first_frame_image: 'https://cdn.example.com/first-frame.jpg',
+      prompt: 'A cinematic product reveal',
+    };
+
+    await adapter.generate(
+      buildParams({ apiKeyOverride: 'org-replicate-key', promptParams }),
+    );
+
+    expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      promptParams,
+      'org-replicate-key',
     );
   });
 

@@ -24,6 +24,12 @@ const workspaceInspectorState = vi.hoisted(() => ({
 }));
 const originalLocation = window.location;
 
+// The constants barrel is mocked below, so the catalog-backed stub cannot load.
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'clearBrandSelection' ? 'Clear brand selection' : key,
+}));
+
 vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },

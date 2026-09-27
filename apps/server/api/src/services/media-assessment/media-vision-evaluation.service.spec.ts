@@ -25,9 +25,10 @@ function frames(count: number) {
 
 function makeHarness(
   options: {
+    evaluationFindFirst?: ReturnType<typeof vi.fn>;
     mode?: string;
     perception?: Partial<IMediaPerception> | null;
-    sibling?: { visionEvaluationId: string } | null;
+    sibling?: { id?: string; visionEvaluationId: string } | null;
   } = {},
 ) {
   const perception =
@@ -47,9 +48,21 @@ function makeHarness(
       visionAttempts: 0,
       visionEvaluationId: null,
     })
-    .mockResolvedValueOnce(options.sibling ?? null);
+    .mockResolvedValueOnce(
+      options.sibling
+        ? {
+            id: options.sibling.id ?? 'sibling-perception-1',
+            visionEvaluationId: options.sibling.visionEvaluationId,
+          }
+        : null,
+    );
   const updateMany = vi.fn().mockResolvedValue({ count: 1 });
   const evaluationCreate = vi.fn().mockResolvedValue({ id: 'evaluation-1' });
+  // Reused-sibling evaluations exist by default; pass a mock to simulate a
+  // deleted/missing one (#5316).
+  const evaluationFindFirst =
+    options.evaluationFindFirst ??
+    vi.fn().mockResolvedValue({ id: 'evaluation-0' });
   const scoreVisionFrames = vi.fn().mockResolvedValue({
     feedback: ['Hands are distorted.'],
     rubric: {
@@ -64,7 +77,7 @@ function makeHarness(
   const logger = { log: vi.fn(), warn: vi.fn() };
   const service = new MediaVisionEvaluationService(
     {
-      evaluation: { create: evaluationCreate },
+      evaluation: { create: evaluationCreate, findFirst: evaluationFindFirst },
       ingredient: {
         findFirst: vi.fn().mockResolvedValue({
           brandId: 'brand-1',
@@ -84,7 +97,13 @@ function makeHarness(
     } as unknown as ConfigService,
     logger as unknown as LoggerService,
   );
-  return { evaluationCreate, scoreVisionFrames, service, updateMany };
+  return {
+    evaluationCreate,
+    evaluationFindFirst,
+    scoreVisionFrames,
+    service,
+    updateMany,
+  };
 }
 
 describe('MediaVisionEvaluationService', () => {
@@ -136,14 +155,51 @@ describe('MediaVisionEvaluationService', () => {
     expect(h.scoreVisionFrames).not.toHaveBeenCalled();
   });
 
-  it('reuses the evaluation of identical bytes', async () => {
+  it('reuses the evaluation of identical bytes only when it still exists (#5316)', async () => {
     const h = makeHarness({ sibling: { visionEvaluationId: 'evaluation-0' } });
 
     await expect(h.service.evaluate(JOB)).resolves.toBe('reused');
+    expect(h.evaluationFindFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: 'evaluation-0', isDeleted: false, organizationId: 'org-1' },
+    });
     expect(h.scoreVisionFrames).not.toHaveBeenCalled();
     expect(h.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { visionEvaluationId: 'evaluation-0' } }),
     );
+  });
+
+  it('does not reuse a deleted sibling evaluation, clears the dangling link, and scores fresh (#5316)', async () => {
+    const h = makeHarness({
+      evaluationFindFirst: vi.fn().mockResolvedValue(null),
+      sibling: {
+        id: 'sibling-perception-1',
+        visionEvaluationId: 'evaluation-deleted',
+      },
+    });
+
+    await expect(h.service.evaluate(JOB)).resolves.toBe('evaluated');
+    expect(h.scoreVisionFrames).toHaveBeenCalled();
+    // The sibling's dangling link is cleared so it re-enters
+    // findUnevaluatedAssets, instead of staying invisibly linked forever.
+    // The clear is compare-and-swap on the exact id read: a concurrent job
+    // that already relinked this sibling to a fresh evaluation must not have
+    // that newer, valid link erased.
+    expect(h.updateMany).toHaveBeenCalledWith({
+      data: { visionEvaluationId: null },
+      where: {
+        id: 'sibling-perception-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        visionEvaluationId: 'evaluation-deleted',
+      },
+    });
+    // The job's own perception row is still linked to the freshly created
+    // evaluation once scoring succeeds.
+    expect(h.updateMany).toHaveBeenCalledWith({
+      data: { visionEvaluationId: 'evaluation-1' },
+      where: { id: 'perception-1', isDeleted: false, organizationId: 'org-1' },
+    });
   });
 
   it('records a failed paid attempt instead of throwing', async () => {

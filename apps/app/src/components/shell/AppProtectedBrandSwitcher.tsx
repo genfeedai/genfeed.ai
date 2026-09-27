@@ -11,6 +11,7 @@ import { createOrganizationAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 import { resolveShellScope } from '@/components/shell/shell-scope';
@@ -39,6 +40,7 @@ export default function AppProtectedBrandSwitcher({
 }: AppProtectedBrandSwitcherProps) {
   const pathname = usePathname() ?? '';
   const { push } = useRouter();
+  const translate = useTranslations('common.sidebar');
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
   // Route props are authoritative; only fall back to useOrgUrl when the shell
@@ -127,7 +129,7 @@ export default function AppProtectedBrandSwitcher({
       clearSelectionAction={
         visibleBrandId
           ? {
-              ariaLabel: 'Clear brand selection',
+              ariaLabel: translate('clearBrandSelection'),
               onSelect: handleClearBrandSelection,
             }
           : undefined

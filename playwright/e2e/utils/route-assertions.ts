@@ -6,8 +6,9 @@ import { expect, type Page, type Response } from '@playwright/test';
  * Provides a single, robust "does this route render?" check used by the
  * dedicated per-area route specs. Mirrors the proven logic in
  * `e2e/tests/smoke/all-app-pages.spec.ts` so every spec asserts the same
- * health signals: real HTTP response, no framework error overlay, no redirect
- * to login, and a non-blank body.
+ * health signals: real HTTP response, no framework error overlay, no caught
+ * application ErrorBoundary fallback, no redirect to login, and a non-blank
+ * body.
  *
  * @module route-assertions
  */
@@ -17,6 +18,50 @@ interface AssertRouteOptions {
   allowRedirectToLogin?: boolean;
   /** Navigation timeout in ms. */
   timeout?: number;
+}
+
+/**
+ * Selector for the marker shared by every application ErrorBoundary fallback:
+ * `packages/ui/src/components/error/ErrorBoundary` (and the components that
+ * delegate to it, e.g. `@ui/display/error-boundary/ErrorBoundary`), the
+ * Next.js `error.tsx` / `global-error.tsx` route boundaries, and the two
+ * boundary-like gates that render `ErrorFallback` directly for an
+ * unrecoverable, page-blocking failure (`routed-organization-boundary.tsx`'s
+ * `failed` status and the workspace segment's `error.tsx`).
+ *
+ * Deliberately NOT present on a component's own handled loading, empty, or
+ * recoverable request-error UI (e.g. a list's "could not load, retry"
+ * state) — those are valid product states, not a caught render exception.
+ */
+export const ERROR_BOUNDARY_FALLBACK_SELECTOR =
+  '[data-testid="error-boundary-fallback"]';
+
+/**
+ * Asserts the current page did not render an application ErrorBoundary
+ * fallback. The framework's own error overlay only fires for a raw, uncaught
+ * exception — a React ErrorBoundary catches the same exception and renders a
+ * normal-looking page, so a route smoke that checks only for the overlay and
+ * a non-blank body can stay green while the app is actually broken (#5070).
+ *
+ * Most boundaries trip only after client data loads, so the check first lets
+ * the network go idle (bounded, best-effort — polling pages fall through).
+ * Checking right after `domcontentloaded` passes before the fallback exists.
+ *
+ * @param page - Playwright page, already navigated to `route`
+ * @param route - The route being checked, used only for the failure message
+ */
+export async function assertNoErrorBoundaryFallback(
+  page: Page,
+  route: string,
+): Promise<void> {
+  await page
+    .waitForLoadState('networkidle', { timeout: 5_000 })
+    .catch(() => {});
+
+  await expect(
+    page.locator(ERROR_BOUNDARY_FALLBACK_SELECTOR),
+    `${route} rendered an application error boundary`,
+  ).toHaveCount(0, { timeout: 1_000 });
 }
 
 /**
@@ -46,6 +91,8 @@ export async function assertRouteRenders(
     page.locator('[data-nextjs-dialog]'),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
+
+  await assertNoErrorBoundaryFallback(page, route);
 
   if (!allowRedirectToLogin) {
     expect(page.url(), `${route} redirected to login`).not.toMatch(/\/login/);
@@ -99,7 +146,8 @@ export async function tryClick(page: Page, selector: string): Promise<boolean> {
 }
 
 /**
- * Asserts the current page is not showing a framework/runtime error overlay.
+ * Asserts the current page is not showing a framework/runtime error overlay
+ * or a caught application ErrorBoundary fallback.
  *
  * @param page - Playwright page
  */
@@ -107,4 +155,5 @@ export async function expectNoErrorOverlay(page: Page): Promise<void> {
   await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0, {
     timeout: 1_000,
   });
+  await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
 }

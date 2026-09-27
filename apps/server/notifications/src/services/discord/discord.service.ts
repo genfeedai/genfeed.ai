@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IDiscordEmbed,
+  IDiscordEmbedField,
   IIngredientNotificationData,
   IRevenueNotificationPayload,
   IUserCreatedPayload,
@@ -769,15 +770,70 @@ export class DiscordService {
     subscription_invoice: 'Subscription invoice',
   };
 
+  /**
+   * Stripe currencies with no minor unit — the integer amount Stripe sends
+   * already equals the major unit, so it must not be divided by 100.
+   * https://docs.stripe.com/currencies#zero-decimal
+   *
+   * ISK and UGX are deliberately excluded even though both are real-world
+   * zero-decimal currencies today: Stripe's documented special case for each
+   * requires the `amount` to keep arriving in two-decimal form for backward
+   * compatibility (e.g. `500` means 5 ISK / 5 UGX, not 500), so they use the
+   * standard 100 scale below. HUF and TWD have their own special case, but
+   * it only affects manual *payouts* — charge/invoice amounts for both stay
+   * two-decimal, so neither belongs in this set either.
+   * https://docs.stripe.com/currencies#special-cases
+   */
+  private static readonly ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> =
+    new Set([
+      'BIF',
+      'CLP',
+      'DJF',
+      'GNF',
+      'JPY',
+      'KMF',
+      'KRW',
+      'MGA',
+      'PYG',
+      'RWF',
+      'VND',
+      'VUV',
+      'XAF',
+      'XOF',
+      'XPF',
+    ]);
+
+  /**
+   * Stripe currencies with a three-digit minor unit (1000 minor units per
+   * major unit) instead of the usual two.
+   * https://docs.stripe.com/currencies#special-cases
+   */
+  private static readonly THREE_DECIMAL_CURRENCIES: ReadonlySet<string> =
+    new Set(['BHD', 'JOD', 'KWD', 'OMR', 'TND']);
+
+  /** Stripe's minor-unit scale for `currency` — 1, 100, or 1000 per major unit. */
+  private resolveMinorUnitScale(currency: string): number {
+    if (DiscordService.ZERO_DECIMAL_CURRENCIES.has(currency)) {
+      return 1;
+    }
+    if (DiscordService.THREE_DECIMAL_CURRENCIES.has(currency)) {
+      return 1000;
+    }
+    return 100;
+  }
+
   private formatRevenueAmount(amountMinor: number, currency: string): string {
     const normalizedCurrency = currency.trim().toUpperCase() || 'USD';
+    const scale = this.resolveMinorUnitScale(normalizedCurrency);
+    const majorAmount = amountMinor / scale;
     try {
       return new Intl.NumberFormat('en-US', {
         currency: normalizedCurrency,
         style: 'currency',
-      }).format(amountMinor / 100);
+      }).format(majorAmount);
     } catch {
-      return `${(amountMinor / 100).toFixed(2)} ${normalizedCurrency}`;
+      const decimalDigits = scale === 1 ? 0 : scale === 1000 ? 3 : 2;
+      return `${majorAmount.toFixed(decimalDigits)} ${normalizedCurrency}`;
     }
   }
 
@@ -798,21 +854,36 @@ export class DiscordService {
           revenue.amountMinor,
           revenue.currency,
         );
-        const label =
-          revenue.planLabel || this.formatRevenueSourceLabel(revenue.source);
+        // The Source field always names the revenue event source — a plan
+        // label (when known) is additive, shown in the description and its
+        // own field, and must never replace Source (genfeedai/genfeed.ai#5313).
+        const sourceLabel = this.formatRevenueSourceLabel(revenue.source);
+        const description = revenue.planLabel
+          ? `**${amount}** — ${revenue.planLabel} (${sourceLabel})`
+          : `**${amount}** — ${sourceLabel}`;
+
+        const fields: IDiscordEmbedField[] = [
+          {
+            inline: true,
+            name: 'Organization',
+            value: revenue.organizationId,
+          },
+          { inline: true, name: 'Amount', value: amount },
+          { inline: true, name: 'Source', value: sourceLabel },
+        ];
+
+        if (revenue.planLabel) {
+          fields.push({
+            inline: true,
+            name: 'Plan',
+            value: revenue.planLabel,
+          });
+        }
 
         const embed: IDiscordEmbed = {
           color: 0x2ecc71,
-          description: `**${amount}** — ${label}`,
-          fields: [
-            {
-              inline: true,
-              name: 'Organization',
-              value: revenue.organizationId,
-            },
-            { inline: true, name: 'Amount', value: amount },
-            { inline: true, name: 'Source', value: label },
-          ],
+          description,
+          fields,
           timestamp: new Date().toISOString(),
           title: 'Revenue Received',
         };

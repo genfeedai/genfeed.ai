@@ -68,6 +68,7 @@ export * from './automation/setting.interface';
 export * from './automation/setting-option.interface';
 export * from './automation/smart-scheduler.interface';
 export * from './automation/sort.interface';
+export * from './automation/stale-pending-workflow-execution.interface';
 export * from './automation/subscription-change-preview.interface';
 export * from './automation/system-workflow-contract.interface';
 export * from './automation/task.interface';

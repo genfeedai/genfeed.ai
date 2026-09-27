@@ -193,6 +193,44 @@ test.describe('Tasks — deep interactions', () => {
   test('renders a task detail route directly', async ({
     authenticatedPage,
   }) => {
+    const task = {
+      identifier: 'GEN-201',
+      isDeleted: false,
+      priority: 'medium',
+      status: 'todo',
+      taskNumber: 201,
+      title: 'Expand task center coverage',
+    };
+    const taskDocument = () => ({
+      data: { attributes: task, id: 'task-201', type: 'tasks' },
+    });
+
+    // `task-201` contains a dash, so the detail page resolves it by identifier.
+    await authenticatedPage.route(
+      '**/tasks/by-identifier/task-201',
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify(taskDocument()),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    );
+    // Status buttons PATCH the task and render the updated document.
+    await authenticatedPage.route('**/v1/tasks/task-201', async (route) => {
+      if (route.request().method() !== 'PATCH') {
+        await route.fallback();
+        return;
+      }
+      const update = route.request().postDataJSON() as { status?: string };
+      task.status = update.status ?? task.status;
+      await route.fulfill({
+        body: JSON.stringify(taskDocument()),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
     await assertRouteRenders(
       authenticatedPage,
       `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
@@ -201,6 +239,12 @@ test.describe('Tasks — deep interactions', () => {
     expect(new URL(authenticatedPage.url()).pathname).toBe(
       `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
     );
+
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Expand task center coverage',
+      }),
+    ).toBeVisible();
 
     // Touch any status / action controls present on the detail page.
     await tryClick(authenticatedPage, 'button:has-text("In Progress")');

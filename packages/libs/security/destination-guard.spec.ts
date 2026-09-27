@@ -93,6 +93,77 @@ describe('destination guard', () => {
     );
   });
 
+  it('rejects an HTTP destination when allowedSchemes is https-only', async () => {
+    await expect(
+      resolveSafeDestination('http://public.example/asset', {
+        allowedSchemes: ['https:'],
+      }),
+    ).rejects.toThrow('https scheme');
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
+  it('does not connect when safeFetch rejects the scheme up front', async () => {
+    await expect(
+      safeFetch(
+        'http://public.example/asset',
+        {},
+        { allowedSchemes: ['https:'] },
+      ),
+    ).rejects.toBeInstanceOf(DestinationGuardError);
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+    expect(httpRequestMock).not.toHaveBeenCalled();
+    expect(httpsRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('allows an HTTPS destination when allowedSchemes is https-only', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    await expect(
+      resolveSafeDestination('https://public.example/asset', {
+        allowedSchemes: ['https:'],
+      }),
+    ).resolves.toMatchObject({ address: '93.184.216.34', family: 4 });
+  });
+
+  it('rejects an HTTPS-to-HTTP redirect when allowedSchemes is https-only, before requesting the HTTP target', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpsRequestMock.mockImplementation(
+      (
+        _url: URL,
+        _options: unknown,
+        callback: (response: Readable) => void,
+      ) => {
+        const request = new EventEmitter() as EventEmitter & {
+          end: (body?: unknown) => void;
+        };
+        request.end = vi.fn();
+        const response = Readable.from([]);
+        Object.assign(response, {
+          rawHeaders: ['location', 'http://insecure.example/next'],
+          statusCode: 302,
+          statusMessage: 'Found',
+        });
+        callback(response);
+        return request;
+      },
+    );
+
+    await expect(
+      safeFetch(
+        'https://public.example/start',
+        {},
+        { allowedSchemes: ['https:'] },
+      ),
+    ).rejects.toThrow('https scheme');
+
+    // The initial HTTPS hop was requested, but the redirect target is
+    // rejected by the scheme check before any request (of either kind) is
+    // made to it.
+    expect(httpsRequestMock).toHaveBeenCalledTimes(1);
+    expect(httpRequestMock).not.toHaveBeenCalled();
+    expect(dnsLookupMock).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects a hostname when any DNS answer is private', async () => {
     dnsLookupMock.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },

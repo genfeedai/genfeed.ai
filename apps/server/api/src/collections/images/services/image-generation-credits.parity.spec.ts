@@ -25,7 +25,7 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
     ),
   };
   const byokService = {
-    isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+    resolveApiKey: vi.fn().mockResolvedValue(undefined),
   };
   const service = new ImageGenerationCreditsService(
     creditsUtilsService as never,

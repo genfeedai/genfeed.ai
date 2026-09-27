@@ -16,6 +16,7 @@ import type {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
   type BrandRelocationPreview,
@@ -131,6 +132,7 @@ export class BrandsService extends BaseService<
     private readonly brandOsPreviewService: BrandOsPreviewService,
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly skillsService: SkillsService,
+    private readonly brandLifecycleService: BrandLifecycleService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -840,63 +842,15 @@ export class BrandsService extends BaseService<
     );
   }
 
+  /**
+   * Soft-deletes a brand, atomically (#5295). Delegates to
+   * `BrandLifecycleService`, which locks every live brand row of the
+   * organization before enforcing the last-brand guard, reassigning members,
+   * and busting each moved member's identity/context caches — see there for
+   * why this can't be three unguarded statements.
+   */
   async remove(id: string): Promise<BrandDocument> {
-    this.logger.debug('Soft deleting brand', {
-      brandId: id,
-      operation: 'remove',
-      service: this.constructorName,
-    });
-
-    const existing = await this.findOne({ id });
-    if (!existing || typeof existing.organizationId !== 'string') {
-      throw new NotFoundException('Brand', id);
-    }
-    const organizationId = existing.organizationId;
-
-    // An org always keeps at least one non-deleted brand (#5219): every member's
-    // currentBrandId must keep resolving. Refuse to delete the last one instead
-    // of leaving members pointed at a soft-deleted brand.
-    const fallbackBrand = await this.prisma.brand.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-      where: { id: { not: id }, isDeleted: false, organizationId },
-    });
-
-    if (!fallbackBrand) {
-      throw new ConflictException(
-        "Cannot delete an organization's last brand. Create another brand first.",
-      );
-    }
-
-    // Move every member currently pointed at this brand to the fallback before
-    // the brand disappears — currentBrandId is a required invariant, never null.
-    await this.prisma.member.updateMany({
-      data: { currentBrandId: fallbackBrand.id },
-      where: { currentBrandId: id, isDeleted: false, organizationId },
-    });
-
-    const brand = await super.remove(id);
-
-    if (!brand) {
-      throw new NotFoundException('Brand', id);
-    }
-
-    // Invalidate single-brand cache key; list is busted by BaseService.remove()
-    await this.cacheInvalidationService.invalidate(
-      CACHE_PATTERNS.BRANDS_SINGLE(id),
-    );
-
-    if (typeof brand.organizationId === 'string' && brand.organizationId) {
-      // A deleted brand must stop resolving as the org's agent brand context.
-      await this.cacheInvalidationService.invalidateByTags([
-        SCOPED_CACHE_TAGS.BRAND_CONTEXT(brand.organizationId),
-      ]);
-      await this.accessBootstrapCacheService.invalidateForOrganization(
-        brand.organizationId,
-      );
-    }
-
-    return brand;
+    return this.brandLifecycleService.remove(id);
   }
 
   // ───────────────────────── Brand → organization relocation ─────────────────────────
@@ -940,37 +894,22 @@ export class BrandsService extends BaseService<
    * required per-member invariant — this is the single write path for it, and
    * there is no "clear" counterpart (a member always has a current brand).
    */
+  /**
+   * Sets the acting member's current brand, atomically (#5295). Delegates to
+   * `BrandLifecycleService`, which locks the target brand row before
+   * validating and writing it, so this can never race a concurrent
+   * `remove()` of the same brand into leaving the member on a deleted row —
+   * see there for the full lock ordering.
+   */
   async selectBrandForUser(
     brandId: string,
     userId: string,
     organizationId: string,
   ): Promise<BrandDocument> {
-    this.logger.debug('Setting current brand for member', {
+    return this.brandLifecycleService.selectBrandForUser(
       brandId,
-      operation: 'selectBrandForUser',
-      organizationId,
-      service: this.constructorName,
       userId,
-    });
-
-    const targetBrand = await this.findOne({
-      id: brandId,
-      organizationId: organizationId,
-    });
-
-    if (!targetBrand) {
-      throw new NotFoundException('Brand', brandId);
-    }
-
-    const updated = await this.prisma.member.updateMany({
-      data: { currentBrandId: targetBrand.id },
-      where: scopedWhere(organizationId, { userId }),
-    });
-
-    if (updated.count === 0) {
-      throw new NotFoundException('Member', userId);
-    }
-
-    return targetBrand;
+      organizationId,
+    );
   }
 }
