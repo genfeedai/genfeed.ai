@@ -30,6 +30,8 @@ describe('SourceCollectorService', () => {
       SocialSourcePlatform.TWITTER,
       SocialSourcePlatform.INSTAGRAM,
       SocialSourcePlatform.TIKTOK,
+      SocialSourcePlatform.YOUTUBE,
+      SocialSourcePlatform.LINKEDIN,
     ],
     canCollect: vi.fn(),
     collectPost: vi.fn(),
