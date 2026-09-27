@@ -59,12 +59,14 @@ export function clearRequestOrganizationId(): void {
 }
 
 /**
- * The routed organization confirmed for tenant requests, or `null` while none
- * is confirmed. Raw-`fetch` clients send it as `ORGANIZATION_CONTEXT_HEADER`,
- * exactly as the axios interceptor does, so the API can fail closed on drift.
+ * `ORGANIZATION_CONTEXT_HEADER` for raw-`fetch` tenant clients, set exactly
+ * when the axios interceptor would send it, so the API can fail closed on
+ * organization drift. Empty while no routed organization is confirmed.
  */
-export function getRequestOrganizationId(): string | null {
-  return requestOrganizationId;
+export function getRequestOrganizationHeaders(): Record<string, string> {
+  return requestOrganizationId
+    ? { [ORGANIZATION_CONTEXT_HEADER]: requestOrganizationId }
+    : {};
 }
 
 /**

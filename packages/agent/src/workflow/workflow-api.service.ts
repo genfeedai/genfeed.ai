@@ -1,3 +1,4 @@
+import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
 import type {
   AgentWorkflowState,
   Approach,
@@ -94,6 +95,7 @@ export function createWorkflowApiService(
       ...init,
       headers: {
         'Content-Type': 'application/json',
+        ...getRequestOrganizationHeaders(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },

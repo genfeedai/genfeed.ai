@@ -1,4 +1,9 @@
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -85,6 +90,7 @@ describe('useMicrophoneInput', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    clearRequestOrganizationId();
   });
 
   it('reports support when getUserMedia exists', () => {
@@ -155,6 +161,33 @@ describe('useMicrophoneInput', () => {
     expect(tracks[0]?.stop).toHaveBeenCalled();
     await waitFor(() => {
       expect(result.current.isTranscribing).toBe(false);
+    });
+  });
+
+  it('sends the confirmed routed organization with the transcription request', async () => {
+    setRequestOrganizationId('org_alpha');
+    vi.mocked(global.fetch).mockResolvedValue({
+      json: async () => ({ text: 'scoped' }),
+      ok: true,
+      status: 200,
+    } as unknown as Response);
+
+    const { onTranscript, result } = renderMic();
+
+    await act(async () => {
+      result.current.startListening();
+    });
+    await act(async () => {
+      result.current.stopListening();
+    });
+
+    await waitFor(() => {
+      expect(onTranscript).toHaveBeenCalledWith('scoped');
+    });
+    const [, init] = vi.mocked(global.fetch).mock.calls.at(-1) ?? [];
+    expect(init?.headers).toMatchObject({
+      Authorization: 'Bearer tok',
+      [ORGANIZATION_CONTEXT_HEADER]: 'org_alpha',
     });
   });
 
