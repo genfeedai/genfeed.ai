@@ -197,11 +197,19 @@ function buildRunbookUrl(anchor: string): string {
   return `${RUNBOOK_URL}#${anchor}`;
 }
 
+/**
+ * Denominator is `signup_completed` events with paid plan intent only
+ * (genfeedai/genfeed.ai#4969) — `?plan=payg` is a free handoff, not a paid
+ * plan, and `hasPlanIntent` is false for it (sign-up-better-auth.tsx,
+ * use-post-signup-routing.hook.ts). Without this filter every payg signup
+ * — which never starts a subscription checkout — counts against the
+ * conversion rate, driving it toward zero regardless of real drop-off.
+ */
 export function buildSignupToCheckoutQuery(config: RuntimeConfig): string {
   return `
 WITH counts AS (
   SELECT
-    countIf(event = 'signup_completed') AS signup_completed,
+    countIf(event = 'signup_completed' AND properties.hasPlanIntent = true) AS signup_completed,
     countIf(event = 'checkout_started') AS checkout_started
   FROM events
   WHERE timestamp >= now() - INTERVAL ${config.windowMinutes} MINUTE
