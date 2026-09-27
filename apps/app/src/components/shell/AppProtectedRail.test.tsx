@@ -141,17 +141,10 @@ vi.mock('@ui/shell/app-rail/AppRail', () => ({
 }));
 
 vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
-  default: ({
-    subscriptionTier,
-    variant,
-  }: {
-    subscriptionTier?: string | null;
-    variant?: string;
-  }) => (
+  default: ({ subscriptionTier }: { subscriptionTier?: string | null }) => (
     <div
       data-testid="organization-switcher"
       data-subscription-tier={subscriptionTier ?? ''}
-      data-variant={variant}
     />
   ),
 }));
@@ -311,7 +304,6 @@ describe('AppProtectedRail', () => {
     render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
 
     const organization = screen.getByTestId('organization-switcher');
-    expect(organization).toHaveAttribute('data-variant', 'avatar');
     expect(organization).toHaveAttribute('data-subscription-tier', 'pro');
   });
 

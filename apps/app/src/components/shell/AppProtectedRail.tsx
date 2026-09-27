@@ -102,10 +102,7 @@ function AppProtectedRailContent({
         // Slack workspace icon. Personal-account settings pages have no org
         // context to switch from (#4659).
         isPersonalSettingsPage(pathname) ? undefined : (
-          <OrganizationSwitcher
-            subscriptionTier={settings?.subscriptionTier}
-            variant="avatar"
-          />
+          <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
         )
       }
       badges={{
