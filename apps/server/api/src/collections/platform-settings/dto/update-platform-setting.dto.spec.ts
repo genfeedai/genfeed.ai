@@ -87,4 +87,58 @@ describe('UpdatePlatformSettingDto', () => {
     });
     expect(errors.length).toBeGreaterThan(0);
   });
+
+  describe('feature switches (#5407)', () => {
+    it('accepts a full set of valid switches', async () => {
+      await expect(
+        validateDto({
+          agentAutoRoutingDecisionMode: 'live',
+          isEmailVerificationRequired: true,
+          isMediaPerceptionEnabled: false,
+          mediaPerceptionFrameCount: 24,
+          mediaPerceptionLookbackHours: 1,
+          mediaPerceptionVisionModel: null,
+          moderationProvider: 'openai',
+          moderationThresholds: { sexual: 0.5, sexual_minors: 0 },
+          patternAnalyzerDecisionMode: 'shadow',
+          systemEventsEnabledAt: '2026-09-28T08:00:00.000Z',
+          untrustedContentMinConfidence: 1,
+        }),
+      ).resolves.toHaveLength(0);
+    });
+
+    it('accepts turning system-event recording off', async () => {
+      await expect(
+        validateDto({ systemEventsEnabledAt: null }),
+      ).resolves.toHaveLength(0);
+    });
+
+    it.each([
+      { taskRoutingDecisionMode: 'live' },
+      { patternAnalyzerDecisionMode: 'live' },
+      { untrustedContentDecisionMode: 'live' },
+    ])(
+      'refuses live on a shadow-capped decision point: %o',
+      async (payload) => {
+        expect((await validateDto(payload)).length).toBeGreaterThan(0);
+      },
+    );
+
+    it.each([
+      { mediaGateVisionMode: 'loud' },
+      { moderationProvider: 'acme' },
+      { replyBotIntentMinConfidence: 1.2 },
+      { modelDiscoveryMinConfidence: -0.1 },
+      { mediaPerceptionFrameCount: 25 },
+      { mediaPerceptionFrameCount: 2.5 },
+      { mediaPerceptionLookbackHours: 0 },
+      { isAgentTokenStreamingEnabled: 'true' },
+      { systemEventsEnabledAt: 'yesterday' },
+      { moderationThresholds: { nudity: 0.5 } },
+      { moderationThresholds: { sexual: 1.5 } },
+      { moderationThresholds: 'sexual=0.5' },
+    ])('rejects %o', async (payload) => {
+      expect((await validateDto(payload)).length).toBeGreaterThan(0);
+    });
+  });
 });

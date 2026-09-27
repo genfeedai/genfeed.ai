@@ -3,6 +3,7 @@ import type { BetterAuthOptions, RateLimit } from 'better-auth';
 import { parseUserInput } from 'better-auth/db';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  applyEmailVerificationPolicy,
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
@@ -640,6 +641,32 @@ describe('buildBetterAuthMagicLinkOptions', () => {
   });
 });
 
+describe('applyEmailVerificationPolicy', () => {
+  it('writes the platform setting onto the options Better Auth reads per request', () => {
+    const options: BetterAuthOptions = {
+      emailAndPassword: { enabled: true, requireEmailVerification: false },
+      emailVerification: { sendOnSignIn: false, sendOnSignUp: false },
+    };
+
+    applyEmailVerificationPolicy(options, true);
+    expect(options.emailAndPassword?.requireEmailVerification).toBe(true);
+    expect(options.emailVerification?.sendOnSignIn).toBe(true);
+    expect(options.emailVerification?.sendOnSignUp).toBe(true);
+
+    applyEmailVerificationPolicy(options, false);
+    expect(options.emailAndPassword?.requireEmailVerification).toBe(false);
+    expect(options.emailVerification?.sendOnSignUp).toBe(false);
+  });
+
+  it('leaves absent option groups absent', () => {
+    const options: BetterAuthOptions = {};
+
+    applyEmailVerificationPolicy(options, true);
+
+    expect(options).toEqual({});
+  });
+});
+
 describe('createBetterAuthInstance source', () => {
   it('wires social provider and email-verification options into Better Auth', () => {
     const source = createBetterAuthInstance.toString();
@@ -648,6 +675,7 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain('github');
     expect(source).toContain('google');
     expect(source).toContain('requireEmailVerification');
+    expect(source).toContain('buildEmailVerificationPolicyHook');
     expect(source).toContain('sendVerificationEmail');
     expect(source).toContain('sendResetPassword');
     expect(source).toContain('revokeSessionsOnPasswordReset');

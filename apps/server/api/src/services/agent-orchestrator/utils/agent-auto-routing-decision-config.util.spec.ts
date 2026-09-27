@@ -1,38 +1,20 @@
 import { resolveAgentAutoRoutingDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-auto-routing-decision-config.util';
-import type { ConfigService } from '@libs/config/config.service';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
-
-function configService(env: Record<string, unknown>): ConfigService {
-  return {
-    get: (key: string) => env[key],
-  } as unknown as ConfigService;
-}
 
 describe('resolveAgentAutoRoutingDecisionConfig', () => {
   it('defaults to off', () => {
-    expect(resolveAgentAutoRoutingDecisionConfig(configService({}))).toEqual({
-      mode: 'off',
-    });
-  });
-
-  it('reads the configured mode', () => {
     expect(
-      resolveAgentAutoRoutingDecisionConfig(
-        configService({ AGENT_AUTO_ROUTING_DECISION_MODE: 'live' }),
-      ).mode,
-    ).toBe('live');
-    expect(
-      resolveAgentAutoRoutingDecisionConfig(
-        configService({ AGENT_AUTO_ROUTING_DECISION_MODE: 'shadow' }),
-      ).mode,
-    ).toBe('shadow');
-  });
-
-  it('treats an unrecognised value as the safe default', () => {
-    expect(
-      resolveAgentAutoRoutingDecisionConfig(
-        configService({ AGENT_AUTO_ROUTING_DECISION_MODE: 'LIVE' }),
-      ),
+      resolveAgentAutoRoutingDecisionConfig(DEFAULT_PLATFORM_FEATURE_SETTINGS),
     ).toEqual({ mode: 'off' });
+  });
+
+  it.each(['shadow', 'live'] as const)('reads %s', (mode) => {
+    expect(
+      resolveAgentAutoRoutingDecisionConfig({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        agentAutoRoutingDecisionMode: mode,
+      }).mode,
+    ).toBe(mode);
   });
 });
