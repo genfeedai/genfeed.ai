@@ -39,13 +39,8 @@
     "save": "Save"
   },
   "activity": {
-    "empty": "No activity yet",
-    "error": "Couldn't load recent activity",
-    "label": "Activity",
-    "loading": "Loading activity...",
     "open": "Open activity",
     "recentLabel": "Recent activity",
-    "viewAll": "View all activity",
     "creditAdded": "{count, plural, one {# credit added} other {# credits added}}",
     "creditBalanceLabel": "Credit balance",
     "creditUsage": "{count, plural, one {# credit used} other {# credits used}}",
@@ -92,9 +87,6 @@
     "approval": {
       "requested": "Tool approval needed"
     },
-    "reconnecting": "Reconnecting to live updates. Activity is checked automatically.",
-    "activeCount": "{count, plural, one {# task in progress} other {# tasks in progress}}",
-    "activeTab": "Activity ({count})",
     "view": "View"
   },
   "agentAuth": {
@@ -1756,7 +1748,6 @@
   },
   "notificationInbox": {
     "title": "Notifications",
-    "tabsLabel": "Updates",
     "open": "Open notifications",
     "openCount": "Open notifications, {count} unread",
     "readAll": "Mark all read",
@@ -1766,11 +1757,12 @@
     "readError": "Could not mark notifications read. Try again.",
     "loading": "Loading notifications\u2026",
     "loadError": "Could not load notifications.",
-    "empty": "You are all caught up. New workflow outcomes, agent alerts, and replies to your posts will appear here.",
+    "empty": "You are all caught up. Alerts about your runs, publishing, credits, and replies to your posts will appear here.",
     "completed": "Workflow completed",
     "failed": "Run failed",
     "unread": "Unread",
     "openSource": "Open run",
+    "openDetails": "View details",
     "unavailable": "Source unavailable",
     "loadMore": "Load older notifications",
     "socialReply": {
