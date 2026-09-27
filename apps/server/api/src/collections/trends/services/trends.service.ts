@@ -416,12 +416,14 @@ export class TrendsService {
     limit: number = 10,
     onBilling?: (amount: number) => void,
     brand?: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
   ): Promise<Map<string, TrendIdea[]>> {
     return this.trendContentIdeasService.generateContentIdeas(
       trends,
       limit,
       onBilling,
       brand,
+      byokApiKeyOverride,
     );
   }
 

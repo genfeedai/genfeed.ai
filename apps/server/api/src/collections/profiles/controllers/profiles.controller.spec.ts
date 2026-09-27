@@ -29,6 +29,11 @@ describe('ProfilesController', () => {
   let controller: ProfilesController;
   let service: ProfilesService;
   let mockReq: Request;
+  let creditsUtilsService: {
+    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
+    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+  };
+  let modelsService: { findOne: ReturnType<typeof vi.fn> };
 
   const mockUser: User = {
     id: 'user_123',
@@ -61,22 +66,22 @@ describe('ProfilesController', () => {
 
   beforeEach(async () => {
     mockReq = {} as Request;
+    creditsUtilsService = {
+      checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
+    };
+    modelsService = { findOne: vi.fn().mockResolvedValue(null) };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProfilesController],
       providers: [
         {
           provide: CreditsUtilsService,
-          useValue: {
-            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
-          },
+          useValue: creditsUtilsService,
         },
         {
           provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
+          useValue: modelsService,
         },
         {
           provide: ProfilesService,
@@ -233,8 +238,60 @@ describe('ProfilesController', () => {
         dto,
         mockUser.organizationId,
         expect.any(Function),
+        undefined,
       );
       expect(response).toEqual(result);
+    });
+
+    // #5375: BYOK — when the guard already granted a bypass, the platform
+    // credits floor preflight is skipped and the resolved key reaches the
+    // service call.
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const dto: ApplyProfileDto = {
+        contentType: 'article',
+        profileId,
+        prompt: 'Original prompt',
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as Request;
+      mockProfilesService.applyProfile.mockResolvedValue({
+        enhanced: 'Enhanced',
+        original: 'Original prompt',
+        profileApplied: profileId,
+      });
+
+      await controller.applyProfile(byokReq, dto, mockUser);
+
+      // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
+      // whole preflight block is skipped when the guard already bypassed.
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(service.applyProfile).toHaveBeenCalledWith(
+        dto,
+        mockUser.organizationId,
+        expect.any(Function),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: ApplyProfileDto = {
+        contentType: 'article',
+        profileId,
+        prompt: 'Original prompt',
+      };
+      mockProfilesService.applyProfile.mockResolvedValue({
+        enhanced: 'Enhanced',
+        original: 'Original prompt',
+        profileApplied: profileId,
+      });
+
+      await controller.applyProfile(mockReq, dto, mockUser);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
@@ -259,15 +316,67 @@ describe('ProfilesController', () => {
         dto,
         mockUser.organizationId,
         expect.any(Function),
+        undefined,
       );
       expect(result).toEqual(analysis);
+    });
+
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const dto: AnalyzeToneDto = {
+        content: 'Test content',
+        contentType: 'article',
+        profileId,
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as Request;
+      mockProfilesService.analyzeTone.mockResolvedValue({
+        compliance: 'high',
+        score: 85,
+        suggestions: [],
+      });
+
+      await controller.analyzeTone(byokReq, dto, mockUser);
+
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(service.analyzeTone).toHaveBeenCalledWith(
+        dto,
+        mockUser.organizationId,
+        expect.any(Function),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: AnalyzeToneDto = {
+        content: 'Test content',
+        contentType: 'article',
+        profileId,
+      };
+      mockProfilesService.analyzeTone.mockResolvedValue({
+        compliance: 'high',
+        score: 85,
+        suggestions: [],
+      });
+
+      await controller.analyzeTone(mockReq, dto, mockUser);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
   describe('generateFromExamples', () => {
     it('should generate profile from examples', async () => {
       const dto: GenerateFromExamplesDto = {
-        examples: ['Example 1', 'Example 2', 'Example 3'],
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+          { content: 'Example 3', contentType: 'article' },
+        ],
         label: 'Generated Profile',
       };
 
@@ -284,8 +393,54 @@ describe('ProfilesController', () => {
         mockUser.organizationId,
         mockUser.id,
         expect.any(Function),
+        undefined,
       );
       expect(result).toEqual(mockProfile);
+    });
+
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const dto: GenerateFromExamplesDto = {
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+        ],
+        label: 'Generated Profile',
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as Request;
+      mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);
+
+      await controller.generateFromExamples(byokReq, dto, mockUser);
+
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(service.generateFromExamples).toHaveBeenCalledWith(
+        dto,
+        mockUser.organizationId,
+        mockUser.id,
+        expect.any(Function),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: GenerateFromExamplesDto = {
+        description: 'Generated from examples',
+        examples: [
+          { content: 'Example 1', contentType: 'article' },
+          { content: 'Example 2', contentType: 'article' },
+        ],
+        label: 'Generated Profile',
+      };
+      mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);
+
+      await controller.generateFromExamples(mockReq, dto, mockUser);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 });

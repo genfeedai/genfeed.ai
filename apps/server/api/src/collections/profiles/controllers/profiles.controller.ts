@@ -14,6 +14,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -26,7 +27,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
+import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import { ProfileSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -149,7 +150,9 @@ export class ProfilesController {
   @Post(':profileId/apply')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Profile prompt application (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -160,11 +163,14 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organization,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
+    const creditsConfig = (request as CreditsGuardRequest).creditsConfig;
+    if (!creditsConfig?.isByokBypass) {
+      await assertOrganizationCreditsAvailable(
+        this.creditsUtilsService,
+        organization,
+        await getDefaultTextMinimumCredits(this.modelsService),
+      );
+    }
 
     let billedCredits = 0;
     const result = await this.profilesService.applyProfile(
@@ -173,6 +179,7 @@ export class ProfilesController {
       (amount) => {
         billedCredits += amount;
       },
+      creditsConfig?.byokApiKeyOverride,
     );
 
     finalizeDeferredTextCredits(request, billedCredits);
@@ -186,7 +193,9 @@ export class ProfilesController {
   @Post(':profileId/analyze')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Profile tone analysis (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -197,11 +206,14 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organization,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
+    const creditsConfig = (request as CreditsGuardRequest).creditsConfig;
+    if (!creditsConfig?.isByokBypass) {
+      await assertOrganizationCreditsAvailable(
+        this.creditsUtilsService,
+        organization,
+        await getDefaultTextMinimumCredits(this.modelsService),
+      );
+    }
 
     let billedCredits = 0;
     const result = await this.profilesService.analyzeTone(
@@ -210,6 +222,7 @@ export class ProfilesController {
       (amount) => {
         billedCredits += amount;
       },
+      creditsConfig?.byokApiKeyOverride,
     );
 
     finalizeDeferredTextCredits(request, billedCredits);
@@ -223,7 +236,9 @@ export class ProfilesController {
   @Post('generate')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Profile generation from examples (text model)',
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.SCRIPT,
   })
   @DeferCreditsUntilModelResolution()
@@ -234,11 +249,14 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await assertOrganizationCreditsAvailable(
-      this.creditsUtilsService,
-      organization,
-      await getDefaultTextMinimumCredits(this.modelsService),
-    );
+    const creditsConfig = (req as CreditsGuardRequest).creditsConfig;
+    if (!creditsConfig?.isByokBypass) {
+      await assertOrganizationCreditsAvailable(
+        this.creditsUtilsService,
+        organization,
+        await getDefaultTextMinimumCredits(this.modelsService),
+      );
+    }
 
     let billedCredits = 0;
     const profile = await this.profilesService.generateFromExamples(
@@ -248,6 +266,7 @@ export class ProfilesController {
       (amount) => {
         billedCredits += amount;
       },
+      creditsConfig?.byokApiKeyOverride,
     );
 
     finalizeDeferredTextCredits(req, billedCredits);

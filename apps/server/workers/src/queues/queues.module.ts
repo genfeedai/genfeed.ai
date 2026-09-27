@@ -22,6 +22,7 @@ import {
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -92,6 +93,20 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+      },
+      // Every dispatchClass: BACKGROUND system-workflow producer that isn't
+      // one of the three platform-cron sweep templates above — worker crons,
+      // batch generation, the clip factory, other workflow.for-each fan-out,
+      // and every other producer split off WORKFLOW_EXECUTION_QUEUE in #5271
+      // so none of them can compete with an interactive agent turn either.
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: WORKFLOW_BACKGROUND_QUEUE,
       },
       {
         defaultJobOptions: {

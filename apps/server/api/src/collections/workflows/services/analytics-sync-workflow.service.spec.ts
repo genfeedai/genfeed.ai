@@ -7,6 +7,7 @@ import {
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { getActionDefinition } from '@genfeedai/actions';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { compileActionContract } from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -291,7 +292,11 @@ describe('AnalyticsSyncWorkflowService', () => {
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ canonicalId: 'analytics-sync' }),
       expect.stringContaining('analytics-sync-org-1-all-'),
-      { attempts: 1, replaceTerminalJob: true },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
   });
 

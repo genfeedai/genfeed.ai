@@ -1,4 +1,5 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentRuntimeService } from './agent-runtime.service';
 
@@ -42,6 +43,7 @@ describe('AgentRuntimeService', () => {
       brandId: 'brand-1',
       campaignId: 'campaign-1',
       creditBudget: 12,
+      dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       label: 'Campaign run: Spring Push - Specialist',
       metadata: { clientRequestId: 'client-1' },
       model: 'openai/gpt-5.6-terra',
@@ -90,6 +92,7 @@ describe('AgentRuntimeService', () => {
         organizationId: 'org-1',
         userId: 'user-1',
       }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
     expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,6 +113,7 @@ describe('AgentRuntimeService', () => {
     agentThreadEngineService.appendEvent.mockResolvedValue(undefined);
 
     await service.startTurn({
+      dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       label: 'Campaign run',
       objective: 'Grow engagement',
       organizationId: 'org-1',
@@ -120,6 +124,7 @@ describe('AgentRuntimeService', () => {
 
     expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
       expect.not.objectContaining({ idempotencyKey: expect.anything() }),
+      { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 
@@ -133,6 +138,7 @@ describe('AgentRuntimeService', () => {
     );
 
     const handle = await service.startTurn({
+      dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       label: 'Campaign run',
       objective: 'Grow engagement',
       organizationId: 'org-1',

@@ -993,14 +993,13 @@ export class ArticlesService
     return this.articlesContentService.convertToTwitterThread(article);
   }
 
-  /**
-   * Analyze article virality potential using AI
-   */
+  /** Analyze article virality potential using AI */
   analyzeVirality(
     articleId: string,
     userId: string,
     organizationId: string,
     _brandId: string,
+    byokApiKeyOverride?: string,
   ): Promise<ViralityAnalysisResponse> {
     return this.articleInsightsService.analyzeVirality(
       articleId,
@@ -1008,6 +1007,7 @@ export class ArticlesService
       organizationId,
       (criteria) => this.findOne(criteria),
       (id, updates) => this.patch(id, updates),
+      byokApiKeyOverride,
     );
   }
 

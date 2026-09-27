@@ -14,6 +14,7 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { EmailDigestWorkflowInput } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const EMAIL_DIGEST_ACTION_IDS = {
@@ -201,7 +202,11 @@ export class EmailDigestWorkflowService implements OnModuleInit {
         userId: request.userId,
       },
       `email-digest-${request.organizationId}-${request.brandId}-${dispatchKey}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
     );
   }
 

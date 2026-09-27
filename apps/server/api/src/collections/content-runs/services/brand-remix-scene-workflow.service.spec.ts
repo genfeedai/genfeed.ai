@@ -1,4 +1,5 @@
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrandRemixSceneWorkflowService } from './brand-remix-scene-workflow.service';
 
@@ -142,7 +143,11 @@ describe('scene step chain ownership', () => {
         },
       }),
       'remix-run-op-3',
-      { attempts: 1, delayMs: 10_000 },
+      {
+        attempts: 1,
+        delayMs: 10_000,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      },
     );
   });
   it('schedules the next sequenced step while scene work is in flight', async () => {
@@ -165,7 +170,11 @@ describe('scene step chain ownership', () => {
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.anything(),
       'remix-run-op-3',
-      { attempts: 1, delayMs: 10_000 },
+      {
+        attempts: 1,
+        delayMs: 10_000,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      },
     );
   });
   it('retries the reconcile chain with backoff instead of stopping on an error', async () => {
@@ -180,7 +189,11 @@ describe('scene step chain ownership', () => {
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.anything(),
       'remix-run-op-3',
-      { attempts: 1, delayMs: 60_000 },
+      {
+        attempts: 1,
+        delayMs: 60_000,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+      },
     );
   });
 });

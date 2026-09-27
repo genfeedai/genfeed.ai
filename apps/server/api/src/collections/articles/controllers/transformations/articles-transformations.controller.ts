@@ -19,6 +19,7 @@ import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -33,7 +34,11 @@ import {
 import { RouterService } from '@api/services/router/router.service';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ByokProvider,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -94,20 +99,24 @@ export class ArticlesTransformationsController {
   @Post(':articleId/virality-analyses')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Article virality analysis (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.ARTICLE_VIRALITY_ANALYSIS,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async analyzeVirality(
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
+    @Req() request: Request,
   ) {
     return await this.articlesService.analyzeVirality(
       articleId,
       user.userId ?? user.id,
       user.organizationId,
       user.brandId,
+      (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
     );
   }
 

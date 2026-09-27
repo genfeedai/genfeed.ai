@@ -23,6 +23,7 @@ import {
   evaluateEngagementRule,
 } from '@genfeedai/contracts/api-types/contracts/engagement-rules.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -148,7 +149,11 @@ export class CronEngagementTriggersService implements OnModuleInit {
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `engagement-sweep-${bucket}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

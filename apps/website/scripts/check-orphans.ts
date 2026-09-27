@@ -78,14 +78,14 @@ const ORPHAN_ALLOWLIST = new Set<string>([
   '/founder-content',
   '/launch-content',
   '/podcast-to-content',
-  '/x-growth',
-  '/linkedin-growth',
-  '/instagram-growth',
-  '/tiktok-growth',
-  '/youtube-growth',
-  '/threads-growth',
-  '/facebook-growth',
-  '/pinterest-growth',
+  '/x',
+  '/linkedin',
+  '/instagram',
+  '/tiktok',
+  '/youtube',
+  '/threads',
+  '/facebook',
+  '/pinterest',
 ]);
 
 /**

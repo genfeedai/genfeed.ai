@@ -63,7 +63,7 @@ describe('CreditsGuard', () => {
   };
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
   let byokService: {
-    isByokActiveForProvider: ReturnType<typeof vi.fn>;
+    resolveApiKey: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe('CreditsGuard', () => {
     };
     modelsService = { findOne: vi.fn() };
     byokService = {
-      isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+      resolveApiKey: vi.fn().mockResolvedValue(undefined),
     };
 
     guard = new CreditsGuard(
@@ -718,7 +718,7 @@ describe('CreditsGuard', () => {
       if (key === CREDITS_DEFER_MODEL_RESOLUTION_KEY) return true;
       return undefined;
     });
-    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
     const ctx = createContext();
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
@@ -726,6 +726,7 @@ describe('CreditsGuard', () => {
     const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
     expect(req.creditsConfig).toMatchObject({
       amount: 0,
+      byokApiKeyOverride: 'byok-key',
       deferred: true,
       isByokBypass: true,
       provider: ByokProvider.HEYGEN,
@@ -744,16 +745,20 @@ describe('CreditsGuard', () => {
       key: MODEL_KEYS.HIGGSFIELD_SOUL,
       provider: ModelProvider.REPLICATE,
     });
-    byokService.isByokActiveForProvider.mockImplementation(
+    byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
-        Promise.resolve(provider === ByokProvider.REPLICATE),
+        Promise.resolve(
+          provider === ByokProvider.REPLICATE
+            ? { apiKey: 'byok-key' }
+            : undefined,
+        ),
     );
 
     await guard.canActivate(
       createContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL }),
     );
 
-    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
       orgId,
       ByokProvider.HIGGSFIELD,
     );
@@ -771,16 +776,20 @@ describe('CreditsGuard', () => {
       key: MODEL_KEYS.HIGGSFIELD_SOUL,
       provider: ModelProvider.REPLICATE,
     });
-    byokService.isByokActiveForProvider.mockImplementation(
+    byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
-        Promise.resolve(provider === ByokProvider.HIGGSFIELD),
+        Promise.resolve(
+          provider === ByokProvider.HIGGSFIELD
+            ? { apiKey: 'byok-key' }
+            : undefined,
+        ),
     );
     const context = createContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL });
 
     await guard.canActivate(context);
 
-    expect(byokService.isByokActiveForProvider).toHaveBeenCalledTimes(1);
-    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+    expect(byokService.resolveApiKey).toHaveBeenCalledTimes(1);
+    expect(byokService.resolveApiKey).toHaveBeenCalledWith(
       orgId,
       ByokProvider.HIGGSFIELD,
     );
@@ -788,6 +797,7 @@ describe('CreditsGuard', () => {
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
     expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      byokApiKeyOverride: 'byok-key',
       isByokBypass: true,
       provider: ByokProvider.HIGGSFIELD,
     });
@@ -805,12 +815,12 @@ describe('CreditsGuard', () => {
         amount: 10,
         provider: ByokProvider.REPLICATE,
       });
-      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
       const context = createContext();
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
 
-      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(orgId, 10);
@@ -828,14 +838,14 @@ describe('CreditsGuard', () => {
         key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         provider: ModelProvider.REPLICATE,
       });
-      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
 
       const context = createContext({
         model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       });
       await guard.canActivate(context);
 
-      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(orgId, 10);
@@ -850,12 +860,12 @@ describe('CreditsGuard', () => {
         amount: 10,
         provider: ByokProvider.REPLICATE,
       });
-      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
       const context = createContext();
 
       await expect(guard.canActivate(context)).resolves.toBe(true);
 
-      expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(orgId, 10);

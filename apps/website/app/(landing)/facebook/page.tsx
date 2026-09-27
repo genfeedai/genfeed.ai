@@ -5,12 +5,10 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 
-const config = serviceLandingConfigBySlug[
-  'youtube-growth'
-] as ServiceLandingConfig;
+const config = serviceLandingConfigBySlug.facebook as ServiceLandingConfig;
 
 export const metadata = createServiceLandingMetadata(config);
 
-export default function YouTubeGrowthPage() {
-  return <ServiceLandingPage slug="youtube-growth" />;
+export default function FacebookGrowthPage() {
+  return <ServiceLandingPage slug="facebook" />;
 }

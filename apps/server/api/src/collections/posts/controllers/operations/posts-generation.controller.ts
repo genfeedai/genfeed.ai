@@ -8,6 +8,8 @@ import {
   isOwnedPost,
   isTwitterPlatform,
   postAccessBlockReason,
+  resolveByokApiKeyOverride,
+  threadExpansionBlockReason,
 } from '@api/collections/posts/controllers/operations/posts-generation.helpers';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
@@ -50,6 +52,7 @@ import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivitySource,
+  ByokProvider,
   CredentialPlatform,
   PostCategory,
   PostRepurposeMode,
@@ -254,8 +257,10 @@ export class PostsGenerationController {
    */
   @Post(':postId/thread-expansions')
   @Credits({
+    allowByokBypass: true,
     description: 'Thread expansion (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
   @UseGuards(SubscriptionGuard, CreditsGuard)
@@ -271,43 +276,23 @@ export class PostsGenerationController {
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
+    const existingChildren = originalPost
+      ? await this.postsService.count(originalPost.organizationId, {
+          parentId: postId,
+        })
+      : 0;
+    const blockReason = threadExpansionBlockReason({
+      existingChildren,
+      isOwned: isOwnedPost(originalPost, user.organizationId),
+      isTwitter: isTwitterPlatform(originalPost?.platform),
+      postExists: Boolean(originalPost),
+    });
 
-    if (!originalPost) {
+    if (blockReason || !originalPost) {
       throw createPostsGenerationHttpException(
-        'The specified post does not exist',
-        'Post not found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    if (!isOwnedPost(originalPost, user.organizationId)) {
-      throw createPostsGenerationHttpException(
-        'You do not have access to this post',
-        'Access denied',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const existingChildren = await this.postsService.count(
-      originalPost.organizationId,
-      {
-        parentId: postId,
-      },
-    );
-
-    if (existingChildren > 0) {
-      throw createPostsGenerationHttpException(
-        'This post already has thread children. Cannot expand further.',
-        'Already a thread',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    if (!isTwitterPlatform(originalPost.platform)) {
-      throw createPostsGenerationHttpException(
-        'Thread expansion is only available for Twitter/X posts',
-        'Platform not supported',
-        HttpStatus.BAD_REQUEST,
+        blockReason?.detail ?? 'The specified post does not exist',
+        blockReason?.title ?? 'Post not found',
+        blockReason?.status ?? HttpStatus.NOT_FOUND,
       );
     }
 
@@ -338,7 +323,13 @@ export class PostsGenerationController {
     });
 
     this.postGenerationService
-      .expandThreadAsync(originalPost, createdPosts.slice(1), dto, user)
+      .expandThreadAsync(
+        originalPost,
+        createdPosts.slice(1),
+        dto,
+        user,
+        resolveByokApiKeyOverride(request),
+      )
       .catch((error) => {
         this.logger.error('Failed to expand thread asynchronously', error);
       });
@@ -352,8 +343,10 @@ export class PostsGenerationController {
    */
   @Post(':postId/enhancements')
   @Credits({
+    allowByokBypass: true,
     description: 'Post content enhancement (text model)',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.POST_ENHANCEMENT,
   })
   @UseGuards(SubscriptionGuard, CreditsGuard)
@@ -388,7 +381,12 @@ export class PostsGenerationController {
 
     try {
       const enhancedDescription =
-        await this.postGenerationService.enhanceDescription(post, dto, user);
+        await this.postGenerationService.enhanceDescription(
+          post,
+          dto,
+          user,
+          resolveByokApiKeyOverride(request),
+        );
       const updatedPost = await this.postsService.patch(postId, {
         description: enhancedDescription,
       });
@@ -456,15 +454,24 @@ export class PostsGenerationController {
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   // @ts-expect-error TS2345
-  @Credits({ amount: 1, source: ActivitySource.IMAGE_GENERATION })
+  @Credits({
+    allowByokBypass: true,
+    amount: 1,
+    provider: ByokProvider.OPENROUTER,
+    source: ActivitySource.IMAGE_GENERATION,
+  })
   @LogMethod({ logEnd: true, logError: true, logStart: true })
   async generateHookVariations(
     @CurrentUser() user: User,
     @Body() dto: GenerateHooksDto,
-    @Req() _request: Request,
+    @Req() request: Request,
   ) {
     try {
-      return await this.postGenerationService.generateHookVariations(dto, user);
+      return await this.postGenerationService.generateHookVariations(
+        dto,
+        user,
+        resolveByokApiKeyOverride(request),
+      );
     } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error;

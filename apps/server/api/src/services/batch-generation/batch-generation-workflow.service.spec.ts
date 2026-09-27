@@ -7,6 +7,7 @@ import {
   BATCH_GENERATION_ACTION_IDS,
   BATCH_GENERATION_WORKFLOW_ID,
 } from '@api/services/batch-generation/batch-generation-workflow-definition';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -95,7 +96,7 @@ describe('BatchGenerationWorkflowService', () => {
   });
 
   it('queues the batch under a deterministic job id so a retry replaces it', async () => {
-    await service.queueBatch(REQUEST);
+    await service.queueBatch(REQUEST, SystemWorkflowDispatchClass.INTERACTIVE);
 
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -112,7 +113,23 @@ describe('BatchGenerationWorkflowService', () => {
         userId: 'user-1',
       }),
       batchGenerationJobId('batch-1'),
-      { attempts: 1, replaceTerminalJob: true },
+      {
+        attempts: 1,
+        dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        replaceTerminalJob: true,
+      },
+    );
+  });
+
+  it('threads a background dispatchClass from a caller like the reconcile cron', async () => {
+    await service.queueBatch(REQUEST, SystemWorkflowDispatchClass.BACKGROUND);
+
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      }),
     );
   });
 

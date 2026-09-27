@@ -1,5 +1,6 @@
 import { WORKSPACE_TASK_WORKFLOW_IDS } from '@api/services/task-orchestration/workspace-task-workflow-definition';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 
 describe('WorkspaceTaskWorkflowQueueService', () => {
   it('queues the immutable parent graph with a deterministic task id', async () => {
@@ -21,7 +22,7 @@ describe('WorkspaceTaskWorkflowQueueService', () => {
         organizationId: 'org-1',
       }),
       'workspace-task-task-1',
-      { attempts: 2 },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 
@@ -44,7 +45,7 @@ describe('WorkspaceTaskWorkflowQueueService', () => {
         canonicalId: WORKSPACE_TASK_WORKFLOW_IDS.FACECAM,
       }),
       'workspace-task-task-facecam',
-      { attempts: 2 },
+      { attempts: 2, dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
   });
 });

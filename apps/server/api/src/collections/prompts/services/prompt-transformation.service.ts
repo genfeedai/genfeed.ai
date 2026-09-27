@@ -7,6 +7,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
+import { errorMessage } from '@api/collections/prompts/services/prompt-transformation-error.util';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
@@ -41,7 +42,7 @@ import type { Request } from 'express';
 const LEGACY_CONTROLLER_NAME = 'PromptsOperationsController';
 
 type RequestWithCredits = Request & {
-  creditsConfig?: { amount?: number };
+  creditsConfig?: { amount?: number; byokApiKeyOverride?: string };
 };
 
 function toPromptBrandContext(
@@ -113,6 +114,11 @@ export class PromptTransformationService {
   ): Promise<PromptDocument> {
     const chargedCredits =
       (request as RequestWithCredits).creditsConfig?.amount ?? 0;
+    // Captured synchronously (before generateRemix fires below, detached
+    // from this request) so the async completion uses the exact key the
+    // guard resolved for this request, never a stale or re-resolved one.
+    const byokApiKeyOverride = (request as RequestWithCredits).creditsConfig
+      ?.byokApiKeyOverride;
     const prompt = await this.findOwnedPrompt(promptId, user);
     const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
     const { normalizedType, promptString } =
@@ -163,6 +169,7 @@ export class PromptTransformationService {
 
     this.generateRemix({
       activityId: activity.id.toString(),
+      byokApiKeyOverride,
       chargedCredits,
       data,
       organizationId: user.organizationId,
@@ -270,7 +277,7 @@ export class PromptTransformationService {
       await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.PROMPT_ENHANCE_FAILED,
         value: JSON.stringify({
-          error: this.errorMessage(error),
+          error: errorMessage(error),
           promptId,
           type: 'enhance',
         }),
@@ -280,7 +287,7 @@ export class PromptTransformationService {
       });
 
       throw new BadRequestException(
-        this.errorMessage(error, 'Failed to enhance prompt'),
+        errorMessage(error, 'Failed to enhance prompt'),
       );
     }
   }
@@ -377,6 +384,7 @@ export class PromptTransformationService {
 
   private async generateRemix(options: {
     activityId: string;
+    byokApiKeyOverride?: string;
     chargedCredits: number;
     data: PromptDocument;
     organizationId: string;
@@ -387,6 +395,7 @@ export class PromptTransformationService {
   }): Promise<void> {
     const {
       activityId,
+      byokApiKeyOverride,
       chargedCredits,
       data,
       organizationId,
@@ -413,6 +422,7 @@ export class PromptTransformationService {
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
         input,
+        byokApiKeyOverride,
       );
 
       this.loggerService.log(`${url} succeeded`, { result });
@@ -438,7 +448,7 @@ export class PromptTransformationService {
       await this.activitiesService.patch(activityId, {
         key: ActivityKey.PROMPT_REMIX_FAILED,
         value: JSON.stringify({
-          error: this.errorMessage(error),
+          error: errorMessage(error),
           promptId: data.id.toString(),
           sourcePromptId: promptId,
           type: 'remix',
@@ -449,7 +459,7 @@ export class PromptTransformationService {
         status: PromptStatus.FAILED,
       });
       await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-        error: this.errorMessage(error),
+        error: errorMessage(error),
         status: Status.FAILED,
       });
     }
@@ -482,15 +492,5 @@ export class PromptTransformationService {
         userId,
       });
     }
-  }
-
-  private errorMessage(error: unknown, fallback = 'An error occurred'): string {
-    if (typeof error !== 'object' || error === null || !('message' in error)) {
-      return fallback;
-    }
-
-    return typeof error.message === 'string' && error.message
-      ? error.message
-      : fallback;
   }
 }

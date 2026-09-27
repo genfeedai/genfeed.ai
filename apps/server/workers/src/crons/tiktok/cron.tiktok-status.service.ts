@@ -16,6 +16,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -145,7 +146,11 @@ export class CronTiktokStatusService implements OnModuleInit {
         userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
       },
       `tiktok-status-sweep-${Math.floor(now.getTime() / TIKTOK_SWEEP_INTERVAL_MS)}`,
-      { attempts: 3, replaceTerminalJob: true },
+      {
+        attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        replaceTerminalJob: true,
+      },
     );
   }
 

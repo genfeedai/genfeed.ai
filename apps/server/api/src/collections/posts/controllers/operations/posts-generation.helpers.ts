@@ -1,8 +1,18 @@
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { isTwitterPlatform } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import type { Request } from 'express';
 
 export function isAccountThreadFormat(format: string | undefined): boolean {
   return format === 'thread';
+}
+
+// #5375: the guard-resolved BYOK key is read from creditsConfig, never
+// re-resolved here, so the credit decision and dispatch key can't disagree.
+export function resolveByokApiKeyOverride(
+  request: Request,
+): string | undefined {
+  return (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride;
 }
 
 export function invalidThreadCountMessage(

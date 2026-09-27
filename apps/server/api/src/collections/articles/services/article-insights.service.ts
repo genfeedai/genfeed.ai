@@ -50,6 +50,7 @@ export class ArticleInsightsService {
     organizationId: string,
     findArticle: ArticleFinder,
     patchArticle: ArticlePatcher,
+    byokApiKeyOverride?: string,
   ): Promise<ViralityAnalysisResponse> {
     try {
       this.logger.debug(`${this.constructorName} analyzeVirality`, {
@@ -99,6 +100,7 @@ export class ArticleInsightsService {
         await this.replicateService.generateTextCompletionSync(
           DEFAULT_MINI_TEXT_MODEL,
           viralityInput,
+          byokApiKeyOverride,
         );
 
       let response: unknown;

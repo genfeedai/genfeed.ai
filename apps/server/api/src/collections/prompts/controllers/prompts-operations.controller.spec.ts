@@ -11,6 +11,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;
@@ -104,6 +105,7 @@ describe('PromptsOperationsController', () => {
       const result = await controller.generateTweetReply(
         { tagGrok: true, tweetContent: 'Hello world' },
         user,
+        {} as Request,
       );
 
       expect(result.reply).toBe('@grok Generated reply');
@@ -118,6 +120,7 @@ describe('PromptsOperationsController', () => {
       const result = await controller.generateTweetReply(
         { tweetContent: 'Hello world' },
         user,
+        {} as Request,
       );
 
       expect(result.reply).toBe('Generated reply');
@@ -125,6 +128,40 @@ describe('PromptsOperationsController', () => {
         expect.anything(),
         expect.objectContaining({ tagGrok: false }),
         'org_1',
+      );
+    });
+
+    // #5375: the resolved BYOK key travels on request.creditsConfig, set by
+    // CreditsGuard before the handler runs — never re-resolved here.
+    it('forwards a resolved BYOK key to the completion call', async () => {
+      const request = {
+        creditsConfig: { byokApiKeyOverride: 'org-openrouter-key' },
+      } as unknown as Request;
+
+      await controller.generateTweetReply(
+        { tweetContent: 'Hello world' },
+        user,
+        request,
+      );
+
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        'org-openrouter-key',
+      );
+    });
+
+    it('dispatches with no key override when the guard did not bypass', async () => {
+      await controller.generateTweetReply(
+        { tweetContent: 'Hello world' },
+        user,
+        {} as Request,
+      );
+
+      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        undefined,
       );
     });
   });

@@ -14,6 +14,7 @@ import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -24,6 +25,7 @@ import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   ActivitySource,
   AssetScope,
+  ByokProvider,
   ModelCategory,
   PromptCategory,
   PromptStatus,
@@ -40,11 +42,13 @@ import {
   Controller,
   Optional,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 
 interface UploadedBinaryFile {
   buffer: Buffer;
@@ -114,14 +118,17 @@ export class PromptsOperationsController {
   @Post('tweet')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
+    allowByokBypass: true,
     description: 'Tweet reply generation using AI',
     modelKey: DEFAULT_MINI_TEXT_MODEL,
+    provider: ByokProvider.OPENROUTER,
     source: ActivitySource.TWEET_REPLY,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateTweetReply(
     @Body() createTweetReplyDto: CreateTweetReplyDto,
     @CurrentUser() user: User,
+    @Req() request: Request,
   ): Promise<{
     reply: string;
     metadata?: {
@@ -168,6 +175,7 @@ export class PromptsOperationsController {
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
         input,
+        (request as CreditsGuardRequest).creditsConfig?.byokApiKeyOverride,
       );
       const promptEntity = new PromptEntity({
         category: 'tweet-reply' as unknown as PromptCategory,

@@ -24,6 +24,18 @@ export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
  * budget an interactive agent turn depends on.
  */
 export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
+/**
+ * Every non-user/agent-initiated `SystemWorkflowRunnerService.enqueueWorkflow`
+ * / `WorkflowExecutionQueueService.queueSystemWorkflow` producer that is not
+ * one of the three platform-cron sweep workflows already routed to
+ * `PLATFORM_SYSTEM_WORKFLOW_QUEUE` (#5162): worker crons, batch generation,
+ * the clip factory, other `workflow.for-each` fan-out, scheduled-post
+ * dispatch, RSS/social ingestion, lifecycle emails, and friends (#5271). One
+ * queue for all of them, not per-domain queues — every producer declares its
+ * `SystemWorkflowDispatchClass` (`INTERACTIVE` or `BACKGROUND`) as a required
+ * option, so a new producer that omits it fails to compile.
+ */
+export const WORKFLOW_BACKGROUND_QUEUE = 'workflow-background';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -55,6 +67,7 @@ export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,

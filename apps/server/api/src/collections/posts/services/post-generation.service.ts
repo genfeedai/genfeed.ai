@@ -691,21 +691,20 @@ export class PostGenerationService {
   // THREAD EXPANSION
   // ==========================================================================
 
-  /**
-   * Expand an existing post into a Twitter/X thread, updating the provided
-   * child posts with generated content as it completes.
-   */
+  /** Expand a post into a Twitter/X thread, updating child posts as generation completes. */
   async expandThreadAsync(
     originalPost: PostDocument,
     childPosts: PostDocument[],
     dto: ExpandToThreadDto,
     identity: GenerationMetadata,
+    byokApiKeyOverride?: string,
   ): Promise<void> {
     return this.postThreadGenerationService.expandThread(
       originalPost,
       childPosts,
       dto,
       identity,
+      byokApiKeyOverride,
     );
   }
 
@@ -803,6 +802,7 @@ export class PostGenerationService {
     post: Pick<PostDocument, 'description' | 'platform'>,
     dto: EnhancePostDto,
     identity: Pick<AuthenticatedUser, 'organizationId'>,
+    byokApiKeyOverride?: string,
   ): Promise<string> {
     const currentDescription = post.description || '';
     const platform = post.platform || 'social media';
@@ -849,6 +849,7 @@ export class PostGenerationService {
     return this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
   }
 
@@ -856,16 +857,14 @@ export class PostGenerationService {
   // HOOK VARIATIONS
   // ==========================================================================
 
-  /**
-   * Generate hook variations for a topic/platform. Throws on AI failure; the
-   * caller maps the error onto the HTTP boundary.
-   */
+  /** Generate hook variations for a topic/platform. Throws on AI failure; caller maps the error onto the HTTP boundary. */
   async generateHookVariations(
     dto: GenerateHooksDto,
     identity: Pick<
       AuthenticatedUser,
       'apiKeyId' | 'brandId' | 'id' | 'isApiKey' | 'organizationId' | 'userId'
     >,
+    byokApiKeyOverride?: string,
   ): Promise<{
     hooks: string[];
     metadata: {
@@ -960,6 +959,7 @@ Requirements:
     const result = await this.replicateService.generateTextCompletionSync(
       DEFAULT_MINI_TEXT_MODEL,
       input,
+      byokApiKeyOverride,
     );
 
     let hooks: string[] = [];

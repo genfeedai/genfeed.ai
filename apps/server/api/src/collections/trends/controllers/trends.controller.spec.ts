@@ -49,7 +49,7 @@ describe('TrendsController', () => {
     growthRate: 150,
     lastUpdated: new Date(),
     mentions: 12500,
-    platform: 'twitter',
+    platform: Platform.TWITTER,
     topic: 'AI Development',
     viralityScore: 85,
   };
@@ -243,7 +243,7 @@ describe('TrendsController', () => {
             contentType: 'tweet',
             id: 'content-1',
             matchedTrends: ['#AIAgents'],
-            platform: 'twitter',
+            platform: Platform.TWITTER,
             requiresAuth: false,
             sourcePreviewState: 'live',
             sourceUrl: 'https://x.com/builder/status/1',
@@ -271,7 +271,7 @@ describe('TrendsController', () => {
         mockUser.brandId,
         {
           limit: 12,
-          platform: 'twitter',
+          platform: Platform.TWITTER,
           refresh: false,
         },
       );
@@ -315,7 +315,7 @@ describe('TrendsController', () => {
             latestTrendMentions: 12000,
             latestTrendViralityScore: 80,
             matchedTrendTopics: ['#AIAgents'],
-            platform: 'twitter',
+            platform: Platform.TWITTER,
             remixCount: 2,
             sourceClassification: {
               capturedAt: '2026-03-25T00:00:00.000Z',
@@ -351,7 +351,7 @@ describe('TrendsController', () => {
           includePaidCreative: undefined,
           intendedUse: undefined,
           limit: 15,
-          platform: 'twitter',
+          platform: Platform.TWITTER,
           sourceKind: undefined,
           trendId: 'trend-1',
         },
@@ -510,7 +510,7 @@ describe('TrendsController', () => {
             authorHandle: 'builder',
             avgTrendViralityScore: 77,
             brandRemixCount: 4,
-            platform: 'twitter',
+            platform: Platform.TWITTER,
             referenceCount: 6,
             totalEngagement: 8000,
           },
@@ -529,7 +529,7 @@ describe('TrendsController', () => {
         mockUser.brandId,
         {
           limit: 8,
-          platform: 'twitter',
+          platform: Platform.TWITTER,
         },
       );
       expect(result).toEqual({
@@ -618,7 +618,7 @@ describe('TrendsController', () => {
     it('should generate content ideas from trends', async () => {
       const query: GenerateTrendIdeasDto = {
         limit: 10,
-        platform: 'twitter',
+        platform: Platform.TWITTER,
       };
 
       const mockIdeasMap = new Map([
@@ -651,9 +651,56 @@ describe('TrendsController', () => {
         query.limit,
         expect.any(Function),
         { description: undefined, label: 'Mock Brand', text: undefined },
+        undefined,
       );
       expect(result.success).toBe(true);
       expect(result.ideas).toBeDefined();
+    });
+
+    // #5375: BYOK — when the guard already granted a bypass, the platform
+    // credits floor check is skipped and the resolved key reaches dispatch.
+    it('skips the credits preflight and forwards the resolved BYOK key when the guard bypassed', async () => {
+      const query: GenerateTrendIdeasDto = {
+        limit: 10,
+        platform: Platform.TWITTER,
+      };
+      const byokReq = {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-openrouter-key',
+          isByokBypass: true,
+        },
+      } as unknown as Request;
+
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockResolvedValue(new Map());
+
+      await controller.getTrendIdeas(byokReq, mockUser, query);
+
+      // getDefaultTextMinimumCredits(modelsService) backs the preflight; the
+      // whole preflight block — including this lookup — is skipped when the
+      // guard already granted a BYOK bypass.
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+      expect(trendsService.generateContentIdeas).toHaveBeenCalledWith(
+        [mockTrend],
+        query.limit,
+        expect.any(Function),
+        expect.any(Object),
+        'org-openrouter-key',
+      );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const query: GenerateTrendIdeasDto = {
+        limit: 10,
+        platform: Platform.TWITTER,
+      };
+
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockResolvedValue(new Map());
+
+      await controller.getTrendIdeas(mockReq, mockUser, query);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {

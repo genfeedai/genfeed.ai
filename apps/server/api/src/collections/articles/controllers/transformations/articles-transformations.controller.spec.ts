@@ -177,15 +177,44 @@ describe('ArticlesTransformationsController', () => {
 
       mockArticlesService.analyzeVirality.mockResolvedValue(analysis);
 
-      const result = await controller.analyzeVirality(id, mockUser);
+      const result = await controller.analyzeVirality(
+        id,
+        mockUser,
+        mockRequest,
+      );
 
       expect(service.analyzeVirality).toHaveBeenCalledWith(
         id,
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         mockPublicMetadata.brand,
+        undefined,
       );
       expect(result).toEqual(analysis);
+    });
+
+    // #5375: the resolved BYOK key travels on request.creditsConfig, set by
+    // CreditsGuard before the handler runs.
+    it('forwards a resolved BYOK key to the service call', async () => {
+      const id = articleId;
+      mockArticlesService.analyzeVirality.mockResolvedValue({
+        recommendations: [],
+        score: 1,
+      });
+      const byokRequest = {
+        ...mockRequest,
+        creditsConfig: { byokApiKeyOverride: 'org-openrouter-key' },
+      } as unknown as Request;
+
+      await controller.analyzeVirality(id, mockUser, byokRequest);
+
+      expect(service.analyzeVirality).toHaveBeenCalledWith(
+        id,
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        mockPublicMetadata.brand,
+        'org-openrouter-key',
+      );
     });
   });
 

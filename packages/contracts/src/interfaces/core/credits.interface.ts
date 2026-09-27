@@ -49,6 +49,13 @@ export interface CreditsConfig {
    */
   allowByokBypass?: boolean;
   /**
+   * The org's decrypted BYOK key, resolved exactly once by CreditsGuard in
+   * the same call that decides `isByokBypass` (#5375). Dispatch reads this
+   * instead of re-resolving, so the credit decision and the key used to pay
+   * for the call can never disagree.
+   */
+  byokApiKeyOverride?: string;
+  /**
    * The caller reserves and settles per unit of work itself (a background job
    * that bills each completed item), so admission checks the balance without
    * placing a request-level hold.

@@ -31,6 +31,7 @@ export class TrendContentIdeasService {
     limit: number = 10,
     onBilling?: (amount: number) => void,
     brand?: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
   ): Promise<Map<string, TrendIdea[]>> {
     const ideasMap = new Map<string, TrendIdea[]>();
 
@@ -61,6 +62,7 @@ export class TrendContentIdeasService {
           Math.ceil(limit / Object.keys(trendsByPlatform).length),
           onBilling,
           brand,
+          byokApiKeyOverride,
         );
 
         ideasMap.set(platform, ideas);
@@ -193,6 +195,7 @@ export class TrendContentIdeasService {
     count: number,
     onBilling?: (amount: number) => void,
     brand?: TrendIdeaBrandContext,
+    byokApiKeyOverride?: string,
   ): Promise<TrendIdea[]> {
     try {
       const trendTopics = trends.map((t) => t.topic).join(', ');
@@ -250,6 +253,7 @@ Return ONLY valid JSON. Do not include any text before or after the JSON array.`
           this.replicateService.generateTextCompletionSync(
             DEFAULT_TEXT_MODEL,
             input,
+            byokApiKeyOverride,
           ),
         3, // max retries
         2000, // base delay 2s
