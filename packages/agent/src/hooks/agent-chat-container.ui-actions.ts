@@ -1,7 +1,4 @@
-import {
-  collectAssistantMessageIds,
-  findRecoveredAssistantMessage,
-} from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
+import { findRunAssistantMessage } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
   AGENT_DRAFT_SUGGESTION_EVENT,
   type AgentDraftSuggestionPayload,
@@ -10,13 +7,18 @@ import type {
   AgentChatMessage,
   AgentProposedPlan,
   AgentThread,
+  AgentUiActionAckResponse,
+  AgentUiActionOutcome,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { reconcileGenerationDecision } from '@genfeedai/agent/utils/reconcile-generation-decision';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
-import type { AgentThreadMode } from '@genfeedai/contracts';
+import {
+  type AgentThreadMode,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 
 export type HandleUiActionDeps = {
   activeThreadId: string | null;
@@ -34,6 +36,11 @@ export type HandleUiActionDeps = {
   setCreditsRemaining: (credits: number) => void;
   setError: (error: string | null) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
+  /**
+   * Aborted when the conversation that started the action goes away (thread
+   * switch or unmount). Reconciliation stops and writes nothing after it.
+   */
+  signal: AbortSignal;
   threads: AgentThread[];
   upsertThread: (thread: AgentThread) => void;
 };
@@ -41,42 +48,151 @@ export type HandleUiActionDeps = {
 /**
  * `POST .../ui-actions` (`AgentOrchestratorService.handleThreadUiAction`)
  * only enqueues the `agent.thread.ui-action` workflow and acks
- * `{executionId, status: 'queued', threadId}` — the same async contract as a
- * turn. There is no synchronous `message` on that response; the resulting
- * assistant reply lands through the thread's normal message stream. Poll for
- * it the same way `agent-chat-stream.completion.ts`'s
- * `resolveStreamFromMessages` recovers a turn whose socket event never
- * arrives — a much shorter interval/timeout than a turn's, since a ui-action
- * is a single mutation, not an LLM generation.
+ * `{executionId, status: 'queued', threadId}`. No socket event follows a
+ * ui-action run, so its result is reconciled over REST with the same two
+ * signals the turn watchdog (`resolveStreamFromMessages`) uses: the assistant
+ * reply stamped with the run's `metadata.runId`, and the run's workflow
+ * execution status. The window is short because a ui-action is a single
+ * mutation, not an LLM generation.
  */
 export const UI_ACTION_RECONCILE_POLL_INTERVAL_MS = 1_000;
 export const UI_ACTION_RECONCILE_TIMEOUT_MS = 20_000;
+/** A run's reply is the newest message on its thread; this is headroom. */
+export const UI_ACTION_RECONCILE_MESSAGE_LIMIT = 20;
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export const UI_ACTION_PENDING_NOTICE =
+  'This is taking longer than expected. It was accepted and may still complete — check back shortly.';
+const UI_ACTION_FAILED_FALLBACK = 'The action failed before it finished.';
+
+export type UiActionRunOutcome =
+  | { status: 'completed'; message: AgentChatMessage | null }
+  | { status: 'failed'; error: string }
+  | { status: 'pending' };
+
+function waitForNextPoll(signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+    function onAbort() {
+      clearTimeout(timer);
+      resolve();
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
-export async function waitForUiActionMessage(
+async function readRunReply(
   apiService: Pick<AgentApiService, 'getMessages'>,
-  threadId: string,
-  preExistingAssistantIds: ReadonlySet<string>,
+  ack: AgentUiActionAckResponse,
+  signal: AbortSignal,
 ): Promise<AgentChatMessage | null> {
+  const messages = await apiService.getMessages(
+    ack.threadId,
+    { limit: UI_ACTION_RECONCILE_MESSAGE_LIMIT },
+    signal,
+  );
+  return findRunAssistantMessage(messages, ack.executionId) ?? null;
+}
+
+/**
+ * Resolve an acknowledged ui-action run: `completed` with the reply that run
+ * persisted, `failed` when its execution failed or was cancelled, or
+ * `pending` when neither is known before the timeout or the caller aborts.
+ * A transient read error is retried on the next poll, never reported as a
+ * failure of an action the server already accepted.
+ */
+export async function reconcileUiActionRun(
+  apiService: Pick<AgentApiService, 'getMessages' | 'getWorkflowExecution'>,
+  ack: AgentUiActionAckResponse,
+  signal: AbortSignal,
+): Promise<UiActionRunOutcome> {
   const startedAt = Date.now();
 
-  for (;;) {
-    const messages = await apiService.getMessages(threadId, { limit: 100 });
-    const recovered = findRecoveredAssistantMessage(
-      messages,
-      preExistingAssistantIds,
-    );
-    if (recovered) {
-      return recovered;
+  while (!signal.aborted) {
+    try {
+      const reply = await readRunReply(apiService, ack, signal);
+      if (reply) {
+        return { message: reply, status: 'completed' };
+      }
+
+      const execution = await apiService.getWorkflowExecution(
+        ack.executionId,
+        signal,
+      );
+      if (
+        execution.status === WorkflowExecutionStatus.FAILED ||
+        execution.status === WorkflowExecutionStatus.CANCELLED
+      ) {
+        return {
+          error: execution.error?.trim() || UI_ACTION_FAILED_FALLBACK,
+          status: 'failed',
+        };
+      }
+      if (execution.status === WorkflowExecutionStatus.COMPLETED) {
+        // The reply is persisted before the execution completes, so a read
+        // after `COMPLETED` is authoritative. A run can complete without a
+        // reply of its own (an idempotent replay of an earlier confirmation).
+        return {
+          message: await readRunReply(apiService, ack, signal),
+          status: 'completed',
+        };
+      }
+    } catch {
+      // Retried on the next poll; the abort check below ends the loop.
     }
-    if (Date.now() - startedAt >= UI_ACTION_RECONCILE_TIMEOUT_MS) {
-      return null;
+
+    if (
+      signal.aborted ||
+      Date.now() - startedAt >= UI_ACTION_RECONCILE_TIMEOUT_MS
+    ) {
+      break;
     }
-    await delay(UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+    await waitForNextPoll(signal);
   }
+
+  return { status: 'pending' };
+}
+
+/**
+ * Hydrate a reconciled reply by id: a thread re-hydrated from the server while
+ * the run was in flight may already hold it.
+ */
+function upsertReconciledMessage(
+  message: AgentChatMessage,
+  addMessage: HandleUiActionDeps['addMessage'],
+): void {
+  const isHydrated = useAgentChatStore
+    .getState()
+    .messages.some((existing) => existing.id === message.id);
+  if (!isHydrated) {
+    addMessage(message);
+    return;
+  }
+  useAgentChatStore.setState((state) => ({
+    messages: state.messages.map((existing) =>
+      existing.id === message.id ? message : existing,
+    ),
+  }));
+}
+
+/**
+ * The thread's cached conversation predates the run's result; drop it so the
+ * next visit hydrates from the server instead of showing the stale transcript.
+ */
+function discardConversationCache(threadId: string): void {
+  if (!(threadId in useAgentChatStore.getState().conversationCacheByThread)) {
+    return;
+  }
+  useAgentChatStore.setState((state) => {
+    const { [threadId]: _stale, ...retained } = state.conversationCacheByThread;
+    return { conversationCacheByThread: retained };
+  });
 }
 
 function reconcileMutationApproval(
@@ -162,7 +278,7 @@ export async function handleAgentUiAction(
   action: string,
   payload: Record<string, unknown> | undefined,
   deps: HandleUiActionDeps,
-): Promise<boolean> {
+): Promise<AgentUiActionOutcome> {
   if (deps.isReadOnly) {
     deps.setError('Archived threads are read-only.');
     return false;
@@ -251,19 +367,24 @@ export async function handleAgentUiAction(
   deps.setActiveUiAction(action);
   deps.setError(null);
 
-  try {
-    const activeThreadId = deps.activeThreadId;
-    const currentThread = deps.threads.find(
-      (thread) => thread.id === activeThreadId,
-    );
-    const preExistingAssistantIds = collectAssistantMessageIds(
-      useAgentChatStore
-        .getState()
-        .messages.filter((message) => message.threadId === activeThreadId),
-    );
+  const threadId = deps.activeThreadId;
+  // Every write below lands in the visible conversation, so it is valid only
+  // while the thread that started the action is still the one on screen.
+  const isStillCurrent = () =>
+    !deps.signal.aborted &&
+    useAgentChatStore.getState().activeThreadId === threadId;
+  const leaveForLaterHydration = (): AgentUiActionOutcome => {
+    discardConversationCache(threadId);
+    return 'pending';
+  };
 
+  try {
+    const currentThread = deps.threads.find((thread) => thread.id === threadId);
+
+    // The request itself is never aborted: the user confirmed the action, and
+    // leaving the thread must not withdraw it.
     const ack = await deps.apiService.respondToUiAction(
-      activeThreadId,
+      threadId,
       action,
       payload,
       undefined,
@@ -272,73 +393,58 @@ export async function handleAgentUiAction(
         expectedContextVersion: currentThread?.contextVersion,
       },
     );
+    if (!isStillCurrent()) {
+      return leaveForLaterHydration();
+    }
 
-    const recovered = await waitForUiActionMessage(
+    const outcome = await reconcileUiActionRun(
       deps.apiService,
-      ack.threadId,
-      preExistingAssistantIds,
+      { ...ack, threadId },
+      deps.signal,
     );
-
-    if (!recovered) {
-      // The workflow was accepted (the ack above didn't throw) — it just
-      // hasn't produced a reply within the poll window. Don't report this
-      // as a failure: the mutation itself likely already applied server
-      // side, and a later reload/reconciliation will show its result.
-      deps.setError(
-        'This is taking longer than expected. It was accepted and may still complete — check back shortly.',
-      );
-      return true;
+    if (!isStillCurrent()) {
+      return leaveForLaterHydration();
     }
 
-    const returnedActions = recovered.metadata?.uiActions;
-    const reconciledApprovals =
-      action === 'confirm_mutation' || action === 'decline_mutation'
-        ? reconcileMutationApproval(returnedActions, payload, ack.threadId)
-        : action === 'confirm_generate_media' ||
-            action === 'decline_generate_media'
-          ? reconcileGenerationDecision(
-              returnedActions,
-              payload?.sourceActionId,
-              ack.threadId,
-            )
-          : new Set<unknown>();
-
-    const sourceActionId =
-      typeof payload?.sourceActionId === 'string'
-        ? payload.sourceActionId
-        : null;
-    if (sourceActionId) {
-      useAgentChatStore
-        .getState()
-        .setUiActionStatus(sourceActionId, 'completed');
+    if (outcome.status === 'pending') {
+      deps.setError(UI_ACTION_PENDING_NOTICE);
+      return 'pending';
     }
-
-    const existingThread = deps.threads.find(
-      (thread) => thread.id === ack.threadId,
-    );
+    if (outcome.status === 'failed') {
+      deps.setError(outcome.error);
+      return false;
+    }
 
     // The ack carries no updated scope/credits — refetch them so the next
     // ui-action's `expectedContextVersion` isn't stale. Best-effort: a
-    // failure here shouldn't hide the message that already arrived.
+    // failure here shouldn't hide the result that already arrived.
     const [updatedThread, creditsInfo] = await Promise.all([
-      deps.apiService.getThread(ack.threadId).catch(() => null),
+      deps.apiService.getThread(threadId).catch(() => null),
       deps.apiService.getCreditsInfo().catch(() => null),
     ]);
+    if (!isStillCurrent()) {
+      return leaveForLaterHydration();
+    }
 
+    const existingThread = useAgentChatStore
+      .getState()
+      .threads.find((thread) => thread.id === threadId);
     syncAgentThreadFromTurn({
-      activeThreadId,
+      activeThreadId: threadId,
       brandId:
         updatedThread?.brandId ??
         existingThread?.brandId ??
         currentThread?.brandId ??
         null,
       contextVersion:
-        updatedThread?.contextVersion ?? existingThread?.contextVersion,
-      createdAt: existingThread?.createdAt,
-      mode: existingThread?.mode ?? deps.draftAgentMode,
+        updatedThread?.contextVersion ??
+        existingThread?.contextVersion ??
+        currentThread?.contextVersion,
+      createdAt: existingThread?.createdAt ?? currentThread?.createdAt,
+      mode: existingThread?.mode ?? currentThread?.mode ?? deps.draftAgentMode,
       setActiveThread: deps.setActiveThread,
-      threadId: ack.threadId,
-      title: existingThread?.title ?? 'Agent thread',
+      threadId,
+      title: existingThread?.title ?? currentThread?.title ?? 'Agent thread',
       upsertThread: deps.upsertThread,
     });
 
@@ -346,21 +452,60 @@ export async function handleAgentUiAction(
       deps.setCreditsRemaining(creditsInfo.balance);
     }
 
-    deps.addMessage({
-      ...recovered,
-      metadata: {
-        ...recovered.metadata,
-        ...(Array.isArray(returnedActions)
-          ? {
-              uiActions: returnedActions.filter(
-                (card) => !reconciledApprovals.has(card),
-              ),
-            }
-          : {}),
-      },
-    });
+    const sourceActionId =
+      typeof payload?.sourceActionId === 'string'
+        ? payload.sourceActionId
+        : null;
+    const reply = outcome.message;
 
-    const returnedPlan = recovered.metadata?.proposedPlan as
+    if (!reply) {
+      // The run completed without a reply of its own; the source card is
+      // settled all the same.
+      if (sourceActionId) {
+        useAgentChatStore
+          .getState()
+          .setUiActionStatus(sourceActionId, 'completed');
+      }
+      return true;
+    }
+
+    const returnedActions = reply.metadata?.uiActions;
+    const reconciledApprovals =
+      action === 'confirm_mutation' || action === 'decline_mutation'
+        ? reconcileMutationApproval(returnedActions, payload, threadId)
+        : action === 'confirm_generate_media' ||
+            action === 'decline_generate_media'
+          ? reconcileGenerationDecision(
+              returnedActions,
+              payload?.sourceActionId,
+              threadId,
+            )
+          : new Set<unknown>();
+
+    if (sourceActionId) {
+      useAgentChatStore
+        .getState()
+        .setUiActionStatus(sourceActionId, 'completed');
+    }
+
+    upsertReconciledMessage(
+      {
+        ...reply,
+        metadata: {
+          ...reply.metadata,
+          ...(Array.isArray(returnedActions)
+            ? {
+                uiActions: returnedActions.filter(
+                  (card) => !reconciledApprovals.has(card),
+                ),
+              }
+            : {}),
+        },
+      },
+      deps.addMessage,
+    );
+
+    const returnedPlan = reply.metadata?.proposedPlan as
       | typeof deps.latestProposedPlan
       | undefined;
     deps.setLatestProposedPlan(
@@ -376,7 +521,7 @@ export async function handleAgentUiAction(
           : null),
     );
 
-    const metadata = recovered.metadata;
+    const metadata = reply.metadata;
     const uiBlocksState =
       metadata?.uiBlocks &&
       typeof metadata.uiBlocks === 'object' &&
@@ -402,6 +547,9 @@ export async function handleAgentUiAction(
     }
     return true;
   } catch (err) {
+    if (!isStillCurrent()) {
+      return false;
+    }
     deps.setError(
       err instanceof Error ? err.message : 'Failed to respond to UI action',
     );

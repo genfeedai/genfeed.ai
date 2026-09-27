@@ -28,7 +28,11 @@ describe('structured action finalization', () => {
         messageId: 'result-message-1',
         content:
           success === false ? 'Approved action failed.' : 'Action completed.',
-        context: { organizationId: 'org-1', userId: 'user-1' },
+        context: {
+          executionId: 'exec-ui-action-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
         model: 'test',
         threadId: 'thread-1',
         toolCalls: [],
@@ -38,8 +42,15 @@ describe('structured action finalization', () => {
         },
       });
       expect(messages.addMessage).toHaveBeenCalledTimes(1);
+      // The client correlates the ui-action ack with this reply by runId.
       expect(messages.addMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'result-message-1' }),
+        expect.objectContaining({
+          id: 'result-message-1',
+          metadata: expect.objectContaining({
+            creditsRemaining: 100,
+            runId: 'exec-ui-action-1',
+          }),
+        }),
       );
       if (success === false) {
         expect(recorder.recordRunFailed).toHaveBeenCalledWith(

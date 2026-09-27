@@ -124,6 +124,7 @@ export type {
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
   AgentUiActionHandler,
+  AgentUiActionOutcome,
 } from '@genfeedai/contracts/interfaces';
 
 /**

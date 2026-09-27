@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BrandIdentityConfirmationCard } from '@genfeedai/agent/components/BrandIdentityConfirmationCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeCreateAction(
@@ -220,6 +226,26 @@ describe('BrandIdentityConfirmationCard', () => {
       /Could not rename the brand/i,
     );
     expect(screen.queryByText(/Brand renamed to/i)).not.toBeInTheDocument();
+  });
+
+  it('stays pending without an error when the confirmation is accepted but unconfirmed', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+
+    render(
+      <BrandIdentityConfirmationCard
+        action={makeCreateAction()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm create' }));
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Brand .* created/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Creating/ })).toBeDisabled();
   });
 
   it('treats an undefined legacy outcome as a failed confirmation', async () => {

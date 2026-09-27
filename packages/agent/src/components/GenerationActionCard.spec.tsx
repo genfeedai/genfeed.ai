@@ -1489,6 +1489,75 @@ describe('GenerationActionCard', () => {
     );
   });
 
+  it('stays generating, not done, when the UI action is accepted but unconfirmed', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A lighthouse at dusk.' },
+          generationType: 'image',
+          id: 'action-ui-action-pending',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    await clickGenerate('image');
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({ sourceActionId: 'action-ui-action-pending' }),
+      );
+    });
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+
+    expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Stop generation' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps a pending decline in flight without marking the review declined', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A lighthouse at dusk.' },
+          generationType: 'image',
+          id: 'action-decline-pending',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Decline this generation' }),
+    );
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+
+    expect(
+      screen.queryByText('Declined — no credits were charged.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Decline this generation' }),
+    ).not.toBeInTheDocument();
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to decline generation. Try again.',
+    );
+  });
+
   it('lets the operator collapse a failed generation card by hand', async () => {
     storeState.error =
       'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';

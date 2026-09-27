@@ -26,6 +26,7 @@ export function BrandVoiceProfileCard({
   onUiAction,
 }: BrandVoiceProfileCardProps): ReactElement {
   const [isSaving, setIsSaving] = useState(false);
+  const [isAwaitingResult, setIsAwaitingResult] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const hasSaved = isSaved || action.status === 'completed';
   const profile = useMemo(() => {
@@ -59,7 +60,13 @@ export function BrandVoiceProfileCard({
   const approveCta = action.ctas?.find((cta) => cta.action);
 
   const handleApprove = useCallback(async () => {
-    if (!approveCta?.action || !onUiAction || isSaving || hasSaved) {
+    if (
+      !approveCta?.action ||
+      !onUiAction ||
+      isSaving ||
+      isAwaitingResult ||
+      hasSaved
+    ) {
       return;
     }
 
@@ -67,6 +74,12 @@ export function BrandVoiceProfileCard({
 
     try {
       const outcome = await onUiAction(approveCta.action, approveCta.payload);
+      // Accepted but unconfirmed: the save may still land, so neither claim
+      // it nor offer a second submission.
+      if (outcome === 'pending') {
+        setIsAwaitingResult(true);
+        return;
+      }
       if (outcome !== false) {
         useAgentChatStore.getState().setUiActionStatus(action.id, 'completed');
         setIsSaved(true);
@@ -79,9 +92,11 @@ export function BrandVoiceProfileCard({
     approveCta?.action,
     approveCta?.payload,
     hasSaved,
+    isAwaitingResult,
     isSaving,
     onUiAction,
   ]);
+  const isInFlight = isSaving || isAwaitingResult;
 
   if (hasSaved) {
     return (
@@ -224,16 +239,21 @@ export function BrandVoiceProfileCard({
       {approveCta?.action ? (
         <Button
           variant={ButtonVariant.DEFAULT}
-          isDisabled={isSaving}
-          isLoading={isSaving}
+          isDisabled={isInFlight}
+          isLoading={isInFlight}
           onClick={() => {
             void handleApprove();
           }}
           icon={<Sparkles className="size-4" />}
           className="mt-4 w-full justify-center"
         >
-          {isSaving ? 'Saving...' : approveCta.label}
+          {isInFlight ? 'Saving...' : approveCta.label}
         </Button>
+      ) : null}
+      {isAwaitingResult ? (
+        <p className="mt-2 text-xs text-muted-foreground" role="status">
+          Still saving. The result appears in this thread when it finishes.
+        </p>
       ) : null}
     </div>
   );

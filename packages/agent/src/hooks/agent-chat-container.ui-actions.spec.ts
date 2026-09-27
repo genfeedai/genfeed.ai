@@ -4,11 +4,18 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  AgentThreadMode,
+  AgentThreadStatus,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type HandleUiActionDeps,
   handleAgentUiAction,
+  UI_ACTION_PENDING_NOTICE,
+  UI_ACTION_RECONCILE_MESSAGE_LIMIT,
+  UI_ACTION_RECONCILE_POLL_INTERVAL_MS,
   UI_ACTION_RECONCILE_TIMEOUT_MS,
 } from './agent-chat-container.ui-actions';
 import { AGENT_DRAFT_SUGGESTION_EVENT } from './use-agent-draft-context';
@@ -45,18 +52,43 @@ function makeAck(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * The reply the acknowledged run persists: the server stamps every run reply
+ * with `metadata.runId` = the ack's `executionId`
+ * (`AgentOrchestratorUiActionFinalizerService`, `buildPersistedAgentResponseMetadata`).
+ */
 function makeRecoveredMessage(
   overrides: Partial<AgentChatMessage> = {},
 ): AgentChatMessage {
+  const { metadata, ...rest } = overrides;
   return {
     content: 'Done.',
     createdAt: '2026-03-20T10:05:00.000Z',
     id: 'assistant-recovered-1',
-    metadata: {},
     role: 'assistant',
     threadId: 'thread-1',
-    ...overrides,
+    ...rest,
+    metadata: { runId: 'exec-1', ...metadata },
   } as AgentChatMessage;
+}
+
+function makeHistoricalMessages(count: number): AgentChatMessage[] {
+  return Array.from({ length: count }, (_, index) => ({
+    content: `Historical message ${index}`,
+    createdAt: new Date(Date.UTC(2026, 2, 1, 0, index)).toISOString(),
+    id: `history-${index}`,
+    // Older turns carry their own run ids, or none at all (pre-stamping rows).
+    metadata: index % 4 === 1 ? { runId: `exec-old-${index}` } : {},
+    role: index % 2 === 0 ? 'user' : 'assistant',
+    threadId: 'thread-1',
+  })) as AgentChatMessage[];
+}
+
+function makeExecution(
+  status: WorkflowExecutionStatus,
+  overrides: Record<string, unknown> = {},
+) {
+  return { id: 'exec-1', status, ...overrides };
 }
 
 function seedUiAction(actionId: string): void {
@@ -91,6 +123,9 @@ function makeDeps(
           contextVersion: 4,
         }),
       ),
+      getWorkflowExecution: vi
+        .fn()
+        .mockResolvedValue(makeExecution(WorkflowExecutionStatus.RUNNING)),
       respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
     } as unknown as AgentApiService,
     draftAgentMode: AgentThreadMode.MANUAL,
@@ -104,6 +139,7 @@ function makeDeps(
     setCreditsRemaining: vi.fn(),
     setError: vi.fn(),
     setLatestProposedPlan: vi.fn(),
+    signal: new AbortController().signal,
     threads: [makeThread('thread-1')],
     upsertThread: vi.fn(),
     ...overrides,
@@ -113,6 +149,11 @@ function makeDeps(
 describe('handleAgentUiAction', () => {
   beforeEach(() => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+    useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it.each(
@@ -327,7 +368,11 @@ describe('handleAgentUiAction', () => {
       undefined,
       { brandId: 'brand-1', expectedContextVersion: 3 },
     );
-    expect(getMessages).toHaveBeenCalledWith('thread-1', { limit: 100 });
+    expect(getMessages).toHaveBeenCalledWith(
+      'thread-1',
+      { limit: UI_ACTION_RECONCILE_MESSAGE_LIMIT },
+      expect.any(AbortSignal),
+    );
     expect(deps.setActiveUiAction).toHaveBeenNthCalledWith(
       1,
       'start_interview',
@@ -363,17 +408,19 @@ describe('handleAgentUiAction', () => {
     ).toBe('completed');
   });
 
-  it('does not resolve the source UI action while reconciliation is still pending', async () => {
+  it('reports a pending outcome, not completion, when no result arrives in the window', async () => {
     vi.useFakeTimers();
     const deps = makeDeps({
       apiService: {
         getCreditsInfo: vi
           .fn()
           .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
-        // No new assistant message ever appears — the workflow never
-        // produces a reply within the poll window.
+        // No reply for this run ever appears and the execution keeps running.
         getMessages: vi.fn().mockResolvedValue([]),
         getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+        getWorkflowExecution: vi
+          .fn()
+          .mockResolvedValue(makeExecution(WorkflowExecutionStatus.RUNNING)),
         respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
       } as unknown as AgentApiService,
     });
@@ -386,13 +433,10 @@ describe('handleAgentUiAction', () => {
     );
     await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
     const result = await resultPromise;
-    vi.useRealTimers();
 
-    // Accepted, not failed: the workflow may still complete server-side.
-    expect(result).toBe(true);
-    expect(deps.setError).toHaveBeenCalledWith(
-      expect.stringContaining('taking longer than expected'),
-    );
+    // Accepted but unconfirmed: neither success nor failure.
+    expect(result).toBe('pending');
+    expect(deps.setError).toHaveBeenCalledWith(UI_ACTION_PENDING_NOTICE);
     expect(deps.addMessage).not.toHaveBeenCalled();
     expect(
       useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
@@ -413,27 +457,6 @@ describe('handleAgentUiAction', () => {
     expect(refreshListener).not.toHaveBeenCalled();
     vi.useRealTimers();
     window.removeEventListener('agent:threads:refresh', refreshListener);
-  });
-
-  it('switches the active thread when the response lands elsewhere', async () => {
-    const deps = makeDeps({
-      apiService: {
-        getCreditsInfo: vi
-          .fn()
-          .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
-        getMessages: vi
-          .fn()
-          .mockResolvedValue([makeRecoveredMessage({ threadId: 'thread-2' })]),
-        getThread: vi.fn().mockResolvedValue(makeThread('thread-2')),
-        respondToUiAction: vi
-          .fn()
-          .mockResolvedValue(makeAck({ threadId: 'thread-2' })),
-      } as unknown as AgentApiService,
-    });
-
-    await handleAgentUiAction('start_interview', undefined, deps);
-
-    expect(deps.setActiveThread).toHaveBeenCalledWith('thread-2');
   });
 
   it('approve_plan marks the current plan approved when none is returned', async () => {
@@ -479,5 +502,324 @@ describe('handleAgentUiAction', () => {
       useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
         ?.status,
     ).toBeUndefined();
+  });
+  describe('reconciliation correlates with the acknowledged execution', () => {
+    it('ignores older assistant replies outside the hydrated 50-message window', async () => {
+      vi.useFakeTimers();
+      // The server holds 100 messages; the client hydrated only the latest 50.
+      const history = makeHistoricalMessages(100);
+      useAgentChatStore.getState().setMessages(history.slice(50));
+      const reply = makeRecoveredMessage({
+        content: 'Saved the brand voice.',
+        id: 'reply-exec-1',
+      });
+      const getMessages = vi
+        .fn()
+        .mockResolvedValueOnce(history)
+        .mockResolvedValue([...history, reply]);
+      const deps = makeDeps({
+        addMessage: (message) =>
+          useAgentChatStore.getState().addMessage(message),
+        apiService: {
+          getCreditsInfo: vi
+            .fn()
+            .mockResolvedValue({ balance: 5, modelAccess: {}, modelCosts: {} }),
+          getMessages,
+          getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+          getWorkflowExecution: vi
+            .fn()
+            .mockResolvedValue(makeExecution(WorkflowExecutionStatus.RUNNING)),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+      });
+
+      const resultPromise = handleAgentUiAction(
+        'confirm_save_brand_voice_profile',
+        undefined,
+        deps,
+      );
+      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+      const result = await resultPromise;
+
+      expect(result).toBe(true);
+      expect(getMessages).toHaveBeenCalledTimes(2);
+      const messages = useAgentChatStore.getState().messages;
+      expect(messages).toHaveLength(51);
+      expect(messages.at(-1)).toMatchObject({
+        content: 'Saved the brand voice.',
+        id: 'reply-exec-1',
+      });
+      expect(
+        messages.filter((message) => message.id.startsWith('history-')),
+      ).toHaveLength(50);
+    });
+
+    it('reports failure when the execution fails without a reply', async () => {
+      seedUiAction('brand-voice-card-1');
+      const deps = makeDeps({
+        apiService: {
+          getCreditsInfo: vi.fn(),
+          getMessages: vi.fn().mockResolvedValue(makeHistoricalMessages(4)),
+          getThread: vi.fn(),
+          getWorkflowExecution: vi.fn().mockResolvedValue(
+            makeExecution(WorkflowExecutionStatus.FAILED, {
+              error: 'Brand voice could not be saved.',
+            }),
+          ),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+      });
+
+      const result = await handleAgentUiAction(
+        'confirm_save_brand_voice_profile',
+        { sourceActionId: 'brand-voice-card-1' },
+        deps,
+      );
+
+      expect(result).toBe(false);
+      expect(deps.setError).toHaveBeenLastCalledWith(
+        'Brand voice could not be saved.',
+      );
+      expect(deps.addMessage).not.toHaveBeenCalled();
+      expect(
+        useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
+          ?.status,
+      ).toBeUndefined();
+    });
+
+    it('treats a cancelled execution as a failure', async () => {
+      const deps = makeDeps({
+        apiService: {
+          getMessages: vi.fn().mockResolvedValue([]),
+          getWorkflowExecution: vi
+            .fn()
+            .mockResolvedValue(
+              makeExecution(WorkflowExecutionStatus.CANCELLED),
+            ),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+      });
+
+      const result = await handleAgentUiAction('start_interview', {}, deps);
+
+      expect(result).toBe(false);
+      expect(deps.setError).toHaveBeenLastCalledWith(
+        'The action failed before it finished.',
+      );
+    });
+
+    it('completes a run that finished without a reply of its own', async () => {
+      seedUiAction('brand-voice-card-1');
+      const deps = makeDeps({
+        apiService: {
+          getCreditsInfo: vi
+            .fn()
+            .mockResolvedValue({ balance: 7, modelAccess: {}, modelCosts: {} }),
+          getMessages: vi.fn().mockResolvedValue(makeHistoricalMessages(4)),
+          getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+          getWorkflowExecution: vi
+            .fn()
+            .mockResolvedValue(
+              makeExecution(WorkflowExecutionStatus.COMPLETED),
+            ),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+      });
+
+      const result = await handleAgentUiAction(
+        'confirm_save_brand_voice_profile',
+        { sourceActionId: 'brand-voice-card-1' },
+        deps,
+      );
+
+      expect(result).toBe(true);
+      expect(deps.addMessage).not.toHaveBeenCalled();
+      expect(deps.setCreditsRemaining).toHaveBeenCalledWith(7);
+      expect(
+        useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
+          ?.status,
+      ).toBe('completed');
+    });
+
+    it('retries a transient read error instead of failing an accepted action', async () => {
+      vi.useFakeTimers();
+      const deps = makeDeps({
+        apiService: {
+          getCreditsInfo: vi
+            .fn()
+            .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
+          getMessages: vi
+            .fn()
+            .mockRejectedValueOnce(new Error('network down'))
+            .mockResolvedValue([makeRecoveredMessage()]),
+          getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+          getWorkflowExecution: vi.fn(),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+      });
+
+      const resultPromise = handleAgentUiAction('start_interview', {}, deps);
+      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+
+      expect(await resultPromise).toBe(true);
+      expect(deps.setError).not.toHaveBeenCalledWith('network down');
+      expect(deps.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'assistant-recovered-1' }),
+      );
+    });
+  });
+
+  describe('delayed results and navigation', () => {
+    function makeDelayedApi(reply: AgentChatMessage) {
+      let isReplyPersisted = false;
+      const getMessages = vi.fn(async () =>
+        isReplyPersisted ? [reply] : ([] as AgentChatMessage[]),
+      );
+      return {
+        api: {
+          getCreditsInfo: vi
+            .fn()
+            .mockResolvedValue({ balance: 3, modelAccess: {}, modelCosts: {} }),
+          getMessages,
+          getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+          getWorkflowExecution: vi
+            .fn()
+            .mockResolvedValue(makeExecution(WorkflowExecutionStatus.RUNNING)),
+          respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+        } as unknown as AgentApiService,
+        getMessages,
+        persistReply: () => {
+          isReplyPersisted = true;
+        },
+      };
+    }
+
+    function seedThreadBConversation(): void {
+      useAgentChatStore.setState({
+        activeThreadId: 'thread-2',
+        latestProposedPlan: null,
+        messages: [
+          {
+            content: 'Thread B message',
+            createdAt: '2026-03-20T11:00:00.000Z',
+            id: 'thread-2-message',
+            role: 'assistant',
+            threadId: 'thread-2',
+          } as AgentChatMessage,
+        ],
+      });
+    }
+
+    it('stops on a thread switch and never writes the result into the new thread', async () => {
+      vi.useFakeTimers();
+      const reply = makeRecoveredMessage({ id: 'reply-exec-1' });
+      const { api, getMessages, persistReply } = makeDelayedApi(reply);
+      const controller = new AbortController();
+      useAgentChatStore.setState({
+        conversationCacheByThread: {
+          'thread-1': {
+            cachedAt: Date.now(),
+            error: null,
+            hasMoreMessages: false,
+            latestProposedPlan: null,
+            messages: [],
+            messagesCursor: null,
+            pendingInputRequest: null,
+            workEvents: [],
+          },
+        },
+      });
+      const deps = makeDeps({
+        addMessage: (message) =>
+          useAgentChatStore.getState().addMessage(message),
+        apiService: api,
+        signal: controller.signal,
+      });
+
+      const resultPromise = handleAgentUiAction('approve_plan', {}, deps);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(getMessages).toHaveBeenCalledTimes(1);
+
+      // The user opens thread B; the container aborts A's reconciliation.
+      seedThreadBConversation();
+      controller.abort();
+      persistReply();
+      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS);
+
+      expect(await resultPromise).toBe('pending');
+      expect(getMessages).toHaveBeenCalledTimes(1);
+      expect(useAgentChatStore.getState().messages).toEqual([
+        expect.objectContaining({ id: 'thread-2-message' }),
+      ]);
+      expect(deps.setLatestProposedPlan).not.toHaveBeenCalled();
+      expect(deps.setError).not.toHaveBeenCalledWith(expect.any(String));
+      expect(deps.setCreditsRemaining).not.toHaveBeenCalled();
+      expect(deps.upsertThread).not.toHaveBeenCalled();
+      // A's stale cached transcript is dropped so returning re-hydrates it.
+      expect(
+        useAgentChatStore.getState().conversationCacheByThread['thread-1'],
+      ).toBeUndefined();
+    });
+
+    it('writes nothing when the thread changed before the abort propagated', async () => {
+      const reply = makeRecoveredMessage({ id: 'reply-exec-1' });
+      const deps = makeDeps({
+        addMessage: (message) =>
+          useAgentChatStore.getState().addMessage(message),
+        apiService: {
+          ...makeDelayedApi(reply).api,
+          // The switch lands while the reply read is in flight.
+          getMessages: vi.fn(async () => {
+            seedThreadBConversation();
+            return [reply];
+          }),
+        } as unknown as AgentApiService,
+      });
+
+      const result = await handleAgentUiAction('approve_plan', {}, deps);
+
+      expect(result).toBe('pending');
+      expect(useAgentChatStore.getState().messages).toEqual([
+        expect.objectContaining({ id: 'thread-2-message' }),
+      ]);
+      expect(deps.setLatestProposedPlan).not.toHaveBeenCalled();
+    });
+
+    it('does not duplicate a reply already hydrated when returning to the thread', async () => {
+      vi.useFakeTimers();
+      const reply = makeRecoveredMessage({
+        content: 'Plan approved.',
+        id: 'reply-exec-1',
+      });
+      const { api, persistReply } = makeDelayedApi(reply);
+      const deps = makeDeps({
+        addMessage: (message) =>
+          useAgentChatStore.getState().addMessage(message),
+        apiService: api,
+      });
+
+      const resultPromise = handleAgentUiAction('approve_plan', {}, deps);
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Thread A is re-hydrated from the server, which already holds the reply.
+      persistReply();
+      useAgentChatStore.getState().setMessages([
+        {
+          content: 'Earlier message',
+          createdAt: '2026-03-20T10:00:00.000Z',
+          id: 'earlier',
+          role: 'user',
+          threadId: 'thread-1',
+        } as AgentChatMessage,
+        reply,
+      ]);
+      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_POLL_INTERVAL_MS);
+
+      expect(await resultPromise).toBe(true);
+      const ids = useAgentChatStore
+        .getState()
+        .messages.map((message) => message.id);
+      expect(ids).toEqual(['earlier', 'reply-exec-1']);
+    });
   });
 });

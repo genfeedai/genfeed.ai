@@ -66,3 +66,19 @@ export function findRecoveredAssistantMessage(
   }
   return undefined;
 }
+
+/**
+ * The assistant reply a specific run persisted. Every server path that writes
+ * a run's reply stamps `metadata.runId` with the workflow execution id, so
+ * this matches on that id alone, never on which messages the client happened
+ * to have hydrated.
+ */
+export function findRunAssistantMessage(
+  messages: readonly AgentChatMessage[],
+  runId: string,
+): AgentChatMessage | undefined {
+  return messages.findLast(
+    (message) =>
+      message.role === 'assistant' && message.metadata?.runId === runId,
+  );
+}

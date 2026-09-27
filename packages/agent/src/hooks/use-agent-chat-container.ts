@@ -278,6 +278,7 @@ export function useAgentChatContainer({
   const olderMessagesRequestEpochRef = useRef(0);
   const olderMessagesRequestInFlightRef = useRef(false);
   const olderMessagesAbortControllerRef = useRef<AbortController | null>(null);
+  const uiActionAbortControllersRef = useRef(new Set<AbortController>());
   const activeThreadIdRef = useRef(activeThreadId);
   const messagesCursorRef = useRef(messagesCursor);
   const pendingScrollAnchorRef = useRef<{
@@ -743,25 +744,32 @@ export function useAgentChatContainer({
 
   const handleUiAction = useCallback(
     async (action: string, payload?: Record<string, unknown>) => {
-      return await handleAgentUiAction(action, payload, {
-        activeThreadId,
-        activeUiAction: activeUiActionRef.current,
-        addMessage,
-        apiService,
-        draftAgentMode,
-        followLatestTurn,
-        isBusy,
-        isReadOnly,
-        latestProposedPlan,
-        sendMessage,
-        setActiveThread,
-        setActiveUiAction,
-        setCreditsRemaining,
-        setError,
-        setLatestProposedPlan,
-        threads,
-        upsertThread,
-      });
+      const controller = new AbortController();
+      uiActionAbortControllersRef.current.add(controller);
+      try {
+        return await handleAgentUiAction(action, payload, {
+          activeThreadId,
+          activeUiAction: activeUiActionRef.current,
+          addMessage,
+          apiService,
+          draftAgentMode,
+          followLatestTurn,
+          isBusy,
+          isReadOnly,
+          latestProposedPlan,
+          sendMessage,
+          setActiveThread,
+          setActiveUiAction,
+          setCreditsRemaining,
+          setError,
+          setLatestProposedPlan,
+          signal: controller.signal,
+          threads,
+          upsertThread,
+        });
+      } finally {
+        uiActionAbortControllersRef.current.delete(controller);
+      }
     },
     [
       activeThreadId,
@@ -926,14 +934,24 @@ export function useAgentChatContainer({
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();
     olderMessagesAbortControllerRef.current = null;
+    // A ui-action still reconciling belongs to the thread being left.
+    for (const controller of uiActionAbortControllersRef.current) {
+      controller.abort();
+    }
+    uiActionAbortControllersRef.current.clear();
     pendingScrollAnchorRef.current = null;
     setIsAtBottom(true);
   }, [activeThreadId]);
 
   useEffect(() => {
+    const uiActionAbortControllers = uiActionAbortControllersRef.current;
     return () => {
       olderMessagesRequestEpochRef.current += 1;
       olderMessagesAbortControllerRef.current?.abort();
+      for (const controller of uiActionAbortControllers) {
+        controller.abort();
+      }
+      uiActionAbortControllers.clear();
     };
   }, []);
 

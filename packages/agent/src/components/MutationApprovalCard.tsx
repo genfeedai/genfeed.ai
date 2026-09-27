@@ -78,6 +78,7 @@ export function MutationApprovalCard({
     inFlight.current = true;
     setIsPending(true);
     setHasError(false);
+    let isAwaitingResult = false;
     try {
       const accepted = await onUiAction(
         decision === 'approved' ? 'confirm_mutation' : 'decline_mutation',
@@ -86,6 +87,12 @@ export function MutationApprovalCard({
           sourceActionId: approval.sourceActionId,
         },
       );
+      // Accepted but unconfirmed: the decision may still apply, so the card
+      // neither resolves nor reports a failure, and stays locked.
+      if (accepted === 'pending') {
+        isAwaitingResult = true;
+        return;
+      }
       if (accepted !== true) {
         setHasError(true);
         return;
@@ -94,8 +101,10 @@ export function MutationApprovalCard({
     } catch {
       setHasError(true);
     } finally {
-      inFlight.current = false;
-      setIsPending(false);
+      if (!isAwaitingResult) {
+        inFlight.current = false;
+        setIsPending(false);
+      }
     }
   }
 

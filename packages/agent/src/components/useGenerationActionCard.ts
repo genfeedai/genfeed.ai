@@ -691,6 +691,11 @@ export function useGenerationActionCard({
             composerError?.trim() ? composerError : 'Generation failed',
           );
         }
+        // Accepted but no result yet: the run is still generating server
+        // side, so the card stays in flight instead of claiming a result.
+        if (outcome === 'pending') {
+          return;
+        }
         setIsFullRun(false);
         setStatus(
           !isFullRun && pilotDuration !== null ? 'pilot_review' : 'done',
@@ -861,12 +866,16 @@ export function useGenerationActionCard({
   const handleDecline = useCallback(async () => {
     if (!canDecline || !onUiAction) return;
     setIsDeclining(true);
+    let isAwaitingResult = false;
     try {
       const outcome = await onUiAction('decline_generate_media', {
         sourceActionId: action.id,
       });
       if (outcome === false) throw new Error('Failed to decline generation.');
-      setStatus('declined');
+      // Accepted but unconfirmed: stay declining rather than offering a
+      // second decline or claiming this one landed.
+      isAwaitingResult = outcome === 'pending';
+      if (!isAwaitingResult) setStatus('declined');
     } catch (failure) {
       setError(
         failure instanceof Error
@@ -875,7 +884,7 @@ export function useGenerationActionCard({
       );
       setComposerError('Failed to decline generation. Try again.');
     } finally {
-      setIsDeclining(false);
+      if (!isAwaitingResult) setIsDeclining(false);
     }
   }, [action.id, canDecline, onUiAction, setComposerError]);
 

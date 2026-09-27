@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionOutcome,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -19,7 +22,7 @@ interface BrandIdentityConfirmationCardProps {
   onUiAction?: (
     action: string,
     payload?: Record<string, unknown>,
-  ) => Promise<boolean>;
+  ) => Promise<AgentUiActionOutcome>;
 }
 
 type BrandIdentityOperation = 'create' | 'rename';
@@ -115,6 +118,7 @@ export function BrandIdentityConfirmationCard({
 
     setError(null);
     setIsPending(true);
+    let isAwaitingResult = false;
 
     try {
       const outcome = await onUiAction(confirmationCta.action, {
@@ -124,6 +128,12 @@ export function BrandIdentityConfirmationCard({
         ...(operation === 'create' ? { description: description.trim() } : {}),
         sourceActionId,
       });
+      // Accepted but unconfirmed: stay pending instead of reporting an error
+      // for a confirmation that may still apply.
+      if (outcome === 'pending') {
+        isAwaitingResult = true;
+        return;
+      }
       if (outcome !== true) {
         throw new Error('Brand confirmation was not accepted.');
       }
@@ -135,7 +145,7 @@ export function BrandIdentityConfirmationCard({
           : translate('renameError'),
       );
     } finally {
-      setIsPending(false);
+      if (!isAwaitingResult) setIsPending(false);
     }
   }, [
     confirmationCta?.action,

@@ -339,6 +339,9 @@ test.describe('Agent Chat', () => {
           content: 'Publish confirmed. Your post is ready to review.',
           createdAt: new Date().toISOString(),
           metadata: {
+            // The run's reply carries its execution id — the client
+            // correlates the ack with it.
+            runId: 'exec-ui-action-e2e',
             uiActions: [
               {
                 ctas: [

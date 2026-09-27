@@ -468,6 +468,43 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * `POST .../ui-actions` only acks the enqueued workflow; the run's reply is
+ * persisted with `metadata.runId` = the ack's `executionId` and read back from
+ * the thread's messages.
+ */
+function createUiActionApi(
+  reply: Pick<AgentChatMessageType, 'content'> & Partial<AgentChatMessageType>,
+  thread: Record<string, unknown> = {
+    brandId: null,
+    contextVersion: 1,
+    id: 'thread-1',
+  },
+) {
+  return {
+    getCreditsInfo: vi
+      .fn()
+      .mockResolvedValue({ balance: 48, modelAccess: {}, modelCosts: {} }),
+    getMessages: vi.fn().mockResolvedValue([
+      {
+        createdAt: '2026-03-11T00:01:00.000Z',
+        id: 'm-ui-action-reply',
+        role: 'assistant',
+        threadId: 'thread-1',
+        ...reply,
+        metadata: { runId: 'exec-ui-action', ...reply.metadata },
+      },
+    ]),
+    getThread: vi.fn().mockResolvedValue(thread),
+    getWorkflowExecution: vi.fn(),
+    respondToUiAction: vi.fn().mockResolvedValue({
+      executionId: 'exec-ui-action',
+      status: 'queued',
+      threadId: 'thread-1',
+    }),
+  };
+}
+
 function buildAssistantMessage(
   overrides: Partial<AgentChatMessageType> = {},
 ): AgentChatMessageType {
@@ -2178,34 +2215,26 @@ describe('AgentChatContainer', () => {
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
-    const apiService = createApiService({
-      respondToUiAction: vi.fn().mockResolvedValue({
-        contextVersion: 1,
-        creditsRemaining: 48,
-        creditsUsed: 0,
-        message: {
-          content: 'Official workflow installed.',
-          metadata: {
-            uiActions: [
-              {
-                ctas: [
-                  {
-                    href: '/automation/workflows/wf-99',
-                    label: 'Open workflow',
-                  },
-                ],
-                id: 'workflow-created-success',
-                title: 'Automation installed',
-                type: 'workflow_created_card',
-              },
-            ],
-          },
-          role: 'assistant',
+    const apiService = createApiService(
+      createUiActionApi({
+        content: 'Official workflow installed.',
+        metadata: {
+          uiActions: [
+            {
+              ctas: [
+                {
+                  href: '/automation/workflows/wf-99',
+                  label: 'Open workflow',
+                },
+              ],
+              id: 'workflow-created-success',
+              title: 'Automation installed',
+              type: 'workflow_created_card',
+            },
+          ],
         },
-        threadId: 'thread-1',
-        toolCalls: [],
       }),
-    });
+    );
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2262,7 +2291,10 @@ describe('AgentChatContainer', () => {
       resolveAction = resolve;
     });
     const respondToUiAction = vi.fn(() => pendingAction);
-    const apiService = createApiService({ respondToUiAction });
+    const apiService = createApiService({
+      ...createUiActionApi({ content: 'Installed.' }),
+      respondToUiAction,
+    });
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2303,12 +2335,9 @@ describe('AgentChatContainer', () => {
     );
 
     resolveAction?.({
-      contextVersion: 1,
-      creditsRemaining: 48,
-      creditsUsed: 0,
-      message: { content: 'Installed.', metadata: {}, role: 'assistant' },
+      executionId: 'exec-ui-action',
+      status: 'queued',
       threadId: 'thread-1',
-      toolCalls: [],
     });
 
     await waitFor(() => {
@@ -2319,21 +2348,14 @@ describe('AgentChatContainer', () => {
   });
 
   it('replaces a brandless thread scope with the confirmed created brand', async () => {
-    const apiService = createApiService({
-      respondToUiAction: vi.fn().mockResolvedValue({
-        brandId: 'brand-created-1',
-        contextVersion: 2,
-        creditsRemaining: 48,
-        creditsUsed: 0,
-        message: {
-          content: 'Brand created and selected for this thread.',
-          metadata: {},
-          role: 'assistant',
-        },
-        threadId: 'thread-1',
-        toolCalls: [],
-      }),
-    });
+    // The ack carries no scope; the confirmed brand is read back from the
+    // thread once the run's reply lands.
+    const apiService = createApiService(
+      createUiActionApi(
+        { content: 'Brand created and selected for this thread.' },
+        { brandId: 'brand-created-1', contextVersion: 2, id: 'thread-1' },
+      ),
+    );
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];

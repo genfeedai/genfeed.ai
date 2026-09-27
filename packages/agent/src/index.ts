@@ -121,6 +121,7 @@ export type {
   AgentUiAction,
   AgentUiActionAckResponse,
   AgentUiActionHandler,
+  AgentUiActionOutcome,
   AgentWorkEvent,
   AgentWorkEventPayload,
   CreateThreadPayload,

@@ -284,7 +284,9 @@ test.describe('Agent Plan Mode', () => {
           content:
             'Executed the approved plan. The toggle, review state, and UI actions are now wired.',
           createdAt: new Date().toISOString(),
-          metadata: {},
+          // The run's reply carries its execution id — the client correlates
+          // the ack with it.
+          metadata: { runId: 'exec-ui-action-e2e' },
           role: 'assistant',
         };
 
@@ -477,6 +479,7 @@ test.describe('Agent Plan Mode', () => {
             'I revised the plan and kept execution paused for another review.',
           createdAt: new Date().toISOString(),
           metadata: {
+            runId: 'exec-ui-action-e2e',
             proposedPlan: {
               ...initialPlan,
               content:
