@@ -71,6 +71,7 @@ export interface ClipReferenceFrameExtractionInput {
 export interface ClipProjectReadResponse {
   brandId?: string;
   createdAt?: string;
+  draft?: import('./clip-source.interface').ClipProjectDraft | null;
   error?: string | null;
   failedClipCount?: number;
   name?: string;
@@ -81,6 +82,7 @@ export interface ClipProjectReadResponse {
   source?: import('./clip-source.interface').ClipSourceContract;
   settings?: {
     maxClips?: number;
+    minViralityScore?: number;
     mode?: string;
   };
   sourceVideoUrl?: string;

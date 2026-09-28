@@ -1,4 +1,5 @@
 export const CLIP_PROJECT_STATUSES = [
+  'draft',
   'pending',
   'transcribing',
   'analyzing',

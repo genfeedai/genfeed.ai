@@ -95,6 +95,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/studio/batch/new', 'Studio', 'Batch'],
     ['/acme/moonrise/studio/batch/history', 'Studio', 'Batch'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
+    ['/acme/moonrise/studio/clips/new', 'Studio', 'New project'],
     ['/acme/moonrise/studio/clips/project-1', 'Studio', 'Project'],
     ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
     ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],

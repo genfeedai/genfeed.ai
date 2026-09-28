@@ -19,6 +19,8 @@ export const VIDEO_MERGE_LIMITS = {
 } as const;
 
 export const CLIP_REFERENCE_FRAME_MAX_CANDIDATES = 5;
+/** Minimum source duration accepted when a Library asset starts a clip project. */
+export const CLIP_SOURCE_MIN_DURATION_SECONDS = 15;
 /** Maximum source duration accepted by clip ingestion and materialization. */
 export const CLIP_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;
 /** Supports materializing multi-hour clip sources before downstream processing. */

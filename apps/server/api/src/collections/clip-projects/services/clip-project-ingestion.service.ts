@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import {
+  type ClipProjectCreateInput,
+  ClipProjectsService,
+} from '@api/collections/clip-projects/clip-projects.service';
 import type { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
+import type { CreateClipProjectDraftDto } from '@api/collections/clip-projects/dto/create-clip-project-draft.dto';
+import type { CreateClipProjectFromIngredientDto } from '@api/collections/clip-projects/dto/create-clip-project-from-ingredient.dto';
 import type { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   MAX_CLIP_SOURCE_SIZE_BYTES,
@@ -13,12 +18,16 @@ import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
+import {
+  CLIP_SOURCE_MAX_DURATION_SECONDS,
+  CLIP_SOURCE_MIN_DURATION_SECONDS,
+} from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_SOURCE_SCHEMA_VERSION,
@@ -26,9 +35,22 @@ import {
   type ClipSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@libs/config/config.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
+
+/** Library statuses whose media is present and final. */
+const READY_LIBRARY_SOURCE_STATUSES: ReadonlySet<string> = new Set([
+  IngredientStatus.GENERATED,
+  IngredientStatus.UPLOADED,
+  IngredientStatus.VALIDATED,
+]);
 
 export interface ClipProjectAnalysisResult {
   identity: AgentClipRunIdentity;
@@ -42,6 +64,14 @@ export interface ClipProjectIngestionResult {
   identity?: AgentClipRunIdentity;
   projectId: string;
   status: string;
+}
+
+interface LibraryClipSourceMedia {
+  contentType: string;
+  durationSeconds: number;
+  mediaUrl: string;
+  sizeBytes: number;
+  storageKey?: string;
 }
 
 export interface PrepareClipUploadResult {
@@ -63,7 +93,137 @@ export class ClipProjectIngestionService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly ingredientsService: IngredientsService,
     private readonly presignedUploadService: PresignedUploadService,
+    private readonly configService: ConfigService,
   ) {}
+
+  async createDraft(
+    user: User,
+    dto: CreateClipProjectDraftDto,
+  ): Promise<ClipProjectDocument> {
+    if (dto.brandId) {
+      await this.clipIdentityResolutionService.resolve({
+        brandId: dto.brandId,
+        organizationId: user.organizationId,
+      });
+    }
+
+    const now = new Date().toISOString();
+    return await this.clipProjectsService.create({
+      brandId: dto.brandId,
+      draft: { sourceKind: 'youtube', updatedAt: now },
+      language: 'en',
+      name: `Clip draft — ${now.slice(0, 10)}`,
+      organizationId: user.organizationId,
+      settings: {
+        maxClips: 10,
+        minViralityScore: 50,
+        mode: DEFAULT_CLIP_RESULT_MODE,
+      },
+      status: 'draft',
+      userId: user.userId ?? user.id,
+    });
+  }
+
+  async createFromIngredient(
+    user: User,
+    dto: CreateClipProjectFromIngredientDto,
+  ): Promise<ClipProjectAnalysisResult> {
+    const orgId = user.organizationId;
+    const userId = user.userId ?? user.id;
+    const brandId = dto.brandId ?? user.brandId;
+    const identity = await this.clipIdentityResolutionService.resolve({
+      brandId,
+      organizationId: orgId,
+    });
+
+    const ingredient = await this.ingredientsService.findOne(
+      {
+        id: dto.ingredientId,
+        isDeleted: false,
+        organizationId: orgId,
+      },
+      [{ path: 'metadata' }],
+    );
+    // Same visibility rule as the Library: an org-shared asset (no brand) is
+    // usable from any brand, a branded asset only from its own brand.
+    if (!ingredient || (ingredient.brandId && ingredient.brandId !== brandId)) {
+      throw new NotFoundException('Ingredient', dto.ingredientId);
+    }
+
+    const media = this.assertEligibleLibrarySource(ingredient);
+    const language = dto.language ?? 'en';
+    const maxClips = dto.maxClips ?? 10;
+    const minViralityScore = dto.minViralityScore ?? 50;
+    const source: ClipSourceContract = {
+      artifact: {
+        contentType: media.contentType,
+        durationSeconds: media.durationSeconds,
+        mediaUrl: media.mediaUrl,
+        storageKey: media.storageKey,
+      },
+      contentType: media.contentType,
+      durationSeconds: media.durationSeconds,
+      fingerprint: this.hashSource(`library:${ingredient.id}`),
+      flow: 'review',
+      ingredientId: ingredient.id,
+      kind: 'library',
+      maxRetries: DEFAULT_CLIP_SOURCE_MAX_RETRIES,
+      retryCount: 0,
+      schemaVersion: CLIP_SOURCE_SCHEMA_VERSION,
+      ...(media.sizeBytes > 0 ? { sizeBytes: media.sizeBytes } : {}),
+      status: 'queued',
+      updatedAt: new Date().toISOString(),
+    };
+
+    const project = await this.clipProjectsService.create({
+      brandId,
+      language,
+      name:
+        dto.name ??
+        this.readMetadataLabel(ingredient) ??
+        `Library Clip Source — ${new Date().toISOString().slice(0, 10)}`,
+      organizationId: orgId,
+      settings: {
+        addCaptions: true,
+        aspectRatio: '9:16',
+        captionStyle: 'default',
+        flow: 'review',
+        language,
+        maxClips,
+        maxDuration: 90,
+        minDuration: 15,
+        minViralityScore,
+        mode: DEFAULT_CLIP_RESULT_MODE,
+      },
+      source,
+      sourceVideoS3Key: media.storageKey,
+      sourceVideoUrl: media.mediaUrl,
+      status: 'pending',
+      userId,
+    });
+
+    const projectId = String(project.id);
+    const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
+    await this.clipProjectsService.patch(
+      projectId,
+      { source: queuedSource },
+      [],
+      orgId,
+    );
+
+    await this.clipAnalysisWorkflowQueue.enqueue({
+      language,
+      maxClips,
+      minViralityScore,
+      orgId,
+      projectId,
+      source: queuedSource,
+      userId,
+      youtubeUrl: media.mediaUrl,
+    });
+
+    return { identity, projectId, status: 'analyzing' };
+  }
 
   async createFromYoutube(
     user: User,
@@ -109,7 +269,7 @@ export class ClipProjectIngestionService {
     }
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'quick');
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
+    const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
@@ -181,7 +341,7 @@ export class ClipProjectIngestionService {
     });
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'review');
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
+    const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
       brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
@@ -275,32 +435,36 @@ export class ClipProjectIngestionService {
       updatedAt: now,
     };
 
-    const project = await this.clipProjectsService.create({
-      brandId: dto.brandId,
-      language: dto.language ?? 'en',
-      name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
-      organizationId: user.organizationId,
-      settings: {
-        addCaptions: true,
-        aspectRatio: '9:16',
-        avatarId: dto.avatarId,
-        avatarProvider: dto.avatarProvider,
-        captionStyle: 'default',
-        flow,
+    const project = await this.createOrStartDraft(
+      user.organizationId,
+      dto.draftProjectId,
+      {
+        brandId: dto.brandId,
         language: dto.language ?? 'en',
-        maxClips: dto.maxClips ?? 10,
-        maxDuration: 90,
-        minDuration: 15,
-        minViralityScore: dto.minViralityScore ?? 50,
-        mode,
-        voiceId: dto.voiceId,
+        name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
+        organizationId: user.organizationId,
+        settings: {
+          addCaptions: true,
+          aspectRatio: '9:16',
+          avatarId: dto.avatarId,
+          avatarProvider: dto.avatarProvider,
+          captionStyle: 'default',
+          flow,
+          language: dto.language ?? 'en',
+          maxClips: dto.maxClips ?? 10,
+          maxDuration: 90,
+          minDuration: 15,
+          minViralityScore: dto.minViralityScore ?? 50,
+          mode,
+          voiceId: dto.voiceId,
+        },
+        source,
+        sourceVideoS3Key: upload.s3Key,
+        sourceVideoUrl: upload.publicUrl,
+        status: 'pending',
+        userId,
       },
-      source,
-      sourceVideoS3Key: upload.s3Key,
-      sourceVideoUrl: upload.publicUrl,
-      status: 'pending',
-      userId,
-    });
+    );
 
     return {
       expiresIn: upload.expiresIn,
@@ -598,6 +762,103 @@ export class ClipProjectIngestionService {
       projectId,
       status: 'processing',
     };
+  }
+
+  /**
+   * Starts the caller's draft in place when one is given — claimed atomically
+   * so a double-submitted start runs once — and otherwise creates a project.
+   */
+  private async createOrStartDraft(
+    organizationId: string,
+    draftProjectId: string | undefined,
+    input: ClipProjectCreateInput,
+  ): Promise<ClipProjectDocument> {
+    if (!draftProjectId) {
+      return await this.clipProjectsService.create(input);
+    }
+
+    const isClaimed = await this.clipProjectsService.claimDraft(
+      draftProjectId,
+      organizationId,
+    );
+    if (!isClaimed) {
+      throw new ConflictException(
+        'This clip project draft was already started or no longer exists.',
+      );
+    }
+
+    return await this.clipProjectsService.patch(
+      draftProjectId,
+      { ...input, draft: null },
+      [],
+      organizationId,
+    );
+  }
+
+  private assertEligibleLibrarySource(
+    ingredient: IngredientDocument,
+  ): LibraryClipSourceMedia {
+    const contentType = ingredient.mimeType ?? 'video/mp4';
+    if (
+      String(ingredient.category) !== IngredientCategory.VIDEO ||
+      !contentType.startsWith('video/')
+    ) {
+      throw new BadRequestException(
+        'Only video assets can be made into clips.',
+      );
+    }
+    if (!READY_LIBRARY_SOURCE_STATUSES.has(String(ingredient.status))) {
+      throw new BadRequestException(
+        'This video is not ready yet. Make clips once it has finished processing.',
+      );
+    }
+
+    const durationSeconds = ingredient.metadata?.duration;
+    if (
+      typeof durationSeconds !== 'number' ||
+      !Number.isFinite(durationSeconds) ||
+      durationSeconds <= 0
+    ) {
+      throw new BadRequestException('This video has no known duration.');
+    }
+    if (durationSeconds < CLIP_SOURCE_MIN_DURATION_SECONDS) {
+      throw new BadRequestException(
+        `Clip sources must be at least ${CLIP_SOURCE_MIN_DURATION_SECONDS} seconds long.`,
+      );
+    }
+    if (durationSeconds > CLIP_SOURCE_MAX_DURATION_SECONDS) {
+      throw new BadRequestException('Clip sources may be up to 6 hours long.');
+    }
+
+    const sizeBytes = ingredient.metadata?.size ?? 0;
+    if (sizeBytes > MAX_CLIP_SOURCE_SIZE_BYTES) {
+      throw new BadRequestException('Clip sources may be up to 10 GB.');
+    }
+
+    const mediaUrl = resolveIngredientMediaUrl(
+      ingredient,
+      this.configService.cdnUrl,
+    );
+    if (!mediaUrl) {
+      throw new BadRequestException('This video has no stored media.');
+    }
+
+    return {
+      contentType,
+      durationSeconds,
+      mediaUrl,
+      sizeBytes,
+      storageKey: ingredient.s3Key ?? undefined,
+    };
+  }
+
+  private readMetadataLabel(
+    ingredient: IngredientDocument,
+  ): string | undefined {
+    const label = ingredient.metadata?.label;
+    return typeof label === 'string' && label.trim().length > 0
+      ? label
+      : undefined;
   }
 
   private async findAuthorizedProject(

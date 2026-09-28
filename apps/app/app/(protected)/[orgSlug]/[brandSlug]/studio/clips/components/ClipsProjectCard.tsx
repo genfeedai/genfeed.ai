@@ -45,9 +45,15 @@ export default function ClipsProjectCard({
             {project.name}
           </h3>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {clipCountLabel(project.readyClipCount)}
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            {statusLabel(project.status)}
+            {project.isDraft ? (
+              <span className="font-medium text-foreground">Draft</span>
+            ) : (
+              <>
+                {clipCountLabel(project.readyClipCount)}
+                <span className="mx-1.5 text-muted-foreground/50">·</span>
+                {statusLabel(project.status)}
+              </>
+            )}
             {project.createdAt ? (
               <>
                 <span className="mx-1.5 text-muted-foreground/50">·</span>

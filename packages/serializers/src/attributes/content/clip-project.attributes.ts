@@ -5,6 +5,7 @@ export const clipProjectAttributes = createEntityAttributes([
   'organizationId',
   'brandId',
   'name',
+  'draft',
   'source',
   'sourceVideoUrl',
   'sourceVideoS3Key',

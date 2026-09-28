@@ -64,4 +64,21 @@ describe('ClipProjectSerializer reference-frame contract', () => {
     expect(output.data.attributes.source).toEqual(source);
     expect(JSON.stringify(output)).not.toContain('uploadUrl');
   });
+
+  it('exposes the draft form state of a draft project', () => {
+    const draft = {
+      sourceKind: 'youtube',
+      updatedAt: '2026-09-28T12:00:00.000Z',
+      youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+    };
+
+    const output = ClipProjectSerializer.serialize({
+      draft,
+      id: 'project-draft',
+      status: 'draft',
+    }) as SerializedResource;
+
+    expect(output.data.attributes.draft).toEqual(draft);
+    expect(output.data.attributes.status).toBe('draft');
+  });
 });

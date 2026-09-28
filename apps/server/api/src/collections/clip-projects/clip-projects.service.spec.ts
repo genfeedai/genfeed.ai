@@ -14,9 +14,11 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import type { ClipContinuityWorkflowService } from '@api/collections/clip-projects/services/clip-continuity-workflow.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createLogger(): LoggerService {
@@ -739,6 +741,119 @@ describe('ClipProjectsService', () => {
         organizationId: 'org-1',
         status: { in: ['failed', 'partially-completed'] },
       },
+    });
+  });
+
+  it('claims a draft project exactly once', async () => {
+    prisma.clipProject.updateMany.mockResolvedValueOnce({ count: 1 });
+    prisma.clipProject.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.claimDraft('project-1', 'org-1')).resolves.toBe(true);
+    await expect(service.claimDraft('project-1', 'org-1')).resolves.toBe(false);
+
+    expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        error: null,
+        status: 'pending',
+        terminalAt: null,
+      }),
+      where: {
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'draft',
+      },
+    });
+  });
+
+  describe('saveDraft', () => {
+    const draftRow = {
+      config: {
+        draft: {
+          sourceKind: 'youtube',
+          updatedAt: '2026-09-01T00:00:00.000Z',
+          youtubeUrl: 'https://youtu.be/old',
+        },
+        name: 'Clip draft',
+        settings: { maxClips: 10, minViralityScore: 50, mode: 'avatar' },
+      },
+      id: 'project-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      progress: 0,
+      readiness: {},
+      status: 'draft',
+    };
+
+    it('merges form fields into the draft and settings while it is a draft', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue(draftRow);
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+      const saved = await service.saveDraft('project-1', 'org-1', {
+        maxClips: 12,
+        mode: 'raw-cut',
+        youtubeUrl: 'https://youtu.be/new',
+      });
+
+      expect(prisma.clipProject.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'project-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+        data: {
+          config: expect.objectContaining({
+            draft: expect.objectContaining({
+              sourceKind: 'youtube',
+              youtubeUrl: 'https://youtu.be/new',
+            }),
+            name: 'Clip draft',
+            settings: { maxClips: 12, minViralityScore: 50, mode: 'raw-cut' },
+          }),
+        },
+        where: {
+          id: 'project-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'draft',
+        },
+      });
+      expect(saved.draft?.youtubeUrl).toBe('https://youtu.be/new');
+      expect(saved.settings).toMatchObject({ maxClips: 12, mode: 'raw-cut' });
+    });
+
+    it('refuses to edit a project that has already started', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue({
+        ...draftRow,
+        status: 'analyzing',
+      });
+
+      await expect(
+        service.saveDraft('project-1', 'org-1', { maxClips: 3 }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses a save that loses the race with a start', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue(draftRow);
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.saveDraft('project-1', 'org-1', { maxClips: 3 }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('does not reveal another organization draft', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.saveDraft('project-1', 'org-2', { maxClips: 3 }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
     });
   });
 });

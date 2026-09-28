@@ -1,6 +1,10 @@
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { UpdateClipProjectDraftDto } from '@api/collections/clip-projects/dto/update-clip-project-draft.dto';
+import type {
+  ClipProjectDocument,
+  ClipProjectSettings,
+} from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipContinuityWorkflowService } from '@api/collections/clip-projects/services/clip-continuity-workflow.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
@@ -15,6 +19,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import type {
+  ClipProjectDraft,
   ClipReferenceFrameSet,
   ClipSourceContract,
 } from '@genfeedai/contracts/interfaces';
@@ -24,14 +29,19 @@ import {
 } from '@genfeedai/helpers';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
 > &
   Record<string, unknown>;
 
-type ClipProjectCreateInput = CreateClipProjectDto & {
+export type ClipProjectCreateInput = CreateClipProjectDto & {
+  readonly draft?: ClipProjectDraft | null;
   readonly source?: ClipSourceContract;
 };
 
@@ -284,6 +294,91 @@ export class ClipProjectsService extends BaseService<
     });
 
     return result.count === 1;
+  }
+
+  /**
+   * Moves a `draft` project to `pending` exactly once, so a double-submitted
+   * start converts the draft into one project run.
+   */
+  async claimDraft(
+    projectId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const result = await this.prisma.clipProject.updateMany({
+      data: {
+        error: null,
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({
+            status: 'pending',
+          }),
+        ),
+        status: 'pending',
+        terminalAt: null,
+      },
+      where: {
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+        status: 'draft',
+      },
+    });
+
+    return result.count === 1;
+  }
+
+  /**
+   * Autosaves new-project form fields onto a draft. The write is conditional on
+   * the project still being a draft, so a save racing a start never rewrites
+   * the settings of a project that is already running.
+   */
+  async saveDraft(
+    projectId: string,
+    organizationId: string,
+    update: UpdateClipProjectDraftDto,
+  ): Promise<ClipProjectDocument> {
+    const where = { id: projectId, isDeleted: false, organizationId };
+    const project = await this.findOne(where);
+    if (!project) {
+      throw new NotFoundException('ClipProject', projectId);
+    }
+    if (project.status !== 'draft') {
+      throw new ConflictException(
+        'This clip project has already started and its setup can no longer be edited.',
+      );
+    }
+
+    const draft = project.draft ?? { sourceKind: 'youtube' };
+    const settings: ClipProjectSettings = {
+      ...(project.settings ?? {}),
+      ...(update.mode !== undefined ? { mode: update.mode } : {}),
+      ...(update.maxClips !== undefined ? { maxClips: update.maxClips } : {}),
+      ...(update.minViralityScore !== undefined
+        ? { minViralityScore: update.minViralityScore }
+        : {}),
+    };
+    const nextDraft: ClipProjectDraft = {
+      filename: update.filename ?? draft.filename,
+      sourceKind: update.sourceKind ?? draft.sourceKind,
+      updatedAt: new Date().toISOString(),
+      youtubeUrl: update.youtubeUrl ?? draft.youtubeUrl,
+    };
+    const result = await this.prisma.clipProject.updateMany({
+      data: {
+        config: toPrismaJson({
+          ...this.readRecord((project as Record<string, unknown>).config),
+          draft: nextDraft,
+          settings,
+        }),
+      },
+      where: { ...where, status: 'draft' },
+    });
+    if (result.count !== 1) {
+      throw new ConflictException(
+        'This clip project has already started and its setup can no longer be edited.',
+      );
+    }
+
+    return { ...project, draft: nextDraft, settings };
   }
 
   private toPrismaWriteData(

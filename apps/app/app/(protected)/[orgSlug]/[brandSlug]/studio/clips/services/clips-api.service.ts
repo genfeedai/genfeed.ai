@@ -7,6 +7,7 @@ import type {
   AnalyzeVideoPayload,
   AnalyzeVideoResponse,
   ClipResultRawItem,
+  CreateFromIngredientPayload,
   CreateFromYoutubePayload,
   CreateFromYoutubeResponse,
   EditorHandoffResponse,
@@ -19,6 +20,7 @@ import type {
   PublishHandoffResponse,
   RewriteHighlightPayload,
   RewriteHighlightResponse,
+  SaveClipDraftPayload,
   SubmitHookApprovalPayload,
 } from '@genfeedai/props/studio/clips-api.props';
 import type { ClipProjectSummary, ClipResult } from '@props/studio/clips.props';
@@ -132,6 +134,50 @@ export class ClipsApiService implements ClipsApiClient {
   ): Promise<AnalyzeVideoResponse> {
     return this.fetchJson<AnalyzeVideoResponse>(
       `${this.apiEndpoint}/clip-projects/analyze`,
+      {
+        body: JSON.stringify(payload),
+        method: 'POST',
+      },
+    );
+  }
+
+  async createDraft(brandId?: string): Promise<string> {
+    const data = await this.fetchJson<{ data?: { id?: string } }>(
+      `${this.apiEndpoint}/clip-projects/drafts`,
+      {
+        body: JSON.stringify({ brandId }),
+        method: 'POST',
+      },
+    );
+    const projectId = data?.data?.id;
+
+    if (!projectId) {
+      throw new Error('The draft project could not be created.');
+    }
+
+    return projectId;
+  }
+
+  async saveDraft(
+    projectId: string,
+    payload: SaveClipDraftPayload,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    await this.fetchJson(
+      `${this.apiEndpoint}/clip-projects/${projectId}/draft`,
+      {
+        body: JSON.stringify(payload),
+        method: 'PATCH',
+        signal,
+      },
+    );
+  }
+
+  async createFromIngredient(
+    payload: CreateFromIngredientPayload,
+  ): Promise<AnalyzeVideoResponse> {
+    return this.fetchJson<AnalyzeVideoResponse>(
+      `${this.apiEndpoint}/clip-projects/from-ingredient`,
       {
         body: JSON.stringify(payload),
         method: 'POST',

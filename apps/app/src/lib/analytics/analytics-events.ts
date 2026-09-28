@@ -71,7 +71,7 @@ export type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
 
 export type ClipAnalyticsFlow = 'quick' | 'review';
 export type ClipAnalyticsMode = 'avatar' | 'raw-cut';
-export type ClipAnalyticsSourceKind = 'upload' | 'youtube';
+export type ClipAnalyticsSourceKind = 'library' | 'upload' | 'youtube';
 
 export type ConnectGenfeedStep =
   | 'client_selected'

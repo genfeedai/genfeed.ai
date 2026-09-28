@@ -15,7 +15,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import { Film } from 'lucide-react';
+import { Film, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode, RefObject } from 'react';
 
@@ -190,15 +190,25 @@ export default function VideoDetailFirstColumn({
         </div>
       )}
 
-      {/* Artifact-first entry into Studio's Edit timeline. The link must stay
-          org/brand-scoped — an unscoped `/studio/edit/new` 404s outside the shell. */}
-      <Link
-        href={href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${currentVideo.id}`)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-      >
-        <Film className="size-4" />
-        Edit in Studio
-      </Link>
+      {/* Artifact-first entries into Studio's Edit timeline and Clips. The
+          links must stay org/brand-scoped — unscoped Studio routes 404 outside
+          the shell. */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${currentVideo.id}`)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+        >
+          <Film className="size-4" />
+          Edit in Studio
+        </Link>
+        <Link
+          href={href(`${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${currentVideo.id}`)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+        >
+          <Scissors className="size-4" />
+          Make clips
+        </Link>
+      </div>
 
       {/* Quick Actions */}
       <IngredientQuickActions
