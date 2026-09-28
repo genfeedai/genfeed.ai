@@ -274,6 +274,7 @@ export class VideoProcessor extends WorkerHost {
         isMuted ? { muteVideoAudio: true } : undefined,
       );
 
+      const { size } = fs.statSync(outputPath);
       const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
@@ -290,6 +291,8 @@ export class VideoProcessor extends WorkerHost {
         jobType: JOB_TYPES.ADD_CAPTIONS,
         outputPath,
         s3Key,
+        // Callers record the captioned object's size, not the input's.
+        size,
         success: true,
         url,
       };

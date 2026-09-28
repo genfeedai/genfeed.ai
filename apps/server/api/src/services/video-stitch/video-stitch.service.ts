@@ -8,6 +8,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type {
   VideoStitchContext,
+  VideoStitchFinalFile,
   VideoStitchHandle,
   VideoStitchOutcome,
   VideoStitchOutputRow,
@@ -92,6 +93,7 @@ const captionsResult = z.object({
     .string()
     .min(1)
     .refine((key) => key.startsWith('ingredients/videos/')),
+  size: z.number().positive().optional(),
 });
 
 type PersistedStitchResult = z.infer<typeof persistedStitchResult>;
@@ -382,14 +384,21 @@ export class VideoStitchService {
 
     const { settings } = request;
     if (settings.music) {
+      // Same scope as the Music API: the organization's own tracks or a
+      // global default track.
       const music = await this.prisma.ingredient.findFirst({
         select: { id: true },
-        where: scopedWhere(request.organizationId, {
+        where: {
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.MUSIC,
           ),
           id: settings.music,
-        }),
+          isDeleted: false,
+          OR: [
+            { organizationId: request.organizationId },
+            { isDefault: true, organizationId: null },
+          ],
+        },
       });
       if (!music) {
         throw stitchRequestError('music', 'Music asset is not available');
@@ -478,9 +487,13 @@ export class VideoStitchService {
       return this.toOutcome(context.jobId, output);
     }
 
-    const s3Key = await this.addCaptionsIfEnabled(context, result.s3Key);
+    const finalFile = await this.addCaptionsIfEnabled(context, {
+      s3Key: result.s3Key,
+      ...(result.size !== undefined ? { size: result.size } : {}),
+    });
+    const s3Key = finalFile.s3Key;
 
-    await this.patchMetadata(context, result, s3Key);
+    await this.patchMetadata(context, result, finalFile);
     const completed = await this.prisma.ingredient.updateMany({
       data: {
         generationError: null,
@@ -678,11 +691,12 @@ export class VideoStitchService {
 
   private async addCaptionsIfEnabled(
     context: VideoStitchContext,
-    s3Key: string,
-  ): Promise<string> {
+    merged: VideoStitchFinalFile,
+  ): Promise<VideoStitchFinalFile> {
     if (!context.settings.isCaptionsEnabled) {
-      return s3Key;
+      return merged;
     }
+    const { s3Key } = merged;
     const isMuteDeferred = isMuteDeferredToCaptions(context.settings);
     try {
       const captionContent = await this.whisperService.generateCaptions(
@@ -718,7 +732,7 @@ export class VideoStitchService {
           outputId: context.outputId,
         },
       );
-      return isMuteDeferred ? this.runCaptionsJob(context, s3Key, '') : s3Key;
+      return isMuteDeferred ? this.runCaptionsJob(context, s3Key, '') : merged;
     }
   }
 
@@ -727,7 +741,7 @@ export class VideoStitchService {
     context: VideoStitchContext,
     s3Key: string,
     captionContent: string,
-  ): Promise<string> {
+  ): Promise<VideoStitchFinalFile> {
     const job = await this.fileQueueService.processVideo({
       ingredientId: context.outputId,
       organizationId: context.organizationId,
@@ -749,13 +763,17 @@ export class VideoStitchService {
         CAPTIONS_JOB_TIMEOUT_MS,
       ),
     );
-    return result.s3Key;
+    // The captioned copy replaced the merge, so its size is the output's.
+    return {
+      s3Key: result.s3Key,
+      ...(result.size !== undefined ? { size: result.size } : {}),
+    };
   }
 
   private async patchMetadata(
     context: VideoStitchContext,
     result: PersistedStitchResult,
-    s3Key: string,
+    finalFile: VideoStitchFinalFile,
   ): Promise<void> {
     const output = await this.requireOutput(
       context.organizationId,
@@ -768,8 +786,8 @@ export class VideoStitchService {
       data: {
         ...(result.duration !== undefined ? { duration: result.duration } : {}),
         ...(result.height !== undefined ? { height: result.height } : {}),
-        result: s3Key,
-        ...(result.size !== undefined ? { size: result.size } : {}),
+        result: finalFile.s3Key,
+        ...(finalFile.size !== undefined ? { size: finalFile.size } : {}),
         ...(result.width !== undefined ? { width: result.width } : {}),
       },
       where: {

@@ -94,6 +94,13 @@ export interface VideoStitchJobParams {
   [key: string]: unknown;
 }
 
+/** The object delivered as the output: the merge, or its captioned copy. */
+export interface VideoStitchFinalFile {
+  s3Key: string;
+  /** Bytes of that object; unknown when the job did not report it. */
+  size?: number;
+}
+
 /** Output columns the stitch service reads back. */
 export interface VideoStitchOutputRow {
   _count: { sources: number };
