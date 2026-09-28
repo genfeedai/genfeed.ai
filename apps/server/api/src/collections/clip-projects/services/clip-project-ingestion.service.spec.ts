@@ -998,6 +998,10 @@ describe('ClipProjectIngestionService', () => {
     });
 
     it('keeps an upload draft resumable until the upload is finalized', async () => {
+      clipProjectsService.findOne.mockResolvedValue({
+        id: 'draft-1',
+        status: 'draft',
+      } as ClipProjectDocument);
       const prepare = () =>
         service.prepareUpload(currentUser as never, {
           contentType: 'video/mp4',
@@ -1116,7 +1120,7 @@ describe('ClipProjectIngestionService', () => {
 
       await expect(
         service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
-      ).rejects.toThrow("This draft's source changed");
+      ).rejects.toThrow("This draft's source or settings changed");
 
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
         'draft-1',
@@ -1185,6 +1189,46 @@ describe('ClipProjectIngestionService', () => {
       expect(
         Object.values(startPatch as Record<string, unknown>),
       ).not.toContain(undefined);
+    });
+
+    it('checks the draft before creating an upload record for it', async () => {
+      clipProjectsService.findOne.mockResolvedValue({
+        id: 'draft-1',
+        status: 'analyzing',
+      } as ClipProjectDocument);
+
+      await expect(
+        service.prepareUpload(currentUser as never, {
+          contentType: 'video/mp4',
+          draftProjectId: 'draft-1',
+          filename: 'podcast.mp4',
+          sizeBytes: 100,
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(
+        presignedUploadService.getPresignedUploadUrl,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('refuses to dispatch settings changed after validation', async () => {
+      const validated = {
+        ...quickUploadDraft,
+        updatedAt: new Date('2026-09-28T10:00:00.000Z'),
+      } as ClipProjectDocument;
+      clipProjectsService.findOne
+        .mockResolvedValueOnce(validated)
+        .mockResolvedValueOnce({
+          ...validated,
+          settings: { ...validated.settings, maxClips: 30 },
+          updatedAt: new Date('2026-09-28T10:00:01.000Z'),
+        } as ClipProjectDocument);
+      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
+      clipProjectsService.claimDraft.mockResolvedValue(false);
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
+      ).rejects.toThrow('source or settings changed');
+      expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
     });
 
     it('refuses a finalize for an upload another tab has since replaced', async () => {

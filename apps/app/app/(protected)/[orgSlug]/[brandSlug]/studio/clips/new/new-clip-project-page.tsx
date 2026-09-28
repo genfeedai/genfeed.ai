@@ -58,6 +58,9 @@ function NewClipProjectPageContent() {
     [resolveToken],
   );
 
+  // A plain string, so the create effect does not re-run when `t` changes.
+  const createFailedMessage = t('projectCreateFailed');
+
   useEffect(() => {
     if (!isBrandReady) {
       return;
@@ -89,14 +92,22 @@ function NewClipProjectPageContent() {
         setRefusal(
           error instanceof Error && error.message
             ? error.message
-            : 'The clip project could not be created.',
+            : createFailedMessage,
         );
       });
 
     return () => {
       isActive = false;
     };
-  }, [clipsService, href, isBrandReady, replace, selectedBrand?.id, videoId]);
+  }, [
+    clipsService,
+    createFailedMessage,
+    href,
+    isBrandReady,
+    replace,
+    selectedBrand?.id,
+    videoId,
+  ]);
 
   if (refusal) {
     const backHref = videoId

@@ -295,6 +295,10 @@ export class ClipProjectIngestionService {
         'Audio sources require avatar mode because raw-cut clips need source video.',
       );
     }
+    if (dto.draftProjectId) {
+      // Refuse before creating an upload record for a draft that cannot take it.
+      await this.assertDraftStartable(user.organizationId, dto.draftProjectId);
+    }
 
     const upload = await this.presignedUploadService.getPresignedUploadUrl(
       user,
@@ -770,9 +774,11 @@ export class ClipProjectIngestionService {
       if (current?.status !== 'draft') {
         break;
       }
-      if (!this.hasSameSource(current, expected)) {
+      // Retry only an edit that leaves what was validated intact; a changed
+      // source or settings would dispatch unvalidated inputs.
+      if (!this.hasSameStartInputs(current, expected)) {
         throw new ConflictException(
-          "This draft's source changed while it was starting. Start it again.",
+          "This draft's source or settings changed while it was starting. Start it again.",
         );
       }
       expected = current;
@@ -783,16 +789,37 @@ export class ClipProjectIngestionService {
     );
   }
 
-  private hasSameSource(
+  private hasSameStartInputs(
     current: ClipProjectDocument,
     validated: ClipProjectDocument,
   ): boolean {
     return (
+      JSON.stringify(current.settings ?? {}) ===
+        JSON.stringify(validated.settings ?? {}) &&
       current.source?.fingerprint === validated.source?.fingerprint &&
       current.source?.ingredientId === validated.source?.ingredientId &&
       current.sourceVideoS3Key === validated.sourceVideoS3Key &&
       current.sourceVideoUrl === validated.sourceVideoUrl
     );
+  }
+
+  private async assertDraftStartable(
+    organizationId: string,
+    draftProjectId: string,
+  ): Promise<void> {
+    const draft = await this.clipProjectsService.findOne({
+      id: draftProjectId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!draft) {
+      throw new NotFoundException('ClipProject', draftProjectId);
+    }
+    if (draft.status !== 'draft') {
+      throw new ConflictException(
+        'This clip project draft was already started or no longer exists.',
+      );
+    }
   }
 
   /** A draft start without a brand keeps the brand the draft was saved with. */

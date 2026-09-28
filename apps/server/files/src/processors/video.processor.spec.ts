@@ -83,6 +83,9 @@ class MockS3Service {
   downloadFile = vi.fn().mockResolvedValue(undefined);
   downloadFromUrl = vi.fn().mockResolvedValue(undefined);
   generateS3Key = vi.fn((type: string, id: string) => `${type}/${id}.mp4`);
+  generateRunScopedKey = vi.fn(
+    (scope: string, keyPath: string) => `${scope}/${keyPath}`,
+  );
   getPublicUrl = vi.fn((key: string) => `https://s3.amazonaws.com/${key}`);
 }
 
@@ -1310,6 +1313,39 @@ describe('VideoProcessor', () => {
         }),
       );
       expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('never touches the Library asset key when a materialized run fails', async () => {
+      ffmpegService.convertVideoToAudio.mockRejectedValueOnce(
+        new Error('Audio extraction failed'),
+      );
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://media.argil.test/videos/library-video.mp4',
+            materializeSource: true,
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'Audio extraction failed',
+      );
+
+      const ownedKey = 'videos/test-ingredient-123.mp4';
+      expect(s3Service.uploadFile).not.toHaveBeenCalledWith(
+        ownedKey,
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(s3Service.deleteFile).not.toHaveBeenCalledWith(ownedKey);
+      expect(s3Service.deleteFile).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /^clip-sources\/org-123\/test-ingredient-123\/[\w-]+\/source\.mp4$/,
+        ),
+      );
     });
 
     it('does not store a remote source unless asked to', async () => {

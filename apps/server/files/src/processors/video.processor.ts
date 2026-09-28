@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -729,7 +730,8 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async handleVideoToAudio(job: Job<VideoJobData>): Promise<JobResult> {
-    const { ingredientId, params, metadata, userId, room } = job.data;
+    const { ingredientId, organizationId, params, metadata, userId, room } =
+      job.data;
     this.logger.log(`Processing video-to-audio conversion for ${ingredientId}`);
 
     const tempPath = this.ffmpegService.getTempPath('audio', ingredientId);
@@ -763,9 +765,14 @@ export class VideoProcessor extends WorkerHost {
         params.inputPath
       ) {
         // Guarded download (public network only), then keep a stored copy so
-        // later steps read the source by key instead of its remote URL.
+        // later steps read the source by key instead of its remote URL. The
+        // copy gets its own run-scoped key: `ingredients/videos/<id>` may be
+        // the user's own asset, and failure cleanup deletes this key.
         await this.downloadInput(params, inputPath);
-        sourceS3Key = this.s3Service.generateS3Key('videos', ingredientId);
+        sourceS3Key = this.s3Service.generateRunScopedKey(
+          'clip-sources',
+          `${organizationId}/${ingredientId}/${randomUUID()}/source.mp4`,
+        );
         await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
         sourceUrl = this.s3Service.getPublicUrl(sourceS3Key);
       } else {

@@ -523,6 +523,7 @@
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
     "processingRawCuts": "Processing source video and creating raw cuts...",
+    "projectCreateFailed": "The clip project could not be created.",
     "projectNotStarted": "Clips could not start",
     "publish": "Publish",
     "regeneratingHookClip": "Regenerating hook clip",
