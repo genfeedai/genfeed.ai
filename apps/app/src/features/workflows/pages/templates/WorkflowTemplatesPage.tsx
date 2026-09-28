@@ -45,36 +45,68 @@ import {
   useRef,
   useState,
 } from 'react';
-import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
 import {
   createWorkflowApiService,
   type SystemWorkflowCatalogEntry,
+  type WorkflowApiService,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  all: 'All categories',
-  system: 'System',
-  social: 'Social Media',
-  video: 'Video',
-  editing: 'Editing',
-  batch: 'Batch',
-  integration: 'Integration',
-  generation: 'Generation',
-  'real-estate': 'Real Estate',
-  routines: 'Routines',
-  library: 'Library',
-  product: 'Product',
-  'ad-automation': 'Ads',
-  content: 'Content',
+/** Category ids with a catalog label, mapped to their `categories.*` key. */
+const CATEGORY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
+  'ad-automation': 'adAutomation',
+  all: 'all',
+  batch: 'batch',
+  content: 'content',
+  editing: 'editing',
+  generation: 'generation',
+  integration: 'integration',
+  library: 'library',
+  product: 'product',
+  'real-estate': 'realEstate',
+  routines: 'routines',
+  social: 'social',
+  system: 'system',
+  video: 'video',
+};
+
+/**
+ * Schedule presets (`WORKFLOW_SCHEDULE_PRESETS`) mapped to their
+ * `cadences.*` key. Any other cron reads as the generic "Scheduled".
+ */
+const CADENCE_MESSAGE_KEYS: Readonly<Record<string, string>> = {
+  '0 9 * * 1-5': 'weekdaysMorning',
+  '0 9 * * *': 'dailyMorning',
+  '0 12 * * *': 'dailyNoon',
+  '0 18 * * *': 'dailyEvening',
+  '0 9 * * 1': 'mondaysMorning',
+  '0 9,18 * * *': 'twiceDaily',
+  '0 9 1 * *': 'monthlyFirst',
 };
 
 const CATALOG_SOURCES = ['all', 'installed', 'available'] as const;
 
 type CatalogSource = (typeof CATALOG_SOURCES)[number];
+
+/** The two catalog requests. Each settles on its own. */
+const DATA_SOURCES = ['templates', 'systemCatalog'] as const;
+
+type DataSource = (typeof DATA_SOURCES)[number];
+
+type DataSourceStatus = 'loading' | 'ready' | 'error';
+
+type ActionErrorKey = 'bootstrap' | 'install';
+
+/** Copy is resolved at render, so a stored error follows the active locale. */
+type ActionError = {
+  detail?: string;
+  key: ActionErrorKey;
+};
+
+type Translate = (key: string) => string;
 
 /** View preference key — one list/grid choice per collection surface. */
 const TEMPLATES_COLLECTION_SURFACE = 'automation.templates';
@@ -109,62 +141,85 @@ type TypeTile = {
 type PageState = {
   templates: WorkflowTemplate[];
   systemCatalog: SystemWorkflowCatalogEntry[];
+  sourceStatus: Record<DataSource, DataSourceStatus>;
+  /** True once every request has settled at least once. */
+  hasSettled: boolean;
   selectedCategory: string;
   selectedSource: CatalogSource;
   searchQuery: string;
-  isLoading: boolean;
-  error: string | null;
+  actionError: ActionError | null;
   isBootstrapping: boolean;
   installingCanonicalId: string | null;
 };
 
 type PageAction =
-  | { type: 'LOAD_START' }
-  | {
-      type: 'LOAD_SUCCESS';
-      templates: WorkflowTemplate[];
-      systemCatalog: SystemWorkflowCatalogEntry[];
-    }
-  | { type: 'LOAD_ERROR'; error: string }
+  | { type: 'LOAD_START'; sources: readonly DataSource[] }
+  | { type: 'TEMPLATES_LOADED'; templates: WorkflowTemplate[] }
+  | { type: 'CATALOG_LOADED'; systemCatalog: SystemWorkflowCatalogEntry[] }
+  | { type: 'LOAD_FAILED'; source: DataSource }
   | { type: 'SET_CATEGORY'; category: string }
   | { type: 'SET_SOURCE'; source: CatalogSource }
   | { type: 'SET_SEARCH'; searchQuery: string }
   | { type: 'CLEAR_FILTERS' }
   | { type: 'BOOTSTRAP_START' }
-  | { type: 'BOOTSTRAP_ERROR'; error: string }
+  | { type: 'BOOTSTRAP_ERROR'; error: ActionError }
   | { type: 'INSTALL_START'; canonicalId: string }
   | {
       type: 'INSTALL_SUCCESS';
       canonicalId: string;
       installedWorkflowId: string;
     }
-  | { type: 'INSTALL_ERROR'; error: string };
+  | { type: 'INSTALL_ERROR'; error: ActionError };
 
 const initialState: PageState = {
   templates: [],
   systemCatalog: [],
+  sourceStatus: { systemCatalog: 'loading', templates: 'loading' },
+  hasSettled: false,
   selectedCategory: 'all',
   selectedSource: 'all',
   searchQuery: '',
-  isLoading: true,
-  error: null,
+  actionError: null,
   isBootstrapping: false,
   installingCanonicalId: null,
 };
 
+function settleSource(
+  state: PageState,
+  source: DataSource,
+  status: Exclude<DataSourceStatus, 'loading'>,
+  data: Partial<Pick<PageState, 'systemCatalog' | 'templates'>> = {},
+): PageState {
+  const sourceStatus = { ...state.sourceStatus, [source]: status };
+  return {
+    ...state,
+    ...data,
+    hasSettled:
+      state.hasSettled ||
+      DATA_SOURCES.every((key) => sourceStatus[key] !== 'loading'),
+    sourceStatus,
+  };
+}
+
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
-    case 'LOAD_START':
-      return { ...state, isLoading: true, error: null };
-    case 'LOAD_SUCCESS':
-      return {
-        ...state,
-        isLoading: false,
+    case 'LOAD_START': {
+      const sourceStatus = { ...state.sourceStatus };
+      for (const source of action.sources) {
+        sourceStatus[source] = 'loading';
+      }
+      return { ...state, sourceStatus };
+    }
+    case 'TEMPLATES_LOADED':
+      return settleSource(state, 'templates', 'ready', {
         templates: action.templates,
+      });
+    case 'CATALOG_LOADED':
+      return settleSource(state, 'systemCatalog', 'ready', {
         systemCatalog: action.systemCatalog,
-      };
-    case 'LOAD_ERROR':
-      return { ...state, isLoading: false, error: action.error };
+      });
+    case 'LOAD_FAILED':
+      return settleSource(state, action.source, 'error');
     case 'SET_CATEGORY':
       return { ...state, selectedCategory: action.category };
     case 'SET_SOURCE':
@@ -179,14 +234,14 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         selectedSource: 'all',
       };
     case 'BOOTSTRAP_START':
-      return { ...state, isBootstrapping: true, error: null };
+      return { ...state, isBootstrapping: true, actionError: null };
     case 'BOOTSTRAP_ERROR':
-      return { ...state, isBootstrapping: false, error: action.error };
+      return { ...state, isBootstrapping: false, actionError: action.error };
     case 'INSTALL_START':
       return {
         ...state,
         installingCanonicalId: action.canonicalId,
-        error: null,
+        actionError: null,
       };
     case 'INSTALL_SUCCESS':
       return {
@@ -206,26 +261,56 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         installingCanonicalId: null,
-        error: action.error,
+        actionError: action.error,
       };
     default:
       return state;
   }
 }
 
-export function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? formatEnumLabel(category) ?? category;
+/** Fetches one catalog request and describes its result as a reducer action. */
+async function fetchDataSource(
+  service: WorkflowApiService,
+  source: DataSource,
+): Promise<PageAction> {
+  if (source === 'templates') {
+    return {
+      templates: await service.listTemplates(),
+      type: 'TEMPLATES_LOADED',
+    };
+  }
+  const catalog = await service.listSystemCatalog();
+  return {
+    systemCatalog: catalog.filter((entry) => entry.installable),
+    type: 'CATALOG_LOADED',
+  };
 }
 
-function cadenceLabel(
+/**
+ * Localized label for a category id. Known ids resolve through the
+ * `categories.*` messages; ids the catalog does not know are title-cased.
+ */
+export function categoryLabel(category: string, translate: Translate): string {
+  const messageKey = CATEGORY_MESSAGE_KEYS[category];
+  if (messageKey) {
+    return translate(`categories.${messageKey}`);
+  }
+  return formatEnumLabel(category) ?? category;
+}
+
+/** Localized cadence for a preset cron; any other schedule is "Scheduled". */
+export function cadenceLabel(
   cron: string | undefined,
-  scheduledLabel: string,
+  translate: Translate,
 ): string | null {
-  const described = describeCadence(cron);
-  if (!described) {
+  const trimmed = cron?.trim();
+  if (!trimmed) {
     return null;
   }
-  return /[*]/.test(described) ? scheduledLabel : described;
+  const messageKey = CADENCE_MESSAGE_KEYS[trimmed];
+  return messageKey
+    ? translate(`cadences.${messageKey}`)
+    : translate('scheduled');
 }
 
 function isCatalogSource(value: string): value is CatalogSource {
@@ -289,13 +374,20 @@ function selectFeaturedItems(items: CatalogItem[]): CatalogItem[] {
   return source.slice(0, FEATURED_TEMPLATE_LIMIT);
 }
 
-function buildTypeTiles(items: CatalogItem[]): TypeTile[] {
+function buildTypeTiles(
+  items: CatalogItem[],
+  translate: Translate,
+): TypeTile[] {
   const counts = new Map<string, number>();
   for (const item of items) {
     counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([id, count]) => ({ count, id, label: categoryLabel(id) }))
+    .map(([id, count]) => ({
+      count,
+      id,
+      label: categoryLabel(id, translate),
+    }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
 
@@ -337,11 +429,12 @@ function WorkflowTemplatesPageContent() {
   const {
     templates,
     systemCatalog,
+    sourceStatus,
+    hasSettled,
     selectedCategory,
     selectedSource,
     searchQuery,
-    isLoading,
-    error,
+    actionError,
     isBootstrapping,
     installingCanonicalId,
   } = state;
@@ -357,61 +450,74 @@ function WorkflowTemplatesPageContent() {
     surface: TEMPLATES_COLLECTION_SURFACE,
   });
 
-  // Async handlers read copy through a ref so a new translator identity
-  // never re-triggers the load or bootstrap effects.
-  const translateRef = useRef(translate);
-  translateRef.current = translate;
+  /**
+   * Loads the given requests side by side. Each one settles independently,
+   * so a failed request only takes out the sections that depend on it.
+   */
+  const loadSources = useCallback(
+    async (sources: readonly DataSource[], signal?: AbortSignal) => {
+      const isStale = () => signal?.aborted === true || !mountedRef.current;
 
-  const loadTemplates = useCallback(async () => {
-    dispatch({ type: 'LOAD_START' });
+      dispatch({ type: 'LOAD_START', sources });
 
-    try {
-      if (!mountedRef.current) {
+      let service: WorkflowApiService;
+      try {
+        service = await getService();
+      } catch (err) {
+        logger.error('Failed to load workflow templates', { error: err });
+        if (!isStale()) {
+          for (const source of sources) {
+            dispatch({ type: 'LOAD_FAILED', source });
+          }
+        }
         return;
       }
 
-      const service = await getService();
-      const [data, catalog] = await Promise.all([
-        service.listTemplates(),
-        service.listSystemCatalog(),
-      ]);
+      const results = await Promise.allSettled(
+        sources.map((source) => fetchDataSource(service, source)),
+      );
 
-      if (mountedRef.current) {
-        dispatch({
-          type: 'LOAD_SUCCESS',
-          systemCatalog: catalog.filter((entry) => entry.installable),
-          templates: data,
-        });
+      if (isStale()) {
+        return;
       }
-    } catch (err) {
-      logger.error('Failed to load workflow templates', { error: err });
 
-      if (mountedRef.current) {
-        dispatch({
-          type: 'LOAD_ERROR',
-          error: translateRef.current('errors.load'),
+      results.forEach((result, index) => {
+        const source = sources[index];
+        if (result.status === 'fulfilled') {
+          dispatch(result.value);
+          return;
+        }
+        logger.error('Failed to load workflow templates', {
+          error: result.reason,
+          source,
         });
-      }
-    }
-  }, [getService]);
+        dispatch({ type: 'LOAD_FAILED', source });
+      });
+    },
+    [getService],
+  );
 
   useEffect(() => {
     mountedRef.current = true;
     const controller = new AbortController();
 
-    loadTemplates();
+    void loadSources(DATA_SOURCES, controller.signal);
 
     return () => {
       mountedRef.current = false;
       controller.abort();
     };
-  }, [loadTemplates]);
+  }, [loadSources]);
 
   const hrefRef = useRef(href);
   hrefRef.current = href;
 
+  const isAnySourceLoading = DATA_SOURCES.some(
+    (source) => sourceStatus[source] === 'loading',
+  );
+
   useEffect(() => {
-    if (!templateId || isLoading) {
+    if (!templateId || isAnySourceLoading) {
       return;
     }
 
@@ -463,10 +569,10 @@ function WorkflowTemplatesPageContent() {
         if (!isCancelled) {
           dispatch({
             type: 'BOOTSTRAP_ERROR',
-            error:
-              err instanceof Error
-                ? err.message
-                : translateRef.current('errors.bootstrap'),
+            error: {
+              detail: err instanceof Error ? err.message : undefined,
+              key: 'bootstrap',
+            },
           });
         }
       }
@@ -477,7 +583,7 @@ function WorkflowTemplatesPageContent() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, isLoading, replace, systemCatalog, templateId]);
+  }, [getService, isAnySourceLoading, replace, systemCatalog, templateId]);
 
   /**
    * Installs an app-owned catalog workflow. "Use template" installs and opens
@@ -520,10 +626,10 @@ function WorkflowTemplatesPageContent() {
         });
         dispatch({
           type: 'INSTALL_ERROR',
-          error:
-            err instanceof Error
-              ? err.message
-              : translateRef.current('errors.install'),
+          error: {
+            detail: err instanceof Error ? err.message : undefined,
+            key: 'install',
+          },
         });
       }
     },
@@ -555,9 +661,27 @@ function WorkflowTemplatesPageContent() {
     [catalogItems],
   );
 
-  const typeTiles = useMemo(() => buildTypeTiles(catalogItems), [catalogItems]);
+  const typeTiles = useMemo(
+    () => buildTypeTiles(catalogItems, translate),
+    [catalogItems, translate],
+  );
 
-  const isContentLoading = isLoading || isBootstrapping;
+  const failedSources = DATA_SOURCES.filter(
+    (source) => sourceStatus[source] === 'error',
+  );
+  const isCatalogLoading = sourceStatus.systemCatalog === 'loading';
+  const isTemplatesLoading = sourceStatus.templates === 'loading';
+  const isFeaturedLoading =
+    isBootstrapping ||
+    isCatalogLoading ||
+    (systemCatalog.length === 0 && isTemplatesLoading);
+  // A retry keeps whatever already loaded on screen; only an empty All
+  // falls back to skeletons while a request is in flight.
+  const isAllLoading =
+    isBootstrapping ||
+    !hasSettled ||
+    (catalogItems.length === 0 && isAnySourceLoading);
+  const hasLoadFailure = failedSources.length > 0;
 
   function sourceLabel(source: CatalogSource): string {
     return translate(`sources.${source}`);
@@ -566,11 +690,35 @@ function WorkflowTemplatesPageContent() {
   function factsLine(item: CatalogItem): string {
     return [
       sourceLabel(item.source),
-      categoryLabel(item.category),
-      cadenceLabel(item.schedule, translate('scheduled')),
+      categoryLabel(item.category, translate),
+      cadenceLabel(item.schedule, translate),
     ]
       .filter(Boolean)
       .join(' · ');
+  }
+
+  function loadErrorMessage(sources: readonly DataSource[]): string {
+    if (sources.length > 1) {
+      return translate('errors.load');
+    }
+    return sources[0] === 'templates'
+      ? translate('errors.loadTemplates')
+      : translate('errors.loadCatalog');
+  }
+
+  function renderLoadError(sources: readonly DataSource[]) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span>{loadErrorMessage(sources)}</span>
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.SM}
+          onClick={() => void loadSources(sources)}
+        >
+          {translate('retry')}
+        </Button>
+      </div>
+    );
   }
 
   function renderPrimaryAction(item: CatalogItem) {
@@ -644,7 +792,6 @@ function WorkflowTemplatesPageContent() {
         className="h-full"
         label={item.title}
         description={item.description}
-        onDescriptionClick={() => setDetailsItem(item)}
         bodyClassName="h-full justify-between gap-4"
         data-testid="workflow-template-card"
       >
@@ -681,7 +828,7 @@ function WorkflowTemplatesPageContent() {
       ? [
           {
             id: 'category',
-            label: categoryLabel(selectedCategory),
+            label: categoryLabel(selectedCategory, translate),
             onRemove: () => dispatch({ type: 'SET_CATEGORY', category: 'all' }),
           },
         ]
@@ -698,7 +845,7 @@ function WorkflowTemplatesPageContent() {
   ];
 
   const categoryOptions = [
-    { id: 'all', label: categoryLabel('all') },
+    { id: 'all', label: categoryLabel('all', translate) },
     ...typeTiles.map((tile) => ({ id: tile.id, label: tile.label })),
   ];
 
@@ -708,33 +855,31 @@ function WorkflowTemplatesPageContent() {
     titleVisibility: 'sr-only' as const,
   };
 
-  if (error && templates.length === 0 && systemCatalog.length === 0) {
-    return (
-      <Container {...catalogChrome}>
-        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
-          <p className="text-destructive">{error}</p>
-          <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
-            {translate('retry')}
-          </Button>
-        </div>
-      </Container>
-    );
-  }
-
-  const isCatalogEmpty = !isContentLoading && catalogItems.length === 0;
+  const isCatalogEmpty =
+    hasSettled &&
+    !isAnySourceLoading &&
+    !isBootstrapping &&
+    !hasLoadFailure &&
+    catalogItems.length === 0;
 
   return (
     <Container {...catalogChrome}>
-      {!isContentLoading && error ? (
+      {!isBootstrapping && actionError ? (
         <p className="mb-4 text-sm text-destructive" role="alert">
-          {error}
+          {actionError.detail ?? translate(`errors.${actionError.key}`)}
         </p>
       ) : null}
 
       <div className="flex flex-col gap-8" data-testid="templates-content">
         <CollectionSection
           title={translate('sections.featured')}
-          itemCount={isContentLoading ? 0 : featuredItems.length}
+          itemCount={isFeaturedLoading ? 0 : featuredItems.length}
+          error={
+            // Held while a template bootstraps: a retry would restart it.
+            !isBootstrapping && sourceStatus.systemCatalog === 'error'
+              ? renderLoadError(['systemCatalog'])
+              : undefined
+          }
           data-testid="templates-featured-section"
         >
           <HorizontalCarousel gap="md">
@@ -749,38 +894,47 @@ function WorkflowTemplatesPageContent() {
         <CollectionSection
           title={translate('sections.browseByType')}
           itemCount={
-            isContentLoading || typeTiles.length < MIN_TYPE_TILES
+            isBootstrapping ||
+            isAnySourceLoading ||
+            typeTiles.length < MIN_TYPE_TILES
               ? 0
               : typeTiles.length
           }
           data-testid="templates-browse-section"
         >
           <CollectionGrid density="tile" maxColumns={4}>
-            {typeTiles.map((tile) => (
-              <Card
-                key={tile.id}
-                className={cn(
-                  tile.id === selectedCategory && 'shadow-border-strong',
-                )}
-                bodyClassName="gap-1"
-                label={tile.label}
-                onClick={() =>
-                  dispatch({ type: 'SET_CATEGORY', category: tile.id })
-                }
-                data-testid="workflow-template-type-tile"
-              >
-                <span className="text-xs text-muted-foreground">
-                  {translate('templateCount', { count: tile.count })}
-                </span>
-              </Card>
-            ))}
+            {typeTiles.map((tile) => {
+              const isSelected = tile.id === selectedCategory;
+              return (
+                <Card
+                  key={tile.id}
+                  className={cn(isSelected && 'shadow-border-strong')}
+                  bodyClassName="gap-1"
+                  isPressed={isSelected}
+                  label={tile.label}
+                  onClick={() =>
+                    dispatch({ type: 'SET_CATEGORY', category: tile.id })
+                  }
+                  data-testid="workflow-template-type-tile"
+                >
+                  <span className="text-xs text-muted-foreground">
+                    {translate('templateCount', { count: tile.count })}
+                  </span>
+                </Card>
+              );
+            })}
           </CollectionGrid>
         </CollectionSection>
 
         <CollectionSection
           title={translate('sections.all')}
           itemCount={catalogItems.length}
-          isLoading={isContentLoading}
+          isLoading={isAllLoading}
+          error={
+            !isAllLoading && hasLoadFailure && catalogItems.length === 0
+              ? renderLoadError(failedSources)
+              : undefined
+          }
           data-testid="templates-all-section"
         >
           <CollectionToolbar
@@ -846,6 +1000,13 @@ function WorkflowTemplatesPageContent() {
             chips={filterChips}
             onClearChips={() => dispatch({ type: 'CLEAR_FILTERS' })}
           />
+          {hasLoadFailure && !isAllLoading ? (
+            <div role="alert">
+              <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
+                {renderLoadError(failedSources)}
+              </Card>
+            </div>
+          ) : null}
           <CollectionView
             items={visibleItems}
             view={view}
@@ -853,7 +1014,7 @@ function WorkflowTemplatesPageContent() {
             renderListItem={renderTemplateRow}
             renderGridItem={renderTemplateCard}
             maxColumns={3}
-            isLoading={isContentLoading}
+            isLoading={isAllLoading}
             emptyState={
               <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
                 <p className="text-sm text-foreground/50">
@@ -879,7 +1040,9 @@ function WorkflowTemplatesPageContent() {
       </div>
       <WorkflowTemplateDetailsDialog
         actionLabel={translate('actions.useTemplate')}
-        categoryLabel={detailsItem ? categoryLabel(detailsItem.category) : ''}
+        categoryLabel={
+          detailsItem ? categoryLabel(detailsItem.category, translate) : ''
+        }
         changeSummary={detailsItem?.changeSummary}
         description={detailsItem?.description ?? ''}
         href={detailsItem?.href}
@@ -914,9 +1077,7 @@ function WorkflowTemplatesPageContent() {
             : undefined
         }
         scheduleLabel={
-          detailsItem
-            ? cadenceLabel(detailsItem.schedule, translate('scheduled'))
-            : null
+          detailsItem ? cadenceLabel(detailsItem.schedule, translate) : null
         }
         sourceLabel={detailsItem ? sourceLabel(detailsItem.source) : ''}
         title={detailsItem?.title ?? ''}

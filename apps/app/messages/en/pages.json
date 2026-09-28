@@ -2164,13 +2164,40 @@
         "useTemplate": "Use template",
         "viewDetails": "View details"
       },
+      "cadences": {
+        "dailyEvening": "Every day at 6:00 PM",
+        "dailyMorning": "Every day at 9:00 AM",
+        "dailyNoon": "Every day at noon",
+        "mondaysMorning": "Mondays at 9:00 AM",
+        "monthlyFirst": "Monthly on the 1st at 9:00 AM",
+        "twiceDaily": "Twice daily (9:00 AM and 6:00 PM)",
+        "weekdaysMorning": "Weekdays at 9:00 AM"
+      },
+      "categories": {
+        "adAutomation": "Ads",
+        "all": "All categories",
+        "batch": "Batch",
+        "content": "Content",
+        "editing": "Editing",
+        "generation": "Generation",
+        "integration": "Integration",
+        "library": "Library",
+        "product": "Product",
+        "realEstate": "Real Estate",
+        "routines": "Routines",
+        "social": "Social Media",
+        "system": "System",
+        "video": "Video"
+      },
       "category": "Category",
       "clearFilters": "Clear filters",
       "emptyCatalog": "No workflow templates are available yet.",
       "errors": {
         "bootstrap": "Failed to install workflow template",
         "install": "Failed to install system workflow",
-        "load": "Failed to load templates. Please try again."
+        "load": "Templates could not be loaded.",
+        "loadCatalog": "Official workflows could not be loaded.",
+        "loadTemplates": "Starter templates could not be loaded."
       },
       "noMatches": "No workflows match these filters.",
       "retry": "Retry",
