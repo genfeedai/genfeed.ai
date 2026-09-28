@@ -161,13 +161,16 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    if (rest.slug !== undefined) {
-      await assertBrandHandleAvailable(this.brandsService, {
-        brandId: id,
-        isSuperAdmin: getIsSuperAdmin(user, request),
-        slug: rest.slug,
-        user,
-      });
+    const requestedOrgId = (rest as { organizationId?: string }).organizationId;
+    // A relocation checks the handle itself, after authorizing both orgs.
+    const handleCheck = {
+      brandId: id,
+      isSuperAdmin: getIsSuperAdmin(user, request),
+      slug: rest.slug,
+      user,
+    };
+    if (!requestedOrgId) {
+      await assertBrandHandleAvailable(this.brandsService, handleCheck);
     }
 
     if (rest.agentConfig !== undefined && !syncOrganizationName) {
@@ -208,8 +211,6 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    const requestedOrgId = (rest as { organizationId?: string }).organizationId;
-
     // No org change requested → default CRUD patch.
     if (!requestedOrgId) {
       return super.patch(request, user, id, rest as UpdateBrandDto);
@@ -233,6 +234,7 @@ export class BrandsController extends BaseCRUDController<
         string,
         unknown
       >;
+      await assertBrandHandleAvailable(this.brandsService, handleCheck);
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 

@@ -43,20 +43,25 @@ export async function verifyBrandAccess(
 }
 
 /**
- * Preflight for a PATCH that carries a handle. Access comes first, so a caller
- * cannot learn which handles are taken through a brand they cannot edit.
- * Superadmins may edit any live brand, as the default patch allows.
+ * Preflight for a PATCH that carries a handle (a no-op without one). Access
+ * comes first, so a caller cannot learn which handles are taken through a
+ * brand they cannot edit. Superadmins may edit any live brand, as the default
+ * patch allows. Relocations skip this: the relocation service authorizes both
+ * organizations, then checks the handle.
  */
 export async function assertBrandHandleAvailable(
   brandsService: Pick<BrandsService, 'findOne' | 'isSlugAvailable'>,
   params: {
     brandId: string;
     isSuperAdmin: boolean;
-    slug: string;
+    slug: string | undefined;
     user: User;
   },
 ): Promise<void> {
   const { brandId, isSuperAdmin, slug, user } = params;
+  if (slug === undefined) {
+    return;
+  }
   if (isSuperAdmin) {
     const brand = await brandsService.findOne({
       id: brandId,

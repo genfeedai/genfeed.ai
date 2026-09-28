@@ -404,6 +404,46 @@ describe('BrandsController', () => {
       expect(brandsService.patch).toHaveBeenCalled();
     });
 
+    it("leaves a relocation's handle to the relocation service's own authorization", async () => {
+      // An admin of both orgs, active in the destination, moving a
+      // teammate's brand: not the owner, and not in the active org.
+      const sourceBrand = {
+        ...mockBrand,
+        organizationId: 'cmorganization000000000000009',
+        userId: 'cmuser0000000000000000009',
+      };
+      brandsService.findOne.mockImplementation(async (params) =>
+        'OR' in (params as Record<string, unknown>)
+          ? null
+          : (sourceBrand as never),
+      );
+      brandsService.relocateToOrganization.mockResolvedValue({
+        brand: { ...sourceBrand, organizationId: mockUser.organizationId },
+        summary: {},
+      } as never);
+
+      await controller.patch(mockRequest, mockUser, mockBrand.id, {
+        organizationId: mockUser.organizationId,
+        slug: 'new-handle',
+      });
+
+      expect(brandsService.relocateToOrganization).toHaveBeenCalled();
+      expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
+    });
+
+    it('still checks the handle on a patch that names its current organization', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand as never);
+      brandsService.isSlugAvailable.mockResolvedValue(false);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, mockBrand.id, {
+          organizationId: mockBrand.organizationId,
+          slug: 'taken',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(brandsService.patch).not.toHaveBeenCalled();
+    });
+
     it('still 404s a superadmin handle change on a missing or deleted brand', async () => {
       const superAdmin = { ...mockUser, isSuperAdmin: true } as User;
       brandsService.findOne.mockResolvedValue(null);
