@@ -29,6 +29,10 @@ export interface AgentHubCardProps extends AgentHubActionHandlers {
   strategy: AgentStrategy;
 }
 
+export interface AgentHubStatusBadgeProps {
+  strategy: AgentStrategy;
+}
+
 export interface AgentHubFactsProps {
   section: AgentHubRowSection;
   strategy: AgentStrategy;

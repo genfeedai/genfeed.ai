@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -18,6 +23,7 @@ import type {
   AgentHubCardProps,
   AgentHubFactsProps,
   AgentHubRowProps,
+  AgentHubStatusBadgeProps,
 } from '@props/automation/agent-hub.props';
 import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import {
@@ -34,6 +40,7 @@ import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
+import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
@@ -100,20 +107,6 @@ function AgentHubFacts({ section, strategy }: AgentHubFactsProps) {
     }
   }
 
-  if (section !== 'yours' && isNeedingAttention(strategy)) {
-    if (!strategy.isActive && hasFailedLastRun(strategy)) {
-      facts.push(
-        translate('status.pausedAfterFailures', {
-          count: strategy.consecutiveFailures,
-        }),
-      );
-    } else if (!strategy.isActive) {
-      facts.push(translate('status.paused'));
-    } else {
-      facts.push(translate('status.lastRunFailed'));
-    }
-  }
-
   if (section === 'all' && strategy.brand) {
     facts.push(translate('card.brand', { brand: strategy.brand.label }));
   }
@@ -144,6 +137,43 @@ function AgentHubFacts({ section, strategy }: AgentHubFactsProps) {
   }
 
   return <span className="min-w-0 truncate">{facts.join(FACT_SEPARATOR)}</span>;
+}
+
+/** Labels why an agent needs you; healthy agents carry no badge. */
+function AgentHubStatusBadge({ strategy }: AgentHubStatusBadgeProps) {
+  const translate = useTranslations('common.automation.agentHub');
+
+  if (!isNeedingAttention(strategy)) {
+    return null;
+  }
+
+  if (!strategy.isActive) {
+    return (
+      <Badge size={ComponentSize.SM} status="paused">
+        {hasFailedLastRun(strategy)
+          ? translate('status.pausedAfterFailures', {
+              count: strategy.consecutiveFailures,
+            })
+          : translate('status.paused')}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge size={ComponentSize.SM} status="failed">
+      {translate('status.lastRunFailed')}
+    </Badge>
+  );
+}
+
+/** The status badge, when there is one, followed by the fact line. */
+function AgentHubMeta({ section, strategy }: AgentHubFactsProps) {
+  return (
+    <>
+      {section === 'yours' ? null : <AgentHubStatusBadge strategy={strategy} />}
+      <AgentHubFacts section={section} strategy={strategy} />
+    </>
+  );
 }
 
 function AgentHubActions({
@@ -234,7 +264,7 @@ function AgentHubRow({
           <Icon className="size-4" />
         </span>
       }
-      meta={<AgentHubFacts section={section} strategy={strategy} />}
+      meta={<AgentHubMeta section={section} strategy={strategy} />}
       title={
         <Link
           className="hover:underline"
@@ -288,9 +318,9 @@ function AgentHubCard({
         </Link>
       }
     >
-      <p className="flex min-w-0 text-xs text-muted-foreground">
-        <AgentHubFacts section="all" strategy={strategy} />
-      </p>
+      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <AgentHubMeta section="all" strategy={strategy} />
+      </div>
     </Card>
   );
 }

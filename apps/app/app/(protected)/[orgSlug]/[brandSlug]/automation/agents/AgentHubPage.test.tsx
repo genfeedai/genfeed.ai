@@ -404,7 +404,12 @@ describe('AgentHubPage', () => {
   });
 
   it('writes one fact line per agent and links the name to its scoped detail page', () => {
-    mocks.strategies = [HEALTHY_AGENT, PAUSED_AGENT, FAILING_AGENT];
+    mocks.strategies = [
+      HEALTHY_AGENT,
+      PAUSED_AGENT,
+      FAILING_AGENT,
+      { ...FAILING_AGENT, id: 'agent-5', isActive: false, label: 'Stalled' },
+    ];
 
     render(<AgentHubPage />);
 
@@ -416,20 +421,30 @@ describe('AgentHubPage', () => {
       within(healthy).getByRole('link', { name: 'Image Producer' }),
     ).toHaveAttribute('href', '/org-one/brand-one/automation/agents/agent-1');
 
-    // Empty fields are omitted, never rendered as placeholders.
+    // Healthy agents carry no status badge.
+    expect(healthy).not.toHaveTextContent(/Paused|Last run failed/);
+
+    // Empty fields are omitted, never rendered as placeholders; the reason an
+    // agent needs you is a labelled status badge ahead of the facts.
     const paused = screen.getByTestId('agent-row-all-agent-2');
-    expect(paused).toHaveTextContent(
-      'custom_agent · Paused · 0 / 10 credits today',
-    );
+    expect(within(paused).getByText('Paused')).toBeVisible();
+    expect(
+      within(paused).getByText('custom_agent · 0 / 10 credits today'),
+    ).toBeVisible();
     expect(paused).not.toHaveTextContent('Never');
     expect(paused).not.toHaveTextContent('Workflow:');
 
-    expect(screen.getByTestId('agent-row-needsYou-agent-3')).toHaveTextContent(
-      'Last run failed · Ran about 1 hour ago',
-    );
-    expect(screen.getByTestId('agent-row-yours-agent-1')).toHaveTextContent(
-      'Ran 1 minute ago',
-    );
+    const failing = screen.getByTestId('agent-row-needsYou-agent-3');
+    expect(within(failing).getByText('Last run failed')).toBeVisible();
+    expect(within(failing).getByText('Ran about 1 hour ago')).toBeVisible();
+
+    const yours = screen.getByTestId('agent-row-yours-agent-1');
+    expect(within(yours).getByText('Ran 1 minute ago')).toBeVisible();
+
+    const stalled = screen.getByTestId('agent-row-needsYou-agent-5');
+    expect(
+      within(stalled).getByText('Paused after 2 failed runs'),
+    ).toBeVisible();
   });
 
   it('defaults All to a list and switches to a remembered three-column grid of flat cards', () => {
