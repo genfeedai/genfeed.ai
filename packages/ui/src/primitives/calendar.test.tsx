@@ -62,6 +62,33 @@ describe('Calendar', () => {
     expect(facadeText.some((text) => text.startsWith('2026'))).toBe(true);
   });
 
+  it('stacks month/year navigation above the caption so clicks reach it', () => {
+    // react-day-picker renders the caption (month/year dropdowns) after Nav
+    // in the DOM; `months` is a flex container, so its flex-item children
+    // (nav and each `month`) paint in DOM order when z-index is auto on
+    // both -- without an explicit z-index, the caption's own box (not just
+    // its invisible <select> overlay) sits on top wherever the two overlap,
+    // silently swallowing clicks meant for "next/previous month" (found via
+    // E2E: #5381).
+    const { container } = render(
+      <Calendar
+        mode="single"
+        captionLayout="dropdown"
+        defaultMonth={new Date(2026, 7, 9)}
+        startMonth={new Date(2020, 0, 1)}
+        endMonth={new Date(2030, 11, 31)}
+      />,
+    );
+
+    const nav = container.querySelector('[class*="absolute right-1 top-0"]');
+    expect(nav).toBeTruthy();
+    expect(nav?.className).toMatch(/z-\[3\]/);
+
+    const dropdown = container.querySelector('select');
+    expect(dropdown).toBeTruthy();
+    expect(dropdown?.className).toMatch(/z-\[2\]/);
+  });
+
   it('renders a down chevron for dropdown facades instead of a right arrow', () => {
     const { container } = render(
       <Calendar

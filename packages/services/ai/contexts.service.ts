@@ -11,6 +11,7 @@ import type {
   IRAGResult,
 } from '@genfeedai/contracts/interfaces/knowledge-base/knowledge-base.interface';
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
@@ -45,6 +46,7 @@ class ContextsServiceClass {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       body: body ? JSON.stringify(body) : undefined,
       headers: {
+        ...getRequestOrganizationHeaders(),
         Authorization: `Bearer ${this.token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },

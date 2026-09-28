@@ -90,7 +90,7 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Start for $0', 'See what it does']);
+    ).toEqual(['Connect your agent', 'Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -154,26 +154,32 @@ describe('HomeHero', () => {
     render(<HomeHero />);
 
     expect(
+      screen.getByRole('link', { name: /connect your agent/i }),
+    ).toHaveAttribute('href', '/agent#connect');
+    expect(
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
-    expect(
-      screen.getByRole('link', { name: /see what it does/i }),
-    ).toHaveAttribute('href', '/agent');
   });
 
-  it('tracks the signup CTA separately from the agent CTA', () => {
+  it('never offers a sales demo', () => {
+    render(<HomeHero />);
+
+    expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
+  });
+
+  it('tracks the agent CTA separately from the signup CTA', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
 
+    fireEvent.click(screen.getByRole('link', { name: /connect your agent/i }));
     fireEvent.click(screen.getByRole('link', { name: /start for \$0/i }));
-    fireEvent.click(screen.getByRole('link', { name: /see what it does/i }));
 
     expect(listener).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'start_creating_hero' },
+          trackingData: { action: 'connect_agent' },
           trackingName: 'home_hero_click',
         },
       }),
@@ -182,7 +188,7 @@ describe('HomeHero', () => {
       2,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'use_agent_hero' },
+          trackingData: { action: 'start_signup' },
           trackingName: 'home_hero_click',
         },
       }),

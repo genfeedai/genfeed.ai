@@ -1,3 +1,8 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@services/core/interceptor.service';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,8 +37,25 @@ describe('ClipsApiService', () => {
   });
 
   afterEach(() => {
+    clearRequestOrganizationId();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+  });
+
+  it('sends the routed organization header with the bearer token', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: [] }), { status: 200 }),
+    );
+    setRequestOrganizationId('org-a');
+
+    const service = new ClipsApiService(vi.fn().mockResolvedValue('token-org'));
+    await service.listProjects();
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(init.headers).toEqual({
+      Authorization: 'Bearer token-org',
+      [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+    });
   });
 
   it('lists clip projects from the collection endpoint', async () => {

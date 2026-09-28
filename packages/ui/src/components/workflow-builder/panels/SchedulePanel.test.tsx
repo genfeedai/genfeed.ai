@@ -1,14 +1,60 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import { WorkflowsService } from '@genfeedai/services/automation/workflows.service';
+import { BaseService } from '@genfeedai/services/core/base.service';
+import {
+  clearAllServiceInstances,
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import SchedulePanel from '@ui/workflow-builder/panels/SchedulePanel';
-import { describe, expect, it, vi } from 'vitest';
+import axios, { type AxiosAdapter } from 'axios';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// Mock NotificationsService
+const mocks = vi.hoisted(() => ({
+  notifications: { error: vi.fn(), success: vi.fn() },
+}));
+
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper');
+
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
-    show: vi.fn(),
+    getInstance: () => mocks.notifications,
   },
 }));
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService:
+    <T,>(factory: (token: string) => T) =>
+    async () =>
+      factory('schedule-token'),
+}));
+
+const adapter = vi.fn<AxiosAdapter>(async (config) => ({
+  config,
+  data: {},
+  headers: {},
+  status: 200,
+  statusText: 'OK',
+}));
+
+function installAdapter() {
+  const create = axios.create.bind(axios);
+  vi.spyOn(axios, 'create').mockImplementation((config) =>
+    create({ ...config, adapter }),
+  );
+}
+
+afterEach(() => {
+  clearRequestOrganizationId();
+  clearAllServiceInstances();
+  BaseService.clearAllInstances();
+  vi.restoreAllMocks();
+  adapter.mockClear();
+  mocks.notifications.error.mockClear();
+  mocks.notifications.success.mockClear();
+});
 
 describe('SchedulePanel', () => {
   const defaultProps = {
@@ -96,5 +142,69 @@ describe('SchedulePanel', () => {
       <SchedulePanel {...defaultProps} isEnabled={true} />,
     );
     expect(enabledContainer.firstChild).toBeInTheDocument();
+  });
+
+  it('saves the schedule through WorkflowsService with the routed organization header', async () => {
+    installAdapter();
+    setRequestOrganizationId('org-a');
+    const onScheduleUpdate = vi.fn();
+    render(
+      <SchedulePanel {...defaultProps} onScheduleUpdate={onScheduleUpdate} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Preset/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Every hour/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Save Schedule/i }));
+
+    await waitFor(() => {
+      expect(mocks.notifications.success).toHaveBeenCalledWith(
+        'Schedule saved',
+      );
+    });
+    expect(adapter).toHaveBeenCalledTimes(1);
+    const config = adapter.mock.calls[0]?.[0];
+    expect(config?.method).toBe('patch');
+    expect(`${config?.baseURL}${config?.url}`).toMatch(
+      /\/workflows\/workflow-1$/,
+    );
+    expect(JSON.parse(config?.data as string)).toEqual({
+      isScheduleEnabled: false,
+      schedule: '0 * * * *',
+      timezone: 'UTC',
+    });
+    expect(config?.headers.Authorization).toBe('Bearer schedule-token');
+    expect(config?.headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
+    expect(onScheduleUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('removes the schedule through WorkflowsService with the routed organization header', async () => {
+    installAdapter();
+    setRequestOrganizationId('org-a');
+    const removeSchedule = vi.spyOn(
+      WorkflowsService.prototype,
+      'removeSchedule',
+    );
+    render(<SchedulePanel {...defaultProps} currentSchedule="0 * * * *" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Remove/i }));
+
+    await waitFor(() => {
+      expect(mocks.notifications.success).toHaveBeenCalledWith(
+        'Schedule removed',
+      );
+    });
+    expect(removeSchedule).toHaveBeenCalledWith('workflow-1');
+    expect(adapter).toHaveBeenCalledTimes(1);
+    const config = adapter.mock.calls[0]?.[0];
+    expect(config?.method).toBe('patch');
+    expect(JSON.parse(config?.data as string)).toEqual({
+      isScheduleEnabled: false,
+      schedule: null,
+    });
+    expect(`${config?.baseURL}${config?.url}`).toMatch(
+      /\/workflows\/workflow-1$/,
+    );
+    expect(config?.headers.Authorization).toBe('Bearer schedule-token');
+    expect(config?.headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
   });
 });

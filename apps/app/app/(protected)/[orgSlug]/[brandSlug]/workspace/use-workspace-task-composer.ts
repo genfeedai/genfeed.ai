@@ -10,6 +10,7 @@ import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websoc
 import { Prompt } from '@models/content/prompt.model';
 import { PromptsService } from '@services/content/prompts.service';
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -103,7 +104,10 @@ export function useWorkspaceTaskComposer({
         }
 
         const apiEndpoint = EnvironmentService.apiEndpoint;
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = {
+          ...getRequestOrganizationHeaders(),
+          Authorization: `Bearer ${token}`,
+        };
 
         if (controller.signal.aborted) return;
 

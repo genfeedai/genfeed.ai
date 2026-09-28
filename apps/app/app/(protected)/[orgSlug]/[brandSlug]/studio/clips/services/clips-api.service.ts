@@ -24,6 +24,7 @@ import type {
 import type { ClipProjectSummary, ClipResult } from '@props/studio/clips.props';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 
 import { mapClipProjectSummary } from '../utils/map-clip-project-summary';
 
@@ -58,6 +59,7 @@ export class ClipsApiService implements ClipsApiClient {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       ...((options.headers as Record<string, string>) ?? {}),
+      ...getRequestOrganizationHeaders(),
     };
 
     if (options.body) {

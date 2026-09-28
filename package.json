@@ -77,6 +77,7 @@
     "check:marketplace-boundary": "bun run scripts/architecture/check-marketplace-boundary.ts",
     "check:product-workflow-boundary": "bun run scripts/architecture/check-product-workflow-boundary.ts",
     "check:project-references": "bun run scripts/architecture/check-project-reference-deps.ts",
+    "check:raw-fetch-org-header": "bun run scripts/architecture/check-raw-fetch-org-header.ts",
     "check:relation-alias-reads": "bun run scripts/architecture/check-relation-alias-reads.ts",
     "check:relation-alias-writes": "bun run scripts/architecture/check-relation-alias-writes.ts",
     "check:workflow-dispatch-class": "bun run scripts/architecture/check-workflow-dispatch-class.ts",

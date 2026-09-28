@@ -98,10 +98,6 @@ export interface WebsitePlanProps extends PricingPlanProps {
   tier: PlanTier;
 }
 
-const CALENDLY_URL =
-  process.env.NEXT_PUBLIC_CALENDLY_URL ||
-  'https://calendly.com/vincent-genfeed/30min';
-
 const STRIPE_PRICE_IDS = {
   enterprise:
     process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY,
@@ -415,8 +411,8 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Scale Tier - higher-entry team studio
   {
-    cta: 'Talk to Sales',
-    ctaHref: CALENDLY_URL,
+    cta: 'Start Scale',
+    ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=scale`,
     description: 'One studio for teams, organizations, and brands',
     features: [
       includedCreditsFeature('scale'),
@@ -444,8 +440,10 @@ export const websitePlans: WebsitePlanProps[] = [
 
   // Enterprise Tier - custom deployment
   {
-    cta: 'Book a Demo',
-    ctaHref: CALENDLY_URL,
+    cta: 'Book a call',
+    // Calls are booked on the website's done-for-you page, never straight on
+    // Calendly, so every booking starts from the same context.
+    ctaHref: '/done-for-you#book',
     description: 'Custom studio, governance, and support',
     features: [
       'Custom credit terms',
