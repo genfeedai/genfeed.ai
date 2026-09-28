@@ -22,7 +22,7 @@ export function stitchRequestError(
   detail: string,
   title = 'Invalid stitch request',
 ): BadRequestException {
-  return new BadRequestException({ detail, field, title });
+  return new BadRequestException({ detail, field, message: detail, title });
 }
 
 /** Merge settings persisted as JSON on an ingredient. */

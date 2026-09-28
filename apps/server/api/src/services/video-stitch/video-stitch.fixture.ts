@@ -270,12 +270,17 @@ export class VideoStitchFixture {
         }
         return { jobId };
       },
+      // Polls like the real queue client, so a spec can finish the job after
+      // the caller started waiting.
       waitForJob: async (jobId: string) => {
-        const failure = this.failWaitFor.get(jobId);
-        if (failure) throw failure;
-        const result = this.jobResults.get(jobId);
-        if (!result) throw new Error('Job timeout');
-        return result;
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const failure = this.failWaitFor.get(jobId);
+          if (failure) throw failure;
+          const result = this.jobResults.get(jobId);
+          if (result) return result;
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+        throw new Error('Job timeout');
       },
     };
   }
