@@ -36,7 +36,7 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type {
-  FastlaneIdea,
+  BatchIdea,
   IBatchProjectItemDispatch,
 } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -62,7 +62,7 @@ type IdeaGenerationRequest = RequestWithContext & DeferredCreditsRequest;
 
 type DispatchTarget = {
   dispatch: IBatchProjectItemDispatch;
-  idea: FastlaneIdea;
+  idea: BatchIdea;
   item: BatchProjectItem;
   project: BatchProject;
 };
@@ -387,7 +387,7 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
 
   private async recordPlaceholder(
     job: BatchProjectIdeaDispatchJob,
-    idea: FastlaneIdea,
+    idea: BatchIdea,
     ingredientId: string,
   ): Promise<void> {
     await this.prisma.batchProjectItem.updateMany({

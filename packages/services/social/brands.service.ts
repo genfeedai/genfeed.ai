@@ -1,8 +1,6 @@
 import type { ReferenceImageCategory } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
-  FastlaneGenerateIdeasRequest,
-  FastlaneIdea,
   IActivity,
   IAnalytics,
   IArticle,
@@ -532,20 +530,6 @@ export class BrandsService extends BaseService<Brand> {
         params: query,
       })
       .then((res) => deserializeCollection<unknown>(res.data));
-  }
-
-  /**
-   * Generates a batch of brand-data-driven Fastlane content ideas. The ideas
-   * endpoint returns a plain `{ data: FastlaneIdea[] }` envelope (not JSON:API),
-   * mirroring the brand-voice generation endpoint.
-   */
-  public async generateFastlaneIdeas(
-    id: string,
-    dto: FastlaneGenerateIdeasRequest,
-  ): Promise<FastlaneIdea[]> {
-    return await this.instance
-      .post<{ data: FastlaneIdea[] }>(`/${id}/fastlane/ideas`, dto)
-      .then((res) => res.data?.data ?? []);
   }
 
   public async createManualBrandKitDraft(

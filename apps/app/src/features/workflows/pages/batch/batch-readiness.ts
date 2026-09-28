@@ -1,6 +1,6 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
-  FastlaneFormat,
+  BatchIdeaFormat,
   IBrand,
   ICredential,
 } from '@genfeedai/contracts/interfaces';
@@ -29,7 +29,7 @@ export interface BrandReadinessResult {
 export function isBrandReadyForBatch(
   brand: IBrand | null | undefined,
   credentials: ICredential[],
-  formats?: FastlaneFormat[],
+  formats?: BatchIdeaFormat[],
 ): BrandReadinessResult {
   const reasons: string[] = [];
 

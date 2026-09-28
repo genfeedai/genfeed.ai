@@ -3,7 +3,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { BatchProjectKind, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -31,7 +31,7 @@ export default function BatchNewProjectPage() {
   const { brandId } = useBrand();
   const { href } = useOrgUrl();
   const router = useRouter();
-  const flag = useFastlaneEnabled();
+  const isIdeasEnabled = useFeatureFlag('batch_ideas');
   const getService = useAuthedService(createBatchProjectsApi);
   const getWorkflows = useAuthedService(createWorkflowApiService);
   const workflowScope = useMemo(
@@ -104,7 +104,7 @@ export default function BatchNewProjectPage() {
                 ? ButtonVariant.DEFAULT
                 : ButtonVariant.SECONDARY
             }
-            isDisabled={!flag.isEnabled || flag.isLoading || busy}
+            isDisabled={!isIdeasEnabled || busy}
             onClick={() => setKind(BatchProjectKind.IDEAS)}
           >
             {t('fromIdeas')}
@@ -121,7 +121,7 @@ export default function BatchNewProjectPage() {
             {t('fromWorkflow')}
           </Button>
         </div>
-        {!flag.isLoading && !flag.isEnabled && <p>{t('ideasDisabled')}</p>}
+        {!isIdeasEnabled && <p>{t('ideasDisabled')}</p>}
         <Field label={t('name')}>
           <Input
             aria-label={t('name')}
@@ -156,7 +156,7 @@ export default function BatchNewProjectPage() {
                   {t('createWorkflow')}
                 </Link>
               </Button>
-              {flag.isEnabled && (
+              {isIdeasEnabled && (
                 <Button
                   variant={ButtonVariant.SECONDARY}
                   onClick={() => setKind(BatchProjectKind.IDEAS)}
@@ -173,7 +173,7 @@ export default function BatchNewProjectPage() {
             (kind === BatchProjectKind.WORKFLOW
               ? loading ||
                 !workflows.some((workflow) => workflow.id === workflowId)
-              : !flag.isEnabled)
+              : !isIdeasEnabled)
           }
           isLoading={busy}
           onClick={() => void create()}

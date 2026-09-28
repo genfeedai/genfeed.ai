@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import {
+  BATCH_IDEA_FORMATS,
+  type GenerateBatchIdeasDto,
+} from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
 } from '@api/collections/brands/dto/generate-brand-voice.dto';
-import {
-  FASTLANE_FORMATS,
-  type GenerateFastlaneIdeasDto,
-} from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { BrandVoiceGenerationException } from '@api/collections/brands/exceptions/brand-voice-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
@@ -27,9 +27,9 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import {
+  type BatchIdea,
+  type BatchIdeaFormat,
   BrandVoiceFailureCode,
-  type FastlaneFormat,
-  type FastlaneIdea,
   type IBrandVoiceCorpus,
   type IBrandVoiceSample,
 } from '@genfeedai/contracts/interfaces';
@@ -333,23 +333,23 @@ export class BrandGenerationService {
 
   /**
    * Turns structured brand data into a batch of ready-to-produce short-form
-   * content ideas distributed across the requested formats. This is the
-   * brand-data-driven core of Fastlane — the user never writes a prompt.
+   * content ideas distributed across the requested formats. The user never
+   * writes a prompt — this is the brand-data-driven core of idea batches.
    *
    * Org-scoped: the brand is loaded with the caller's organizationId so a brand
    * from another org cannot be targeted. Requires a configured brand voice.
    */
-  async generateFastlaneIdeas(
+  async generateBatchIdeas(
     brandId: string,
-    dto: GenerateFastlaneIdeasDto,
+    dto: GenerateBatchIdeasDto,
     organizationId: string,
     findBrand: BrandFinder,
-  ): Promise<FastlaneIdea[]> {
-    this.logger.debug('Generating fastlane ideas', {
+  ): Promise<BatchIdea[]> {
+    this.logger.debug('Generating batch ideas', {
       brandId,
       count: dto.count,
       formats: dto.formats,
-      operation: 'generateFastlaneIdeas',
+      operation: 'generateBatchIdeas',
       service: this.constructorName,
     });
 
@@ -430,14 +430,14 @@ Respond ONLY with the JSON array.`;
 
       return parsed
         .filter(
-          (item): item is Partial<FastlaneIdea> =>
+          (item): item is Partial<BatchIdea> =>
             Boolean(item) && typeof item === 'object',
         )
         .map((item) => {
-          const format: FastlaneFormat = FASTLANE_FORMATS.includes(
-            item.format as FastlaneFormat,
+          const format: BatchIdeaFormat = BATCH_IDEA_FORMATS.includes(
+            item.format as BatchIdeaFormat,
           )
-            ? (item.format as FastlaneFormat)
+            ? (item.format as BatchIdeaFormat)
             : dto.formats[0];
 
           return {
@@ -455,11 +455,11 @@ Respond ONLY with the JSON array.`;
               typeof item.speechText === 'string' ? item.speechText : undefined,
             visualPrompt:
               typeof item.visualPrompt === 'string' ? item.visualPrompt : '',
-          } satisfies FastlaneIdea;
+          } satisfies BatchIdea;
         })
         .filter((idea) => idea.hook || idea.caption || idea.visualPrompt);
     } catch {
-      this.logger.warn('Failed to parse fastlane ideas LLM response', {
+      this.logger.warn('Failed to parse batch ideas LLM response', {
         rawContent,
         service: this.constructorName,
       });

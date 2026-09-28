@@ -1,14 +1,14 @@
 import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type {
+  BatchIdea,
+  BatchIdeaFormat,
   BatchProjectBillingMode,
-  FastlaneFormat,
-  FastlaneIdea,
   IBatchProjectItemDispatch,
   IBatchProjectQuote,
   IBatchProjectQuoteLine,
 } from '@genfeedai/contracts/interfaces';
 
-/** Idea generation renders portrait short-form media, as Fastlane did. */
+/** Idea generation renders portrait short-form media. */
 export const IDEA_OUTPUT_ASPECT_RATIO = '9:16';
 export const IDEA_OUTPUT_WIDTH = 1080;
 export const IDEA_OUTPUT_HEIGHT = 1920;
@@ -26,7 +26,7 @@ export type IdeaGenerationParams = {
  * so an accepted price always matches the reservation.
  */
 export function resolveIdeaGenerationParams(
-  format: FastlaneFormat,
+  format: BatchIdeaFormat,
 ): IdeaGenerationParams {
   return {
     aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
@@ -83,18 +83,17 @@ export function ideaDispatchKey(itemId: string, attempt: number): string {
 }
 
 /**
- * The prompt an idea generates from — the server-side port of Fastlane's
- * browser mapping: the visual prompt, else the hook, else the caption. Avatar
- * ideas speak their script (else the caption).
+ * The prompt an idea generates from: the visual prompt, else the hook, else
+ * the caption. Avatar ideas speak their script (else the caption).
  */
-export function ideaPromptText(idea: FastlaneIdea): string {
+export function ideaPromptText(idea: BatchIdea): string {
   if (idea.format === 'avatar') {
     return ideaSpeechText(idea);
   }
   return idea.visualPrompt.trim() || idea.hook.trim() || idea.caption.trim();
 }
 
-export function ideaSpeechText(idea: FastlaneIdea): string {
+export function ideaSpeechText(idea: BatchIdea): string {
   return (idea.speechText ?? idea.caption ?? '').trim();
 }
 
@@ -124,7 +123,7 @@ function parseQuoteLine(value: unknown): IBatchProjectQuoteLine | null {
     attempt,
     billingMode: billingMode as BatchProjectBillingMode,
     credits,
-    format: format as FastlaneFormat,
+    format: format as BatchIdeaFormat,
     itemId,
     key,
     model,

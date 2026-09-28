@@ -410,7 +410,6 @@ export const createTestOrganizationSetting = (
   brandsLimit: 10,
   createdAt: new Date(),
   enabledModelIds: [],
-  isFastlaneEnabled: false,
   isGenerateArticlesEnabled: true,
   isGenerateImagesEnabled: true,
   isGenerateMusicEnabled: true,

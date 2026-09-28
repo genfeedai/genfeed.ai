@@ -4,7 +4,6 @@ import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-acc
 import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
-import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-brand-kit-assets.dto';
 import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
@@ -12,7 +11,6 @@ import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-br
 import { BrandVoiceGenerationExceptionFilter } from '@api/collections/brands/exceptions/brand-voice-generation-exception.filter';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { BrandOsPreviewClaimDto } from '@api/endpoints/public/controllers/brand-os/brand-os-preview-claim.dto';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -58,7 +56,6 @@ export class BrandsAgentConfigController {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
-    private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly skillsService: SkillsService,
   ) {}
 
@@ -279,37 +276,6 @@ export class BrandsAgentConfigController {
     );
 
     return { data: voice };
-  }
-
-  @Post(':id/fastlane/ideas')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async generateFastlaneIdeas(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() generateFastlaneIdeasDto: GenerateFastlaneIdeasDto,
-  ) {
-    const organizationId = this.requireOrganizationId(user);
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (!settings?.isFastlaneEnabled) {
-      throw new HttpException(
-        {
-          detail: 'Fastlane is not enabled for this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const ideas = await this.brandsService.generateFastlaneIdeas(
-      id,
-      generateFastlaneIdeasDto,
-      organizationId,
-    );
-
-    return { data: ideas };
   }
 
   @Patch(':id/agent-config/enabled-skills')

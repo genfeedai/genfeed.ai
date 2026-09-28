@@ -4,7 +4,7 @@ import type {
   BatchProjectStatus,
   BatchProjectStep,
 } from '../../enums/batch.enum';
-import type { FastlaneFormat, FastlaneIdea } from './fastlane.interface';
+import type { BatchIdea, BatchIdeaFormat } from './batch-idea.interface';
 
 /**
  * Studio Batch project (#5463) — one persisted surface for idea batches
@@ -15,7 +15,7 @@ import type { FastlaneFormat, FastlaneIdea } from './fastlane.interface';
 
 /** Idea-generation choices of an idea batch. */
 export interface IBatchProjectIdeaSettings {
-  formats: FastlaneFormat[];
+  formats: BatchIdeaFormat[];
   /** Ideas per format. */
   count: number;
   angle?: string;
@@ -78,7 +78,7 @@ export interface IBatchProjectQuoteLine {
   /** `batch-project-item:<id>:dispatch:<attempt>`; the reservation key. */
   key: string;
   attempt: number;
-  format: FastlaneFormat;
+  format: BatchIdeaFormat;
   model: string;
   /** Platform credits; 0 when billed to the org's own key. */
   credits: number;
@@ -120,7 +120,7 @@ export interface IBatchProjectItem {
   position: number;
   status: BatchProjectItemStatus;
   /** Idea brief (idea batches). */
-  idea?: FastlaneIdea | null;
+  idea?: BatchIdea | null;
   /** Input ingredient (workflow batches). */
   inputIngredientId?: string | null;
   inputCategory?: string | null;
@@ -189,7 +189,7 @@ export interface IUpdateBatchProjectInput {
 
 /** Replace an idea batch's ideas, or append workflow inputs. */
 export interface IAddBatchProjectItemsInput {
-  ideas?: FastlaneIdea[];
+  ideas?: BatchIdea[];
   inputs?: Array<{ ingredientId: string }>;
 }
 

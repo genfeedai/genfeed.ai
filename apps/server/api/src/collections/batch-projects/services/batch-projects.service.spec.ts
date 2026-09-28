@@ -1,4 +1,5 @@
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   BatchProjectItemStatus,
   BatchProjectKind,
@@ -7,11 +8,7 @@ import {
   IngredientCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type Row = Record<string, unknown>;
 
@@ -92,7 +89,6 @@ describe('BatchProjectsService', () => {
     brand: { findFirst: vi.fn() },
     credential: { findMany: vi.fn() },
     ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
-    organizationSetting: { findFirst: vi.fn() },
     post: { findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
@@ -113,6 +109,7 @@ describe('BatchProjectsService', () => {
     rejectItems: vi.fn(),
   };
   const ideaGeneration = { quote: vi.fn(), retry: vi.fn(), start: vi.fn() };
+  const platformSettingsService = { getFeatureSettings: vi.fn() };
   const service = new BatchProjectsService(
     prisma as never,
     logger as never,
@@ -121,7 +118,8 @@ describe('BatchProjectsService', () => {
     workflowsService as never,
     batchGenerationService as never,
     ideaGeneration as never,
-    { generateFastlaneIdeas: vi.fn() } as never,
+    { generateBatchIdeas: vi.fn() } as never,
+    platformSettingsService as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -143,12 +141,15 @@ describe('BatchProjectsService', () => {
     prisma.post.findFirst.mockResolvedValue(null);
     prisma.post.findMany.mockResolvedValue([]);
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
+    platformSettingsService.getFeatureSettings.mockResolvedValue({
+      flags: { batch_ideas: true },
+    });
   });
 
   describe('create', () => {
-    it('keeps idea batches behind the organization flag', async () => {
-      prisma.organizationSetting.findFirst.mockResolvedValue({
-        isFastlaneEnabled: false,
+    it('keeps idea batches behind the batch_ideas platform flag', async () => {
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { batch_ideas: false },
       });
 
       await expect(
@@ -156,14 +157,11 @@ describe('BatchProjectsService', () => {
           { brandId: 'brand-1', kind: BatchProjectKind.IDEAS },
           scope,
         ),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(NotFoundException);
       expect(prisma.batchProject.create).not.toHaveBeenCalled();
     });
 
     it('opens an idea batch on the ideas step with default idea choices', async () => {
-      prisma.organizationSetting.findFirst.mockResolvedValue({
-        isFastlaneEnabled: true,
-      });
       prisma.batchProject.create.mockImplementation(async ({ data }) => ({
         ...makeProject(),
         ...data,
@@ -858,6 +856,22 @@ describe('BatchProjectsService', () => {
         data: { revision: { increment: 1 }, updatedAt: expect.any(Date) },
         where: expect.objectContaining({ id: 'project-1' }),
       });
+    });
+
+    it('blocks idea generation when the batch_ideas platform flag is off', async () => {
+      useProject(makeProject({ kind: BatchProjectKind.IDEAS }));
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { batch_ideas: false },
+      });
+
+      await expect(
+        service.generateIdeas(
+          'project-1',
+          { count: 3, formats: ['image'] } as never,
+          scope,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
     });
   });
 

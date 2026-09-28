@@ -48,7 +48,6 @@ export async function mockBatchProject(
   const ready = {
     ...bootstrap,
     brands: [readyBrand],
-    settings: { ...bootstrap.settings, isFastlaneEnabled: true },
   };
   await page.route(`${playwrightApiEndpoint}/auth/bootstrap**`, (route) =>
     json(route, ready),
