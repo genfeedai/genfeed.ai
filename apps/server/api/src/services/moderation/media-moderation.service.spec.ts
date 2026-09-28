@@ -1,4 +1,4 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
@@ -114,7 +114,7 @@ function makeHarness(
     .mockResolvedValue(
       options.perception === undefined ? perception() : options.perception,
     );
-  const platformSettingsService = {
+  const featureSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       moderationMode: 'live',
@@ -140,7 +140,7 @@ function makeHarness(
     { getForAsset } as unknown as MediaPerceptionService,
     providers,
     activities as unknown as ActivityRecorderService,
-    platformSettingsService as unknown as PlatformSettingsService,
+    featureSettingsService as unknown as PlatformFeatureSettingsService,
     logger as unknown as LoggerService,
   );
   return {

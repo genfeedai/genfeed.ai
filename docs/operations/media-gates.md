@@ -4,18 +4,19 @@ Epic #4877 checks generated media before it is published, in three layers. Each
 layer runs off the publish path. The publish path only reads the persisted
 results, through `MediaAssessmentService`.
 
-Every setting below is an operator control in **Admin → Platform settings**
-(`/admin/administration/platform-settings`), not an environment variable
-(#5407). A change applies to every API and workers process within 15 seconds,
-with no restart or deploy.
+Every setting below is a PostHog feature flag evaluated for the platform
+identity `genfeed-platform` (#5468), not an environment variable. A flag edit
+applies to every API and workers process within 15 seconds, with no restart or
+deploy. Without PostHog the defaults below apply. Flag keys and payloads:
+[deployment modes](../deployment-modes.md#product-switches).
 
 | Layer | What runs | Setting | Default |
 | --- | --- | --- | --- |
 | Readiness (#4878) | Probe metadata against `PLATFORM_MEDIA_SPECS` | always on | blocks on `error` |
-| Perception (#4879) | Frames, OCR, transcript and scene description | Media perception | on |
-| Moderation (#4880) | Provider scores over frames, transcript and OCR | Moderation provider, moderation mode | `none`, `shadow` |
-| Vision flags (#4881) | Scorer rubric over the perceived frames | Vision gate mode | `off` |
-| Text decisions (#4882) | Typed decisions over the transcript, scene description and caption | Text gate mode | `off` |
+| Perception (#4879) | Frames, OCR, transcript and scene description | `media_perception` | on |
+| Moderation (#4880) | Provider scores over frames, transcript and OCR | `moderation` (variant = mode, payload `provider`) | `none`, `shadow` |
+| Vision flags (#4881) | Scorer rubric over the perceived frames | `media_gate_vision` | `off` |
+| Text decisions (#4882) | Typed decisions over the transcript, scene description and caption | `media_text_gate` | `off` |
 
 Perception produces inputs and never gates anything on its own. The three gating
 classifier layers are moderation, vision and text. Readiness is deterministic.
@@ -62,7 +63,8 @@ score decile** and a **suggested** threshold computed from the rule below.
 ### Moderation
 
 Moderation thresholds are per category, a minimum score in `0..1`, and set as
-per-category overrides in Admin → Platform settings. Lower is stricter.
+per-category overrides in the `moderation` flag payload (`thresholds`). Lower is
+stricter.
 
 | Category | Default | Bias |
 | --- | --- | --- |

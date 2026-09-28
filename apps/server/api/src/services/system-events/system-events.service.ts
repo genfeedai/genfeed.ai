@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { SystemEvent } from '@api/services/system-events/system-event.types';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
@@ -14,19 +14,20 @@ import type Stripe from 'stripe';
 export class SystemEventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly platformSettings: PlatformSettingsService,
+    private readonly featureSettings: PlatformFeatureSettingsService,
     private readonly logger: LoggerService,
     private readonly notifications: NotificationsService,
   ) {}
 
   /**
-   * The recording window: an operator platform setting (#5407). Unset means
+   * The recording window: the `system_events_recording` PostHog flag and its
+   * `since` payload (#5468). Unset means
    * disabled; events that occurred before it are never recorded, so turning
    * recording on never replays historical signups.
    */
   private async configuration(): Promise<{ since: Date } | null> {
     const { systemEventsEnabledAt } =
-      await this.platformSettings.getFeatureSettings();
+      await this.featureSettings.getFeatureSettings();
     return systemEventsEnabledAt
       ? { since: new Date(systemEventsEnabledAt) }
       : null;

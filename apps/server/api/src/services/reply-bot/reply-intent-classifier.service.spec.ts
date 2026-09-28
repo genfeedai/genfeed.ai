@@ -1,4 +1,4 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import {
   hasCommentLinks,
   ReplyIntentClassifierService,
@@ -27,12 +27,12 @@ const COMMENT = {
 };
 
 function createHarness(overrides: FeatureOverrides) {
-  const platformSettingsService = {
+  const featureSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       ...overrides,
     })),
-  } as unknown as PlatformSettingsService;
+  } as unknown as PlatformFeatureSettingsService;
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
@@ -48,7 +48,7 @@ function createHarness(overrides: FeatureOverrides) {
     isProviderBoundMock: vi.mocked(typedDecisionService.isProviderBound),
     logger,
     service: new ReplyIntentClassifierService(
-      platformSettingsService,
+      featureSettingsService,
       logger,
       typedDecisionService,
     ),

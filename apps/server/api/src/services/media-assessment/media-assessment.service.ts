@@ -1,4 +1,4 @@
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MAX_VISION_ATTEMPTS } from '@api/services/media-assessment/media-vision-evaluation.service';
 import {
@@ -96,7 +96,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     private readonly mediaReadinessService: MediaReadinessService,
     private readonly configService: ConfigService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly featureSettingsService: PlatformFeatureSettingsService,
   ) {}
 
   evaluatePublishReadiness(
@@ -199,7 +199,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     unchecked: Set<string>,
   ): Promise<void> {
     const settings = resolveModerationSettings(
-      await this.platformSettingsService.getFeatureSettings(),
+      await this.featureSettingsService.getFeatureSettings(),
     );
     if (settings.mode === 'off') {
       return;
@@ -277,7 +277,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     unchecked: Set<string>,
   ): Promise<void> {
     const settings = resolveMediaTextGateSettings(
-      await this.platformSettingsService.getFeatureSettings(),
+      await this.featureSettingsService.getFeatureSettings(),
     );
     if (settings.mode !== 'live') {
       return;
@@ -419,7 +419,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
 
     const isVisionLive =
       resolveVisionGateMode(
-        await this.platformSettingsService.getFeatureSettings(),
+        await this.featureSettingsService.getFeatureSettings(),
       ) === 'live';
     let validEvaluationIds: ReadonlySet<string> = new Set();
     let flagsById = new Map<string, IEvaluationFlags | undefined>();

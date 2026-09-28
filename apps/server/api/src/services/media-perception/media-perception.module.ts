@@ -1,4 +1,4 @@
-import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
@@ -28,7 +28,7 @@ import { Module } from '@nestjs/common';
     LoggerModule,
     MediaUrlsModule,
     MediaVendorCostModule,
-    PlatformSettingsModule,
+    FeatureFlagModule,
     WhisperModule,
   ],
   providers: [

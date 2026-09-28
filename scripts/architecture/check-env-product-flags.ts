@@ -1,15 +1,16 @@
 /**
- * Guardrail: product feature switches are Admin platform settings, not env
- * (#5407).
+ * Guardrail: product feature switches are PostHog feature flags, not env
+ * (#5407, #5468).
  *
  * A switch in env can only change with a deploy by someone holding the deploy
  * pipeline. Operator decisions about product behaviour — enabling a feature,
- * a rollout mode, a confidence threshold — belong on the platform-settings
- * singleton (`/admin/administration/platform-settings`), cached with
- * invalidation on write.
+ * a rollout mode, a confidence threshold — are PostHog feature flags
+ * (`PLATFORM_FEATURE_FLAG_KEYS`, `FeatureFlagService`), with typed code
+ * defaults for deployments without PostHog.
  *
  * This check fails when an env schema declares a key shaped like a product
- * flag (`*_ENABLED`, `*_MODE`, `*_MIN_CONFIDENCE`, `*_THRESHOLDS`) that is not
+ * flag (`*_ENABLED`, `*_MODE`, `*_MIN_CONFIDENCE`, `*_THRESHOLDS`, or any
+ * `*FEATURE_FLAG*` key such as an env JSON of flag values) that is not
  * on the explicit infrastructure allow-list below. Adding to the allow-list is
  * a reviewed decision that the key is true infrastructure, not product
  * behaviour.
@@ -33,6 +34,7 @@ const PRODUCT_FLAG_PATTERNS: readonly RegExp[] = [
   /_MODE$/u,
   /_MIN_CONFIDENCE$/u,
   /_THRESHOLDS$/u,
+  /FEATURE_FLAG/u,
 ];
 
 /**
@@ -117,13 +119,13 @@ if (import.meta.main) {
 
   if (result.violations.length > 0) {
     console.error(
-      'Product feature switches must be Admin platform settings, not env (#5407):',
+      'Product feature switches must be PostHog feature flags, not env (#5468):',
     );
     for (const violation of result.violations) {
       console.error(`- ${violation.file}:${violation.line} ${violation.key}`);
     }
     console.error(
-      'Move the switch onto the PlatformSetting singleton (typed default, superadmin-only write, cached read). If it is genuinely deployment infrastructure, add it to INFRASTRUCTURE_ENV_ALLOW_LIST with a one-line reason.',
+      'Make it a PostHog feature flag with a typed code default (PLATFORM_FEATURE_FLAG_KEYS for platform switches, FEATURE_FLAG_OFFLINE_DEFAULTS for per-user flags). If it is genuinely deployment infrastructure, add it to INFRASTRUCTURE_ENV_ALLOW_LIST with a one-line reason.',
     );
     process.exit(1);
   }

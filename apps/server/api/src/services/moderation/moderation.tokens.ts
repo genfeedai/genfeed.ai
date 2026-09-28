@@ -9,7 +9,7 @@ export type ModerationProviders = Readonly<
 >;
 
 /**
- * DI token for {@link ModerationProviders} (#4880). The operator's platform
- * setting picks one per job (#5407), so switching provider needs no restart.
+ * DI token for {@link ModerationProviders} (#4880). The `moderation`
+ * PostHog flag picks one per job (#5468), so switching needs no restart.
  */
 export const MODERATION_PROVIDERS = Symbol('MODERATION_PROVIDERS');

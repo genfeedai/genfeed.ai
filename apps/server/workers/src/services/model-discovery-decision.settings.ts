@@ -3,7 +3,7 @@ import type { IModelDiscoveryDecisionSettings } from '@workers/interfaces/model-
 
 /**
  * Rollout gate for the model-discovery category decision (#4869, epic #4863),
- * an operator platform setting (#5407).
+ * the `model_discovery_decision` PostHog flag (#5468).
  */
 
 /**

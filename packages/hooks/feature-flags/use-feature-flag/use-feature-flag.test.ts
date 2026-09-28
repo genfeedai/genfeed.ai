@@ -95,19 +95,7 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('returns false when environment defaults are invalid', () => {
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current).toBe(false);
-  });
-
-  it('keeps reply_bot on when env JSON is missing, partial, or malformed', () => {
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
+  it('keeps reply_bot on without a PostHog answer or with other defaults', () => {
     const { result: unconfigured } = renderHook(() =>
       useFeatureFlag('reply_bot'),
     );

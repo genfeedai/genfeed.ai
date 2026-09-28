@@ -81,11 +81,40 @@ licensed-self-host bindings.
 - **SaaS admin access is a platform role.** `/admin` is gated by
   `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
   roles. Deployment operators manage `users.platformRole` separately.
-- **Product flags are PostHog in SaaS, on by default elsewhere.** Community and
-  unsigned Desktop keep Replies (`reply_bot`) on with no PostHog call-home.
-  Do not set `FEATURE_FLAG_DEFAULTS` / `NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS` to
-  enable Replies — SaaS operators target `reply_bot` in PostHog (person =
-  `users.id`, optional `is_internal`). If PostHog is absent, Replies fail open.
+- **Product flags are PostHog in SaaS, typed code defaults elsewhere.** There is
+  no env JSON of flag values. Community and unsigned Desktop keep Replies
+  (`reply_bot`) on with no PostHog call-home; SaaS operators target `reply_bot`
+  in PostHog (person = `users.id`, optional `is_internal`). If PostHog is
+  absent, a flag takes its default in `FEATURE_FLAG_OFFLINE_DEFAULTS`.
+
+## Product switches
+
+Platform-wide product behaviour is PostHog feature flags evaluated for the
+person `genfeed-platform` (#5468); roll each flag out to 100% of that person.
+API and workers read them within 15 seconds. Without PostHog, the defaults in
+`DEFAULT_PLATFORM_FEATURE_SETTINGS` apply. If PostHog is configured but has not
+answered since boot, SaaS uses production's posture (email verification on,
+media perception off) until it does.
+
+| Flag | Type | Payload |
+| --- | --- | --- |
+| `media_perception` | boolean | `{frameCount, lookbackHours, visionModel}` |
+| `media_gate_vision` | variant `shadow` / `live` | — |
+| `media_text_gate` | variant `shadow` / `live` | `{minConfidence}` |
+| `moderation` | variant `shadow` / `live` | `{provider: "none" \| "openai", thresholds: {category: 0..1}}` |
+| `agent_auto_routing` | variant `shadow` / `live` | — |
+| `model_discovery_decision` | variant `shadow` / `live` | `{minConfidence}` |
+| `pattern_analyzer_decision` | variant `shadow` | `{minConfidence}` |
+| `reply_bot_intent_decision` | variant `shadow` / `live` | `{minConfidence}` |
+| `task_routing_decision` | variant `shadow` | `{minConfidence}` |
+| `untrusted_content_decision` | variant `shadow` | `{minConfidence}` |
+| `agent_context_compression` | boolean | — |
+| `agent_token_streaming` | boolean | — |
+| `system_events_recording` | boolean | `{since: "<ISO timestamp>"}` |
+| `require_email_verification` | boolean | — |
+
+A flag that does not exist keeps its default; a disabled variant flag means
+`off`. `live` is refused on the shadow-only decision points.
 
 ## See also
 

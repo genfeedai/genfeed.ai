@@ -1,4 +1,4 @@
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   hasPendingArtefacts,
@@ -124,17 +124,17 @@ export class MediaPerceptionService {
     private readonly describer: MediaPerceptionDescriberService,
     private readonly costLedger: MediaVendorCostLedgerService,
     private readonly mediaUrlService: MediaUrlService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly featureSettingsService: PlatformFeatureSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
   /**
-   * The operator's perception switches (#5407), read per call so a change
+   * The `media_perception` PostHog flag (#5468), read per call so a change
    * applies on the next sweep tick without a restart.
    */
   async getSettings(): Promise<MediaPerceptionSettings> {
     return resolveMediaPerceptionSettings(
-      await this.platformSettingsService.getFeatureSettings(),
+      await this.featureSettingsService.getFeatureSettings(),
     );
   }
 

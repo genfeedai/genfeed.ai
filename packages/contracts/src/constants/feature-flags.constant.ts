@@ -16,6 +16,17 @@ export const APP_RAIL_FEATURE_FLAGS = {
 export const REPLY_BOT_FEATURE_FLAG = 'reply_bot';
 
 /**
+ * What a per-user product flag resolves to without a PostHog answer: always in
+ * Community, Desktop and self-hosted, and on SaaS when PostHog is absent or
+ * silent with nothing cached (#5468). Unlisted keys are off. PostHog is the
+ * only place a flag value changes — there is no env JSON of flag values.
+ */
+export const FEATURE_FLAG_OFFLINE_DEFAULTS: Readonly<Record<string, boolean>> =
+  {
+    [REPLY_BOT_FEATURE_FLAG]: true,
+  };
+
+/**
  * Desktop local/PGlite workspace. SaaS evaluates this in PostHog (fail closed).
  * Desktop/OSS shells without PostHog keep the local-mode slice available.
  */

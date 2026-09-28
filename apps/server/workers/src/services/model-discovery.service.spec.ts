@@ -38,7 +38,7 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
 });
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
@@ -132,7 +132,7 @@ describe('ModelDiscoveryService', () => {
       mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
       mockTypedDecisionService as unknown as TypedDecisionService,
-      mockPlatformSettingsService as unknown as PlatformSettingsService,
+      mockPlatformSettingsService as unknown as PlatformFeatureSettingsService,
     );
   });
 

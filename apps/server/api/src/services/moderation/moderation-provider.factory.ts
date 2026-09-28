@@ -6,9 +6,9 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * Build every moderation adapter once (#4880). Which one runs is the
- * operator's platform setting, read per job (#5407). OpenAI without its key
+ * `moderation` PostHog flag, read per job (#5468). OpenAI without its key
  * stays disabled rather than failing boot, matching the self-host contract:
- * gates are skipped, never errored. The admin API refuses to select it then.
+ * gates are skipped, never errored.
  */
 export function createModerationProviders(
   configService: ConfigService,

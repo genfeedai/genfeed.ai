@@ -1,8 +1,8 @@
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
-import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
+import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
@@ -31,7 +31,7 @@ import { Module } from '@nestjs/common';
     ThreadContextCompressorService,
   ],
   imports: [
-    PlatformSettingsModule,
+    FeatureFlagModule,
     AgentThreadsModule,
     AgentMemoriesModule,
     AgentMessagesModule,

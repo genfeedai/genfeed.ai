@@ -1,5 +1,5 @@
 import { AgentUntrustedContentAuditsService } from '@api/collections/agent-untrusted-content-audits/services/agent-untrusted-content-audits.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AGENT_UNTRUSTED_CONTENT_MAX_LENGTH } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
@@ -119,7 +119,7 @@ export class AgentUntrustedContentGateService {
 
   constructor(
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly featureSettingsService: PlatformFeatureSettingsService,
     private readonly loggerService: LoggerService,
     private readonly streamPublisher: AgentStreamPublisherService,
     @Optional()
@@ -147,7 +147,7 @@ export class AgentUntrustedContentGateService {
 
     try {
       const { minConfidence, mode } = resolveUntrustedContentDecisionConfig(
-        await this.platformSettingsService.getFeatureSettings(),
+        await this.featureSettingsService.getFeatureSettings(),
       );
       if (mode === 'off') {
         return allowed;

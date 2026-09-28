@@ -1,5 +1,7 @@
 import type { FeatureFlagAttributes } from '@api/feature-flag/feature-flag.types';
 import { isSaaS } from '@genfeedai/config/deployment';
+import { PLATFORM_FEATURE_FLAG_DISTINCT_ID } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureFlagResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -9,14 +11,19 @@ const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const POSTHOG_PROJECT_KEY_PATTERN = /^phc_[A-Za-z0-9]+$/;
 const EVALUATE_TIMEOUT_MS = 800;
 
-interface PostHogFlagPayload {
+interface PostHogFlagDetail {
   enabled?: unknown;
+  metadata?: { payload?: unknown };
+  variant?: unknown;
 }
 
 interface PostHogFlagsResponse {
+  featureFlagPayloads?: Record<string, unknown>;
   featureFlags?: Record<string, unknown>;
-  flags?: Record<string, PostHogFlagPayload | undefined>;
+  flags?: Record<string, PostHogFlagDetail | undefined>;
 }
+
+type PostHogFlagResults = Record<string, IPlatformFeatureFlagResult>;
 
 @Injectable()
 export class PostHogFeatureFlagEvaluator {
@@ -33,19 +40,44 @@ export class PostHogFeatureFlagEvaluator {
     flagKey: string,
     attributes?: FeatureFlagAttributes,
   ): Promise<boolean | undefined> {
-    if (!this.isConfigured()) {
-      return undefined;
-    }
-
     const distinctId = readDistinctId(attributes);
     if (!distinctId) {
       return undefined;
     }
 
-    const host = this.getHost();
-    const projectKey = this.getProjectKey();
-    const origin = new URL(host).origin;
     const isInternal = attributes?.is_internal;
+    const flags = await this.evaluateFlags(
+      distinctId,
+      typeof isInternal === 'boolean' ? { is_internal: isInternal } : {},
+      flagKey,
+    );
+    return flags?.[flagKey]?.enabled;
+  }
+
+  /**
+   * Every flag for the fixed platform identity (#5468), with its variant and
+   * payload. `undefined` when PostHog is not configured or did not answer —
+   * callers decide the fallback.
+   */
+  evaluatePlatformFlags(): Promise<PostHogFlagResults | undefined> {
+    return this.evaluateFlags(
+      PLATFORM_FEATURE_FLAG_DISTINCT_ID,
+      {},
+      'platform',
+    );
+  }
+
+  private async evaluateFlags(
+    distinctId: string,
+    personProperties: Record<string, unknown>,
+    context: string,
+  ): Promise<PostHogFlagResults | undefined> {
+    if (!this.isConfigured()) {
+      return undefined;
+    }
+
+    const host = this.getHost();
+    const origin = new URL(host).origin;
 
     try {
       const response = await safeFetch(
@@ -53,11 +85,8 @@ export class PostHogFeatureFlagEvaluator {
         {
           body: JSON.stringify({
             distinct_id: distinctId,
-            person_properties:
-              typeof isInternal === 'boolean'
-                ? { is_internal: isInternal }
-                : {},
-            token: projectKey,
+            person_properties: personProperties,
+            token: this.getProjectKey(),
           }),
           headers: {
             'Content-Type': 'application/json',
@@ -72,18 +101,17 @@ export class PostHogFeatureFlagEvaluator {
 
       if (!response.ok) {
         this.loggerService.warn('PostHog feature flag request failed', {
-          flagKey,
+          flagKey: context,
           status: response.status,
         });
         return undefined;
       }
 
-      const payload = (await response.json()) as PostHogFlagsResponse;
-      return readFlagEnabled(payload, flagKey);
+      return readFlagResults((await response.json()) as PostHogFlagsResponse);
     } catch (error) {
       this.loggerService.warn('PostHog feature flag evaluation failed', {
         error,
-        flagKey,
+        flagKey: context,
       });
       return undefined;
     }
@@ -115,19 +143,33 @@ function readDistinctId(
   return typeof id === 'string' && id.trim() !== '' ? id : undefined;
 }
 
-function readFlagEnabled(
-  payload: PostHogFlagsResponse,
-  flagKey: string,
-): boolean | undefined {
-  const detailed = payload.flags?.[flagKey]?.enabled;
-  if (typeof detailed === 'boolean') {
-    return detailed;
+/**
+ * Normalise both `/flags` response shapes: v2 `flags[key]` with `enabled`,
+ * `variant` and `metadata.payload`, and the legacy `featureFlags` map (a
+ * boolean or a variant string) with `featureFlagPayloads`.
+ */
+function readFlagResults(payload: PostHogFlagsResponse): PostHogFlagResults {
+  const results: PostHogFlagResults = {};
+
+  for (const [key, value] of Object.entries(payload.featureFlags ?? {})) {
+    if (typeof value === 'boolean' || typeof value === 'string') {
+      results[key] = {
+        enabled: value !== false,
+        payload: payload.featureFlagPayloads?.[key],
+        variant: typeof value === 'string' ? value : null,
+      };
+    }
   }
 
-  const legacy = payload.featureFlags?.[flagKey];
-  if (typeof legacy === 'boolean') {
-    return legacy;
+  for (const [key, detail] of Object.entries(payload.flags ?? {})) {
+    if (typeof detail?.enabled === 'boolean') {
+      results[key] = {
+        enabled: detail.enabled,
+        payload: detail.metadata?.payload,
+        variant: typeof detail.variant === 'string' ? detail.variant : null,
+      };
+    }
   }
 
-  return undefined;
+  return results;
 }

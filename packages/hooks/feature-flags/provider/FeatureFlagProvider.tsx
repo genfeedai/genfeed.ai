@@ -34,16 +34,13 @@ export function FeatureFlagProvider({
   overrides,
   ready = true,
 }: FeatureFlagProviderProps) {
+  // Flag values come from PostHog (`overrides`) and product fallbacks (#5468);
+  // there is no env JSON of flag values.
   const resolvedDefaults = useMemo<ParsedFeatureFlagDefaults>(
-    () =>
-      defaults === undefined
-        ? parseFeatureFlagDefaults(
-            process.env.NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS,
-          )
-        : {
-            flags: defaults,
-            isConfigured: Object.keys(defaults).length > 0,
-          },
+    () => ({
+      flags: defaults ?? {},
+      isConfigured: Object.keys(defaults ?? {}).length > 0,
+    }),
     [defaults],
   );
 
@@ -66,29 +63,4 @@ export function FeatureFlagProvider({
 
 export function useFeatureFlagContext(): FeatureFlagContextValue {
   return use(FeatureFlagContext);
-}
-
-function parseFeatureFlagDefaults(
-  rawDefaults: string | undefined,
-): ParsedFeatureFlagDefaults {
-  if (!rawDefaults) {
-    return { flags: {}, isConfigured: false };
-  }
-
-  try {
-    const parsed = JSON.parse(rawDefaults) as unknown;
-
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(
-        'NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS must be a JSON object',
-      );
-    }
-
-    return {
-      flags: parsed as Record<string, unknown>,
-      isConfigured: true,
-    };
-  } catch {
-    return { flags: {}, isConfigured: true };
-  }
 }

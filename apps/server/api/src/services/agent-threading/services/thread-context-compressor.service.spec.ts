@@ -1,5 +1,5 @@
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -17,7 +17,7 @@ function buildService(isAgentContextCompressionEnabled: boolean) {
   const prisma = {
     threadContextState: { findFirst: vi.fn(async () => null) },
   };
-  const platformSettingsService = {
+  const featureSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       isAgentContextCompressionEnabled,
@@ -29,15 +29,15 @@ function buildService(isAgentContextCompressionEnabled: boolean) {
     {} as LlmDispatcherService,
     cacheService as unknown as CacheService,
     { get: vi.fn(() => undefined) } as unknown as ConfigService,
-    platformSettingsService as unknown as PlatformSettingsService,
+    featureSettingsService as unknown as PlatformFeatureSettingsService,
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
   );
-  return { agentMessagesService, platformSettingsService, service };
+  return { agentMessagesService, featureSettingsService, service };
 }
 
 describe('ThreadContextCompressorService switch (#5407)', () => {
   it('does nothing when compression is off in platform settings', async () => {
-    const { agentMessagesService, platformSettingsService, service } =
+    const { agentMessagesService, featureSettingsService, service } =
       buildService(false);
 
     await expect(
@@ -45,7 +45,7 @@ describe('ThreadContextCompressorService switch (#5407)', () => {
     ).resolves.toBeNull();
     await service.compressIfNeeded('thread-1', 'org-1');
 
-    expect(platformSettingsService.getFeatureSettings).toHaveBeenCalledTimes(2);
+    expect(featureSettingsService.getFeatureSettings).toHaveBeenCalledTimes(2);
     expect(agentMessagesService.countMessages).not.toHaveBeenCalled();
   });
 

@@ -2,8 +2,8 @@ import { type AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { scopedWhere } from '@api/index';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -105,15 +105,15 @@ export class AgentOrchestratorStreamLoopService {
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
     @Optional()
-    private readonly platformSettingsService?: PlatformSettingsService,
+    private readonly featureSettingsService?: PlatformFeatureSettingsService,
   ) {}
 
-  /** An operator platform setting (#5407); off when settings are not wired. */
+  /** The `agent_token_streaming` PostHog flag (#5468); off when not wired. */
   private async isRealTokenStreamingEnabled(): Promise<boolean> {
-    if (!this.platformSettingsService) {
+    if (!this.featureSettingsService) {
       return false;
     }
-    const settings = await this.platformSettingsService.getFeatureSettings();
+    const settings = await this.featureSettingsService.getFeatureSettings();
     return settings.isAgentTokenStreamingEnabled;
   }
 

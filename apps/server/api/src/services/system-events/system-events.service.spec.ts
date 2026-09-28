@@ -1,4 +1,4 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -18,7 +18,7 @@ const payload = JSON.stringify({
   data: { objectId: 'u1' },
 });
 function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
-  const platformSettings = {
+  const featureSettings = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       systemEventsEnabledAt: enabled ? enabledAt : null,
@@ -43,7 +43,7 @@ function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
   };
   const service = new SystemEventsService(
     prisma as unknown as PrismaService,
-    platformSettings as unknown as PlatformSettingsService,
+    featureSettings as unknown as PlatformFeatureSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
     notifications as unknown as NotificationsService,
   );

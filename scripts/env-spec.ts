@@ -403,6 +403,8 @@ export const ENV_TARGETS: EnvTarget[] = [
       'GPU_LLM_INSTANCE_ID',
       'OPENAI_API_KEY',
       'OPENROUTER_API_KEY',
+      'POSTHOG_HOST',
+      'POSTHOG_PROJECT_API_KEY',
       'TYPED_DECISION_TIMEOUT_MS',
       'TYPESAFE_API_KEY',
       'REPLICATE_KEY',

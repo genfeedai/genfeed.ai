@@ -1,7 +1,7 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { parsePlatformFeatureSettings } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
@@ -27,7 +27,7 @@ describe('TaskRoutingService', () => {
   const buildService = (
     overrides: RawFeatureOverrides = {},
   ): TaskRoutingService => {
-    const platformSettingsService = {
+    const featureSettingsService = {
       getFeatureSettings: vi.fn(async () =>
         parsePlatformFeatureSettings({
           taskRoutingDecisionMode: 'off',
@@ -39,7 +39,7 @@ describe('TaskRoutingService', () => {
     return new TaskRoutingService(
       skillsService as unknown as SkillsService,
       typedDecisionService as unknown as TypedDecisionService,
-      platformSettingsService as unknown as PlatformSettingsService,
+      featureSettingsService as unknown as PlatformFeatureSettingsService,
     );
   };
 

@@ -1,4 +1,4 @@
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
@@ -59,7 +59,7 @@ export function pickEvenly<T>(items: readonly T[], max: number): T[] {
  * `Evaluation` record, which the perception row links to. Identical bytes in
  * the same organization share one evaluation.
  *
- * The vision gate mode (an operator platform setting) `off` skips entirely; `shadow` and `live` both
+ * The vision gate mode (`media_gate_vision` PostHog flag) `off` skips entirely; `shadow` and `live` both
  * evaluate — only the assessment decides whether flags gate a publish.
  */
 @Injectable()
@@ -70,14 +70,14 @@ export class MediaVisionEvaluationService {
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
     private readonly scorer: ContentQualityScorerService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly featureSettingsService: PlatformFeatureSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
   async isActive(): Promise<boolean> {
     return (
       resolveVisionGateMode(
-        await this.platformSettingsService.getFeatureSettings(),
+        await this.featureSettingsService.getFeatureSettings(),
       ) !== 'off'
     );
   }

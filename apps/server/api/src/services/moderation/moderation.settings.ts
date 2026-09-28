@@ -16,7 +16,7 @@ export interface ModerationSettings {
 
 /**
  * The moderation switches (#4880) as the classifier reads them: operator
- * platform settings (#5407), with per-category overrides layered over the
+ * the `moderation` PostHog flag (#5468), with per-category overrides over the
  * contract defaults.
  */
 export function resolveModerationSettings(

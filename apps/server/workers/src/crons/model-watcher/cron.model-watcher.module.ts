@@ -1,5 +1,5 @@
 import { ModelsModule } from '@api/collections/models/models.module';
-import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -18,7 +18,7 @@ import { ReplicateModelContractSyncService } from '@workers/services/replicate-m
     ConfigModule,
     // #4869: ModelDiscoveryService classifies the discovered category through
     // the api's TypedDecisionService — workers never binds its own provider.
-    PlatformSettingsModule,
+    FeatureFlagModule,
     TypedDecisionsModule,
   ],
   providers: [

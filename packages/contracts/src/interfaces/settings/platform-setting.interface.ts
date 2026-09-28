@@ -15,11 +15,11 @@ import type { ModerationProviderName } from '../ingredients/media-moderation.int
 export type ShadowCappedDecisionMode = Exclude<TypedDecisionMode, 'live'>;
 
 /**
- * Product feature switches (#5407).
+ * Product feature switches (#5407, #5468).
  *
- * Operator decisions about product behaviour, kept on the platform-settings
- * singleton rather than in env so changing one takes an admin click instead
- * of a deploy. Every default equals the retired env variable's default; see
+ * Operator decisions about product behaviour, served from PostHog feature
+ * flags (see `PLATFORM_FEATURE_FLAG_KEYS`) so changing one takes a flag edit
+ * instead of a deploy. Deployments without PostHog get
  * `DEFAULT_PLATFORM_FEATURE_SETTINGS`. Secrets, keys, URLs and true
  * infrastructure (`BETTER_AUTH_ENABLED`, `SENTRY_ENABLED`) stay in env.
  */
@@ -80,9 +80,7 @@ export interface IPlatformFeatureSettings {
  * operator area — distinct from per-user `Setting` and per-org
  * `OrganizationSetting`. Access is restricted to platform superadmins.
  */
-export interface IPlatformSetting
-  extends IBaseEntity,
-    IPlatformFeatureSettings {
+export interface IPlatformSetting extends IBaseEntity {
   /**
    * Sell/cost ratio applied to provider USD for **generation** billing. 1.0 =
    * provider cost, 3.33 = 70% margin on sell price. See `applyMargin` in
@@ -121,10 +119,19 @@ export interface IPlatformSetting
 }
 
 /** Fields a platform operator may update via `/admin`. */
-export interface IUpdatePlatformSettingPayload
-  extends Partial<IPlatformFeatureSettings> {
+export interface IUpdatePlatformSettingPayload {
   marginMultiplierGeneration?: number;
   marginMultiplierAgentChat?: number;
   marginInputMode?: MarginInputMode;
   typedDecisionProvider?: TypedDecisionProviderName;
+}
+
+/**
+ * One evaluated PostHog flag, as the `/flags?v=2` endpoint reports it:
+ * whether it matched, the multivariate variant it chose, and its JSON payload.
+ */
+export interface IPlatformFeatureFlagResult {
+  enabled: boolean;
+  payload?: unknown;
+  variant?: string | null;
 }

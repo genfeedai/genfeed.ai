@@ -5,7 +5,7 @@ import type {
 
 /**
  * Rollout gate of the pattern analyzer's two label decisions (#4868), an
- * operator platform setting (#5407).
+ * `pattern_analyzer_decision` PostHog flag (#5468).
  *
  * Capped at shadow (release-blocker follow-up, epic #4863): Jev still
  * computes and records both label answers next to the rule-based ones, but

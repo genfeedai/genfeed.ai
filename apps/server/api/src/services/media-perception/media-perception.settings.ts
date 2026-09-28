@@ -10,7 +10,7 @@ export interface MediaPerceptionSettings {
 
 /**
  * The media perception switches (#4879) as the perception pipeline reads
- * them. They are operator platform settings (#5407); the row is already
+ * them. They are the `media_perception` PostHog flag (#5468); the flags are already
  * parsed fail-closed, so only the vision-model fallback is resolved here.
  */
 export function resolveMediaPerceptionSettings(

@@ -148,4 +148,90 @@ describe('PostHogFeatureFlagEvaluator', () => {
       evaluator.isEnabled('reply_bot', { id: 'user-123' }),
     ).resolves.toBeUndefined();
   });
+
+  describe('evaluatePlatformFlags (#5468)', () => {
+    function evaluator() {
+      return new PostHogFeatureFlagEvaluator(
+        createConfigService({
+          POSTHOG_PROJECT_API_KEY: 'phc_testkey',
+        }) as never,
+        { warn: vi.fn() } as never,
+      );
+    }
+
+    it('evaluates every flag for the fixed platform identity', async () => {
+      mocks.safeFetch.mockResolvedValue(
+        jsonResponse({
+          flags: {
+            media_perception: {
+              enabled: false,
+              metadata: { payload: '{"frameCount":4}' },
+            },
+            moderation: {
+              enabled: true,
+              metadata: { payload: { provider: 'openai' } },
+              variant: 'live',
+            },
+          },
+        }),
+      );
+
+      await expect(evaluator().evaluatePlatformFlags()).resolves.toEqual({
+        media_perception: {
+          enabled: false,
+          payload: '{"frameCount":4}',
+          variant: null,
+        },
+        moderation: {
+          enabled: true,
+          payload: { provider: 'openai' },
+          variant: 'live',
+        },
+      });
+      const [, init] = mocks.safeFetch.mock.calls[0] ?? [];
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        distinct_id: 'genfeed-platform',
+        person_properties: {},
+      });
+    });
+
+    it('reads variants and payloads from the legacy response shape', async () => {
+      mocks.safeFetch.mockResolvedValue(
+        jsonResponse({
+          featureFlagPayloads: { media_text_gate: '{"minConfidence":0.9}' },
+          featureFlags: {
+            agent_token_streaming: false,
+            media_text_gate: 'shadow',
+          },
+        }),
+      );
+
+      await expect(evaluator().evaluatePlatformFlags()).resolves.toEqual({
+        agent_token_streaming: {
+          enabled: false,
+          payload: undefined,
+          variant: null,
+        },
+        media_text_gate: {
+          enabled: true,
+          payload: '{"minConfidence":0.9}',
+          variant: 'shadow',
+        },
+      });
+    });
+
+    it('returns undefined without PostHog or when it fails', async () => {
+      mocks.isSaaS.mockReturnValue(false);
+      await expect(
+        evaluator().evaluatePlatformFlags(),
+      ).resolves.toBeUndefined();
+      expect(mocks.safeFetch).not.toHaveBeenCalled();
+
+      mocks.isSaaS.mockReturnValue(true);
+      mocks.safeFetch.mockResolvedValue(jsonResponse({}, 503));
+      await expect(
+        evaluator().evaluatePlatformFlags(),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

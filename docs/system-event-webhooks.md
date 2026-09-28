@@ -5,13 +5,12 @@ notifications service. They work without any external management application.
 
 ## Configuration
 
-Turn on **Record system events** in Admin → Platform settings
-(`/admin/administration/platform-settings`) to begin recording. It stores the
-moment recording started (`systemEventsEnabledAt`) on the platform-settings
-singleton, shared by API and workers (#5407). Off means disabled: ordinary
-signup and billing continue, with no notification delivery calls. The start
-time prevents historical signup floods: events that occurred earlier are never
-recorded.
+Enable the `system_events_recording` PostHog flag for `genfeed-platform` with
+the payload `{"since": "<ISO timestamp>"}` to begin recording; API and workers
+read it within 15 seconds (#5468). Disabled, or enabled without `since`, means
+off: ordinary signup and billing continue, with no notification delivery calls.
+The start time prevents historical signup floods: events that occurred earlier
+are never recorded.
 
 Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
 an incoming webhook owned by your deployment. Hosted SaaS allowlists that name

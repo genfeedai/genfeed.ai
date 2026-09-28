@@ -1,4 +1,4 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentAutoRoutingResolveParams } from '@api/services/agent-orchestrator/interfaces/agent-auto-routing.interface';
@@ -43,7 +43,7 @@ function createHarness(
     getCheapestSelectableKey: vi.fn().mockResolvedValue('vendor/cheap'),
     getDefaultModelKey: vi.fn().mockResolvedValue('vendor/default'),
   };
-  const platformSettingsService = {
+  const featureSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       ...overrides,
@@ -56,7 +56,7 @@ function createHarness(
     registry,
     service: new AgentAutoModelResolverService(
       registry as unknown as AgentChatModelRegistryService,
-      platformSettingsService as unknown as PlatformSettingsService,
+      featureSettingsService as unknown as PlatformFeatureSettingsService,
       logger as unknown as LoggerService,
     ),
   };

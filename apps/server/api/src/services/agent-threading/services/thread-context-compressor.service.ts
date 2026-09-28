@@ -1,6 +1,6 @@
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -64,13 +64,13 @@ export class ThreadContextCompressorService {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
-    private readonly platformSettingsService: PlatformSettingsService,
+    private readonly featureSettingsService: PlatformFeatureSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  /** An operator platform setting (#5407). */
+  /** The `agent_context_compression` PostHog flag (#5468). */
   private async isEnabled(): Promise<boolean> {
-    const settings = await this.platformSettingsService.getFeatureSettings();
+    const settings = await this.featureSettingsService.getFeatureSettings();
     return settings.isAgentContextCompressionEnabled;
   }
 

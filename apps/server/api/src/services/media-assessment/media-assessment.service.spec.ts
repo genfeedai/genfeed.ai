@@ -1,4 +1,4 @@
-import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
@@ -79,7 +79,7 @@ function makeHarness(options: {
   readinessDiagnostics?: Record<string, unknown>[];
 }) {
   const config: Record<string, unknown> = { ...options.config };
-  const platformSettingsService = {
+  const featureSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       mediaGateVisionMode: 'off',
@@ -125,7 +125,7 @@ function makeHarness(options: {
     { evaluatePublishReadiness } as unknown as MediaReadinessService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
     { isProviderBound } as unknown as TypedDecisionService,
-    platformSettingsService as unknown as PlatformSettingsService,
+    featureSettingsService as unknown as PlatformFeatureSettingsService,
   );
   return { evaluatePublishReadiness, evaluationFindMany, service };
 }
