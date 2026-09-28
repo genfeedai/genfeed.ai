@@ -1,9 +1,15 @@
 'use client';
 
 import type { SendStreamMessageOptions } from '@genfeedai/agent/hooks/agent-chat-stream.types';
-import { useDesktopLocalTools } from '@genfeedai/agent/hooks/use-desktop-local-tools';
+import {
+  loadDesktopLocalTools,
+  useDesktopLocalTools,
+} from '@genfeedai/agent/hooks/use-desktop-local-tools';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { resolveDesktopCliRuntimeKey } from '@genfeedai/agent/utils/agent-runtime-options.util';
+import {
+  resolveDesktopCliRuntimeBlocker,
+  resolveDesktopCliRuntimeKey,
+} from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import {
   type DesktopCliAgentTurnHandleRef,
@@ -14,11 +20,20 @@ import { useCallback, useRef } from 'react';
 
 export interface DesktopCliAgentChat {
   /**
+   * Why the bound local runtime cannot take a turn (CLI missing or too old),
+   * or null. Sends are refused while it is set; they never fall back to the
+   * hosted runtime.
+   */
+  blockedReason: string | null;
+  /**
    * Stops the local turn of the visible thread. Returns false when none is
    * running there, so Stop falls through to the visible hosted run.
    */
   cancelActiveTurn: () => boolean;
-  /** True when sends for the visible thread go to the local CLI runtime. */
+  /**
+   * True when the visible thread (or the draft) is bound to a local CLI
+   * runtime in Desktop, whether or not that CLI can run right now.
+   */
   isEnabled: boolean;
   runtimeKey: AgentExternalRuntimeKey | null;
   sendMessage: (
@@ -44,7 +59,6 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
 
   const runtimeKey = resolveDesktopCliRuntimeKey({
     activeThreadId,
-    desktopTools,
     draftRuntimeKey,
     hasDesktopBridge: getGenfeedDesktopBridge() !== null,
     thread: { runtimeKey: activeThreadRuntimeKey },
@@ -59,6 +73,16 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
           .setError(
             'Local CLI runtimes are only available in Genfeed Desktop.',
           );
+        return;
+      }
+
+      // Detection may still be in flight on the first send of a session.
+      const blocker = resolveDesktopCliRuntimeBlocker(
+        runtimeKey,
+        await loadDesktopLocalTools(),
+      );
+      if (blocker) {
+        useAgentChatStore.getState().setError(blocker);
         return;
       }
 
@@ -94,7 +118,13 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
     return true;
   }, []);
 
+  const blockedReason =
+    runtimeKey && desktopTools
+      ? resolveDesktopCliRuntimeBlocker(runtimeKey, desktopTools)
+      : null;
+
   return {
+    blockedReason,
     cancelActiveTurn,
     isEnabled: runtimeKey !== null,
     runtimeKey,

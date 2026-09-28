@@ -76,7 +76,7 @@ export function AgentChatContainer({
   });
   const desktopRuntimeBar =
     (runtimeSelection.hasDesktopCliRuntimes ||
-      runtimeSelection.catalog.localToolNotice) &&
+      runtimeSelection.runtimeNotice) &&
     !isReadOnly ? (
       <AgentDesktopRuntimeBar selection={runtimeSelection} />
     ) : null;

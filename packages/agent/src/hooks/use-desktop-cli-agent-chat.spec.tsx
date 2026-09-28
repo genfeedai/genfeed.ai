@@ -7,7 +7,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DesktopWindow = Window & { genfeedDesktop?: unknown };
 
-function installBridge(tools: { claude: boolean; codex: boolean }) {
+const CODEX_UPGRADE_MESSAGE =
+  'This Codex CLI is too old to run Genfeed agent turns. Update it with `npm install -g @openai/codex@latest`, then restart Genfeed Desktop.';
+
+type TestBridge = {
+  agentRuntime: {
+    cancelTurn: ReturnType<typeof vi.fn>;
+    startTurn: ReturnType<typeof vi.fn>;
+  };
+};
+
+function installBridge(
+  tools: { claude: boolean; codex: boolean; isCodexOutdated?: boolean },
+  detection?: Promise<unknown>,
+) {
+  const readiness = {
+    anyDetected: tools.claude || tools.codex,
+    claude: tools.claude,
+    codex: tools.codex,
+    detected: [
+      ...(tools.claude ? ['claude'] : []),
+      ...(tools.codex ? ['codex'] : []),
+    ],
+    grok: false,
+    upgradesRequired: tools.isCodexOutdated
+      ? [{ key: 'codex', message: CODEX_UPGRADE_MESSAGE }]
+      : [],
+  };
   (window as DesktopWindow).genfeedDesktop = {
     agentRuntime: {
       cancelTurn: vi.fn().mockResolvedValue(undefined),
@@ -15,18 +41,14 @@ function installBridge(tools: { claude: boolean; codex: boolean }) {
       startTurn: vi.fn(() => new Promise(() => undefined)),
     },
     app: {
-      detectLocalTools: vi.fn().mockResolvedValue({
-        anyDetected: tools.claude || tools.codex,
-        claude: tools.claude,
-        codex: tools.codex,
-        detected: [
-          ...(tools.claude ? ['claude'] : []),
-          ...(tools.codex ? ['codex'] : []),
-        ],
-        grok: false,
-      }),
+      detectLocalTools: vi.fn(() =>
+        detection
+          ? detection.then(() => readiness)
+          : Promise.resolve(readiness),
+      ),
     },
   };
+  return (window as DesktopWindow).genfeedDesktop as TestBridge;
 }
 
 function setActiveThread(runtimeKey?: string) {
@@ -96,14 +118,78 @@ describe('useDesktopCliAgentChat transport selection', () => {
     expect(result.current.cancelActiveTurn()).toBe(false);
   });
 
-  it('stays on the API stream when the CLI is not installed', async () => {
-    installBridge({ claude: false, codex: false });
+  it('keeps a thread bound to a missing CLI off the hosted stream and blocks sends', async () => {
+    const bridge = installBridge({ claude: false, codex: false });
     setActiveThread('local/claude-cli');
 
     const { result } = renderHook(() => useDesktopCliAgentChat());
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(result.current.isEnabled).toBe(false);
+    await waitFor(() =>
+      expect(result.current.blockedReason).toContain(
+        'Claude Code was not found on this computer',
+      ),
+    );
+    expect(result.current.isEnabled).toBe(true);
+
+    await act(async () => {
+      await result.current.sendMessage('Draft a launch post');
+    });
+    expect(bridge.agentRuntime.startTurn).not.toHaveBeenCalled();
+    expect(useAgentChatStore.getState().error).toContain(
+      'Claude Code was not found on this computer',
+    );
+    expect(useAgentChatStore.getState().messages).toEqual([]);
+  });
+
+  it('blocks a Codex thread on an outdated CLI with the upgrade step', async () => {
+    const bridge = installBridge({
+      claude: true,
+      codex: false,
+      isCodexOutdated: true,
+    });
+    setActiveThread('local/codex-cli');
+
+    const { result } = renderHook(() => useDesktopCliAgentChat());
+
+    await waitFor(() =>
+      expect(result.current.blockedReason).toContain(CODEX_UPGRADE_MESSAGE),
+    );
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.runtimeKey).toBe('local/codex-cli');
+
+    await act(async () => {
+      await result.current.sendMessage('Draft a launch post');
+    });
+    expect(bridge.agentRuntime.startTurn).not.toHaveBeenCalled();
+    expect(useAgentChatStore.getState().error).toContain(CODEX_UPGRADE_MESSAGE);
+  });
+
+  it('waits for CLI detection before a first send, and still blocks', async () => {
+    let finishDetection: () => void = () => undefined;
+    const detection = new Promise<void>((resolve) => {
+      finishDetection = resolve;
+    });
+    const bridge = installBridge(
+      { claude: true, codex: false, isCodexOutdated: true },
+      detection,
+    );
+    setActiveThread('local/codex-cli');
+
+    const { result } = renderHook(() => useDesktopCliAgentChat());
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.blockedReason).toBeNull();
+
+    let send: Promise<void> = Promise.resolve();
+    act(() => {
+      send = result.current.sendMessage('Sent before detection finished');
+    });
+    await act(async () => {
+      finishDetection();
+      await send;
+    });
+
+    expect(bridge.agentRuntime.startTurn).not.toHaveBeenCalled();
+    expect(useAgentChatStore.getState().error).toContain(CODEX_UPGRADE_MESSAGE);
   });
 
   it('stops the local turn only while its thread is the visible one', async () => {

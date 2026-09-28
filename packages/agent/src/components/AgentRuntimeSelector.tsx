@@ -16,14 +16,15 @@ import {
   Terminal,
   Zap,
 } from 'lucide-react';
-import { type ReactElement, useMemo, useState } from 'react';
+import { type ReactElement, useState } from 'react';
 
 interface AgentRuntimeSelectorProps {
   environmentLabel: 'cloud' | 'local';
   localToolSummary: string;
   options: AgentRuntimeOption[];
   providerSummary: string;
-  selectedRuntimeKey: string;
+  /** May be a local CLI that is not offered here (missing or outdated). */
+  selectedRuntime: AgentRuntimeOption;
   onRuntimeChange: (runtime: AgentRuntimeOption) => void;
 }
 
@@ -55,19 +56,10 @@ export function AgentRuntimeSelector({
   localToolSummary,
   options,
   providerSummary,
-  selectedRuntimeKey,
+  selectedRuntime,
   onRuntimeChange,
-}: AgentRuntimeSelectorProps): ReactElement | null {
+}: AgentRuntimeSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
-  const selectedRuntime = useMemo(
-    () =>
-      options.find((option) => option.key === selectedRuntimeKey) ?? options[0],
-    [options, selectedRuntimeKey],
-  );
-
-  if (!selectedRuntime) {
-    return null;
-  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

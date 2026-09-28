@@ -8,9 +8,10 @@ let cachedDetection: Promise<IDesktopLocalToolReadiness | null> | null = null;
 
 /**
  * Detection spawns `--version` for each CLI in Electron main, so it runs once
- * per renderer session and is shared by every consumer.
+ * per renderer session and is shared by every consumer. Resolves to null
+ * outside Genfeed Desktop or when detection fails.
  */
-function detectDesktopLocalTools(): Promise<IDesktopLocalToolReadiness | null> {
+export function loadDesktopLocalTools(): Promise<IDesktopLocalToolReadiness | null> {
   const bridge = getGenfeedDesktopBridge();
   if (!bridge) {
     return Promise.resolve(null);
@@ -40,7 +41,7 @@ export function useDesktopLocalTools(): IDesktopLocalToolReadiness | null {
 
     const controller = new AbortController();
 
-    void detectDesktopLocalTools().then((readiness) => {
+    void loadDesktopLocalTools().then((readiness) => {
       if (!controller.signal.aborted) {
         setTools(readiness);
       }

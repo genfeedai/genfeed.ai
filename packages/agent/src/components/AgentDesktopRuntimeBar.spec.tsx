@@ -25,6 +25,7 @@ function buildSelection(
     catalog,
     hasDesktopCliRuntimes: false,
     onRuntimeChange: vi.fn(),
+    runtimeNotice: catalog.localToolNotice,
     selectedRuntime: catalog.options[0] ?? {
       category: 'auto',
       description: '',
