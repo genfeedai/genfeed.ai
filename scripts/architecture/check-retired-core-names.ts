@@ -52,6 +52,8 @@ export const EXISTING_CORE_DIRECTORIES: ReadonlySet<string> = new Set([
 const RETIRED_SPECIFIER_PATTERN =
   /(['"])(@genfeedai\/(?:core|server|workflow-engine|workflow-saas|workflow-ui)|@server)(?:\/[^'"\n]*)?\1/gu;
 
+const MANIFEST_NAME_KEY_PATTERN = /"name"\s*:\s*$/u;
+
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/**/*.{cjs,js,mjs,ts,tsx}',
   'packages/**/*.{cjs,js,mjs,ts,tsx}',
@@ -158,6 +160,10 @@ function collectFileViolations(
   }
 
   for (const match of source.matchAll(RETIRED_SPECIFIER_PATTERN)) {
+    // A manifest's own `"name"` is reported once, as retired-package-name.
+    if (MANIFEST_NAME_KEY_PATTERN.test(source.slice(0, match.index))) {
+      continue;
+    }
     violations.push({
       file,
       kind: 'retired-specifier',
