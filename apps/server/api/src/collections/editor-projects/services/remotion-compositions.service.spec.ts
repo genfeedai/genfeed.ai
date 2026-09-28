@@ -7,6 +7,7 @@ import type { FileQueueService } from '@api/services/files-microservice/queue/fi
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
+import { EditorProjectSerializer } from '@genfeedai/serializers';
 import {
   ConflictException,
   ForbiddenException,
@@ -146,6 +147,13 @@ describe('Remotion composition lifecycle', () => {
     await expect(
       service.render(user, { ...input, title: 'Changed' }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('creates projects that the editor read contract exposes as locked', async () => {
+    const { service, project } = setup();
+    await service.render(user, input);
+    const output = EditorProjectSerializer.serialize(project());
+    expect(output.data).toMatchObject({ attributes: { isLocked: true } });
   });
 
   it('enforces active membership, assigned brand and current request brand', async () => {

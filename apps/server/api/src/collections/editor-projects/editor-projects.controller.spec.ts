@@ -327,6 +327,104 @@ describe('EditorProjectsController', () => {
     });
   });
 
+  // ── duplicate ─────────────────────────────────────────────────────────────
+  describe('duplicate', () => {
+    const tracks = [
+      {
+        clips: [],
+        id: 'story',
+        isLocked: false,
+        isMuted: false,
+        name: 'Story',
+        type: 'text',
+        volume: 100,
+      },
+    ];
+    const settings = {
+      backgroundColor: '#123456',
+      format: 'portrait',
+      fps: 30,
+      height: 1920,
+      width: 1080,
+    };
+    const makeComposition = () =>
+      makeProject({
+        brandId: testId('brand', 7),
+        config: {
+          composition: { id: 'product-story', inputHash: 'hash' },
+          name: 'Product story',
+          renderExport: { job: { jobId: 'job-1' } },
+          settings,
+          status: 'completed',
+          totalDurationFrames: 360,
+        },
+        name: 'Product story',
+        renderedVideoId: testId('video'),
+        settings,
+        totalDurationFrames: 360,
+        tracks,
+        userId: testId('user', 9),
+      });
+
+    it('creates an unlocked draft copy with the same tracks and settings', async () => {
+      const source = makeComposition();
+      const copy = makeProject({ id: testId('project', 3) });
+      editorProjectsService.findOne.mockResolvedValue(source as never);
+      editorProjectsService.create.mockResolvedValue(copy as never);
+
+      const result = await controller.duplicate(
+        makeRequest(),
+        makeUser(),
+        String(source.id),
+      );
+
+      expect(editorProjectsService.findOne).toHaveBeenCalledWith({
+        id: String(source.id),
+        isDeleted: false,
+        organizationId: testId('shared'),
+      });
+      expect(editorProjectsService.create).toHaveBeenCalledWith({
+        brandId: testId('brand', 7),
+        config: {
+          name: 'Product story (copy)',
+          settings,
+          status: 'draft',
+          totalDurationFrames: 360,
+        },
+        organizationId: testId('shared'),
+        tracks,
+        userId: testId('shared'),
+      });
+      expect(result).toMatchObject({ data: copy });
+    });
+
+    it('never copies composition provenance or render output', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      const [created] = editorProjectsService.create.mock.calls[0] as [
+        Record<string, unknown>,
+      ];
+      const config = created.config as Record<string, unknown>;
+      expect(config).not.toHaveProperty('composition');
+      expect(config).not.toHaveProperty('renderExport');
+      expect(created).not.toHaveProperty('renderedVideoId');
+    });
+
+    it('returns not found for a project outside the organization', async () => {
+      editorProjectsService.findOne.mockResolvedValue(null as never);
+
+      await expect(
+        controller.duplicate(makeRequest(), makeUser(), 'other-org-project'),
+      ).rejects.toThrow(NotFoundException);
+      expect(editorProjectsService.create).not.toHaveBeenCalled();
+    });
+  });
+
   it('preserves approved composition inputs and lifecycle across generic editor routes', async () => {
     const project = {
       ...makeProject(),
