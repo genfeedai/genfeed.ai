@@ -7,6 +7,7 @@
       "@genfeedai/agent/*": ["../agent/src/*"],
       "@genfeedai/contracts/constants": ["../contracts/src/constants/index.ts"],
       "@genfeedai/contracts/constants/*": ["../contracts/src/constants/*"],
+      "@genfeedai/props/*": ["../props/*"],
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
@@ -17,7 +18,7 @@
       "@serializers/*": ["../serializers/src/*"],
       "@services/*": ["../services/*"],
       "@styles/*": ["../styles/*"],
-      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui-constants/*": ["../ui/src/components/constants/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"]
     }
