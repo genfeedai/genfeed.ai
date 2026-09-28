@@ -12,6 +12,7 @@ import {
   IngredientStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { ConflictException } from '@nestjs/common';
 
 type Row = Record<string, unknown>;
 
@@ -71,6 +72,8 @@ describe('BatchProjectReconcileService', () => {
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const cacheService = {
+    acquireLock: vi.fn(),
+    releaseLock: vi.fn(),
     withLock: vi.fn(
       async (_key: string, operation: () => Promise<unknown>) =>
         await operation(),
@@ -488,5 +491,82 @@ describe('BatchProjectReconcileService', () => {
       }),
     );
     expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('sweeps every generating project, page by page, not only the oldest ones', async () => {
+    const firstPage = Array.from({ length: 50 }, (_, index) => ({
+      id: `project-${String(index).padStart(3, '0')}`,
+      organizationId: 'org-1',
+    }));
+    prisma.batchProject.findMany
+      .mockResolvedValueOnce(firstPage)
+      .mockResolvedValueOnce([
+        { id: 'project-newest', organizationId: 'org-2' },
+      ])
+      .mockResolvedValueOnce([]);
+    prisma.batchProject.findFirst.mockResolvedValue(null);
+
+    await expect(service.reconcileGeneratingProjects()).resolves.toBe(51);
+
+    expect(cacheService.withLock).toHaveBeenCalledWith(
+      'batch-project-reconcile:project-newest',
+      expect.any(Function),
+      expect.any(Number),
+    );
+    expect(prisma.batchProject.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        cursor: { id: 'project-049' },
+        orderBy: { id: 'asc' },
+        skip: 1,
+      }),
+    );
+  });
+
+  it('fails a workflow item whose run never got recorded', async () => {
+    useProject(
+      makeProject([
+        makeItem({
+          dispatchedAt: new Date(Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000),
+          workflowExecutionId: null,
+          workflowItemIndex: null,
+        }),
+      ]),
+    );
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(updatedItem('item-1')).toContainEqual({
+      error: 'The workflow run did not start. Retry this item.',
+      status: BatchProjectItemStatus.FAILED,
+    });
+  });
+
+  describe('runExclusive', () => {
+    it('runs the operation holding the reconcile lock of the project', async () => {
+      cacheService.acquireLock.mockResolvedValue(true);
+
+      await expect(
+        service.runExclusive('project-1', async () => 'done'),
+      ).resolves.toBe('done');
+
+      expect(cacheService.acquireLock).toHaveBeenCalledWith(
+        'batch-project-reconcile:project-1',
+        expect.any(Number),
+      );
+      expect(cacheService.releaseLock).toHaveBeenCalledWith(
+        'batch-project-reconcile:project-1',
+      );
+    });
+
+    it('reports a busy project instead of running alongside a reconcile', async () => {
+      cacheService.acquireLock.mockResolvedValue(false);
+      const operation = vi.fn();
+
+      await expect(
+        service.runExclusive('project-1', operation),
+      ).rejects.toThrow(ConflictException);
+      expect(operation).not.toHaveBeenCalled();
+    });
   });
 });

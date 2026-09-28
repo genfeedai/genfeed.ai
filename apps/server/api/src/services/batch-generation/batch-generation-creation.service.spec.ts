@@ -419,4 +419,48 @@ describe('BatchGenerationCreationService.appendManualReviewItems', () => {
       }),
     );
   });
+
+  it('returns the existing review item when the same source is appended again', async () => {
+    tx.batch.findFirst.mockResolvedValue({
+      ...batchRow,
+      items: [
+        existingItem,
+        {
+          format: 'video',
+          id: 'item-already-appended',
+          postId: 'post-2',
+          reviewDecision: 'unset',
+          sourceActionId: 'batch-project-item:project-item-2',
+          status: 'COMPLETED',
+        },
+      ],
+    });
+
+    await service.appendManualReviewItems(
+      'batch-1',
+      {
+        brandId: 'brand-1',
+        items: [
+          {
+            caption: 'Second output',
+            format: 'video' as const,
+            ingredientId: 'ingredient-2',
+            sourceActionId: 'batch-project-item:project-item-2',
+          },
+        ],
+      },
+      'user-1',
+      'org-1',
+    );
+
+    const written = tx.batch.updateMany.mock.calls[0][0];
+    expect(written.data.items).toHaveLength(2);
+    expect(
+      written.data.items.filter(
+        (item: { sourceActionId?: string }) =>
+          item.sourceActionId === 'batch-project-item:project-item-2',
+      ),
+    ).toEqual([expect.objectContaining({ id: 'item-already-appended' })]);
+    expect(tx.post.updateMany).not.toHaveBeenCalled();
+  });
 });

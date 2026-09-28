@@ -9,16 +9,18 @@ import { UpdateBatchProjectItemDto } from '@api/collections/batch-projects/dto/u
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { IBatchProjectScope } from '@genfeedai/contracts/interfaces';
 import { BatchProjectSerializer } from '@genfeedai/serializers';
 import {
@@ -211,6 +213,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/review')
+  @RequiredScopes(ApiKeyScope.POSTS_APPROVE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async review(
     @Req() request: Request,
@@ -218,6 +221,7 @@ export class BatchProjectsController {
     @Param('id') id: string,
     @Body() body: ReviewBatchProjectItemsDto,
   ) {
+    assertApiKeyPublishingScope(user, 'approve');
     const project = await this.batchProjectsService.review(
       id,
       body,
@@ -227,12 +231,20 @@ export class BatchProjectsController {
   }
 
   @Post(':id/schedule')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async schedule(
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() body: ScheduleBatchProjectDto,
   ) {
+    // A destination without a date publishes now, which needs publish scope.
+    if (body.targets.some((target) => target.scheduledDate)) {
+      assertApiKeyPublishingScope(user, 'schedule');
+    }
+    if (body.targets.some((target) => !target.scheduledDate)) {
+      assertApiKeyPublishingScope(user, 'publish');
+    }
     return this.batchProjectsService.schedule(
       id,
       body,

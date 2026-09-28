@@ -64,6 +64,8 @@ CREATE TABLE "batch_project_items" (
   "reviewBatchId" TEXT,
   "reviewItemId" TEXT,
   "scheduledAt" TIMESTAMP(3),
+  "scheduledTargets" JSONB NOT NULL DEFAULT '[]',
+  "retryCount" INTEGER NOT NULL DEFAULT 0,
   "isDeleted" BOOLEAN NOT NULL DEFAULT false,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,

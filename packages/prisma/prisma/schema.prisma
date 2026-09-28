@@ -7085,6 +7085,10 @@ model BatchProjectItem {
   reviewBatchId       String?
   reviewItemId        String?
   scheduledAt         DateTime?
+  /// Destinations this item scheduled to: `[{ credentialId, postId, scheduledAt }]`.
+  scheduledTargets    Json                   @default("[]")
+  /// Retry attempts; each attempt dispatches under its own idempotency key.
+  retryCount          Int                    @default(0)
   isDeleted           Boolean                @default(false)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt

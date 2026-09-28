@@ -31,12 +31,23 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { BatchProject, BatchProjectItem } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 /** An idea dispatched from the browser that never recorded an ingredient. */
 export const IDEA_DISPATCH_TIMEOUT_MS = 5 * 60 * 1000;
 const RECONCILE_LOCK_TTL_SECONDS = 120;
 const SWEEP_BATCH_SIZE = 50;
+/** Creator actions wait this long for an in-flight reconcile to finish. */
+const EXCLUSIVE_LOCK_ATTEMPTS = 20;
+const EXCLUSIVE_LOCK_RETRY_MS = 250;
+
+function reconcileLockKey(projectId: string): string {
+  return `batch-project-reconcile:${projectId}`;
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 const OUTPUT_CATEGORIES = [IngredientCategory.IMAGE, IngredientCategory.VIDEO];
 const READY_INGREDIENT_STATUSES = new Set<string>([
@@ -102,34 +113,78 @@ export class BatchProjectReconcileService {
     organizationId: string,
   ): Promise<void> {
     await this.cacheService.withLock(
-      `batch-project-reconcile:${projectId}`,
+      reconcileLockKey(projectId),
       () => this.reconcileLocked(projectId, organizationId),
       RECONCILE_LOCK_TTL_SECONDS,
     );
   }
 
-  /** Platform sweep: advance every project with generation in flight. */
-  async reconcileGeneratingProjects(): Promise<number> {
-    // tenant-scope-ignore: platform maintenance sweep — it must see generating batch projects across every organization, and each reconcile is scoped by the row's own organizationId
-    const projects = await this.prisma.batchProject.findMany({
-      orderBy: { updatedAt: 'asc' },
-      select: { id: true, organizationId: true },
-      take: SWEEP_BATCH_SIZE,
-      where: { isDeleted: false, status: BatchProjectStatus.GENERATING },
-    });
-
-    for (const project of projects) {
-      try {
-        await this.reconcileProject(project.id, project.organizationId);
-      } catch (error: unknown) {
-        this.logger.error('Batch project reconcile failed', error, {
-          batchProjectId: project.id,
-          context: this.context,
-          organizationId: project.organizationId,
-        });
+  /**
+   * Run a creator action that changes item state (start, retry, schedule)
+   * holding the same lock reconciliation takes, so neither can observe or
+   * overwrite the other's half-applied state. Waits briefly for an in-flight
+   * reconcile, then reports the project as busy.
+   */
+  async runExclusive<T>(
+    projectId: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const lockKey = reconcileLockKey(projectId);
+    for (let attempt = 0; attempt < EXCLUSIVE_LOCK_ATTEMPTS; attempt++) {
+      if (
+        await this.cacheService.acquireLock(lockKey, RECONCILE_LOCK_TTL_SECONDS)
+      ) {
+        try {
+          return await operation();
+        } finally {
+          await this.cacheService.releaseLock(lockKey);
+        }
+      }
+      if (attempt < EXCLUSIVE_LOCK_ATTEMPTS - 1) {
+        await wait(EXCLUSIVE_LOCK_RETRY_MS);
       }
     }
-    return projects.length;
+    throw new ConflictException(
+      'This batch is updating. Try again in a moment.',
+    );
+  }
+
+  /**
+   * Platform sweep: advance every project with generation in flight. Walks
+   * all of them page by page (stable id cursor), so projects that stay
+   * generating or keep failing cannot starve the rest.
+   */
+  async reconcileGeneratingProjects(): Promise<number> {
+    let cursor: string | undefined;
+    let reconciled = 0;
+    for (;;) {
+      // tenant-scope-ignore: platform maintenance sweep — it must see generating batch projects across every organization, and each reconcile is scoped by the row's own organizationId
+      const projects = await this.prisma.batchProject.findMany({
+        orderBy: { id: 'asc' },
+        select: { id: true, organizationId: true },
+        take: SWEEP_BATCH_SIZE,
+        where: { isDeleted: false, status: BatchProjectStatus.GENERATING },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+
+      for (const project of projects) {
+        try {
+          await this.reconcileProject(project.id, project.organizationId);
+        } catch (error: unknown) {
+          this.logger.error('Batch project reconcile failed', error, {
+            batchProjectId: project.id,
+            context: this.context,
+            organizationId: project.organizationId,
+          });
+        }
+      }
+      reconciled += projects.length;
+
+      if (projects.length < SWEEP_BATCH_SIZE) {
+        return reconciled;
+      }
+      cursor = projects[projects.length - 1]?.id;
+    }
   }
 
   /** Recompute and persist the project state its items imply. */
@@ -291,13 +346,23 @@ export class BatchProjectReconcileService {
   private async resolveWorkflowOutcomes(
     project: ProjectWithItems,
   ): Promise<ItemOutcome[]> {
+    const outcomes: ItemOutcome[] = [];
     const byExecution = new Map<string, BatchProjectItem[]>();
+    const dispatchDeadline = Date.now() - IDEA_DISPATCH_TIMEOUT_MS;
     for (const item of project.items) {
-      if (
-        item.status !== BatchProjectItemStatus.GENERATING ||
-        !item.workflowExecutionId ||
-        item.workflowItemIndex === null
-      ) {
+      if (item.status !== BatchProjectItemStatus.GENERATING) {
+        continue;
+      }
+      if (!item.workflowExecutionId || item.workflowItemIndex === null) {
+        // Claimed for a run that never got recorded (the start or retry
+        // failed half-way); let the creator retry it.
+        if ((item.dispatchedAt?.getTime() ?? 0) < dispatchDeadline) {
+          outcomes.push({
+            error: 'The workflow run did not start. Retry this item.',
+            item,
+            kind: 'failed',
+          });
+        }
         continue;
       }
       const group = byExecution.get(item.workflowExecutionId) ?? [];
@@ -305,7 +370,6 @@ export class BatchProjectReconcileService {
       byExecution.set(item.workflowExecutionId, group);
     }
 
-    const outcomes: ItemOutcome[] = [];
     for (const [executionId, items] of byExecution) {
       outcomes.push(
         ...(await this.resolveExecutionOutcomes(

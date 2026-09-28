@@ -6,6 +6,7 @@ import {
 import type {
   FastlaneFormat,
   IBatchProjectIdeaSettings,
+  IBatchProjectScheduledTarget,
   IBatchProjectScheduleSettings,
   IBatchProjectScheduleTarget,
   IBatchProjectSettings,
@@ -122,4 +123,22 @@ export function mergeBatchProjectSettings(
     ...parseBatchProjectSettings(current),
     ...parseBatchProjectSettings(update),
   };
+}
+
+/** Parse the destinations an item has already scheduled to. */
+export function parseScheduledTargets(
+  value: unknown,
+): IBatchProjectScheduledTarget[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((entry) => {
+    const record = readRecord(entry);
+    const credentialId = readString(record?.credentialId);
+    const postId = readString(record?.postId);
+    const scheduledAt = readString(record?.scheduledAt);
+    return credentialId && postId && scheduledAt
+      ? [{ credentialId, postId, scheduledAt }]
+      : [];
+  });
 }

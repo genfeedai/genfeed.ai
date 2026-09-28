@@ -57,6 +57,13 @@ export interface IBatchProjectItemCounts {
   scheduled: number;
 }
 
+/** One destination an item has scheduled to. */
+export interface IBatchProjectScheduledTarget {
+  credentialId: string;
+  postId: string;
+  scheduledAt: string;
+}
+
 export interface IBatchProjectItem {
   id: string;
   projectId: string;
@@ -80,6 +87,8 @@ export interface IBatchProjectItem {
   reviewBatchId?: string | null;
   reviewItemId?: string | null;
   scheduledAt?: string | null;
+  scheduledTargets: IBatchProjectScheduledTarget[];
+  retryCount: number;
   createdAt?: string;
   updatedAt?: string;
 }

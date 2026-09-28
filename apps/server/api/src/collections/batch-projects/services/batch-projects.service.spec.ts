@@ -69,8 +69,10 @@ function makeItem(overrides: Row = {}): Row {
 
 describe('BatchProjectsService', () => {
   const prisma = {
-    $transaction: vi.fn(async (operations: unknown[]) =>
-      Promise.all(operations),
+    $transaction: vi.fn(async (operations: unknown) =>
+      typeof operations === 'function'
+        ? operations(prisma)
+        : Promise.all(operations as unknown[]),
     ),
     batchProject: {
       count: vi.fn(),
@@ -89,10 +91,15 @@ describe('BatchProjectsService', () => {
     credential: { findMany: vi.fn() },
     ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
     organizationSetting: { findFirst: vi.fn() },
+    post: { findFirst: vi.fn(), updateMany: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const reconcileService = {
     reconcileProject: vi.fn(),
+    runExclusive: vi.fn(
+      async (_projectId: string, operation: () => Promise<unknown>) =>
+        await operation(),
+    ),
     refreshProjectStatus: vi.fn(),
     syncReviewDecisions: vi.fn(),
   };
@@ -124,6 +131,7 @@ describe('BatchProjectsService', () => {
     prisma.batchProjectItem.createMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.findMany.mockResolvedValue([]);
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+    prisma.post.findFirst.mockResolvedValue(null);
   });
 
   describe('create', () => {
@@ -280,6 +288,9 @@ describe('BatchProjectsService', () => {
       expect(
         batchWorkflowExecutionService.startBatchExecution,
       ).toHaveBeenCalledWith({
+        idempotencyKey: expect.stringMatching(
+          /^batch-project:project-1:start:/,
+        ),
         ingredientIds: ['input-1', 'input-2'],
         organizationId: 'org-1',
         userId: 'user-1',
@@ -293,6 +304,39 @@ describe('BatchProjectsService', () => {
         }),
         where: expect.objectContaining({ id: 'item-2' }),
       });
+    });
+
+    it('starts under the project lock and claims project and items together', async () => {
+      useProject(makeProject(), [makeItem()]);
+      batchWorkflowExecutionService.startBatchExecution.mockResolvedValue(
+        'parent-1',
+      );
+
+      await service.start('project-1', scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+      const claimOrder =
+        prisma.batchProject.updateMany.mock.invocationCallOrder[0];
+      const itemsClaimOrder =
+        prisma.batchProjectItem.updateMany.mock.invocationCallOrder[0];
+      const enqueueOrder =
+        batchWorkflowExecutionService.startBatchExecution.mock
+          .invocationCallOrder[0];
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenNthCalledWith(1, {
+        data: expect.objectContaining({
+          status: BatchProjectItemStatus.GENERATING,
+          workflowExecutionId: null,
+        }),
+        where: expect.objectContaining({
+          status: BatchProjectItemStatus.PENDING,
+        }),
+      });
+      expect(claimOrder).toBeLessThan(enqueueOrder);
+      expect(itemsClaimOrder).toBeLessThan(enqueueOrder);
     });
 
     it('refuses a second start of the same batch', async () => {
@@ -348,23 +392,98 @@ describe('BatchProjectsService', () => {
       ).toHaveBeenCalledWith(
         expect.objectContaining({ ingredientIds: ['input-1'] }),
       );
-      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenNthCalledWith(1, {
         data: expect.objectContaining({
           error: null,
           outputIngredientId: null,
+          retryCount: 1,
           status: BatchProjectItemStatus.GENERATING,
-          workflowExecutionId: 'retry-parent',
-          workflowItemIndex: 0,
+          workflowExecutionId: null,
         }),
         where: expect.objectContaining({
           id: 'item-1',
+          retryCount: 0,
           status: BatchProjectItemStatus.FAILED,
         }),
+      });
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenNthCalledWith(2, {
+        data: { workflowExecutionId: 'retry-parent', workflowItemIndex: 0 },
+        where: expect.objectContaining({ id: 'item-1', retryCount: 1 }),
       });
       expect(reconcileService.refreshProjectStatus).toHaveBeenCalledWith(
         'project-1',
         'org-1',
       );
+    });
+
+    it('claims the failed item before running the workflow again', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ retryCount: 2, status: BatchProjectItemStatus.FAILED }),
+      );
+      prisma.batchProjectItem.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.retryItem('project-1', 'item-1', scope),
+      ).rejects.toThrow(ConflictException);
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('runs each retry attempt under its own idempotency key and the project lock', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ retryCount: 2, status: BatchProjectItemStatus.FAILED }),
+      );
+      batchWorkflowExecutionService.startBatchExecution.mockResolvedValue(
+        'retry-parent',
+      );
+
+      await service.retryItem('project-1', 'item-1', scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: 'batch-project-item:item-1:retry:3',
+        }),
+      );
+      expect(
+        prisma.batchProjectItem.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        batchWorkflowExecutionService.startBatchExecution.mock
+          .invocationCallOrder[0],
+      );
+    });
+
+    it('returns the item to failed when the retry cannot start', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      batchWorkflowExecutionService.startBatchExecution.mockRejectedValue(
+        new Error('Queue unavailable'),
+      );
+
+      await expect(
+        service.retryItem('project-1', 'item-1', scope),
+      ).rejects.toThrow('Queue unavailable');
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          error: 'Queue unavailable',
+          status: BatchProjectItemStatus.FAILED,
+        },
+        where: expect.objectContaining({
+          id: 'item-1',
+          retryCount: 1,
+          status: BatchProjectItemStatus.GENERATING,
+        }),
+      });
     });
 
     it('only retries failed items', async () => {
@@ -551,11 +670,123 @@ describe('BatchProjectsService', () => {
       const [secondItems] = postsService.batchSchedule.mock.calls[1];
       expect(secondItems[0].postId).toBe('clone-post-1');
       expect(Date.parse(secondItems[0].scheduledDate)).not.toBeNaN();
-      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith(
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
+        data: {
+          scheduledAt: expect.any(Date),
+          scheduledTargets: [
+            expect.objectContaining({
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+            }),
+            expect.objectContaining({
+              credentialId: 'credential-instagram',
+              postId: 'clone-post-1',
+            }),
+          ],
+        },
+        where: expect.objectContaining({ id: 'item-1' }),
+      });
+    });
+
+    it('schedules under the project lock', async () => {
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+    });
+
+    it('keys every extra destination draft by item and account and reuses it', async () => {
+      prisma.post.findFirst.mockResolvedValue({
+        id: 'existing-clone',
+        isDeleted: false,
+      });
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      expect(prisma.post.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { scheduledAt: expect.any(Date) },
-          where: expect.objectContaining({ id: { in: ['item-1'] } }),
+          where: expect.objectContaining({
+            organizationId: 'org-1',
+            targetIdempotencyKey:
+              'batch-project-item:item-1:credential-instagram',
+          }),
         }),
+      );
+      expect(postsService.create).not.toHaveBeenCalled();
+      const [secondItems] = postsService.batchSchedule.mock.calls[1];
+      expect(secondItems[0].postId).toBe('existing-clone');
+    });
+
+    it('creates a missing destination draft under its item/account key', async () => {
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      expect(postsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetIdempotencyKey:
+            'batch-project-item:item-1:credential-instagram',
+        }),
+      );
+    });
+
+    it('retries only the destinations that have not scheduled yet', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }), [
+        {
+          ...approvedItem,
+          scheduledAt: new Date('2026-09-28T11:00:00Z'),
+          scheduledTargets: [
+            {
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+              scheduledAt: '2026-09-28T11:00:00.000Z',
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      expect(result).toEqual({ failedCount: 0, scheduledCount: 1 });
+      expect(postsService.batchSchedule).toHaveBeenCalledTimes(1);
+      expect(postsService.batchSchedule).toHaveBeenCalledWith(
+        [expect.objectContaining({ postId: 'clone-post-1' })],
+        'org-1',
+        { credentialId: 'credential-instagram', platform: 'instagram' },
+        'user-1',
       );
     });
 

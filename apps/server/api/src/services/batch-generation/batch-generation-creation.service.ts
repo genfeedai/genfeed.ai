@@ -290,6 +290,7 @@ export class BatchGenerationCreationService {
     const { createdPostIds, items: appendedItems } =
       await this.createManualReviewItems(dto, userId, orgId);
 
+    const duplicatePostIds: string[] = [];
     let batch: BatchWithConfig;
     try {
       batch = await this.prisma.$transaction(async (tx) => {
@@ -305,7 +306,27 @@ export class BatchGenerationCreationService {
         }
         const existing = toBatchWithConfig(current);
         const existingConfig: BatchConfig = existing.config;
-        const items = [...existing.items, ...appendedItems];
+        // A retried hand-off must not add a second review item for the same
+        // source: the existing item (and its decision) stays authoritative.
+        const existingSources = new Set(
+          existing.items.flatMap((item) =>
+            item.sourceActionId ? [item.sourceActionId] : [],
+          ),
+        );
+        const freshItems = appendedItems.filter(
+          (item) =>
+            !item.sourceActionId || !existingSources.has(item.sourceActionId),
+        );
+        duplicatePostIds.push(
+          ...appendedItems
+            .filter((item) => !freshItems.includes(item))
+            .flatMap((item) =>
+              item.postId && createdPostIds.includes(item.postId)
+                ? [item.postId]
+                : [],
+            ),
+        );
+        const items = [...existing.items, ...freshItems];
         const config: BatchConfig = {
           ...existingConfig,
           completedCount: items.length,
@@ -331,7 +352,7 @@ export class BatchGenerationCreationService {
         }
         await this.linkManualReviewPosts(
           batchId,
-          appendedItems,
+          freshItems,
           orgId,
           dto.brandId,
           tx,
@@ -352,6 +373,14 @@ export class BatchGenerationCreationService {
         orgId,
       );
       throw error;
+    }
+
+    if (duplicatePostIds.length > 0) {
+      await this.compensateManualReviewCreation(
+        undefined,
+        duplicatePostIds,
+        orgId,
+      );
     }
 
     this.logger.log(`Manual review items appended: ${batchId}`, {
