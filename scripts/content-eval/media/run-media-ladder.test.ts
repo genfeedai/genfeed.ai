@@ -412,6 +412,108 @@ describe('runMediaLadder', () => {
     expect(partial?.matches).toHaveLength(0);
   });
 
+  it('resolves a task’s references before generating any answer, so a lookup failure never strands paid generation', async () => {
+    const { deps, generate } = harness();
+    const allTasks = await loadBenchTasks({
+      includeDrafts: false,
+      medium: 'image',
+    });
+    const promptAdherence = allTasks.find(
+      ({ task }) => task.id === 'prompt-adherence',
+    );
+    const productConsistency = allTasks.find(
+      ({ task }) => task.id === 'product-consistency',
+    );
+    if (!promptAdherence || !productConsistency) {
+      throw new Error('fixture bench tasks missing');
+    }
+    const resolveUrl = vi.fn(async () => {
+      throw new Error('reference registry unreachable');
+    });
+    const customDeps: MediaLadderDeps = { ...deps, references: { resolveUrl } };
+    const base = await options([STRONG, WEAK]);
+
+    await expect(
+      runMediaLadder(
+        customDeps,
+        {
+          ...base,
+          references: { 'product-shot': ['ref-product-1'] },
+          tasks: [promptAdherence, productConsistency],
+        },
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('reference registry unreachable');
+
+    // prompt-adherence (1 output × 2 contestants) generated and was paid
+    // for; product-consistency's reference lookup failed before either
+    // contestant was dispatched for it.
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
+  it('publishes progress made before a non-spend-cap error, instead of dropping it', async () => {
+    const allTasks = await loadBenchTasks({
+      includeDrafts: false,
+      medium: 'image',
+    });
+    const promptAdherence = allTasks.find(
+      ({ task }) => task.id === 'prompt-adherence',
+    );
+    const textInImage = allTasks.find(
+      ({ task }) => task.id === 'text-in-image',
+    );
+    if (!promptAdherence || !textInImage) {
+      throw new Error('fixture bench tasks missing');
+    }
+
+    let callCount = 0;
+    const generate = vi.fn(
+      async (
+        req: Parameters<MediaGenerationPort['generate']>[0],
+      ): ReturnType<MediaGenerationPort['generate']> => {
+        callCount += 1;
+        // 4th call: text-in-image's second contestant (WEAK) — after
+        // prompt-adherence finished and text-in-image's first contestant
+        // (STRONG) already generated and was paid for.
+        if (callCount === 4) {
+          throw new Error('provider connection reset');
+        }
+        return {
+          costEvidence: 'reported',
+          creditsCharged: req.contestant.creditsPerOutput,
+          error: null,
+          fetchUrl: `https://cdn.example/${req.contestant.contestant.id}/${req.seed}/${req.width}x${req.height}.png`,
+          ingredientId: `${req.contestant.contestant.id}-${req.seed}`,
+          latencyMs: 10,
+          settings: { model: req.contestant.registryKey },
+          status: 'generated',
+        };
+      },
+    );
+    const { deps } = harness();
+    const customDeps: MediaLadderDeps = { ...deps, generation: { generate } };
+    const progress: MediaLadderSection[] = [];
+
+    await expect(
+      runMediaLadder(
+        customDeps,
+        {
+          ...(await options([STRONG, WEAK])),
+          tasks: [promptAdherence, textInImage],
+        },
+        new AbortController().signal,
+        (section) => progress.push(section),
+      ),
+    ).rejects.toThrow('provider connection reset');
+
+    const partial = progress.at(-1);
+    // Not the spend cap: a plain error is still a genuine partial run.
+    expect(partial?.isAborted).toBe(false);
+    // prompt-adherence's 2 answers, plus text-in-image's STRONG answer that
+    // was already generated (and paid for) before WEAK's call threw.
+    expect(partial?.answers).toHaveLength(3);
+  });
+
   /** Mirrors `SpendLedger`'s cap check without needing full call provenance. */
   function capLimitedSpend(maxCredits: number): MediaSpendPort {
     let spent = 0;

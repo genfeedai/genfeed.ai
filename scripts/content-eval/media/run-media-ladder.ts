@@ -506,9 +506,11 @@ async function judgePair(
 }
 
 /**
- * Runs the ladder. `onProgress` receives the section after every task, so a
- * spend-cap abort still leaves a reportable partial ladder; the cap error is
- * then rethrown for the harness to mark the report `aborted: spend`.
+ * Runs the ladder. `onProgress` receives the section after every task, and
+ * again with whatever ran before any error that stops the loop — a spend
+ * cap, a reference lookup, a dropped connection — so paid, already-generated
+ * answers are never dropped from the report; the error is then rethrown for
+ * the harness to mark the report `aborted: 'spend'` or `'error'`.
  */
 export async function runMediaLadder(
   deps: MediaLadderDeps,
@@ -527,6 +529,16 @@ export async function runMediaLadder(
 
   try {
     for (const { mediaTask } of runnable) {
+      // Resolved before any contestant is generated: a reference-lookup
+      // failure must not strand paid, ungenerated-yet answers — nothing has
+      // been dispatched (and charged) for this task while this can still fail.
+      const referenceVisuals = await resolveTaskReferences(
+        deps,
+        options,
+        mediaTask,
+        signal,
+      );
+
       const byContestant = new Map<string, AnswerState>();
       for (const contestant of options.contestants) {
         const state = await generateAnswer(
@@ -539,12 +551,6 @@ export async function runMediaLadder(
         byContestant.set(contestant.contestant.id, state);
         answers.push(state.record);
       }
-      const referenceVisuals = await resolveTaskReferences(
-        deps,
-        options,
-        mediaTask,
-        signal,
-      );
 
       for (const [one, two] of planPairs(options.contestants)) {
         const matchId = matchIdFor(
@@ -630,7 +636,14 @@ export async function runMediaLadder(
       onProgress(snapshot(false));
     }
   } catch (error: unknown) {
-    if (isSpendCapError(error)) onProgress(snapshot(true));
+    // Publish whatever answers and matches are already recorded before
+    // propagating: a caller (the runner's own catch, and every SuiteOutcome
+    // consumer) only ever sees the last `onProgress` snapshot, so skipping
+    // this for a non-spend-cap error would drop paid, already-generated
+    // answers from the report. `isAborted` still names the spend cap
+    // specifically; any other error is a genuine partial run, reported as
+    // such by the runner's own `aborted: 'error'`.
+    onProgress(snapshot(isSpendCapError(error)));
     throw error;
   }
 

@@ -352,9 +352,18 @@ export class ProductApiMediaGeneration
         continue;
       }
       if (!response.ok) continue;
-      document = (await response
+      const parsed = (await response
         .json()
         .catch(() => null)) as JsonApiDocument | null;
+      if (parsed === null) {
+        // Unreadable or invalid body: it parses to the same shape an empty
+        // ("") status would, which is not in PENDING_STATUSES — treating it
+        // as a real document would read as "already terminal" and stop
+        // polling early. Retry within the deadline and keep the last valid
+        // document instead of losing it to a bad read.
+        continue;
+      }
+      document = parsed;
       if (!PENDING_STATUSES.has(readGenerationAttributes(document).status)) {
         return { document, hasTimedOut: false };
       }
