@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  CORE_APPS,
-  getCoreAppFeatureFlagFallbacks,
-  REMOTE_FEATURE_FLAG_KEYS,
-} from './core-apps';
+import { describe, expect, it } from 'vitest';
+import { CORE_APPS } from './core-apps';
 
 describe('CORE_APPS', () => {
   it('exposes exactly Agent, Automation, and Studio', () => {
@@ -22,93 +18,5 @@ describe('CORE_APPS', () => {
     expect(CORE_APPS.find((app) => app.id === 'studio')).toMatchObject({
       href: '/studio/generate',
     });
-  });
-});
-
-describe('getCoreAppFeatureFlagFallbacks', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('defaults app-switcher discovery off while keeping direct routes available in SaaS', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'false');
-
-    expect(getCoreAppFeatureFlagFallbacks()).toEqual({
-      app_switcher_agent: false,
-      app_switcher_analytics: false,
-      app_switcher_automate: false,
-      app_switcher_library: false,
-      app_switcher_messages: false,
-      app_switcher_posts: false,
-      app_switcher_discover: false,
-      app_switcher_studio: false,
-      app_switcher_workspace: false,
-      reply_bot: true,
-      studio: true,
-    });
-  });
-
-  it('keeps app-switcher discovery and direct routes on for Desktop', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
-
-    expect(getCoreAppFeatureFlagFallbacks()).toEqual({
-      app_switcher_agent: true,
-      app_switcher_analytics: true,
-      app_switcher_automate: true,
-      app_switcher_library: true,
-      app_switcher_messages: true,
-      app_switcher_posts: true,
-      app_switcher_discover: true,
-      app_switcher_studio: true,
-      app_switcher_workspace: true,
-      reply_bot: true,
-      studio: true,
-    });
-  });
-
-  it('keeps app-switcher discovery and direct routes on when self-hosted', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'false');
-
-    expect(getCoreAppFeatureFlagFallbacks()).toEqual({
-      app_switcher_agent: true,
-      app_switcher_analytics: true,
-      app_switcher_automate: true,
-      app_switcher_library: true,
-      app_switcher_messages: true,
-      app_switcher_posts: true,
-      app_switcher_discover: true,
-      app_switcher_studio: true,
-      app_switcher_workspace: true,
-      reply_bot: true,
-      studio: true,
-    });
-  });
-});
-
-describe('REMOTE_FEATURE_FLAG_KEYS (#5468)', () => {
-  it('subscribes every flag that has a client fallback, so PostHog can override it', () => {
-    const remoteKeys: readonly string[] = REMOTE_FEATURE_FLAG_KEYS;
-
-    for (const key of Object.keys(getCoreAppFeatureFlagFallbacks())) {
-      expect(remoteKeys).toContain(key);
-    }
-  });
-
-  it('subscribes the capability flags read outside the app rail', () => {
-    expect(REMOTE_FEATURE_FLAG_KEYS).toEqual(
-      expect.arrayContaining([
-        'studio',
-        'moodboard',
-        'low_credits_banner',
-        'reply_bot',
-        'desktop_local_workspace',
-      ]),
-    );
   });
 });

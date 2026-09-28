@@ -48,8 +48,8 @@ export class CronMediaPerceptionService {
       queuedPerceptions: 0,
       queuedRetries: 0,
     };
-    // Read every tick: the switch is the `media_perception` PostHog flag
-    // (#5468), so flipping it takes effect on the next sweep.
+    // Read every tick: the switch is an operator platform setting (#5407),
+    // so flipping it in /admin takes effect on the next sweep.
     const settings = await this.mediaPerceptionService.getSettings();
     if (!settings.isEnabled) {
       return totals;

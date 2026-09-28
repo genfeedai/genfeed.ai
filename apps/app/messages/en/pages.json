@@ -3012,6 +3012,75 @@
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
     }
   },
+  "adminFlags": {
+    "modules": {
+      "title": "Modules",
+      "description": "Switch whole product modules on or off for every organization. Off hides the module from the app rail and its pages, and its API answers 404. Superadmins keep access for inspection.",
+      "flags": {
+        "agent": {
+          "label": "Agent",
+          "description": "The full-page agent conversation, its threads, runs and memories."
+        },
+        "studio": {
+          "label": "Studio",
+          "description": "Generation, storyboards, clips, batches and the timeline editor."
+        },
+        "library": {
+          "label": "Library",
+          "description": "The Library module in the app rail. Asset storage stays available to every other module."
+        },
+        "publishing": {
+          "label": "Publishing",
+          "description": "Posts, the review queue, schedules and publishing setup."
+        },
+        "messages": {
+          "label": "Messages",
+          "description": "The social inbox, reply campaigns and outreach."
+        },
+        "reply_bot": {
+          "label": "Replies",
+          "description": "Reply-bot configurations and their activity log inside Messages."
+        },
+        "discovery": {
+          "label": "Discovery",
+          "description": "Trends, ad research, saved ads and watchlists."
+        },
+        "analytics": {
+          "label": "Analytics",
+          "description": "Account and content analytics, insights, outliers and performance."
+        },
+        "automation": {
+          "label": "Automation",
+          "description": "Workflows, their runs and templates, and social content sources."
+        }
+      }
+    },
+    "features": {
+      "title": "Features",
+      "description": "Switch individual product features on or off for every organization.",
+      "flags": {
+        "library_canvas": {
+          "label": "Library canvas",
+          "description": "The canvas view in the Library, alongside grid and list."
+        },
+        "low_credits_banner": {
+          "label": "Low-credits banner",
+          "description": "Warn users in the app shell when their credit balance runs low."
+        },
+        "desktop_local_workspace": {
+          "label": "Desktop local workspace",
+          "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+        }
+      }
+    },
+    "status": {
+      "on": "On",
+      "off": "Off"
+    },
+    "loadError": "Failed to load flags",
+    "saveError": "Failed to save the flag",
+    "saved": "{label} switched {state}"
+  },
   "platformSettings": {
     "typedDecisionLabel": "Typed-decision provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy."

@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { MediaVisionEvaluationService } from '@api/services/media-assessment/media-vision-evaluation.service';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
@@ -14,7 +14,7 @@ import { Module } from '@nestjs/common';
     ContentQualityModule,
     LoggerModule,
     MediaPerceptionModule,
-    FeatureFlagModule,
+    PlatformSettingsModule,
   ],
   providers: [MediaVisionEvaluationService],
 })

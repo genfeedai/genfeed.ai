@@ -4,7 +4,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 /**
- * Rollout gate for agent auto-routing, the `agent_auto_routing` PostHog flag (#5468).
+ * Rollout gate for agent auto-routing, an operator platform setting (#5407).
  *
  * The tier decision no longer calls Jev (release-blocker follow-up to #4865,
  * epic #4863): the candidate key is resolved deterministically from the

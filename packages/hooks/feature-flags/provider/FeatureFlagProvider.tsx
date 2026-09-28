@@ -34,7 +34,7 @@ export function FeatureFlagProvider({
   overrides,
   ready = true,
 }: FeatureFlagProviderProps) {
-  // Flag values come from PostHog (`overrides`) and product fallbacks (#5468);
+  // Flag values come from the Admin platform flags (#5468);
   // there is no env JSON of flag values.
   const resolvedDefaults = useMemo<ParsedFeatureFlagDefaults>(
     () => ({

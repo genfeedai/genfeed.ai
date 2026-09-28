@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
@@ -24,6 +25,7 @@ import type { Request } from 'express';
  */
 @AutoSwagger()
 @ApiTags('agent-brand-context')
+@FeatureFlag('agent')
 @Controller('brands/:brandId/agent-context')
 export class AgentBrandContextController {
   constructor(

@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { MediaTextDecisionService } from '@api/services/media-text-decisions/media-text-decision.service';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
@@ -13,7 +13,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     LoggerModule,
     MediaPerceptionModule,
-    FeatureFlagModule,
+    PlatformSettingsModule,
     TypedDecisionsModule,
   ],
   providers: [MediaTextDecisionService],

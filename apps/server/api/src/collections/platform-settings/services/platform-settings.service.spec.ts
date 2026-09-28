@@ -1,5 +1,11 @@
+import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platform-settings/platform-settings.constants';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  DEFAULT_PLATFORM_FLAGS,
+  PLATFORM_SETTING_KEY,
+  UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+} from '@genfeedai/contracts/constants';
 import {
   DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
@@ -38,10 +44,14 @@ describe('PlatformSettingsService', () => {
     vi.clearAllMocks();
     setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
     setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
-    service = buildService({ TYPESAFE_API_KEY: 'typesafe-key' });
+    service = buildService({
+      OPENAI_API_KEY: 'openai-key',
+      TYPESAFE_API_KEY: 'typesafe-key',
+    });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     setRuntimeMarginMultiplier(DEFAULT_GENERATION_MARGIN_MULTIPLIER);
     setRuntimeAgentChatMarginMultiplier(DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER);
   });
@@ -294,6 +304,251 @@ describe('PlatformSettingsService', () => {
       expect(patch).not.toHaveBeenCalled();
       expect(getRuntimeMarginMultiplier()).toBe(1.5);
       expect(getRuntimeAgentChatMarginMultiplier()).toBe(1.9);
+    });
+  });
+
+  describe('feature switches (#5407)', () => {
+    const row = {
+      id: 'ps-1',
+      isMediaPerceptionEnabled: false,
+      key: PLATFORM_SETTING_KEY,
+      marginMultiplierAgentChat: 1.7,
+      marginMultiplierGeneration: 3.33,
+      moderationThresholds: { sexual: 0.4 },
+      systemEventsEnabledAt: new Date('2026-09-20T10:00:00.000Z'),
+    };
+
+    it('parses the singleton into typed switches over the defaults', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+
+      await expect(service.getFeatureSettings()).resolves.toEqual({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        isMediaPerceptionEnabled: false,
+        moderationThresholds: { sexual: 0.4 },
+        systemEventsEnabledAt: '2026-09-20T10:00:00.000Z',
+      });
+    });
+
+    it('serves reads from the cache until the TTL passes', async () => {
+      vi.useFakeTimers();
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockResolvedValue(row as never);
+
+      await service.getFeatureSettings();
+      await service.getFeatureSettings();
+      expect(getSingleton).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS - 1);
+      await service.getFeatureSettings();
+      expect(getSingleton).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(1);
+      await service.getFeatureSettings();
+      expect(getSingleton).toHaveBeenCalledTimes(2);
+    });
+
+    it('shares one read between concurrent callers', async () => {
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockResolvedValue(row as never);
+
+      await Promise.all([
+        service.getFeatureSettings(),
+        service.getFeatureSettings(),
+        service.getFeatureSettings(),
+      ]);
+
+      expect(getSingleton).toHaveBeenCalledTimes(1);
+    });
+
+    it('replaces the cache on write so this process applies it at once', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+      await service.getFeatureSettings();
+      vi.spyOn(service, 'patch').mockResolvedValue({
+        ...row,
+        isMediaPerceptionEnabled: true,
+      } as never);
+
+      await service.updateSingleton({ isMediaPerceptionEnabled: true });
+
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isMediaPerceptionEnabled: true,
+      });
+    });
+
+    it('never caches a read that raced a write', async () => {
+      let resolveRead: (value: unknown) => void = () => undefined;
+      const getSingleton = vi.spyOn(service, 'getSingleton');
+      getSingleton.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRead = resolve;
+          }) as never,
+      );
+      const staleRead = service.getFeatureSettings();
+
+      getSingleton.mockResolvedValue(row as never);
+      vi.spyOn(service, 'patch').mockResolvedValue({
+        ...row,
+        isMediaPerceptionEnabled: true,
+      } as never);
+      await service.updateSingleton({ isMediaPerceptionEnabled: true });
+      resolveRead(row);
+      await staleRead;
+
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isMediaPerceptionEnabled: true,
+      });
+    });
+
+    it('keeps the last known switches when a read fails', async () => {
+      vi.useFakeTimers();
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(row as never)
+        .mockRejectedValueOnce(new Error('db down'));
+
+      await service.getFeatureSettings();
+      vi.advanceTimersByTime(PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS);
+
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isMediaPerceptionEnabled: false,
+      });
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('serves the unresolved profile uncached when nothing was ever read', async () => {
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockRejectedValueOnce(new Error('db down'))
+        .mockResolvedValue({
+          ...row,
+          isEmailVerificationRequired: false,
+        } as never);
+
+      await expect(service.getFeatureSettingsState()).resolves.toEqual({
+        isResolved: false,
+        settings: UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+      });
+      // The database recovered: the next call reads it instead of serving a
+      // cached guess for the rest of the TTL.
+      await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+        isResolved: true,
+        settings: { isEmailVerificationRequired: false },
+      });
+      expect(getSingleton).toHaveBeenCalledTimes(2);
+    });
+
+    it('stays resolved on the last known switches when a later read fails', async () => {
+      vi.useFakeTimers();
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(row as never)
+        .mockRejectedValueOnce(new Error('db down'));
+
+      await service.getFeatureSettingsState();
+      vi.advanceTimersByTime(PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS);
+
+      await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+        isResolved: true,
+        settings: { isMediaPerceptionEnabled: false },
+      });
+    });
+
+    it('warms the switches cache on boot', async () => {
+      const getSingleton = vi
+        .spyOn(service, 'getSingleton')
+        .mockResolvedValue(row as never);
+
+      await service.onModuleInit();
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        isMediaPerceptionEnabled: false,
+      });
+      expect(getSingleton).toHaveBeenCalledTimes(1);
+    });
+
+    it('patches switches, stores the recording start as a date and clears an empty model', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({
+        isEmailVerificationRequired: true,
+        mediaPerceptionVisionModel: '  ',
+        moderationMode: 'live',
+        moderationThresholds: { violence: 0.6 },
+        systemEventsEnabledAt: '2026-09-28T08:00:00.000Z',
+        taskRoutingMinConfidence: 0.7,
+      });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        isEmailVerificationRequired: true,
+        mediaPerceptionVisionModel: null,
+        moderationMode: 'live',
+        moderationThresholds: { violence: 0.6 },
+        systemEventsEnabledAt: new Date('2026-09-28T08:00:00.000Z'),
+        taskRoutingMinConfidence: 0.7,
+      });
+    });
+
+    it('merges a partial flag patch over the stored flags (#5468)', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue({
+        ...row,
+        flags: { analytics: false },
+      } as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({ flags: { studio: false } });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        flags: {
+          ...DEFAULT_PLATFORM_FLAGS,
+          analytics: false,
+          studio: false,
+        },
+      });
+    });
+
+    it('turns system-event recording off with null', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({ systemEventsEnabledAt: null });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        systemEventsEnabledAt: null,
+      });
+    });
+
+    it('never writes null into a non-nullable switch', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+      const patch = vi.spyOn(service, 'patch');
+
+      await service.updateSingleton({
+        isMediaPerceptionEnabled: null,
+      } as never);
+
+      expect(patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects OpenAI moderation without an OpenAI key', async () => {
+      const keyless = buildService();
+      const patch = vi.spyOn(keyless, 'patch');
+
+      await expect(
+        keyless.updateSingleton({ moderationProvider: 'openai' }),
+      ).rejects.toThrow('OPENAI_API_KEY');
+      expect(patch).not.toHaveBeenCalled();
+    });
+
+    it('always accepts turning moderation off', async () => {
+      const keyless = buildService();
+      vi.spyOn(keyless, 'getSingleton').mockResolvedValue(row as never);
+      const patch = vi.spyOn(keyless, 'patch').mockResolvedValue(row as never);
+
+      await keyless.updateSingleton({ moderationProvider: 'none' });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        moderationProvider: 'none',
+      });
     });
   });
 

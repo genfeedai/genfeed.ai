@@ -5,6 +5,7 @@ import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-g
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
@@ -35,6 +36,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Agent')
+@FeatureFlag('agent')
 @Controller('agent')
 export class AgentOrchestratorController {
   constructor(

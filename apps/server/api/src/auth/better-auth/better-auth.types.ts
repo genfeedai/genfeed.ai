@@ -215,8 +215,8 @@ export interface ICreateBetterAuthOptions {
   google?: IBetterAuthSocialProviderConfig;
   github?: IBetterAuthSocialProviderConfig;
   /**
-   * Whether email/password accounts must verify their email to sign in: the
-   * `require_email_verification` PostHog flag (#5468), resolved on every auth request so a
+   * Whether email/password accounts must verify their email to sign in. An
+   * operator platform setting (#5407), resolved on every auth request so a
    * change applies without rebuilding the Better Auth instance.
    */
   resolveIsEmailVerificationRequired: () => Promise<boolean>;

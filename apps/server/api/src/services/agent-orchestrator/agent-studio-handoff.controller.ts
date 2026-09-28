@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
@@ -19,6 +20,7 @@ import {
 
 @AutoSwagger()
 @ApiTags('agent-studio-handoff')
+@FeatureFlag('agent')
 @Controller('agent/studio-handoff')
 @ApiBearerAuth()
 export class AgentStudioHandoffController {

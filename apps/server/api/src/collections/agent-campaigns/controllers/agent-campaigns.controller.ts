@@ -7,6 +7,7 @@ import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -33,6 +34,7 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Campaigns')
 @AutoSwagger()
+@FeatureFlag('agent')
 @Controller('agent-campaigns')
 export class AgentCampaignsController extends BaseCRUDController<
   AgentCampaignDocument,

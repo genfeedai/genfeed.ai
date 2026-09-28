@@ -20,8 +20,7 @@ export const REPLY_INTENT_DECISION_POINT = 'reply_bot.intent';
 export const REPLY_INTENT_DECISION_TIMEOUT_MS = 2_000;
 
 /**
- * The mode and threshold are the `reply_bot_intent_decision` PostHog flag
- * (#5468). Whether a
+ * The mode and threshold are operator platform settings (#5407). Whether a
  * provider is bound is a separate platform setting (#4908), read per call by
  * TypedDecisionProviderResolver — the classifier asks TypedDecisionService
  * before it spends a decision.

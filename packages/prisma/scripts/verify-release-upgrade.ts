@@ -142,10 +142,23 @@ try {
     VALUES ('upgrade-org-no-brand', 'upgrade-user', 'Upgrade No Brand', 'upgrade-org-no-brand', NOW());
     INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
     VALUES ('upgrade-member-no-brand', 'upgrade-org-no-brand', 'upgrade-user', 'upgrade-role', NOW());
-    -- #5407/#5468 fixtures: the running deployment's platform-settings
-    -- singleton, carried across the switch-column add.
+    -- #5407 fixtures: the running deployment's platform-settings singleton
+    -- and a recorded system event, whose earliest occurrence becomes the
+    -- recording start once SYSTEM_EVENTS_ENABLED_AT leaves env.
     INSERT INTO platform_settings (id, key, "updatedAt")
-    VALUES ('upgrade-platform-settings', 'platform', NOW())`);
+    VALUES ('upgrade-platform-settings', 'platform', NOW());
+    INSERT INTO system_event_webhooks (id, type, payload, "occurredAt", "updatedAt")
+    VALUES ('user.created/upgrade-user', 'user.created', '{}', '2026-09-20 10:00:00', NOW()),
+      ('user.created/upgrade-user-later', 'user.created', '{}', '2026-09-21 10:00:00', NOW())`);
+  // #5407: whether the baseline already carried the feature-switch columns
+  // (a `--from=HEAD` run). Only an upgrade across the migration seeds values.
+  const hadFeatureSwitches =
+    (
+      await db.query(
+        `SELECT 1 FROM information_schema.columns
+         WHERE table_name = 'platform_settings' AND column_name = 'isMediaPerceptionEnabled'`,
+      )
+    ).rowCount === 1;
   await assert.rejects(
     runCredentialEncryptionBackfill(db, args, ''),
     /TOKEN_ENCRYPTION_KEY/,
@@ -192,17 +205,31 @@ try {
     ).rows[0].organizationId,
     'upgrade-org',
   );
-  // #5468: product switches are PostHog flags. The singleton survives the
-  // upgrade; the retired #5407 switch columns stay in the database for this
-  // release (unmapped in the Prisma schema) so rolling instances never break.
-  assert.equal(
-    (
-      await db.query(
-        "SELECT count(*)::int AS rows FROM platform_settings WHERE key = 'platform'",
-      )
-    ).rows[0].rows,
-    1,
-  );
+  // #5407: 20260927200000_platform_feature_switches carries production's
+  // env values onto the existing singleton and leaves the rest at defaults.
+  const platformSettings = (
+    await db.query(
+      `SELECT "isMediaPerceptionEnabled", "isEmailVerificationRequired",
+         "systemEventsEnabledAt" IS NULL AS "isRecordingOff",
+         "systemEventsEnabledAt" = TIMESTAMP '2026-09-20 10:00:00' AS "isRecordingFromFirstEvent",
+         "moderationMode", "moderationThresholds",
+         "untrustedContentMinConfidence", "taskRoutingDecisionMode"
+       FROM platform_settings WHERE key = 'platform'`,
+    )
+  ).rows[0];
+  assert.equal(platformSettings.moderationMode, 'shadow');
+  assert.deepEqual(platformSettings.moderationThresholds, {});
+  assert.equal(platformSettings.untrustedContentMinConfidence, 0.95);
+  assert.equal(platformSettings.taskRoutingDecisionMode, 'shadow');
+  if (hadFeatureSwitches) {
+    assert.equal(platformSettings.isMediaPerceptionEnabled, true);
+    assert.equal(platformSettings.isEmailVerificationRequired, false);
+    assert.equal(platformSettings.isRecordingOff, true);
+  } else {
+    assert.equal(platformSettings.isMediaPerceptionEnabled, false);
+    assert.equal(platformSettings.isEmailVerificationRequired, true);
+    assert.equal(platformSettings.isRecordingFromFirstEvent, true);
+  }
   // #5291: 20260926090000_member_current_brand must have backfilled
   // Member.currentBrandId for every historical shape without aborting —
   // a live selected brand, an org whose only brand is soft-deleted, and an

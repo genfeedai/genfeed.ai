@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -55,6 +56,7 @@ interface OrganizationAnalyticsRefreshAttributes {
 }
 
 @AutoSwagger()
+@FeatureFlag('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsAnalyticsController {

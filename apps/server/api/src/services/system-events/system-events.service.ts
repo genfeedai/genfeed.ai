@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import type {
   SystemEvent,
@@ -17,19 +17,19 @@ import type Stripe from 'stripe';
 export class SystemEventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly featureSettings: PlatformFeatureSettingsService,
+    private readonly featureSettings: PlatformSettingsService,
     private readonly logger: LoggerService,
     private readonly notifications: NotificationsService,
   ) {}
 
   /**
-   * The recording window: the `system_events_recording` PostHog flag and its
-   * `since` payload (#5468). Unset means disabled; events that occurred
-   * before it are never delivered, so turning recording on never replays
-   * historical signups. While the flag has no real answer (PostHog cold,
-   * silent or not migrated) recording is `unresolved`: events are held, never
-   * dropped, and delivery judges them once the window is known — a billing
-   * webhook arrives once and must not be lost to a flag timeout.
+   * The recording window: `systemEventsEnabledAt` on the platform settings
+   * (#5407). Unset means disabled; events that occurred before it are never
+   * delivered, so turning recording on never replays historical signups.
+   * Before this process has ever read the settings (#5468) recording is
+   * `unresolved`: events are held, never dropped, and delivery judges them
+   * once the window is known — a billing webhook arrives once and must not
+   * be lost to a database blip at boot.
    */
   private async recording(): Promise<SystemEventRecording> {
     const { isResolved, settings } =

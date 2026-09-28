@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
@@ -87,7 +87,7 @@ function makeHarness(options: {
     moderationProvider: 'openai' as const,
     ...options.featureSettings,
   };
-  const featureSettingsService = {
+  const platformSettingsService = {
     getFeatureSettings: vi.fn(async () => settings),
     getFeatureSettingsState: vi.fn(async () => ({
       isResolved: options.isSettingsResolved ?? true,
@@ -131,7 +131,7 @@ function makeHarness(options: {
     { evaluatePublishReadiness } as unknown as MediaReadinessService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
     { isProviderBound } as unknown as TypedDecisionService,
-    featureSettingsService as unknown as PlatformFeatureSettingsService,
+    platformSettingsService as unknown as PlatformSettingsService,
   );
   return { evaluatePublishReadiness, evaluationFindMany, service };
 }
@@ -144,7 +144,7 @@ const REQUEST = {
 
 describe('MediaAssessmentService', () => {
   it('fails closed while the media gate switches are unresolved (#5468)', async () => {
-    // PostHog down at boot: the stand-in switches have every gate off or in
+    // Settings unreadable since boot: the stand-in switches have every gate off or in
     // shadow, which must never let an unchecked asset publish autonomously.
     const { service } = makeHarness({
       categories: { 'asset-2': 'TEXT' },

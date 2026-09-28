@@ -6,8 +6,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
 import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
-import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
-import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -22,10 +20,6 @@ describe('BotActivitiesController', () => {
     organizationId: 'org-123',
     userId: 'user-123',
   } as never;
-  const mockFeatureFlagService = {
-    isEnabled: vi.fn(() => true),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BotActivitiesController],
@@ -47,14 +41,8 @@ describe('BotActivitiesController', () => {
             warn: vi.fn(),
           },
         },
-        {
-          provide: FeatureFlagService,
-          useValue: mockFeatureFlagService,
-        },
       ],
     })
-      .overrideGuard(FeatureFlagGuard)
-      .useValue({ canActivate: () => true })
       .overrideGuard(BetterAuthGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -66,7 +54,6 @@ describe('BotActivitiesController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    mockFeatureFlagService.isEnabled.mockReturnValue(true);
   });
 
   it('should be defined', () => {

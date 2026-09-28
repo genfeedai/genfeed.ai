@@ -1,4 +1,4 @@
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MAX_VISION_ATTEMPTS } from '@api/services/media-assessment/media-vision-evaluation.service';
 import {
@@ -97,7 +97,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     private readonly mediaReadinessService: MediaReadinessService,
     private readonly configService: ConfigService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   evaluatePublishReadiness(
@@ -156,11 +156,11 @@ export class MediaAssessmentService implements IMediaPublishGate {
     const perceptions = new Map<string, IMediaPerception>();
     // One read per assessment, so every gate judges the same switches.
     const { isResolved, settings } =
-      await this.featureSettingsService.getFeatureSettingsState();
+      await this.platformSettingsService.getFeatureSettingsState();
     if (!isResolved) {
-      // The gate switches have no real answer (PostHog cold, silent or not
-      // migrated): the stand-in has gates off or in shadow, so fail closed —
-      // every media asset is held for review until the switches resolve.
+      // The gate switches were never read (database down since boot): the
+      // stand-in has gates off or in shadow, so fail closed — every media
+      // asset is held for review until the switches resolve.
       for (const assetId of mediaAssetIds) {
         unchecked.add(assetId);
       }

@@ -2,11 +2,11 @@ import { SystemEventSignupListener } from '@api/auth/better-auth/listeners/syste
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -50,7 +50,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
 @Module({
   exports: [BetterAuthService, BetterAuthStrategy, PassportModule],
   imports: [
-    FeatureFlagModule,
+    PlatformSettingsModule,
     SystemEventsModule,
     PassportModule,
     UsersModule,
@@ -80,7 +80,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         EventEmitter2,
         RateLimitClientService,
         LoggerService,
-        PlatformFeatureSettingsService,
+        PlatformSettingsService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -90,7 +90,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         eventEmitter: EventEmitter2,
         rateLimitClient: RateLimitClientService,
         logger: LoggerService,
-        platformSettings: PlatformFeatureSettingsService,
+        platformSettings: PlatformSettingsService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.

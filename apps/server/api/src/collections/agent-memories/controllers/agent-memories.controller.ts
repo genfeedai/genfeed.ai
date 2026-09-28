@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -31,6 +32,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Memories')
+@FeatureFlag('agent')
 @Controller('agent/memories')
 export class AgentMemoriesController {
   constructor(

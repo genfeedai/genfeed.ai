@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -27,6 +28,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')
+@FeatureFlag('agent')
 @Controller('agent/threads')
 export class AgentThreadRuntimeController {
   constructor(

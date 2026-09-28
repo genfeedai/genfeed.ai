@@ -1,5 +1,5 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
@@ -25,7 +25,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     LoggerModule,
     MediaPerceptionModule,
-    FeatureFlagModule,
+    PlatformSettingsModule,
   ],
   providers: [
     {

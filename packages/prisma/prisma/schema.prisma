@@ -1666,11 +1666,6 @@ model OrganizationSetting {
 // purely how an operator types and reads those two numbers in /admin (markup%
 // on cost vs margin% on sell price); it never changes what is stored or
 // billed.
-// The #5407 switch columns on "platform_settings" are retired (#5468: product
-// switches are PostHog feature flags). They are deliberately absent here so no
-// running code selects them, but still exist in the database until a later
-// release drops them — dropping in the same release would break instances
-// that are still rolling out. Do not let `migrate dev` generate that drop.
 model PlatformSetting {
   id                         String          @id @default(cuid())
   key                        String          @unique @default("platform")
@@ -1681,6 +1676,42 @@ model PlatformSetting {
   // than a Prisma enum so adding a provider is a contract change, not a
   // migration on the operator's critical path.
   typedDecisionProvider String @default("none")
+
+  // Product feature switches (#5407). Operator decisions live here, not in
+  // env, so changing one is an admin click rather than a deploy. Defaults
+  // equal the retired env defaults. Mode columns are plain strings for the
+  // same reason as typedDecisionProvider; contracts parse them fail-closed.
+  isMediaPerceptionEnabled         Boolean   @default(true)
+  mediaPerceptionFrameCount        Int       @default(6)
+  mediaPerceptionLookbackHours     Int       @default(24)
+  mediaPerceptionVisionModel       String?
+  mediaGateVisionMode              String    @default("off")
+  mediaTextGateDecisionMode        String    @default("off")
+  mediaTextGateMinConfidence       Float     @default(0.85)
+  moderationMode                   String    @default("shadow")
+  moderationProvider               String    @default("none")
+  // Per-category overrides of DEFAULT_MODERATION_THRESHOLDS, e.g. {"sexual":0.5}.
+  moderationThresholds             Json      @default("{}")
+  agentAutoRoutingDecisionMode     String    @default("off")
+  modelDiscoveryDecisionMode       String    @default("off")
+  modelDiscoveryMinConfidence      Float     @default(0.85)
+  patternAnalyzerDecisionMode      String    @default("shadow")
+  patternAnalyzerMinConfidence     Float     @default(0.85)
+  replyBotIntentDecisionMode       String    @default("off")
+  replyBotIntentMinConfidence      Float     @default(0.85)
+  taskRoutingDecisionMode          String    @default("shadow")
+  taskRoutingMinConfidence         Float     @default(0.85)
+  untrustedContentDecisionMode     String    @default("off")
+  untrustedContentMinConfidence    Float     @default(0.95)
+  isAgentContextCompressionEnabled Boolean   @default(true)
+  isAgentTokenStreamingEnabled     Boolean   @default(false)
+  // Signup and billing system-event recording starts here; null = disabled.
+  systemEventsEnabledAt            DateTime?
+  isEmailVerificationRequired      Boolean   @default(false)
+  // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
+  // false turns one off; missing keys are on.
+  flags                            Json      @default("{}")
+
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

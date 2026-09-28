@@ -2,10 +2,13 @@ import { ModerationCategory } from '../enums/moderation-category.enum';
 import type { TypedDecisionMode } from '../interfaces/ai/typed-decision.interface';
 import type { ModerationProviderName } from '../interfaces/ingredients/media-moderation.interface';
 import type {
-  IPlatformFeatureFlagResult,
   IPlatformFeatureSettings,
   ShadowCappedDecisionMode,
 } from '../interfaces/settings/platform-setting.interface';
+import {
+  DEFAULT_PLATFORM_FLAGS,
+  parsePlatformFlags,
+} from './feature-flags.constant';
 
 /** Every rollout mode a decision point can take. */
 export const TYPED_DECISION_MODES: readonly TypedDecisionMode[] = [
@@ -32,13 +35,13 @@ export const PLATFORM_FEATURE_SETTING_BOUNDS = {
 } as const;
 
 /**
- * What a deployment gets with no PostHog, and the value of any switch whose
- * flag does not exist (#5407). Each equals the default of the env variable it
- * replaced.
+ * What a deployment gets before an operator touches anything (#5407). Each
+ * value equals the default of the env variable it replaced.
  */
 export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
   {
     agentAutoRoutingDecisionMode: 'off',
+    flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
     isAgentTokenStreamingEnabled: false,
     isEmailVerificationRequired: false,
@@ -66,47 +69,16 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
   };
 
 /**
- * What SaaS serves when PostHog is configured but has not answered yet
- * (#5468): production's posture rather than the self-host defaults, so an
- * outage at boot never turns email verification off or starts paid media
- * perception. Never cached — the next call asks PostHog again.
+ * What a process serves before it has ever read the settings row (#5468):
+ * the defaults tightened to the production values — email verification on,
+ * the perception sweep off. Never cached; the next call retries the read.
  */
-export const SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
+export const UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
   {
     ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     isEmailVerificationRequired: true,
     isMediaPerceptionEnabled: false,
   };
-
-/**
- * PostHog feature flags that carry the product switches (#5468). Platform
- * switches are evaluated for one fixed identity,
- * {@link PLATFORM_FEATURE_FLAG_DISTINCT_ID}, so crons without a user resolve
- * them too; roll each flag out to 100% of that identity.
- *
- * Booleans map to on/off. Mode flags are multivariate (`shadow`, `live`;
- * disabled or omitted = `off`). Numeric settings ride in the flag's JSON
- * payload. Create every flag: once PostHog answers, an omitted flag is off.
- */
-export const PLATFORM_FEATURE_FLAG_KEYS = {
-  agentAutoRouting: 'agent_auto_routing',
-  agentContextCompression: 'agent_context_compression',
-  agentTokenStreaming: 'agent_token_streaming',
-  mediaGateVision: 'media_gate_vision',
-  mediaPerception: 'media_perception',
-  mediaTextGate: 'media_text_gate',
-  modelDiscoveryDecision: 'model_discovery_decision',
-  moderation: 'moderation',
-  patternAnalyzerDecision: 'pattern_analyzer_decision',
-  replyBotIntentDecision: 'reply_bot_intent_decision',
-  requireEmailVerification: 'require_email_verification',
-  systemEventsRecording: 'system_events_recording',
-  taskRoutingDecision: 'task_routing_decision',
-  untrustedContentDecision: 'untrusted_content_decision',
-} as const;
-
-/** The PostHog person every platform switch is evaluated for. */
-export const PLATFORM_FEATURE_FLAG_DISTINCT_ID = 'genfeed-platform';
 
 const MODERATION_CATEGORIES = new Set<string>(
   Object.values(ModerationCategory),
@@ -209,6 +181,7 @@ export function parsePlatformFeatureSettings(
       TYPED_DECISION_MODES,
       defaults.agentAutoRoutingDecisionMode,
     ),
+    flags: parsePlatformFlags(row.flags),
     isAgentContextCompressionEnabled: pickBoolean(
       row.isAgentContextCompressionEnabled,
       defaults.isAgentContextCompressionEnabled,
@@ -313,108 +286,4 @@ export function parsePlatformFeatureSettings(
       defaults.untrustedContentMinConfidence,
     ),
   };
-}
-
-type PlatformFeatureFlagResults = Readonly<
-  Record<string, IPlatformFeatureFlagResult | undefined>
->;
-
-function readPayload(result: IPlatformFeatureFlagResult | undefined): {
-  readonly [key: string]: unknown;
-} {
-  const payload =
-    typeof result?.payload === 'string'
-      ? safeParseJson(result.payload)
-      : result?.payload;
-  return payload && typeof payload === 'object' && !Array.isArray(payload)
-    ? (payload as { readonly [key: string]: unknown })
-    : {};
-}
-
-function safeParseJson(value: string): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * PostHog omits inactive flags from `/flags`, so an omitted switch is one an
- * operator turned off — never "keep the default".
- */
-function readSwitch(result: IPlatformFeatureFlagResult | undefined): boolean {
-  return result?.enabled === true;
-}
-
-/** Omitted or disabled is `off`; an enabled flag answers with its variant. */
-function readMode(
-  result: IPlatformFeatureFlagResult | undefined,
-): string | undefined {
-  return result?.enabled ? (result.variant ?? undefined) : 'off';
-}
-
-/**
- * Turn a successful PostHog answer into typed switches (#5468). PostHog is
- * authoritative once it answers: an omitted flag (PostHog omits inactive ones)
- * is disabled / `off`. Only payload values absent from an enabled flag take
- * their default. Everything goes through {@link parsePlatformFeatureSettings},
- * so an unknown variant or a malformed payload fails closed field by field and
- * shadow-capped points never go live.
- */
-export function platformFeatureSettingsFromFlags(
-  flags: PlatformFeatureFlagResults,
-): IPlatformFeatureSettings {
-  const keys = PLATFORM_FEATURE_FLAG_KEYS;
-  const perception = flags[keys.mediaPerception];
-  const perceptionPayload = readPayload(perception);
-  const moderation = flags[keys.moderation];
-  const moderationPayload = readPayload(moderation);
-  const systemEvents = flags[keys.systemEventsRecording];
-
-  return parsePlatformFeatureSettings({
-    agentAutoRoutingDecisionMode: readMode(flags[keys.agentAutoRouting]),
-    isAgentContextCompressionEnabled: readSwitch(
-      flags[keys.agentContextCompression],
-    ),
-    isAgentTokenStreamingEnabled: readSwitch(flags[keys.agentTokenStreaming]),
-    isEmailVerificationRequired: readSwitch(
-      flags[keys.requireEmailVerification],
-    ),
-    isMediaPerceptionEnabled: readSwitch(perception),
-    mediaGateVisionMode: readMode(flags[keys.mediaGateVision]),
-    mediaPerceptionFrameCount: perceptionPayload.frameCount,
-    mediaPerceptionLookbackHours: perceptionPayload.lookbackHours,
-    mediaPerceptionVisionModel: perceptionPayload.visionModel,
-    mediaTextGateDecisionMode: readMode(flags[keys.mediaTextGate]),
-    mediaTextGateMinConfidence: readPayload(flags[keys.mediaTextGate])
-      .minConfidence,
-    modelDiscoveryDecisionMode: readMode(flags[keys.modelDiscoveryDecision]),
-    modelDiscoveryMinConfidence: readPayload(flags[keys.modelDiscoveryDecision])
-      .minConfidence,
-    moderationMode: readMode(moderation),
-    moderationProvider: moderationPayload.provider,
-    moderationThresholds: moderationPayload.thresholds,
-    patternAnalyzerDecisionMode: readMode(flags[keys.patternAnalyzerDecision]),
-    patternAnalyzerMinConfidence: readPayload(
-      flags[keys.patternAnalyzerDecision],
-    ).minConfidence,
-    replyBotIntentDecisionMode: readMode(flags[keys.replyBotIntentDecision]),
-    replyBotIntentMinConfidence: readPayload(flags[keys.replyBotIntentDecision])
-      .minConfidence,
-    // Recording needs a start time: enabled without one stays off, so turning
-    // the flag on can never replay historical signups.
-    systemEventsEnabledAt: systemEvents?.enabled
-      ? readPayload(systemEvents).since
-      : null,
-    taskRoutingDecisionMode: readMode(flags[keys.taskRoutingDecision]),
-    taskRoutingMinConfidence: readPayload(flags[keys.taskRoutingDecision])
-      .minConfidence,
-    untrustedContentDecisionMode: readMode(
-      flags[keys.untrustedContentDecision],
-    ),
-    untrustedContentMinConfidence: readPayload(
-      flags[keys.untrustedContentDecision],
-    ).minConfidence,
-  });
 }

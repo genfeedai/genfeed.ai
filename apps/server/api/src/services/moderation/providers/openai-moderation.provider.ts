@@ -91,7 +91,7 @@ function mergeMax(all: readonly ModerationScores[]): ModerationScores {
 /**
  * Hosted moderation through OpenAI `omni-moderation-latest` (#4880): images
  * and text in one model. Customer media leaves the host only when an operator
- * selects OpenAI in the `moderation` PostHog flag; the call carries the
+ * selects the OpenAI moderation provider in /admin; the call carries the
  * asset's CDN URL, not its bytes.
  */
 export class OpenAiModerationProvider implements IModerationProvider {

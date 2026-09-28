@@ -1,4 +1,4 @@
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { hasPendingArtefacts } from '@api/services/media-perception/media-perception.record';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
@@ -116,8 +116,8 @@ function toJson(value: unknown): Prisma.InputJsonValue {
  * text. The verdict is the maximum over inputs against per-category
  * thresholds; per-input scores are kept for the review UI.
  *
- * The provider, mode and thresholds are the `moderation` PostHog flag
- * (#5468), read per job so a change needs no restart.
+ * The provider, mode and thresholds are operator platform settings (#5407),
+ * read per job so a change needs no restart.
  *
  * - provider `none` (or no provider key): nothing is classified and no
  *   verdict is persisted, so every reader sees "no moderation" rather than an
@@ -134,7 +134,6 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 @Injectable()
 export class MediaModerationService {
   private readonly constructorName = String(this.constructor.name);
-  private hasWarnedUnavailableProvider = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -142,13 +141,13 @@ export class MediaModerationService {
     @Inject(MODERATION_PROVIDERS)
     private readonly providers: ModerationProviders,
     private readonly activityRecorder: ActivityRecorderService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
   async getSettings(): Promise<ModerationSettings> {
     return resolveModerationSettings(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
   }
 
@@ -157,25 +156,7 @@ export class MediaModerationService {
     settings: ModerationSettings,
   ): IModerationProvider | null {
     const provider = this.providers[settings.provider];
-    if (!provider.isEnabled && settings.provider !== 'none') {
-      this.warnUnavailableProviderOnce(settings.provider);
-    }
     return provider.isEnabled && settings.mode !== 'off' ? provider : null;
-  }
-
-  /**
-   * The flag chose a provider this deployment has no key for. It cannot be
-   * refused where it is set (PostHog), so say so once per process instead.
-   */
-  private warnUnavailableProviderOnce(provider: string): void {
-    if (this.hasWarnedUnavailableProvider) {
-      return;
-    }
-    this.hasWarnedUnavailableProvider = true;
-    this.logger.warn(
-      `${this.constructorName} moderation flag selects ${provider}, which has no credential on this server; moderation is off`,
-      { provider },
-    );
   }
 
   async moderate(job: MediaModerationJobData): Promise<MediaModerationOutcome> {

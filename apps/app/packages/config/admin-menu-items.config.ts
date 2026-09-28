@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Banknote,
+  Blocks,
   ChartColumn,
   ClipboardList,
   Cpu,
@@ -16,6 +17,7 @@ import {
   Settings,
   ShieldCheck,
   Tag,
+  ToggleRight,
   Users,
   Volume2,
 } from 'lucide-react';
@@ -295,5 +297,23 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.PLATFORM_SETTINGS],
     outline: Banknote,
     solid: Banknote,
+  },
+  {
+    group: 'Flags',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.FLAGS.MODULES,
+    label: 'Modules',
+    matchPaths: [APP_ROUTES.ADMIN.FLAGS.MODULES],
+    outline: Blocks,
+    solid: Blocks,
+  },
+  {
+    group: 'Flags',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.FLAGS.FEATURES,
+    label: 'Features',
+    matchPaths: [APP_ROUTES.ADMIN.FLAGS.FEATURES],
+    outline: ToggleRight,
+    solid: ToggleRight,
   },
 ]);

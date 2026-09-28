@@ -7,6 +7,7 @@ import {
 } from '@api/collections/outliers/dto/outlier-query.dto';
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -37,6 +38,7 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Outlier baselines')
+@FeatureFlag('analytics')
 @Controller('outlier-baselines')
 @UseGuards(RolesGuard)
 export class OutliersController {

@@ -1,4 +1,4 @@
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentAutoRoutingResolveParams } from '@api/services/agent-orchestrator/interfaces/agent-auto-routing.interface';
 import { resolveAgentAutoRoutingDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-auto-routing-decision-config.util';
@@ -26,7 +26,7 @@ export class AgentAutoModelResolverService {
 
   constructor(
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -42,7 +42,7 @@ export class AgentAutoModelResolverService {
     params: AgentAutoRoutingResolveParams,
   ): Promise<AgentAutoRoutingResolution> {
     const { mode } = resolveAgentAutoRoutingDecisionConfig(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     // The candidate only ever replaces the gateway auto-router; an explicitly

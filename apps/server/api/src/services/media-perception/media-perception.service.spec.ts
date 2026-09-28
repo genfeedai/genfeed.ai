@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaPerceptionDescriberService } from '@api/services/media-perception/media-perception-describer.service';
@@ -118,7 +118,7 @@ function makeHarness(
     buildUrl: vi.fn((key: string) => `https://signed.example.com/${key}`),
     buildUrlFromAbsolute: vi.fn((url: string) => `${url}?signed=1`),
   };
-  const featureSettingsService = {
+  const platformSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       mediaPerceptionFrameCount: 4,
@@ -148,7 +148,7 @@ function makeHarness(
     { describe } as unknown as MediaPerceptionDescriberService,
     { record } as unknown as MediaVendorCostLedgerService,
     mediaUrlService as unknown as MediaUrlService,
-    featureSettingsService as unknown as PlatformFeatureSettingsService,
+    platformSettingsService as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
 

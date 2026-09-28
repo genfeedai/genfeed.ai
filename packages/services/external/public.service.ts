@@ -1,7 +1,11 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import {
+  MAX_PAGE_SIZE,
+  parsePlatformFlags,
+} from '@genfeedai/contracts/constants';
 import type {
   IBrandOsPreview,
   IBrandOsPreviewRequest,
+  IPlatformFlags,
   IPublicYoutubeClipToolSession,
   IPublicYoutubeLongFormToolResult,
   IQueryParams,
@@ -81,6 +85,14 @@ export class PublicService extends HTTPBaseService {
         deserializeCollection<Partial<T>>(res.data).map((d) => new Model(d)),
       )
       .catch(() => []);
+  }
+
+  /** Module and feature flags (#5468); a malformed answer keeps them on. */
+  public async getPlatformFlags(signal?: AbortSignal): Promise<IPlatformFlags> {
+    const response = await this.instance.get<unknown>('platform-flags', {
+      signal,
+    });
+    return parsePlatformFlags(response.data);
   }
 
   public async findPublicProfileBySlug(slug: string): Promise<Brand | null> {

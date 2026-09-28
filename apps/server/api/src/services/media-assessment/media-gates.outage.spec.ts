@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
@@ -126,7 +126,7 @@ function config(outage: Outage): ConfigService {
 function platformSettings(
   outage: Outage,
   overrides: Partial<IPlatformFeatureSettings> = {},
-): PlatformFeatureSettingsService {
+): PlatformSettingsService {
   const settings = {
     ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     ...LIVE_CONFIG,
@@ -139,7 +139,7 @@ function platformSettings(
       isResolved: true,
       settings,
     })),
-  } as unknown as PlatformFeatureSettingsService;
+  } as unknown as PlatformSettingsService;
 }
 
 /** Both adapters bound, matching production DI; only `settings.provider` picks one. */

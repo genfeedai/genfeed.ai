@@ -25,6 +25,7 @@ import type {
   SocialInboxSyncConversationType,
   SocialInboxSyncPlatform,
 } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -70,6 +71,7 @@ import type { Request } from 'express';
 @ApiTags('Messages')
 @AutoSwagger()
 @ApiBearerAuth()
+@FeatureFlag('messages')
 @Controller('messages')
 @UseGuards(RolesGuard)
 export class SocialInboxController {

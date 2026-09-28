@@ -8,6 +8,7 @@ import {
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
+import { PublicService } from '@services/external/public.service';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { isDesktopServerRequest } from './desktop-request.server';
@@ -87,10 +88,21 @@ export const loadProtectedBootstrap = cache(
     }
 
     const authService = AuthService.getInstance(token);
-    const bootstrap = await authService.getBootstrap().catch((error) => {
-      logger.error('Failed to load protected bootstrap payload', error);
-      return null;
-    });
+    const [bootstrap, platformFlags] = await Promise.all([
+      authService.getBootstrap().catch((error) => {
+        logger.error('Failed to load protected bootstrap payload', error);
+        return null;
+      }),
+      PublicService.getInstance()
+        .getPlatformFlags()
+        .catch((error: unknown) => {
+          logger.warn('Failed to load platform flags for the shell', {
+            error,
+            reportToSentry: false,
+          });
+          return null;
+        }),
+    ]);
 
     if (!bootstrap) {
       return null;
@@ -103,6 +115,7 @@ export const loadProtectedBootstrap = cache(
       currentUser: bootstrap.currentUser,
       fleetCapabilities: bootstrap.fleetCapabilities,
       organizationId: bootstrap.access.organizationId ?? '',
+      platformFlags,
       settings: bootstrap.settings,
       streak: bootstrap.streak,
     };

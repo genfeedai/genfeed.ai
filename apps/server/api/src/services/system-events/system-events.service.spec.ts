@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -49,7 +49,7 @@ function setup(
   };
   const service = new SystemEventsService(
     prisma as unknown as PrismaService,
-    featureSettings as unknown as PlatformFeatureSettingsService,
+    featureSettings as unknown as PlatformSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
     notifications as unknown as NotificationsService,
   );

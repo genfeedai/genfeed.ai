@@ -7,6 +7,7 @@ import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/updat
 import { ValidateSocialSourceDto } from '@api/collections/social-sources/dto/validate-social-source.dto';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -34,6 +35,7 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Social Sources')
+@FeatureFlag('automation')
 @Controller('social-sources')
 @UseGuards(RolesGuard)
 export class SocialSourcesController {

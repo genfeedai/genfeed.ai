@@ -8,7 +8,7 @@ import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import {
@@ -84,7 +84,7 @@ export class PatternAnalyzerService {
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
   }
@@ -287,7 +287,7 @@ export class PatternAnalyzerService {
     const fallback = this.readRuleBasedLabels(ruleBasedPatterns);
     const hasRuleBasedAnswer = ruleBasedPatterns.length > 0;
     const { minConfidence, mode } = resolvePatternAnalyzerDecisionSettings(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (mode === 'off') {

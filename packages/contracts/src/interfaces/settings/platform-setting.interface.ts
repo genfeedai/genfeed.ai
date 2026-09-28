@@ -1,3 +1,4 @@
+import type { PlatformFlagKey } from '../../constants/feature-flags.constant';
 import type { ModerationCategory } from '../../enums/moderation-category.enum';
 import type { MarginInputMode } from '../../enums/platform-setting.enum';
 import type {
@@ -14,12 +15,15 @@ import type { ModerationProviderName } from '../ingredients/media-moderation.int
  */
 export type ShadowCappedDecisionMode = Exclude<TypedDecisionMode, 'live'>;
 
+/** On/off state of every module and feature flag (#5468); `true` is on. */
+export type IPlatformFlags = Readonly<Record<PlatformFlagKey, boolean>>;
+
 /**
- * Product feature switches (#5407, #5468).
+ * Product feature switches (#5407).
  *
- * Operator decisions about product behaviour, served from PostHog feature
- * flags (see `PLATFORM_FEATURE_FLAG_KEYS`) so changing one takes a flag edit
- * instead of a deploy. Deployments without PostHog get
+ * Operator decisions about product behaviour, kept on the platform-settings
+ * singleton rather than in env so changing one takes an admin click instead
+ * of a deploy. Every default equals the retired env variable's default; see
  * `DEFAULT_PLATFORM_FEATURE_SETTINGS`. Secrets, keys, URLs and true
  * infrastructure (`BETTER_AUTH_ENABLED`, `SENTRY_ENABLED`) stay in env.
  */
@@ -71,6 +75,21 @@ export interface IPlatformFeatureSettings {
   systemEventsEnabledAt: string | null;
   /** Better Auth: email/password accounts must verify their email to sign in. */
   isEmailVerificationRequired: boolean;
+  /** Module and feature flags (#5468), edited from Admin → Flags. */
+  flags: IPlatformFlags;
+}
+
+/**
+ * Feature switches plus whether they came from the database (#5468).
+ *
+ * `isResolved` is false only when this process has never read the row (the
+ * first read failed). The settings are then a conservative profile, and a
+ * caller that must not guess — a publish gate, the system-event outbox —
+ * holds or blocks instead of acting on them.
+ */
+export interface IPlatformFeatureSettingsState {
+  isResolved: boolean;
+  settings: IPlatformFeatureSettings;
 }
 
 /**
@@ -80,7 +99,9 @@ export interface IPlatformFeatureSettings {
  * operator area — distinct from per-user `Setting` and per-org
  * `OrganizationSetting`. Access is restricted to platform superadmins.
  */
-export interface IPlatformSetting extends IBaseEntity {
+export interface IPlatformSetting
+  extends IBaseEntity,
+    IPlatformFeatureSettings {
   /**
    * Sell/cost ratio applied to provider USD for **generation** billing. 1.0 =
    * provider cost, 3.33 = 70% margin on sell price. See `applyMargin` in
@@ -119,30 +140,12 @@ export interface IPlatformSetting extends IBaseEntity {
 }
 
 /** Fields a platform operator may update via `/admin`. */
-export interface IUpdatePlatformSettingPayload {
+export interface IUpdatePlatformSettingPayload
+  extends Partial<Omit<IPlatformFeatureSettings, 'flags'>> {
+  /** Flags to change; omitted flags keep their stored value (#5468). */
+  flags?: Partial<Record<PlatformFlagKey, boolean>>;
   marginMultiplierGeneration?: number;
   marginMultiplierAgentChat?: number;
   marginInputMode?: MarginInputMode;
   typedDecisionProvider?: TypedDecisionProviderName;
-}
-
-/**
- * One evaluated PostHog flag, as the `/flags?v=2` endpoint reports it:
- * whether it matched, the multivariate variant it chose, and its JSON payload.
- */
-export interface IPlatformFeatureFlagResult {
-  enabled: boolean;
-  payload?: unknown;
-  variant?: string | null;
-}
-
-/**
- * Platform switches plus whether they came from a real answer (#5468): `false`
- * when SaaS is serving its conservative stand-in because PostHog is
- * unconfigured, silent, or has no platform flags yet. Callers whose decision
- * cannot be taken back (dropping a billing event) wait for a resolved answer.
- */
-export interface IPlatformFeatureSettingsState {
-  isResolved: boolean;
-  settings: IPlatformFeatureSettings;
 }

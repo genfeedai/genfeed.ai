@@ -7,37 +7,29 @@ import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/error';
-import { useEffect, useState } from 'react';
-import {
-  identifyAnalyticsUser,
-  subscribeAnalyticsFeatureFlags,
-} from '@/lib/analytics';
-import {
-  getCoreAppFeatureFlagFallbacks,
-  REMOTE_FEATURE_FLAG_KEYS,
-} from '@/lib/core-apps';
+import { useEffect } from 'react';
+import { identifyAnalyticsUser } from '@/lib/analytics';
+import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import ApiAuthBridge from './api-auth-bridge';
+import PlatformModuleRouteGate from './platform-module-route-gate';
 import RoutedOrganizationBoundary from './routed-organization-boundary';
-
-const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
 
 export default function ProtectedLayoutClient({
   children,
   initialBootstrap,
 }: ProtectedBootstrapProps) {
   const { user } = useAuthUser();
-  const [remoteFeatureFlags, setRemoteFeatureFlags] = useState<
-    Record<string, boolean>
-  >({});
+  // Admin module and feature flags (#5468), server-rendered with the shell.
+  const { flags: platformFlags } = usePlatformFlags(
+    initialBootstrap?.platformFlags,
+  );
 
   useEffect(() => {
     captureWorkspaceShellSession();
   }, []);
 
   useEffect(() => {
-    setRemoteFeatureFlags({});
-
     if (!user?.id) {
       return;
     }
@@ -50,18 +42,10 @@ export default function ProtectedLayoutClient({
           .toLowerCase()
           .endsWith('@genfeed.ai') === true,
     });
-
-    return subscribeAnalyticsFeatureFlags(
-      REMOTE_FEATURE_FLAG_KEYS,
-      setRemoteFeatureFlags,
-    );
   }, [user?.id, user?.primaryEmailAddress?.emailAddress]);
 
   return (
-    <FeatureFlagProvider
-      fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}
-      overrides={remoteFeatureFlags}
-    >
+    <FeatureFlagProvider defaults={platformFlags}>
       {/*
         Pins the Better Auth session store active for the whole protected shell.
         Mounted here — above AppProtectedLayout's internal Suspense boundaries —
@@ -73,9 +57,12 @@ export default function ProtectedLayoutClient({
       <ApiAuthBridge />
       <RoutedOrganizationProvider>
         <RoutedOrganizationBoundary>
-          <AppProtectedLayout initialBootstrap={initialBootstrap}>
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </AppProtectedLayout>
+          {/* Outside the shell's error boundaries, which would swallow notFound(). */}
+          <PlatformModuleRouteGate>
+            <AppProtectedLayout initialBootstrap={initialBootstrap}>
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </AppProtectedLayout>
+          </PlatformModuleRouteGate>
         </RoutedOrganizationBoundary>
       </RoutedOrganizationProvider>
     </FeatureFlagProvider>

@@ -30,6 +30,7 @@ import { OrganizationsCoreModule } from '@api/collections/organizations/organiza
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -44,7 +45,6 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -158,7 +158,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
-    FeatureFlagModule,
+    PlatformSettingsModule,
     ActivityRecordingModule,
     MediaPromptEnhancementModule,
     AgentSourceIngestModule,

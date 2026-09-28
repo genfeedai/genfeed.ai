@@ -7,11 +7,16 @@ import {
   parseMarginInputMode,
 } from '@genfeedai/contracts';
 import {
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  parsePlatformFeatureSettings,
   parseTypedDecisionProvider,
   TYPED_DECISION_PROVIDER_LABELS,
   TYPED_DECISION_PROVIDER_NAMES,
 } from '@genfeedai/contracts/constants';
-import type { TypedDecisionProviderName } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformFeatureSettings,
+  TypedDecisionProviderName,
+} from '@genfeedai/contracts/interfaces';
 import {
   DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
@@ -20,6 +25,7 @@ import {
   sellPriceForOneDollar,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
@@ -41,6 +47,7 @@ import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
 
 /** Percent an operator would type for a multiplier, in the given input mode. */
 function percentInputFor(multiplier: number, mode: MarginInputMode): string {
@@ -146,6 +153,29 @@ export default function PlatformSettingsPage() {
   );
   const [typedDecisionProvider, setTypedDecisionProvider] =
     useState<TypedDecisionProviderName>(parseTypedDecisionProvider(undefined));
+  const [featureSettings, setFeatureSettings] =
+    useState<IPlatformFeatureSettings>(DEFAULT_PLATFORM_FEATURE_SETTINGS);
+  const [invalidFeatureFieldIds, setInvalidFeatureFieldIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
+
+  const handleFeatureFieldValidity = useCallback(
+    (fieldId: string, isValid: boolean) => {
+      setInvalidFeatureFieldIds((current) => {
+        if (current.has(fieldId) !== isValid) {
+          return current;
+        }
+        const next = new Set(current);
+        if (isValid) {
+          next.delete(fieldId);
+        } else {
+          next.add(fieldId);
+        }
+        return next;
+      });
+    },
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -175,6 +205,7 @@ export default function PlatformSettingsPage() {
           setTypedDecisionProvider(
             parseTypedDecisionProvider(data.typedDecisionProvider),
           );
+          setFeatureSettings(parsePlatformFeatureSettings(data));
         }
       } catch (error) {
         if (!signal.aborted) {
@@ -252,7 +283,15 @@ export default function PlatformSettingsPage() {
       return;
     }
 
+    if (invalidFeatureFieldIds.size > 0) {
+      notificationsService.warning(translate('features.invalidSubmit'));
+      return;
+    }
+
     setIsSaving(true);
+    // Module and feature flags are edited on Admin → Flags (#5468); resending
+    // the copy loaded here would undo a flag switched there meanwhile.
+    const { flags: _flagsEditedElsewhere, ...switches } = featureSettings;
 
     try {
       const service = await getPlatformSettingsService();
@@ -261,6 +300,7 @@ export default function PlatformSettingsPage() {
         marginMultiplierAgentChat: agentChatResolved.multiplier,
         marginMultiplierGeneration: generationResolved.multiplier,
         typedDecisionProvider,
+        ...switches,
       });
       const mode = parseMarginInputMode(updated.marginInputMode);
       setMarginInputMode(mode);
@@ -275,11 +315,13 @@ export default function PlatformSettingsPage() {
       setTypedDecisionProvider(
         parseTypedDecisionProvider(updated.typedDecisionProvider),
       );
+      setFeatureSettings(parsePlatformFeatureSettings(updated));
       notificationsService.success('Platform settings saved');
     } catch (error) {
       logger.error('Failed to save platform settings', error);
-      // The API rejects a provider this deployment has no key for; that reason
-      // is the whole point of the message, so surface it rather than "failed".
+      // The API rejects a provider this deployment has no key for (typed
+      // decisions or moderation); that reason is the whole point of the
+      // message, so surface it rather than "failed".
       notificationsService.error(
         getJsonApiErrorMessage(error, 'Failed to save platform settings'),
       );
@@ -398,6 +440,13 @@ export default function PlatformSettingsPage() {
               </SelectContent>
             </Select>
           </Field>
+
+          <PlatformFeatureSettingsFields
+            settings={featureSettings}
+            onChange={setFeatureSettings}
+            onValidityChange={handleFeatureFieldValidity}
+            isDisabled={isSaving}
+          />
 
           <Button
             type="submit"

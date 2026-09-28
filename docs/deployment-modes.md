@@ -81,47 +81,11 @@ licensed-self-host bindings.
 - **SaaS admin access is a platform role.** `/admin` is gated by
   `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
   roles. Deployment operators manage `users.platformRole` separately.
-- **Product flags are PostHog in SaaS, typed code defaults elsewhere.** There is
-  no env JSON of flag values. Community and unsigned Desktop keep Replies
-  (`reply_bot`) on with no PostHog call-home; SaaS operators target `reply_bot`
-  in PostHog (person = `users.id`, optional `is_internal`). If PostHog is
-  absent, a flag takes its default in `FEATURE_FLAG_OFFLINE_DEFAULTS`.
-
-## Product switches
-
-Platform-wide product behaviour is PostHog feature flags evaluated for the
-person `genfeed-platform` (#5468); roll each flag out to 100% of that person.
-API and workers read them within 15 seconds. Without PostHog, the defaults in
-`DEFAULT_PLATFORM_FEATURE_SETTINGS` apply. SaaS never falls back to those
-self-host defaults: with no usable PostHog key, before PostHog's first answer,
-or when the answer holds none of these flags, it uses production's posture
-(email verification on, media perception off), and system events are held
-rather than dropped until the recording flag resolves.
-
-| Flag | Type | Payload |
-| --- | --- | --- |
-| `media_perception` | boolean | `{frameCount, lookbackHours, visionModel}` |
-| `media_gate_vision` | variant `shadow` / `live` | — |
-| `media_text_gate` | variant `shadow` / `live` | `{minConfidence}` |
-| `moderation` | variant `shadow` / `live` | `{provider: "none" \| "openai", thresholds: {category: 0..1}}` |
-| `agent_auto_routing` | variant `shadow` / `live` | — |
-| `model_discovery_decision` | variant `shadow` / `live` | `{minConfidence}` |
-| `pattern_analyzer_decision` | variant `shadow` | `{minConfidence}` |
-| `reply_bot_intent_decision` | variant `shadow` / `live` | `{minConfidence}` |
-| `task_routing_decision` | variant `shadow` | `{minConfidence}` |
-| `untrusted_content_decision` | variant `shadow` | `{minConfidence}` |
-| `agent_context_compression` | boolean | — |
-| `agent_token_streaming` | boolean | — |
-| `system_events_recording` | boolean | `{since: "<ISO timestamp>"}` |
-| `require_email_verification` | boolean | — |
-
-Once PostHog answers, it is authoritative: an omitted flag is off (PostHog
-omits inactive flags), and a disabled variant flag means `off`. Create **all**
-flags, including those left at their default (`agent_context_compression` on,
-`moderation` / `pattern_analyzer_decision` / `task_routing_decision` at
-`shadow`). An answer with none of these flags serves production's posture.
-Payload fields left out of an enabled flag take their default. `live` is
-refused on the shadow-only decision points.
+- **Product modules and features are Admin flags.** Every deployment switches
+  them at `/admin/flags/modules` and `/admin/flags/features` (stored on the
+  platform-settings row); all default on. A module that is off disappears from
+  the app rail, its routes answer 404 and its API answers 404; superadmins keep
+  access. There is no env or PostHog flag for product behaviour.
 
 ## See also
 

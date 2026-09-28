@@ -11,6 +11,7 @@ import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/serv
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -56,6 +57,7 @@ import type { Request } from 'express';
 
 @ApiTags('Workflow Executions')
 @ApiBearerAuth()
+@FeatureFlag('automation')
 @Controller('workflow-executions')
 @UseGuards(RolesGuard)
 export class WorkflowExecutionsController {

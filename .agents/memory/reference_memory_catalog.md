@@ -5,7 +5,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 
 ## Rules (permanent — user corrections)
 
-- [product_switches_are_posthog_flags](rules/product_switches_are_posthog_flags.md) — product feature switches are PostHog feature flags (platform switches via `PlatformFeatureSettingsService`, per-user via `FeatureFlagService`); no env JSON, no admin flag page (#5407, #5468)
+- [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
 - [better_auth_user_ids_are_opaque](rules/better_auth_user_ids_are_opaque.md) — authenticated user IDs span legacy Better Auth base62 values and new UUIDs; authorize them as opaque canonical users.id values
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit

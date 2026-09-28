@@ -3,6 +3,7 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -35,6 +36,7 @@ import type { Request } from 'express';
 const CLIP_RESULTS_LIST_LIMIT = 100;
 
 @AutoSwagger()
+@FeatureFlag('studio')
 @Controller('clip-results')
 @ApiBearerAuth()
 export class ClipResultsController {

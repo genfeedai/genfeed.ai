@@ -49,13 +49,11 @@ Current primary modules:
 - Publish
 - Analytics
 
-Every primary module has a display-only `app_switcher_*` PostHog flag. These
-flags default off in SaaS and on for Desktop/self-hosted deployments. PostHog
-identifies authenticated SaaS users by canonical `users.id` and targets
-internal accounts through a non-PII `is_internal` person property. Display flags
-never gate the underlying route, so hidden modules remain directly reachable
-for testing. The separate `studio` capability flag remains available as a route
-kill switch and defaults on.
+Every primary module except Workspace has an Admin module flag (#5468,
+`PLATFORM_MODULE_FLAG_KEYS`), edited at `/admin/flags/modules` and on by
+default. Off hides the rail entry, answers 404 on the module's routes and on
+its `@FeatureFlag`-decorated API controllers; superadmins keep access for
+inspection. Smaller product features use `/admin/flags/features`.
 
 Remix is a contextual action tied to a specific finding, asset, post, or
 content run rather than an app-switcher module. Admin is role-gated and can be

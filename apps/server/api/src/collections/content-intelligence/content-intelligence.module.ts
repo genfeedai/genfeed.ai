@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Content Intelligence Module
  * AI-powered content analysis and generation: creator scraping, pattern extraction,
@@ -47,7 +47,7 @@ import { Module } from '@nestjs/common';
     TopPerformerPromptContextService,
   ],
   imports: [
-    FeatureFlagModule,
+    PlatformSettingsModule,
     AgentContextAssemblyModule,
     ApiKeysModule,
     ApifyModule,

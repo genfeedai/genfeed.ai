@@ -2,13 +2,9 @@ import { FeatureFlagProvider } from '@hooks/feature-flags/provider/FeatureFlagPr
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('useFeatureFlag', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   function createWrapper(
     defaults?: Record<string, unknown>,
   ): ({ children }: { children: ReactNode }) => ReactNode {
@@ -95,42 +91,17 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('keeps reply_bot on without a PostHog answer or with other defaults', () => {
-    const { result: unconfigured } = renderHook(() =>
-      useFeatureFlag('reply_bot'),
-    );
-    const { result: otherDefaults } = renderHook(
-      () => useFeatureFlag('reply_bot'),
-      {
-        wrapper: createWrapper({ other: true }),
-      },
-    );
-    const { result: malformed } = renderHook(
-      () => useFeatureFlag('reply_bot'),
-      {
-        wrapper: createWrapper(),
-      },
-    );
+  it('returns false for a flag the Admin flags do not list', () => {
+    const { result } = renderHook(() => useFeatureFlag('unknown_flag'), {
+      wrapper: createWrapper({ reply_bot: true }),
+    });
 
-    expect(unconfigured.current).toBe(true);
-    expect(otherDefaults.current).toBe(true);
-    expect(malformed.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
-  it('honors an explicit reply_bot override from PostHog', () => {
-    function Wrapper({ children }: { children: ReactNode }) {
-      return createElement(
-        FeatureFlagProvider,
-        {
-          defaults: {},
-          overrides: { reply_bot: false },
-        },
-        children,
-      );
-    }
-
+  it('honors reply_bot switched off in Admin (#5468)', () => {
     const { result } = renderHook(() => useFeatureFlag('reply_bot'), {
-      wrapper: Wrapper,
+      wrapper: createWrapper({ reply_bot: false }),
     });
 
     expect(result.current).toBe(false);

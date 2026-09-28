@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AdsDiscoveryService } from '@api/endpoints/ads-research/ads-discovery.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -34,6 +35,7 @@ import {
 } from '@nestjs/common';
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('ads/research')
 @UseGuards(RolesGuard)
 export class AdsResearchController {

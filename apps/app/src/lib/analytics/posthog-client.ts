@@ -62,24 +62,12 @@ let pendingEventRetryTimer: number | null = null;
 let hasHydratedPendingEvents = false;
 let shouldEnsureAnonymous = false;
 let shouldResetAnalytics = false;
-let unsubscribeFromFeatureFlags: (() => void) | null = null;
 
 export interface AnalyticsUserIdentity {
   id: string;
   isInternal: boolean;
 }
 
-export type AnalyticsFeatureFlagValues = Record<string, boolean>;
-export type AnalyticsFeatureFlagListener = (
-  values: AnalyticsFeatureFlagValues,
-) => void;
-
-interface AnalyticsFeatureFlagSubscription {
-  keys: readonly string[];
-  listener: AnalyticsFeatureFlagListener;
-}
-
-const featureFlagSubscriptions = new Set<AnalyticsFeatureFlagSubscription>();
 const pendingAnalyticsEvents: PendingAnalyticsEvent[] = [];
 const pendingOnceKeys = new Set<string>();
 const capturedOnceKeys = new Set<string>();
@@ -572,7 +560,6 @@ function applyPendingReset(): void {
   shouldResetAnalytics = false;
   try {
     client.reset();
-    notifyFeatureFlagSubscriptions(true);
   } catch {
     // Best-effort reset.
   }
@@ -606,7 +593,6 @@ function applyPendingAnonymousState(): void {
   try {
     if (client.get_property('$user_id')) {
       client.reset();
-      notifyFeatureFlagSubscriptions(true);
       return;
     }
 
@@ -616,50 +602,6 @@ function applyPendingAnonymousState(): void {
   } catch {
     // Best-effort anonymous-state reconciliation.
   }
-}
-
-function resolveFeatureFlags(
-  keys: readonly string[],
-  errorsLoading = false,
-): AnalyticsFeatureFlagValues {
-  const activeClient = client;
-  if (errorsLoading || !activeClient) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    keys.flatMap((key) => {
-      const enabled = activeClient.getFeatureFlagResult(key, {
-        send_event: false,
-      })?.enabled;
-
-      return typeof enabled === 'boolean' ? [[key, enabled]] : [];
-    }),
-  );
-}
-
-function notifyFeatureFlagSubscriptions(errorsLoading = false): void {
-  for (const subscription of featureFlagSubscriptions) {
-    subscription.listener(
-      resolveFeatureFlags(subscription.keys, errorsLoading),
-    );
-  }
-}
-
-function ensureFeatureFlagSubscription(): void {
-  if (
-    !client ||
-    unsubscribeFromFeatureFlags ||
-    featureFlagSubscriptions.size === 0
-  ) {
-    return;
-  }
-
-  unsubscribeFromFeatureFlags = client.onFeatureFlags(
-    (_flags, _variants, context) => {
-      notifyFeatureFlagSubscriptions(context?.errorsLoading === true);
-    },
-  );
 }
 
 /**
@@ -675,7 +617,6 @@ function bindClientAndApplyPending(posthog: PostHogInterface): void {
   applyPendingOrganization();
   applyPendingPageview();
   flushPendingAnalyticsEvents();
-  ensureFeatureFlagSubscription();
 }
 
 /**
@@ -797,7 +738,7 @@ export function initAnalytics(): void {
 }
 
 /**
- * Identify the authenticated account before evaluating person-targeted flags.
+ * Identify the authenticated account for product analytics.
  * Only the canonical user id and an internal-account boolean leave the client;
  * email addresses and other profile fields remain private.
  */
@@ -808,28 +749,6 @@ export function identifyAnalyticsUser(identity: AnalyticsUserIdentity): void {
 
   pendingIdentity = identity;
   applyPendingIdentity();
-}
-
-/**
- * Subscribe to PostHog boolean flags without coupling shared UI packages to the
- * PostHog SDK. Missing flags and loading failures resolve false (fail closed).
- */
-export function subscribeAnalyticsFeatureFlags(
-  keys: readonly string[],
-  listener: AnalyticsFeatureFlagListener,
-): () => void {
-  const subscription = { keys, listener };
-  featureFlagSubscriptions.add(subscription);
-  ensureFeatureFlagSubscription();
-
-  return () => {
-    featureFlagSubscriptions.delete(subscription);
-
-    if (featureFlagSubscriptions.size === 0 && unsubscribeFromFeatureFlags) {
-      unsubscribeFromFeatureFlags();
-      unsubscribeFromFeatureFlags = null;
-    }
-  };
 }
 
 /**
@@ -956,7 +875,6 @@ export function resetAnalytics(): void {
 
 /** Test-only hook to reset module singleton state between cases. */
 export function __resetAnalyticsForTests(): void {
-  unsubscribeFromFeatureFlags?.();
   clearPendingAnalyticsEvents();
   client = null;
   hasInitStarted = false;
@@ -967,7 +885,5 @@ export function __resetAnalyticsForTests(): void {
   pendingPageview = null;
   shouldEnsureAnonymous = false;
   shouldResetAnalytics = false;
-  unsubscribeFromFeatureFlags = null;
   capturedOnceKeys.clear();
-  featureFlagSubscriptions.clear();
 }

@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
@@ -17,7 +17,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     MediaReadinessModule,
-    FeatureFlagModule,
+    PlatformSettingsModule,
     TypedDecisionsModule,
   ],
   providers: [MediaAssessmentService],

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -42,6 +43,7 @@ type CreateAdSetBody = AdsGatewayAdapterContextInput & CreateAdSetInput;
 type CreateAdBody = AdsGatewayAdapterContextInput & CreateAdInput;
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('ads')
 @UseGuards(RolesGuard)
 export class AdsGatewayWriteController {

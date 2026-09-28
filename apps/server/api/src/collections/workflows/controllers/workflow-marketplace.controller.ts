@@ -1,5 +1,6 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -29,6 +30,7 @@ type WorkflowTemplates = Awaited<
  * cascade behind `WorkflowsService.publishToMarketplace`.
  */
 @AutoSwagger()
+@FeatureFlag('automation')
 @Controller('workflows')
 export class WorkflowMarketplaceController {
   constructor(

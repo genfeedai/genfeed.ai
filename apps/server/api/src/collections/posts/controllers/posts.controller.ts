@@ -17,6 +17,7 @@ import { createPost } from '@api/collections/posts/handlers/post-create.handler'
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -63,6 +64,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsController extends BaseCRUDController<

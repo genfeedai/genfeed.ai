@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Reply Bot Module
  *
@@ -64,7 +64,7 @@ import { Module } from '@nestjs/common';
     SocialMonitorService,
   ],
   imports: [
-    FeatureFlagModule,
+    PlatformSettingsModule,
     // Configuration
     ConfigModule,
     LoggerModule,

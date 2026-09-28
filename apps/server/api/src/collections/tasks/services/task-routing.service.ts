@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
@@ -7,7 +8,6 @@ import {
   type TaskOutputTypeSource,
 } from '@api/collections/tasks/schemas/task.schema';
 import { resolveTaskRoutingDecisionRollout } from '@api/collections/tasks/services/task-routing-decision.config';
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { Injectable } from '@nestjs/common';
 
@@ -186,7 +186,7 @@ export class TaskRoutingService {
   constructor(
     private readonly skillsService: SkillsService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   async buildRoutingDecision(
@@ -285,7 +285,7 @@ export class TaskRoutingService {
     };
 
     const { minConfidence, mode } = resolveTaskRoutingDecisionRollout(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (mode === 'off' || request.trim().length === 0) {

@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MediaTextDecisionService,
@@ -61,7 +61,7 @@ function makeHarness(
   const findFirst = vi
     .fn()
     .mockResolvedValue(options.existing ? { id: 'decision-1' } : null);
-  const featureSettingsService = {
+  const platformSettingsService = {
     getFeatureSettings: vi.fn(async () => ({
       ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       mediaTextGateDecisionMode: options.mode ?? 'live',
@@ -99,7 +99,7 @@ function makeHarness(
       decide,
       isProviderBound: vi.fn().mockResolvedValue(options.isBound ?? true),
     } as unknown as TypedDecisionService,
-    featureSettingsService as unknown as PlatformFeatureSettingsService,
+    platformSettingsService as unknown as PlatformSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
   );
   return { decide, ingredientFindMany, service, upsert };

@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -16,6 +17,7 @@ import { ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsRetryController {

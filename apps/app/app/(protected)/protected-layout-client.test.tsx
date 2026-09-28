@@ -3,30 +3,28 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('app/(protected)/protected-layout-client.tsx', () => {
-  it('installs canonical core-app fallbacks at the protected shell boundary', () => {
+  it('feeds the Admin platform flags to the shell, not PostHog (#5468)', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
       'utf8',
     );
     expect(source).toContain('export ');
-    expect(source).toContain('getCoreAppFeatureFlagFallbacks');
-    expect(source).toContain('fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}');
-    expect(source).toContain('overrides={remoteFeatureFlags}');
+    expect(source).toContain('usePlatformFlags(');
+    expect(source).toContain('initialBootstrap?.platformFlags');
+    expect(source).toContain('<FeatureFlagProvider defaults={platformFlags}>');
+    expect(source).not.toContain('subscribeAnalyticsFeatureFlags');
+    expect(source).toContain("endsWith('@genfeed.ai')");
   });
 
-  it('identifies authenticated users before subscribing to PostHog flags', () => {
+  it('gates module routes outside the shell error boundaries', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
       'utf8',
     );
-    expect(source.indexOf('identifyAnalyticsUser({')).toBeGreaterThan(-1);
-    expect(source.indexOf('subscribeAnalyticsFeatureFlags(')).toBeGreaterThan(
-      source.indexOf('identifyAnalyticsUser({'),
+    expect(source.indexOf('<PlatformModuleRouteGate>')).toBeGreaterThan(-1);
+    expect(source.indexOf('<PlatformModuleRouteGate>')).toBeLessThan(
+      source.indexOf('<AppProtectedLayout'),
     );
-    expect(source).toContain("endsWith('@genfeed.ai')");
-    // The subscribed key list lives beside the fallbacks in `@/lib/core-apps`
-    // and is pinned by its own test.
-    expect(source).toContain('REMOTE_FEATURE_FLAG_KEYS');
   });
 
   it('gates the protected provider tree on confirmed routed organization context', () => {

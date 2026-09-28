@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -27,6 +28,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Agent Transfers')
+@FeatureFlag('agent')
 @Controller('agent/transfers')
 export class AgentTransfersController {
   constructor(

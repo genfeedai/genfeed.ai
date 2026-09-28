@@ -5,17 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Every APP_RAIL_FEATURE_FLAGS key must be listed: the mock falls back to
 // `true`, so a missing key silently keeps its item visible and the
-// no-modules-released case can never reach zero.
+// no-modules-released case could never reach Workspace alone.
 const featureFlags = vi.hoisted(() => ({
-  app_switcher_agent: true,
-  app_switcher_analytics: true,
-  app_switcher_automate: true,
-  app_switcher_library: true,
-  app_switcher_messages: true,
-  app_switcher_posts: true,
-  app_switcher_discover: true,
-  app_switcher_studio: true,
-  app_switcher_workspace: true,
+  agent: true,
+  analytics: true,
+  automation: true,
+  library: true,
+  messages: true,
+  publishing: true,
+  discovery: true,
+  studio: true,
 }));
 
 vi.mock('@genfeedai/hooks/feature-flags/provider', () => ({
@@ -120,15 +119,14 @@ vi.mock('@genfeedai/contracts/constants', () => {
       },
     },
     APP_RAIL_FEATURE_FLAGS: {
-      workspace: 'app_switcher_workspace',
-      agent: 'app_switcher_agent',
-      messages: 'app_switcher_messages',
-      automation: 'app_switcher_automate',
-      discovery: 'app_switcher_discover',
-      studio: 'app_switcher_studio',
-      library: 'app_switcher_library',
-      publishing: 'app_switcher_posts',
-      analytics: 'app_switcher_analytics',
+      agent: 'agent',
+      messages: 'messages',
+      automation: 'automation',
+      discovery: 'discovery',
+      studio: 'studio',
+      library: 'library',
+      publishing: 'publishing',
+      analytics: 'analytics',
     },
     createBrandAppRoute: (
       orgSlug: string,
@@ -159,7 +157,6 @@ describe('AppRail', () => {
   });
 
   it('registers visible apps in rail order and routes palette actions through the same resolver', () => {
-    featureFlags.app_switcher_workspace = false;
     const onNavigationEvent = vi.fn();
     const { unmount } = render(
       <AppRail
@@ -174,6 +171,7 @@ describe('AppRail', () => {
     const registered = commands.registerCommands.mock.lastCall?.[0] ?? [];
     expect(registered.map((entry) => entry.label)).toEqual([
       'Go to Agent',
+      'Go to Workspace',
       'Go to Studio',
       'Go to Library',
       'Go to Publishing',
@@ -182,9 +180,9 @@ describe('AppRail', () => {
       'Go to Analytics',
       'Go to Automation',
     ]);
-    expect(registered[1].shortcut).toEqual(['G', '2']);
+    expect(registered[2].shortcut).toEqual(['G', '3']);
     act(() => {
-      registered[1].action();
+      registered[2].action();
     });
     expect(router.push).toHaveBeenCalledWith(
       '/acme/selected/studio/generate?taskId=t1&thread=one',
@@ -513,9 +511,9 @@ describe('AppRail', () => {
   });
 
   it('drops the divider when every secondary app is hidden', () => {
-    featureFlags.app_switcher_discover = false;
-    featureFlags.app_switcher_analytics = false;
-    featureFlags.app_switcher_automate = false;
+    featureFlags.discovery = false;
+    featureFlags.analytics = false;
+    featureFlags.automation = false;
 
     render(<AppRail orgSlug="acme" />);
 
@@ -523,7 +521,7 @@ describe('AppRail', () => {
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
-    featureFlags.app_switcher_studio = false;
+    featureFlags.studio = false;
 
     render(<AppRail orgSlug="acme" />);
 
@@ -534,11 +532,11 @@ describe('AppRail', () => {
   });
 
   it('independently hides every module whose discovery flag is disabled', () => {
-    featureFlags.app_switcher_messages = false;
-    featureFlags.app_switcher_automate = false;
-    featureFlags.app_switcher_discover = false;
-    featureFlags.app_switcher_library = false;
-    featureFlags.app_switcher_analytics = false;
+    featureFlags.messages = false;
+    featureFlags.automation = false;
+    featureFlags.discovery = false;
+    featureFlags.library = false;
+    featureFlags.analytics = false;
 
     render(<AppRail orgSlug="acme" />);
 
@@ -560,7 +558,7 @@ describe('AppRail', () => {
     }
   });
 
-  it('renders no app links when no modules are released', () => {
+  it('keeps only Workspace when every module is switched off', () => {
     for (const key of Object.keys(featureFlags) as Array<
       keyof typeof featureFlags
     >) {
@@ -569,7 +567,8 @@ describe('AppRail', () => {
 
     render(<AppRail orgSlug="acme" />);
 
-    expect(screen.queryAllByRole('link')).toHaveLength(0);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Workspace' })).toBeInTheDocument();
   });
 
   it('renders the admin app only when enabled', () => {

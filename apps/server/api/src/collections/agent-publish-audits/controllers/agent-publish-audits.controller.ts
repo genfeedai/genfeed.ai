@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AgentPublishAuditsQueryDto } from '@api/collections/agent-publish-audits/dto/agent-publish-audits-query.dto';
 import type { AgentPublishAuditScope } from '@api/collections/agent-publish-audits/schemas/agent-publish-audit.schema';
 import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -21,6 +22,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('AgentPublishAudits')
+@FeatureFlag('agent')
 @Controller('agent-publish-audits')
 export class AgentPublishAuditsController {
   constructor(

@@ -1,4 +1,4 @@
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { hasPendingArtefacts } from '@api/services/media-perception/media-perception.record';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
@@ -94,13 +94,13 @@ export class MediaTextDecisionService {
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
   private async getGateSettings(): Promise<TypedDecisionRolloutSettings> {
     return resolveMediaTextGateSettings(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
   }
 

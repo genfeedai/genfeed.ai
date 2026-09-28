@@ -28,6 +28,7 @@ import {
   isWorkflowInputNodeType,
   isWorkflowOutputNode,
 } from '@api/collections/workflows/workflow-node-predicates';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -46,6 +47,7 @@ import type { Request } from 'express';
  * validation helpers. Split out of the former monolithic `WorkflowsController`.
  */
 @AutoSwagger()
+@FeatureFlag('automation')
 @Controller('workflows')
 export class WorkflowBuilderController {
   constructor(

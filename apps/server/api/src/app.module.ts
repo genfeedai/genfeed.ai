@@ -19,6 +19,7 @@ import { RequestContextModule } from '@api/common/request-context.module';
 import { DevModule } from '@api/endpoints/dev/dev.module';
 import { DocsModule } from '@api/endpoints/docs/docs.module';
 import { SystemModule } from '@api/endpoints/system/system.module';
+import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
@@ -90,6 +91,11 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_GUARD,
       useClass: CombinedAuthGuard,
+    },
+    // After auth: an Admin module/feature flag that is off answers 404 (#5468).
+    {
+      provide: APP_GUARD,
+      useExisting: FeatureFlagGuard,
     },
     {
       provide: APP_INTERCEPTOR,

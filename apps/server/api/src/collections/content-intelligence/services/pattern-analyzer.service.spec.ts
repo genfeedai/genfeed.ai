@@ -9,7 +9,7 @@ import {
   PatternAnalyzerService,
 } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
@@ -95,7 +95,7 @@ function makeService() {
     mockCreatorScraperService as unknown as CreatorScraperService,
     mockPatternStoreService as unknown as PatternStoreService,
     mockTypedDecisionService as unknown as TypedDecisionService,
-    mockPlatformSettingsService as unknown as PlatformFeatureSettingsService,
+    mockPlatformSettingsService as unknown as PlatformSettingsService,
   );
 }
 

@@ -3,6 +3,7 @@ import {
   ADMIN_RAIL_APP,
   APP_RAIL_REGISTRY,
   getActiveAppId,
+  getAppRailFlagKeyForPath,
   getAppRailHref,
   resolveAppRailHref,
 } from './app-rail.registry';
@@ -63,5 +64,27 @@ describe('app rail registry', () => {
       getActiveAppId(APP_RAIL_REGISTRY, '/settings/personal'),
     ).toBeUndefined();
     expect(getActiveAppId([ADMIN_RAIL_APP], '/admin/users')).toBe('admin');
+  });
+
+  it('maps a route to the module flag that gates it (#5468)', () => {
+    expect(getAppRailFlagKeyForPath('/acme/brand/studio/clips')).toBe('studio');
+    expect(getAppRailFlagKeyForPath('/acme/~/messages/replies')).toBe(
+      'messages',
+    );
+    expect(getAppRailFlagKeyForPath('/acme/brand/publishing/review')).toBe(
+      'publishing',
+    );
+    // Workspace is the home and has no flag; non-module routes have none.
+    expect(getAppRailFlagKeyForPath('/acme/brand/workspace')).toBeUndefined();
+    expect(getAppRailFlagKeyForPath('/settings/personal')).toBeUndefined();
+    expect(getAppRailFlagKeyForPath('/admin/users')).toBeUndefined();
+  });
+
+  it('gates every app except Workspace with a module flag', () => {
+    expect(
+      APP_RAIL_REGISTRY.filter((app) => !app.visibilityFlagKey).map(
+        (app) => app.id,
+      ),
+    ).toEqual(['workspace']);
   });
 });

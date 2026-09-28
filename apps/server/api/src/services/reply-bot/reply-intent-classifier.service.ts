@@ -1,4 +1,4 @@
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 /**
  * Reply-bot comment intent, as a typed decision (#4866, epic #4863).
  *
@@ -100,7 +100,7 @@ export class ReplyIntentClassifierService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
     private readonly typedDecisionService: TypedDecisionService,
   ) {}
@@ -120,7 +120,7 @@ export class ReplyIntentClassifierService {
 
     const regexIntent = classifyReplyIntent(params.commentText);
     const settings = resolveReplyIntentDecisionSettings(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (settings.mode === 'off') {

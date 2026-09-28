@@ -648,8 +648,8 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
 }
 
 /**
- * Point Better Auth's email-verification options at the current
- * `require_email_verification` PostHog flag (#5468).
+ * Point Better Auth's email-verification options at the operator's current
+ * platform setting (#5407).
  *
  * Better Auth reads these options from its auth context on every request
  * (sign-up, sign-in, the username plugin), never caching them at boot. The

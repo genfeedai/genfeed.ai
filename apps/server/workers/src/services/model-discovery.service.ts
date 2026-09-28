@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
-import { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ServerModelRecord } from '@api/index';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
@@ -129,7 +129,7 @@ export class ModelDiscoveryService {
     private readonly modelPricingService: ModelPricingService,
     private readonly configService: ConfigService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly featureSettingsService: PlatformFeatureSettingsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   /**
@@ -404,7 +404,7 @@ export class ModelDiscoveryService {
       ? 'output-schema'
       : 'keyword';
     const { minConfidence, mode } = resolveModelDiscoveryDecisionSettings(
-      await this.featureSettingsService.getFeatureSettings(),
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (mode === 'off') {

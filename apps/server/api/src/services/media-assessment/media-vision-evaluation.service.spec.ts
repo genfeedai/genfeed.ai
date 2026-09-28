@@ -1,4 +1,4 @@
-import type { PlatformFeatureSettingsService } from '@api/feature-flag/platform-feature-settings.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
   MediaVisionEvaluationService,
@@ -101,7 +101,7 @@ function makeHarness(
         ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
         mediaGateVisionMode: options.mode ?? 'live',
       })),
-    } as unknown as PlatformFeatureSettingsService,
+    } as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
   return {
