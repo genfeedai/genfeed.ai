@@ -295,6 +295,9 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.getByRole('button', { name: 'Reschedule Instagram target' }),
     ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('LinkedIn time'), {
+      target: { value: '2026-08-03T16:00' },
+    });
     expect(
       screen.getByRole('button', { name: 'Reschedule LinkedIn target' }),
     ).toBeEnabled();
