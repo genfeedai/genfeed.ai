@@ -36,8 +36,6 @@ export interface OpenRouterMessageContentPart {
   type: string;
   text?: string;
   image_url?: { url: string };
-  /** https://openrouter.ai/docs/guides/overview/multimodal/videos */
-  video_url?: { url: string };
 }
 
 export interface OpenRouterMessage {

@@ -2,6 +2,7 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ByokProvider } from '@genfeedai/contracts';
@@ -19,6 +20,10 @@ describe('EvaluationsOperationsService', () => {
   let loggerService: LoggerService;
 
   const mockServices = {
+    filesClientService: {
+      extractMetadataFromUrl: vi.fn(),
+      generateThumbnail: vi.fn(),
+    },
     configService: {
       get: vi.fn((key?: string) => {
         if (key === 'MAX_TOKENS') {
@@ -61,6 +66,10 @@ describe('EvaluationsOperationsService', () => {
           useValue: mockServices.promptBuilderService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
+        {
+          provide: FilesClientService,
+          useValue: mockServices.filesClientService,
+        },
       ],
     }).compile();
 
@@ -133,6 +142,71 @@ describe('EvaluationsOperationsService', () => {
   describe('evaluateVideo', () => {
     const organizationId = testId('org');
 
+    beforeEach(() => {
+      mockServices.filesClientService.extractMetadataFromUrl.mockResolvedValue({
+        duration: 20,
+      });
+      mockServices.filesClientService.generateThumbnail.mockImplementation(
+        (_url: string, frameId: string) =>
+          Promise.resolve({
+            ingredientId: frameId,
+            thumbnailUrl: `https://cdn.test/${frameId}.jpg`,
+          }),
+      );
+    });
+
+    it('evaluates sampled frames as images and never sends the video to the text model', async () => {
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify({ overallScore: 70 }),
+      );
+
+      await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        { prompt: 'Test prompt' },
+        organizationId,
+      );
+
+      const thumbnailCalls =
+        mockServices.filesClientService.generateThumbnail.mock.calls;
+      expect(thumbnailCalls.map((call) => call[2])).toEqual([
+        2.5, 7.5, 12.5, 17.5,
+      ]);
+      for (const call of thumbnailCalls) {
+        expect(call[0]).toBe('https://example.com/video.mp4');
+        expect(call[1]).toMatch(/^evaluation-frame-/);
+      }
+      const [model, input] =
+        mockServices.replicateService.generateTextCompletionSync.mock.calls[0];
+      expect(model).toBe(DEFAULT_TEXT_MODEL);
+      expect(input).not.toHaveProperty('videos');
+      expect(input.images).toEqual(
+        thumbnailCalls.map((call) => `https://cdn.test/${call[1]}.jpg`),
+      );
+    });
+
+    it('fails without billing when frames cannot be sampled', async () => {
+      mockServices.filesClientService.extractMetadataFromUrl.mockResolvedValue(
+        {},
+      );
+      const onBilling = vi.fn();
+
+      await expect(
+        service.evaluateVideo(
+          'https://example.com/video.mp4',
+          {},
+          organizationId,
+          onBilling,
+        ),
+      ).rejects.toThrow(ExternalServiceException);
+      expect(
+        mockServices.replicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+      expect(onBilling).not.toHaveBeenCalled();
+    });
+
     it('should evaluate video content', async () => {
       const mockAiResponse = {
         overallScore: 85,
@@ -181,6 +255,7 @@ describe('EvaluationsOperationsService', () => {
         undefined as unknown as string,
         undefined as unknown as string,
         loggerService,
+        undefined as unknown as FilesClientService,
       );
 
       await expect(

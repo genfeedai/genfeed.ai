@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -7,6 +8,7 @@ import {
   type TextByokDispatch,
   textDispatchApiKey,
 } from '@api/services/byok/text-dispatch-byok.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -43,8 +45,7 @@ interface EvaluationConfig {
   promptTemplate: PromptTemplateKey;
   contentType: string;
   maxContentLength: number;
-  mediaKey?: 'videos' | 'images';
-  mediaUrl?: string;
+  imageUrls?: string[];
 }
 
 interface EvaluationResponsePayload {
@@ -70,6 +71,13 @@ interface EvaluationResponsePayload {
   weaknesses?: string[];
 }
 
+/**
+ * The evaluation model reads images, not video, so a video is evaluated from
+ * frames sampled evenly across its duration.
+ */
+const VIDEO_EVALUATION_FRAME_COUNT = 4;
+const VIDEO_EVALUATION_FRAME_WIDTH = 512;
+
 type EvaluationPromptOptions = PromptBuilderParams & {
   isThread?: boolean;
   label?: string;
@@ -86,6 +94,7 @@ export class EvaluationsOperationsService {
     private readonly replicateService: ReplicateService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly logger: LoggerService,
+    private readonly filesClientService: FilesClientService,
   ) {}
 
   private toEvaluationResponsePayload(
@@ -170,11 +179,9 @@ export class EvaluationsOperationsService {
         organizationId,
       )) || { input: {} };
 
-      // Add media if provided
-      const finalInput =
-        config.mediaKey && config.mediaUrl
-          ? { ...input, [config.mediaKey]: [config.mediaUrl] }
-          : input;
+      const finalInput = config.imageUrls?.length
+        ? { ...input, images: config.imageUrls }
+        : input;
 
       const responseText =
         await this.replicateService.generateTextCompletionSync(
@@ -206,7 +213,7 @@ export class EvaluationsOperationsService {
     }
   }
 
-  evaluateVideo(
+  async evaluateVideo(
     videoUrl: string,
     context: EvaluationContext = {},
     organizationId: string,
@@ -219,14 +226,49 @@ export class EvaluationsOperationsService {
       organizationId,
       {
         contentType: 'Video',
+        imageUrls: await this.sampleVideoFrames(videoUrl),
         maxContentLength: 4000,
-        mediaKey: 'videos',
-        mediaUrl: videoUrl,
         promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
       },
       onBilling,
       byok,
     );
+  }
+
+  /**
+   * Frames at the midpoints of equal slices of the video. Each frame gets its
+   * own thumbnail id so it never overwrites the video's own thumbnail.
+   */
+  private async sampleVideoFrames(videoUrl: string): Promise<string[]> {
+    try {
+      const { duration } =
+        await this.filesClientService.extractMetadataFromUrl(videoUrl);
+      if (!duration || !Number.isFinite(duration) || duration <= 0) {
+        throw new Error('Video duration could not be read');
+      }
+      const frameUrls: string[] = [];
+      for (let index = 0; index < VIDEO_EVALUATION_FRAME_COUNT; index += 1) {
+        const { thumbnailUrl } =
+          (await this.filesClientService.generateThumbnail(
+            videoUrl,
+            `evaluation-frame-${randomUUID()}`,
+            (duration * (index + 0.5)) / VIDEO_EVALUATION_FRAME_COUNT,
+            VIDEO_EVALUATION_FRAME_WIDTH,
+          )) as { thumbnailUrl?: unknown };
+        if (typeof thumbnailUrl !== 'string' || !thumbnailUrl) {
+          throw new Error('Frame extraction returned no image');
+        }
+        frameUrls.push(thumbnailUrl);
+      }
+      return frameUrls;
+    } catch (error: unknown) {
+      this.logger.error('Video frame sampling failed', { error });
+      throw new ExternalServiceException(
+        'Files',
+        'Video frame sampling failed',
+        error,
+      );
+    }
   }
 
   evaluateImage(
@@ -242,9 +284,8 @@ export class EvaluationsOperationsService {
       organizationId,
       {
         contentType: 'Image',
+        imageUrls: [imageUrl],
         maxContentLength: 4000,
-        mediaKey: 'images',
-        mediaUrl: imageUrl,
         promptTemplate: PromptTemplateKey.EVALUATION_IMAGE,
       },
       onBilling,

@@ -605,7 +605,7 @@ describe('ReplicateService', () => {
       );
     });
 
-    it('sends image and video inputs to OpenRouter as multimodal user content', async () => {
+    it('sends image inputs to OpenRouter as multimodal user content', async () => {
       const chatCompletion = vi.fn().mockResolvedValue({
         choices: [{ message: { content: '{}' } }],
       });
@@ -615,7 +615,6 @@ describe('ReplicateService', () => {
         images: ['https://cdn.test/image.png'],
         prompt: 'Evaluate this asset',
         system_prompt: 'You are an evaluator.',
-        videos: ['https://cdn.test/video.mp4'],
       });
 
       expect(chatCompletion).toHaveBeenCalledWith(
@@ -628,10 +627,6 @@ describe('ReplicateService', () => {
                 {
                   image_url: { url: 'https://cdn.test/image.png' },
                   type: 'image_url',
-                },
-                {
-                  type: 'video_url',
-                  video_url: { url: 'https://cdn.test/video.mp4' },
                 },
               ],
               role: 'user',
@@ -677,6 +672,19 @@ describe('ReplicateService', () => {
           role: 'user',
         },
       ]);
+    });
+
+    it('never sends video to a text model', async () => {
+      const chatCompletion = vi.fn();
+      const { service } = createHarness({}, { chatCompletion });
+
+      await expect(
+        service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+          prompt: 'Evaluate this asset',
+          videos: ['https://cdn.test/video.mp4'],
+        }),
+      ).rejects.toThrow('cannot read video');
+      expect(chatCompletion).not.toHaveBeenCalled();
     });
 
     it('rejects media inputs it cannot send instead of completing without them', async () => {

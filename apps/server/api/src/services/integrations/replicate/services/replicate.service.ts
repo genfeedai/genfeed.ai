@@ -81,8 +81,6 @@ function isOpenRouterContentPart(
       return typeof part.text === 'string';
     case 'image_url':
       return hasMediaUrl(part.image_url);
-    case 'video_url':
-      return hasMediaUrl(part.video_url);
     default:
       return false;
   }
@@ -107,36 +105,33 @@ function isOpenRouterMessage(value: unknown): value is OpenRouterMessage {
 }
 
 /**
- * Replicate-shaped `images` / `videos` URL lists as OpenRouter content parts
- * (OpenAI-compatible `image_url`, OpenRouter `video_url`). An entry that is
- * not a URL string fails the call: evaluating without the asset would bill a
- * blind answer.
+ * Replicate-shaped `images` URLs as OpenAI-compatible `image_url` parts.
+ * Media the call cannot send fails it: completing without the asset would
+ * bill a blind answer. Text models take no video; callers send sampled frames
+ * as images instead.
  */
-function toMediaContentParts(
+function toImageContentParts(
   input: Record<string, unknown>,
 ): OpenRouterMessageContentPart[] {
-  const parts: OpenRouterMessageContentPart[] = [];
-  for (const key of ['images', 'videos'] as const) {
-    const value = input[key];
-    if (value === undefined) {
-      continue;
-    }
-    const urls = typeof value === 'string' ? [value] : value;
-    if (
-      !Array.isArray(urls) ||
-      !urls.every((url) => typeof url === 'string' && url.length > 0)
-    ) {
-      throw new Error(`Text completion ${key} must be URL strings`);
-    }
-    for (const url of urls as string[]) {
-      parts.push(
-        key === 'images'
-          ? { image_url: { url }, type: 'image_url' }
-          : { type: 'video_url', video_url: { url } },
-      );
-    }
+  if (input.videos !== undefined) {
+    throw new Error(
+      'Text completion cannot read video; send sampled frames as images',
+    );
   }
-  return parts;
+  if (input.images === undefined) {
+    return [];
+  }
+  const urls = typeof input.images === 'string' ? [input.images] : input.images;
+  if (
+    !Array.isArray(urls) ||
+    !urls.every((url) => typeof url === 'string' && url.length > 0)
+  ) {
+    throw new Error('Text completion images must be URL strings');
+  }
+  return (urls as string[]).map((url) => ({
+    image_url: { url },
+    type: 'image_url',
+  }));
 }
 
 function withMediaContent(
@@ -542,7 +537,7 @@ export class ReplicateService {
   private toOpenRouterMessages(
     input: Record<string, unknown>,
   ): OpenRouterMessage[] {
-    const mediaParts = toMediaContentParts(input);
+    const mediaParts = toImageContentParts(input);
     if (Array.isArray(input.messages)) {
       return withMediaContent(
         input.messages.filter(isOpenRouterMessage),
