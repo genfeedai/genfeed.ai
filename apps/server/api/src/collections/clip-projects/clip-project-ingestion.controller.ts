@@ -12,6 +12,7 @@ import {
   ClipProjectIngestionService,
   type PrepareClipUploadResult,
 } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import { ClipProjectLibrarySourceService } from '@api/collections/clip-projects/services/clip-project-library-source.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -44,6 +45,7 @@ export class ClipProjectIngestionController {
     readonly _loggerService: LoggerService,
     private readonly clipProjectIngestionService: ClipProjectIngestionService,
     private readonly clipProjectsService: ClipProjectsService,
+    private readonly clipProjectLibrarySourceService: ClipProjectLibrarySourceService,
   ) {}
 
   @Post('drafts')
@@ -99,7 +101,7 @@ export class ClipProjectIngestionController {
     @CurrentUser() user: User,
     @Body() dto: CreateClipProjectFromIngredientDto,
   ): Promise<ClipProjectAnalysisResult> {
-    return this.clipProjectIngestionService.createFromIngredient(user, dto);
+    return this.clipProjectLibrarySourceService.createFromIngredient(user, dto);
   }
 
   @Post('from-youtube')

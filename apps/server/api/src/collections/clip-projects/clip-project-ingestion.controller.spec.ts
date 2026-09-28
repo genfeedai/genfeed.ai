@@ -7,6 +7,7 @@ import { PrepareClipUploadDto } from '@api/collections/clip-projects/dto/prepare
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { UpdateClipProjectDraftDto } from '@api/collections/clip-projects/dto/update-clip-project-draft.dto';
 import type { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import type { ClipProjectLibrarySourceService } from '@api/collections/clip-projects/services/clip-project-library-source.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
@@ -19,10 +20,10 @@ describe('ClipProjectIngestionController', () => {
   };
   let controller: ClipProjectIngestionController;
   let clipProjectsService: { saveDraft: ReturnType<typeof vi.fn> };
+  let librarySourceService: { createFromIngredient: ReturnType<typeof vi.fn> };
   let ingestionService: {
     analyzeYoutube: ReturnType<typeof vi.fn>;
     createDraft: ReturnType<typeof vi.fn>;
-    createFromIngredient: ReturnType<typeof vi.fn>;
     createFromYoutube: ReturnType<typeof vi.fn>;
     finalizeUpload: ReturnType<typeof vi.fn>;
     prepareUpload: ReturnType<typeof vi.fn>;
@@ -37,6 +38,13 @@ describe('ClipProjectIngestionController', () => {
         status: 'draft',
       }),
     };
+    librarySourceService = {
+      createFromIngredient: vi.fn().mockResolvedValue({
+        identity: { source: 'missing' },
+        projectId: 'project-2',
+        status: 'analyzing',
+      }),
+    };
     ingestionService = {
       analyzeYoutube: vi.fn().mockResolvedValue({
         identity: { source: 'missing' },
@@ -47,11 +55,6 @@ describe('ClipProjectIngestionController', () => {
         draft: { sourceKind: 'youtube' },
         id: 'draft-1',
         status: 'draft',
-      }),
-      createFromIngredient: vi.fn().mockResolvedValue({
-        identity: { source: 'missing' },
-        projectId: 'project-2',
-        status: 'analyzing',
       }),
       createFromYoutube: vi.fn().mockResolvedValue({
         batchJobId: 'clip-factory-project-1',
@@ -83,6 +86,7 @@ describe('ClipProjectIngestionController', () => {
       {} as LoggerService,
       ingestionService as unknown as ClipProjectIngestionService,
       clipProjectsService as unknown as ClipProjectsService,
+      librarySourceService as unknown as ClipProjectLibrarySourceService,
     );
   });
 
@@ -137,7 +141,7 @@ describe('ClipProjectIngestionController', () => {
     await expect(
       controller.createFromIngredient(currentUser as never, dto),
     ).resolves.toMatchObject({ projectId: 'project-2', status: 'analyzing' });
-    expect(ingestionService.createFromIngredient).toHaveBeenCalledWith(
+    expect(librarySourceService.createFromIngredient).toHaveBeenCalledWith(
       currentUser,
       dto,
     );
