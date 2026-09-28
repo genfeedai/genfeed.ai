@@ -30,6 +30,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 const MODE_OPTIONS: Array<{
@@ -59,6 +60,7 @@ const MODE_OPTIONS: Array<{
 ];
 
 export default function StoryboardWorkspace() {
+  const translate = useTranslations('pages.studioStoryboard');
   const { openGallery } = useGalleryModal();
   const {
     addMergeVideos,
@@ -207,8 +209,8 @@ export default function StoryboardWorkspace() {
 
           {mode === 'interpolate' ? (
             <Card
-              label="Auto-merge"
-              description="The finished transitions are merged into one video with these settings."
+              label={translate('autoMerge.label')}
+              description={translate('autoMerge.description')}
             >
               <MergeSettingsPanel
                 isDisabled={isStoryboardGenerating}

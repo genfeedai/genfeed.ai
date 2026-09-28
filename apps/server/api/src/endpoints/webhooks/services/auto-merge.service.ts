@@ -1,12 +1,17 @@
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
-import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
+import type {
+  VideoStitchHandle,
+  VideoStitchRequest,
+} from '@api/services/video-stitch/video-stitch.types';
 import { readVideoMergeSettings } from '@api/services/video-stitch/video-stitch.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
 const COMPLETED_STATUSES: string[] = [
@@ -48,6 +53,7 @@ export class AutoMergeService {
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly videoStitchService: VideoStitchService,
+    private readonly websocketService: NotificationsPublisherService,
   ) {}
 
   /**
@@ -124,7 +130,21 @@ export class AutoMergeService {
       return;
     }
 
-    const handle = await this.videoStitchService.stitch(request);
+    let handle: VideoStitchHandle;
+    try {
+      handle = await this.videoStitchService.stitch(request);
+    } catch (error: unknown) {
+      // A refused stitch creates no output, so tell the batch owner directly.
+      await this.websocketService.publishBackgroundTaskUpdate({
+        error: getErrorMessage(error),
+        label: 'Merge failed',
+        room: getUserRoomName(request.userId),
+        status: 'failed',
+        taskId: request.idempotencyKey,
+        userId: request.userId,
+      });
+      throw error;
+    }
     if (handle.isExisting) {
       return;
     }

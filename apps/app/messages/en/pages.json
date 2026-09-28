@@ -547,6 +547,12 @@
     "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
     "title": "Batch Workflow Runner"
   },
+  "studioStoryboard": {
+    "autoMerge": {
+      "description": "The finished transitions are merged into one video with these settings.",
+      "label": "Auto-merge"
+    }
+  },
   "studioGenerate": {
     "scenes": {
       "title": "Original ad scenes",

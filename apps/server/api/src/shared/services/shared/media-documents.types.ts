@@ -60,6 +60,7 @@ export interface MediaDocumentsInput {
   userId?: string;
   voiceSource?: string;
   width?: number;
+  workflowExecutionId?: string;
 }
 
 export interface InternalMediaDocumentsInput extends MediaDocumentsInput {

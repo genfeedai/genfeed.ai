@@ -12,12 +12,15 @@ export type VideoStitchAudioCodec = 'aac' | 'mp3';
 export type VideoStitchOutputQuality = 'full' | 'draft';
 
 export interface VideoStitchResult {
-  outputVideoUrl: string;
   jobId: string;
+  /** Output ingredient id, so batch output discovery resolves it by id. */
+  outputId: string;
+  outputVideoUrl: string;
 }
 
 export interface VideoStitchProcessorParams {
   brandId?: string;
+  executionId?: string;
   nodeId: string;
   organizationId: string;
   parentId?: string;
@@ -268,6 +271,7 @@ export class VideoStitchExecutor extends BaseExecutor {
 
     const result = await this.processor({
       brandId,
+      executionId: context.executionId,
       nodeId: node.id,
       organizationId: context.organizationId,
       parentId,
@@ -290,6 +294,7 @@ export class VideoStitchExecutor extends BaseExecutor {
 
     return {
       data: {
+        ingredientId: result.outputId,
         video: result.outputVideoUrl,
         videoUrl: result.outputVideoUrl,
       },

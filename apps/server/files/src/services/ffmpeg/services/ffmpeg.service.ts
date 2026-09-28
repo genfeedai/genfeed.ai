@@ -519,14 +519,16 @@ export class FFmpegService {
   async addCaptions(
     inputPath: string,
     outputPath: string,
-    captionsPath: string,
+    captionsPath: string | undefined,
     onProgress?: (progress: FFmpegProgress) => void,
+    options?: { muteVideoAudio?: boolean },
   ): Promise<void> {
     return this.effects.addCaptions(
       inputPath,
       outputPath,
       captionsPath,
       onProgress,
+      options,
     );
   }
 

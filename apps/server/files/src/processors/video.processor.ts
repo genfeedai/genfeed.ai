@@ -260,13 +260,18 @@ export class VideoProcessor extends WorkerHost {
       const captionsPath = path.join(tempPath, 'captions.srt');
 
       await this.downloadInput(params, inputPath);
-      fs.writeFileSync(captionsPath, params.captionContent || '');
+      const isMuted = params.isMuteVideoAudio === true;
+      const hasCaptions = Boolean(params.captionContent?.trim());
+      if (hasCaptions || !isMuted) {
+        fs.writeFileSync(captionsPath, params.captionContent || '');
+      }
 
       await this.ffmpegService.addCaptions(
         inputPath,
         outputPath,
-        captionsPath,
+        hasCaptions || !isMuted ? captionsPath : undefined,
         this.createProgressCallback(metadata.websocketUrl, userId, room),
+        isMuted ? { muteVideoAudio: true } : undefined,
       );
 
       const { s3Key, url } = await this.uploadAndEmitSuccess(

@@ -1,4 +1,5 @@
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
@@ -17,6 +18,7 @@ import type {
 } from '@api/services/video-stitch/video-stitch.types';
 import {
   buildVideoStitchJobParams,
+  isMuteDeferredToCaptions,
   readVideoMergeSettings,
   resolveStitchClipStorageKey,
   stitchRequestError,
@@ -137,6 +139,7 @@ export class VideoStitchService {
 
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
+    private readonly assetGateService: AssetGateService,
     private readonly captionsService: CaptionsService,
     private readonly fileQueueService: FileQueueService,
     private readonly loggerService: LoggerService,
@@ -181,6 +184,9 @@ export class VideoStitchService {
           status: IngredientStatus.PROCESSING,
           transformations: [TransformationCategory.MERGED],
           userId: request.userId,
+          ...(request.workflowExecutionId
+            ? { workflowExecutionId: request.workflowExecutionId }
+            : {}),
         });
       outputId = String(ingredientData.id);
     } catch (error: unknown) {
@@ -459,6 +465,10 @@ export class VideoStitchService {
       return this.toOutcome(context.jobId, output);
     }
 
+    // Completion bypasses IngredientsService.patch, so unlock the
+    // organization's first-asset gate here, before the client hears of it.
+    await this.assetGateService.markFirstAssetGenerated(context.organizationId);
+
     const room = getUserRoomName(context.roomUserId);
     const label = `Merged ${context.clipCount} videos`;
     await this.websocketService.publishVideoComplete(
@@ -618,6 +628,7 @@ export class VideoStitchService {
     if (!context.settings.isCaptionsEnabled) {
       return s3Key;
     }
+    const isMuteDeferred = isMuteDeferredToCaptions(context.settings);
     try {
       const captionContent = await this.whisperService.generateCaptions(
         context.outputId,
@@ -639,24 +650,10 @@ export class VideoStitchService {
           content: captionContent,
         });
       }
-      const job = await this.fileQueueService.processVideo({
-        ingredientId: context.outputId,
-        organizationId: context.organizationId,
-        params: { captionContent, s3Key },
-        room: getUserRoomName(context.roomUserId),
-        type: FILE_JOB_TYPES.ADD_CAPTIONS,
-        userId: context.userId,
-        websocketUrl: WebSocketPaths.video(context.outputId),
-      });
-      const result = captionsResult.parse(
-        await this.fileQueueService.waitForJob(
-          job.jobId,
-          CAPTIONS_JOB_TIMEOUT_MS,
-        ),
-      );
-      return result.s3Key;
+      return await this.runCaptionsJob(context, s3Key, captionContent);
     } catch (error: unknown) {
-      // Captions are best effort: the uncaptioned merge is still delivered.
+      // Captions are best effort: the uncaptioned merge is still delivered,
+      // muted when the request asked for it.
       this.loggerService.error(
         `${this.logContext} captions failed; delivering uncaptioned output`,
         {
@@ -666,8 +663,38 @@ export class VideoStitchService {
           outputId: context.outputId,
         },
       );
-      return s3Key;
+      return isMuteDeferred ? this.runCaptionsJob(context, s3Key, '') : s3Key;
     }
+  }
+
+  /** Burns captions (and applies a deferred mute) onto the merged output. */
+  private async runCaptionsJob(
+    context: VideoStitchContext,
+    s3Key: string,
+    captionContent: string,
+  ): Promise<string> {
+    const job = await this.fileQueueService.processVideo({
+      ingredientId: context.outputId,
+      organizationId: context.organizationId,
+      params: {
+        captionContent,
+        ...(isMuteDeferredToCaptions(context.settings)
+          ? { isMuteVideoAudio: true }
+          : {}),
+        s3Key,
+      },
+      room: getUserRoomName(context.roomUserId),
+      type: FILE_JOB_TYPES.ADD_CAPTIONS,
+      userId: context.userId,
+      websocketUrl: WebSocketPaths.video(context.outputId),
+    });
+    const result = captionsResult.parse(
+      await this.fileQueueService.waitForJob(
+        job.jobId,
+        CAPTIONS_JOB_TIMEOUT_MS,
+      ),
+    );
+    return result.s3Key;
   }
 
   private async patchMetadata(

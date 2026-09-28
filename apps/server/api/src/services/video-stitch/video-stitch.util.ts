@@ -167,6 +167,18 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
   }
 }
 
+/**
+ * Captions are transcribed from the merged video, so a mute without music is
+ * applied after transcription (by the captions job) instead of in the merge.
+ */
+export function isMuteDeferredToCaptions(
+  settings: IVideoMergeSettings,
+): boolean {
+  return Boolean(
+    settings.isCaptionsEnabled && settings.isMuteVideoAudio && !settings.music,
+  );
+}
+
 /** Stored object the worker downloads for a clip. */
 export function resolveStitchClipStorageKey(clip: {
   category: string;
@@ -203,7 +215,8 @@ export function buildVideoStitchJobParams(
     ...(hasTransition && settings.transitionEaseCurve !== undefined
       ? { transitionEaseCurve: settings.transitionEaseCurve }
       : {}),
-    ...(settings.isMuteVideoAudio !== undefined
+    ...(settings.isMuteVideoAudio !== undefined &&
+    !isMuteDeferredToCaptions(settings)
       ? { isMuteVideoAudio: settings.isMuteVideoAudio }
       : {}),
     ...(settings.music ? { music: settings.music } : {}),

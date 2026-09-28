@@ -167,7 +167,11 @@ function workflow(
     let request: VideoStitchRequest | undefined;
     await createVideoStitchExecutor(async (params) => {
       request = toWorkflowStitchRequest(params, 'brand-1', params.videoUrls);
-      return { jobId: 'captured', outputVideoUrl: 'captured' };
+      return {
+        jobId: 'captured',
+        outputId: 'captured',
+        outputVideoUrl: 'captured',
+      };
     }).execute({
       context: {
         organizationId: 'org-1',

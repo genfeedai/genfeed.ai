@@ -46,6 +46,7 @@ export function toWorkflowStitchRequest(
     organizationId: params.organizationId,
     ...(params.parentId ? { parentId: params.parentId } : {}),
     ...(params.providerData ? { providerData: params.providerData } : {}),
+    ...(params.executionId ? { workflowExecutionId: params.executionId } : {}),
     settings: {
       transition: params.transition,
       ...(params.transitionDuration !== undefined
@@ -606,10 +607,10 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         ),
       );
 
-      // A node retry inside the same run reuses the output; a failed one is
-      // requeued rather than failing the retry immediately.
+      // A node rerun inside the same run reuses the output. `retry` requeues
+      // a failed one and re-enqueues a processing one whose job was lost.
       let handle = await videoStitchService.stitch(request);
-      if (handle.state === 'failed') {
+      if (handle.isExisting && handle.state !== 'generated') {
         handle = await videoStitchService.retry(request, handle);
       }
       const outcome = await videoStitchService.waitForCompletion(handle);
@@ -619,6 +620,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
 
       return {
         jobId: handle.jobId,
+        outputId: handle.outputId,
         outputVideoUrl: this.helper.buildVideoIngredientUrl(handle.outputId),
       };
     });

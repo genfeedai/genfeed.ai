@@ -211,6 +211,9 @@ const buildIngredientCreateDto = (
   ...(input.voiceSource !== undefined
     ? { voiceSource: input.voiceSource }
     : {}),
+  ...(input.workflowExecutionId !== undefined
+    ? { workflowExecutionId: input.workflowExecutionId }
+    : {}),
 });
 
 @Injectable()

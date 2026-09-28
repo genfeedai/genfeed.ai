@@ -41,6 +41,8 @@ export interface VideoStitchRequest {
   settings: IVideoMergeSettings;
   /** Requesting user, or the owning user a system caller acts for. */
   userId: string;
+  /** Workflow execution that produced the output, for output discovery. */
+  workflowExecutionId?: string;
 }
 
 export type VideoStitchState = 'processing' | 'generated' | 'failed';
