@@ -12,7 +12,10 @@ import {
   ITEMS_PER_PAGE,
 } from '@genfeedai/contracts/constants';
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
-import { getPublishingPostHref } from '@helpers/content/posts.helper';
+import {
+  getPublishingPostHref,
+  getPublishingReleaseHref,
+} from '@helpers/content/posts.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -300,6 +303,9 @@ export default function PublishingContentLibrary({
 
   const getDetailHref = useCallback(
     (item: PublishingContentLibraryItem) => {
+      if (item.release) {
+        return href(getPublishingReleaseHref(item.id));
+      }
       if (item.type === 'post') {
         return href(getPublishingPostHref(item.id));
       }

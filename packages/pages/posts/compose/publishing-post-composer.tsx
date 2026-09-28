@@ -186,6 +186,15 @@ export default function PublishingPostComposer() {
                 name="credentialId"
                 control={form.control}
                 isDisabled={form.formState.isSubmitting}
+                onChange={(event) => {
+                  if (!event.target.value) {
+                    form.setValue('scheduledDate', '');
+                    form.setValue(
+                      'targetExecutionState',
+                      TargetExecutionState.DRAFT,
+                    );
+                  }
+                }}
               >
                 <option value="">{translate('noAccount')}</option>
                 {platformCredentials.map((account) => (
