@@ -514,7 +514,7 @@ describe('BrandDetailSocialMediaCard', () => {
           },
         ]}
         connectedPlatformsCount={0}
-        variant="page"
+        variant="compact"
       />,
     );
 

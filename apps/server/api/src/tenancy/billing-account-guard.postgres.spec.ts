@@ -445,6 +445,7 @@ describe.skipIf(!connectionString)(
           canOpenPortal: false,
         },
         isLinked: true,
+        id: billingAccountIds[0],
         kind: 'organization',
         monthlyBudgetCredits: null,
         organizationId: organizationIds[0],

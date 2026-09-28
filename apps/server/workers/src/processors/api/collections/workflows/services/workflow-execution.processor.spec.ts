@@ -138,6 +138,67 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('process - system workflow jobs', () => {
+    it.each([
+      WORKFLOW_EXECUTION_QUEUE,
+      WORKFLOW_BACKGROUND_QUEUE,
+      PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+    ])('schedules the first system-workflow delay on %s', async (queueName) => {
+      const delayData = {
+        delayNodeId: 'delay-1',
+        executionId: 'exec-system',
+        workflowId: 'wf-system',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        remainingNodeIds: ['next'],
+        triggerEvent: {
+          type: 'manual',
+          platform: 'manual',
+          data: {},
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        nodeOutputCache: { 'delay-1': { delayMs: 5000 } },
+      };
+      mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+        execution: {
+          _delayJobData: delayData,
+          executionId: 'exec-system',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.RUNNING,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-system',
+        },
+        provenance: {
+          executionId: 'exec-system',
+          workflowId: 'wf-system',
+          workflowLabel: 'System workflow',
+        },
+        userId: 'user-1',
+      });
+      await processor.process(
+        createMockJob(
+          {
+            type: 'system-run',
+            systemRun: {
+              input: {
+                actionType: 'clip.factory',
+                canonicalId: 'clip.factory',
+                organizationId: 'org-1',
+                source: 'clip-analysis-completion',
+              },
+            },
+          },
+          { queueName },
+        ) as never,
+      );
+      expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
+        delayData,
+        5000,
+        queueName,
+      );
+    });
+
     it('resolves the queued canonical identity through the system workflow runner', async () => {
       const input = {
         actionType: 'clip-continuity',

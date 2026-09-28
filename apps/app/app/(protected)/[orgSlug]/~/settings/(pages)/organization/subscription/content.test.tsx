@@ -196,6 +196,7 @@ describe('SettingsSubscriptionPage', () => {
           canOpenPortal: false,
         },
         isLinked: true,
+        id: 'billing-account-123',
         kind: 'organization',
         monthlyBudgetCredits: null,
         organizationId: 'org-123',

@@ -515,6 +515,12 @@ describe('BillingAccountsService', () => {
         usage: 12,
       });
 
+      expect(BillingAccountSerializer.serialize(snapshot).data).toMatchObject({
+        id: 'ba_1',
+        type: 'billing-account',
+        attributes: { kind: 'organization', organizationId: 'org_1' },
+      });
+
       // No cross-organization or wallet/subscription reads at all — this is
       // the enforcement point, not just the returned shape (#5374).
       expect(prisma.billingAccountOrganization.findMany).not.toHaveBeenCalled();
