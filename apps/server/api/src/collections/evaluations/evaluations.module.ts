@@ -8,6 +8,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -23,6 +24,7 @@ import { Module } from '@nestjs/common';
     ByokModule,
     ConfigModule,
     CreditsModule,
+    FilesClientModule,
     ImagesCoreModule,
     MediaUrlsModule,
     ModelsModule,
