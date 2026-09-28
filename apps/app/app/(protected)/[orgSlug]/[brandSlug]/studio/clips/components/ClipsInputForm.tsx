@@ -10,6 +10,8 @@ import { useTranslations } from 'next-intl';
 import ClipModeSelector from './ClipModeSelector';
 
 export default function ClipsInputForm({
+  draftFilename,
+  draftSaveState,
   error,
   generationMode,
   isSubmitting,
@@ -114,6 +116,10 @@ export default function ClipsInputForm({
                   name: sourceFile.name,
                   size: (sourceFile.size / 1024 / 1024).toFixed(1),
                 })}
+              </p>
+            ) : draftFilename ? (
+              <p className="mt-2 text-xs text-foreground" role="status">
+                {t('draftRepickFile', { name: draftFilename })}
               </p>
             ) : null}
             {isSubmitting && uploadProgress > 0 ? (
@@ -223,7 +229,26 @@ export default function ClipsInputForm({
           />
 
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-            <p className="text-xs text-muted-foreground">{quickStartHint}</p>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">{quickStartHint}</p>
+              {draftSaveState !== 'idle' ? (
+                <p
+                  className={
+                    draftSaveState === 'error'
+                      ? 'text-xs text-destructive'
+                      : 'text-xs text-muted-foreground'
+                  }
+                  data-testid="clips-draft-save-state"
+                  role="status"
+                >
+                  {draftSaveState === 'saving'
+                    ? t('draftSaving')
+                    : draftSaveState === 'saved'
+                      ? t('draftSaved')
+                      : t('draftSaveFailed')}
+                </p>
+              ) : null}
+            </div>
             <div className="flex items-center gap-3">
               {onCancel ? (
                 <Button

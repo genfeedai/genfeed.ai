@@ -5,6 +5,6 @@ import { ClipboardService } from '@services/core/clipboard.service';
  * inside the click's user activation (Safari drops it across an awaited
  * import); the service itself loads its toast library only after the write.
  */
-export async function copyText(text: string): Promise<void> {
-  await ClipboardService.getInstance().copyToClipboard(text);
+export async function copyText(text: string): Promise<boolean> {
+  return ClipboardService.getInstance().copyToClipboard(text);
 }

@@ -24,6 +24,7 @@ import type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-si
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
@@ -55,6 +56,8 @@ const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { getToken } = useAuthIdentity();
   const { user: authUser } = useAuthUser();
   const { currentUser, isLoading } = useCurrentUser();
@@ -130,10 +133,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     return resolveForcedOnboardingHref({
       brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
-      hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       orgSlug,
     });
-  }, [currentUser, resolveActiveOrgSlug]);
+  }, [currentUser, resolveActiveOrgSlug, isAgentModuleEnabled]);
 
   // Default first-run destination. Every surface starts at `/onboarding/brand`.
   // SaaS (#1726) and Community (#1835) then continue in the agent workspace;
@@ -148,17 +151,17 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const orgSlug = hasAgentFirstOnboarding()
+    const orgSlug = hasAgentFirstOnboarding(isAgentModuleEnabled)
       ? await resolveActiveOrgSlug()
       : null;
 
     return resolveForcedOnboardingHref({
       brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
-      hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       orgSlug,
     });
-  }, [currentUser, resolveActiveOrgSlug]);
+  }, [currentUser, resolveActiveOrgSlug, isAgentModuleEnabled]);
 
   // A signup CTA's account type (e.g. Expert) survives cross-device magic
   // links through the callback URL; keep it for the brand step.

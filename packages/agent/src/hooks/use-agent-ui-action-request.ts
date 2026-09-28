@@ -1,14 +1,18 @@
-import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import { findUiActionState } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import type {
   AgentUiActionHandler,
   AgentUiActionOutcome,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  getAgentUiActionSourceId,
+  getAgentUiActionStateKey,
+} from '@genfeedai/contracts/interfaces';
 import { useCallback, useState } from 'react';
 
 /**
- * Where a card's ui-action stands. `awaiting`: the server accepted it but its
- * result has not arrived; the run keeps reconciling and settles the card.
+ * Where a card's ui-action stands. `running`: the request is in flight until
+ * its ack. `awaiting`: the server accepted it and its run has not settled.
  */
 export type AgentUiActionRequestPhase =
   | 'idle'
@@ -26,7 +30,7 @@ export interface AgentUiActionRequestOptions {
 }
 
 export interface AgentUiActionRequest {
-  /** The run's error once it failed after the card stopped waiting. */
+  /** The run's error once it failed. */
   getError: (
     action: string,
     payload?: Record<string, unknown>,
@@ -42,10 +46,11 @@ export interface AgentUiActionRequest {
 }
 
 /**
- * Run a card's ui-action and derive its phase from all three outcomes: the
- * handler's immediate `true` / `false` / `'pending'`, then — for a pending
- * one, or after a remount — the run recorded in `uiActionRuns`, which the
- * container keeps reconciling until it completes or fails.
+ * A card's ui-action phase, derived from the thread's ui-action state for the
+ * source it acts on — the same after a remount, a thread switch or a reload.
+ * The only local state is the request itself: in flight until its ack, and the
+ * outcome of a request that never started a run (rejected, or handled on the
+ * client).
  */
 export function useAgentUiActionRequest(
   onUiAction: AgentUiActionHandler | undefined,
@@ -53,31 +58,46 @@ export function useAgentUiActionRequest(
 ): AgentUiActionRequest {
   const { isVoidSuccess = true } = options;
   const threadId = useAgentChatStore((state) => state.activeThreadId) ?? '';
-  const runs = useAgentChatStore((state) => state.uiActionRuns);
-  const [phases, setPhases] = useState<
-    Record<string, AgentUiActionRequestPhase>
+  const states = useAgentChatStore((state) =>
+    threadId ? state.uiActionStatesByThread[threadId] : undefined,
+  );
+  const [requests, setRequests] = useState<
+    Record<string, 'running' | 'completed' | 'failed'>
   >({});
 
   const getPhase = useCallback(
     (action: string, payload?: Record<string, unknown>) => {
-      const key = getUiActionRunKey(threadId, action, payload);
-      const local = phases[key];
-      if (local === 'running' || local === 'completed' || local === 'failed') {
-        return local;
+      const key = getAgentUiActionStateKey(
+        action,
+        getAgentUiActionSourceId(payload),
+      );
+      const request = requests[`${threadId}:${key}`];
+      if (request === 'running') {
+        return 'running';
       }
-      const run = runs[key];
-      if (run?.status === 'completed') return 'completed';
-      if (run?.status === 'failed') return 'failed';
-      if (local === 'awaiting' || run?.status === 'pending') return 'awaiting';
-      return 'idle';
+      switch (findUiActionState(states, action, payload)?.status) {
+        case 'pending':
+          return 'awaiting';
+        case 'completed':
+          return 'completed';
+        case 'failed':
+        case 'cancelled':
+          return 'failed';
+        default:
+          return request ?? 'idle';
+      }
     },
-    [phases, runs, threadId],
+    [requests, states, threadId],
   );
 
   const getError = useCallback(
-    (action: string, payload?: Record<string, unknown>) =>
-      runs[getUiActionRunKey(threadId, action, payload)]?.error ?? null,
-    [runs, threadId],
+    (action: string, payload?: Record<string, unknown>) => {
+      const state = findUiActionState(states, action, payload);
+      return state?.status === 'failed' || state?.status === 'cancelled'
+        ? (state.error ?? null)
+        : null;
+    },
+    [states],
   );
 
   const submit = useCallback(
@@ -85,10 +105,11 @@ export function useAgentUiActionRequest(
       if (!onUiAction) {
         return false;
       }
-      const key = getUiActionRunKey(threadId, action, payload);
-      const setPhase = (phase: AgentUiActionRequestPhase) =>
-        setPhases((current) => ({ ...current, [key]: phase }));
-      setPhase('running');
+      const key = `${threadId}:${getAgentUiActionStateKey(
+        action,
+        getAgentUiActionSourceId(payload),
+      )}`;
+      setRequests((current) => ({ ...current, [key]: 'running' }));
       let outcome: AgentUiActionOutcome;
       try {
         const result = await onUiAction(action, payload);
@@ -99,9 +120,14 @@ export function useAgentUiActionRequest(
       } catch {
         outcome = false;
       }
-      setPhase(
-        outcome === 'pending' ? 'awaiting' : outcome ? 'completed' : 'failed',
-      );
+      setRequests((current) => {
+        const { [key]: _settled, ...rest } = current;
+        // An acked run is tracked by the thread; only a request that started
+        // no run keeps its own outcome.
+        return outcome === 'pending'
+          ? rest
+          : { ...rest, [key]: outcome ? 'completed' : 'failed' };
+      });
       return outcome;
     },
     [isVoidSuccess, onUiAction, threadId],

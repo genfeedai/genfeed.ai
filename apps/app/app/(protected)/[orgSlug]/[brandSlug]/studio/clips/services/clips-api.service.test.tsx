@@ -86,8 +86,10 @@ describe('ClipsApiService', () => {
       {
         brandId: undefined,
         createdAt: undefined,
+        updatedAt: undefined,
         failedClipCount: 0,
         id: 'project-1',
+        isDraft: false,
         mode: 'raw-cut',
         name: 'Podcast ep 12',
         pendingClipCount: 0,
@@ -104,6 +106,120 @@ describe('ClipsApiService', () => {
         headers: { Authorization: 'Bearer token-list' },
       }),
     );
+  });
+
+  it('renames and soft-deletes projects through the scoped update endpoint', async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ data: { id: 'project-1' } }), {
+          status: 200,
+        }),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-update'),
+    );
+    await service.updateProject('project-1', { name: 'Renamed' });
+    await service.updateProject('project-1', { isDeleted: true });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.test/v1/clip-projects/project-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'Renamed' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/v1/clip-projects/project-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ isDeleted: true }),
+      }),
+    );
+  });
+
+  it('creates a draft project and returns its id', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: { attributes: { status: 'draft' }, id: 'draft-1' },
+        }),
+        { status: 201 },
+      ),
+    );
+    const service = new ClipsApiService(vi.fn().mockResolvedValue('token-1'));
+
+    await expect(service.createDraft('brand-1')).resolves.toBe('draft-1');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/drafts',
+      expect.objectContaining({
+        body: JSON.stringify({ brandId: 'brand-1' }),
+        method: 'POST',
+      }),
+    );
+  });
+
+  it('autosaves draft form fields with a cancellable request', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: { id: 'draft-1' } }), {
+        status: 200,
+      }),
+    );
+    const service = new ClipsApiService(vi.fn().mockResolvedValue('token-1'));
+    const controller = new AbortController();
+    const payload = {
+      maxClips: 12,
+      minViralityScore: 40,
+      mode: 'raw-cut' as const,
+      sourceKind: 'youtube' as const,
+      youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+    };
+
+    await service.saveDraft('draft-1', payload, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/draft-1/draft',
+      expect.objectContaining({
+        body: JSON.stringify(payload),
+        method: 'PATCH',
+        signal: controller.signal,
+      }),
+    );
+  });
+
+  it('starts a Library-sourced project and surfaces refusals verbatim', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ projectId: 'project-2', status: 'analyzing' }),
+        { status: 202 },
+      ),
+    );
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          message: 'Clip sources must be at least 15 seconds long.',
+        }),
+        { status: 400 },
+      ),
+    );
+    const service = new ClipsApiService(vi.fn().mockResolvedValue('token-1'));
+
+    await expect(
+      service.createFromIngredient({
+        brandId: 'brand-1',
+        ingredientId: 'video-1',
+      }),
+    ).resolves.toMatchObject({ projectId: 'project-2' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/from-ingredient',
+      expect.objectContaining({
+        body: JSON.stringify({ brandId: 'brand-1', ingredientId: 'video-1' }),
+        method: 'POST',
+      }),
+    );
+    await expect(
+      service.createFromIngredient({ ingredientId: 'video-2' }),
+    ).rejects.toThrow('Clip sources must be at least 15 seconds long.');
   });
 
   it('starts the one-click YouTube clip factory path', async () => {
@@ -252,7 +368,7 @@ describe('ClipsApiService', () => {
       uploadUrl: 'https://uploads.test/ingredient-1',
     });
     await expect(
-      service.finalizeUpload('clip-project-upload'),
+      service.finalizeUpload('clip-project-upload', 'ingredient-1'),
     ).resolves.toMatchObject({ status: 'analyzing' });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
@@ -265,7 +381,10 @@ describe('ClipsApiService', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://api.test/v1/clip-projects/clip-project-upload/source/finalize',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        body: JSON.stringify({ ingredientId: 'ingredient-1' }),
+        method: 'POST',
+      }),
     );
   });
 

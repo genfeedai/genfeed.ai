@@ -7,6 +7,7 @@ import type {
   AgentThreadTimelineEntry,
   AgentThreadUiBlocksState,
 } from '@api/services/agent-threading/types/agent-thread.types';
+import type { AgentThreadUiActionRun } from '@genfeedai/contracts/interfaces';
 import type { AgentThreadSnapshot } from '@genfeedai/prisma';
 
 export type { AgentThreadSnapshot } from '@genfeedai/prisma';
@@ -26,5 +27,6 @@ export interface AgentThreadSnapshotDocument extends AgentThreadSnapshot {
   threadStatus?: string;
   timeline: AgentThreadTimelineEntry[];
   title?: string;
+  uiActionRuns?: AgentThreadUiActionRun[];
   [key: string]: unknown;
 }

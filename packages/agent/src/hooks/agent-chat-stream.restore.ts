@@ -81,6 +81,8 @@ export async function restoreThreadFromSnapshot(
   if (!isVisible) {
     return;
   }
+  // The event position advances only with the conversation it describes.
+  state.applyThreadSnapshotState(threadId, snapshot);
 
   const pendingInputRequest = mapSnapshotPendingInputRequest(snapshot);
 

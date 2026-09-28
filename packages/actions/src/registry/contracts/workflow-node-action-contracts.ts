@@ -94,6 +94,7 @@ type InputField =
   | 'includeEmojis'
   | 'includeHashtags'
   | 'includeMetadata'
+  | 'ingredientId'
   | 'isContactSheetEnabled'
   | 'isContinuityCharacterGateEnabled'
   | 'isContinuityQaEnabled'
@@ -559,7 +560,9 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       ),
     },
     attachPostIngredient: {
-      inputSchema: inputSchema(['brandId', 'media', 'post']),
+      // The executor reads `postId`, then `ingredientId` or `image`, from its
+      // inputs or config; the weekly content template wires both ids in.
+      inputSchema: inputSchema(['brandId', 'image', 'ingredientId', 'postId']),
       outputSchema: objectOutput({
         ingredientId: STRING_SCHEMA,
         postId: STRING_SCHEMA,
@@ -1436,7 +1439,10 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'transitionType',
         'videos',
       ]),
+      // `ingredientId` lets batch output discovery resolve the stitched
+      // output by id (#5460, #5491).
       outputSchema: objectOutput({
+        ingredientId: STRING_SCHEMA,
         video: STRING_SCHEMA,
         videoUrl: STRING_SCHEMA,
       }),

@@ -1,6 +1,6 @@
 /**
  * Guardrail: product feature switches are Admin platform settings, not env
- * (#5407).
+ * (#5407, #5468).
  *
  * A switch in env can only change with a deploy by someone holding the deploy
  * pipeline. Operator decisions about product behaviour — enabling a feature,
@@ -9,7 +9,8 @@
  * invalidation on write.
  *
  * This check fails when an env schema declares a key shaped like a product
- * flag (`*_ENABLED`, `*_MODE`, `*_MIN_CONFIDENCE`, `*_THRESHOLDS`) that is not
+ * flag (`*_ENABLED`, `*_MODE`, `*_MIN_CONFIDENCE`, `*_THRESHOLDS`, or any
+ * `*FEATURE_FLAG*` key such as an env JSON of flag values) that is not
  * on the explicit infrastructure allow-list below. Adding to the allow-list is
  * a reviewed decision that the key is true infrastructure, not product
  * behaviour.
@@ -33,6 +34,7 @@ const PRODUCT_FLAG_PATTERNS: readonly RegExp[] = [
   /_MODE$/u,
   /_MIN_CONFIDENCE$/u,
   /_THRESHOLDS$/u,
+  /FEATURE_FLAG/u,
 ];
 
 /**

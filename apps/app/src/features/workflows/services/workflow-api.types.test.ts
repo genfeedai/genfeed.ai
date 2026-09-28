@@ -39,6 +39,7 @@ const PUBLIC_WORKFLOW_API_CONTRACTS = [
   'WorkflowScheduleInput',
   'WorkflowSummary',
   'WorkflowTemplate',
+  'WorkflowUsageSummary',
 ] as const;
 
 /**
@@ -274,6 +275,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'changeSummary',
     'description',
     'edges',
+    'featuredRank',
     'icon',
     'id',
     'inputVariables',
@@ -285,6 +287,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'timezone',
     'version',
   ],
+  WorkflowUsageSummary: ['executionCount', 'lastExecutedAt'],
 };
 
 const CONTRACT_OWNER_PATH = path.join(
@@ -398,6 +401,7 @@ describe('workflow API contract exports', () => {
     expectTypeOf<CompatibilityApi.WorkflowScheduleInput>().toEqualTypeOf<WorkflowApiContract.WorkflowScheduleInput>();
     expectTypeOf<CompatibilityApi.WorkflowSummary>().toEqualTypeOf<WorkflowApiContract.WorkflowSummary>();
     expectTypeOf<CompatibilityApi.WorkflowTemplate>().toEqualTypeOf<WorkflowApiContract.WorkflowTemplate>();
+    expectTypeOf<CompatibilityApi.WorkflowUsageSummary>().toEqualTypeOf<WorkflowApiContract.WorkflowUsageSummary>();
   });
 
   it('uses the workflows contract for lifecycle fields', () => {

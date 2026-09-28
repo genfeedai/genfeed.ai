@@ -1,7 +1,10 @@
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import type { JobConfig } from '@files/shared/interfaces/job-config.interface';
 import { BaseQueueService } from '@files/shared/services/base-queue/base-queue.service';
-import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
+import {
+  RAW_CUT_JOB_PREFIX,
+  videoStitchJobId,
+} from '@genfeedai/contracts/interfaces';
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
@@ -124,8 +127,12 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addMergeJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    if (data.id === `remix-merge-${data.ingredientId}`) {
-      const existing = await this.getJob(data.id);
+    // Every stitch enqueues under its output's deterministic id: a repeat
+    // returns the same job and requeues it only when it failed.
+    const stitchJobId =
+      data.id === videoStitchJobId(data.ingredientId) ? data.id : undefined;
+    if (stitchJobId) {
+      const existing = await this.getJob(stitchJobId);
       if (existing) {
         if ((await existing.getState()) === 'failed') {
           try {
@@ -142,7 +149,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'merge',
       `${data.params.sourceIds?.length} videos`,
-      data.id === `remix-merge-${data.ingredientId}` ? data.id : undefined,
+      stitchJobId,
     );
   }
 

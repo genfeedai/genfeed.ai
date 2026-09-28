@@ -27,7 +27,6 @@ import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.con
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
 import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
@@ -304,11 +303,7 @@ export default async function OrgRootAppPage({
     if (segments?.[0] === 'edit') {
       const editSurface = await renderStudioEditSurface(segments[1]);
 
-      return (
-        <FeatureGate flagKey="studio">
-          <ErrorBoundary>{editSurface}</ErrorBoundary>
-        </FeatureGate>
-      );
+      return <ErrorBoundary>{editSurface}</ErrorBoundary>;
     }
 
     // The bare app-rail destination (no type segment): try the operator's

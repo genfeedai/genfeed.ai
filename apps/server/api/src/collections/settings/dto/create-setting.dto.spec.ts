@@ -1,4 +1,5 @@
 import { CreateSettingDto } from '@api/collections/settings/dto/create-setting.dto';
+import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
@@ -84,4 +85,56 @@ describe('CreateSettingDto', () => {
       expect(videoEmailErrors[0]?.constraints).toHaveProperty('isBoolean');
     });
   });
+
+  describe('favoriteWorkflowIds', () => {
+    it('accepts up to 50 unique workflow ids', async () => {
+      expect(await favoriteWorkflowErrorsFor(testIds('workflow', 50))).toEqual(
+        [],
+      );
+    });
+
+    it('accepts an empty favorites list', async () => {
+      expect(await favoriteWorkflowErrorsFor([])).toEqual([]);
+    });
+
+    it('rejects more than 50 favorites', async () => {
+      const errors = await favoriteWorkflowErrorsFor(testIds('workflow', 51));
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.constraints).toHaveProperty('arrayMaxSize');
+    });
+
+    it('rejects duplicate favorites', async () => {
+      const workflowId = testId('workflow');
+      const errors = await favoriteWorkflowErrorsFor([workflowId, workflowId]);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.constraints).toHaveProperty('arrayUnique');
+    });
+
+    it('rejects values that are not entity ids', async () => {
+      const errors = await favoriteWorkflowErrorsFor(['not an id']);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.constraints).toHaveProperty('isEntityId');
+    });
+
+    it('accepts an omitted favorites list', async () => {
+      expect(await favoriteWorkflowErrorsFor(undefined)).toEqual([]);
+    });
+
+    it('rejects a non-array value', async () => {
+      const errors = await favoriteWorkflowErrorsFor(testId('workflow'));
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.constraints).toHaveProperty('isArray');
+    });
+  });
 });
+
+async function favoriteWorkflowErrorsFor(favoriteWorkflowIds: unknown) {
+  const dto = plainToInstance(CreateSettingDto, { favoriteWorkflowIds });
+  const errors = await validate(dto);
+
+  return errors.filter((error) => error.property === 'favoriteWorkflowIds');
+}

@@ -1,3 +1,7 @@
+import {
+  parseBatchProjectItemDispatch,
+  parseBatchProjectQuote,
+} from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
 import {
   parseBatchProjectSettings,
@@ -36,7 +40,9 @@ export function toBatchProjectBase(
     kind: row.kind as BatchProjectKind,
     name: row.name,
     organizationId: row.organizationId,
+    quote: parseBatchProjectQuote(row.quote),
     reviewBatchId: row.reviewBatchId,
+    revision: row.revision,
     settings: parseBatchProjectSettings(row.settings),
     status: row.status as BatchProjectStatus,
     step: row.step as BatchProjectStep,
@@ -50,6 +56,7 @@ export function toBatchProjectItem(item: BatchProjectItem): IBatchProjectItem {
   return {
     caption: item.caption,
     createdAt: item.createdAt.toISOString(),
+    dispatch: parseBatchProjectItemDispatch(item.dispatch),
     dispatchedAt: toIsoString(item.dispatchedAt),
     error: item.error,
     id: item.id,

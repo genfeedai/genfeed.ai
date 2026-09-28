@@ -1,4 +1,4 @@
-import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import { findUiActionState } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
   AgentUiAction,
@@ -248,14 +248,28 @@ export function useGenerationActionCard({
   const [referenceIds, setReferenceIds] = useState<string[]>(
     generationType === 'image' ? (initParams?.references ?? []) : [],
   );
-  const uiActionRuns = useAgentChatStore((s) => s.uiActionRuns);
-  // A generate or decline the server accepted but had not settled when the
-  // card stopped waiting; its reconciled run settles the card.
-  const [awaitedRun, setAwaitedRun] = useState<{
-    action: 'confirm_generate_media' | 'decline_generate_media';
-    isPilot: boolean;
-    key: string;
-  } | null>(null);
+  // The generate or decline this card's source last ran, from the thread's
+  // ui-action states — so a remount mid-run still shows it running, and its
+  // settlement lands whether or not this instance started it.
+  const uiActionStates = useAgentChatStore((s) =>
+    activeThreadId ? s.uiActionStatesByThread[activeThreadId] : undefined,
+  );
+  const sourcePayload = useMemo(
+    () => ({ sourceActionId: action.id }),
+    [action.id],
+  );
+  const generateRun = findUiActionState(
+    uiActionStates,
+    'confirm_generate_media',
+    sourcePayload,
+  );
+  const declineRun = findUiActionState(
+    uiActionStates,
+    'decline_generate_media',
+    sourcePayload,
+  );
+  const isDeclineRunPending = declineRun?.status === 'pending';
+  const isPilotRunRef = useRef(false);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
@@ -592,6 +606,7 @@ export function useGenerationActionCard({
       !resolvedModelKey ||
       status === 'declined' ||
       isDeclining ||
+      isDeclineRunPending ||
       status === 'generating' ||
       isAllowlistEmpty ||
       isPilotCeilingReached
@@ -700,18 +715,10 @@ export function useGenerationActionCard({
             composerError?.trim() ? composerError : 'Generation failed',
           );
         }
-        // Accepted but no result yet: the run is still generating server
-        // side, so the card stays in flight until the run settles.
+        // Accepted: the run generates server side, and its settlement (see
+        // the effect on `generateRun`) moves the card on.
         if (outcome === 'pending') {
-          setAwaitedRun({
-            action: 'confirm_generate_media',
-            isPilot: !isFullRun && pilotDuration !== null,
-            key: getUiActionRunKey(
-              requestThreadId ?? '',
-              'confirm_generate_media',
-              { sourceActionId: action.id },
-            ),
-          });
+          isPilotRunRef.current = !isFullRun && pilotDuration !== null;
           return;
         }
         setIsFullRun(false);
@@ -829,6 +836,7 @@ export function useGenerationActionCard({
     isEstimateAvailable,
     resolvedModelKey,
     isDeclining,
+    isDeclineRunPending,
   ]);
 
   const handleRetry = useCallback(async () => {
@@ -870,69 +878,69 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [clearGenerationOutcome, paidRejectedCount, status]);
 
-  const settledRun = awaitedRun ? uiActionRuns[awaitedRun.key] : undefined;
+  const generateRunId = generateRun?.runId;
+  const generateRunStatus = generateRun?.status;
+  const generateRunError = generateRun?.error;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settles once per run transition; auto mode only formats the message
   useEffect(() => {
-    if (!awaitedRun || !settledRun || settledRun.status === 'pending') {
+    if (!generateRunStatus) {
       return;
     }
-    const isCompleted = settledRun.status === 'completed';
-    if (awaitedRun.action === 'confirm_generate_media') {
-      if (isCompleted) {
-        setIsFullRun(false);
-        setStatus(awaitedRun.isPilot ? 'pilot_review' : 'done');
-      } else {
-        setError(
-          formatGenerationError(settledRun.error ?? 'Generation failed', {
-            isAutoMode,
-          }),
-        );
-        setStatus('error');
-      }
-    } else {
-      if (isCompleted) {
-        setStatus('declined');
-      } else {
-        setError(settledRun.error ?? 'Failed to decline generation.');
-      }
-      setIsDeclining(false);
+    if (generateRunStatus === 'pending') {
+      setStatus('generating');
+      setHasStarted(true);
+      return;
     }
-    setAwaitedRun(null);
-  }, [awaitedRun, isAutoMode, settledRun]);
+    if (generateRunStatus === 'completed') {
+      setIsFullRun(false);
+      setStatus(isPilotRunRef.current ? 'pilot_review' : 'done');
+      return;
+    }
+    setError(
+      formatGenerationError(generateRunError ?? 'Generation failed', {
+        isAutoMode,
+      }),
+    );
+    setStatus('error');
+  }, [generateRunId, generateRunStatus, generateRunError]);
+
+  const declineRunId = declineRun?.runId;
+  const declineRunStatus = declineRun?.status;
+  const declineRunError = declineRun?.error;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settles once per run transition
+  useEffect(() => {
+    if (!declineRunStatus || declineRunStatus === 'pending') {
+      return;
+    }
+    if (declineRunStatus === 'completed') {
+      setStatus('declined');
+    } else {
+      setError(declineRunError ?? 'Failed to decline generation.');
+    }
+  }, [declineRunId, declineRunStatus, declineRunError]);
 
   useEffect(() => {
     if (action.data?.decision === 'declined') setStatus('declined');
     if (action.data?.decision === 'approved') setHasStarted(true);
   }, [action.data?.decision]);
+  // A decline the server accepted stays declining until its run settles.
+  const isDeclineInFlight = isDeclining || isDeclineRunPending;
   const canDecline = Boolean(
     onUiAction &&
       activeThreadId &&
       status === 'idle' &&
       !hasStarted &&
-      !isDeclining,
+      !isDeclineInFlight,
   );
   const handleDecline = useCallback(async () => {
     if (!canDecline || !onUiAction) return;
     setIsDeclining(true);
-    let isAwaitingResult = false;
     try {
       const outcome = await onUiAction('decline_generate_media', {
         sourceActionId: action.id,
       });
       if (outcome === false) throw new Error('Failed to decline generation.');
-      // Accepted but unconfirmed: stay declining rather than offering a
-      // second decline or claiming this one landed.
-      isAwaitingResult = outcome === 'pending';
-      if (isAwaitingResult) {
-        setAwaitedRun({
-          action: 'decline_generate_media',
-          isPilot: false,
-          key: getUiActionRunKey(
-            activeThreadId ?? '',
-            'decline_generate_media',
-            { sourceActionId: action.id },
-          ),
-        });
-      } else {
+      if (outcome !== 'pending') {
         setStatus('declined');
       }
     } catch (failure) {
@@ -943,9 +951,9 @@ export function useGenerationActionCard({
       );
       setComposerError('Failed to decline generation. Try again.');
     } finally {
-      if (!isAwaitingResult) setIsDeclining(false);
+      setIsDeclining(false);
     }
-  }, [action.id, activeThreadId, canDecline, onUiAction, setComposerError]);
+  }, [action.id, canDecline, onUiAction, setComposerError]);
 
   // #4670 Open in Studio: a concrete model is required — the resolved
   // org-scoped estimate model when the operator left Auto, or their explicit

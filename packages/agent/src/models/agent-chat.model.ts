@@ -12,6 +12,8 @@ import type {
   AgentDashboardOperation,
   AgentGenerationActionParams,
   AgentPublishTargetProposal,
+  AgentScopeMetadata,
+  AgentThreadUiActionRun,
   AgentTransferPresentation,
   AgentUIBlock,
   AnalyticsQueryReference,
@@ -24,6 +26,13 @@ import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 
 export interface AgentChatMessageMetadata {
+  /** The thread scope the server wrote this reply under. */
+  agentScope?: AgentScopeMetadata;
+  /**
+   * Set when the run that wrote this reply failed without throwing (a
+   * structured failure): the reply is its result, and the run failed.
+   */
+  runOutcome?: { error: string; status: 'failed' };
   artifactReferences?: AgentArtifactReference[];
   generatedContent?: string;
   isFallbackContent?: boolean;
@@ -123,6 +132,8 @@ export type {
   AgentPublishSettingField,
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
+  AgentThreadUiActionRun,
+  AgentThreadUiActionState,
   AgentUiActionHandler,
   AgentUiActionOutcome,
 } from '@genfeedai/contracts/interfaces';
@@ -512,6 +523,8 @@ export interface AgentThreadSnapshot {
   threadStatus: string | null;
   timeline: AgentThreadSnapshotTimelineEntry[];
   title: string | null;
+  /** Ui-action runs on the thread, by run id, as the projection records them. */
+  uiActionRuns?: AgentThreadUiActionRun[];
 }
 
 export interface AgentPageContext {
@@ -618,20 +631,10 @@ export interface AgentUiActionAckResponse {
   threadId: string;
 }
 
-/**
- * An acknowledged ui-action run the client is still reconciling or has
- * settled, keyed by `getUiActionRunKey`. Cards derive their in-flight, done or
- * failed state from it, so a result that lands after the card stopped waiting
- * (or after a remount) still settles the card.
- */
-export interface AgentUiActionRun {
+/** The ui-action a settled run executed, as the server names it. */
+export interface AgentStreamUiActionRef {
   action: string;
-  error?: string;
-  executionId: string;
-  key: string;
-  payload?: Record<string, unknown>;
-  status: 'pending' | 'completed' | 'failed';
-  threadId: string;
+  sourceId: string;
 }
 
 export interface AgentMemoryEntry {
@@ -736,6 +739,18 @@ export interface AgentStreamDonePayload {
   toolCalls: AgentToolCallSummary[];
   metadata: Record<string, unknown>;
   timestamp: string;
+  /** The thread's event sequence once this run's events were recorded. */
+  sequence?: number;
+  /** A ui-action run's thread scope after it ran (a brand confirmation moves it). */
+  brandId?: string | null;
+  contextVersion?: number;
+  uiAction?: AgentStreamUiActionRef;
+  /**
+   * `failed` when the run recorded a failure but still produced this reply (a
+   * structured failure, not a throw); `error` is the recorded failure.
+   */
+  runStatus?: 'completed' | 'failed';
+  error?: string;
 }
 
 export interface AgentStreamErrorPayload {
@@ -744,6 +759,8 @@ export interface AgentStreamErrorPayload {
   userId: string;
   error: string;
   timestamp: string;
+  sequence?: number;
+  uiAction?: AgentStreamUiActionRef;
 }
 
 export interface AgentStreamStartPayload {

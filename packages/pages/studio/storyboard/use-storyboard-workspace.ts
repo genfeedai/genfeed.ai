@@ -123,6 +123,23 @@ export function useStoryboardWorkspace() {
     // Storyboard workspace is not bound to the generate grid; no-op refresh.
   }, []);
 
+  const mergeSettings = useMemo<IStoryboardMergeSettings>(
+    () => ({
+      isCaptionsEnabled: storyboard.isCaptionsEnabled,
+      isMuteVideoAudio: storyboard.isMuteVideoAudio,
+      transition: storyboard.transition,
+      transitionDuration: storyboard.transitionDuration,
+      transitionEaseCurve: storyboard.transitionEaseCurve,
+    }),
+    [
+      storyboard.isCaptionsEnabled,
+      storyboard.isMuteVideoAudio,
+      storyboard.transition,
+      storyboard.transitionDuration,
+      storyboard.transitionEaseCurve,
+    ],
+  );
+
   const {
     cameraMovementPreset,
     clearStoryboard: clearInterpolate,
@@ -138,6 +155,7 @@ export function useStoryboardWorkspace() {
     brandId,
     currentModels: videoModels,
     findAllAssets,
+    mergeSettings,
     promptConfig,
     promptText,
     setGeneratedAssetId,
@@ -409,23 +427,6 @@ export function useStoryboardWorkspace() {
   const cancelSceneGeneration = useCallback(() => {
     sceneAbortRef.current?.abort();
   }, []);
-
-  const mergeSettings = useMemo<IStoryboardMergeSettings>(
-    () => ({
-      isCaptionsEnabled: storyboard.isCaptionsEnabled,
-      isMuteVideoAudio: storyboard.isMuteVideoAudio,
-      transition: storyboard.transition,
-      transitionDuration: storyboard.transitionDuration,
-      transitionEaseCurve: storyboard.transitionEaseCurve,
-    }),
-    [
-      storyboard.isCaptionsEnabled,
-      storyboard.isMuteVideoAudio,
-      storyboard.transition,
-      storyboard.transitionDuration,
-      storyboard.transitionEaseCurve,
-    ],
-  );
 
   const updateMergeSettings = useCallback(
     (patch: Partial<IStoryboardMergeSettings>) => {

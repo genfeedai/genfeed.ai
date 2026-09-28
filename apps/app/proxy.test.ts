@@ -1746,6 +1746,58 @@ describe('proxy', () => {
     );
   });
 
+  it('sends incomplete onboarding to the classic wizard while the Admin agent module is off (#5468)', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1', isOnboardingCompleted: false },
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            currentUser: {
+              id: 'user_1',
+              isOnboardingCompleted: false,
+              onboardingStepsCompleted: ['brand'],
+            },
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/public/platform-flags')) {
+        return new Response(JSON.stringify({ agent: false }), { status: 200 });
+      }
+
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/publishing'),
+    );
+
+    expect(response.status).toBe(307);
+    // Never the Agent onboarding handoff, which would 404 with Agent off.
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding',
+    );
+  });
+
   it('redirects signed-in flat agent to the canonical brand-scoped agent path', async () => {
     const { default: proxy } = await import('./proxy');
 

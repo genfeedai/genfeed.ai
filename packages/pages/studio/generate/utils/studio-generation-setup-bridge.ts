@@ -54,6 +54,25 @@ export const STUDIO_BRIDGED_SETTINGS_KEYS = [
 ] as const satisfies readonly (keyof StudioGenerateSettings &
   keyof GenerationSetupValues)[];
 
+/**
+ * Bridged fields a setup may leave empty. Restoring a saved setup clears
+ * these when the saved setup has no value, instead of keeping a stale one.
+ */
+export const STUDIO_CLEARABLE_SETUP_KEYS = [
+  'camera',
+  'cameraMovement',
+  'duration',
+  'instrumental',
+  'lens',
+  'lighting',
+  'lyrics',
+  'mood',
+  'promptTemplate',
+  'resolution',
+  'scene',
+  'style',
+] as const satisfies readonly (typeof STUDIO_BRIDGED_SETTINGS_KEYS)[number][];
+
 /** `StudioGenerateSettings`-only fields — no shared-store equivalent. */
 export const STUDIO_RESIDUAL_SETTINGS_KEYS = [
   'avatarPhotoUrl',

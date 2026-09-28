@@ -1,9 +1,21 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import EditorProjectsPage from './editor-projects-page';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 const mocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
@@ -12,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   getEditorService: vi.fn(),
   loggerError: vi.fn(),
   notificationError: vi.fn(),
+  updateProject: vi.fn(),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -108,9 +121,11 @@ vi.mock('@ui/layout/container/Container', () => ({
 describe('EditorProjectsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mocks.getEditorService.mockResolvedValue({
       delete: mocks.deleteProject,
       findAll: mocks.findAll,
+      update: mocks.updateProject,
     });
   });
 
@@ -144,23 +159,35 @@ describe('EditorProjectsPage', () => {
       { surface: 'index' },
     );
     expect(await screen.findByText('Your Projects (2)')).toBeVisible();
-    expect(screen.getByText('Launch cut')).toBeVisible();
+    const all = within(screen.getByTestId('editor-projects-all'));
+    expect(all.getByText('Launch cut')).toBeVisible();
     expect(
-      screen
+      all
         .getByRole('link', { name: 'Open Launch cut' })
         .querySelector('button'),
     ).toBeNull();
     expect(
-      screen.getAllByRole('button', { name: 'Delete project' })[0].closest('a'),
+      screen.queryByRole('button', { name: 'Delete' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('editor-project-thumbnail-project-1'),
+    ).not.toBeInTheDocument();
+    expect(all.getByText('30m ago')).toBeVisible();
+    expect(all.getByText('2d ago')).toBeVisible();
+    await userEvent.click(all.getByRole('radio', { name: 'Grid' }));
+    expect(
+      screen.getByTestId('editor-project-thumbnail-project-1'),
+    ).toBeVisible();
+    expect(
+      within(screen.getByTestId('editor-projects-recent')).queryByTestId(
+        'editor-project-thumbnail-project-1',
+      ),
     ).toBeNull();
-    expect(screen.getByText('30m ago')).toBeVisible();
-    expect(screen.getByText('2d ago')).toBeVisible();
-    expect(screen.getByText('2 tracks')).toBeVisible();
-    expect(screen.getByText('portrait')).toBeVisible();
-    expect(screen.getByText('landscape')).toBeVisible();
-
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Delete project' })[0],
+    await userEvent.click(
+      all.getByRole('button', { name: 'More actions for Launch cut' }),
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Delete' }),
     );
     await waitFor(() => {
       expect(mocks.deleteProject).toHaveBeenCalledWith('project-1');
@@ -168,7 +195,42 @@ describe('EditorProjectsPage', () => {
     await waitFor(() => {
       expect(screen.queryByText('Launch cut')).not.toBeInTheDocument();
     });
-    expect(screen.getByText('Teaser edit')).toBeVisible();
+    expect(screen.getAllByText('Teaser edit')).toHaveLength(2);
+  });
+
+  it('renames from overflow and updates both collections', async () => {
+    mocks.findAll.mockResolvedValue([
+      {
+        id: 'project-1',
+        name: 'Launch cut',
+        status: 'draft',
+        tracks: [],
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    mocks.updateProject.mockResolvedValue(undefined);
+    render(<EditorProjectsPage />);
+    await screen.findAllByText('Launch cut');
+    fireEvent.pointerDown(
+      screen.getAllByRole('button', { name: 'More actions for Launch cut' })[0],
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Rename' }),
+    );
+    await userEvent.clear(
+      screen.getByRole('textbox', { name: 'Project name' }),
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Project name' }),
+      'Revised cut',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(mocks.updateProject).toHaveBeenCalledWith('project-1', {
+        name: 'Revised cut',
+      }),
+    );
+    expect(await screen.findAllByText('Revised cut')).toHaveLength(2);
   });
 
   it('renders empty and error states with retry', async () => {
@@ -214,8 +276,13 @@ describe('EditorProjectsPage', () => {
     mocks.deleteProject.mockRejectedValue(deleteError);
 
     render(<EditorProjectsPage />);
-    expect(await screen.findByText('Launch cut')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Delete project' }));
+    expect(await screen.findAllByText('Launch cut')).toHaveLength(2);
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'More actions for Launch cut' })[0],
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Delete' }),
+    );
 
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -226,6 +293,6 @@ describe('EditorProjectsPage', () => {
         'Failed to delete project',
       );
     });
-    expect(screen.getByText('Launch cut')).toBeVisible();
+    expect(screen.getAllByText('Launch cut')).toHaveLength(2);
   });
 });

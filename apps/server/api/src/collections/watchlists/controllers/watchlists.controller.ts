@@ -3,6 +3,7 @@ import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watch
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -28,6 +29,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('watchlists')
 export class WatchlistsController {
   constructor(protected readonly service: WatchlistsService) {}

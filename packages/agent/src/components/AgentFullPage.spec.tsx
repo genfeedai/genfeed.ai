@@ -127,6 +127,7 @@ interface StoreState {
       prompt: string;
     }>;
   } | null;
+  applyThreadSnapshotState: ReturnType<typeof vi.fn>;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
   restoreCachedConversation: ReturnType<typeof vi.fn>;
@@ -157,6 +158,7 @@ interface StoreState {
 const storeState: StoreState = {
   activeRunId: null,
   activeThreadId: null,
+  applyThreadSnapshotState: vi.fn(),
   cacheConversation: vi.fn(),
   clearComposerSeed: vi.fn(),
   clearConversationCache: vi.fn(),
@@ -423,6 +425,12 @@ describe('AgentFullPage', () => {
         'Provider authentication failed',
       );
     });
+    // The thread resumes from the snapshot's event position and ui-action
+    // states, so later deliveries at or below it are dropped.
+    expect(storeState.applyThreadSnapshotState).toHaveBeenCalledWith(
+      'thread-failed',
+      expect.objectContaining({ lastSequence: 1 }),
+    );
   });
 
   it('skips the thread and snapshot requests when the conversation cache is fresh (#2790)', async () => {

@@ -1,3 +1,4 @@
+import type { PlatformFlagKey } from '../../constants/feature-flags.constant';
 import type { ModerationCategory } from '../../enums/moderation-category.enum';
 import type { MarginInputMode } from '../../enums/platform-setting.enum';
 import type {
@@ -13,6 +14,9 @@ import type { ModerationProviderName } from '../ingredients/media-moderation.int
  * never acted on.
  */
 export type ShadowCappedDecisionMode = Exclude<TypedDecisionMode, 'live'>;
+
+/** On/off state of every module and feature flag (#5468); `true` is on. */
+export type IPlatformFlags = Readonly<Record<PlatformFlagKey, boolean>>;
 
 /**
  * Product feature switches (#5407).
@@ -71,6 +75,21 @@ export interface IPlatformFeatureSettings {
   systemEventsEnabledAt: string | null;
   /** Better Auth: email/password accounts must verify their email to sign in. */
   isEmailVerificationRequired: boolean;
+  /** Module and feature flags (#5468), edited from Admin → Flags. */
+  flags: IPlatformFlags;
+}
+
+/**
+ * Feature switches plus whether they came from the database (#5468).
+ *
+ * `isResolved` is false only when this process has never read the row (the
+ * first read failed). The settings are then a conservative profile, and a
+ * caller that must not guess — a publish gate, the system-event outbox —
+ * holds or blocks instead of acting on them.
+ */
+export interface IPlatformFeatureSettingsState {
+  isResolved: boolean;
+  settings: IPlatformFeatureSettings;
 }
 
 /**
@@ -122,7 +141,9 @@ export interface IPlatformSetting
 
 /** Fields a platform operator may update via `/admin`. */
 export interface IUpdatePlatformSettingPayload
-  extends Partial<IPlatformFeatureSettings> {
+  extends Partial<Omit<IPlatformFeatureSettings, 'flags'>> {
+  /** Flags to change; omitted flags keep their stored value (#5468). */
+  flags?: Partial<Record<PlatformFlagKey, boolean>>;
   marginMultiplierGeneration?: number;
   marginMultiplierAgentChat?: number;
   marginInputMode?: MarginInputMode;

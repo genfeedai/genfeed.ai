@@ -14,6 +14,7 @@ import type {
 
 export type AgentOrchestratorUiActionHost = {
   executeSynchronousChatLoop: (params: {
+    approvedPlan?: Record<string, unknown>;
     context: AgentChatContext;
     generationPriority: RouterPriority;
     model: string;

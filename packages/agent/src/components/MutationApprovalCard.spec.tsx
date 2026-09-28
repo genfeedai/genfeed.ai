@@ -1,5 +1,7 @@
 import { MutationApprovalCard } from '@genfeedai/agent/components/MutationApprovalCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { getAgentUiActionSourceId } from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,
@@ -7,7 +9,27 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+});
+
+/**
+ * The container's handler on an ack: it tracks the run the action started on
+ * the visible thread as pending and reports `'pending'`.
+ */
+function acceptingUiAction() {
+  useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+  return vi.fn(async (action: string, payload?: Record<string, unknown>) => {
+    useAgentChatStore.getState().trackUiActionRun('thread-1', {
+      action,
+      runId: `exec-${action}`,
+      sourceId: getAgentUiActionSourceId(payload),
+    });
+    return 'pending' as const;
+  });
+}
 
 function approval(status = 'pending'): AgentUiAction {
   return {
@@ -82,8 +104,8 @@ describe('MutationApprovalCard', () => {
     },
   );
 
-  it('stays locked without an error when the decision is accepted but unconfirmed', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
+  it('stays locked without an error while the accepted decision runs', async () => {
+    const onUiAction = acceptingUiAction();
     render(
       <MutationApprovalCard action={approval()} onUiAction={onUiAction} />,
     );

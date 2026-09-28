@@ -39,4 +39,5 @@ export class PlatformSettingEntity
   declare readonly isAgentTokenStreamingEnabled: boolean;
   declare readonly systemEventsEnabledAt: Date | null;
   declare readonly isEmailVerificationRequired: boolean;
+  declare readonly flags: Prisma.JsonValue;
 }

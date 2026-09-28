@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -24,6 +25,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('library_canvas')
 @Controller('mood-boards')
 export class MoodBoardsController {
   private readonly constructorName: string = String(this.constructor.name);

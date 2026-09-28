@@ -4,6 +4,11 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  createStudioGenerateDraftOutbox,
+  type StudioGenerateDraftOutbox,
+} from '@pages/studio/generate/utils/studio-generate-draft-outbox';
 import {
   act,
   fireEvent,
@@ -12,7 +17,14 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { type ReactNode, StrictMode, useCallback, useRef } from 'react';
+import {
+  type ReactNode,
+  StrictMode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
@@ -56,6 +68,11 @@ const mocks = vi.hoisted(() => ({
   },
   assetActionsHook: vi.fn(),
   attachments: vi.fn(),
+  clearAttachments: vi.fn(),
+  getDraft: vi.fn(),
+  outbox: { current: null as StudioGenerateDraftOutbox | null },
+  restoreSettings: vi.fn(),
+  saveDraft: vi.fn(),
   applyTypeSettings: vi.fn(),
   brandId: { value: 'brand-1' },
   organizationId: { value: 'org-1' },
@@ -321,6 +338,36 @@ vi.mock('@services/content/ingredients.service', () => ({
   },
 }));
 
+// The draft outbox is module state; every test gets its own.
+vi.mock(
+  '@pages/studio/generate/utils/studio-generate-draft-outbox',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@pages/studio/generate/utils/studio-generate-draft-outbox')
+      >();
+    return {
+      ...actual,
+      get studioGenerateDraftOutbox() {
+        return mocks.outbox.current;
+      },
+    };
+  },
+);
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ userId: 'user-1' }),
+}));
+
+vi.mock('@services/content/studio-generate-drafts.service', () => ({
+  StudioGenerateDraftsService: {
+    getInstance: () => ({
+      getCurrent: mocks.getDraft,
+      saveCurrent: mocks.saveDraft,
+    }),
+  },
+}));
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
@@ -339,12 +386,14 @@ vi.mock('@pages/studio/generate/hooks/useStudioGenerateSettings', () => ({
       ...legacy,
       applyTypeSettings: mocks.applyTypeSettings,
       isHydrated: mocks.isHydrated.value,
+      restoreSettings: mocks.restoreSettings,
       settings: {
         ...legacy.settings,
         aspectRatio: '9:16',
         duration: 12,
         outputs: 2,
       },
+      settingsByType: { image: { outputs: 2 } },
       setType: mocks.setType,
       type: mocks.type.value,
       updateSettings: mocks.updateSettings,
@@ -424,9 +473,15 @@ describe('StudioGenerateWorkspace', () => {
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
     mocks.findByIds.mockResolvedValue([]);
+    window.localStorage.clear();
+    mocks.outbox.current = createStudioGenerateDraftOutbox();
+    mocks.getDraft.mockResolvedValue(null);
+    mocks.saveDraft.mockResolvedValue({});
+    mocks.submit.mockResolvedValue(false);
     mocks.attachments.mockReturnValue({
       addFiles: vi.fn(),
       attachments: [],
+      clearAll: mocks.clearAttachments,
       dragHandlers: {},
       dragState: { isActive: false },
       getCompletedAttachments: () => [
@@ -1475,5 +1530,369 @@ describe('StudioGenerateWorkspace', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mocks.updateSettings).not.toHaveBeenCalled();
     expect(mocks.notify).toHaveBeenCalledTimes(1);
+  });
+  describe('composer draft', () => {
+    const savedDraft = {
+      attachments: [{ id: 'upload-1', role: 'startFrame' }],
+      brandId: 'brand-1',
+      droppedReferenceIds: ['deleted-1'],
+      id: 'draft-1',
+      knowledgeSelection: { sourceIds: ['source-1'] },
+      organizationId: 'org-1',
+      prompt: 'A slow dolly shot across a neon street',
+      references: [
+        { id: 'library-1', role: 'reference' },
+        { id: 'unresolvable-1', role: 'reference' },
+      ],
+      settingsByType: { video: { blacklist: ['blurry'] } },
+      type: 'video',
+      userId: 'user-1',
+    };
+
+    function lastComposerProps() {
+      return mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: { id: string; role: string; source: string }[];
+        onPromptChange: (value: string) => void;
+        onSubmit: () => void;
+        prompt: string;
+      };
+    }
+
+    it('restores the prompt, settings, references and uploads after a reload', async () => {
+      mocks.getDraft.mockResolvedValueOnce(savedDraft);
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/library.png',
+          id: 'library-1',
+          metadataLabel: 'Library still',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/upload.png',
+          id: 'upload-1',
+          metadataLabel: 'Uploaded frame',
+        },
+      ]);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      expect(mocks.restoreSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settingsByType: expect.objectContaining({
+            video: expect.objectContaining({ blacklist: ['blurry'] }),
+          }),
+          type: 'video',
+        }),
+      );
+      expect(mocks.findByIds).toHaveBeenCalledWith([
+        'library-1',
+        'unresolvable-1',
+        'upload-1',
+      ]);
+      await waitFor(() =>
+        expect(
+          mocks.attachments.mock.calls.at(-1)?.[0].initialAttachments,
+        ).toEqual([
+          expect.objectContaining({
+            id: 'upload-1',
+            ingredientId: 'upload-1',
+            previewUrl: 'https://cdn.example/upload.png',
+          }),
+        ]),
+      );
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'library-1',
+            role: 'reference',
+            source: 'library',
+          }),
+        ]),
+      );
+      // One reference the server pruned and one the client could not load.
+      expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
+    });
+
+    it('keeps a restored library end frame next to a restored uploaded start frame', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1 },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
+    it('reads the draft of the brand open in this tab', async () => {
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() =>
+        expect(mocks.getDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.any(AbortSignal),
+        ),
+      );
+    });
+
+    it('keeps edits made while draft reference assets are loading', async () => {
+      mocks.getDraft.mockResolvedValueOnce(savedDraft);
+      const pending = Promise.withResolvers<never[]>();
+      mocks.findByIds.mockReturnValueOnce(pending.promise);
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+
+      act(() => lastComposerProps().onPromptChange('My newer prompt'));
+      await act(async () => pending.resolve([]));
+
+      expect(lastComposerProps().prompt).toBe('My newer prompt');
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'My newer prompt' }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('leaves the composer untouched when the reference lookup fails, then restores it whole', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.findByIds
+        .mockRejectedValueOnce(new Error('lookup failed'))
+        .mockResolvedValueOnce([
+          {
+            category: 'image',
+            cdnUrl: 'https://cdn.example/library.png',
+            id: 'library-1',
+          },
+        ]);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+      expect(lastComposerProps().prompt).toBe('');
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+
+      // The load retries; the prompt it did not apply is not an edit.
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(2), {
+        timeout: 4000,
+      });
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-1', source: 'library' }),
+        ]),
+      );
+      expect(mocks.saveDraft).not.toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          prompt: savedDraft.prompt,
+          references: [],
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('never restores the saved draft over an Agent handoff', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.handoff.value = {
+        isLoading: false,
+        payload: {
+          brandId: 'brand-1',
+          prompt: 'A coast',
+          type: 'image',
+        },
+      };
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      await waitFor(() => expect(lastComposerProps().prompt).toBe('A coast'));
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+    });
+
+    it('waits for a handoff in the URL to resolve before reading the draft', async () => {
+      mocks.handoff.value = { isLoading: true, payload: null };
+
+      render(<StudioGenerateWorkspace />);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mocks.getDraft).not.toHaveBeenCalled();
+    });
+
+    it('neither restores nor autosaves while a remix run owns the composer', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.remixRun.value = remixRun;
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      act(() => lastComposerProps().onPromptChange('Remix objective'));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+      expect(mocks.saveDraft).not.toHaveBeenCalled();
+    });
+
+    it('saves the composer shortly after a change and shows the save status', async () => {
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+
+      act(() => lastComposerProps().onPromptChange('A new idea'));
+
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            prompt: 'A new idea',
+            settingsByType: { image: { outputs: 2 } },
+            type: 'image',
+          }),
+          expect.anything(),
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
+          'draft.saved',
+        ),
+      );
+    });
+
+    it('keeps the composer usable and retries when a save fails', async () => {
+      mocks.saveDraft.mockRejectedValueOnce(new Error('offline'));
+
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      act(() => lastComposerProps().onPromptChange('Keep this'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
+          'draft.saveFailed',
+        ),
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+      await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledTimes(2), {
+        timeout: 4000,
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('studio-draft-status')).toHaveTextContent(
+          'draft.saved',
+        ),
+      );
+    });
+
+    it('clears the prompt and references after a successful submit and keeps settings', async () => {
+      mocks.submit.mockResolvedValueOnce(true);
+
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
+      act(() => lastComposerProps().onPromptChange('Ship it'));
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'Ship it' }),
+          expect.anything(),
+        ),
+      );
+      act(() => lastComposerProps().onSubmit());
+
+      await waitFor(() => expect(lastComposerProps().prompt).toBe(''));
+      expect(mocks.clearAttachments).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenLastCalledWith(
+          'brand-1',
+          expect.objectContaining({
+            prompt: '',
+            references: [],
+            settingsByType: { image: { outputs: 2 } },
+          }),
+          expect.anything(),
+        ),
+      );
+    });
+
+    it('keeps the prompt when the generation was not accepted', async () => {
+      mocks.submit.mockResolvedValueOnce(false);
+
+      render(<StudioGenerateWorkspace />);
+      act(() => lastComposerProps().onPromptChange('Try again'));
+      act(() => lastComposerProps().onSubmit());
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().prompt).toBe('Try again');
+      expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    });
   });
 });

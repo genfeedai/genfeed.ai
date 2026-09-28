@@ -366,3 +366,271 @@ describe('request-aware input resolution', () => {
     expect(useAgentChatStore.getState()).toBe(before);
   });
 });
+
+describe('agent-chat.store thread ui-action states', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  const pendingRun = {
+    action: 'confirm_generate_media',
+    queuedSequence: 5,
+    runId: 'exec-1',
+    sourceId: 'proposal-1',
+    status: 'pending' as const,
+    updatedAt: '2026-09-28T09:00:00.000Z',
+  };
+  const pendingState = {
+    action: 'confirm_generate_media',
+    runId: 'exec-1',
+    sequence: 5,
+    sourceId: 'proposal-1',
+    status: 'pending' as const,
+    updatedAt: '2026-09-28T09:00:00.000Z',
+  };
+
+  it('accepts only events newer than the sequence the thread reflects', () => {
+    const store = useAgentChatStore.getState();
+
+    expect(store.acceptThreadEventSequence('thread-1', 4)).toBe(true);
+    expect(store.acceptThreadEventSequence('thread-1', 4)).toBe(false);
+    expect(store.acceptThreadEventSequence('thread-1', 3)).toBe(false);
+    expect(store.acceptThreadEventSequence('thread-1', undefined)).toBe(true);
+    expect(store.acceptThreadEventSequence('thread-1', 6)).toBe(true);
+    expect(
+      useAgentChatStore.getState().threadEventSequenceById['thread-1'],
+    ).toBe(6);
+  });
+
+  it('adopts a snapshot’s ui-action states and sequence, but never an older snapshot', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-1', status: 'running' },
+      lastSequence: 5,
+      uiActionRuns: [pendingRun],
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionStatesByThread['thread-1'],
+    ).toEqual({ 'confirm_generate_media:proposal-1': pendingState });
+
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: null,
+      lastSequence: 4,
+      uiActionRuns: [],
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionStatesByThread['thread-1'],
+    ).toEqual({ 'confirm_generate_media:proposal-1': pendingState });
+    expect(
+      useAgentChatStore.getState().threadEventSequenceById['thread-1'],
+    ).toBe(5);
+  });
+
+  it('keeps a queued run pending while another run owns the thread', () => {
+    useAgentChatStore.getState().applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-2', status: 'running' },
+      lastSequence: 9,
+      uiActionRuns: [pendingRun],
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionStatesByThread['thread-1'],
+    ).toEqual({ 'confirm_generate_media:proposal-1': pendingState });
+  });
+
+  it('keeps a run acknowledged after the snapshot was read', () => {
+    const store = useAgentChatStore.getState();
+    store.trackUiActionRun('thread-1', {
+      action: 'approve_plan',
+      runId: 'exec-3',
+      sourceId: 'plan-1',
+    });
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: null,
+      lastSequence: 2,
+      uiActionRuns: [],
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionStatesByThread['thread-1']?.[
+        'approve_plan:plan-1'
+      ]?.status,
+    ).toBe('pending');
+  });
+
+  it('keeps a run settled by its own event after the snapshot was read', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-0', status: 'running' },
+      lastSequence: 4,
+      uiActionRuns: [pendingRun],
+    });
+    // A queued run's result lands while another run is followed.
+    store.settleUiActionRun('thread-1', 'exec-1', {
+      sequence: 9,
+      status: 'completed',
+    });
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-0', status: 'running' },
+      lastSequence: 6,
+      uiActionRuns: [pendingRun],
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionRunsByThread['thread-1']?.['exec-1'],
+    ).toMatchObject({ status: 'completed', terminalSequence: 9 });
+  });
+
+  it('keeps the projected run when its ack arrives after the snapshot', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: null,
+      lastSequence: 5,
+      uiActionRuns: [pendingRun],
+    });
+    store.trackUiActionRun('thread-1', {
+      action: pendingRun.action,
+      runId: pendingRun.runId,
+      sourceId: pendingRun.sourceId,
+    });
+
+    expect(
+      useAgentChatStore.getState().uiActionRunsByThread['thread-1']?.['exec-1'],
+    ).toBe(pendingRun);
+  });
+
+  it('shows an earlier success over a later duplicate approval failure', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-a', status: 'running' },
+      lastSequence: 4,
+      uiActionRuns: [
+        {
+          ...pendingRun,
+          action: 'approve_plan',
+          queuedSequence: 3,
+          runId: 'exec-a',
+          sourceId: 'plan-1',
+        },
+        {
+          ...pendingRun,
+          action: 'approve_plan',
+          queuedSequence: 4,
+          runId: 'exec-b',
+          sourceId: 'plan-1',
+        },
+      ],
+    });
+    store.settleUiActionRun('thread-1', 'exec-a', {
+      sequence: 7,
+      status: 'completed',
+    });
+    store.settleUiActionRun('thread-1', 'exec-b', {
+      error: 'This plan has already been approved.',
+      sequence: 9,
+      status: 'failed',
+    });
+
+    const state = useAgentChatStore.getState();
+    expect(
+      state.uiActionStatesByThread['thread-1']?.['approve_plan:plan-1'],
+    ).toMatchObject({ runId: 'exec-a', status: 'completed' });
+    expect(state.uiActionRunsByThread['thread-1']?.['exec-b']).toMatchObject({
+      error: 'This plan has already been approved.',
+      status: 'failed',
+      terminalSequence: 9,
+    });
+    // The duplicate failure never takes the source card from the success.
+    expect(
+      state.isUiActionSourceOwner('thread-1', {
+        runId: 'exec-b',
+        sequence: 9,
+        sourceId: 'plan-1',
+      }),
+    ).toBe(false);
+  });
+
+  it('lets a run update its source only while it owns it at that sequence', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadSnapshotState('thread-1', {
+      activeRun: { runId: 'exec-a', status: 'running' },
+      lastSequence: 4,
+      uiActionRuns: [
+        { ...pendingRun, queuedSequence: 3, runId: 'exec-a' },
+        { ...pendingRun, queuedSequence: 4, runId: 'exec-b' },
+      ],
+    });
+
+    // The newer run settles first and takes the source at its sequence.
+    store.settleUiActionRun('thread-1', 'exec-b', {
+      sequence: 9,
+      status: 'completed',
+    });
+    expect(
+      store.isUiActionSourceOwner('thread-1', {
+        runId: 'exec-b',
+        sequence: 9,
+        sourceId: 'proposal-1',
+      }),
+    ).toBe(true);
+    // The older run's late result only records its outcome.
+    store.settleUiActionRun('thread-1', 'exec-a', {
+      sequence: 7,
+      status: 'completed',
+    });
+    expect(
+      store.isUiActionSourceOwner('thread-1', {
+        runId: 'exec-a',
+        sequence: 7,
+        sourceId: 'proposal-1',
+      }),
+    ).toBe(false);
+    // Nor may any result older than the one already applied.
+    expect(
+      store.isUiActionSourceOwner('thread-1', {
+        runId: 'exec-untracked',
+        sequence: 8,
+        sourceId: 'proposal-1',
+      }),
+    ).toBe(false);
+
+    const state = useAgentChatStore.getState();
+    expect(state.uiActionRunsByThread['thread-1']?.['exec-a']).toMatchObject({
+      status: 'completed',
+      terminalSequence: 7,
+    });
+    expect(
+      state.uiActionStatesByThread['thread-1']?.[
+        'confirm_generate_media:proposal-1'
+      ],
+    ).toMatchObject({ runId: 'exec-b', sequence: 9 });
+  });
+
+  it('settles only the pending state of the named run', () => {
+    const store = useAgentChatStore.getState();
+    store.trackUiActionRun('thread-1', {
+      action: 'approve_plan',
+      runId: 'exec-3',
+      sourceId: 'plan-1',
+    });
+    store.settleUiActionRun('thread-1', 'exec-other', { status: 'failed' });
+    store.settleUiActionRun('thread-1', 'exec-3', {
+      error: 'Plan could not run.',
+      sequence: 7,
+      status: 'failed',
+    });
+    store.settleUiActionRun('thread-1', 'exec-3', { status: 'completed' });
+
+    expect(
+      useAgentChatStore.getState().uiActionStatesByThread['thread-1']?.[
+        'approve_plan:plan-1'
+      ],
+    ).toMatchObject({
+      error: 'Plan could not run.',
+      sequence: 7,
+      status: 'failed',
+    });
+  });
+});

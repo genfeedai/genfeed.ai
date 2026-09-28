@@ -8,7 +8,7 @@ import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studi
 import Masonry from '@ui/display/masonry/Masonry';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactElement, ReactNode } from 'react';
+import { type ReactElement, type ReactNode, useMemo } from 'react';
 
 function ResultsSheet({
   children,
@@ -53,6 +53,15 @@ export default function StudioGenerateResults({
 }: StudioGenerateResultsProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const runs = groupStudioGenerateJobsByRun(jobs);
+  const jobsByIngredientId = useMemo(
+    () =>
+      new Map(
+        jobs.flatMap((job: StudioGenerateJob) =>
+          job.ingredientId ? [[job.ingredientId, job] as const] : [],
+        ),
+      ),
+    [jobs],
+  );
 
   function renderCard(job: StudioGenerateJob): ReactElement {
     return (
@@ -63,6 +72,9 @@ export default function StudioGenerateResults({
         key={job.id}
         onReprompt={onReprompt}
         onSelect={onSelect}
+        parentJob={
+          job.parentId ? jobsByIngredientId.get(job.parentId) : undefined
+        }
         view={view}
       />
     );

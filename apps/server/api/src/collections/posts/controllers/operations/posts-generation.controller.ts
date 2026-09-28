@@ -27,6 +27,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -82,6 +83,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsGenerationController {

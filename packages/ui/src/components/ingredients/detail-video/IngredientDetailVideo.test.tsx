@@ -6,6 +6,7 @@ import type {
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +17,11 @@ class MockIntersectionObserver {
 }
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-card" />,
@@ -155,6 +161,27 @@ describe('IngredientDetailVideo', () => {
     expect(
       screen.getByRole('link', { name: /Edit in Studio/ }),
     ).toHaveAttribute('href', '/acme/brand-slug/studio/edit/new?video=video-1');
+  });
+
+  it('offers a keyboard-reachable, org-scoped Make clips entry for the video', async () => {
+    const user = userEvent.setup();
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+
+    const makeClips = screen.getByRole('link', { name: /Make clips/ });
+    expect(makeClips).toHaveAttribute(
+      'href',
+      '/acme/brand-slug/studio/clips/new?video=video-1',
+    );
+
+    const editLink = screen.getByRole('link', { name: /Edit in Studio/ });
+    editLink.focus();
+    await user.tab();
+    expect(makeClips).toHaveFocus();
   });
 
   it('should apply correct styles and classes', () => {

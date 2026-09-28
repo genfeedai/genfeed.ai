@@ -81,11 +81,11 @@ licensed-self-host bindings.
 - **SaaS admin access is a platform role.** `/admin` is gated by
   `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
   roles. Deployment operators manage `users.platformRole` separately.
-- **Product flags are PostHog in SaaS, on by default elsewhere.** Community and
-  unsigned Desktop keep Replies (`reply_bot`) on with no PostHog call-home.
-  Do not set `FEATURE_FLAG_DEFAULTS` / `NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS` to
-  enable Replies — SaaS operators target `reply_bot` in PostHog (person =
-  `users.id`, optional `is_internal`). If PostHog is absent, Replies fail open.
+- **Product modules and features are Admin flags.** Every deployment switches
+  them at `/admin/flags/modules` and `/admin/flags/features` (stored on the
+  platform-settings row); all default on. A module that is off disappears from
+  the app rail, its routes answer 404 and its API answers 404; superadmins keep
+  access. There is no env or PostHog flag for product behaviour.
 
 ## See also
 

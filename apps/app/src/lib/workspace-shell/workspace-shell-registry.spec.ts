@@ -93,8 +93,8 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/studio/batch', 'Studio', 'Batch'],
     ['/acme/moonrise/studio/batch/new', 'Studio', 'Batch'],
-    ['/acme/moonrise/studio/batch/history', 'Studio', 'Batch'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
+    ['/acme/moonrise/studio/clips/new', 'Studio', 'New project'],
     ['/acme/moonrise/studio/clips/project-1', 'Studio', 'Project'],
     ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
     ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],
@@ -204,9 +204,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch/new', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/batch/history', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
     ['/:orgSlug/:brandSlug/platforms/:platform', 'canvas'],
     ['/:orgSlug/~/settings/subscription', 'canvas'],
@@ -286,7 +284,7 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('activates the Studio adapter across production surfaces only', () => {
-    for (const surface of ['batch', 'clips', 'fastlane', 'storyboard']) {
+    for (const surface of ['batch', 'batch/project-1', 'clips', 'storyboard']) {
       expect(
         resolveWorkspaceShellRoute(`/acme/moonrise/studio/${surface}`),
       ).toMatchObject({

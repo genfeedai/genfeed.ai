@@ -2,6 +2,8 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
+  ButtonSize,
+  ButtonVariant,
   PageScope,
   TargetExecutionState,
   ViewType,
@@ -38,8 +40,9 @@ import {
   parsePublishingContentType,
 } from '@pages/posts/library/publishing-content-library.helpers';
 import PublishingContentLibraryToolbar from '@pages/posts/library/publishing-content-library-toolbar';
-import { ReleaseRailActions } from '@pages/posts/rail/release-rail-row';
+import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
+import { isTargetBlockedByReadiness } from '@pages/posts/shared/release-status.helpers';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -50,12 +53,20 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import { Button } from '@ui/primitives/button';
+import {
+  buildSourcePostVariationsHref,
+  isSourcePostVariationPlatform,
+} from '@utils/url/desktop-loop-url.util';
 import { CalendarDays, Files, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildApprovalQueueHref } from './approval-queue-links.helpers';
 
@@ -78,6 +89,7 @@ export default function PublishingContentLibrary({
 }: {
   calendar?: React.ReactNode;
 }) {
+  const translate = useTranslations('pages.posts.list.collection');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const isFetchReady = isCollectionFetchReady({
     brandId,
@@ -353,56 +365,163 @@ export default function PublishingContentLibrary({
     }
   };
 
-  const columns = useMemo<TableColumn<PublishingContentLibraryItem>[]>(
-    () => [
-      {
-        header: 'Content',
-        key: 'title',
-        render: (item) => (
+  const attentionItems = filteredItems.filter(
+    (item) =>
+      item.type === 'post' &&
+      (needsPostAttention(item.status, item.scheduledAt) ||
+        item.release?.targets?.some(
+          (target) =>
+            target.executionState === TargetExecutionState.FAILED ||
+            needsPostAttention(target.executionState, target.scheduledAt),
+        )),
+  );
+  const retryItem = async (item: PublishingContentLibraryItem) => {
+    setPendingAction(`retry:${item.id}`);
+    try {
+      if (item.release) {
+        const service = await getReleasesService();
+        const results = await Promise.allSettled(
+          (item.release.targets ?? [])
+            .filter(
+              (target) =>
+                target.executionState === TargetExecutionState.FAILED &&
+                !isTargetBlockedByReadiness(target),
+            )
+            .map((target) =>
+              service.updateTarget(item.id, target.id, {
+                executionState: TargetExecutionState.SCHEDULED,
+              }),
+            ),
+        );
+        const failure = results.find((result) => result.status === 'rejected');
+        if (failure?.status === 'rejected') throw failure.reason;
+      } else {
+        await (await getPostsService()).retry(item.id);
+      }
+    } catch (error) {
+      notificationsService.error(translate('retryFailed'));
+      logger.error('Failed to retry publishing item', error);
+    } finally {
+      try {
+        await refetch();
+      } finally {
+        setPendingAction(null);
+      }
+    }
+  };
+  const renderPrimaryAction = (item: PublishingContentLibraryItem) => {
+    const isFailed =
+      item.type === 'post' &&
+      (item.release
+        ? item.release.targets?.some(
+            (target) =>
+              target.executionState === TargetExecutionState.FAILED &&
+              !isTargetBlockedByReadiness(target),
+          )
+        : item.status === 'failed');
+    return (
+      <CollectionItemActions
+        overflow={(item.release?.targets ?? []).flatMap((target) => [
+          {
+            id: `target:${target.id}`,
+            label: translate('openTarget', { platform: target.platform }),
+            href: href(getPublishingPostHref(target.id)),
+          },
+          ...(target.executionState === TargetExecutionState.PUBLISHED &&
+          isSourcePostVariationPlatform(target.platform)
+            ? [
+                {
+                  id: `variations:${target.id}`,
+                  label: translate('variations', { platform: target.platform }),
+                  href: href(
+                    buildSourcePostVariationsHref({
+                      platform: target.platform,
+                      postId: target.id,
+                    }),
+                  ),
+                },
+              ]
+            : []),
+        ])}
+        primary={
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            isDisabled={pendingAction !== null}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (isFailed) void retryItem(item);
+              else openRowOverlay(item);
+            }}
+          >
+            {translate(isFailed ? 'retry' : 'open')}
+          </Button>
+        }
+      />
+    );
+  };
+
+  const columns: TableColumn<PublishingContentLibraryItem>[] = [
+    {
+      className: 'w-full md:w-auto',
+      header: 'Content',
+      key: 'title',
+      render: (item) => (
+        <>
           <PublishingContentIdentity
             channels={item.channels ?? [item.channel]}
             title={item.title}
             summary={item.summary}
             titleHref={getDetailHref(item)}
           />
-        ),
-      },
-      {
-        header: 'Type',
-        key: 'type',
-        render: (item) => (
-          <Badge>{formatPublishingContentType(item.type)}</Badge>
-        ),
-      },
-      {
-        header: 'Status',
-        key: 'status',
-        render: (item) => (
-          <Badge status={item.status}>
-            {formatPublishingContentStatus(item.status)}
-          </Badge>
-        ),
-      },
-      {
-        header: 'Scheduled',
-        key: 'scheduledAt',
-        render: (item) =>
-          item.scheduledAt ? formatDate(item.scheduledAt) : '—',
-      },
-      {
-        header: 'Created',
-        key: 'createdAt',
-        render: (item) => formatDate(item.createdAt),
-      },
-      {
-        header: <span className="sr-only">Actions</span>,
-        key: 'actions',
-        render: (item) =>
-          item.release ? <ReleaseRailActions release={item.release} /> : null,
-      },
-    ],
-    [getDetailHref],
-  );
+          <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
+            <Badge>{formatPublishingContentType(item.type)}</Badge>
+            <Badge status={item.status}>
+              {formatPublishingContentStatus(item.status)}
+            </Badge>
+            {item.scheduledAt ? (
+              <span className="text-xs text-muted-foreground">
+                {formatDate(item.scheduledAt)}
+              </span>
+            ) : null}
+          </div>
+        </>
+      ),
+    },
+    {
+      className: 'hidden md:table-cell',
+      header: 'Type',
+      key: 'type',
+      render: (item) => <Badge>{formatPublishingContentType(item.type)}</Badge>,
+    },
+    {
+      className: 'hidden md:table-cell',
+      header: 'Status',
+      key: 'status',
+      render: (item) => (
+        <Badge status={item.status}>
+          {formatPublishingContentStatus(item.status)}
+        </Badge>
+      ),
+    },
+    {
+      className: 'hidden md:table-cell',
+      header: 'Scheduled',
+      key: 'scheduledAt',
+      render: (item) => (item.scheduledAt ? formatDate(item.scheduledAt) : '—'),
+    },
+    {
+      className: 'hidden md:table-cell',
+      header: 'Created',
+      key: 'createdAt',
+      render: (item) => formatDate(item.createdAt),
+    },
+    {
+      header: <span className="sr-only">Actions</span>,
+      key: 'actions',
+      render: (item) => renderPrimaryAction(item),
+    },
+  ];
 
   useEffect(() => {
     setFiltersNode(
@@ -557,58 +676,73 @@ export default function PublishingContentLibrary({
             {formatPublishingContentStatus(item.status)}
           </Badge>
         </div>
+        {renderPrimaryAction(item)}
       </Card>
     </div>
   );
 
   return (
-    <div>
-      {filteredItems.length > 0 && (view === 'grid' || view === 'board') ? (
-        view === 'grid' ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {pageItems.map(renderPostCard)}
-          </div>
-        ) : (
-          <div className="flex gap-4 overflow-x-auto">
-            {statusOptions
-              .filter((option) =>
-                filteredItems.some((item) => item.status === option.value),
-              )
-              .map((option) => (
-                <section
-                  key={option.value}
-                  className="w-80 shrink-0 space-y-3"
-                  aria-label={option.label}
-                >
-                  <h2 className="flex items-center justify-between text-sm font-medium">
-                    <span>{option.label}</span>
-                    <span className="text-muted-foreground">
-                      {
-                        filteredItems.filter(
-                          (item) => item.status === option.value,
-                        ).length
-                      }
-                    </span>
-                  </h2>
-                  {filteredItems
-                    .filter((item) => item.status === option.value)
-                    .map(renderPostCard)}
-                </section>
-              ))}
-          </div>
-        )
-      ) : (
+    <div className="@container space-y-6">
+      <CollectionSection
+        title={translate('needsYou')}
+        itemCount={attentionItems.length}
+      >
         <AppTable<PublishingContentLibraryItem>
           actions={[]}
           columns={columns}
-          emptyLabel="No posts found"
-          emptyState={emptyState}
+          items={attentionItems}
           getRowKey={(item) => `${item.type}:${item.id}`}
-          isLoading={isLoading}
-          items={pageItems}
           onRowClick={openRowOverlay}
         />
-      )}
+      </CollectionSection>
+      <CollectionSection title={translate('all')} isLoading={isLoading}>
+        {filteredItems.length > 0 && (view === 'grid' || view === 'board') ? (
+          view === 'grid' ? (
+            <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3">
+              {pageItems.map(renderPostCard)}
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto">
+              {statusOptions
+                .filter((option) =>
+                  filteredItems.some((item) => item.status === option.value),
+                )
+                .map((option) => (
+                  <section
+                    key={option.value}
+                    className="w-80 shrink-0 space-y-3"
+                    aria-label={option.label}
+                  >
+                    <h2 className="flex items-center justify-between text-sm font-medium">
+                      <span>{option.label}</span>
+                      <span className="text-muted-foreground">
+                        {
+                          filteredItems.filter(
+                            (item) => item.status === option.value,
+                          ).length
+                        }
+                      </span>
+                    </h2>
+                    {filteredItems
+                      .filter((item) => item.status === option.value)
+                      .map(renderPostCard)}
+                  </section>
+                ))}
+            </div>
+          )
+        ) : (
+          <AppTable<PublishingContentLibraryItem>
+            actions={[]}
+            columns={columns}
+            emptyLabel="No posts found"
+            emptyState={emptyState}
+            getRowKey={(item) => `${item.type}:${item.id}`}
+            isLoading={isLoading}
+            items={pageItems}
+            onRowClick={openRowOverlay}
+          />
+        )}
+      </CollectionSection>
       <div className="mt-4">
         <Pagination
           totalItems={filteredItems.length}

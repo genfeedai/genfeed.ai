@@ -3,6 +3,7 @@ import type {
   TrendTurnoverResponse,
 } from '@api/collections/trends/interfaces/trend-turnover.interface';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -16,6 +17,7 @@ import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)
 export class TrendsAnalyticsController {

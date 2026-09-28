@@ -17,6 +17,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchProjectItemStatus,
@@ -96,6 +97,7 @@ export class BatchProjectSchedulingService {
     private readonly reconcileService: BatchProjectReconcileService,
     private readonly postsService: PostsService,
     private readonly batchGenerationService: BatchGenerationService,
+    private readonly reviewLocks: BatchReviewLockService,
   ) {}
 
   schedule(
@@ -109,6 +111,25 @@ export class BatchProjectSchedulingService {
   }
 
   private async scheduleLocked(
+    id: string,
+    dto: ScheduleBatchProjectDto,
+    scope: IBatchProjectScope,
+  ): Promise<IScheduleBatchProjectResult> {
+    const project = await this.prisma.batchProject.findFirst({
+      include: { items: { where: scopedWhere(scope.organizationId) } },
+      where: scopedWhere(scope.organizationId, { id }),
+    });
+    if (!project) throw new NotFoundException('Batch project', id);
+    const batchIds = [
+      project.reviewBatchId,
+      ...project.items.map((item) => item.reviewBatchId),
+    ].filter((batchId): batchId is string => Boolean(batchId));
+    return this.reviewLocks.run(batchIds, scope.organizationId, () =>
+      this.scheduleReviewed(id, dto, scope),
+    );
+  }
+
+  private async scheduleReviewed(
     id: string,
     dto: ScheduleBatchProjectDto,
     scope: IBatchProjectScope,
@@ -417,6 +438,7 @@ export class BatchProjectSchedulingService {
     destination: Destination,
     entries: ScheduleEntry[],
   ): Promise<Set<string>> {
+    this.reviewLocks.assertActive();
     try {
       const result = await this.postsService.batchSchedule(
         entries.map((entry) => ({
@@ -647,7 +669,8 @@ export class BatchProjectSchedulingService {
     const draft = {
       brandId: project.brandId,
       category:
-        item.outputCategory === IngredientCategory.VIDEO
+        item.outputCategory === IngredientCategory.VIDEO ||
+        item.outputCategory === IngredientCategory.AVATAR
           ? PostCategory.VIDEO
           : PostCategory.IMAGE,
       description: caption,

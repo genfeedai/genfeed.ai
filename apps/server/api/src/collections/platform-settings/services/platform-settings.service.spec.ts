@@ -2,7 +2,9 @@ import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platfor
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  DEFAULT_PLATFORM_FLAGS,
   PLATFORM_SETTING_KEY,
+  UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
 import {
   DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
@@ -18,7 +20,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PlatformSettingsService', () => {
-  const prisma = { platformSetting: {} };
+  const prisma = { $executeRaw: vi.fn(), platformSetting: {} };
   const logger: Partial<LoggerService> = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -415,24 +417,41 @@ describe('PlatformSettingsService', () => {
       expect(logger.warn).toHaveBeenCalled();
     });
 
-    it('serves the defaults uncached when nothing was ever read', async () => {
+    it('serves the unresolved profile uncached when nothing was ever read', async () => {
       const getSingleton = vi
         .spyOn(service, 'getSingleton')
         .mockRejectedValueOnce(new Error('db down'))
         .mockResolvedValue({
           ...row,
-          isEmailVerificationRequired: true,
+          isEmailVerificationRequired: false,
         } as never);
 
-      await expect(service.getFeatureSettings()).resolves.toEqual(
-        DEFAULT_PLATFORM_FEATURE_SETTINGS,
-      );
+      await expect(service.getFeatureSettingsState()).resolves.toEqual({
+        isResolved: false,
+        settings: UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+      });
       // The database recovered: the next call reads it instead of serving a
-      // cached permissive guess for the rest of the TTL.
-      await expect(service.getFeatureSettings()).resolves.toMatchObject({
-        isEmailVerificationRequired: true,
+      // cached guess for the rest of the TTL.
+      await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+        isResolved: true,
+        settings: { isEmailVerificationRequired: false },
       });
       expect(getSingleton).toHaveBeenCalledTimes(2);
+    });
+
+    it('stays resolved on the last known switches when a later read fails', async () => {
+      vi.useFakeTimers();
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(row as never)
+        .mockRejectedValueOnce(new Error('db down'));
+
+      await service.getFeatureSettingsState();
+      vi.advanceTimersByTime(PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS);
+
+      await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+        isResolved: true,
+        settings: { isMediaPerceptionEnabled: false },
+      });
     });
 
     it('warms the switches cache on boot', async () => {
@@ -468,6 +487,44 @@ describe('PlatformSettingsService', () => {
         systemEventsEnabledAt: new Date('2026-09-28T08:00:00.000Z'),
         taskRoutingMinConfidence: 0.7,
       });
+    });
+
+    it('merges a flag patch atomically in the database (#5468)', async () => {
+      const saved = { ...row, flags: { analytics: false, studio: false } };
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(row as never)
+        .mockResolvedValueOnce(saved as never);
+      const patch = vi.spyOn(service, 'patch');
+
+      await expect(
+        service.updateSingleton({ flags: { studio: false } }),
+      ).resolves.toBe(saved);
+
+      // One jsonb `||` statement, never a read-modify-write of the whole map:
+      // a concurrent save of another flag is not overwritten.
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      const [sql, ...values] = prisma.$executeRaw.mock.calls[0] ?? [];
+      expect((sql as TemplateStringsArray).join('?')).toContain(
+        '"flags" = COALESCE("flags", \'{}\'::jsonb) || ?::jsonb',
+      );
+      expect(values).toEqual(['{"studio":false}', 'ps-1']);
+      expect(patch).not.toHaveBeenCalled();
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        flags: { ...DEFAULT_PLATFORM_FLAGS, analytics: false, studio: false },
+      });
+    });
+
+    it('saves other settings alongside a flag patch', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
+
+      await service.updateSingleton({
+        flags: { agent: false },
+        moderationMode: 'live',
+      });
+
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(patch).toHaveBeenCalledWith('ps-1', { moderationMode: 'live' });
     });
 
     it('turns system-event recording off with null', async () => {

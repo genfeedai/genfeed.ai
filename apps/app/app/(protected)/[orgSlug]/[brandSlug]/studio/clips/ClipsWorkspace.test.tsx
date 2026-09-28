@@ -24,10 +24,6 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/demo${path}` }),
 }));
 
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-}));
-
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -169,6 +165,7 @@ describe('ClipsWorkspace with the real page-help provider', () => {
         {
           failedClipCount: 0,
           id: 'clip-1',
+          isDraft: false,
           name: 'Demo clip',
           pendingClipCount: 0,
           progress: 100,
@@ -186,8 +183,60 @@ describe('ClipsWorkspace with the real page-help provider', () => {
       'data-module-chrome',
       'section-topbar',
     );
-    expect(
-      screen.getByRole('button', { name: 'New project' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'New project' })).toHaveAttribute(
+      'href',
+      '/acme/demo/studio/clips/new',
+    );
+  });
+
+  it('points an empty project list at the new-project route instead of an unsaved form', () => {
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+
+    renderWithRealPageHelp();
+
+    expect(screen.getByTestId('clips-empty-state')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'New project' })).toHaveAttribute(
+      'href',
+      '/acme/demo/studio/clips/new',
+    );
+    expect(screen.queryByTestId('clips-input-form')).not.toBeInTheDocument();
+  });
+
+  it('renders the restored setup form for a draft project', () => {
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+    mocks.useStudioClipsPage.mockReturnValue(
+      baseClipsPageState({
+        draftSaveState: 'saved',
+        isHydrating: false,
+        project: {
+          clips: [],
+          highlights: [],
+          mode: 'avatar',
+          projectId: 'draft-1',
+          status: 'draft',
+        },
+        step: 'input',
+      }),
+    );
+
+    render(
+      <PageHelpProvider help={clipsHelp}>
+        <ClipsWorkspace projectId="draft-1" />
+      </PageHelpProvider>,
+    );
+
+    expect(screen.getByTestId('clips-input-form')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All projects' })).toHaveAttribute(
+      'href',
+      '/acme/demo/studio/clips',
+    );
   });
 });

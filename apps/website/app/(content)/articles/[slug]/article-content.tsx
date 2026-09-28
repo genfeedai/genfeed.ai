@@ -45,8 +45,7 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
   }, []);
 
   const handleCopy = async (): Promise<void> => {
-    await copyText(code);
-    setIsCopied(true);
+    setIsCopied(await copyText(code));
     clearTimeout(resetTimer.current);
     resetTimer.current = setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
   };

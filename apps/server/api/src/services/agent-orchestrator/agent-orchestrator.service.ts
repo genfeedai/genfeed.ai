@@ -1,4 +1,5 @@
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import type {
   AgentChatContext,
@@ -6,9 +7,13 @@ import type {
   AgentThreadUiActionRequest,
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { describeThreadUiAction } from '@api/services/agent-orchestrator/utils/agent-thread-ui-action-description.util';
+import {
+  getAgentUiActionSourceId,
+  type ValidatedAgentScope,
+} from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const AGENT_INPUT_RESPONSE_WORKFLOW_ID = 'agent.thread.input-response';
 const AGENT_UI_ACTION_WORKFLOW_ID = 'agent.thread.ui-action';
@@ -18,6 +23,8 @@ export class AgentOrchestratorService {
   constructor(
     private readonly turnAcceptanceService: AgentTurnAcceptanceService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    @Optional()
+    private readonly threadEventRecorder?: AgentThreadEventRecorderService,
   ) {}
 
   async acceptChatStream(
@@ -68,7 +75,37 @@ export class AgentOrchestratorService {
       },
       { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
     );
+    await this.recordUiActionQueued(request, context, executionId);
     return { executionId, status: 'queued', threadId: request.threadId };
+  }
+
+  /**
+   * The ack is a position in the thread's event log: the queued run and the
+   * source it acts on are projected before the client hears of it, so a
+   * reload or remount while it waits for a worker still finds it. It is
+   * recorded as queued, never as the thread's active run: an earlier run
+   * still owns the lane, and its events must keep applying.
+   */
+  private async recordUiActionQueued(
+    request: AgentThreadUiActionRequest,
+    context: AgentChatContext,
+    executionId: string,
+  ): Promise<void> {
+    try {
+      await this.threadEventRecorder?.recordUiActionQueued({
+        content: describeThreadUiAction(request.action, request.payload),
+        context: { ...context, executionId },
+        runId: executionId,
+        threadId: request.threadId,
+        uiAction: {
+          action: request.action,
+          sourceId: getAgentUiActionSourceId(request.payload),
+        },
+      });
+    } catch {
+      // The worker records the run's ui-action when it starts it; only the
+      // queued window is lost.
+    }
   }
 
   async resumeRecurringTaskDraftFromInput(params: {

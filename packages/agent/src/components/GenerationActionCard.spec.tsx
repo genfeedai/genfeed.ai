@@ -1,8 +1,7 @@
 import '@agent-tests/media-preview-mocks';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
-import type { AgentUiActionRun } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentThreadUiActionState } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import {
@@ -285,7 +284,10 @@ const { brandState, orgUrlParams, storeState } = vi.hoisted(() => ({
     error: null as string | null,
     setError: vi.fn(),
     setThreadUiBusy: vi.fn(),
-    uiActionRuns: {} as Record<string, AgentUiActionRun>,
+    uiActionStatesByThread: {} as Record<
+      string,
+      Record<string, AgentThreadUiActionState>
+    >,
   },
 }));
 
@@ -324,6 +326,50 @@ import {
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { GenerationActionCard } from './GenerationActionCard';
+
+/**
+ * The thread's ui-action state for a card's source, as the handler records it
+ * on the ack and the run's events settle it.
+ */
+function setGenerationRun(
+  action: 'confirm_generate_media' | 'decline_generate_media',
+  sourceId: string,
+  status: AgentThreadUiActionState['status'],
+  error?: string,
+): void {
+  storeState.uiActionStatesByThread = {
+    ...storeState.uiActionStatesByThread,
+    'thread-1': {
+      ...storeState.uiActionStatesByThread['thread-1'],
+      [`${action}:${sourceId}`]: {
+        action,
+        ...(error ? { error } : {}),
+        runId: `exec-${action}`,
+        sequence: status === 'pending' ? 1 : 2,
+        sourceId,
+        status,
+        updatedAt: '2026-09-28T09:00:00.000Z',
+      },
+    },
+  };
+}
+
+/** A handler that acks: it records the run as pending, as the container does. */
+function acceptingUiAction() {
+  return vi.fn(
+    async (
+      action: string,
+      payload?: Record<string, unknown>,
+    ): Promise<'pending'> => {
+      setGenerationRun(
+        action as 'confirm_generate_media' | 'decline_generate_media',
+        String(payload?.sourceActionId),
+        'pending',
+      );
+      return 'pending';
+    },
+  );
+}
 
 interface AgentGenerationScopeParams {
   generationType: 'image' | 'video';
@@ -644,7 +690,7 @@ describe('GenerationActionCard', () => {
     useAgentWorkObjectGateStore.setState({ threads: {} });
     useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
     storeState.error = null;
-    storeState.uiActionRuns = {};
+    storeState.uiActionStatesByThread = {};
     storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();
     capturedModelSelectorPopoverProps.autoLabel = undefined;
@@ -1495,7 +1541,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('stays generating, not done, when the UI action is accepted but unconfirmed', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
+    const onUiAction = acceptingUiAction();
 
     renderGenerationActionCard(
       <GenerationActionCard
@@ -1534,7 +1580,7 @@ describe('GenerationActionCard', () => {
   ])(
     'settles a pending generation when its run %s later',
     async (_label, status) => {
-      const onUiAction = vi.fn().mockResolvedValue('pending');
+      const onUiAction = acceptingUiAction();
       const card = () => (
         <GenerationActionCard
           action={{
@@ -1558,21 +1604,14 @@ describe('GenerationActionCard', () => {
         screen.getAllByRole('button', { name: 'Stop generation' }).length,
       ).toBeGreaterThan(0);
 
-      const key = getUiActionRunKey('thread-1', 'confirm_generate_media', {
-        sourceActionId: 'action-generation-late',
-      });
-      storeState.uiActionRuns = {
-        [key]: {
-          action: 'confirm_generate_media',
-          ...(status === 'failed'
-            ? { error: 'Provider unavailable for this model.' }
-            : {}),
-          executionId: 'exec-generation',
-          key,
-          status,
-          threadId: 'thread-1',
-        },
-      };
+      setGenerationRun(
+        'confirm_generate_media',
+        'action-generation-late',
+        status,
+        status === 'failed'
+          ? 'Provider unavailable for this model.'
+          : undefined,
+      );
       // The mocked store does not notify subscribers; re-render to read it.
       rerender(card());
 
@@ -1588,7 +1627,7 @@ describe('GenerationActionCard', () => {
   );
 
   it('keeps a pending decline in flight without marking the review declined', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
+    const onUiAction = acceptingUiAction();
 
     renderGenerationActionCard(
       <GenerationActionCard
@@ -1620,6 +1659,44 @@ describe('GenerationActionCard', () => {
     expect(storeState.setError).not.toHaveBeenCalledWith(
       'Failed to decline generation. Try again.',
     );
+  });
+
+  it('shows a generation still running after the card remounts, then settles it', async () => {
+    setGenerationRun('confirm_generate_media', 'action-remount', 'pending');
+    const card = () => (
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A lighthouse at dusk.' },
+          generationType: 'image',
+          id: 'action-remount',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock() as unknown as AgentApiService}
+        onUiAction={vi.fn()}
+      />
+    );
+
+    const first = renderGenerationActionCard(card());
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('button', { name: 'Stop generation' }).length,
+      ).toBeGreaterThan(0);
+    });
+    first.unmount();
+
+    const second = renderGenerationActionCard(card());
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('button', { name: 'Stop generation' }).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+
+    setGenerationRun('confirm_generate_media', 'action-remount', 'completed');
+    second.rerender(card());
+
+    expect(await screen.findByText(/^Done$/)).toBeInTheDocument();
   });
 
   it('lets the operator collapse a failed generation card by hand', async () => {

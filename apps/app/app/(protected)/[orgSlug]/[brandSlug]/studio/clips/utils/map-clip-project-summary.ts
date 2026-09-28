@@ -27,19 +27,25 @@ export function mapClipProjectSummary(
     ? item.attributes
     : item;
   const settings = isRecord(attrs.settings) ? attrs.settings : undefined;
-  const sourceVideoUrl = readString(attrs.sourceVideoUrl);
+  const draft = isRecord(attrs.draft) ? attrs.draft : undefined;
+  const status = readString(attrs.status) ?? 'pending';
+  // A draft has no source yet; its typed YouTube URL still gives a thumbnail.
+  const sourceVideoUrl =
+    readString(attrs.sourceVideoUrl) ?? readString(draft?.youtubeUrl);
 
   return {
     brandId: readString(attrs.brandId),
     createdAt: readString(attrs.createdAt),
+    updatedAt: readString(attrs.updatedAt),
     failedClipCount: readNumber(attrs.failedClipCount),
     id: item.id,
+    isDraft: status === 'draft',
     mode: isClipResultMode(settings?.mode) ? settings.mode : undefined,
     name: clipProjectTitle(readString(attrs.name), sourceVideoUrl),
     pendingClipCount: readNumber(attrs.pendingClipCount),
     progress: readNumber(attrs.progress),
     readyClipCount: readNumber(attrs.readyClipCount),
     sourceVideoUrl,
-    status: readString(attrs.status) ?? 'pending',
+    status,
   };
 }

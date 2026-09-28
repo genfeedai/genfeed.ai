@@ -45,7 +45,12 @@ vi.mock('@api/index', () => ({
 
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixture';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  VideoTransition,
+} from '@genfeedai/contracts';
 import type { NodeExecutor, WorkflowEngine } from '@genfeedai/workflows/engine';
 
 function setup() {
@@ -123,6 +128,19 @@ function setup() {
       size: 100,
     }),
   };
+  const stitch = new VideoStitchFixture();
+  stitch.addClip({
+    brandId: 'brand',
+    id: 'clip-1',
+    organizationId: 'org',
+    s3Key: 'ingredients/videos/clip-1.mp4',
+  });
+  stitch.addClip({
+    brandId: 'brand',
+    id: 'clip-2',
+    organizationId: 'org',
+    s3Key: 'ingredients/videos/nested/clip-2.mp4',
+  });
   const executors = new Map<string, NodeExecutor>();
   new WorkflowMediaProcessingExecutorRegistrarService(
     helper,
@@ -135,6 +153,9 @@ function setup() {
     metadata as never,
     undefined,
     shared as never,
+    undefined,
+    undefined,
+    stitch.service,
   ).register({
     registerExecutor: (type: string, executor: NodeExecutor) =>
       executors.set(type, executor),
@@ -155,10 +176,15 @@ function setup() {
         label: type,
       } as Parameters<NodeExecutor>[0],
       inputs,
-      { organizationId: 'org', userId: 'user' } as Parameters<NodeExecutor>[2],
+      {
+        executionId: 'exec-1',
+        organizationId: 'org',
+        runId: 'run-1',
+        userId: 'user',
+      } as Parameters<NodeExecutor>[2],
     );
   };
-  return { assets, ingredients, metadata, shared, files, queue, run };
+  return { assets, ingredients, metadata, shared, files, queue, run, stitch };
 }
 
 describe('workflow media composition integration', () => {
@@ -263,8 +289,9 @@ describe('workflow media composition integration', () => {
     ).rejects.toThrow('brand');
     expect(h.shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
   });
-  it('stitches ordered persisted keys and consumes uploaded queue result without reopening a deleted temp file', async () => {
+  it('stitches ordered clips through the stitch service with persisted keys', async () => {
     const h = setup();
+    h.stitch.completeJob('stitch-output-1', 'ingredients/videos/output-1');
     const result = await h.run(
       'videoStitch',
       new Map<string, unknown>([
@@ -277,42 +304,42 @@ describe('workflow media composition integration', () => {
           { videoUrl: 'https://cdn.example/ingredients/videos/clip-1' },
         ],
       ]),
-      { brandId: 'brand', transitionType: 'cut' },
+      {
+        brandId: 'brand',
+        transitionDuration: 0.5,
+        transitionType: 'crossfade',
+      },
     );
-    expect(h.queue.processVideo).toHaveBeenCalledWith(
+    expect(h.stitch.mergeJobs()).toEqual([
       expect.objectContaining({
-        params: expect.objectContaining({
+        id: 'stitch-output-1',
+        params: {
           isPersistedOutputOnly: true,
           sourceIds: ['clip-1', 'clip-2'],
           sourceStorageKeys: [
             'ingredients/videos/clip-1.mp4',
             'ingredients/videos/nested/clip-2.mp4',
           ],
-        }),
+          transition: 'fade',
+          transitionDuration: 0.5,
+        },
       }),
-    );
+    ]);
+    expect(h.stitch.row('output-1')).toMatchObject({
+      generationSource: 'video-stitch:workflow',
+      s3Key: 'ingredients/videos/output-1',
+      sourceActionId: 'workflow:run-1:node',
+      status: IngredientStatus.GENERATED,
+      workflowExecutionId: 'exec-1',
+    });
+    expect(result).toMatchObject({ ingredientId: 'output-1' });
+    expect(h.queue.processVideo).not.toHaveBeenCalled();
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
-    expect(h.ingredients.patch).toHaveBeenCalledWith(
-      'result',
-      expect.objectContaining({
-        s3Key: 'ingredients/videos/result',
-        status: IngredientStatus.GENERATED,
-      }),
-    );
-    expect(h.metadata.patch).toHaveBeenCalledWith(
-      'result-meta',
-      expect.objectContaining({
-        duration: 6,
-        publicUrl: 'https://cdn.example/result',
-        s3Key: 'ingredients/videos/result',
-      }),
-    );
     expect(result).toBeDefined();
   });
   it('rejects mixed-brand stitch sources before queueing', async () => {
     const h = setup();
-    const source = h.assets.get('clip-2');
-    if (source) source.brandId = 'other';
+    h.stitch.row('clip-2').brandId = 'other';
     await expect(
       h.run(
         'videoStitch',
@@ -327,16 +354,16 @@ describe('workflow media composition integration', () => {
         ]),
         { brandId: 'brand' },
       ),
-    ).rejects.toThrow('selected brand');
-    expect(h.queue.processVideo).not.toHaveBeenCalled();
-    expect(h.shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    ).rejects.toThrow('Found 1 of 2 videos ready to merge');
+    expect(h.stitch.queued).toEqual([]);
+    expect(h.stitch.outputs()).toEqual([]);
   });
   it('marks a stitch output failed when the queue returns no persisted object', async () => {
     const h = setup();
-    h.queue.waitForJob.mockResolvedValueOnce({
-      success: true,
+    h.stitch.jobResults.set('stitch-output-1', {
       outputPath: '/already/deleted.mp4',
-    } as never);
+      success: true,
+    });
     await expect(
       h.run(
         'videoStitch',
@@ -352,9 +379,69 @@ describe('workflow media composition integration', () => {
         { brandId: 'brand' },
       ),
     ).rejects.toThrow('persisted video');
-    expect(h.ingredients.patch).toHaveBeenCalledWith('result', {
-      status: IngredientStatus.FAILED,
-    });
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.FAILED);
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
+  });
+  it('re-enqueues a processing output whose job was lost when the node reruns', async () => {
+    const h = setup();
+    const inputs = new Map<string, unknown>([
+      [
+        'videos',
+        [
+          'https://cdn.example/ingredients/videos/clip-1',
+          'https://cdn.example/ingredients/videos/clip-2',
+        ],
+      ],
+    ]);
+    // The API stopped after creating the output, before its job survived.
+    await h.stitch.service.stitch({
+      brandId: 'brand',
+      callerKind: 'workflow',
+      clipIds: ['clip-1', 'clip-2'],
+      idempotencyKey: 'workflow:run-1:node',
+      organizationId: 'org',
+      settings: { transition: VideoTransition.NONE },
+      userId: 'user',
+    });
+    h.stitch.dropJob('stitch-output-1');
+    h.stitch.jobResults.set('stitch-output-1', {
+      s3Key: 'ingredients/videos/output-1',
+      success: true,
+    });
+
+    await h.run('videoStitch', inputs, { brandId: 'brand' });
+
+    expect(h.stitch.mergeJobs().map((job) => job.id)).toEqual([
+      'stitch-output-1',
+      'stitch-output-1',
+    ]);
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
+  });
+  it('requeues the same output when the node is retried in its run', async () => {
+    const h = setup();
+    const inputs = new Map<string, unknown>([
+      [
+        'videos',
+        [
+          'https://cdn.example/ingredients/videos/clip-1',
+          'https://cdn.example/ingredients/videos/clip-2',
+        ],
+      ],
+    ]);
+    h.stitch.failWaitFor.set('stitch-output-1', new Error('ffmpeg exited'));
+    await expect(
+      h.run('videoStitch', inputs, { brandId: 'brand' }),
+    ).rejects.toThrow('ffmpeg exited');
+    h.stitch.failWaitFor.delete('stitch-output-1');
+    h.stitch.completeJob('stitch-output-1', 'ingredients/videos/output-1');
+
+    await h.run('videoStitch', inputs, { brandId: 'brand' });
+
+    expect(h.stitch.outputs()).toHaveLength(1);
+    expect(h.stitch.mergeJobs().map((job) => job.id)).toEqual([
+      'stitch-output-1',
+      'stitch-output-1',
+    ]);
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
   });
 });

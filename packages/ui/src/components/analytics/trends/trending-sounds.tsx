@@ -5,6 +5,7 @@ import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format
 import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
 import type { TrendingSoundsProps } from '@genfeedai/props/analytics/trends.props';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Music, Play, TrendingUp } from 'lucide-react';
@@ -30,14 +31,14 @@ export function TrendingSounds({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="animate-pulse h-6 bg-background w-40" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CollectionGrid data-testid="trending-sounds-skeleton" maxColumns={3}>
           {[1, 2, 3, 4, 5, 6].map((placeholderId) => (
             <div
               key={placeholderId}
               className="animate-pulse h-28 bg-background"
             />
           ))}
-        </div>
+        </CollectionGrid>
       </div>
     );
   }
@@ -72,7 +73,7 @@ export function TrendingSounds({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <CollectionGrid data-testid="trending-sounds-grid" maxColumns={3}>
         {sortedSounds.slice(0, 9).map((sound, index) => (
           <Card
             key={sound.id}
@@ -199,7 +200,7 @@ export function TrendingSounds({
             </div>
           </Card>
         ))}
-      </div>
+      </CollectionGrid>
 
       {sortedSounds.length > 9 && (
         <p className="text-center text-sm text-foreground/60">

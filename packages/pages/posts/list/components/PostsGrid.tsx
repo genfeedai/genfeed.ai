@@ -150,6 +150,7 @@ function getPostPreview(post: IPost): string {
 
 interface PostsGridProps {
   posts: IPost[];
+  view?: 'list' | 'grid';
   onPostEvaluated: (postId: string, score: number) => void;
   primaryAction?: PostCardAction;
   onOpenPostDetail?: (post: IPost) => void;
@@ -159,6 +160,7 @@ interface PostsGridProps {
 const PostsGrid = memo(
   function PostsGrid({
     posts,
+    view = 'grid',
     onPostEvaluated,
     primaryAction,
     onOpenPostDetail,
@@ -177,241 +179,273 @@ const PostsGrid = memo(
     }
 
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {posts.map((post) => {
-          const PlatformIcon = post.platform
-            ? (getPlatformIconComponent(post.platform) ?? Copy)
-            : Copy;
-          const platformLabel = post.platform
-            ? getPostsPlatformLabel(post.platform)
-            : 'Post';
-          const title = getPostTitle(post);
-          const heading = (
-            <>
-              <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
-                <PlatformIcon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="line-clamp-2 text-base font-semibold text-foreground">
-                  {title}
-                </h3>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
-                  {platformLabel}
-                </p>
-              </div>
-            </>
-          );
-          const preview = getPostPreview(post);
-          const mediaUrls = getPostMediaUrls(post);
-          const statusPresentation = getStatusPresentation(post.status);
-          const visiblePrimaryAction =
-            primaryAction &&
-            (!primaryAction.isVisible || primaryAction.isVisible(post))
-              ? primaryAction
-              : null;
-          const visibleSecondaryActions = secondaryActions.filter(
-            (action) =>
-              action.key !== 'open-platform' &&
-              (!action.isVisible || action.isVisible(post)),
-          );
-          const primaryActionIcon =
-            visiblePrimaryAction &&
-            (typeof visiblePrimaryAction.icon === 'function'
-              ? visiblePrimaryAction.icon(post)
-              : visiblePrimaryAction.icon);
-          const primaryActionLabel =
-            visiblePrimaryAction &&
-            (typeof visiblePrimaryAction.label === 'function'
-              ? visiblePrimaryAction.label(post)
-              : visiblePrimaryAction.label);
+      <div className="@container" data-post-view={view}>
+        <div
+          className={
+            view === 'grid'
+              ? 'grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3'
+              : 'flex flex-col gap-3'
+          }
+        >
+          {posts.map((post) => {
+            const PlatformIcon = post.platform
+              ? (getPlatformIconComponent(post.platform) ?? Copy)
+              : Copy;
+            const platformLabel = post.platform
+              ? getPostsPlatformLabel(post.platform)
+              : 'Post';
+            const title = getPostTitle(post);
+            const heading = (
+              <>
+                <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
+                  <PlatformIcon className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 text-base font-semibold text-foreground">
+                    {title}
+                  </h3>
+                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
+                    {platformLabel}
+                  </p>
+                </div>
+              </>
+            );
+            const preview = getPostPreview(post);
+            const mediaUrls = getPostMediaUrls(post);
+            const statusPresentation = getStatusPresentation(post.status);
+            const retryAction =
+              post.status === PostStatus.FAILED
+                ? secondaryActions.find(
+                    (action) =>
+                      action.key === 'retry' &&
+                      (!action.isVisible || action.isVisible(post)),
+                  )
+                : undefined;
+            const visiblePrimaryAction =
+              retryAction ??
+              (primaryAction &&
+              (!primaryAction.isVisible || primaryAction.isVisible(post))
+                ? primaryAction
+                : null);
+            const visibleSecondaryActions = [
+              ...(retryAction &&
+              primaryAction &&
+              (!primaryAction.isVisible || primaryAction.isVisible(post))
+                ? [primaryAction]
+                : []),
+              ...secondaryActions,
+            ].filter(
+              (action) =>
+                action.key !== visiblePrimaryAction?.key &&
+                action.key !== 'open-platform' &&
+                (!action.isVisible || action.isVisible(post)),
+            );
+            const primaryActionIcon =
+              visiblePrimaryAction &&
+              (typeof visiblePrimaryAction.icon === 'function'
+                ? visiblePrimaryAction.icon(post)
+                : visiblePrimaryAction.icon);
+            const primaryActionLabel =
+              visiblePrimaryAction &&
+              (typeof visiblePrimaryAction.label === 'function'
+                ? visiblePrimaryAction.label(post)
+                : visiblePrimaryAction.label);
 
-          return (
-            <Card
-              key={post.id}
-              className="group text-left hover:bg-accent hover:shadow-border-strong"
-              bodyClassName="gap-0 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                {onOpenPostDetail ? (
-                  <Button
-                    className="flex min-w-0 items-start gap-3 text-left"
-                    onClick={() => onOpenPostDetail(post)}
-                    type="button"
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                  >
-                    {heading}
-                  </Button>
-                ) : (
-                  <Link
-                    className="flex min-w-0 items-start gap-3 text-left"
-                    href={href(getPublishingPostHref(post.id))}
-                  >
-                    {heading}
-                  </Link>
-                )}
+            return (
+              <Card
+                key={post.id}
+                className="group text-left hover:shadow-border-strong"
+                bodyClassName={
+                  view === 'list'
+                    ? 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center'
+                    : 'gap-0 p-4'
+                }
+              >
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                  {onOpenPostDetail ? (
+                    <Button
+                      className="flex min-w-0 items-start gap-3 text-left"
+                      onClick={() => onOpenPostDetail(post)}
+                      type="button"
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                    >
+                      {heading}
+                    </Button>
+                  ) : (
+                    <Link
+                      className="flex min-w-0 items-start gap-3 text-left"
+                      href={href(getPublishingPostHref(post.id))}
+                    >
+                      {heading}
+                    </Link>
+                  )}
 
-                {visibleSecondaryActions.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <PrimitiveButton
-                        className={cn(
-                          buttonVariants({
-                            size: ButtonSize.ICON,
-                            variant: ButtonVariant.GHOST,
-                          }),
-                          'h-8 w-8 rounded-full border border-border bg-background-secondary text-muted-foreground hover:bg-hover hover:text-foreground',
-                        )}
-                        aria-label="More post actions"
+                  {
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <PrimitiveButton
+                          className={cn(
+                            buttonVariants({
+                              size: ButtonSize.ICON,
+                              variant: ButtonVariant.GHOST,
+                            }),
+                            'h-8 w-8 rounded-full border border-border bg-background-secondary text-muted-foreground hover:bg-hover hover:text-foreground',
+                          )}
+                          aria-label="More post actions"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Ellipsis className="size-4" />
+                        </PrimitiveButton>
+                      </DropdownMenuTrigger>
+
+                      <DropdownMenuContent
+                        align="end"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <Ellipsis className="size-4" />
-                      </PrimitiveButton>
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent
-                      align="end"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      {visibleSecondaryActions.map((action) => {
-                        const label =
-                          typeof action.label === 'function'
-                            ? action.label(post)
-                            : action.label;
-                        const icon =
-                          typeof action.icon === 'function'
-                            ? action.icon(post)
-                            : action.icon;
-
-                        return (
-                          <DropdownMenuItem
-                            key={action.key}
-                            className={cn(
-                              action.destructive &&
-                                'text-destructive focus:text-destructive',
-                            )}
-                            onSelect={() => action.onClick(post)}
-                          >
-                            {icon}
-                            <span>{label}</span>
+                        <EvalGridCell
+                          presentation="menu"
+                          post={post}
+                          onEvaluated={onPostEvaluated}
+                        />
+                        {post.platformUrl && (
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={post.platformUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="size-4" />
+                              {post.platform === Platform.TWITTER
+                                ? 'View on X'
+                                : 'View post'}
+                            </a>
                           </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
+                        )}
+                        {visibleSecondaryActions.map((action) => {
+                          const label =
+                            typeof action.label === 'function'
+                              ? action.label(post)
+                              : action.label;
+                          const icon =
+                            typeof action.icon === 'function'
+                              ? action.icon(post)
+                              : action.icon;
 
-              {mediaUrls.length > 0 && (
-                <div
-                  className={cn(
-                    'mt-4 grid aspect-[16/9] overflow-hidden rounded-lg bg-secondary',
-                    mediaUrls.length > 1 && 'grid-cols-2',
-                  )}
-                >
-                  {mediaUrls.map((mediaUrl, index) => (
-                    <div
-                      key={`${post.id}-${mediaUrl}`}
-                      className={cn(
-                        'relative min-h-0 overflow-hidden',
-                        mediaUrls.length === 3 && index === 0 && 'row-span-2',
-                      )}
-                    >
-                      <Image
-                        alt={
-                          post.ingredients?.[index]?.metadataLabel ||
-                          `${title} media ${index + 1}`
-                        }
-                        className="object-cover"
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        src={mediaUrl}
-                        unoptimized
-                      />
-                    </div>
-                  ))}
+                          return (
+                            <DropdownMenuItem
+                              key={action.key}
+                              className={cn(
+                                action.destructive &&
+                                  'text-destructive focus:text-destructive',
+                              )}
+                              onSelect={() => action.onClick(post)}
+                            >
+                              {icon}
+                              <span>{label}</span>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  }
                 </div>
-              )}
 
-              <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
-                {preview}
-              </p>
-
-              {post.status === PostStatus.FAILED &&
-                post.targetError?.message && (
-                  <p
-                    className="mt-3 truncate text-xs text-destructive"
-                    title={post.targetError.message}
+                {view === 'grid' && mediaUrls.length > 0 && (
+                  <div
+                    className={cn(
+                      'mt-4 grid aspect-[16/9] overflow-hidden rounded-lg bg-secondary',
+                      mediaUrls.length > 1 && 'grid-cols-2',
+                    )}
                   >
-                    {post.targetError.message}
+                    {mediaUrls.map((mediaUrl, index) => (
+                      <div
+                        key={`${post.id}-${mediaUrl}`}
+                        className={cn(
+                          'relative min-h-0 overflow-hidden',
+                          mediaUrls.length === 3 && index === 0 && 'row-span-2',
+                        )}
+                      >
+                        <Image
+                          alt={
+                            post.ingredients?.[index]?.metadataLabel ||
+                            `${title} media ${index + 1}`
+                          }
+                          className="object-cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          src={mediaUrl}
+                          unoptimized
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {view === 'grid' && (
+                  <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
+                    {preview}
                   </p>
                 )}
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                <Badge
-                  status={statusPresentation.canonicalStatus}
-                  variant={statusPresentation.variant}
-                  size={ComponentSize.SM}
-                >
-                  {statusPresentation.label}
-                </Badge>
-
-                {post.scheduledDate && (
-                  <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 text-xs text-foreground/60">
-                    {formatDateInTimezone(
-                      post.scheduledDate,
-                      browserTimezone,
-                      'short',
-                    )}
-                  </span>
-                )}
-
-                <EvalGridCell
-                  presentation="grid"
-                  post={post}
-                  onEvaluated={onPostEvaluated}
-                />
-
-                {visiblePrimaryAction && (
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      visiblePrimaryAction.onClick(post);
-                    }}
-                    icon={primaryActionIcon}
-                  >
-                    {primaryActionLabel}
-                  </Button>
-                )}
-
-                {post.platformUrl && (
-                  <PrimitiveButton
-                    asChild
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.GHOST}
-                  >
-                    <a
-                      href={post.platformUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                {post.status === PostStatus.FAILED &&
+                  post.targetError?.message && (
+                    <p
+                      className="mt-3 truncate text-xs text-destructive"
+                      title={post.targetError.message}
                     >
-                      <ExternalLink className="size-4" />
-                      {post.platform === Platform.TWITTER
-                        ? 'View on X'
-                        : 'View post'}
-                    </a>
-                  </PrimitiveButton>
-                )}
-              </div>
-            </Card>
-          );
-        })}
+                      {post.targetError.message}
+                    </p>
+                  )}
+
+                <div
+                  className={
+                    view === 'grid'
+                      ? 'mt-4 flex flex-wrap items-center gap-2'
+                      : 'flex shrink-0 flex-wrap items-center gap-2'
+                  }
+                >
+                  <Badge
+                    status={statusPresentation.canonicalStatus}
+                    variant={statusPresentation.variant}
+                    size={ComponentSize.SM}
+                  >
+                    {statusPresentation.label}
+                  </Badge>
+
+                  {post.scheduledDate && (
+                    <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 text-xs text-foreground/60">
+                      {formatDateInTimezone(
+                        post.scheduledDate,
+                        browserTimezone,
+                        'short',
+                      )}
+                    </span>
+                  )}
+
+                  {visiblePrimaryAction && (
+                    <Button
+                      variant={ButtonVariant.SECONDARY}
+                      size={ButtonSize.SM}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        visiblePrimaryAction.onClick(post);
+                      }}
+                      icon={primaryActionIcon}
+                    >
+                      {primaryActionLabel}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     );
   },
   (prevProps, nextProps) => {
+    if (prevProps.view !== nextProps.view) return false;
     if (prevProps.posts.length !== nextProps.posts.length) {
       return false;
     }

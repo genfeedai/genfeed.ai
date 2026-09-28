@@ -6,6 +6,7 @@ import type {
   ProviderModel,
   ProviderType,
 } from '@genfeedai/contracts/types';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { ExternalLink, Sparkles, TriangleAlert, X } from 'lucide-react';
@@ -198,7 +199,7 @@ function ModelBrowserModalComponent({
                   <h3 className="mb-3 text-sm font-medium text-muted-foreground">
                     Recently Used
                   </h3>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <CollectionGrid maxColumns={4}>
                     {filteredRecentModels.map((recent) => {
                       const model = models.find(
                         (m) =>
@@ -214,7 +215,7 @@ function ModelBrowserModalComponent({
                         />
                       );
                     })}
-                  </div>
+                  </CollectionGrid>
                 </div>
               )}
 
@@ -229,7 +230,7 @@ function ModelBrowserModalComponent({
                     <p className="text-sm">No models found</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <CollectionGrid maxColumns={2}>
                     {models.map((model) => (
                       <ModelCard
                         key={`${model.provider}-${model.id}`}
@@ -237,7 +238,7 @@ function ModelBrowserModalComponent({
                         onSelect={handleSelect}
                       />
                     ))}
-                  </div>
+                  </CollectionGrid>
                 )}
               </div>
             </div>

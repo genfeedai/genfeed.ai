@@ -6,6 +6,7 @@ import {
   type StudioLookRequestScope,
   StudioLooksService,
 } from '@api/collections/studio-looks/services/studio-looks.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -39,6 +40,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('studio-looks')
 export class StudioLooksController {
   private readonly constructorName = String(this.constructor.name);

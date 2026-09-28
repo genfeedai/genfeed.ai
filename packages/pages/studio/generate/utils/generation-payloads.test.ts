@@ -1,4 +1,3 @@
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   ContentTemplateKey,
   IngredientCategory,
@@ -17,7 +16,7 @@ import {
   buildVideoPayload,
 } from './generation-payloads';
 
-type PromptData = PromptTextareaSchema & { isValid: boolean };
+type PromptData = Parameters<typeof buildMusicPayload>[0];
 
 function makePromptData(overrides: Partial<PromptData> = {}): PromptData {
   return {

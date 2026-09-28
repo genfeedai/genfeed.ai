@@ -10,6 +10,8 @@ export const batchProjectAttributes = createEntityAttributes([
   'step',
   'workflowId',
   'settings',
+  'revision',
+  'quote',
   'reviewBatchId',
   'itemCounts',
   'items',

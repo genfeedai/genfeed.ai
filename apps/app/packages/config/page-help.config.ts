@@ -49,7 +49,6 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
   { key: 'studioClips', prefix: APP_ROUTES.STUDIO.CLIPS },
   { key: 'studioBatch', prefix: APP_ROUTES.STUDIO.BATCH },
-  { key: 'studioFastlane', prefix: APP_ROUTES.STUDIO.FASTLANE },
   { key: 'studioEdit', prefix: APP_ROUTES.STUDIO.EDIT },
   { key: 'messagesInbox', prefix: APP_ROUTES.MESSAGES.ROOT },
   { key: 'messagesOutreach', prefix: APP_ROUTES.MESSAGES.OUTREACH },

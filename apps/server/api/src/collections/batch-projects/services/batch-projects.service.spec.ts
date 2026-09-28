@@ -83,6 +83,7 @@ describe('BatchProjectsService', () => {
       updateMany: vi.fn(),
     },
     batchProjectItem: {
+      count: vi.fn(),
       createMany: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -103,6 +104,7 @@ describe('BatchProjectsService', () => {
     ),
     refreshProjectStatus: vi.fn(),
     syncReviewDecisions: vi.fn(),
+    syncReviewState: vi.fn(),
   };
   const batchWorkflowExecutionService = { startBatchExecution: vi.fn() };
   const workflowsService = { findOwnedOrThrow: vi.fn() };
@@ -110,6 +112,7 @@ describe('BatchProjectsService', () => {
     approveItems: vi.fn(),
     rejectItems: vi.fn(),
   };
+  const ideaGeneration = { quote: vi.fn(), retry: vi.fn(), start: vi.fn() };
   const service = new BatchProjectsService(
     prisma as never,
     logger as never,
@@ -117,6 +120,8 @@ describe('BatchProjectsService', () => {
     batchWorkflowExecutionService as never,
     workflowsService as never,
     batchGenerationService as never,
+    ideaGeneration as never,
+    { generateFastlaneIdeas: vi.fn() } as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -125,6 +130,11 @@ describe('BatchProjectsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    reconcileService.syncReviewDecisions.mockReset();
+    reconcileService.runExclusive.mockImplementation(
+      async (_projectId: string, operation: () => Promise<unknown>) =>
+        await operation(),
+    );
     prisma.batchProject.updateMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.updateMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.createMany.mockResolvedValue({ count: 1 });
@@ -325,6 +335,59 @@ describe('BatchProjectsService', () => {
         }),
       });
     });
+
+    it('waits for a scheduling run holding the project lock before editing', async () => {
+      // A real per-project mutex in place of the Redis lock.
+      let held: Promise<unknown> = Promise.resolve();
+      reconcileService.runExclusive.mockImplementation(
+        (_projectId: string, operation: () => Promise<unknown>) => {
+          const run = held.then(operation);
+          held = run.catch(() => undefined);
+          return run;
+        },
+      );
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({
+          postId: 'review-post-1',
+          status: BatchProjectItemStatus.APPROVED,
+        }),
+      );
+      let finishSchedule: () => void = () => undefined;
+      const events: string[] = [];
+      const scheduling = reconcileService.runExclusive(
+        'project-1',
+        () =>
+          new Promise<void>((resolve) => {
+            events.push('schedule-read-caption');
+            finishSchedule = () => {
+              events.push('schedule-published');
+              resolve();
+            };
+          }),
+      );
+      prisma.batchProjectItem.updateMany.mockImplementation(async () => {
+        events.push('caption-write');
+        return { count: 1 };
+      });
+
+      const editing = service.updateItem(
+        'project-1',
+        'item-1',
+        { caption: 'Edited mid-schedule' },
+        scope,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(events).toEqual(['schedule-read-caption']);
+
+      finishSchedule();
+      await Promise.all([scheduling, editing]);
+      expect(events).toEqual([
+        'schedule-read-caption',
+        'schedule-published',
+        'caption-write',
+      ]);
+    });
   });
 
   describe('update', () => {
@@ -377,7 +440,8 @@ describe('BatchProjectsService', () => {
 
       await service.list(scope, { limit: 20, page: 1 } as never);
 
-      expect(reconcileService.syncReviewDecisions).toHaveBeenCalledWith(
+      // Synced under the project's lock, never alongside scheduling.
+      expect(reconcileService.syncReviewState).toHaveBeenCalledWith(
         'project-1',
         'org-1',
       );
@@ -499,6 +563,52 @@ describe('BatchProjectsService', () => {
   });
 
   describe('retryItem', () => {
+    it('commits the item claim and generating project before dispatch', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      const events: string[] = [];
+      prisma.$transaction.mockImplementationOnce(async (operation: unknown) => {
+        if (typeof operation !== 'function')
+          throw new Error('Expected a transaction');
+        events.push('begin');
+        const result = await operation(prisma);
+        expect(prisma.batchProject.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: BatchProjectStatus.GENERATING,
+            }),
+          }),
+        );
+        events.push('commit');
+        return result;
+      });
+      batchWorkflowExecutionService.startBatchExecution.mockImplementationOnce(
+        async () => {
+          events.push('dispatch');
+          return 'retry-parent';
+        },
+      );
+      await service.retryItem('project-1', 'item-1', scope);
+      expect(events).toEqual(['begin', 'commit', 'dispatch']);
+    });
+    it('does not dispatch when the atomic project transition fails', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      prisma.batchProject.updateMany.mockRejectedValueOnce(
+        new Error('write failed'),
+      );
+      await expect(
+        service.retryItem('project-1', 'item-1', scope),
+      ).rejects.toThrow('write failed');
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+    });
+
     it('keeps a started retry generating when saving its run link fails', async () => {
       useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
       prisma.batchProjectItem.findFirst.mockResolvedValue(
@@ -651,39 +761,102 @@ describe('BatchProjectsService', () => {
     });
   });
 
-  describe('dispatchItem', () => {
-    it('records the pending ingredient of an idea item', async () => {
+  describe('ideas', () => {
+    it('starts an idea batch through its accepted quote', async () => {
+      useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
+
+      await service.start('project-1', scope, 'quote-1');
+
+      expect(ideaGeneration.start).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'project-1' }),
+        [expect.objectContaining({ id: 'item-1' })],
+        'quote-1',
+        scope,
+      );
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+    });
+
+    it('retries a failed idea through a fresh quote', async () => {
       useProject(
         makeProject({
           kind: BatchProjectKind.IDEAS,
-          status: BatchProjectStatus.GENERATING,
+          status: BatchProjectStatus.PARTIAL_FAILURE,
         }),
       );
       prisma.batchProjectItem.findFirst.mockResolvedValue(
-        makeItem({ status: BatchProjectItemStatus.GENERATING }),
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
       );
-      prisma.ingredient.findFirst.mockResolvedValue({
-        category: IngredientCategory.VIDEO,
-        id: 'pending-1',
-      });
 
-      await service.dispatchItem(
+      await service.retryItem('project-1', 'item-1', scope, 'quote-2');
+
+      expect(ideaGeneration.retry).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'project-1' }),
+        expect.objectContaining({ id: 'item-1' }),
+        'quote-2',
+        scope,
+      );
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('quotes only idea batches', async () => {
+      useProject(makeProject());
+
+      await expect(service.quote('project-1', {}, scope)).rejects.toThrow(
+        'Only idea batches are quoted',
+      );
+    });
+
+    it('keeps a batch with generation in flight from being deleted', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.GENERATING }));
+      prisma.batchProjectItem.count.mockResolvedValue(2);
+
+      await expect(service.remove('project-1', scope)).rejects.toThrow(
+        'Wait for generation to finish',
+      );
+      expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('deletes under the project lock start and retry take', async () => {
+      useProject(makeProject());
+      prisma.batchProjectItem.count.mockResolvedValue(0);
+
+      await service.remove('project-1', scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
         'project-1',
-        'item-1',
-        { ingredientId: 'pending-1' },
+        expect.any(Function),
+      );
+      const [lockOrder] =
+        reconcileService.runExclusive.mock.invocationCallOrder;
+      const [countOrder] =
+        prisma.batchProjectItem.count.mock.invocationCallOrder;
+      expect(lockOrder).toBeLessThan(countOrder);
+      expect(prisma.batchProject.updateMany).toHaveBeenCalled();
+    });
+
+    it('moves the project revision when its inputs change', async () => {
+      useProject(makeProject());
+      prisma.ingredient.findMany.mockResolvedValue([
+        { category: IngredientCategory.IMAGE, id: 'input-9' },
+      ]);
+
+      await service.addItems(
+        'project-1',
+        { inputs: [{ ingredientId: 'input-9' }] },
         scope,
       );
 
-      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
-        data: {
-          outputCategory: IngredientCategory.VIDEO,
-          outputIngredientId: 'pending-1',
-        },
-        where: expect.objectContaining({
-          id: 'item-1',
-          organizationId: 'org-1',
-          outputIngredientId: null,
-        }),
+      expect(prisma.batchProject.updateMany).toHaveBeenCalledWith({
+        data: { revision: { increment: 1 }, updatedAt: expect.any(Date) },
+        where: expect.objectContaining({ id: 'project-1' }),
       });
     });
   });
@@ -734,6 +907,36 @@ describe('BatchProjectsService', () => {
           scope,
         ),
       ).rejects.toThrow(ConflictException);
+      expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
+    });
+
+    it('reads the inbox decision before approving, under the project lock', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      const reviewed = {
+        reviewBatchId: 'review-batch-1',
+        reviewItemId: 'review-item-1',
+      };
+      // Batch still shows the item READY; the inbox has already rejected it.
+      prisma.batchProjectItem.findMany.mockResolvedValue([
+        makeItem({ ...reviewed, status: BatchProjectItemStatus.READY }),
+      ]);
+      reconcileService.syncReviewDecisions.mockImplementation(async () => {
+        prisma.batchProjectItem.findMany.mockResolvedValue([
+          makeItem({ ...reviewed, status: BatchProjectItemStatus.REJECTED }),
+        ]);
+      });
+
+      await expect(
+        service.review(
+          'project-1',
+          { decision: 'approved', itemIds: ['item-1'] },
+          scope,
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
       expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     });
 

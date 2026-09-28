@@ -13,20 +13,21 @@ export type { StudioGenerateFilter };
 /**
  * Persisted output categories for the active results filter. Avatar generation
  * produces a video ingredient, so Avatar and Video intentionally share the
- * same stored category.
+ * same stored category. `all` also loads GIFs made from a Generate video.
  */
 export function resolveStudioGalleryCategories(
   filter: StudioGenerateFilter,
 ): readonly IngredientCategory[] {
   if (filter === 'all') {
     return Array.from(
-      new Set(
-        STUDIO_GENERATE_TYPES.map((type) =>
+      new Set([
+        ...STUDIO_GENERATE_TYPES.map((type) =>
           type === 'avatar'
             ? IngredientCategory.VIDEO
             : getStudioGenerateTypeConfig(type).ingredientCategory,
         ),
-      ),
+        IngredientCategory.GIF,
+      ]),
     );
   }
 

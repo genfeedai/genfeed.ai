@@ -260,6 +260,7 @@ export class BillingAccountsService {
       isLinked:
         parseBillingAccountOrganizationStatus(link?.status) ===
         BillingAccountOrganizationStatus.LINKED,
+      id: scope.billingAccountId,
       kind: 'organization',
       monthlyBudgetCredits: link?.monthlyBudgetCredits ?? null,
       organizationId,

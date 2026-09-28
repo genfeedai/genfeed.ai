@@ -146,6 +146,9 @@ export function createPublishingContentLibraryItems({
       channel: post.platform ?? 'social',
       createdAt: post.createdAt,
       id: post.id,
+      scheduledAt: post.scheduledDate
+        ? new Date(post.scheduledDate).toISOString()
+        : null,
       status: normalizedStatus(post.status),
       summary: stripHtml(post.description),
       title:

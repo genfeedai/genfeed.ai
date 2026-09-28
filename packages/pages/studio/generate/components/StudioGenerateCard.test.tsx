@@ -28,6 +28,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/my-org/my-brand${path}` }),
+}));
+
 vi.mock('next/image', () => ({
   default: ({ alt, onError, src }: React.ComponentProps<'img'>) => (
     <img alt={alt} onError={onError} src={String(src)} />
@@ -66,9 +70,11 @@ function buildAssetActions(): StudioGenerateAssetActions {
     onMarkArchived: vi.fn(),
     onMarkRejected: vi.fn(),
     onMarkValidated: vi.fn(),
+    onOpenInEditor: vi.fn(),
     onPublishIngredient: vi.fn(),
     onRefresh: vi.fn(),
     onRemoveGeneration: vi.fn(),
+    onResize: vi.fn(),
     onSeeDetails: vi.fn(),
     onToggleFavorite: vi.fn(),
     onUseAsVideoReference: vi.fn(),
@@ -260,6 +266,125 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(screen.getByTestId('shared-masonry-video')).toBeInTheDocument();
+  });
+
+  it('hands hydrated video results the Library video transformations plus editor and resize', () => {
+    const assetActions = buildAssetActions();
+    const ingredient = {
+      category: IngredientCategory.VIDEO,
+      id: generatedJob.id,
+      promptText: generatedJob.prompt,
+      status: IngredientStatus.GENERATED,
+    } as IVideo;
+
+    render(
+      <StudioGenerateCard
+        assetActions={assetActions}
+        job={{
+          ...generatedJob,
+          ingredient,
+          type: 'video',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    const props = masonryMocks.video.mock.calls.at(-1)?.[0];
+    // Extend, upscale, reframe and GIF stay owned by the masonry itself; the
+    // card only opts into the Studio-specific handoffs.
+    expect(props?.isActionsEnabled).toBe(true);
+    expect(props?.onOpenInEditor).toBe(assetActions.onOpenInEditor);
+    expect(props?.onResize).toBe(assetActions.onResize);
+    const makeClips = screen.getByRole('link', { name: 'Make clips' });
+    expect(makeClips).toHaveAttribute(
+      'href',
+      `/my-org/my-brand/studio/clips/new?video=${ingredient.id}`,
+    );
+  });
+
+  it('keeps video transformations off until the clip is a persisted asset', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          type: 'video',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(masonryMocks.video.mock.calls.at(-1)?.[0].isActionsEnabled).toBe(
+      false,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Make clips' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('links a transformation to its source with a keyboard-operable control', () => {
+    const onSelect = vi.fn();
+    const parentJob = {
+      ...generatedJob,
+      id: 'source-job',
+      ingredientId: 'source-1',
+      type: 'video' as const,
+    };
+    const job = {
+      ...generatedJob,
+      id: 'upscaled-job',
+      ingredient: {
+        category: IngredientCategory.VIDEO,
+        id: 'upscaled-1',
+        parentId: 'source-1',
+        status: IngredientStatus.GENERATED,
+      } as IVideo,
+      parentId: 'source-1',
+      type: 'video' as const,
+      url: 'https://cdn.example.com/upscaled.mp4',
+    };
+
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={job}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+        parentJob={parentJob}
+        view={ViewType.GRID}
+      />,
+    );
+
+    const sourceLink = screen.getByRole('button', {
+      name: 'Show the source of this video',
+    });
+    expect(sourceLink.tagName).toBe('BUTTON');
+    fireEvent.click(sourceLink);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(parentJob);
+  });
+
+  it('shows no source link when the parent is not in the gallery', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, parentId: 'missing-source' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.LIST}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Show the source/ }),
+    ).toBeNull();
   });
 
   it.each(['image', 'video'] as const)(

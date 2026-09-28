@@ -10,6 +10,7 @@ import { CalendarSlotQueryDto } from '@api/collections/posting-cadences/dto/cale
 import { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -39,6 +40,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('PostingCadences')
+@FeatureFlag('publishing')
 @Controller('posting-cadences')
 export class PostingCadencesController {
   constructor(private readonly service: PostingCadencesService) {}

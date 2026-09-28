@@ -1,7 +1,9 @@
 import type { VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
+import type { CollectionViewType } from '@props/ui/collection/collection.props';
 
 export interface VoiceCatalogCardProps {
+  isList?: boolean;
   togglingKey: string | null;
   voice: ExternalVoice;
   onToggle: (
@@ -17,6 +19,8 @@ export type ProviderFilter =
   | VoiceProvider.HEYGEN;
 
 export interface VoicesCatalogControlsProps {
+  view: CollectionViewType;
+  onViewChange: (view: CollectionViewType) => void;
   isSyncingAll: boolean;
   providerFilter: ProviderFilter;
   search: string;

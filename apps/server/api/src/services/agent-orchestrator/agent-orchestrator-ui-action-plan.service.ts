@@ -57,23 +57,30 @@ export class AgentOrchestratorUiActionPlanService {
     if (latestPlan?.status === 'approved') {
       throw new BadRequestException('This plan has already been approved.');
     }
+    const approvedAt = new Date().toISOString();
+    const approvedPlan = {
+      approvedAt,
+      awaitingApproval: false,
+      content: planContent,
+      createdAt:
+        typeof latestPlan?.createdAt === 'string'
+          ? latestPlan.createdAt
+          : approvedAt,
+      updatedAt: approvedAt,
+      explanation:
+        typeof latestPlan?.explanation === 'string'
+          ? latestPlan.explanation
+          : undefined,
+      id: planId,
+      lastReviewAction: 'approve' as const,
+      status: 'approved' as const,
+      steps: Array.isArray(latestPlan?.steps)
+        ? (latestPlan.steps as Record<string, unknown>[])
+        : undefined,
+    };
     await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
-      plan: {
-        approvedAt: new Date().toISOString(),
-        awaitingApproval: false,
-        content: planContent,
-        explanation:
-          typeof latestPlan?.explanation === 'string'
-            ? latestPlan.explanation
-            : undefined,
-        id: planId,
-        lastReviewAction: 'approve',
-        status: 'approved',
-        steps: Array.isArray(latestPlan?.steps)
-          ? (latestPlan.steps as Record<string, unknown>[])
-          : undefined,
-      },
+      plan: approvedPlan,
       runId: params.context.executionId,
       threadId: params.threadId,
     });
@@ -86,6 +93,7 @@ export class AgentOrchestratorUiActionPlanService {
     const priority =
       params.context.generationPriority ?? RouterPriority.BALANCED;
     return host.executeSynchronousChatLoop({
+      approvedPlan,
       context: params.context,
       generationPriority: priority,
       model: params.model,

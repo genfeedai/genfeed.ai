@@ -22,6 +22,7 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly trendNotificationsMinViralScore: Setting['trendNotificationsMinViralScore'];
   declare readonly contentPreferences: Setting['contentPreferences'];
   declare readonly favoriteModelKeys: Setting['favoriteModelKeys'];
+  declare readonly favoriteWorkflowIds: Setting['favoriteWorkflowIds'];
   declare readonly isAgentAssetsPanelOpen: Setting['isAgentAssetsPanelOpen'];
   declare readonly generationPriority: Setting['generationPriority'];
   declare readonly dashboardPreferences: Setting['dashboardPreferences'];

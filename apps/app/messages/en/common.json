@@ -872,6 +872,7 @@
       "loadingBrand": "Loading the selected brand\u2026",
       "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
+      "moreAgents": "More agents",
       "search": "Search agents",
       "title": "Add agent",
       "customAgent": "Custom agent",
@@ -899,19 +900,33 @@
       }
     },
     "agentHub": {
+      "activate": "Activate",
+      "loadError": "Agents couldn't load.",
+      "pause": "Pause",
+      "retry": "Retry",
       "runNow": "Run now",
+      "runNowTooltip": "Queue a run with this agent's current schedule and skills",
+      "runWorkflow": "Run workflow",
       "schedule": "Schedule",
       "card": {
         "brand": "Brand: {brand}",
-        "creditsToday": "Credits today",
-        "lastRun": "Last run",
-        "viewDetail": "View detail",
-        "workflow": "Workflow: {workflow}",
-        "workflowDefault": "Workflow: type default on first run"
+        "creditsToday": "{used} / {budget} credits today",
+        "lastRun": "Ran {time}",
+        "workflow": "Workflow: {workflow}"
       },
       "empty": {
         "description": "Hire a content agent to fill workflow prompts and run production graphs",
         "title": "No agents yet"
+      },
+      "sections": {
+        "all": "All",
+        "needsYou": "Needs you",
+        "yours": "Your agents"
+      },
+      "status": {
+        "lastRunFailed": "Last run failed",
+        "paused": "Paused",
+        "pausedAfterFailures": "Paused after {count, plural, one {# failed run} other {# failed runs}}"
       }
     },
     "agentDetail": {
@@ -1220,7 +1235,6 @@
       },
       "library": {
         "autopilot": "Agent",
-        "created": "Created",
         "description": "Use workflows for fixed, reusable automation graphs and scheduled pipelines.",
         "info": "are explicit automation graphs. Schedule a workflow when the steps should be predictable and repeatable. For adaptive agent behavior, use",
         "infoSuffix": ".",
@@ -1246,7 +1260,20 @@
         "updated": "Updated",
         "next": "Next",
         "pageStatus": "Page {page} of {pages}",
-        "previous": "Previous"
+        "previous": "Previous",
+        "disableScheduleFor": "Disable schedule for {name}",
+        "enableScheduleFor": "Enable schedule for {name}",
+        "openWorkflow": "Open {name}",
+        "sectionAll": "All workflows",
+        "sectionRecent": "Recent",
+        "sectionFavorites": "Favorites",
+        "sectionMostUsed": "Most used by your team",
+        "runsCount": "{count, plural, one {# run} other {# runs}}",
+        "addFavorite": "Add to favorites",
+        "removeFavorite": "Remove from favorites",
+        "favoriteLimit": "You can save up to 50 favorite workflows.",
+        "favoriteSaveError": "Could not update favorites. Try again.",
+        "sectionError": "Could not load this section. Try again."
       },
       "schedule": {
         "actions": {
@@ -1579,6 +1606,9 @@
         "openSource": "Open source",
         "remix": "Remix",
         "remixUnavailable": "Remix unavailable",
+        "saveBrief": "Save brief",
+        "savingBrief": "Saving brief…",
+        "selectedAsContext": "Selected for context",
         "sendToAgent": "Send to agent",
         "useAsContext": "Use as context"
       },

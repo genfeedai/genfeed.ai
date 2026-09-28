@@ -168,6 +168,7 @@ const LEAF_MODULES = [
   'RolesModule',
   'SettingsModule',
   'TagsModule',
+  'VideoStitchModule',
   'WebhooksMediaModule',
 ];
 

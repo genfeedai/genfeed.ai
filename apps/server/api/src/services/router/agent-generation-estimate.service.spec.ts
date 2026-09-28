@@ -1,6 +1,12 @@
+import { resolveIdeaGenerationParams } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { ModelCategory } from '@genfeedai/contracts';
+import {
+  calculateImageGenerationCredits,
+  calculateVideoGenerationCredits,
+} from '@genfeedai/pricing';
 import { validate } from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -94,6 +100,89 @@ describe('AgentGenerationEstimateService', () => {
       await service.estimate({ ...input, modelKey: 'fal-ai/flux/dev' }),
     ).toEqual(square);
   });
+  it('quotes explicit execution dimensions exactly as the generation charges them', async () => {
+    const pricedModel = {
+      ...model,
+      cost: 1,
+      costPerUnit: 4,
+      key: 'fal-ai/flux/dev',
+      pricingType: 'per-megapixel',
+      provider: 'fal',
+    };
+    validateModelForOrg.mockResolvedValue(pricedModel);
+    const idea = resolveIdeaGenerationParams('image');
+
+    const quote = await service.estimate({
+      ...input,
+      aspectRatio: idea.aspectRatio,
+      dimensions: { height: idea.height, width: idea.width },
+      modelKey: pricedModel.key,
+      outputs: 1,
+    });
+
+    // What ImageGenerationCreditsService charges for the dispatched request.
+    const charged = calculateImageGenerationCredits({
+      height: idea.height,
+      imageProvider: resolveImageGenerationProvider(
+        pricedModel.key,
+        pricedModel.provider,
+      ),
+      isBatchSupported: false,
+      modelKey: pricedModel.key,
+      outputs: 1,
+      pricing: pricedModel,
+      width: idea.width,
+    });
+    expect(idea).toMatchObject({ height: 1920, width: 1080 });
+    expect(quote).toEqual({
+      credits: charged.credits,
+      isAvailable: true,
+      modelKey: pricedModel.key,
+    });
+    const agentTableQuote = await service.estimate({
+      ...input,
+      aspectRatio: idea.aspectRatio,
+      modelKey: pricedModel.key,
+      outputs: 1,
+    });
+    expect(agentTableQuote.credits).not.toBe(charged.credits);
+  });
+
+  it('quotes an explicit video size and duration exactly as the generation charges them', async () => {
+    const pricedModel = {
+      ...model,
+      category: ModelCategory.VIDEO,
+      cost: 1,
+      costPerUnit: 10,
+      key: 'fal-ai/video',
+      pricingType: 'per-second',
+    };
+    validateModelForOrg.mockResolvedValue(pricedModel);
+    const idea = resolveIdeaGenerationParams('video');
+
+    const quote = await service.estimate({
+      ...input,
+      aspectRatio: idea.aspectRatio,
+      category: ModelCategory.VIDEO,
+      dimensions: { height: idea.height, width: idea.width },
+      duration: idea.duration,
+      modelKey: pricedModel.key,
+      outputs: 1,
+    });
+
+    // What VideoGenerationCreditsService charges for the dispatched request.
+    const charged = calculateVideoGenerationCredits({
+      duration: idea.duration,
+      height: idea.height,
+      isBatchSupported: false,
+      modelKey: pricedModel.key,
+      outputs: 1,
+      pricing: pricedModel,
+      width: idea.width,
+    });
+    expect(quote.credits).toBe(charged.credits);
+  });
+
   it('bills native-batch models once and Fal fan-out per output', async () => {
     validateModelForOrg.mockResolvedValue({
       ...model,

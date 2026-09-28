@@ -13,6 +13,7 @@ function renderForm(
   overrides: Partial<ComponentProps<typeof ClipsInputForm>> = {},
 ) {
   const props = {
+    draftSaveState: 'idle' as const,
     error: null,
     generationMode: 'avatar' as const,
     isSubmitting: false,
@@ -102,5 +103,42 @@ describe('ClipsInputForm', () => {
       target: { files: [file] },
     });
     expect(uploadProps.onSetSourceFile).toHaveBeenCalledWith(file);
+  });
+
+  it('asks for the restored upload file again by name', () => {
+    renderForm({
+      draftFilename: 'podcast.mp4',
+      sourceKind: 'upload',
+      youtubeUrl: '',
+    });
+
+    expect(
+      screen.getByText(
+        'Choose podcast.mp4 again to continue. Drafts keep the filename, not the file.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /start clip factory/i }),
+    ).toBeDisabled();
+  });
+
+  it.each([
+    ['saving', 'Saving draft…'],
+    ['saved', 'Draft saved'],
+    ['error', 'Draft not saved. Your changes are still on this page.'],
+  ] as const)('announces the %s draft state', (draftSaveState, copy) => {
+    renderForm({ draftSaveState });
+
+    expect(screen.getByTestId('clips-draft-save-state')).toHaveTextContent(
+      copy,
+    );
+  });
+
+  it('stays quiet about drafts before the first autosave', () => {
+    renderForm();
+
+    expect(
+      screen.queryByTestId('clips-draft-save-state'),
+    ).not.toBeInTheDocument();
   });
 });

@@ -13,5 +13,6 @@ export * from './post.model';
 export * from './posting-set.model';
 export * from './prompt.model';
 export * from './rss-source.model';
+export * from './studio-generate-draft.model';
 export * from './studio-look.model';
 export * from './template.model';

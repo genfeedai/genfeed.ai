@@ -52,6 +52,7 @@ export interface UseAgentChatStreamReturn {
     handoff: AgentRunHandoff,
     runId: string,
     startedAt: string | null,
+    options?: AgentRunAdoptionOptions,
   ) => void;
   /** Hold the thread's events until `adoptRun` names the next execution. */
   beginRunHandoff: (threadId: string) => AgentRunHandoff;
@@ -76,9 +77,20 @@ export interface BufferedThreadEvent {
   handler: (data: unknown) => void;
 }
 
+export interface AgentRunAdoptionOptions {
+  /**
+   * Recover the run only from a reply stamped with its execution id. A
+   * ui-action run always stamps its reply, and its thread holds older
+   * replies the client never hydrated.
+   */
+  requireRunId?: boolean;
+}
+
 export interface PendingStreamCompletion {
   initiatedAt: number;
   preAssistantIds: Set<string>;
+  /** See `AgentRunAdoptionOptions.requireRunId`. */
+  requireRunId?: boolean;
   runId: string | null;
   startedAt: string | null;
   threadId: string;

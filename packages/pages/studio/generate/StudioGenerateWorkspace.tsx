@@ -11,7 +11,9 @@ import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import {
   AlertCategory,
   ComponentSize,
+  IngredientCategory,
   SkillSurface,
+  UploadStatus,
   ViewType,
 } from '@genfeedai/contracts';
 import {
@@ -23,15 +25,18 @@ import {
 } from '@genfeedai/contracts/constants';
 import type {
   IIngredient,
+  IStudioGenerateDraft,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
-import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type {
+  StudioGenerateDraftPayload,
+  StudioGenerateJob,
+  StudioGenerateReferenceRole,
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { BrandKnowledgeSelection } from '@genfeedai/props/content/knowledge-library.props';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type {
-  StudioGenerateComposerProps,
-  StudioGenerateReferenceRole,
-} from '@genfeedai/props/studio/studio-generate.props';
+import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import KnowledgeReferenceSection, {
@@ -42,6 +47,7 @@ import StudioGenerateInspector from '@pages/studio/generate/components/StudioGen
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
+import { useStudioGenerateDraft } from '@pages/studio/generate/hooks/useStudioGenerateDraft';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
 import { useStudioGenerateHandoff } from '@pages/studio/generate/hooks/useStudioGenerateHandoff';
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
@@ -68,6 +74,7 @@ import {
   recipeFromRepromptData,
   settingsPatchFromRecipe,
 } from '@pages/studio/generate/utils/studio-generate-recipe';
+import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import {
   buildStudioRemixRunEdits,
@@ -109,6 +116,46 @@ interface StudioContentReference {
  */
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
+const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
+
+function toContentReference(
+  asset: IIngredient,
+  role: StudioGenerateReferenceRole,
+): StudioContentReference | null {
+  const thumbnailUrl = resolveStudioAssetUrl(asset);
+  if (!thumbnailUrl) {
+    return null;
+  }
+
+  return {
+    item: {
+      contentTitle:
+        asset.metadataLabel || asset.promptText || 'Generated reference',
+      contentType: String(asset.category),
+      id: asset.id,
+      thumbnailUrl,
+    },
+    role,
+  };
+}
+
+/** A composer upload restored from the draft: already a Library asset. */
+function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
+  const url = resolveStudioAssetUrl(asset);
+  if (!url) {
+    return null;
+  }
+
+  return {
+    id: asset.id,
+    ingredientId: asset.id,
+    kind: asset.category === IngredientCategory.VIDEO ? 'video' : 'image',
+    name: asset.metadataLabel || 'Upload',
+    previewUrl: url,
+    status: UploadStatus.COMPLETED,
+    url,
+  };
+}
 
 export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
@@ -150,7 +197,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
     applyTypeSettings,
     isHydrated,
     resetSettings,
+    restoreSettings,
     settings,
+    settingsByType,
     setType,
     type,
     updateSettings,
@@ -204,6 +253,24 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const uploadRolesRef = useRef(
     new WeakMap<File, StudioGenerateReferenceRole>(),
   );
+  // Restored uploads carry no File; their role is keyed by attachment id.
+  const restoredRolesRef = useRef(
+    new Map<string, StudioGenerateReferenceRole>(),
+  );
+  const [restoredAttachments, setRestoredAttachments] =
+    useState<AttachmentItem[]>(EMPTY_ATTACHMENTS);
+  // Restored uploads reach `attachments` one render after the Library
+  // references; until they do, frame validation would see half a restore.
+  const [pendingRestoredUploadIds, setPendingRestoredUploadIds] = useState<
+    string[] | null
+  >(null);
+  const getAttachmentRole = useCallback(
+    (attachment: AttachmentItem): StudioGenerateReferenceRole | undefined =>
+      attachment.file
+        ? uploadRolesRef.current.get(attachment.file)
+        : restoredRolesRef.current.get(attachment.id),
+    [],
+  );
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -224,6 +291,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const {
     addFiles,
     attachments,
+    clearAll: clearAttachments,
     dragHandlers,
     dragState,
     getCompletedAttachments,
@@ -231,6 +299,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     removeAttachment,
   } = useAttachments({
     acceptedTypes: STUDIO_REFERENCE_TYPES,
+    initialAttachments: restoredAttachments,
     maxFiles: 8,
     onUpload: uploadReference,
   });
@@ -337,6 +406,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     error: remixError,
     preparePausedDraft,
     run: remixRun,
+    runId: remixRunId,
     start: startRemixRun,
     status: remixStatus,
     submitForReview,
@@ -369,7 +439,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
   // `applyTypeSettings` — it marks every patched field `'user'`-owned in the
   // shared setup store, exactly like an operator editing the popover
   // themselves would.
-  const { payload: handoffPayload } = useStudioGenerateHandoff();
+  const { isLoading: isHandoffLoading, payload: handoffPayload } =
+    useStudioGenerateHandoff();
   const appliedHandoffRef = useRef(false);
   const handoffScope = useMemo(
     () => ({ brandId, getIngredientsService, handoffPayload, organizationId }),
@@ -483,27 +554,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
           return;
         }
         const assets = await service.findByIds(referenceIds);
-        const newReferences = assets.reduce<StudioContentReference[]>(
-          (accumulator, asset) => {
-            const thumbnailUrl = resolveStudioAssetUrl(asset);
-            if (!thumbnailUrl) {
-              return accumulator;
-            }
-            accumulator.push({
-              item: {
-                contentTitle:
-                  asset.metadataLabel ||
-                  asset.promptText ||
-                  'Generated reference',
-                contentType: String(asset.category),
-                id: asset.id,
-                thumbnailUrl,
-              },
-              role,
-            });
-            return accumulator;
-          },
-          [],
+        const newReferences = assets.flatMap(
+          (asset) => toContentReference(asset, role) ?? [],
         );
         if (!isScopeCurrent() || newReferences.length === 0) {
           return;
@@ -651,8 +703,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
         const attachment = attachments.find(
           (candidate) => candidate.ingredientId === completed.ingredientId,
         );
-        const explicitRole = attachment?.file
-          ? uploadRolesRef.current.get(attachment.file)
+        const explicitRole = attachment
+          ? getAttachmentRole(attachment)
           : undefined;
         const role: StudioGenerateReferenceRole =
           explicitRole ??
@@ -680,7 +732,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
         .filter((entry) => entry.role === 'videoReference')
         .map((entry) => entry.id),
     };
-  }, [attachments, contentReferences, getCompletedAttachments, type]);
+  }, [
+    attachments,
+    contentReferences,
+    getAttachmentRole,
+    getCompletedAttachments,
+    type,
+  ]);
 
   const rejectUnsupportedSkillSelection = useCallback(
     (skillSlugs: string[]) => {
@@ -768,8 +826,20 @@ export default function StudioGenerateWorkspace(): ReactElement {
               : {}),
           }
         : undefined,
-    );
+    ).then((isAccepted) => {
+      // A sent generation leaves an empty composer (and draft) behind; the
+      // model settings stay for the next one.
+      if (isAccepted) {
+        setPrompt('');
+        setContentReferences([]);
+        restoredRolesRef.current.clear();
+        setPendingRestoredUploadIds(null);
+        setRestoredAttachments(EMPTY_ATTACHMENTS);
+        clearAttachments();
+      }
+    });
   }, [
+    clearAttachments,
     isHandoffAccepted,
     handoffPayload,
     enhancedPromptId,
@@ -803,9 +873,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
           (reference) => reference.role === 'startFrame',
         ) ||
         attachments.some(
-          (attachment) =>
-            attachment.file &&
-            uploadRolesRef.current.get(attachment.file) === 'startFrame',
+          (attachment: AttachmentItem) =>
+            getAttachmentRole(attachment) === 'startFrame',
         );
       if (
         contentLibraryRole === 'endFrame' &&
@@ -826,9 +895,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
             (reference) => reference.role === 'videoReference',
           ).length +
           attachments.filter(
-            (attachment) =>
-              attachment.file &&
-              uploadRolesRef.current.get(attachment.file) === 'videoReference',
+            (attachment: AttachmentItem) =>
+              getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
           settings.modelKey,
@@ -874,6 +942,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       attachments,
       contentLibraryRole,
       contentReferences,
+      getAttachmentRole,
       notificationsService,
       settings.modelKey,
       settings.resolution,
@@ -882,16 +951,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
 
   const handleAddFiles = useCallback<StudioGenerateComposerProps['onAddFiles']>(
-    (files, role = 'reference') => {
+    (files: File[], role: StudioGenerateReferenceRole = 'reference') => {
       const supportsInterpolation = hasInterpolation(settings.modelKey);
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
         ) ||
         attachments.some(
-          (attachment) =>
-            attachment.file &&
-            uploadRolesRef.current.get(attachment.file) === 'startFrame',
+          (attachment: AttachmentItem) =>
+            getAttachmentRole(attachment) === 'startFrame',
         );
       if (role === 'endFrame' && supportsInterpolation && !hasStartFrame) {
         notificationsService.warning(
@@ -910,9 +978,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           ),
         );
         for (const attachment of attachments) {
-          const attachmentRole = attachment.file
-            ? uploadRolesRef.current.get(attachment.file)
-            : undefined;
+          const attachmentRole = getAttachmentRole(attachment);
           if (
             attachmentRole === role ||
             (!supportsInterpolation &&
@@ -930,9 +996,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
             (reference) => reference.role === 'videoReference',
           ).length +
           attachments.filter(
-            (attachment) =>
-              attachment.file &&
-              uploadRolesRef.current.get(attachment.file) === 'videoReference',
+            (attachment: AttachmentItem) =>
+              getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
           settings.modelKey,
@@ -970,6 +1035,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       addFiles,
       attachments,
       contentReferences,
+      getAttachmentRole,
       notificationsService,
       removeAttachment,
       settings.modelKey,
@@ -980,13 +1046,23 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const handleOpenLibrary = useCallback<
     StudioGenerateComposerProps['onOpenLibrary']
-  >((role = 'reference') => {
+  >((role: StudioGenerateReferenceRole = 'reference') => {
     setContentLibraryRole(role);
     setIsContentLibraryOpen(true);
   }, []);
 
   useEffect(() => {
-    if (type !== 'video') {
+    if (
+      pendingRestoredUploadIds?.every((id) =>
+        attachments.some((attachment: AttachmentItem) => attachment.id === id),
+      )
+    ) {
+      setPendingRestoredUploadIds(null);
+    }
+  }, [attachments, pendingRestoredUploadIds]);
+
+  useEffect(() => {
+    if (type !== 'video' || pendingRestoredUploadIds) {
       return;
     }
     const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
@@ -994,9 +1070,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const hasStartFrame =
       contentReferences.some((reference) => reference.role === 'startFrame') ||
       attachments.some(
-        (attachment) =>
-          attachment.file &&
-          uploadRolesRef.current.get(attachment.file) === 'startFrame',
+        (attachment: AttachmentItem) =>
+          getAttachmentRole(attachment) === 'startFrame',
       );
     if (!hasEndFrame(settings.modelKey)) {
       unsupportedRoles.add('endFrame');
@@ -1011,12 +1086,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const removedContentCount = contentReferences.filter((reference) =>
       unsupportedRoles.has(reference.role),
     ).length;
-    const unsupportedAttachments = attachments.filter((attachment) => {
-      const role = attachment.file
-        ? uploadRolesRef.current.get(attachment.file)
-        : undefined;
-      return role ? unsupportedRoles.has(role) : false;
-    });
+    const unsupportedAttachments = attachments.filter(
+      (attachment: AttachmentItem) => {
+        const role = getAttachmentRole(attachment);
+        return role ? unsupportedRoles.has(role) : false;
+      },
+    );
     if (removedContentCount === 0 && unsupportedAttachments.length === 0) {
       return;
     }
@@ -1036,28 +1111,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
   }, [
     attachments,
     contentReferences,
+    getAttachmentRole,
     notificationsService,
+    pendingRestoredUploadIds,
     removeAttachment,
     settings.modelKey,
     type,
   ]);
 
+  const resolveAttachmentRole = useCallback(
+    (attachment: AttachmentItem): StudioGenerateReferenceRole =>
+      getAttachmentRole(attachment) ??
+      (type === 'video'
+        ? attachment.kind === 'video'
+          ? 'videoReference'
+          : 'startFrame'
+        : 'reference'),
+    [getAttachmentRole, type],
+  );
+
   const attachedAssets = useMemo<PromptBarAttachedAsset[]>(
     () => [
-      ...attachments.map((attachment) => ({
+      ...attachments.map((attachment: AttachmentItem) => ({
         id: attachment.id,
         kind: attachment.kind,
         name: attachment.name,
         previewUrl: attachment.previewUrl,
-        role:
-          (attachment.file
-            ? uploadRolesRef.current.get(attachment.file)
-            : undefined) ??
-          (type === 'video'
-            ? attachment.kind === 'video'
-              ? ('videoReference' as const)
-              : ('startFrame' as const)
-            : ('reference' as const)),
+        role: resolveAttachmentRole(attachment),
         source: 'upload' as const,
       })),
       ...contentReferences.map((reference) => ({
@@ -1071,14 +1151,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
         source: 'library' as const,
       })),
     ],
-    [attachments, contentReferences, type],
+    [attachments, contentReferences, resolveAttachmentRole],
   );
 
   const handleRemoveAttachedAsset = useCallback<
     StudioGenerateComposerProps['onRemoveAttachedAsset']
   >(
     (assetId) => {
-      if (attachments.some((attachment) => attachment.id === assetId)) {
+      if (
+        attachments.some(
+          (attachment: AttachmentItem) => attachment.id === assetId,
+        )
+      ) {
         removeAttachment(assetId);
         return;
       }
@@ -1088,6 +1172,108 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [attachments, removeAttachment],
   );
+
+  const draftPayload = useMemo<StudioGenerateDraftPayload>(
+    () => ({
+      attachments: attachments.flatMap((attachment: AttachmentItem) =>
+        attachment.status === UploadStatus.COMPLETED && attachment.ingredientId
+          ? [
+              {
+                id: attachment.ingredientId,
+                role: resolveAttachmentRole(attachment),
+              },
+            ]
+          : [],
+      ),
+      knowledgeSelection,
+      prompt,
+      references: contentReferences.map((reference) => ({
+        id: reference.item.id,
+        role: reference.role,
+      })),
+      settingsByType,
+      type,
+    }),
+    [
+      attachments,
+      contentReferences,
+      knowledgeSelection,
+      prompt,
+      resolveAttachmentRole,
+      settingsByType,
+      type,
+    ],
+  );
+
+  // Everything that can fail (the asset lookup) runs first; the composer
+  // is only touched once the whole restoration is known and still wanted,
+  // so a failed lookup leaves it untouched for the load retry.
+  const restoreDraft = useCallback(
+    async (
+      draft: IStudioGenerateDraft,
+      signal: AbortSignal,
+      canApply: () => boolean,
+    ) => {
+      const referenceIds = [...draft.references, ...draft.attachments].map(
+        (reference) => reference.id,
+      );
+      let assetsById = new Map<string, IIngredient>();
+      if (referenceIds.length > 0) {
+        const service = await getIngredientsService();
+        const assets = await service.findByIds(referenceIds);
+        assetsById = new Map(assets.map((asset) => [asset.id, asset]));
+      }
+      if (signal.aborted || !canApply()) {
+        return 0;
+      }
+
+      const references = draft.references.flatMap((reference) => {
+        const asset = assetsById.get(reference.id);
+        return (asset && toContentReference(asset, reference.role)) ?? [];
+      });
+      const restoredRoles = new Map<string, StudioGenerateReferenceRole>();
+      const restoredUploads = draft.attachments.flatMap((reference) => {
+        const asset = assetsById.get(reference.id);
+        const attachment = asset ? toRestoredAttachment(asset) : null;
+        if (!attachment) {
+          return [];
+        }
+        restoredRoles.set(attachment.id, reference.role);
+        return [attachment];
+      });
+
+      restoreSettings(
+        sanitizeStudioGenerateState({
+          settingsByType: draft.settingsByType,
+          type: draft.type,
+        }),
+      );
+      setPrompt(draft.prompt);
+      setBrandKnowledgeSelection({
+        brandId,
+        value: draft.knowledgeSelection,
+      });
+      restoredRolesRef.current = restoredRoles;
+      setPendingRestoredUploadIds(
+        restoredUploads.length > 0
+          ? restoredUploads.map((attachment) => attachment.id)
+          : null,
+      );
+      setContentReferences(references);
+      setRestoredAttachments(restoredUploads);
+      return referenceIds.length - references.length - restoredUploads.length;
+    },
+    [brandId, getIngredientsService, restoreSettings],
+  );
+
+  const { saveStatus: draftSaveStatus } = useStudioGenerateDraft({
+    brandId,
+    canRestore: isHydrated && !isHandoffLoading,
+    isAutosaveEnabled: !remixRunId,
+    isRestoreBlocked: Boolean(handoffPayload || remixRunId),
+    onRestore: restoreDraft,
+    payload: draftPayload,
+  });
 
   const shouldShowVoiceInput = Boolean(
     agentApiService &&
@@ -1251,6 +1437,27 @@ export default function StudioGenerateWorkspace(): ReactElement {
             showTopFade
           >
             <div {...(capabilities.hasReferences ? dragHandlers : {})}>
+              {draftSaveStatus === 'idle' ? null : (
+                <p
+                  aria-live="polite"
+                  className={`mb-1 text-right text-2xs ${
+                    draftSaveStatus === 'error' || draftSaveStatus === 'failed'
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'
+                  }`}
+                  data-draft-status={draftSaveStatus}
+                  data-testid="studio-draft-status"
+                  role="status"
+                >
+                  {draftSaveStatus === 'saving'
+                    ? translate('draft.saving')
+                    : draftSaveStatus === 'error'
+                      ? translate('draft.saveFailed')
+                      : draftSaveStatus === 'failed'
+                        ? translate('draft.saveRejected')
+                        : translate('draft.saved')}
+                </p>
+              )}
               <StudioRemixRunScope
                 canSelectAvatar={Boolean(
                   remixRun &&

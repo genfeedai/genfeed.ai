@@ -27,6 +27,11 @@ export interface ISetting extends IBaseEntity {
   trendNotificationsMinViralScore: number;
 
   contentPreferences?: string[];
+  /**
+   * Favorite workflow ids (#5510), at most 50. Scoped to the active
+   * organization and pruned of deleted workflows when read.
+   */
+  favoriteWorkflowIds?: string[];
   isAgentAssetsPanelOpen?: boolean;
   generationPriority?: GenerationPriority;
   dashboardPreferences?: DashboardPreferences;

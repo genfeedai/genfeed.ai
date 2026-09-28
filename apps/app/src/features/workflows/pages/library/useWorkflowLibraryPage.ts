@@ -20,7 +20,17 @@ import { useCloudSession } from '@/hooks/useCloudSession';
 
 export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
-export function useWorkflowLibraryPage() {
+interface WorkflowLibraryOptions {
+  relatedWorkflows?: WorkflowSummary[];
+  onWorkflowUpdated?: (id: string, update: Partial<WorkflowSummary>) => void;
+  onWorkflowRemoved?: (id: string) => void;
+}
+
+export function useWorkflowLibraryPage({
+  relatedWorkflows = [],
+  onWorkflowUpdated,
+  onWorkflowRemoved,
+}: WorkflowLibraryOptions = {}) {
   const { href } = useOrgUrl();
   const { push } = useRouter();
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
@@ -132,7 +142,9 @@ export function useWorkflowLibraryPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      const workflow = workflows.find((w) => w.id === id);
+      const workflow = [...workflows, ...relatedWorkflows].find(
+        (w) => w.id === id,
+      );
       if (workflow && isCanonicalSystemWorkflow(workflow)) {
         return;
       }
@@ -140,6 +152,7 @@ export function useWorkflowLibraryPage() {
       try {
         const service = await getService();
         await service.remove(id);
+        onWorkflowRemoved?.(id);
         setWorkflows((prev) => prev.filter((w) => w.id !== id));
       } catch (err) {
         logger.error('Failed to delete workflow', {
@@ -148,14 +161,17 @@ export function useWorkflowLibraryPage() {
         });
       }
     },
-    [getService, workflows],
+    [getService, workflows, relatedWorkflows, onWorkflowRemoved],
   );
 
   const handleToggleSchedule = useCallback(
     async (id: string, enabled: boolean) => {
-      const previous = workflows.find((w) => w.id === id);
+      const previous = [...workflows, ...relatedWorkflows].find(
+        (w) => w.id === id,
+      );
       if (!previous?.schedule) return;
 
+      onWorkflowUpdated?.(id, { isScheduleEnabled: enabled });
       // Optimistic update
       setWorkflows((prev) =>
         prev.map((w) =>
@@ -170,12 +186,16 @@ export function useWorkflowLibraryPage() {
           schedule: previous.schedule,
           timezone: previous.timezone,
         });
+        onWorkflowUpdated?.(id, { nextRunAt: updated.nextRunAt ?? null });
         setWorkflows((prev) =>
           prev.map((w) =>
             w.id === id ? { ...w, nextRunAt: updated.nextRunAt ?? null } : w,
           ),
         );
       } catch (err) {
+        onWorkflowUpdated?.(id, {
+          isScheduleEnabled: previous.isScheduleEnabled,
+        });
         // Revert on error
         setWorkflows((prev) =>
           prev.map((w) =>
@@ -195,7 +215,13 @@ export function useWorkflowLibraryPage() {
         );
       }
     },
-    [getService, notificationsService, workflows],
+    [
+      getService,
+      notificationsService,
+      workflows,
+      relatedWorkflows,
+      onWorkflowUpdated,
+    ],
   );
 
   const toggleSelected = useCallback((id: string) => {
@@ -215,16 +241,18 @@ export function useWorkflowLibraryPage() {
   }, []);
 
   const handleDisableSelected = useCallback(async () => {
-    const selectedWorkflows = workflows.filter((item) =>
-      selectedIds.has(item.id),
-    );
+    const selectedWorkflows = [
+      ...new Map(
+        [...workflows, ...relatedWorkflows].map((item) => [item.id, item]),
+      ).values(),
+    ].filter((item) => selectedIds.has(item.id));
     for (const workflow of selectedWorkflows) {
       if (workflow.schedule && workflow.isScheduleEnabled) {
         await handleToggleSchedule(workflow.id, false);
       }
     }
     setSelectedIds(new Set());
-  }, [handleToggleSchedule, selectedIds, workflows]);
+  }, [handleToggleSchedule, selectedIds, workflows, relatedWorkflows]);
 
   /** Merge a schedule mutation result back into the loaded summaries. */
   const applyScheduleUpdate = useCallback(
@@ -234,6 +262,11 @@ export function useWorkflowLibraryPage() {
         'id' | 'isScheduleEnabled' | 'nextRunAt' | 'schedule' | 'timezone'
       >,
     ) => {
+      onWorkflowUpdated?.(updated.id, {
+        ...updated,
+        isScheduleEnabled: updated.isScheduleEnabled ?? false,
+        nextRunAt: updated.nextRunAt ?? null,
+      });
       setWorkflows((prev) =>
         prev.map((w) =>
           w.id === updated.id
@@ -248,7 +281,7 @@ export function useWorkflowLibraryPage() {
         ),
       );
     },
-    [],
+    [onWorkflowUpdated],
   );
 
   return {

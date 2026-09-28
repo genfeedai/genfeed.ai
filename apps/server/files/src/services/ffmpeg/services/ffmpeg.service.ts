@@ -353,7 +353,7 @@ export class FFmpegService {
   async mergeVideos(
     videoPaths: string[],
     outputPath: string,
-    options?: { transition?: string },
+    options?: { muteVideoAudio?: boolean },
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
     return this.merge.mergeVideos(videoPaths, outputPath, options, onProgress);
@@ -363,6 +363,7 @@ export class FFmpegService {
     videoPaths: string[],
     outputPath: string,
     options?: {
+      muteVideoAudio?: boolean;
       transition?: string;
       transitionDuration?: number;
       transitionEaseCurve?: VideoEaseCurve;
@@ -518,14 +519,16 @@ export class FFmpegService {
   async addCaptions(
     inputPath: string,
     outputPath: string,
-    captionsPath: string,
+    captionsPath: string | undefined,
     onProgress?: (progress: FFmpegProgress) => void,
+    options?: { muteVideoAudio?: boolean },
   ): Promise<void> {
     return this.effects.addCaptions(
       inputPath,
       outputPath,
       captionsPath,
       onProgress,
+      options,
     );
   }
 

@@ -573,6 +573,9 @@ export function useAgentFullPage({
             ) {
               disposeAgentStreamEntry(previousEntry);
             }
+            useAgentChatStore
+              .getState()
+              .applyThreadSnapshotState(threadId, snapshot);
             setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
             setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
             setActiveRun(snapshot.activeRun?.runId ?? null, {

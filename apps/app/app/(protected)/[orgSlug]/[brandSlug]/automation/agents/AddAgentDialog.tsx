@@ -33,8 +33,8 @@ export default function AddAgentDialog({
   }, [initialMode, isOpen]);
 
   const handleCreated = async () => {
-    await onCreated();
     onOpenChange(false);
+    await onCreated();
   };
 
   return (

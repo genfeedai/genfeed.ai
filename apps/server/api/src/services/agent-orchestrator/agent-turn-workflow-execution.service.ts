@@ -32,6 +32,7 @@ import {
   buildSeedThreadTitle,
   maybeUpdateThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
+import { announceUiActionRun } from '@api/services/agent-orchestrator/utils/agent-ui-action-announcement.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import {
   AgentRuntimeSessionService,
@@ -803,19 +804,26 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     request: AgentThreadUiActionRequest,
     context: AgentChatContext,
   ): Promise<AgentChatResult> {
-    return this.uiActionService.handleThreadUiAction(request, context, {
-      executeSynchronousChatLoop: (params) =>
-        this.syncLoopService.executeSynchronousChatLoop(params),
-      generatePlanModeResponse: (params) =>
-        this.planModeService.generatePlanModeResponse(params, {
-          maybeUpdateThreadTitle: (titleParams) =>
-            maybeUpdateThreadTitle({
-              ...titleParams,
-              agentThreadsService: this.agentThreadsService,
+    return announceUiActionRun({
+      context,
+      request,
+      run: () =>
+        this.uiActionService.handleThreadUiAction(request, context, {
+          executeSynchronousChatLoop: (params) =>
+            this.syncLoopService.executeSynchronousChatLoop(params),
+          generatePlanModeResponse: (params) =>
+            this.planModeService.generatePlanModeResponse(params, {
+              maybeUpdateThreadTitle: (titleParams) =>
+                maybeUpdateThreadTitle({
+                  ...titleParams,
+                  agentThreadsService: this.agentThreadsService,
+                }),
             }),
+          runInThreadLane: (threadId, run) =>
+            this.executionLaneService.runExclusive(threadId, run),
         }),
-      runInThreadLane: (threadId, run) =>
-        this.executionLaneService.runExclusive(threadId, run),
+      streamEffects: this.streamEffects,
+      threadEventRecorder: this.threadEventRecorder,
     });
   }
 

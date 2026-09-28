@@ -16,6 +16,12 @@ import {
 
 type Release = ChangelogProps['releases'][number];
 
+const codeBlockLabels = {
+  copied: 'Copied',
+  copy: 'Copy code',
+  copyAria: 'Copy code block',
+};
+
 function GitHubReleaseLink({ release }: { release: Release }) {
   return (
     <Link
@@ -96,7 +102,7 @@ function ReleaseEntry({ release }: { release: Release }) {
           <GitHubReleaseLink release={release} />
         </div>
         <CollapsibleContent forceMount className="data-[state=closed]:hidden">
-          <SafeMarkdown content={notes} />
+          <SafeMarkdown content={notes} codeBlockLabels={codeBlockLabels} />
         </CollapsibleContent>
       </Collapsible>
     </article>

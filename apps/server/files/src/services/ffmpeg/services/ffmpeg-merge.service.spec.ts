@@ -110,6 +110,17 @@ describe('FFmpegMergeService', () => {
       expect(args).not.toContain('-t');
       expect(args).not.toContain('-shortest');
     });
+    it('normalizes a single scene clip on its own', async () => {
+      await service.mergeNormalizedVideos(
+        ['/tmp/a.mp4'],
+        '/tmp/out.mp4',
+        576,
+        1024,
+      );
+      const args = coreService.executeFFmpeg.mock.calls[0][0];
+      expect(args.join(' ')).toContain('scale=576:1024');
+      expect(args.join(' ')).toContain('[v0][a0]concat=n=1:v=1:a=1');
+    });
     it('rejects missing speech audio before FFmpeg output', async () => {
       coreService.probe.mockResolvedValue(makeProbeResult(5, false));
       await expect(
@@ -136,6 +147,21 @@ describe('FFmpegMergeService', () => {
   });
 
   describe('mergeVideos', () => {
+    it('drops the source audio when muting without music', async () => {
+      await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', {
+        muteVideoAudio: true,
+      });
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args).toContain('-an');
+      expect(args.indexOf('-an')).toBeLessThan(args.indexOf('/tmp/out.mp4'));
+    });
+
+    it('keeps the source audio unless muted', async () => {
+      await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args).not.toContain('-an');
+    });
+
     it('should call executeFFmpeg with concat demuxer args', async () => {
       await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
 
@@ -270,6 +296,36 @@ describe('FFmpegMergeService', () => {
       expect(fcIdx).toBeGreaterThanOrEqual(0);
       const filterComplex = args[fcIdx + 1];
       expect(filterComplex).toContain('xfade=transition=dissolve');
+    });
+
+    it('drops clip audio from a muted transition merge', async () => {
+      coreService.probe.mockResolvedValue(makeProbeResult(5, true));
+
+      await service.mergeVideosWithTransitions(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+        { muteVideoAudio: true, transition: 'fade' },
+      );
+
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      const fc = args[args.indexOf('-filter_complex') + 1];
+      expect(fc).toContain('xfade=transition=fade');
+      expect(fc).not.toContain('acrossfade');
+      expect(args).not.toContain('[aout]');
+      expect(args).toContain('-an');
+    });
+
+    it('mutes a single-clip transition merge through the concat fallback', async () => {
+      await service.mergeVideosWithTransitions(
+        ['/tmp/only.mp4'],
+        '/tmp/out.mp4',
+        {
+          muteVideoAudio: true,
+          transition: 'fade',
+        },
+      );
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args).toContain('-an');
     });
 
     it('should include audio crossfade when clips have audio', async () => {

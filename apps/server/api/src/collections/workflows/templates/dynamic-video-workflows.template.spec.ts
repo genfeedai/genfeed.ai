@@ -80,6 +80,7 @@ function setup(templateId: string, values: Record<string, unknown>) {
     status: 'completed',
   }));
   const stitch = vi.fn<NodeExecutor>(async () => ({
+    ingredientId: 'stitched',
     video: 'https://app.example.com/videos/stitched',
     videoUrl: 'https://app.example.com/videos/stitched',
   }));

@@ -13,7 +13,7 @@ protected application routes use the same agent-first shell.
 
 - There is no `conversation_shell` configuration key.
 - There is no feature-flag evaluation endpoint or client polling.
-- Missing or malformed `FEATURE_FLAG_DEFAULTS` cannot change the shell.
+- Admin module flags hide modules, never the shell itself.
 - There is no session-persistent circuit breaker to a legacy UI.
 - Registered routes cannot opt out through a `dedicated` route mode.
 - The legacy terminal dock is not registered or mounted.

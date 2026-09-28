@@ -85,6 +85,7 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
+import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1243,6 +1244,17 @@ export default function ContentCalendarPage({
 
   const modal = (
     <>
+      {!embedded ? (
+        <LazyModalArticle
+          onConfirm={() =>
+            setDateRange((current) => (current ? { ...current } : current))
+          }
+          onCreated={(ids) => {
+            const id = Array.isArray(ids) ? ids[0] : ids;
+            if (id) push(href(createArtifactEditorRoute('article', id)));
+          }}
+        />
+      ) : null}
       <CalendarRepublishDialog
         isOpen={pendingDrop !== null}
         onCancel={handleCancelPendingDrop}

@@ -12,6 +12,7 @@ import {
   ViewType,
   WebSocketEventStatus,
 } from '@genfeedai/contracts';
+import { mapPostStatusToCanonicalWrite } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
@@ -71,6 +72,7 @@ import { BrandsService } from '@services/social/brands.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Shared empty fallbacks — see `hydratedPostPresets` below. These must be
@@ -113,6 +115,7 @@ export function usePostsList({
   // `setPostPresets` — an unconditional render loop on every caller that omits
   // `initialPostPresets` (e.g. the superadmin posts page). Memoize the
   // fallbacks so an omitted prop stays referentially stable.
+  const translateCollection = useTranslations('pages.posts.list.collection');
   const hydratedPostPresets = useMemo(
     () => initialPostPresets ?? EMPTY_POST_PRESETS,
     [initialPostPresets],
@@ -208,12 +211,7 @@ export function usePostsList({
 
   const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
 
-  const [viewType, setViewType] = useState<ViewType>(() => {
-    if (scope === PageScope.PUBLISHING) {
-      return VIEW_TYPE_GRID;
-    }
-    return VIEW_TYPE_TABLE;
-  });
+  const [viewType, setViewType] = useState<ViewType>(VIEW_TYPE_TABLE);
 
   const { isReady: isSocketReady, subscribe: subscribeToSocket } =
     useSocketManager();
@@ -659,34 +657,83 @@ export function usePostsList({
     [],
   );
 
-  const { primaryCardAction, secondaryCardActions } = useMemo(
-    () =>
-      buildPostsCardActions({
+  const handleStatusChange = useCallback(
+    async (post: IPost, nextStatus: PostStatus) => {
+      try {
+        await (await getPostsService()).patch(
+          post.id,
+          mapPostStatusToCanonicalWrite(nextStatus),
+        );
+        await findAllPosts();
+      } catch (error) {
+        notificationsService.error(translateCollection('statusFailed'));
+        logger.error('Failed to update post status', error);
+      }
+    },
+    [getPostsService, findAllPosts, notificationsService, translateCollection],
+  );
+
+  const { primaryCardAction, secondaryCardActions: baseSecondaryCardActions } =
+    useMemo(
+      () =>
+        buildPostsCardActions({
+          editableStatuses,
+          onDelete: handleDelete,
+          onEdit: handleEditPost,
+          onOpenPlatformUrl: handleOpenPlatformUrl,
+          onRemix: handleRemixPost,
+          onRepurpose: handleRepurposePost,
+          onRewriteWithAgent,
+          onRetry: handleRetryPost,
+          onSuggestScheduleWithAgent,
+          onViewIngredient: handleViewIngredient,
+          scope,
+        }),
+      [
         editableStatuses,
-        onDelete: handleDelete,
-        onEdit: handleEditPost,
-        onOpenPlatformUrl: handleOpenPlatformUrl,
-        onRemix: handleRemixPost,
-        onRepurpose: handleRepurposePost,
+        handleDelete,
+        handleEditPost,
+        handleOpenPlatformUrl,
+        handleRemixPost,
+        handleRepurposePost,
         onRewriteWithAgent,
-        onRetry: handleRetryPost,
+        handleRetryPost,
         onSuggestScheduleWithAgent,
-        onViewIngredient: handleViewIngredient,
+        handleViewIngredient,
         scope,
-      }),
-    [
-      editableStatuses,
-      handleDelete,
-      handleEditPost,
-      handleOpenPlatformUrl,
-      handleRemixPost,
-      handleRepurposePost,
-      onRewriteWithAgent,
-      handleRetryPost,
-      onSuggestScheduleWithAgent,
-      handleViewIngredient,
-      scope,
+      ],
+    );
+
+  const secondaryCardActions = useMemo(
+    () => [
+      ...baseSecondaryCardActions,
+      ...(scope === PageScope.SUPERADMIN
+        ? []
+        : [
+            PostStatus.DRAFT,
+            PostStatus.SCHEDULED,
+            PostStatus.PUBLIC,
+            PostStatus.PRIVATE,
+            PostStatus.UNLISTED,
+          ].map((nextStatus) => ({
+            key: `status:${nextStatus}`,
+            label: translateCollection('setStatus', { status: nextStatus }),
+            icon: null,
+            isVisible: (post: IPost) =>
+              [
+                PostStatus.DRAFT,
+                PostStatus.SCHEDULED,
+                PostStatus.PUBLIC,
+                PostStatus.PRIVATE,
+                PostStatus.UNLISTED,
+              ].includes(post.status as PostStatus) &&
+              post.status !== nextStatus,
+            onClick: (post: IPost) => {
+              void handleStatusChange(post, nextStatus);
+            },
+          }))),
     ],
+    [baseSecondaryCardActions, scope, translateCollection, handleStatusChange],
   );
 
   useEffect(() => {

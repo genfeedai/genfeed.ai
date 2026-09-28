@@ -10,7 +10,10 @@ import {
   QualityStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationHarnessReceipt,
+  IVideoMergeSettings,
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -232,6 +235,8 @@ export class CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly isMergeEnabled?: boolean;
+
+  readonly mergeSettings?: IVideoMergeSettings;
 
   @IsString()
   @IsOptional()

@@ -50,6 +50,10 @@ export class AgentOrchestratorUiActionFinalizerService {
       await this.creditsUtilsService.getOrganizationCreditsBalance(
         params.context.organizationId,
       );
+    const failure =
+      params.result.success === false
+        ? (params.result.error ?? 'Approved action failed.')
+        : null;
     const assistantMetadata = {
       ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
@@ -64,6 +68,9 @@ export class AgentOrchestratorUiActionFinalizerService {
       uiActions: enhancedUiActions.uiActions,
       ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
       ...(params.metadata ?? {}),
+      // Persisted with the reply: a client that missed the live result
+      // recovers the run's failure from the reply itself.
+      ...(failure ? { runOutcome: { error: failure, status: 'failed' } } : {}),
     };
 
     await this.agentMessagesService.addMessage({
@@ -101,7 +108,7 @@ export class AgentOrchestratorUiActionFinalizerService {
       runId: params.context.executionId,
       threadId: params.threadId,
     });
-    if (params.result.success !== false) {
+    if (!failure) {
       await this.threadEventRecorder.recordRunCompleted({
         context: params.context,
         detail: params.result.requiresConfirmation
@@ -114,7 +121,7 @@ export class AgentOrchestratorUiActionFinalizerService {
     } else {
       await this.threadEventRecorder.recordRunFailed({
         context: params.context,
-        error: params.result.error ?? 'Approved action failed.',
+        error: failure,
         runId: params.context.executionId,
         threadId: params.threadId,
       });
@@ -130,6 +137,7 @@ export class AgentOrchestratorUiActionFinalizerService {
       },
       threadId: params.threadId,
       toolCalls: params.toolCalls,
+      ...(failure ? { runOutcome: { error: failure, status: 'failed' } } : {}),
     };
   }
 

@@ -475,7 +475,7 @@ export interface UsePromptBarEnhancementOptions {
     error: (message: string) => void;
   };
   clipboardService: {
-    copyToClipboard: (text: string) => Promise<void>;
+    copyToClipboard: (text: string) => Promise<unknown>;
   };
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   resizeTextarea: (textarea: HTMLTextAreaElement | null) => void;

@@ -16,6 +16,10 @@ const mocks = vi.hoisted(() => ({
   useBrand: vi.fn(() => ({ settings: null })),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: mocks.isSelfHostedDeployment,
 }));

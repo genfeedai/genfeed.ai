@@ -3,7 +3,6 @@
 import TaskInspectorAdapter from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-inspector-adapter';
 import { TaskSelectionProvider } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-selection-context';
 import type { LayoutProps } from '@props/layout/layout.props';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 
 /**
  * The selected task renders in the shared workspace inspector rail, so the
@@ -12,11 +11,9 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
  */
 export default function TasksLayout({ children }: LayoutProps) {
   return (
-    <FeatureGate flagKey="tasks">
-      <TaskSelectionProvider>
-        <TaskInspectorAdapter />
-        {children}
-      </TaskSelectionProvider>
-    </FeatureGate>
+    <TaskSelectionProvider>
+      <TaskInspectorAdapter />
+      {children}
+    </TaskSelectionProvider>
   );
 }

@@ -98,12 +98,14 @@ export class AgentGenerationEstimateService {
         return UNAVAILABLE_QUOTE;
       }
 
-      const dimensions = resolveAgentGenerationDimensions(
-        input.aspectRatio,
-        isVideo
-          ? DEFAULT_AGENT_VIDEO_ASPECT_RATIO
-          : DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-      );
+      const dimensions =
+        input.dimensions ??
+        resolveAgentGenerationDimensions(
+          input.aspectRatio,
+          isVideo
+            ? DEFAULT_AGENT_VIDEO_ASPECT_RATIO
+            : DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+        );
       const pricing = {
         cost: baseCost,
         costPerUnit: model.costPerUnit,

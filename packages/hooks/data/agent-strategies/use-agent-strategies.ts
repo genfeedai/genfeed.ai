@@ -17,6 +17,8 @@ export interface UseAgentStrategiesOptions {
 
 export interface UseAgentStrategiesReturn {
   strategies: AgentStrategy[];
+  /** The last list request's failure; `null` once a request succeeds. */
+  error: Error | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -29,6 +31,7 @@ export function useAgentStrategies(
 
   const {
     data: strategies = [] as AgentStrategy[],
+    error,
     isLoading,
     refetch,
   } = useQuery({
@@ -53,6 +56,7 @@ export function useAgentStrategies(
   });
 
   return {
+    error: isEnabled ? error : null,
     isLoading,
     refresh: async () => {
       if (!isEnabled) {

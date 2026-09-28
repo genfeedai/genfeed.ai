@@ -8,6 +8,7 @@ import type {
   IActionHandlers,
   ILoadingStates,
   IQuickAction,
+  IQuickActionCopy,
 } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import {
   createCaptionsAction,
@@ -26,9 +27,11 @@ import {
   createMarkValidatedAction,
   createMirrorAction,
   createMoreOptionsAction,
+  createOpenInEditorAction,
   createPortraitAction,
   createPromptAction,
   createPublishAction,
+  createResizeAction,
   createReverseAction,
   createSeeDetailsAction,
   createSetAsBannerAction,
@@ -58,7 +61,15 @@ export interface UseQuickActionsParams {
   hasPromptControl?: boolean;
   hasScopeControl?: boolean;
   hasStatusControl?: boolean;
+  /** Host-translated copy; Open in Editor and Resize need it to render. */
+  copy?: IQuickActionCopy;
 }
+
+const RESIZE_FORMATS: readonly IngredientFormat[] = [
+  IngredientFormat.PORTRAIT,
+  IngredientFormat.SQUARE,
+  IngredientFormat.LANDSCAPE,
+];
 
 const MENU_SECTION_ORDER: MenuSection[] = [
   'Transform',
@@ -76,6 +87,9 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   'convert-to-video': 'Transform',
   'copy-prompt': 'Library',
   remix: 'Transform',
+  'resize-landscape': 'Transform',
+  'resize-portrait': 'Transform',
+  'resize-square': 'Transform',
   delete: 'Danger',
   download: 'Library',
   edit: 'Library',
@@ -86,6 +100,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   'mark-rejected': 'Review',
   'mark-validated': 'Review',
   'manage-tags': 'Library',
+  'open-in-editor': 'Library',
   mirror: 'Transform',
   portrait: 'Transform',
   prompt: 'Library',
@@ -212,6 +227,7 @@ export function useQuickActions({
   hasPromptControl = false,
   hasScopeControl = false,
   hasStatusControl = false,
+  copy,
 }: UseQuickActionsParams) {
   const contextActions = useMemo(() => {
     if (!selectedIngredient) {
@@ -319,6 +335,26 @@ export function useQuickActions({
           handlers.onConvertToGif,
           loadingStates.isConverting,
         ),
+        copy
+          ? createOpenInEditorAction(
+              selectedIngredient,
+              handlers.onOpenInEditor,
+              copy.openInEditor,
+            )
+          : null,
+        ...(copy
+          ? RESIZE_FORMATS.filter(
+              (format) => format !== selectedIngredient.ingredientFormat,
+            ).map((format) =>
+              createResizeAction(
+                selectedIngredient,
+                format,
+                copy.resize[format],
+                handlers.onResize,
+                loadingStates.isResizing,
+              ),
+            )
+          : []),
       );
     } else {
       actionsList.push(
@@ -427,7 +463,7 @@ export function useQuickActions({
     );
 
     return compactActions(actionsList);
-  }, [selectedIngredient, handlers, isVideo, loadingStates]);
+  }, [copy, selectedIngredient, handlers, isVideo, loadingStates]);
 
   const primaryActions = useMemo(() => {
     if (!selectedIngredient) {

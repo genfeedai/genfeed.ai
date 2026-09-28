@@ -5,6 +5,8 @@ import PostsList from '@pages/posts/list/posts-list';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+
 const replaceMock = vi.fn();
 const pushMock = vi.fn();
 const setFiltersNodeMock = vi.fn();
@@ -167,7 +169,9 @@ vi.mock('@pages/posts/list/components/PostsGrid', () => ({
     onOpenPostDetail,
     primaryAction,
     posts,
+    view,
   }: {
+    view?: string;
     items?: IPost[];
     onOpenPostDetail?: (post: IPost) => void;
     primaryAction?: { onClick: (post: IPost) => void };
@@ -178,7 +182,7 @@ vi.mock('@pages/posts/list/components/PostsGrid', () => ({
     return (
       <>
         <button type="button" onClick={() => onOpenPostDetail?.(postFixture)}>
-          Posts grid
+          {view === 'list' ? 'Open table row' : 'Posts grid'}
         </button>
         <button
           type="button"
@@ -188,7 +192,7 @@ vi.mock('@pages/posts/list/components/PostsGrid', () => ({
             }
           }}
         >
-          Edit grid card
+          {view === 'list' ? 'Edit table row' : 'Edit grid card'}
         </button>
       </>
     );
@@ -321,9 +325,8 @@ describe('PostsList', () => {
       />,
     );
 
-    // The publisher list defaults to the card grid, so the edit affordance is
-    // the card's primary action rather than a table row action.
-    fireEvent.click(screen.getByRole('button', { name: /edit grid card/i }));
+    // Publishing defaults to the compact list and preserves the primary edit action.
+    fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
       '/genfeed-ai/paperclip/publishing/posts/post-1',

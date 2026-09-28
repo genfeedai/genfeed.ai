@@ -13,9 +13,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import ClipModeSelector from './components/ClipModeSelector';
 import ClipReferenceFrameSelector from './components/ClipReferenceFrameSelector';
@@ -49,40 +47,19 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
 
 export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
   const t = useTranslations('pages.studioClips');
-  const searchParams = useSearchParams();
   const { href } = useOrgUrl();
-  const [isCreating, setIsCreating] = useState(searchParams.get('new') === '1');
   const {
     error: listError,
+    renameProject,
+    deleteProject,
     isLoading: isListLoading,
     projects,
   } = useStudioClipProjects({ isEnabled: !projectId });
   const clipsPage = useStudioClipsPage({ projectId });
-  const {
-    error,
-    generationMode,
-    handleAnalyze,
-    handleStartFromYoutube,
-    identityDefaults,
-    isSubmitting,
-    maxClips,
-    minViralityScore,
-    setGenerationMode,
-    setMaxClips,
-    setMinViralityScore,
-    setSourceFile,
-    setSourceKind,
-    setYoutubeUrl,
-    sourceFile,
-    sourceKind,
-    uploadProgress,
-    youtubeUrl,
-  } = clipsPage;
 
   const hasProjects = projects.length > 0;
-  const showCreateForm =
-    !projectId && (isCreating || (!isListLoading && !hasProjects));
   const listHref = href(APP_ROUTES.STUDIO.CLIPS);
+  const newProjectHref = href(APP_ROUTES.STUDIO.CLIPS_NEW);
   const topbarActions = projectId ? (
     <Button
       asChild
@@ -94,12 +71,16 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
     </Button>
   ) : hasProjects ? (
     <Button
+      asChild
       size={ButtonSize.SM}
-      variant={showCreateForm ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
-      icon={showCreateForm ? undefined : <Plus className="size-3.5" />}
-      label={showCreateForm ? 'All projects' : 'New project'}
-      onClick={() => setIsCreating((current) => !current)}
-    />
+      variant={ButtonVariant.DEFAULT}
+      label={t('newProject')}
+    >
+      <Link href={newProjectHref}>
+        <Plus className="size-3.5" />
+        {t('newProject')}
+      </Link>
+    </Button>
   ) : undefined;
 
   return (
@@ -109,34 +90,6 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
 
         {projectId ? (
           <ClipsProjectDetail {...clipsPage} />
-        ) : showCreateForm ? (
-          <ClipsInputForm
-            generationMode={generationMode}
-            youtubeUrl={youtubeUrl}
-            onSetYoutubeUrl={setYoutubeUrl}
-            maxClips={maxClips}
-            onSetMaxClips={setMaxClips}
-            minViralityScore={minViralityScore}
-            onSetMinViralityScore={setMinViralityScore}
-            onSetSourceFile={setSourceFile}
-            onSetSourceKind={setSourceKind}
-            error={error}
-            isSubmitting={isSubmitting}
-            onAnalyze={handleAnalyze}
-            onCancel={hasProjects ? () => setIsCreating(false) : undefined}
-            onModeChange={setGenerationMode}
-            onStartQuick={handleStartFromYoutube}
-            quickStartHint={
-              generationMode === 'raw-cut'
-                ? 'Uses the source footage and burns captions. No avatar defaults required.'
-                : identityDefaults.isComplete
-                  ? 'Uses configured avatar and voice defaults.'
-                  : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
-            }
-            sourceFile={sourceFile}
-            sourceKind={sourceKind}
-            uploadProgress={uploadProgress}
-          />
         ) : (
           <>
             {listError ? (
@@ -144,7 +97,37 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
                 {listError}
               </div>
             ) : null}
-            <ClipsProjectList isLoading={isListLoading} projects={projects} />
+            {!isListLoading && !hasProjects && !listError ? (
+              <div
+                className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-16 text-center"
+                data-testid="clips-empty-state"
+              >
+                <p className="text-sm font-medium text-foreground">
+                  {t('noProjectsYet')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('noProjectsDescription')}
+                </p>
+                <Button
+                  asChild
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.DEFAULT}
+                  label={t('newProject')}
+                >
+                  <Link href={newProjectHref}>
+                    <Plus className="size-3.5" />
+                    {t('newProject')}
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <ClipsProjectList
+                isLoading={isListLoading}
+                projects={projects}
+                onRename={renameProject}
+                onDelete={deleteProject}
+              />
+            )}
           </>
         )}
       </div>
@@ -156,16 +139,22 @@ function ClipsProjectDetail({
   avatarId,
   avatarProvider,
   clipsService,
+  draftFilename,
+  draftSaveState,
   editedHighlights,
   error,
   generationMode,
+  handleAnalyze,
   handleGenerate,
   handleRetryFailedClips,
   handleRetrySource,
   handleSelectReferenceFrame,
+  handleStartFromYoutube,
   identityDefaults,
   isHydrating,
   isSubmitting,
+  maxClips,
+  minViralityScore,
   pendingReferenceFrameId,
   project,
   referenceFrameError,
@@ -176,18 +165,60 @@ function ClipsProjectDetail({
   setAvatarId,
   setAvatarProvider,
   setGenerationMode,
+  setMaxClips,
+  setMinViralityScore,
+  setSourceFile,
+  setSourceKind,
   setVoiceId,
+  setYoutubeUrl,
+  sourceFile,
+  sourceKind,
   step,
   toggleHighlight,
   updateHighlightScript,
   updateHighlightTitle,
+  uploadProgress,
   voiceId,
+  youtubeUrl,
 }: ReturnType<typeof useStudioClipsPage>) {
   if (isHydrating) {
     return (
       <div className="flex min-h-64 items-center justify-center">
         <Spinner size={ComponentSize.LG} className="text-primary" />
       </div>
+    );
+  }
+
+  if (step === 'input' && project) {
+    return (
+      <ClipsInputForm
+        draftFilename={draftFilename}
+        draftSaveState={draftSaveState}
+        generationMode={generationMode}
+        youtubeUrl={youtubeUrl}
+        onSetYoutubeUrl={setYoutubeUrl}
+        maxClips={maxClips}
+        onSetMaxClips={setMaxClips}
+        minViralityScore={minViralityScore}
+        onSetMinViralityScore={setMinViralityScore}
+        onSetSourceFile={setSourceFile}
+        onSetSourceKind={setSourceKind}
+        error={error}
+        isSubmitting={isSubmitting}
+        onAnalyze={handleAnalyze}
+        onModeChange={setGenerationMode}
+        onStartQuick={handleStartFromYoutube}
+        quickStartHint={
+          generationMode === 'raw-cut'
+            ? 'Uses the source footage and burns captions. No avatar defaults required.'
+            : identityDefaults.isComplete
+              ? 'Uses configured avatar and voice defaults.'
+              : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
+        }
+        sourceFile={sourceFile}
+        sourceKind={sourceKind}
+        uploadProgress={uploadProgress}
+      />
     );
   }
 

@@ -5,6 +5,7 @@ import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto
 import { UpdateInsightDto } from '@api/collections/insights/dto/update-insight.dto';
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -43,6 +44,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('Insights')
+@FeatureFlag('analytics')
 @Controller('insights')
 @UseInterceptors(CreditsInterceptor)
 export class InsightsController {

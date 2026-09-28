@@ -1,4 +1,5 @@
 import type {
+  ClipDraftSourceKind,
   ClipLibraryLinkStatus,
   ClipRawCutFramingContract,
   ClipRawCutMediaValidationContract,
@@ -8,12 +9,12 @@ import type {
   ClipResultMode,
   ClipResultStatus,
   ClipSourceContract,
-  ClipSourceKind,
   HookClipApprovalStatus,
   IBrand,
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
+import type { ReactNode } from 'react';
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
@@ -27,11 +28,15 @@ export type { ClipLibraryLinkStatus, ClipReadyAction, ClipResultMode };
 
 export type ClipsStep = 'input' | 'review' | 'progress';
 
+export type ClipDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
+
 export interface ClipProjectSummary {
+  updatedAt?: string;
   brandId?: string;
   createdAt?: string;
   failedClipCount: number;
   id: string;
+  isDraft: boolean;
   mode?: ClipResultMode;
   framing?: ClipRawCutFramingContract;
   mediaValidation?: ClipRawCutMediaValidationContract;
@@ -118,6 +123,8 @@ export interface ClipReferenceFrameSelectorProps {
 }
 
 export interface ClipsInputFormProps {
+  draftFilename?: string;
+  draftSaveState: ClipDraftSaveState;
   error: string | null;
   generationMode: ClipResultMode;
   isSubmitting: boolean;
@@ -131,10 +138,10 @@ export interface ClipsInputFormProps {
   onSetMinViralityScore: (value: number) => void;
   onSetYoutubeUrl: (value: string) => void;
   onSetSourceFile: (file: File | null) => void;
-  onSetSourceKind: (kind: ClipSourceKind) => void;
+  onSetSourceKind: (kind: ClipDraftSourceKind) => void;
   quickStartHint: string;
   sourceFile: File | null;
-  sourceKind: ClipSourceKind;
+  sourceKind: ClipDraftSourceKind;
   uploadProgress: number;
   youtubeUrl: string;
 }
@@ -142,9 +149,12 @@ export interface ClipsInputFormProps {
 export interface ClipsProjectListProps {
   isLoading: boolean;
   projects: ClipProjectSummary[];
+  onRename?: (id: string, name: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 export interface ClipsProjectCardProps {
+  actions?: ReactNode;
   href: string;
   project: ClipProjectSummary;
 }

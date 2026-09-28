@@ -3,6 +3,7 @@ import type {
   IIngredient,
   IPost,
   IVideo,
+  IVideoMergeSettings,
 } from '@genfeedai/contracts/interfaces';
 import type {
   IVideoEditParams,
@@ -204,6 +205,7 @@ export class VideosService extends IngredientsService<Video> {
     modelKey: string;
     isLoopMode?: boolean;
     isMergeEnabled?: boolean;
+    mergeSettings?: IVideoMergeSettings;
     cameraPrompt?: string;
     duration?: number;
     format?: string;

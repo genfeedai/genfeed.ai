@@ -37,4 +37,5 @@ export * from './studio-edit-detail.interface';
 export * from './tag.interface';
 export * from './template.interface';
 export * from './template-ui.interface';
+export * from './video-stitch.interface';
 export * from './x-article-metadata.interface';

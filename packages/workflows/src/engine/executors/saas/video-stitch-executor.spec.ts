@@ -1,10 +1,10 @@
+import { VideoTransition } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import {
-  buildFfmpegConcatDemuxerList,
-  buildFfmpegConcatFilter,
   collectVideoStitchUrls,
   createVideoStitchExecutor,
+  VIDEO_STITCH_TRANSITION_MAP,
 } from './video-stitch-executor';
 
 const ctx: ExecutionContext = {
@@ -14,53 +14,6 @@ const ctx: ExecutionContext = {
   workflowId: 'w',
   workflowVersionId: 'w-v1',
 };
-
-describe('buildFfmpegConcatFilter', () => {
-  it('uses the concat filter for cut transitions', () => {
-    expect(
-      buildFfmpegConcatFilter({
-        hasAudio: true,
-        transitionDuration: 0,
-        transitionType: 'cut',
-        videoCount: 3,
-      }),
-    ).toBe('concat=n=3:v=1:a=1');
-  });
-
-  it('drops the audio stream when hasAudio is false', () => {
-    expect(
-      buildFfmpegConcatFilter({
-        hasAudio: false,
-        transitionDuration: 0,
-        transitionType: 'cut',
-        videoCount: 2,
-      }),
-    ).toBe('concat=n=2:v=1:a=0');
-  });
-
-  it('uses xfade for crossfade transitions', () => {
-    const filter = buildFfmpegConcatFilter({
-      hasAudio: true,
-      transitionDuration: 0.5,
-      transitionType: 'crossfade',
-      videoCount: 2,
-    });
-    expect(filter).toContain('xfade=transition=fade:duration=0.5');
-  });
-});
-
-describe('buildFfmpegConcatDemuxerList', () => {
-  it('emits one file entry per video for the concat demuxer', () => {
-    expect(
-      buildFfmpegConcatDemuxerList([
-        'https://cdn.example/a.mp4',
-        'https://cdn.example/b.mp4',
-      ]),
-    ).toBe(
-      "file 'https://cdn.example/a.mp4'\nfile 'https://cdn.example/b.mp4'",
-    );
-  });
-});
 
 describe('collectVideoStitchUrls', () => {
   it('preserves numbered video-N handle order', () => {
@@ -180,9 +133,10 @@ describe('VideoStitchExecutor', () => {
       expect(processor).not.toHaveBeenCalled();
     });
 
-    it('concatenates videos via mocked FFmpeg processor', async () => {
+    it('delegates the ordered clips to the stitch processor', async () => {
       const processor = vi.fn().mockResolvedValue({
-        jobId: 'j-stitch',
+        jobId: 'stitch-output',
+        outputId: 'output',
         outputVideoUrl: 'https://cdn.example/stitched.mp4',
       });
       const exec = createVideoStitchExecutor(processor);
@@ -195,30 +149,104 @@ describe('VideoStitchExecutor', () => {
         ]),
         node: {
           config: { transitionType: 'cut' },
-          id: '1',
+          id: 'stitch-node',
           inputs: [],
           label: 'Stitch',
           type: 'videoStitch',
         },
       });
 
-      expect(result.data).toMatchObject({
+      expect(result.data).toEqual({
+        ingredientId: 'output',
         video: 'https://cdn.example/stitched.mp4',
         videoUrl: 'https://cdn.example/stitched.mp4',
       });
-      expect(result.metadata?.jobId).toBe('j-stitch');
-      expect(result.metadata?.concatFilter).toBe('concat=n=3:v=1:a=1');
-      expect(processor).toHaveBeenCalledWith(
-        expect.objectContaining({
-          concatFilter: 'concat=n=3:v=1:a=1',
-          organizationId: 'o',
-          transitionType: 'cut',
-          videoUrls: [
-            'https://cdn.example/a.mp4',
-            'https://cdn.example/b.mp4',
-            'https://cdn.example/c.mp4',
+      expect(result.metadata).toEqual({
+        jobId: 'stitch-output',
+        transition: VideoTransition.NONE,
+        transitionType: 'cut',
+        videoCount: 3,
+      });
+      expect(processor).toHaveBeenCalledWith({
+        brandId: undefined,
+        executionId: undefined,
+        nodeId: 'stitch-node',
+        organizationId: 'o',
+        parentId: undefined,
+        providerData: undefined,
+        runId: 'r',
+        transition: VideoTransition.NONE,
+        userId: 'u',
+        videoUrls: [
+          'https://cdn.example/a.mp4',
+          'https://cdn.example/b.mp4',
+          'https://cdn.example/c.mp4',
+        ],
+      });
+    });
+
+    it.each([
+      ['cut', VideoTransition.NONE],
+      ['crossfade', VideoTransition.FADE],
+      ['wipe', VideoTransition.WIPELEFT],
+      ['fade', VideoTransition.FADE],
+    ] as const)(
+      'maps the %s node transition to a worker transition',
+      async (transitionType, transition) => {
+        expect(VIDEO_STITCH_TRANSITION_MAP[transitionType]).toBe(transition);
+        const processor = vi.fn().mockResolvedValue({
+          jobId: 'j',
+          outputVideoUrl: 'https://cdn.example/stitched.mp4',
+        });
+        await createVideoStitchExecutor(processor).execute({
+          context: ctx,
+          inputs: new Map<string, unknown>([
+            [
+              'videos',
+              ['https://cdn.example/a.mp4', 'https://cdn.example/b.mp4'],
+            ],
+          ]),
+          node: {
+            config: { transitionDuration: 0.5, transitionType },
+            id: 'n',
+            inputs: [],
+            label: 'Stitch',
+            type: 'videoStitch',
+          },
+        });
+        const params = processor.mock.calls[0]?.[0];
+        expect(params.transition).toBe(transition);
+        if (transition === VideoTransition.NONE) {
+          expect(params).not.toHaveProperty('transitionDuration');
+        } else {
+          expect(params.transitionDuration).toBe(0.5);
+        }
+      },
+    );
+
+    it('omits a zero transition duration so the worker default applies', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        jobId: 'j',
+        outputVideoUrl: 'https://cdn.example/stitched.mp4',
+      });
+      await createVideoStitchExecutor(processor).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([
+          [
+            'videos',
+            ['https://cdn.example/a.mp4', 'https://cdn.example/b.mp4'],
           ],
-        }),
+        ]),
+        node: {
+          config: { transitionDuration: 0, transitionType: 'crossfade' },
+          id: 'n',
+          inputs: [],
+          label: 'Stitch',
+          type: 'videoStitch',
+        },
+      });
+      expect(processor.mock.calls[0]?.[0]).not.toHaveProperty(
+        'transitionDuration',
       );
     });
   });

@@ -90,7 +90,7 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 513,
+    "actual": 506,
     "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
@@ -112,12 +112,6 @@
     "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
     "metric": "method-lines",
     "symbol": "HeygenWebhookService.handleCallback"
-  },
-  {
-    "actual": 216,
-    "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.ts",
-    "metric": "method-lines",
-    "symbol": "AutoMergeService.createAndQueueMerge"
   },
   {
     "actual": 169,
@@ -156,7 +150,7 @@
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
   },
   {
-    "actual": 390,
+    "actual": 377,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"

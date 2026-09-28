@@ -117,6 +117,15 @@ describe('agent runtime workflow registration contract', () => {
     dependencies[4] = creditsUtilsService;
     dependencies[6] = contextService;
     dependencies[12] = uiActionService;
+    const streamEffects = {
+      publishUiActionDone: vi.fn(),
+      publishUiActionFailure: vi.fn(),
+    };
+    dependencies[13] = streamEffects;
+    dependencies[14] = {
+      readRunTerminalSequence: vi.fn().mockResolvedValue(3),
+      recordRunFailed: vi.fn(),
+    };
     dependencies[15] = { runExclusive: vi.fn() };
     const service = Reflect.construct(
       AgentTurnWorkflowExecutionService,
@@ -190,6 +199,17 @@ describe('agent runtime workflow registration contract', () => {
       model: null,
       threadId: 'thread-1',
     });
+    // The media run settles on the turn channel like a ui-action run.
+    expect(streamEffects.publishUiActionDone).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sequence: 3,
+        threadId: 'thread-1',
+        uiAction: {
+          action: 'confirm_generate_media',
+          sourceId: 'composer-generation-execution-1',
+        },
+      }),
+    );
     expect(settingsService.findOne).not.toHaveBeenCalled();
     expect(contextService.resolveSystemPromptAndModel).not.toHaveBeenCalled();
     expect(

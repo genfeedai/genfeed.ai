@@ -106,6 +106,28 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
   }
 
+  /**
+   * The signed-in user's settings. `favoriteWorkflowIds` holds only live
+   * workflows of the active organization.
+   */
+  public async findMeSettings(signal?: AbortSignal): Promise<ISetting> {
+    return await this.instance
+      .get<JsonApiResponseDocument>('me/settings', { signal })
+      .then((res) => res.data)
+      .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
+  }
+
+  /**
+   * Replaces the signed-in user's favorite workflows. The API rejects the
+   * whole list (400) unless every id is a live workflow of the active
+   * organization, and caps it at 50 entries.
+   */
+  public async patchMeFavoriteWorkflowIds(
+    favoriteWorkflowIds: string[],
+  ): Promise<ISetting> {
+    return await this.patchMeSettings({ favoriteWorkflowIds });
+  }
+
   public async findNotificationInbox(
     organizationId: string,
     cursor?: string,

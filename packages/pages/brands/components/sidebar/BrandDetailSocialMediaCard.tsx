@@ -590,7 +590,10 @@ export default function BrandDetailSocialMediaCard({
                 (entry) => entry.platform === platform,
               );
               if (item) {
-                void handleConnectPlatform(item);
+                void handleConnectPlatform(
+                  item,
+                  selectedConnection.credentialId,
+                );
               }
             }}
           />

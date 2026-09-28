@@ -31,6 +31,7 @@ export class UpdateIngredientDto extends PartialType(
     'sourceActionId',
     'sources',
     'providerData',
+    'mergeSettings',
   ] as const),
 ) {
   @IsBoolean()

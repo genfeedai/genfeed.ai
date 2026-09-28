@@ -1,7 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-
-export const generateMetadata = createPageMetadata('Batch Workflow Runner');
-
+import BatchProjectsPage from '@/features/workflows/pages/batch/BatchProjectsPage';
+export const generateMetadata = createPageMetadata('Batch');
 export default function StudioBatchPage() {
-  return null;
+  return <BatchProjectsPage />;
 }

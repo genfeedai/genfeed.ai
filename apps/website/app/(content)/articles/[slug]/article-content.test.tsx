@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleContent from './article-content';
 
-const copyToClipboard = vi.fn<(value: string) => Promise<void>>();
+const copyToClipboard = vi.fn<(value: string) => Promise<boolean>>();
 
 vi.mock('@services/core/clipboard.service', () => ({
   ClipboardService: {
@@ -12,7 +12,7 @@ vi.mock('@services/core/clipboard.service', () => ({
 
 beforeEach(() => {
   copyToClipboard.mockReset();
-  copyToClipboard.mockResolvedValue();
+  copyToClipboard.mockResolvedValue(true);
 });
 
 describe('ArticleContent', () => {
@@ -43,6 +43,23 @@ describe('ArticleContent', () => {
     await waitFor(() =>
       expect(copyToClipboard).toHaveBeenCalledWith('Generate a useful asset.'),
     );
+  });
+
+  it('keeps Copy after a handled clipboard failure', async () => {
+    copyToClipboard.mockResolvedValue(false);
+    render(
+      <ArticleContent
+        articleLabel="Guide"
+        sanitizedHtml="<pre><code>Prompt</code></pre>"
+      />,
+    );
+    const button = await screen.findByRole('button', {
+      name: 'Copy this prompt',
+    });
+    fireEvent.click(button);
+    await waitFor(() => expect(copyToClipboard).toHaveBeenCalledWith('Prompt'));
+    expect(button).toHaveTextContent('Copy');
+    expect(button).not.toHaveTextContent('Copied');
   });
 
   it('mounts the filmmaking effect lab on the matching article', async () => {

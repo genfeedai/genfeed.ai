@@ -5,6 +5,7 @@ import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -43,6 +44,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectsController {

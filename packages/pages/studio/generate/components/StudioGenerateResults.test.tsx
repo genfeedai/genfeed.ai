@@ -33,6 +33,8 @@ const assetActions = {
   onMarkArchived: vi.fn(),
   onMarkRejected: vi.fn(),
   onMarkValidated: vi.fn(),
+  onOpenInEditor: vi.fn(),
+  onResize: vi.fn(),
   onPublishIngredient: vi.fn(),
   onRefresh: vi.fn(),
   onRemoveGeneration: vi.fn(),

@@ -183,7 +183,11 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
             data.orgId,
             data.userId,
             data.projectId,
-            data.source?.ingredientId,
+            // A Library asset is shared across projects, so its audio and any
+            // stored copy of its source are keyed by this project instead.
+            data.source?.kind === 'library'
+              ? undefined
+              : data.source?.ingredientId,
             sourceArtifact?.storageKey,
           );
     const resolvedArtifact = extraction.sourceArtifact ?? sourceArtifact;
@@ -280,6 +284,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           data.userId,
           data.projectId,
           referenceTimestamps,
+          highlighted.sourceArtifact?.storageKey,
         );
       } catch (error: unknown) {
         this.logger.warn(
@@ -370,6 +375,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     userId: string,
     projectId: string,
     timestamps: number[],
+    sourceS3Key?: string,
   ): Promise<ClipReferenceFrameSet> {
     const filesUrl = this.getFilesServiceUrl();
 
@@ -380,7 +386,12 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           id: `clip-reference-frames-${projectId}`,
           ingredientId: projectId,
           organizationId,
-          params: { inputPath: youtubeUrl, timestamps },
+          // Stored sources (uploads, Library assets, materialized YouTube
+          // downloads) are read by key; the files service only fetches
+          // remote URLs from YouTube.
+          params: sourceS3Key
+            ? { s3Key: sourceS3Key, timestamps }
+            : { inputPath: youtubeUrl, timestamps },
           type: 'extract-reference-frames',
           userId,
         },
@@ -418,9 +429,11 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           id: `clip-audio-${projectId}`,
           ingredientId: ingredientId ?? projectId,
           organizationId,
+          // A remote source is stored during extraction so reference frames
+          // can later read it by key (provider-hosted Library videos).
           params: sourceS3Key
             ? { s3Key: sourceS3Key }
-            : { inputPath: youtubeUrl },
+            : { inputPath: youtubeUrl, materializeSource: true },
           type: 'video-to-audio',
           userId,
         },

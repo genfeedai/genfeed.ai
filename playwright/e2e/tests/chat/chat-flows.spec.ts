@@ -163,6 +163,11 @@ async function mockThreadReplay(
               content: options.assistantContent,
               createdAt: now,
               metadata: {
+                // The turn's reply is stamped with its execution id
+                // (`buildPersistedAgentResponseMetadata`) — the id
+                // `mockTurnAck` acks — which is how the completion watchdog
+                // tells it from older history.
+                runId: `exec-${threadId}`,
                 uiActions: options.uiActions ?? [],
               },
               role: 'assistant',
@@ -273,12 +278,13 @@ test.describe('Agent Chat', () => {
         }
       | undefined;
     // `POST .../ui-actions` only acks the enqueued workflow — it never
-    // carries a message (see `AgentUiActionAckResponse`). The client
-    // reconciles the eventual assistant reply by polling
-    // `GET .../messages`, so this mock's `getMessages` route (registered
-    // after `mockThreadReplay`'s, which it supersedes) grows a new message
-    // once the ack fires, the same way the real workflow's completion would
-    // append one to the thread.
+    // carries a message (see `AgentUiActionAckResponse`). The run it starts
+    // is adopted into the thread stream like a turn; its reply arrives as
+    // that run's `agent:done`. With no socket double, the run completion
+    // watchdog resolves it from `GET .../messages` by the reply's `runId`, so
+    // this route (registered after `mockThreadReplay`'s, which it supersedes)
+    // grows a new message once the ack fires, the same way the real run
+    // persists one to the thread.
     let postConfirmMessage: Record<string, unknown> | null = null;
 
     await mockThreadReplay(authenticatedPage, {
@@ -415,13 +421,14 @@ test.describe('Agent Chat', () => {
       .getByRole('button', { name: 'Confirm schedule' })
       .click();
 
-    // The eventual server reply — reconciled through the async ack by its
-    // runId — and its CTAs, not the card's own local success copy.
+    // The run's reply — resolved by its runId once the watchdog fires
+    // (`STREAM_COMPLETION_POLL_INTERVAL_MS`, 10s) — and its CTAs, not the
+    // card's own local success copy.
     await expect(
       conversation.getByText(
         'Publish confirmed. Your post is ready to review.',
       ),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 20_000 });
     await expect(
       conversation.getByRole('link', { name: 'Open Posts' }),
     ).toHaveAttribute('href', /\/content\/posts$/);

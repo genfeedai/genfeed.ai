@@ -81,6 +81,7 @@ export const API_ENDPOINTS = {
   SOCIAL_WARMUP_ENROLLMENTS: '/social-warmup-enrollments',
   SOURCE_POSTS: '/source-posts',
   SOUNDS: '/elements/sounds',
+  STUDIO_GENERATE_DRAFTS: '/studio-generate-drafts',
   STUDIO_LOOKS: '/studio-looks',
   STYLES: '/elements/styles',
   SUBSCRIPTIONS: '/subscriptions',

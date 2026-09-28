@@ -4,35 +4,11 @@ import { AlertCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { KPISectionProps } from '@genfeedai/props/ui/kpi/kpi-section.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
+import {
+  MetricCardGrid,
+  type MetricCardGridProps,
+} from '@ui/cards/metric-card/MetricCardGrid';
 import Alert from '@ui/feedback/alert/Alert';
-
-// Static Tailwind grid class mappings (must be static for Tailwind JIT)
-const MOBILE_GRID_CLASSES: Record<number, string> = {
-  1: 'grid-cols-1',
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
-  5: 'grid-cols-5',
-  6: 'grid-cols-6',
-};
-
-const TABLET_GRID_CLASSES: Record<number, string> = {
-  1: 'md:grid-cols-1',
-  2: 'md:grid-cols-2',
-  3: 'md:grid-cols-3',
-  4: 'md:grid-cols-4',
-  5: 'md:grid-cols-5',
-  6: 'md:grid-cols-6',
-};
-
-const DESKTOP_GRID_CLASSES: Record<number, string> = {
-  1: 'lg:grid-cols-1',
-  2: 'lg:grid-cols-2',
-  3: 'lg:grid-cols-3',
-  4: 'lg:grid-cols-4',
-  5: 'lg:grid-cols-5',
-  6: 'lg:grid-cols-6',
-};
 
 interface SectionHeaderProps {
   title: string;
@@ -62,21 +38,15 @@ export default function KPISection({
   gridCols = { desktop: 3, mobile: 1, tablet: 2 },
   className,
 }: KPISectionProps) {
-  const mobile = gridCols.mobile ?? 1;
-  const tablet = gridCols.tablet ?? 2;
-  const desktop = gridCols.desktop ?? 3;
-
-  const gridColsClass = cn(
-    'grid gap-4',
-    MOBILE_GRID_CLASSES[mobile] || 'grid-cols-1',
-    TABLET_GRID_CLASSES[tablet] || 'md:grid-cols-2',
-    DESKTOP_GRID_CLASSES[desktop] || 'lg:grid-cols-3',
-  );
+  const columns = Math.max(
+    1,
+    Math.min(6, gridCols.desktop ?? 3),
+  ) as MetricCardGridProps['columns'];
 
   const sectionContent: React.ReactNode = error ? (
     <Alert type={AlertCategory.ERROR}>{error}</Alert>
   ) : (
-    <div className={gridColsClass}>
+    <MetricCardGrid columns={columns}>
       {items.map((item) => (
         <MetricCard
           key={item.label}
@@ -93,7 +63,7 @@ export default function KPISection({
           valueClassName={item.valueClassName}
         />
       ))}
-    </div>
+    </MetricCardGrid>
   );
 
   return (

@@ -2,6 +2,7 @@
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -10,24 +11,21 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import { getTrendRemixAvailability } from '@pages/trends/shared/remix-availability';
+import { getSafeExternalUrl } from '@pages/trends/shared/safe-external-url';
 import type {
   TrendContentItem,
   TrendItem,
   TrendSourceItem,
 } from '@props/trends/trends-page.props';
+import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
 import {
   buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
@@ -36,7 +34,6 @@ import {
 import {
   ClipboardList,
   Copy,
-  Ellipsis,
   ExternalLink,
   Film,
   Sparkles,
@@ -44,7 +41,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -113,7 +109,6 @@ export default function TrendContentCard({
 }) {
   const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
-  const router = useRouter();
   const remixSurface = useOptionalDiscoveryRemix();
   const { href } = useOrgUrl();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
@@ -145,13 +140,11 @@ export default function TrendContentCard({
     }
   }, [clipboardService, notificationsService, sourceItem, trend]);
 
-  const handleOpenSource = useCallback(() => {
-    window.open(item.sourceUrl, '_blank', 'noopener,noreferrer');
-  }, [item.sourceUrl]);
-
-  const handleSendToAgent = useCallback(() => {
-    router.push(buildTrendSourceAgentHref(trend, sourceItem));
-  }, [router, sourceItem, trend]);
+  const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
+  const agentHref = useMemo(
+    () => buildTrendSourceAgentHref(trend, sourceItem),
+    [sourceItem, trend],
+  );
 
   const remixHref = useMemo(
     () =>
@@ -219,8 +212,114 @@ export default function TrendContentCard({
     previewTitle,
   ]);
 
+  const overflowActions = useMemo<CollectionOverflowAction[]>(() => {
+    const actions: CollectionOverflowAction[] = [];
+    if (finding && onSelectAction) {
+      actions.push({
+        id: 'use-as-context',
+        isDisabled: isSelected,
+        label: isSelected
+          ? translate('actions.selectedAsContext')
+          : translate('actions.useAsContext'),
+        onSelect: () => onSelectAction(finding),
+      });
+    }
+    actions.push(
+      {
+        icon: <ClipboardList className="size-4" />,
+        id: 'save-brief',
+        isDisabled: isSavingBrief,
+        label: isSavingBrief
+          ? translate('actions.savingBrief')
+          : translate('actions.saveBrief'),
+        onSelect: () => {
+          void handleSaveBrief();
+        },
+      },
+      {
+        icon: <Copy className="size-4" />,
+        id: 'copy-prompt',
+        label: translate('actions.copyPrompt'),
+        onSelect: () => {
+          void handleCopyPrompt();
+        },
+      },
+    );
+    if (safeSourceUrl) {
+      actions.push({
+        href: safeSourceUrl,
+        icon: <ExternalLink className="size-4" />,
+        id: 'open-source',
+        isExternal: true,
+        label: translate('actions.openSource'),
+      });
+    }
+    actions.push({
+      href: agentHref,
+      icon: <Film className="size-4" />,
+      id: 'send-to-agent',
+      label: translate('actions.sendToAgent'),
+    });
+    return actions;
+  }, [
+    agentHref,
+    finding,
+    handleCopyPrompt,
+    handleSaveBrief,
+    isSavingBrief,
+    isSelected,
+    onSelectAction,
+    safeSourceUrl,
+    translate,
+  ]);
+
+  const primaryAction = opensPrefilledRemix ? (
+    <Button
+      icon={<Sparkles className="size-3.5" />}
+      label={translate('actions.remix')}
+      onClick={() => {
+        if (!item.sourceReferenceId) {
+          return;
+        }
+        void remixSurface?.openRemix({
+          kind: 'trend_reference',
+          sourceReferenceId: item.sourceReferenceId,
+          trendId: item.trendId,
+        });
+      }}
+      size={ButtonSize.SM}
+      variant={ButtonVariant.SECONDARY}
+    />
+  ) : opensRemixPage ? (
+    <Button
+      asChild
+      size={ButtonSize.SM}
+      variant={ButtonVariant.SECONDARY}
+      withWrapper={false}
+    >
+      <Link aria-label={translate('actions.remix')} href={remixHref}>
+        <Sparkles className="size-3.5" />
+        {translate('actions.remix')}
+      </Link>
+    </Button>
+  ) : isRemixUnavailable ? (
+    <Button
+      icon={<Sparkles className="size-3.5" />}
+      isDisabled
+      label={translate('actions.remixUnavailable')}
+      size={ButtonSize.SM}
+      variant={ButtonVariant.SECONDARY}
+    />
+  ) : undefined;
+
   return (
-    <Card className="hover:shadow-border-strong" bodyClassName="gap-0 p-0">
+    <Card
+      bodyClassName="gap-0 p-0"
+      className={cn(
+        'hover:shadow-border-strong',
+        isSelected && 'ring-1 ring-inset ring-primary/50',
+      )}
+    >
       {previewMediaUrl ? (
         <div className="relative aspect-[16/9] overflow-hidden bg-secondary">
           <Image
@@ -311,98 +410,11 @@ export default function TrendContentCard({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          {opensPrefilledRemix ? (
-            <Button
-              className="min-w-0 flex-1 sm:flex-none"
-              icon={<Sparkles className="size-3.5" />}
-              label={translate('actions.remix')}
-              onClick={() => {
-                if (!item.sourceReferenceId) {
-                  return;
-                }
-                void remixSurface?.openRemix({
-                  kind: 'trend_reference',
-                  sourceReferenceId: item.sourceReferenceId,
-                  trendId: item.trendId,
-                });
-              }}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-          ) : opensRemixPage ? (
-            <Button
-              asChild
-              className="min-w-0 flex-1 sm:flex-none"
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <Link aria-label={translate('actions.remix')} href={remixHref}>
-                <Sparkles className="size-3.5" />
-                {translate('actions.remix')}
-              </Link>
-            </Button>
-          ) : isRemixUnavailable ? (
-            <Button
-              className="min-w-0 flex-1 sm:flex-none"
-              icon={<Sparkles className="size-3.5" />}
-              isDisabled
-              label={translate('actions.remixUnavailable')}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-          ) : null}
-          {finding && onSelectAction ? (
-            <Button
-              aria-pressed={isSelected}
-              label={isSelected ? 'Selected' : 'Use as context'}
-              onClick={() => onSelectAction(finding)}
-              size={ButtonSize.SM}
-              variant={
-                isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-              }
-            />
-          ) : null}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                ariaLabel="More trend actions"
-                icon={<Ellipsis className="size-4" />}
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem
-                disabled={isSavingBrief}
-                onSelect={() => {
-                  void handleSaveBrief();
-                }}
-              >
-                <ClipboardList className="size-4" />
-                {isSavingBrief ? 'Saving brief…' : 'Save brief'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  void handleCopyPrompt();
-                }}
-              >
-                <Copy className="size-4" />
-                {translate('actions.copyPrompt')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleOpenSource}>
-                <ExternalLink className="size-4" />
-                {translate('actions.openSource')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleSendToAgent}>
-                <Film className="size-4" />
-                {translate('actions.sendToAgent')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <CollectionItemActions
+          className="pt-1"
+          overflow={overflowActions}
+          primary={primaryAction}
+        />
       </div>
     </Card>
   );

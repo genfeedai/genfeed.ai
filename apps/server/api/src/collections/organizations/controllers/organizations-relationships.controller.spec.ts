@@ -209,9 +209,22 @@ describe('OrganizationsRelationshipsController', () => {
 
       expect(
         mockServices.credentialsService.countConnected,
-      ).toHaveBeenCalledWith('clorganizationrel0000000001');
+      ).toHaveBeenCalledWith('clorganizationrel0000000001', undefined);
       expect(result.data).toMatchObject({ totalCredentialsConnected: 3 });
     });
+  });
+
+  it('counts credentials only for the requested analytics brand', async () => {
+    await controller.findAnalytics(
+      {} as unknown as Request,
+      'clorganizationrel0000000001',
+      { brandId: 'brand-1' },
+      mockUser,
+    );
+    expect(mockServices.credentialsService.countConnected).toHaveBeenCalledWith(
+      'clorganizationrel0000000001',
+      'brand-1',
+    );
   });
 
   describe('analytics tenant isolation', () => {

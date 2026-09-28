@@ -23,6 +23,15 @@ import {
 export const MAX_CLIP_SOURCE_SIZE_BYTES = 10 * 1024 * 1024 * 1024;
 
 export class PrepareClipUploadDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Draft project to start in place instead of creating a new one',
+    required: false,
+  })
+  readonly draftProjectId?: string;
+
   @IsString()
   @MaxLength(255)
   @ApiProperty({ description: 'Original local filename' })

@@ -2,6 +2,7 @@ import type {
   IBrand,
   IFleetCapabilities,
   IOrganizationSetting,
+  IPlatformFlags,
   IUser,
 } from '@genfeedai/contracts/interfaces';
 import type { IStreakSummary } from '@genfeedai/contracts/types';
@@ -15,6 +16,8 @@ export interface ProtectedBootstrapData {
   currentUser: IUser | null;
   fleetCapabilities: IFleetCapabilities | null;
   organizationId: string;
+  /** Admin module and feature flags (#5468), server-rendered for the shell; absent or `null` means read them client-side. */
+  platformFlags?: IPlatformFlags | null;
   settings: IOrganizationSetting | null;
   streak: IStreakSummary | null;
 }

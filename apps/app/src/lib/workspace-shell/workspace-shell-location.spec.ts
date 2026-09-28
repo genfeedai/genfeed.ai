@@ -193,7 +193,6 @@ describe('workspace shell URL restoration', () => {
   });
 
   it.each([
-    '/acme/moonrise/studio/fastlane',
     '/acme/~/agent/journey',
     '/acme/~/agent/onboarding',
     '/acme/~/settings/subscription',

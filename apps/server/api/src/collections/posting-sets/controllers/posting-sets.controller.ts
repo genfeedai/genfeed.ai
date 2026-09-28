@@ -4,6 +4,7 @@ import { ExpandPostingSetDto } from '@api/collections/posting-sets/dto/expand-po
 import { PostingSetsQueryDto } from '@api/collections/posting-sets/dto/posting-sets-query.dto';
 import { UpdatePostingSetDto } from '@api/collections/posting-sets/dto/update-posting-set.dto';
 import { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -34,6 +35,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('PostingSets')
+@FeatureFlag('publishing')
 @Controller('posting-sets')
 export class PostingSetsController {
   constructor(private readonly postingSetsService: PostingSetsService) {}

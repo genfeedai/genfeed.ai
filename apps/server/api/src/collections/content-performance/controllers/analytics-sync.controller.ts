@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { EmailDigestWorkflowService } from '@api/collections/content-performance/services/email-digest-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -37,6 +38,7 @@ export class TriggerDigestDto {
 }
 
 @AutoSwagger()
+@FeatureFlag('analytics')
 @Controller('content-performance/analytics-sync')
 @UseGuards(RolesGuard)
 export class AnalyticsSyncController {

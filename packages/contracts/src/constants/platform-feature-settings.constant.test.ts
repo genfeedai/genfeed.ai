@@ -14,6 +14,7 @@ describe('parsePlatformFeatureSettings', () => {
 
   it('keeps valid stored values', () => {
     const settings = parsePlatformFeatureSettings({
+      flags: { studio: false },
       isEmailVerificationRequired: true,
       isMediaPerceptionEnabled: false,
       mediaPerceptionFrameCount: 12,
@@ -25,6 +26,7 @@ describe('parsePlatformFeatureSettings', () => {
     });
 
     expect(settings).toMatchObject({
+      flags: { agent: true, studio: false },
       isEmailVerificationRequired: true,
       isMediaPerceptionEnabled: false,
       mediaPerceptionFrameCount: 12,

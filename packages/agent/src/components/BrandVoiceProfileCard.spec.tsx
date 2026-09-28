@@ -2,8 +2,6 @@ import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoicePro
 import {
   type HandleUiActionDeps,
   handleAgentUiAction,
-  UI_ACTION_BACKGROUND_INITIAL_DELAY_MS,
-  UI_ACTION_RECONCILE_TIMEOUT_MS,
 } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import type {
   AgentChatMessage,
@@ -12,7 +10,6 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadMode, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -31,49 +28,48 @@ afterEach(() => {
 });
 
 /**
- * The container's real ui-action handler over a thread whose run acks and
- * then reports `execution` without ever persisting a reply.
+ * The container's real ui-action handler: it acks, and the run it started
+ * settles on the thread (`settleRun` stands in for its `agent:done` /
+ * `agent:error`). The api double has no read methods — nothing is polled.
  */
-function realUiActionHandler(
-  execution: { error?: string; status: WorkflowExecutionStatus },
-  apiOverrides: Record<string, unknown> = {},
-): AgentUiActionHandler {
+function realUiActionHandler(): AgentUiActionHandler {
   useAgentChatStore.setState({ activeThreadId: 'thread-1' });
   const deps: HandleUiActionDeps = {
     activeThreadId: 'thread-1',
     activeUiAction: null,
-    addMessage: (message) => useAgentChatStore.getState().addMessage(message),
+    adoptRun: vi.fn(),
     apiService: {
-      getCreditsInfo: vi.fn(),
-      getMessages: vi.fn().mockResolvedValue([]),
-      getThread: vi.fn(),
-      getWorkflowExecution: vi
-        .fn()
-        .mockResolvedValue({ id: 'exec-voice', ...execution }),
       respondToUiAction: vi.fn().mockResolvedValue({
         executionId: 'exec-voice',
         status: 'queued',
         threadId: 'thread-1',
       }),
-      ...apiOverrides,
     } as unknown as AgentApiService,
-    draftAgentMode: AgentThreadMode.MANUAL,
+    beginRunHandoff: vi.fn((threadId: string) => ({
+      generation: 1,
+      preAssistantIds: new Set<string>(),
+      previousPending: null,
+      previousRunId: null,
+      threadId,
+    })),
+    cancelRunHandoff: vi.fn(),
     followLatestTurn: vi.fn(),
     isBusy: false,
     isReadOnly: false,
-    latestProposedPlan: null,
-    reconcilingRuns: new Map(),
     sendMessage: vi.fn(),
-    setActiveThread: vi.fn(),
     setActiveUiAction: vi.fn(),
-    setCreditsRemaining: vi.fn(),
     setError: (error) => useAgentChatStore.getState().setError(error),
-    setLatestProposedPlan: vi.fn(),
-    signal: new AbortController().signal,
     threads: [],
-    upsertThread: vi.fn(),
   };
   return (action, payload) => handleAgentUiAction(action, payload, deps);
+}
+
+function settleRun(status: 'completed' | 'failed', error?: string): void {
+  act(() => {
+    useAgentChatStore
+      .getState()
+      .settleUiActionRun('thread-1', 'exec-voice', { error, status });
+  });
 }
 
 const approvableAction: AgentUiAction = {
@@ -315,143 +311,67 @@ describe('BrandVoiceProfileCard', () => {
       screen.queryByText('Brand voice saved to this brand.'),
     ).not.toBeInTheDocument();
   });
-  it('stays in flight, not saved, when the save is accepted but unconfirmed', async () => {
-    vi.useFakeTimers();
+  it('stays in flight, not saved, while the accepted save runs', async () => {
     useAgentChatStore
       .getState()
       .setMessages([messageWithAction('message-1', approvableAction)]);
     render(
       <BrandVoiceProfileCard
         action={storedAction(0)}
-        onUiAction={realUiActionHandler({
-          status: WorkflowExecutionStatus.RUNNING,
-        })}
+        onUiAction={realUiActionHandler()}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
-    });
 
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Still saving.');
+    });
     expect(
       screen.queryByText('Brand voice saved to this brand.'),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent('Still saving.');
     expect(storedAction(0).status).toBeUndefined();
   });
 
-  it('keeps the approval available when the save execution fails', async () => {
+  it('settles as saved when its run completes', async () => {
     useAgentChatStore
       .getState()
       .setMessages([messageWithAction('message-1', approvableAction)]);
     render(
       <BrandVoiceProfileCard
         action={storedAction(0)}
-        onUiAction={realUiActionHandler({
-          error: 'Brand voice could not be saved.',
-          status: WorkflowExecutionStatus.FAILED,
-        })}
+        onUiAction={realUiActionHandler()}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
-
     await waitFor(() => {
-      expect(useAgentChatStore.getState().error).toBe(
-        'Brand voice could not be saved.',
-      );
+      expect(screen.getByRole('status')).toHaveTextContent('Still saving.');
     });
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: 'Approve and save' }),
-      ).toBeEnabled();
-    });
-    expect(
-      screen.queryByText('Brand voice saved to this brand.'),
-    ).not.toBeInTheDocument();
-    expect(storedAction(0).status).toBeUndefined();
-  });
-  it('settles as saved when the save completes after the card stopped waiting', async () => {
-    vi.useFakeTimers();
-    let execution = { status: WorkflowExecutionStatus.RUNNING };
-    let messages: AgentChatMessage[] = [];
-    useAgentChatStore
-      .getState()
-      .setMessages([messageWithAction('message-1', approvableAction)]);
-    render(
-      <BrandVoiceProfileCard
-        action={storedAction(0)}
-        onUiAction={realUiActionHandler(execution, {
-          getCreditsInfo: vi.fn().mockResolvedValue(null),
-          getMessages: vi.fn(async () => messages),
-          getThread: vi.fn().mockResolvedValue(null),
-          getWorkflowExecution: vi.fn(async () => ({
-            id: 'exec-voice',
-            ...execution,
-          })),
-        })}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
-    });
-    expect(screen.getByRole('status')).toHaveTextContent('Still saving.');
-
-    execution = { status: WorkflowExecutionStatus.COMPLETED };
-    messages = [
-      {
-        content: 'Brand voice saved.',
-        createdAt: '2026-08-31T00:01:00.000Z',
-        id: 'reply-voice',
-        metadata: { runId: 'exec-voice' },
-        role: 'assistant',
-        threadId: 'thread-1',
-      },
-    ];
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(UI_ACTION_BACKGROUND_INITIAL_DELAY_MS);
-    });
+    settleRun('completed');
 
     expect(
       screen.getByText('Brand voice saved to this brand.'),
     ).toBeInTheDocument();
   });
 
-  it('offers the approval again when the save fails after the card stopped waiting', async () => {
-    vi.useFakeTimers();
-    let execution: { error?: string; status: WorkflowExecutionStatus } = {
-      status: WorkflowExecutionStatus.RUNNING,
-    };
+  it('offers the approval again with the run error when the save fails', async () => {
     useAgentChatStore
       .getState()
       .setMessages([messageWithAction('message-1', approvableAction)]);
     render(
       <BrandVoiceProfileCard
         action={storedAction(0)}
-        onUiAction={realUiActionHandler(execution, {
-          getWorkflowExecution: vi.fn(async () => ({
-            id: 'exec-voice',
-            ...execution,
-          })),
-        })}
+        onUiAction={realUiActionHandler()}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Still saving.');
     });
-    execution = {
-      error: 'Brand voice could not be saved.',
-      status: WorkflowExecutionStatus.FAILED,
-    };
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(UI_ACTION_BACKGROUND_INITIAL_DELAY_MS);
-    });
+    settleRun('failed', 'Brand voice could not be saved.');
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Brand voice could not be saved.',
@@ -462,5 +382,6 @@ describe('BrandVoiceProfileCard', () => {
     expect(
       screen.queryByText('Brand voice saved to this brand.'),
     ).not.toBeInTheDocument();
+    expect(storedAction(0).status).toBeUndefined();
   });
 });

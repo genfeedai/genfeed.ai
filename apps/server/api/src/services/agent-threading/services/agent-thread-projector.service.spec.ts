@@ -1,4 +1,8 @@
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import {
+  type AgentThreadUiActionRun,
+  deriveAgentUiActionStates,
+} from '@genfeedai/contracts/interfaces';
 
 describe('AgentThreadProjectorService', () => {
   let service: AgentThreadProjectorService;
@@ -390,4 +394,200 @@ it('keeps a retry question after a recoverable tool error until the run settles'
   );
   expect(projected.activeRun).toMatchObject({ status: 'running' });
   expect(projected.pendingInputRequests).toHaveLength(1);
+});
+
+describe('AgentThreadProjectorService ui-action run states', () => {
+  let service: AgentThreadProjectorService;
+
+  beforeEach(() => {
+    service = new AgentThreadProjectorService();
+  });
+
+  const requested = (runId: string, sequence: number, sourceId = 'card-1') =>
+    ({
+      commandId: `turn-requested:thread-1:${runId}`,
+      occurredAt: '2026-09-28T09:00:00.000Z',
+      payload: {
+        content: 'Confirmed image generation.',
+        uiAction: { action: 'confirm_generate_media', sourceId },
+      },
+      runId,
+      sequence,
+      threadId: 'thread-1',
+      type: 'thread.turn_requested',
+    }) as never;
+  const terminal = (
+    type: string,
+    runId: string,
+    sequence: number,
+    payload: Record<string, unknown> = {},
+  ) =>
+    ({
+      commandId: `${type}:${runId}`,
+      occurredAt: '2026-09-28T09:01:00.000Z',
+      payload,
+      runId,
+      sequence,
+      threadId: 'thread-1',
+      type,
+    }) as never;
+
+  it('records a pending run for the ui-action a run executes', () => {
+    const snapshot = service.applyEvent(null, requested('exec-1', 3));
+
+    expect(snapshot.uiActionRuns).toEqual([
+      {
+        action: 'confirm_generate_media',
+        queuedSequence: 3,
+        runId: 'exec-1',
+        sourceId: 'card-1',
+        status: 'pending',
+        updatedAt: '2026-09-28T09:00:00.000Z',
+      },
+    ]);
+  });
+
+  it.each([
+    ['run.completed', 'completed', undefined],
+    ['run.failed', 'failed', 'Provider unavailable.'],
+    ['run.cancelled', 'cancelled', undefined],
+  ])('settles it on %s', (type, status, error) => {
+    const pending = service.applyEvent(null, requested('exec-1', 3));
+    const settled = service.applyEvent(
+      pending as never,
+      terminal(type, 'exec-1', 5, error ? { error } : {}),
+    );
+
+    expect(settled.uiActionRuns).toEqual([
+      expect.objectContaining({
+        queuedSequence: 3,
+        runId: 'exec-1',
+        status,
+        terminalSequence: 5,
+        ...(error ? { error } : {}),
+      }),
+    ]);
+  });
+
+  it('keeps the first terminal outcome of a run', () => {
+    const pending = service.applyEvent(null, requested('exec-1', 3));
+    const failed = service.applyEvent(
+      pending as never,
+      terminal('run.failed', 'exec-1', 4, { error: 'Nope.' }),
+    );
+    const later = service.applyEvent(
+      failed as never,
+      terminal('run.completed', 'exec-1', 5),
+    );
+
+    expect(later.uiActionRuns).toEqual([
+      expect.objectContaining({ status: 'failed', terminalSequence: 4 }),
+    ]);
+  });
+
+  it('keeps every run of an action re-run on the same source', () => {
+    const first = service.applyEvent(null, requested('exec-1', 3));
+    const failed = service.applyEvent(
+      first as never,
+      terminal('run.failed', 'exec-1', 4, { error: 'Nope.' }),
+    );
+    const retried = service.applyEvent(failed as never, requested('exec-2', 6));
+
+    expect(retried.uiActionRuns).toEqual([
+      expect.objectContaining({ runId: 'exec-1', status: 'failed' }),
+      expect.objectContaining({ runId: 'exec-2', status: 'pending' }),
+    ]);
+  });
+
+  it('settles two runs queued on the same source by their own terminal events', () => {
+    const queued = (runId: string, sequence: number) =>
+      ({
+        commandId: `turn-queued:thread-1:${runId}`,
+        payload: { uiAction: { action: 'approve_plan', sourceId: 'plan-1' } },
+        runId,
+        sequence,
+        threadId: 'thread-1',
+        type: 'thread.turn_queued',
+      }) as never;
+    const events = [
+      queued('exec-a', 1),
+      queued('exec-b', 2),
+      terminal('run.completed', 'exec-a', 5),
+      terminal('run.failed', 'exec-b', 7, {
+        error: 'This plan has already been approved.',
+      }),
+    ];
+    const snapshot = events.reduce(
+      (current, event) => service.applyEvent(current as never, event),
+      null as unknown,
+    ) as { uiActionRuns: AgentThreadUiActionRun[] };
+
+    expect(snapshot.uiActionRuns).toEqual([
+      expect.objectContaining({ runId: 'exec-a', status: 'completed' }),
+      expect.objectContaining({ runId: 'exec-b', status: 'failed' }),
+    ]);
+    expect(
+      deriveAgentUiActionStates(snapshot.uiActionRuns)['approve_plan:plan-1'],
+    ).toMatchObject({ runId: 'exec-a', status: 'completed' });
+  });
+
+  it('drops the oldest settled runs past the cap, never a pending one', () => {
+    let snapshot: unknown = service.applyEvent(null, requested('pending', 1));
+    for (let index = 0; index < 60; index += 1) {
+      snapshot = service.applyEvent(
+        snapshot as never,
+        requested(`run-${index}`, 2 + index * 2, `card-${index}`),
+      );
+      snapshot = service.applyEvent(
+        snapshot as never,
+        terminal('run.completed', `run-${index}`, 3 + index * 2),
+      );
+    }
+    const runs = (snapshot as { uiActionRuns: AgentThreadUiActionRun[] })
+      .uiActionRuns;
+
+    expect(runs).toHaveLength(50);
+    expect(runs[0]?.runId).toBe('pending');
+    expect(runs.at(-1)?.runId).toBe('run-59');
+  });
+
+  it('drops a superseded run past the cap before the run a card shows', () => {
+    const events = [
+      requested('exec-a', 1),
+      terminal('run.completed', 'exec-a', 2),
+      requested('exec-b', 3),
+      terminal('run.failed', 'exec-b', 4, { error: 'Already approved.' }),
+      ...Array.from({ length: 49 }, (_, index) => [
+        requested(`run-${index}`, 5 + index * 2, `card-${index + 2}`),
+        terminal('run.completed', `run-${index}`, 6 + index * 2),
+      ]).flat(),
+    ];
+    const snapshot = events.reduce(
+      (current, event) => service.applyEvent(current as never, event),
+      null as unknown,
+    ) as { uiActionRuns: AgentThreadUiActionRun[] };
+
+    expect(snapshot.uiActionRuns).toHaveLength(50);
+    expect(snapshot.uiActionRuns.map((run) => run.runId)).not.toContain(
+      'exec-b',
+    );
+    expect(
+      deriveAgentUiActionStates(snapshot.uiActionRuns)[
+        'confirm_generate_media:card-1'
+      ],
+    ).toMatchObject({ runId: 'exec-a', status: 'completed' });
+  });
+
+  it('does not track turns that are not ui-actions', () => {
+    const snapshot = service.applyEvent(null, {
+      commandId: 'turn-requested:thread-1:exec-9',
+      payload: { content: 'Hello' },
+      runId: 'exec-9',
+      sequence: 1,
+      threadId: 'thread-1',
+      type: 'thread.turn_requested',
+    } as never);
+
+    expect(snapshot.uiActionRuns).toEqual([]);
+  });
 });

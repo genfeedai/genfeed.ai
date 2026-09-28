@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetScope } from '@genfeedai/contracts';
+import type { AssetScope, IngredientFormat } from '@genfeedai/contracts';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IIngredient,
@@ -66,6 +66,8 @@ type MasonryVideoActionsBarProps = {
   onRefresh?: () => void;
   onReverse?: (ingredient: IVideo) => void;
   onMirror?: (ingredient: IVideo) => void;
+  onOpenInEditor?: (ingredient: IVideo) => void;
+  onResize?: (ingredient: IVideo, format: IngredientFormat) => void;
 };
 
 export default function MasonryVideoActionsBar({
@@ -98,6 +100,8 @@ export default function MasonryVideoActionsBar({
   onRefresh,
   onReverse,
   onMirror,
+  onOpenInEditor,
+  onResize,
 }: MasonryVideoActionsBarProps) {
   if (!isActionsEnabled) {
     return null;
@@ -163,6 +167,8 @@ export default function MasonryVideoActionsBar({
                   onLandscape={handlers.handleLandscape}
                   onReverse={onReverse || handlers.handleReverse}
                   onMirror={onMirror || handlers.handleMirror}
+                  onOpenInEditor={onOpenInEditor}
+                  onResize={onResize}
                   onSeeDetails={onSeeDetails}
                   onMarkArchived={handlers.handleMarkArchived}
                   onMarkValidated={

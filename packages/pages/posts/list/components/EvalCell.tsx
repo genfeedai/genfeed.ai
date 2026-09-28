@@ -5,13 +5,16 @@ import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluatio
 import type { PostEvaluationProps } from '@props/posts/post-evaluation.props';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { Button } from '@ui/primitives/button';
+import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function EvalCell({
   post,
   onEvaluated,
   presentation = 'table',
 }: PostEvaluationProps) {
+  const translate = useTranslations('pages.posts.list.collection');
   const isGrid = presentation === 'grid';
   const { evaluation, isEvaluating, evaluate } = useEvaluation({
     autoFetch: false,
@@ -21,7 +24,7 @@ export default function EvalCell({
 
   const score = evaluation?.data.overallScore ?? post.evalScore;
 
-  if (score != null) {
+  if (score != null && presentation !== 'menu') {
     return <EvaluationBadge score={score} size={ComponentSize.XS} />;
   }
 
@@ -35,6 +38,19 @@ export default function EvalCell({
       // Error already handled by useEvaluation hook
     }
   };
+
+  if (presentation === 'menu') {
+    return (
+      <DropdownMenuItem
+        disabled={isEvaluating || score != null}
+        onSelect={() => void handleEvaluate()}
+      >
+        {score != null
+          ? translate('evaluationScore', { score })
+          : translate('evaluate')}
+      </DropdownMenuItem>
+    );
+  }
 
   return (
     <Button

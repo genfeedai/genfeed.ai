@@ -3,6 +3,7 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -23,6 +24,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectHighlightsController {

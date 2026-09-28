@@ -40,6 +40,16 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
     );
   });
 
@@ -186,6 +196,16 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
     );
   });
 
@@ -284,6 +304,16 @@ describe('BatchGenerationReviewService harness review feedback', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
       harnessReviewFeedbackService as never,
     );
   });
@@ -406,6 +436,16 @@ describe('BatchGenerationReviewService harness review feedback', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
     );
 
     await expect(
@@ -467,6 +507,16 @@ describe('BatchGenerationReviewService assignment', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
     );
   });
 
@@ -658,6 +708,16 @@ describe('BatchGenerationReviewService destination posts', () => {
         resolveForPost: vi.fn(),
       } as never,
       { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
     );
   });
 

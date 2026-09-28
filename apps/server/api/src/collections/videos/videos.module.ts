@@ -58,6 +58,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
@@ -114,6 +115,7 @@ import { Module } from '@nestjs/common';
     ReplicateModule,
     RouterModule,
     TemplatesModule,
+    VideoStitchModule,
     VotesModule,
     WebhookClientModule,
     WhisperModule,

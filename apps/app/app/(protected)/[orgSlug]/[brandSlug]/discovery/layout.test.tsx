@@ -2,10 +2,6 @@ import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/guards/feature/FeatureGate', () => ({
-  default: ({ children }: PropsWithChildren) => <div>{children}</div>,
-}));
-
 vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   ResearchWorkSurfaceProvider: ({ children }: PropsWithChildren) => (
     <div data-testid="research-provider">{children}</div>

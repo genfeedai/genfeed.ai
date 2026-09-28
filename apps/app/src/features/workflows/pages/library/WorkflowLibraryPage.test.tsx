@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import WorkflowLibraryPage from './WorkflowLibraryPage';
 
 const mocks = vi.hoisted(() => ({
@@ -11,12 +13,17 @@ const mocks = vi.hoisted(() => ({
   handleDisableSelected: vi.fn(),
   handleDuplicate: vi.fn(),
   handleToggleSchedule: vi.fn(),
+  toggleFavorite: vi.fn(),
+  favoriteIds: [] as string[],
+  favorites: [] as Array<{ id: string }>,
+  mostUsed: [] as Array<{ id: string; executionCount: number }>,
+  favoriteError: false,
   isDesktopShell: false,
   isLoading: false as boolean,
   isSystemWorkflow: false,
   selectedIds: new Set<string>(),
   toggleSelected: vi.fn(),
-  workflows: [{ id: 'workflow-1' }] as Array<{ id: string }>,
+  workflows: [] as WorkflowSummary[],
 }));
 
 vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
@@ -28,38 +35,55 @@ vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
   };
 });
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const messages: Record<string, string> = {
-      'actions.retry': 'Retry',
-      'library.autopilot': 'Autopilot',
-      'library.created': 'Created',
-      'library.description':
-        'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
-      'library.info':
-        'are explicit automation graphs. Schedule a workflow when the steps should be predictable and repeatable. For adaptive agent behavior, use',
-      'library.infoSuffix': '.',
-      'library.local': 'local',
-      'library.newWorkflow': 'New Workflow',
-      'library.nextRun': 'Next run',
-      'library.paused': 'Paused',
-      'library.platformManaged': 'Platform-managed',
-      'library.clearSelection': 'Clear',
-      'library.disableSelected': 'Disable schedules',
-      'library.searchPlaceholder': 'Search workflows...',
-      'library.selectWorkflow': 'Select workflow',
-      'library.selectedCount': 'selected',
-      'library.synced': 'synced',
-      'library.system': 'System',
-      'library.templates': 'Templates',
-      'library.title': 'Workflows',
-      'library.updated': 'Updated',
-      'library.next': 'Next',
-      'library.pageStatus': 'Page {page} of {pages}',
-      'library.previous': 'Previous',
-    };
-    return messages[key] ?? key;
-  },
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('@ui/collection/CollectionItemActions', () => ({
+  default: ({
+    primary,
+    overflow,
+  }: {
+    primary?: ReactNode;
+    overflow: Array<{
+      id: string;
+      label: string;
+      onSelect?: () => void;
+      isDisabled?: boolean;
+    }>;
+  }) => (
+    <div>
+      {primary}
+      {overflow.map((action) => (
+        <button
+          type="button"
+          key={action.id}
+          disabled={action.isDisabled}
+          onClick={action.onSelect}
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+vi.mock('./useWorkflowLibraryHighlights', () => ({
+  useWorkflowLibraryHighlights: () => ({
+    favorites: {
+      items: mocks.favorites,
+      isLoading: false,
+      hasError: mocks.favoriteError,
+    },
+    mostUsed: { items: mocks.mostUsed, isLoading: false, hasError: false },
+    favoriteIds: mocks.favoriteIds,
+    isSavingFavorite: false,
+    toggleFavorite: mocks.toggleFavorite,
+    updateWorkflow: vi.fn(),
+    removeWorkflow: vi.fn(),
+    reload: vi.fn(),
+  }),
 }));
 
 // Spread the real module: a bare object drops every other enum, so any new
@@ -83,12 +107,14 @@ vi.mock('@ui/card/Card', () => ({
     children,
     headerAction,
     label,
+    'data-testid': testId,
   }: {
+    'data-testid'?: string;
     children?: ReactNode;
     headerAction?: ReactNode;
     label?: ReactNode;
   }) => (
-    <article>
+    <article data-testid={testId}>
       <h2>{label}</h2>
       {headerAction}
       {children}
@@ -164,8 +190,10 @@ vi.mock('@ui/primitives/button', () => ({
     asChild,
     children,
     label,
+    ariaLabel,
     onClick,
   }: {
+    ariaLabel?: string;
     asChild?: boolean;
     children?: ReactNode;
     label?: string;
@@ -174,7 +202,7 @@ vi.mock('@ui/primitives/button', () => ({
     asChild ? (
       children
     ) : (
-      <button type="button" onClick={onClick}>
+      <button type="button" aria-label={ariaLabel} onClick={onClick}>
         {label ?? children}
       </button>
     ),
@@ -304,6 +332,11 @@ vi.mock('./useWorkflowLibraryPage', () => ({
 describe('WorkflowLibraryPage card semantics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    mocks.favoriteIds = [];
+    mocks.favorites = [];
+    mocks.mostUsed = [];
+    mocks.favoriteError = false;
     mocks.isSystemWorkflow = false;
     mocks.isDesktopShell = false;
     mocks.cloudSync = true;
@@ -314,7 +347,8 @@ describe('WorkflowLibraryPage card semantics', () => {
         id: 'workflow-1',
         createdAt: '2026-07-01T00:00:00.000Z',
         isScheduleEnabled: true,
-        lifecycle: 'published',
+        lifecycle: WorkflowLifecycle.PUBLISHED,
+        nodeCount: 0,
         label: 'Scheduled workflow',
         schedule: '0 9 * * 1',
         updatedAt: '2026-07-02T00:00:00.000Z',
@@ -353,52 +387,143 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeTruthy();
   });
 
-  it('keeps card navigation separate from schedule and menu actions', () => {
+  it.each(['list', 'grid'])(
+    'keeps navigation, selection and schedule commands separate in %s',
+    (view) => {
+      render(<WorkflowLibraryPage />);
+      if (view === 'grid')
+        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      const link = screen.getByRole('link', {
+        name: 'Open Scheduled workflow',
+      });
+      const scheduleSwitch = screen.getByRole('switch', {
+        name: 'Disable schedule for Scheduled workflow',
+      });
+      expect(link).toHaveAttribute(
+        'href',
+        '/acme/brand/automation/workflows/workflow-1',
+      );
+      expect(scheduleSwitch.closest('a')).toBeNull();
+      fireEvent.click(scheduleSwitch);
+      expect(mocks.handleToggleSchedule).toHaveBeenCalledWith(
+        'workflow-1',
+        false,
+      );
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: 'Select Scheduled workflow' }),
+      );
+      expect(mocks.toggleSelected).toHaveBeenCalledWith('workflow-1');
+      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+      expect(mocks.handleDuplicate).toHaveBeenCalledWith('workflow-1');
+      fireEvent.click(screen.getByRole('button', { name: 'Add to favorites' }));
+      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'workflow-1' }),
+      );
+      expect(screen.queryByText('Scheduled workflow preview') !== null).toBe(
+        view === 'grid',
+      );
+    },
+  );
+
+  it('defaults to rows and shows favorites, team usage, recent, then all', () => {
+    const workflow = mocks.workflows[0];
+    mocks.workflows = Array.from({ length: 7 }, (_, index) => ({
+      ...workflow,
+      id: `workflow-${index + 1}`,
+      label: `Workflow ${index + 1}`,
+      updatedAt: `2026-07-0${index + 1}T00:00:00.000Z`,
+    }));
+    mocks.favorites = [mocks.workflows[6]];
+    mocks.favoriteIds = ['workflow-7'];
+    mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
     render(<WorkflowLibraryPage />);
+    expect(screen.queryByTestId('workflow-library-card')).toBeNull();
+    expect(
+      screen
+        .getAllByRole('heading', { level: 2 })
+        .map((node) => node.textContent)
+        .filter(Boolean),
+    ).toEqual([
+      'Favorites',
+      'Most used by your team',
+      'Recent',
+      'All workflows',
+    ]);
+    expect(
+      within(screen.getByTestId('workflow-section-recent')).queryByText(
+        'Workflow 7',
+      ),
+    ).toBeNull();
+    expect(
+      within(screen.getByTestId('workflow-section-most-used')).getByText(
+        '23 runs',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('workflow-section-most-used')).queryByRole(
+        'switch',
+      ),
+    ).toBeNull();
+    expect(
+      within(screen.getByTestId('workflow-section-favorites')).getByRole(
+        'button',
+        { name: 'Remove from favorites' },
+      ),
+    ).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
-      'href',
-      '/acme/brand/automation/workflows/templates',
+  it.each(['list', 'grid'])(
+    'only permits removing existing favorites from read-only team rows in %s',
+    (view) => {
+      mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
+      const { rerender } = render(<WorkflowLibraryPage />);
+      if (view === 'grid')
+        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      const team = within(screen.getByTestId('workflow-section-most-used'));
+      expect(
+        team.queryByRole('button', { name: 'Add to favorites' }),
+      ).toBeNull();
+      mocks.favoriteIds = ['workflow-1'];
+      rerender(<WorkflowLibraryPage />);
+      fireEvent.click(
+        team.getByRole('button', { name: 'Remove from favorites' }),
+      );
+      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'workflow-1' }),
+      );
+      expect(team.queryByRole('button', { name: 'Duplicate' })).toBeNull();
+    },
+  );
+
+  it('keeps the library usable when Favorites fails', () => {
+    mocks.favoriteError = true;
+    render(<WorkflowLibraryPage />);
+    expect(
+      within(screen.getByTestId('workflow-section-favorites')).getByRole(
+        'alert',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('workflow-section-all')).getByRole('link', {
+        name: 'Open Scheduled workflow',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows bulk commands for selected rows across views', () => {
+    mocks.selectedIds = new Set(['workflow-1']);
+    render(<WorkflowLibraryPage />);
+    expect(screen.getByRole('checkbox')).toHaveAttribute(
+      'aria-checked',
+      'true',
     );
-    for (const link of screen.getAllByRole('link', {
-      name: 'New Workflow',
-    })) {
-      expect(link.querySelector('button')).toBeNull();
-    }
-
-    const cardLink = screen.getByRole('link', {
-      name: 'Open Scheduled workflow',
-    });
-    const scheduleSwitch = screen.getByRole('switch', {
-      name: 'Disable schedule for Scheduled workflow',
-    });
-    const actions = screen.getByRole('button', { name: 'Workflow actions' });
-
-    expect(cardLink).toHaveAttribute(
-      'href',
-      '/acme/brand/automation/workflows/workflow-1',
+    fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+    expect(screen.getByRole('checkbox')).toHaveAttribute(
+      'aria-checked',
+      'true',
     );
-    expect(cardLink).toHaveClass(
-      'absolute',
-      'inset-0',
-      'z-10',
-      'focus-visible:ring-2',
-      'focus-visible:ring-ring',
-    );
-    expect(actions.parentElement).toHaveClass('relative', 'z-20');
-    expect(scheduleSwitch.closest('a')).toBeNull();
-    expect(actions.closest('a')).toBeNull();
-    expect(cardLink.closest('article')).toBe(scheduleSwitch.closest('article'));
-    expect(cardLink.closest('article')).toBe(actions.closest('article'));
-
-    fireEvent.click(scheduleSwitch);
-    expect(mocks.handleToggleSchedule).toHaveBeenCalledWith(
-      'workflow-1',
-      false,
-    );
-
-    fireEvent.click(actions);
-    expect(mocks.handleDuplicate).toHaveBeenCalledWith('workflow-1');
+    fireEvent.click(screen.getByRole('button', { name: 'Disable schedules' }));
+    expect(mocks.handleDisableSelected).toHaveBeenCalledOnce();
   });
 
   it('does not label hosted SaaS workflows as local or synced', () => {

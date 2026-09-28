@@ -194,6 +194,32 @@ export function rethrowUiActionError(error: unknown): never {
   throw error;
 }
 
+const UI_ACTION_FAILURE_FALLBACK = 'The action failed before it finished.';
+
+/** The error `rethrowUiActionError` maps `error` to, returned, not thrown. */
+export function sanitizeUiActionError(error: unknown): unknown {
+  try {
+    rethrowUiActionError(error);
+  } catch (sanitized: unknown) {
+    return sanitized;
+  }
+}
+
+/**
+ * What a client may be told about a failed ui-action run: the message of an
+ * HTTP exception the action raised on purpose (after `rethrowUiActionError`
+ * mapped provider failures), never the text of an unexpected error.
+ */
+export function describeUiActionFailure(error: unknown): string {
+  const sanitized = sanitizeUiActionError(error);
+  if (sanitized instanceof HttpException) {
+    return (
+      readHttpExceptionMessage(sanitized)?.trim() || UI_ACTION_FAILURE_FALLBACK
+    );
+  }
+  return UI_ACTION_FAILURE_FALLBACK;
+}
+
 function readHttpExceptionMessage(error: HttpException): string | undefined {
   const response = error.getResponse();
   if (typeof response === 'string') {

@@ -21,6 +21,9 @@ describe('ClipReferenceFrameExtractionService', () => {
   const logger = {
     warn: vi.fn(),
   };
+  const s3Service = {
+    downloadFile: vi.fn().mockResolvedValue(undefined),
+  };
 
   let service: ClipReferenceFrameExtractionService;
 
@@ -40,6 +43,7 @@ describe('ClipReferenceFrameExtractionService', () => {
       uploadService as never,
       ytDlpService as never,
       logger as never,
+      s3Service as never,
     );
   });
 
@@ -121,6 +125,40 @@ describe('ClipReferenceFrameExtractionService', () => {
     });
     expect(result.diagnostics[0]?.code).toBe('clip_reference_invalid_source');
     expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+  });
+
+  it('reads a stored source by its storage key instead of fetching a URL', async () => {
+    const result = await service.extract({
+      organizationId: 'org-123',
+      projectId: 'project-123',
+      sourceStorageKey: 'ingredients/videos/library-video-1',
+      sourceUrl: 'https://cdn.genfeed.ai/ingredients/videos/library-video-1',
+      timestamps: [5, 15],
+    });
+
+    expect(result.status).toBe('ready');
+    expect(result.candidates).toHaveLength(2);
+    expect(s3Service.downloadFile).toHaveBeenCalledWith(
+      'ingredients/videos/library-video-1',
+      '/tmp/reference-frames/source.mp4',
+    );
+    expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+  });
+
+  it('reports a stored source that storage refuses as unavailable', async () => {
+    s3Service.downloadFile.mockRejectedValueOnce(new Error('unsafe key'));
+
+    const result = await service.extract({
+      organizationId: 'org-123',
+      projectId: 'project-123',
+      sourceStorageKey: '../other-org/video.mp4',
+      sourceUrl: '',
+      timestamps: [5],
+    });
+
+    expect(result.status).toBe('unavailable');
+    expect(result.diagnostics[0]?.code).toBe('clip_reference_download_failed');
+    expect(ffmpegService.extractFrame).not.toHaveBeenCalled();
   });
 
   it('returns unavailable and cleans up when the source download fails', async () => {

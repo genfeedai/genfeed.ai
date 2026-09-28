@@ -481,13 +481,21 @@
     "allProjects": "All projects",
     "approveHook": "Approve hook",
     "audioOrVideoFile": "Audio or video file",
+    "backToClips": "Back to Clips",
+    "backToLibrary": "Back to Library",
     "backToProjects": "Back to projects",
     "cancel": "Cancel",
     "clipGenerationFailed": "Clip generation failed",
     "clipsReady": "Clips ready",
+    "creatingProject": "Creating project…",
     "cuttingSelectedHighlights": "Cutting {count} selected highlights...",
     "description": "Split long-form videos into clips. Open a source to review every generated clip.",
     "doneClipCount": "{count, plural, one {Done — # clip generated} other {Done — # clips generated}}",
+    "draftBadge": "Draft",
+    "draftRepickFile": "Choose {name} again to continue. Drafts keep the filename, not the file.",
+    "draftSaveFailed": "Draft not saved. Your changes are still on this page.",
+    "draftSaved": "Draft saved",
+    "draftSaving": "Saving draft…",
     "edit": "Edit",
     "fileSizeMegabytes": "{name} · {size} MB",
     "generatingAvatarClips": "Generating {count} avatar clips...",
@@ -507,11 +515,16 @@
     "maxClips": "Max Clips",
     "mediaReadinessFailed": "This clip did not pass media readiness checks.",
     "minViralityScore": "Min Virality Score",
+    "newProject": "New project",
+    "noProjectsDescription": "Start from a YouTube link, an uploaded file, or a video in Library.",
+    "noProjectsYet": "No clip projects yet",
     "pipelineFailed": "Pipeline failed. Check logs for details.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
     "processingRawCuts": "Processing source video and creating raw cuts...",
+    "projectCreateFailed": "The clip project could not be created.",
+    "projectNotStarted": "Clips could not start",
     "publish": "Publish",
     "regeneratingHookClip": "Regenerating hook clip",
     "rejectRun": "Reject run",
@@ -536,7 +549,19 @@
     "uploadProgressAria": "Upload {progress}% complete",
     "uploadingSource": "Uploading source… {progress}%",
     "youtubeUrl": "YouTube URL",
-    "youtubeUrlPlaceholder": "https://www.youtube.com/watch?v=..."
+    "youtubeUrlPlaceholder": "https://www.youtube.com/watch?v=...",
+    "recent": "Recent",
+    "open": "Open",
+    "projectActions": "Actions for {name}",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameTitle": "Rename project",
+    "renameDescription": "Choose a name for this clip project.",
+    "projectName": "Project name",
+    "save": "Save",
+    "updateFailed": "Could not update the project. Try again.",
+    "deleteFailed": "Could not delete the project. Try again.",
+    "clipsCount": "{count, plural, one {# clip} other {# clips}}"
   },
   "studioBatch": {
     "emptyExecutions": "No recent batch executions yet.",
@@ -545,7 +570,43 @@
     "processedProgress": "{completed} / {total} processed",
     "recentExecutions": "Recent executions",
     "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
-    "title": "Batch Workflow Runner"
+    "title": "Batch Workflow Runner",
+    "detail": {
+      "backToSetup": "Back to batch setup",
+      "clearSelection": "Clear selection",
+      "completedCount": "Completed: {count}",
+      "download": "Download",
+      "downloadAll": "Download all",
+      "downloadSelected": "Download selected",
+      "failedCount": "Failed: {count}",
+      "itemsProcessed": "{processed} / {total} items processed",
+      "missingOutputMetadata": "Output metadata is unavailable for this completed item.",
+      "noOutputMetadata": "This batch finished without persisted output metadata. Download and publish actions are available when child executions expose output summaries.",
+      "noPreview": "No persisted output preview",
+      "openInLibrary": "Open in library",
+      "outputAlt": "Output {id}",
+      "outputCategory": "{category} output",
+      "outputs": "Outputs",
+      "outputsReady": "{count, plural, one {# output ready} other {# outputs ready}}",
+      "outputsReadySelected": "{count, plural, one {# output ready} other {# outputs ready}}, {selected} selected",
+      "previewUnavailable": "Preview unavailable for this output type",
+      "publish": "Publish",
+      "publishAll": "Publish all",
+      "publishSelected": "Publish selected",
+      "remainingCount": "Remaining: {count}",
+      "select": "Select",
+      "selectAll": "Select all",
+      "selectOutput": "Select output {id}",
+      "started": "Started:",
+      "title": "Batch Results",
+      "unknownCategory": "unknown"
+    }
+  },
+  "studioStoryboard": {
+    "autoMerge": {
+      "description": "The finished transitions are merged into one video with these settings.",
+      "label": "Auto-merge"
+    }
   },
   "studioEditorLock": {
     "conflictDescription": "It was generated from an approved composition template, so your recent changes were not saved. Duplicate it to edit a copy.",
@@ -593,6 +654,13 @@
       "outputPreview": "Completed original captioned ad"
     },
     "description": "One prompt bar for every asset type, enriched with your brand.",
+    "draft": {
+      "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",
+      "saveFailed": "Draft not saved. Retrying…",
+      "saveRejected": "Draft could not be saved.",
+      "saved": "Draft saved",
+      "saving": "Saving draft…"
+    },
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
@@ -654,6 +722,13 @@
     "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
+    "resizeFailed": "Failed to resize video",
+    "resizeFormats": {
+      "landscape": "landscape",
+      "portrait": "portrait",
+      "square": "square"
+    },
+    "resizeStarted": "Resizing to {format}. The result appears here when it is ready.",
     "runOutputs": "{count} outputs",
     "savedLooks": {
       "description": "Shared with everyone working in this brand.",
@@ -663,6 +738,8 @@
     },
     "seedanceReferenceConflict": "Seedance uses frames or a video reference, not both",
     "selectGenerationAria": "Inspect {type} generation: {prompt}",
+    "sourceAsset": "Source",
+    "sourceAssetAria": "Show the source of this {type}",
     "startFrame": "Start Frame",
     "startFrameRequired": "Start Frame required",
     "undo": "Undo",
@@ -699,7 +776,8 @@
     },
     "title": "Generate",
     "viewGrid": "Grid",
-    "viewList": "List"
+    "viewList": "List",
+    "makeClips": "Make clips"
   },
   "warmupAccounts": {
     "invitation": {
@@ -1094,7 +1172,20 @@
         "grid": "Grid",
         "list": "List"
       },
-      "actions": "Actions"
+      "actions": "Actions",
+      "collection": {
+        "all": "All",
+        "needsYou": "Needs you",
+        "open": "Open",
+        "retry": "Retry",
+        "retryFailed": "Could not retry this post. Please try again.",
+        "evaluate": "Evaluate",
+        "evaluationScore": "Evaluation: {score}",
+        "openTarget": "Open {platform} post",
+        "variations": "Remix {platform} post",
+        "setStatus": "Set status to {status}",
+        "statusFailed": "Could not update the post status."
+      }
     },
     "grid": {
       "emptyDescription": "Connect an account in Settings to see per-account lanes.",
@@ -1663,6 +1754,13 @@
     "assetDeepLink": {
       "opening": "Opening your asset…",
       "unavailable": "This asset is unavailable in this brand, or you no longer have access to it."
+    },
+    "videoDetail": {
+      "availableVersions": "Available Versions:",
+      "editInStudio": "Edit in Studio",
+      "makeClips": "Make clips",
+      "moreVersions": "+{count} more",
+      "viewMoreVersions": "View more versions"
     }
   },
   "onboarding": {
@@ -2196,9 +2294,73 @@
       }
     },
     "templates": {
+      "actions": {
+        "install": "Install",
+        "installing": "Installing…",
+        "tryAgain": "Try again",
+        "useTemplate": "Use template",
+        "viewDetails": "View details"
+      },
+      "cadences": {
+        "dailyEvening": "Every day at 6:00 PM",
+        "dailyMorning": "Every day at 9:00 AM",
+        "dailyNoon": "Every day at noon",
+        "mondaysMorning": "Mondays at 9:00 AM",
+        "monthlyFirst": "Monthly on the 1st at 9:00 AM",
+        "twiceDaily": "Twice daily (9:00 AM and 6:00 PM)",
+        "weekdaysMorning": "Weekdays at 9:00 AM"
+      },
+      "categories": {
+        "adAutomation": "Ads",
+        "ads": "Ads",
+        "agents": "Agents",
+        "all": "All categories",
+        "analytics": "Analytics",
+        "automation": "Automation",
+        "batch": "Batch",
+        "campaigns": "Campaigns",
+        "content": "Content",
+        "editing": "Editing",
+        "entertainment": "Entertainment",
+        "generation": "Generation",
+        "integration": "Integration",
+        "launch": "Launch",
+        "library": "Library",
+        "product": "Product",
+        "realEstate": "Real Estate",
+        "routines": "Routines",
+        "social": "Social Media",
+        "system": "System",
+        "trends": "Trends",
+        "video": "Video"
+      },
       "category": "Category",
+      "clearFilters": "Clear filters",
+      "emptyCatalog": "No workflow templates are available yet.",
+      "errors": {
+        "bootstrap": "Failed to install workflow template",
+        "install": "Failed to install system workflow",
+        "load": "Templates could not be loaded.",
+        "loadCatalog": "Official workflows could not be loaded.",
+        "loadTemplates": "Starter templates could not be loaded."
+      },
+      "noMatches": "No workflows match these filters.",
+      "retry": "Retry",
       "schedule": "Schedule",
-      "source": "Source"
+      "scheduled": "Scheduled",
+      "searchPlaceholder": "Search templates...",
+      "sections": {
+        "all": "All templates",
+        "browseByType": "Browse by type",
+        "featured": "Featured"
+      },
+      "source": "Source",
+      "sources": {
+        "all": "All sources",
+        "available": "Available",
+        "installed": "Installed"
+      },
+      "templateCount": "{count, plural, one {# template} other {# templates}}"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",
@@ -3043,6 +3205,75 @@
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
     }
   },
+  "adminFlags": {
+    "modules": {
+      "title": "Modules",
+      "description": "Switch whole product modules on or off for every organization. Off hides the module from the app rail and its pages, and its API answers 404. Superadmins keep access for inspection.",
+      "flags": {
+        "agent": {
+          "label": "Agent",
+          "description": "The full-page agent conversation, its threads, runs and memories."
+        },
+        "studio": {
+          "label": "Studio",
+          "description": "Generation, storyboards, clips, batches and the timeline editor."
+        },
+        "library": {
+          "label": "Library",
+          "description": "The Library module in the app rail. Asset storage stays available to every other module."
+        },
+        "publishing": {
+          "label": "Publishing",
+          "description": "Posts, the review queue, schedules and publishing setup."
+        },
+        "messages": {
+          "label": "Messages",
+          "description": "The social inbox, reply campaigns and outreach."
+        },
+        "reply_bot": {
+          "label": "Replies",
+          "description": "Reply-bot configurations and their activity log inside Messages."
+        },
+        "discovery": {
+          "label": "Discovery",
+          "description": "Trends, ad research, saved ads and watchlists."
+        },
+        "analytics": {
+          "label": "Analytics",
+          "description": "Account and content analytics, insights, outliers and performance."
+        },
+        "automation": {
+          "label": "Automation",
+          "description": "Workflows, their runs and templates, and social content sources."
+        }
+      }
+    },
+    "features": {
+      "title": "Features",
+      "description": "Switch individual product features on or off for every organization.",
+      "flags": {
+        "library_canvas": {
+          "label": "Library canvas",
+          "description": "The canvas view in the Library, alongside grid and list."
+        },
+        "low_credits_banner": {
+          "label": "Low-credits banner",
+          "description": "Warn users in the app shell when their credit balance runs low."
+        },
+        "desktop_local_workspace": {
+          "label": "Desktop local workspace",
+          "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+        }
+      }
+    },
+    "status": {
+      "on": "On",
+      "off": "Off"
+    },
+    "loadError": "Failed to load flags",
+    "saveError": "Failed to save the flag",
+    "saved": "{label} switched {state}"
+  },
   "platformSettings": {
     "typedDecisionLabel": "Typed-decision provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",
@@ -3186,5 +3417,132 @@
     "addDescription": "Add a description",
     "copyPublicProfileLink": "Copy public profile link",
     "profile": "Profile"
+  },
+  "adminTemplates": {
+    "title": "Templates",
+    "description": "Create and manage reusable content templates",
+    "catalog": "Content Templates",
+    "loadError": "Failed to load templates",
+    "retry": "Retry",
+    "empty": "No templates yet",
+    "active": "Active",
+    "inactive": "Inactive",
+    "uncategorized": "Uncategorized",
+    "uses": "{count} uses",
+    "variables": "Variables:",
+    "open": "Open template {name}",
+    "details": "View details"
+  },
+  "adminVoices": {
+    "unknown": "Unknown",
+    "featured": "Featured",
+    "notDefault": "Not default selectable",
+    "inactive": "Inactive",
+    "actions": "Actions for {name}",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "enableDefault": "Enable default selection",
+    "disableDefault": "Disable default selection",
+    "feature": "Mark featured",
+    "unfeature": "Remove featured",
+    "loadError": "Failed to load voice catalog",
+    "retry": "Retry",
+    "empty": "No voices found"
+  },
+  "studioEditor": {
+    "allProjects": "All projects",
+    "cancel": "Cancel",
+    "daysAgo": "{count}d ago",
+    "delete": "Delete",
+    "deleteFailed": "Failed to delete project",
+    "editor": "Editor",
+    "emptyDescription": "Start a new video editing project to arrange clips on a timeline, add audio tracks, and apply effects. Your generated videos from the Studio can be imported directly.",
+    "emptyTitle": "Create Your First Project",
+    "hoursAgo": "{count}h ago",
+    "justNow": "Just now",
+    "loadFailed": "Failed to load projects",
+    "loadFailedTitle": "Projects could not be loaded.",
+    "minutesAgo": "{count}m ago",
+    "newProject": "New Project",
+    "open": "Open",
+    "openProject": "Open {name}",
+    "projectActions": "More actions for {name}",
+    "projectName": "Project name",
+    "recent": "Recent",
+    "rename": "Rename",
+    "renameDescription": "Choose a new name for this project.",
+    "renameFailed": "Failed to rename project",
+    "renameTitle": "Rename project",
+    "save": "Save",
+    "startNewProject": "Start New Project",
+    "yourProjects": "Your Projects",
+    "yourProjectsCount": "Your Projects ({count})"
+  },
+  "batchProjects": {
+    "title": "Batch",
+    "new": "New batch",
+    "untitled": "Untitled batch",
+    "open": "Open",
+    "delete": "Delete",
+    "actions": "Actions for {name}",
+    "itemCount": "{count} items",
+    "recent": "Recent",
+    "all": "All batches",
+    "empty": "Create a saved batch from ideas or a workflow.",
+    "more": "Load more",
+    "name": "Batch name",
+    "fromIdeas": "From ideas",
+    "fromWorkflow": "From a workflow",
+    "ideasDisabled": "Idea batches are disabled for this organization.",
+    "workflow": "Workflow",
+    "chooseWorkflow": "Choose a workflow",
+    "noWorkflows": "No saved workflows yet. Create a workflow or start from ideas.",
+    "createWorkflow": "Create a workflow",
+    "create": "Create batch",
+    "loading": "Loading batch…",
+    "loadFailed": "Could not load batches.",
+    "saveFailed": "Could not save the batch. Try again.",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "unsaved": "Changes not saved",
+    "retrySave": "Retry saving",
+    "reviewInbox": "Open review inbox",
+    "readiness": "Complete your brand setup",
+    "image": "Image",
+    "video": "Video",
+    "avatar": "Avatar",
+    "ideaCount": "Number of ideas",
+    "angle": "Creative angle",
+    "generateIdeas": "Generate ideas",
+    "upload": "Add images or videos",
+    "uploadHint": "Wait for uploads to finish before reloading. Uploaded inputs are saved immediately.",
+    "invalidFile": "Choose an image or video file.",
+    "scheduleHint": "Choose destinations and a local publish time for each. An empty time publishes now.",
+    "scheduleFor": "Publish time for {name}",
+    "noAccounts": "Connect a publishing account in brand settings.",
+    "scheduleApproved": "Schedule approved items",
+    "output": "Batch output",
+    "scheduled": "Scheduled",
+    "caption": "Caption",
+    "retryItem": "Retry item",
+    "approve": "Approve",
+    "reject": "Reject",
+    "removeInput": "Remove input",
+    "targetFailed": "Scheduling failed for account {id}. Retry from Schedule.",
+    "inputs": "Inputs",
+    "ideas": "Ideas",
+    "review": "Review",
+    "schedule": "Schedule",
+    "getQuote": "Review generation cost",
+    "startWorkflow": "Start workflow batch",
+    "quote": "Generation quote",
+    "quoteTotal": "{credits} credits for {count} items. Only usable output is charged.",
+    "credits": "credits",
+    "byok": "(your provider key)",
+    "quoteExpiry": "Quote expires {date}",
+    "acceptQuote": "Accept quote and generate",
+    "items": "Items",
+    "scheduleResult": "{scheduled} scheduled; {failed} failed.",
+    "retryLoad": "Retry loading"
   }
 }

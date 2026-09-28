@@ -731,6 +731,7 @@ model User {
   contentVersionPins        ContentVersionPin[]
   publishApprovals          PublishApproval[]
   studioLooks               StudioLook[]
+  studioGenerateDrafts      StudioGenerateDraft[]
   savedAds                  SavedAd[]
   billingAccountMembers     BillingAccountMember[]
   referralCodes             ReferralCode[]
@@ -930,6 +931,7 @@ model Organization {
   contentVersionPins            ContentVersionPin[]
   publishApprovals              PublishApproval[]
   studioLooks                   StudioLook[]
+  studioGenerateDrafts          StudioGenerateDraft[]
 
   @@index([isDefault])
   @@index([category])
@@ -1110,6 +1112,7 @@ model Brand {
   bots                       Bot[]
   livestreamBotSessions      LivestreamBotSession[]
   studioLooks                StudioLook[]
+  studioGenerateDrafts       StudioGenerateDraft[]
   ownedSkills                Skill[]                      @relation("skill_owner_brand")
   receivedSkillGrants        SkillGrant[]                 @relation("skill_grant_recipient_brand")
   skillAssignments           SkillAssignment[]            @relation("skill_assignment_brand")
@@ -1303,6 +1306,31 @@ model StudioLook {
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
   @@map("studio_looks")
+}
+
+/// One autosaved Generate composer per user and brand (#5465). Settings,
+/// reference ids and the Knowledge pick are opaque JSON validated by the API;
+/// referenced ingredients are re-checked against the brand on every read.
+model StudioGenerateDraft {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  type               String
+  prompt             String       @default("")
+  settingsByType     Json         @default("{}")
+  references         Json         @default("[]")
+  attachments        Json         @default("[]")
+  knowledgeSelection Json         @default("{}")
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, userId], map: "studio_generate_drafts_scope_key")
+  @@map("studio_generate_drafts")
 }
 
 /// Durable research-only creative snapshot saved from Discovery → Ads.
@@ -1598,7 +1626,10 @@ model Setting {
   trendNotificationsMinViralScore  Int                        @default(70)
   contentPreferences               String[]                   @default([])
   favoriteModelKeys                String[]                   @default([])
-  isAgentAssetsPanelOpen           Boolean                    @default(false)
+  // #5510 per-user favorite workflows; ids are validated against the
+  // caller's organization on write and pruned of deleted workflows on read.
+  favoriteWorkflowIds              String[]                   @default([])
+  isAgentAssetsPanelOpen          Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
   // #4672 saved default agent mode ('auto' | 'manual' | 'plan') applied to
   // new agent threads; see `AgentThreadMode` in @genfeedai/contracts.
@@ -1734,6 +1765,9 @@ model PlatformSetting {
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)
+  // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
+  // false turns one off; missing keys are on.
+  flags                            Json      @default("{}")
 
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())
@@ -2126,6 +2160,10 @@ model Ingredient {
   groupId               String?
   groupIndex            Int?
   isMergeEnabled        Boolean?
+  // Stitch options captured when a merge-enabled batch starts (#5460).
+  // Active stitch outputs are unique on (organizationId, sourceActionId) via
+  // the partial index `ingredients_org_stitch_source_action_uidx`.
+  mergeSettings         Json?
   promptTemplate        String?
   templateVersion       Int?
   s3Key                 String?
@@ -7051,6 +7089,11 @@ model BatchProject {
   /// Idea inputs (formats, count, angle) and schedule choices (targets,
   /// posting set, timezone). Shape: `IBatchProjectSettings`.
   settings       Json                  @default("{}")
+  /// Bumped by every change that affects cost (inputs, ideas, workflow); an
+  /// accepted quote is bound to the revision it priced.
+  revision       Int                   @default(0)
+  /// Latest credit quote for idea generation. Shape: `IBatchProjectQuote`.
+  quote          Json?
   reviewBatchId  String?
   isDeleted      Boolean               @default(false)
   createdAt      DateTime              @default(now())
@@ -7092,6 +7135,9 @@ model BatchProjectItem {
   scheduledTargets    Json                   @default("[]")
   /// Retry attempts; each attempt dispatches under its own idempotency key.
   retryCount          Int                    @default(0)
+  /// Server-side idea generation: accepted quote line, credit reservation and
+  /// its settlement state. Shape: `IBatchProjectItemDispatch`.
+  dispatch            Json?
   isDeleted           Boolean                @default(false)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt

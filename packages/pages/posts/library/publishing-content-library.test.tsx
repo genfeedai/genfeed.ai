@@ -1,12 +1,26 @@
 import '@testing-library/jest-dom/vitest';
-import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  ArticleCategory,
+  Platform,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   queryData: null as unknown,
+  updateTarget: vi.fn(),
+  retry: vi.fn(),
+  refetch: vi.fn(),
   push: vi.fn(),
   replace: vi.fn(),
   search: '',
@@ -74,7 +88,10 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => async () => ({
+    updateTarget: mocks.updateTarget,
+    retry: mocks.retry,
+  }),
 }));
 
 vi.mock('next-intl', () => ({
@@ -91,7 +108,7 @@ vi.mock('@tanstack/react-query', () => ({
     error: null,
     isFetching: false,
     isLoading: false,
-    refetch: vi.fn(),
+    refetch: mocks.refetch,
   }),
 }));
 
@@ -187,6 +204,130 @@ describe('PublishingContentLibrary', () => {
     expect(
       screen.queryByRole('link', { name: 'Open Founder weekly' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('surfaces failed and imminent posts but excludes later posts from Needs you', () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          ...collections.posts[0],
+          id: 'failed',
+          description: 'Failed post',
+          status: PostStatus.FAILED,
+        },
+        {
+          ...collections.posts[0],
+          id: 'soon',
+          description: 'Soon post',
+          scheduledDate: new Date(Date.now() + 3600000).toISOString(),
+        },
+        {
+          ...collections.posts[0],
+          id: 'later',
+          description: 'Later post',
+          scheduledDate: new Date(Date.now() + 172800000).toISOString(),
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    const attention = within(screen.getByRole('region', { name: 'needsYou' }));
+    expect(
+      attention.getByRole('link', { name: 'Open Failed post' }),
+    ).toBeVisible();
+    expect(attention.getByRole('button', { name: 'retry' })).toBeVisible();
+    expect(
+      attention.getByRole('link', { name: 'Open Soon post' }),
+    ).toBeVisible();
+    expect(
+      attention.queryByRole('link', { name: 'Open Later post' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retries eligible failed targets and skips readiness-blocked channels', async () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          id: 'release-retry',
+          title: 'Retry release',
+          createdAt: '2026-09-28T12:00:00Z',
+          status: 'failed',
+          targets: [
+            {
+              id: 'blocked',
+              platform: Platform.INSTAGRAM,
+              executionState: TargetExecutionState.FAILED,
+              readiness: { canSchedule: false },
+            },
+            {
+              id: 'eligible',
+              platform: Platform.TWITTER,
+              executionState: TargetExecutionState.FAILED,
+            },
+          ],
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    const section = within(screen.getByRole('region', { name: 'needsYou' }));
+    fireEvent.click(section.getByRole('button', { name: 'retry' }));
+    await waitFor(() =>
+      expect(mocks.updateTarget).toHaveBeenCalledWith(
+        'release-retry',
+        'eligible',
+        { executionState: TargetExecutionState.SCHEDULED },
+      ),
+    );
+    expect(mocks.updateTarget).not.toHaveBeenCalledWith(
+      'release-retry',
+      'blocked',
+      expect.anything(),
+    );
+  });
+
+  it('uses a target schedule even when the release has no group schedule', () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [],
+      releases: [
+        {
+          id: 'release-soon',
+          title: 'Target schedule',
+          createdAt: '2026-09-28T12:00:00Z',
+          status: 'draft',
+          scheduledAt: null,
+          targets: [
+            {
+              id: 'target-soon',
+              platform: Platform.INSTAGRAM,
+              executionState: TargetExecutionState.SCHEDULED,
+              scheduledAt: new Date(Date.now() + 3600000).toISOString(),
+            },
+          ],
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    expect(
+      within(screen.getByRole('region', { name: 'needsYou' })).getByRole(
+        'link',
+        { name: 'Open Target schedule' },
+      ),
+    ).toBeVisible();
+  });
+
+  it('keeps board status columns and card actions available', () => {
+    mocks.search = 'view=board';
+    render(<PublishingContentLibrary />);
+    expect(screen.getByRole('region', { name: 'Scheduled' })).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Open Social launch copy' }),
+    ).toBeVisible();
   });
 
   it('retains the view selector around calendar content', () => {

@@ -228,6 +228,14 @@ describe('deployment axes', () => {
       expect(hasAgentFirstOnboarding()).toBe(expected);
     },
   );
+
+  it('takes the classic wizard when the Admin agent module is off (#5468)', () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+
+    expect(hasAgentFirstOnboarding(true)).toBe(true);
+    expect(hasAgentFirstOnboarding(false)).toBe(false);
+  });
 });
 
 describe('getDeploymentFromReader', () => {

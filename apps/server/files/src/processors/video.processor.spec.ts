@@ -15,6 +15,7 @@ import type { Mock } from 'vitest';
 vi.mock('fs', () => ({
   existsSync: vi.fn().mockReturnValue(true),
   mkdirSync: vi.fn(),
+  statSync: vi.fn().mockReturnValue({ size: 4096 }),
   writeFileSync: vi.fn(),
 }));
 
@@ -83,6 +84,9 @@ class MockS3Service {
   downloadFile = vi.fn().mockResolvedValue(undefined);
   downloadFromUrl = vi.fn().mockResolvedValue(undefined);
   generateS3Key = vi.fn((type: string, id: string) => `${type}/${id}.mp4`);
+  generateRunScopedKey = vi.fn(
+    (scope: string, keyPath: string) => `${scope}/${keyPath}`,
+  );
   getPublicUrl = vi.fn((key: string) => `https://s3.amazonaws.com/${key}`);
 }
 
@@ -711,6 +715,57 @@ describe('VideoProcessor', () => {
       );
     });
 
+    it('reports the size of the captioned file it uploaded', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
+      });
+
+      const result = await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(result.size).toBe(4096);
+    });
+
+    it('mutes the captioned output when asked', async () => {
+      const data = createMockJobData({
+        params: {
+          captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello',
+          isMuteVideoAudio: true,
+        },
+      });
+
+      await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(ffmpegService.addCaptions).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp4'),
+        expect.stringContaining('captions.srt'),
+        expect.any(Function),
+        { muteVideoAudio: true },
+      );
+    });
+
+    it('only strips audio when muting without captions', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '', isMuteVideoAudio: true },
+      });
+
+      await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(ffmpegService.addCaptions).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp4'),
+        undefined,
+        expect.any(Function),
+        { muteVideoAudio: true },
+      );
+    });
+
     it('should handle caption errors', async () => {
       const data = createMockJobData({ params: { captionContent: '' } });
       const job = createMockJob(
@@ -1280,6 +1335,90 @@ describe('VideoProcessor', () => {
         }),
       );
       expect(s3Service.downloadFromUrl).not.toHaveBeenCalled();
+    });
+
+    it('stores a remote non-YouTube source when the caller asks to materialize it', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://media.argil.test/videos/library-video.mp4',
+          materializeSource: true,
+          s3Key: undefined,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.VIDEO_TO_AUDIO, data);
+
+      const result = await processor.handleVideoToAudio(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalledWith(
+        'https://media.argil.test/videos/library-video.mp4',
+        expect.stringContaining('input.mp4'),
+      );
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('input.mp4'),
+        'video/mp4',
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          sourceS3Key: expect.any(String),
+          sourceUrl: expect.stringContaining('https://'),
+        }),
+      );
+      expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('never touches the Library asset key when a materialized run fails', async () => {
+      ffmpegService.convertVideoToAudio.mockRejectedValueOnce(
+        new Error('Audio extraction failed'),
+      );
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://media.argil.test/videos/library-video.mp4',
+            materializeSource: true,
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'Audio extraction failed',
+      );
+
+      const ownedKey = 'videos/test-ingredient-123.mp4';
+      expect(s3Service.uploadFile).not.toHaveBeenCalledWith(
+        ownedKey,
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(s3Service.deleteFile).not.toHaveBeenCalledWith(ownedKey);
+      expect(s3Service.deleteFile).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /^clip-sources\/org-123\/test-ingredient-123\/[\w-]+\/source\.mp4$/,
+        ),
+      );
+    });
+
+    it('does not store a remote source unless asked to', async () => {
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://media.argil.test/videos/library-video.mp4',
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      const result = await processor.handleVideoToAudio(job);
+
+      expect(result.sourceS3Key).toBeUndefined();
+      expect(s3Service.uploadFile).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'video/mp4',
+      );
     });
 
     it('rejects a YouTube source beyond the six-hour policy before upload', async () => {

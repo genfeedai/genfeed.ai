@@ -5,6 +5,7 @@ import type {
   TrendSourceKind,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -32,6 +33,7 @@ const TREND_SOURCE_INTENDED_USE_VALUES = [
 ] as const satisfies readonly TrendSourceIntendedUse[];
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)
 export class TrendsDiscoveryController {

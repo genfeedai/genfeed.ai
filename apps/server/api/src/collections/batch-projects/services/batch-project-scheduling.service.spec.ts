@@ -119,12 +119,20 @@ describe('BatchProjectSchedulingService', () => {
   };
   const postsService = { batchSchedule: vi.fn(), create: vi.fn() };
   const batchGenerationService = { linkDestinationPosts: vi.fn() };
+  const reviewLocks = {
+    assertActive: vi.fn(),
+    run: vi.fn(
+      async (_ids: string[], _org: string, operation: () => Promise<unknown>) =>
+        operation(),
+    ),
+  };
   const service = new BatchProjectSchedulingService(
     prisma as never,
     logger as never,
     reconcileService as never,
     postsService as never,
     batchGenerationService as never,
+    reviewLocks as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -276,6 +284,59 @@ describe('BatchProjectSchedulingService', () => {
       );
       const [secondItems] = postsService.batchSchedule.mock.calls[1];
       expect(secondItems[0].ingredientIds).toEqual(['swapped-1']);
+    });
+
+    it('never retargets a draft review post already aimed at another account', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [
+            {
+              ...reviewPost,
+              credentialId: 'credential-elsewhere',
+              targetExecutionState: TargetExecutionState.DRAFT,
+            },
+          ],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      const [items] = postsService.batchSchedule.mock.calls[0];
+      expect(items.map((item: { postId: string }) => item.postId)).toEqual([
+        'clone-post-1',
+      ]);
+    });
+
+    it('reuses a draft review post already aimed at the same account', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [
+            {
+              ...reviewPost,
+              credentialId: 'credential-tiktok',
+              targetExecutionState: TargetExecutionState.DRAFT,
+            },
+          ],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(postsService.create).not.toHaveBeenCalled();
+      const [items] = postsService.batchSchedule.mock.calls[0];
+      expect(items[0].postId).toBe('review-post-1');
     });
 
     it('never retargets a review draft already scheduled outside the project', async () => {
@@ -597,6 +658,37 @@ describe('BatchProjectSchedulingService', () => {
         ['clone-post-1', 'credential-tiktok'],
         ['review-post-1', 'credential-instagram'],
       ]);
+    });
+
+    it('reads canonical approvals only after acquiring the common review lock', async () => {
+      reviewLocks.run.mockImplementationOnce(async (_ids, _org, operation) => {
+        expect(prisma.batchItem.findMany).not.toHaveBeenCalled();
+        prisma.batchItem.findMany.mockResolvedValue([
+          {
+            id: 'review-item-1',
+            reviewDecision: 'REJECTED',
+            status: 'SKIPPED',
+          },
+        ]);
+        return operation();
+      });
+      await expect(
+        service.schedule(
+          'project-1',
+          {
+            targets: [
+              { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            ],
+          },
+          scope,
+        ),
+      ).rejects.toThrow('Approve at least one item');
+      expect(reviewLocks.run).toHaveBeenCalledWith(
+        expect.arrayContaining(['review-batch-1']),
+        'org-1',
+        expect.any(Function),
+      );
+      expect(postsService.batchSchedule).not.toHaveBeenCalled();
     });
 
     it('refuses an item the review inbox rejected after Batch approved it', async () => {

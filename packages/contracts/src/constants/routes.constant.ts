@@ -11,6 +11,10 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
+    FLAGS: {
+      FEATURES: '/admin/flags/features',
+      MODULES: '/admin/flags/modules',
+    },
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
       CREDIT_USAGE: '/admin/administration/credit-usage',
@@ -341,12 +345,11 @@ export const APP_ROUTES = {
    */
   STUDIO: {
     BATCH: '/studio/batch',
-    BATCH_HISTORY: '/studio/batch/history',
     BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',
+    CLIPS_NEW: '/studio/clips/new',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',
-    FASTLANE: '/studio/fastlane',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.

@@ -69,6 +69,51 @@ export interface IBatchProjectScheduledTarget {
   scheduledAt?: string;
 }
 
+/** How one quote line is paid: platform credits or the org's own key. */
+export type BatchProjectBillingMode = 'platform' | 'byok';
+
+/** One priced idea generation in a quote. */
+export interface IBatchProjectQuoteLine {
+  itemId: string;
+  /** `batch-project-item:<id>:dispatch:<attempt>`; the reservation key. */
+  key: string;
+  attempt: number;
+  format: FastlaneFormat;
+  model: string;
+  /** Platform credits; 0 when billed to the org's own key. */
+  credits: number;
+  billingMode: BatchProjectBillingMode;
+}
+
+/**
+ * Credit quote for generating idea items. Starting (or retrying) requires
+ * accepting a current quote bound to the project revision it priced.
+ */
+export interface IBatchProjectQuote {
+  id: string;
+  revision: number;
+  items: IBatchProjectQuoteLine[];
+  total: number;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt?: string;
+}
+
+/** Server-side generation of one idea item and its credit settlement. */
+export interface IBatchProjectItemDispatch {
+  key: string;
+  attempt: number;
+  model: string;
+  credits: number;
+  billingMode: BatchProjectBillingMode;
+  reservationId?: string;
+  /**
+   * `queued` until credits are reserved right before the provider call;
+   * `settled` once a usable output lands; `released` when it fails.
+   */
+  state: 'queued' | 'reserved' | 'settled' | 'released';
+}
+
 export interface IBatchProjectItem {
   id: string;
   projectId: string;
@@ -94,6 +139,7 @@ export interface IBatchProjectItem {
   scheduledAt?: string | null;
   scheduledTargets: IBatchProjectScheduledTarget[];
   retryCount: number;
+  dispatch?: IBatchProjectItemDispatch | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -110,6 +156,8 @@ export interface IBatchProject {
   workflowId?: string | null;
   settings: IBatchProjectSettings;
   reviewBatchId?: string | null;
+  revision: number;
+  quote?: IBatchProjectQuote | null;
   itemCounts: IBatchProjectItemCounts;
   /** Present on single-project reads; omitted on list reads. */
   items?: IBatchProjectItem[];
@@ -145,10 +193,14 @@ export interface IAddBatchProjectItemsInput {
   inputs?: Array<{ ingredientId: string }>;
 }
 
-/** Browser-side dispatch outcome of one idea item. */
-export interface IDispatchBatchProjectItemInput {
-  ingredientId?: string;
-  error?: string;
+/** Price idea items: every pending item, or the failed ones given. */
+export interface IQuoteBatchProjectInput {
+  itemIds?: string[];
+}
+
+/** Idea batches start and retry against an accepted quote. */
+export interface IAcceptBatchProjectQuoteInput {
+  quoteId?: string;
 }
 
 export type BatchProjectReviewDecision = 'approved' | 'rejected';

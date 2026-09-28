@@ -1,6 +1,7 @@
 import {
   APP_RAIL_FEATURE_FLAGS,
   APP_ROUTES,
+  type AppRailFeatureFlagKey,
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
@@ -57,7 +58,6 @@ export const APP_RAIL_REGISTRY: readonly AppRailItemConfig[] = [
     id: 'workspace',
     label: 'workspace.label',
     route: createScopedAppRoute({ brandPath: '/workspace/overview' }),
-    visibilityFlagKey: APP_RAIL_FEATURE_FLAGS.workspace,
   },
   {
     activePathRoots: ['/studio'],
@@ -267,6 +267,17 @@ export function getActiveAppId(
   }
 
   return activeAppId;
+}
+
+/**
+ * The module flag of the app that owns `currentPath` (#5468): the protected
+ * shell answers 404 on a route whose module an operator switched off.
+ */
+export function getAppRailFlagKeyForPath(
+  currentPath?: string,
+): AppRailFeatureFlagKey | undefined {
+  const appId = getActiveAppId(APP_RAIL_REGISTRY, currentPath);
+  return APP_RAIL_REGISTRY.find((app) => app.id === appId)?.visibilityFlagKey;
 }
 
 export function getAppRailHref(

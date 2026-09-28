@@ -409,6 +409,11 @@ export class FilesController {
         state,
       };
     } catch (error: unknown) {
+      // A missing job is a 404 callers act on (they re-enqueue it); only
+      // unexpected queue failures become a 500.
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to get job status for ${jobId}:`, error);
       throw new HttpException(
         getErrorMessage(error, {

@@ -30,4 +30,5 @@ export const platformSettingAttributes = createEntityAttributes([
   'isAgentTokenStreamingEnabled',
   'systemEventsEnabledAt',
   'isEmailVerificationRequired',
+  'flags',
 ]);

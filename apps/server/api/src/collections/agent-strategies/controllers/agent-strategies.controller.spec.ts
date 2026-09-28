@@ -1,4 +1,11 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
+import {
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  DEFAULT_PLATFORM_FLAGS,
+} from '@genfeedai/contracts/constants';
+import { Reflector } from '@nestjs/core';
 import { AgentStrategiesController } from './agent-strategies.controller';
 
 describe('AgentStrategiesController', () => {
@@ -76,5 +83,39 @@ describe('AgentStrategiesController', () => {
         sort: 'createdAt: -1',
       }),
     ).toThrow('Organization not found');
+  });
+});
+
+describe('AgentStrategiesController module ownership', () => {
+  it('keeps Automation agents available when chat is disabled', async () => {
+    const guard = new FeatureFlagGuard(new Reflector(), {
+      getFeatureSettings: async () => ({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        flags: { ...DEFAULT_PLATFORM_FLAGS, agent: false, automation: true },
+      }),
+    } as never);
+    const context = {
+      getClass: () => AgentStrategiesController,
+      getHandler: () => AgentStrategiesController.prototype.buildFindAllQuery,
+      switchToHttp: () => ({ getRequest: () => ({}) }),
+    };
+    await expect(guard.canActivate(context as never)).resolves.toBe(true);
+  });
+
+  it('blocks the roster when Automation is disabled even with chat enabled', async () => {
+    const guard = new FeatureFlagGuard(new Reflector(), {
+      getFeatureSettings: async () => ({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        flags: { ...DEFAULT_PLATFORM_FLAGS, agent: true, automation: false },
+      }),
+    } as never);
+    const context = {
+      getClass: () => AgentStrategiesController,
+      getHandler: () => AgentStrategiesController.prototype.buildFindAllQuery,
+      switchToHttp: () => ({ getRequest: () => ({}) }),
+    };
+    await expect(guard.canActivate(context as never)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

@@ -1,61 +1,81 @@
-import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  AutoMergeService,
+  autoMergeIdempotencyKey,
+} from '@api/endpoints/webhooks/services/auto-merge.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixture';
 import {
   IngredientCategory,
   IngredientStatus,
-  TransformationCategory,
+  VideoEaseCurve,
+  VideoTransition,
 } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('AutoMergeService', () => {
-  let service: AutoMergeService;
-  let activitiesService: Record<string, ReturnType<typeof vi.fn>>;
-  let ingredientsService: {
-    findAll: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-  };
-  let metadataService: { create: ReturnType<typeof vi.fn> };
-  let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
-  let fileQueueService: {
-    add: ReturnType<typeof vi.fn>;
-    getJobs: ReturnType<typeof vi.fn>;
-  };
-  let websocketService: Record<string, ReturnType<typeof vi.fn>>;
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
+const mergeSettings = {
+  isCaptionsEnabled: false,
+  isMuteVideoAudio: true,
+  transition: VideoTransition.FADE,
+  transitionDuration: 0.8,
+  transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
+};
 
-  const mockObjectId = 'test-object-id';
+function groupClip(
+  id: string,
+  groupIndex: number,
+  overrides: Partial<IngredientDocument> = {},
+): IngredientDocument {
+  return {
+    brandId: 'brand-1',
+    category: IngredientCategory.VIDEO,
+    groupId: 'group-1',
+    groupIndex,
+    id,
+    isMergeEnabled: true,
+    mergeSettings,
+    organizationId: 'org-1',
+    status: IngredientStatus.GENERATED,
+    userId: 'user-1',
+    ...overrides,
+  } as IngredientDocument;
+}
+
+describe('AutoMergeService', () => {
+  let fixture: VideoStitchFixture;
+  let group: IngredientDocument[];
+  let ingredientsService: { findAll: ReturnType<typeof vi.fn> };
+  let websocketService: {
+    publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
+  };
+  let loggerService: Record<
+    'debug' | 'error' | 'log' | 'warn',
+    ReturnType<typeof vi.fn>
+  >;
+  let service: AutoMergeService;
+
+  const trigger = async (ingredient: IngredientDocument) => {
+    service.triggerAutoMergeIfReady(ingredient);
+    await new Promise((resolve) => setImmediate(resolve));
+    await vi.waitFor(() => {
+      expect(ingredientsService.findAll).toHaveBeenCalled();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  };
 
   beforeEach(() => {
-    activitiesService = {
-      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
-      patch: vi.fn(),
-    };
+    fixture = new VideoStitchFixture();
+    group = [
+      groupClip('clip-1', 0),
+      groupClip('clip-2', 1),
+      groupClip('clip-3', 2),
+    ];
+    for (const clip of group) fixture.addClip({ id: clip.id });
     ingredientsService = {
-      create: vi.fn().mockResolvedValue({ id: mockObjectId }),
-      findAll: vi.fn(),
-      findOne: vi.fn(),
-      patch: vi.fn(),
-    };
-    metadataService = {
-      create: vi.fn().mockResolvedValue({ id: 'meta-1' }),
-      patch: vi.fn(),
-    };
-    filesClientService = {
-      uploadToS3: vi.fn(),
-    };
-    fileQueueService = {
-      processVideo: vi.fn(),
-      waitForJob: vi.fn(),
-    };
-    websocketService = {
-      publishBackgroundTaskUpdate: vi.fn(),
-      publishMediaFailed: vi.fn(),
-      publishVideoComplete: vi.fn(),
+      findAll: vi.fn(async () => ({ docs: group })),
     };
     loggerService = {
       debug: vi.fn(),
@@ -63,117 +83,147 @@ describe('AutoMergeService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-
+    websocketService = { publishBackgroundTaskUpdate: vi.fn() };
     service = new AutoMergeService(
-      activitiesService,
-      ingredientsService,
-      metadataService,
-      filesClientService,
-      fileQueueService,
-      websocketService,
-      loggerService,
+      ingredientsService as unknown as IngredientsService,
+      loggerService as unknown as LoggerService,
+      fixture.service,
+      websocketService as unknown as NotificationsPublisherService,
     );
   });
 
-  describe('triggerAutoMergeIfReady', () => {
-    it('should skip non-video ingredients', () => {
-      const ingredient = {
-        id: mockObjectId,
-        category: IngredientCategory.IMAGE,
-      } as unknown as IngredientEntity;
+  it('stitches a completed group with the transition captured at batch start', async () => {
+    await trigger(group[2] as IngredientDocument);
 
-      // triggerAutoMergeIfReady runs in background via setImmediate
-      // We test the async implementation directly
-      service.triggerAutoMergeIfReady(ingredient);
-
-      // Since it's fire-and-forget, we just verify no crash
-      expect(loggerService.error).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
+    const [job] = fixture.mergeJobs();
+    expect(job?.params).toMatchObject({
+      isMuteVideoAudio: true,
+      sourceIds: ['clip-1', 'clip-2', 'clip-3'],
+      transition: VideoTransition.FADE,
+      transitionDuration: 0.8,
+      transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
     });
+    const [output] = fixture.outputs();
+    expect(output).toMatchObject({
+      generationSource: 'video-stitch:auto_merge',
+      mergeSettings,
+      sourceActionId: autoMergeIdempotencyKey('group-1'),
+    });
+    expect(ingredientsService.findAll).toHaveBeenCalledWith(
+      {
+        orderBy: { groupIndex: 1 },
+        where: {
+          category: 'VIDEO',
+          groupId: 'group-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      },
+      { pagination: false },
+      false,
+    );
+  });
 
-    it('should skip videos without groupId', () => {
-      const ingredient = {
-        id: mockObjectId,
-        category: IngredientCategory.VIDEO,
-      } as unknown as IngredientEntity;
+  it('merges with a plain cut when the batch captured no settings', async () => {
+    group = group.map((clip) => ({ ...clip, mergeSettings: null }));
+    await trigger(group[0] as IngredientDocument);
 
-      service.triggerAutoMergeIfReady(ingredient);
-
-      expect(loggerService.error).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
+    expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+      transition: VideoTransition.NONE,
     });
   });
 
-  describe('internal merge logic (via triggerAutoMergeIfReady)', () => {
-    it('should skip when not all videos are completed', async () => {
-      const groupId = 'group-1';
-      const videos = [
-        { id: 'test-object-id', status: IngredientStatus.GENERATED },
-        { id: 'test-object-id', status: IngredientStatus.PROCESSING },
-      ];
+  it('completes the merged output through the stitch service', async () => {
+    await trigger(group[0] as IngredientDocument);
+    await vi.waitFor(() => expect(fixture.outputs()).toHaveLength(1));
+    const [output] = fixture.outputs();
+    if (!output) throw new Error('missing output');
+    fixture.completeJob(
+      `stitch-${output.id}`,
+      `ingredients/videos/${output.id}`,
+    );
 
-      ingredientsService.findAll.mockResolvedValue({ docs: videos });
+    await vi.waitFor(() =>
+      expect(fixture.row(output.id).status).toBe(IngredientStatus.GENERATED),
+    );
+    expect(fixture.eventsNamed('video.complete')).toHaveLength(1);
+  });
 
-      // Access private method for testing
-      const ingredient = {
-        id: mockObjectId,
-        category: IngredientCategory.VIDEO,
-        groupId,
-        isMergeEnabled: true,
-        user: { id: 'test-object-id' },
-      } as unknown as IngredientEntity;
+  it('never starts a second merge for the same group', async () => {
+    await trigger(group[1] as IngredientDocument);
+    await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
+    await trigger(group[2] as IngredientDocument);
 
-      // Use private method access for testing
-      await service['triggerAutoMergeAsync'](ingredient);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(fixture.outputs()).toHaveLength(1);
+    expect(fixture.mergeJobs()).toHaveLength(1);
+  });
 
-      expect(ingredientsService.create).not.toHaveBeenCalled();
+  it('finalizes a two-frame storyboard whose group holds one clip', async () => {
+    group = [
+      groupClip('clip-1', 0, { mergeSettings: { isCaptionsEnabled: true } }),
+    ];
+    await trigger(group[0] as IngredientDocument);
+
+    await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
+    expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+      sourceIds: ['clip-1'],
     });
+    const [output] = fixture.outputs();
+    if (!output) throw new Error('missing output');
+    fixture.completeJob(
+      `stitch-${output.id}`,
+      `ingredients/videos/${output.id}`,
+    );
+    await vi.waitFor(() =>
+      expect(fixture.row(output.id).status).toBe(IngredientStatus.GENERATED),
+    );
+    expect(fixture.eventsNamed('whisper')).toEqual([[output.id]]);
+  });
 
-    it('should skip when merge already exists', async () => {
-      const groupId = 'group-1';
-      const videos = [
-        { id: 'test-object-id', status: IngredientStatus.GENERATED },
-        { id: 'test-object-id', status: IngredientStatus.GENERATED },
-      ];
+  it('waits until every clip in the group has finished', async () => {
+    group[1] = groupClip('clip-2', 1, { status: IngredientStatus.PROCESSING });
+    await trigger(group[0] as IngredientDocument);
 
-      ingredientsService.findAll.mockResolvedValue({ docs: videos });
-      ingredientsService.findOne.mockResolvedValue({
-        id: 'test-object-id',
-        transformations: [TransformationCategory.MERGED],
-      });
+    expect(fixture.queued).toEqual([]);
+    expect(loggerService.debug).toHaveBeenCalledWith(
+      'AutoMergeService waiting for all videos to complete',
+      { completedCount: 2, groupId: 'group-1', totalCount: 3 },
+    );
+  });
 
-      const ingredient = {
-        id: mockObjectId,
-        category: IngredientCategory.VIDEO,
-        groupId,
-        isMergeEnabled: true,
-        user: { id: 'test-object-id' },
-      } as unknown as IngredientEntity;
+  it('ignores videos outside a merge-enabled group', async () => {
+    service.triggerAutoMergeIfReady(
+      groupClip('clip-1', 0, { isMergeEnabled: false }),
+    );
+    await new Promise((resolve) => setImmediate(resolve));
 
-      await service['triggerAutoMergeAsync'](ingredient);
+    expect(ingredientsService.findAll).not.toHaveBeenCalled();
+    expect(fixture.queued).toEqual([]);
+  });
 
-      expect(metadataService.create).not.toHaveBeenCalled();
-    });
+  it('tells the batch owner when the stitch is refused', async () => {
+    fixture.row('clip-3').isDeleted = true;
+    await trigger(group[0] as IngredientDocument);
 
-    it('should skip when no userId available', async () => {
-      const groupId = 'group-1';
-      const videos = [
-        { id: 'test-object-id', status: IngredientStatus.GENERATED },
-      ];
-
-      ingredientsService.findAll.mockResolvedValue({ docs: videos });
-      ingredientsService.findOne.mockResolvedValue(null);
-
-      const ingredient = {
-        id: mockObjectId,
-        category: IngredientCategory.VIDEO,
-        groupId,
-        isMergeEnabled: true,
-        user: undefined,
-      } as unknown as IngredientEntity;
-
-      await service['triggerAutoMergeAsync'](ingredient);
-
-      expect(loggerService.warn).toHaveBeenCalled();
-      expect(metadataService.create).not.toHaveBeenCalled();
-    });
+    await vi.waitFor(() =>
+      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
+        {
+          error: 'Found 2 of 3 videos ready to merge',
+          label: 'Merge failed',
+          room: getUserRoomName('user-1'),
+          status: 'failed',
+          taskId: 'auto-merge:group-1',
+          userId: 'user-1',
+        },
+      ),
+    );
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'AutoMergeService auto-merge check failed',
+      expect.objectContaining({ groupId: 'group-1' }),
+    );
+    expect(fixture.queued).toEqual([]);
   });
 });

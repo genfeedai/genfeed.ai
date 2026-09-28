@@ -22,8 +22,6 @@ export {
   sanitizeAnalyticsUrl,
 } from './analytics-url';
 export {
-  type AnalyticsFeatureFlagListener,
-  type AnalyticsFeatureFlagValues,
   type AnalyticsUserIdentity,
   captureAnalyticsEvent,
   captureAnalyticsPageview,
@@ -35,6 +33,5 @@ export {
   initAnalytics,
   isAnalyticsEnabled,
   resetAnalytics,
-  subscribeAnalyticsFeatureFlags,
 } from './posthog-client';
 export { createEditorWorkflowRunTracker } from './workflow-run-tracker';

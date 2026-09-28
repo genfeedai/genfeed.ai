@@ -45,7 +45,7 @@ describe('GenerationTemplates', () => {
     expect(avatarNode?.data.config.parameters.aspectRatio).toBe('16:9');
     expect(captionsNode?.data.config.parameters).toMatchObject({
       fontColor: '#FFFFFF',
-      fontSize: 'large',
+      fontSize: 48,
       position: 'bottom',
       style: 'dynamic',
     });

@@ -247,11 +247,13 @@ test.describe('Agent Plan Mode', () => {
     const turnAck = await mockTurnAck(authenticatedPage, threadId);
 
     // `POST .../ui-actions` only acks the enqueued workflow (see
-    // `AgentUiActionAckResponse`) -- it never carries a message. The client
-    // reconciles the eventual assistant reply by polling
-    // `GET .../messages`, so this route (registered after
-    // `mockThreadView`'s, which it supersedes) starts out empty and grows
-    // the post-approval message once the ack fires.
+    // `AgentUiActionAckResponse`) -- it never carries a message. The run it
+    // starts is adopted into the thread stream like a turn, and its reply
+    // arrives as that run's `agent:done`. E2E has no socket double, so the
+    // run completion watchdog resolves it from `GET .../messages` by the
+    // reply's `runId` -- this route (registered after `mockThreadView`'s,
+    // which it supersedes) grows the post-approval message once the ack
+    // fires, the way the real run persists it.
     let postApprovalMessage: Record<string, unknown> | null = null;
 
     await authenticatedPage.route(
@@ -327,11 +329,16 @@ test.describe('Agent Plan Mode', () => {
 
     await agentPage.approvePlanButton.click();
 
+    // The watchdog resolves the adopted run after
+    // `STREAM_COMPLETION_POLL_INTERVAL_MS` (10s). The thread list previews the
+    // same reply, so assert it in the conversation itself.
     await expect(
-      authenticatedPage.getByText(
-        'Executed the approved plan. The toggle, review state, and UI actions are now wired.',
-      ),
-    ).toBeVisible();
+      authenticatedPage
+        .getByTestId('agent-conversation-column')
+        .getByText(
+          'Executed the approved plan. The toggle, review state, and UI actions are now wired.',
+        ),
+    ).toBeVisible({ timeout: 20_000 });
 
     // respondToUiAction sends the thread's brandId/contextVersion alongside
     // the action (see agent-chat-container.ui-actions.ts).
@@ -380,7 +387,13 @@ test.describe('Agent Plan Mode', () => {
                   content:
                     'I drafted a plan and paused here for your approval. Review it, then approve or request changes.',
                   createdAt: proposedPlan.createdAt,
-                  metadata: { proposedPlan, reviewRequired: true },
+                  // Stamped with the turn's execution id, as the server
+                  // persists it; the watchdog matches the run by it.
+                  metadata: {
+                    proposedPlan,
+                    reviewRequired: true,
+                    runId: `exec-${threadId}`,
+                  },
                   role: 'assistant',
                 },
               ],
@@ -441,10 +454,10 @@ test.describe('Agent Plan Mode', () => {
     await mockThreadView(authenticatedPage, threadId, initialPlan);
     await mockTurnAck(authenticatedPage, threadId);
 
-    // `POST .../ui-actions` only acks the enqueued workflow -- the client
-    // reconciles the eventual assistant reply by polling
-    // `GET .../messages`, so this route (registered after
-    // `mockThreadView`'s, which it supersedes) starts out empty and grows
+    // `POST .../ui-actions` only acks the enqueued workflow -- the run's
+    // reply arrives as its `agent:done`, or here, with no socket double,
+    // through the run completion watchdog reading `GET .../messages`. This
+    // route (registered after `mockThreadView`'s, which it supersedes) grows
     // the revised-plan message once the ack fires.
     let postRevisionMessage: Record<string, unknown> | null = null;
 
@@ -522,11 +535,15 @@ test.describe('Agent Plan Mode', () => {
 
     await expect(agentPage.planReviewCard).toContainText(
       'Keep execution paused until explicit approval',
+      { timeout: 20_000 },
     );
+    // The thread list previews the same reply; assert it in the conversation.
     await expect(
-      authenticatedPage.getByText(
-        'I revised the plan and kept execution paused for another review.',
-      ),
+      authenticatedPage
+        .getByTestId('agent-conversation-column')
+        .getByText(
+          'I revised the plan and kept execution paused for another review.',
+        ),
     ).toBeVisible();
     await expect(agentPage.planReviewCard).toContainText('Awaiting approval');
 

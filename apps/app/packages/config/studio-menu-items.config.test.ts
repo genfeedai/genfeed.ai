@@ -8,7 +8,6 @@ describe('STUDIO_MENU_ITEMS', () => {
       'Storyboard',
       'Clips',
       'Batch',
-      'Fastlane',
       'Edit',
     ]);
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
@@ -17,7 +16,6 @@ describe('STUDIO_MENU_ITEMS', () => {
       '/studio/storyboard',
       '/studio/clips',
       '/studio/batch',
-      '/studio/fastlane',
       '/studio/edit',
     ]);
   });
@@ -71,11 +69,7 @@ describe('STUDIO_MENU_ITEMS', () => {
     expect(batch).toMatchObject({
       href: '/studio/batch',
       label: 'Batch',
-      matchPaths: [
-        '/studio/batch',
-        '/studio/batch/new',
-        '/studio/batch/history',
-      ],
+      matchPaths: ['/studio/batch', '/studio/batch/new'],
     });
   });
 });

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -25,6 +26,7 @@ import type { Request } from 'express';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectReferenceFramesController {

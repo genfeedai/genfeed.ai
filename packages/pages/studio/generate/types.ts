@@ -1,5 +1,9 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type { IImage, IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  IImage,
+  IModel,
+  IVideoMergeSettings,
+} from '@genfeedai/contracts/interfaces';
 import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 
 export interface UseStoryboardGenerationParams {
@@ -11,6 +15,8 @@ export interface UseStoryboardGenerationParams {
     skipLoadingState?: boolean,
     overrideBrandId?: string,
   ) => Promise<void>;
+  /** Stitch options the auto-merge applies once every transition finishes. */
+  mergeSettings?: IVideoMergeSettings;
   promptConfig: Partial<Omit<PromptTextareaSchema, 'text'>> & {
     isValid: boolean;
   };
@@ -37,8 +43,12 @@ export interface UseStoryboardGenerationReturn {
 export type {
   StudioGenerateAssetFacts,
   StudioGenerateCapabilities,
+  StudioGenerateDraftPayload,
+  StudioGenerateDraftReference,
+  StudioGenerateDraftSaveStatus,
   StudioGenerateJob,
   StudioGenerateRecipe,
+  StudioGenerateReferenceRole,
   StudioGenerateRun,
   StudioGenerateSettings,
   StudioGenerateType,
