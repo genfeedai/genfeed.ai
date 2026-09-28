@@ -582,6 +582,66 @@ export class WorkflowExecutionsService extends BaseService<
     });
   }
 
+  /**
+   * Durably records the deploy drain's intent to cancel a queued execution
+   * BEFORE its BullMQ job is removed (#5450). If the database is unavailable
+   * right after the removal, `PendingWorkflowExecutionReconcileService` reads
+   * this and finishes the silent cancel later instead of loudly failing a run
+   * that was intentionally drained (which would count as a strategy failure).
+   * Returns whether an intent was recorded; `false` means the execution is
+   * missing or already terminal, so there is nothing left to cancel.
+   */
+  @HandleErrors('request execution cancellation', 'workflow-executions')
+  async requestCancellation(executionId: string): Promise<boolean> {
+    // tenant-scope-ignore: the internal drain records intent by the opaque globally unique execution id and has no request-level tenant boundary
+    const existing = await this.prisma.workflowExecution.findUnique({
+      select: { organizationId: true },
+      where: { id: executionId },
+    });
+    if (!existing) {
+      return false;
+    }
+
+    const recorded = await this.prisma.workflowExecution.updateMany({
+      data: { cancelRequestedAt: new Date() },
+      where: {
+        id: executionId,
+        isDeleted: false,
+        organizationId: existing.organizationId,
+        status: {
+          in: [
+            PrismaWorkflowExecutionStatus.PENDING,
+            PrismaWorkflowExecutionStatus.RUNNING,
+          ],
+        },
+      },
+    });
+    return recorded.count === 1;
+  }
+
+  /** Withdraws an intent recorded by `requestCancellation` (#5450). */
+  @HandleErrors('clear execution cancellation request', 'workflow-executions')
+  async clearCancellationRequest(executionId: string): Promise<void> {
+    // tenant-scope-ignore: the internal drain clears intent by the opaque globally unique execution id and has no request-level tenant boundary
+    const existing = await this.prisma.workflowExecution.findUnique({
+      select: { organizationId: true },
+      where: { id: executionId },
+    });
+    if (!existing) {
+      return;
+    }
+
+    await this.prisma.workflowExecution.updateMany({
+      data: { cancelRequestedAt: null },
+      where: {
+        cancelRequestedAt: { not: null },
+        id: executionId,
+        isDeleted: false,
+        organizationId: existing.organizationId,
+      },
+    });
+  }
+
   @HandleErrors('cancel execution', 'workflow-executions')
   async cancelExecution(
     executionId: string,

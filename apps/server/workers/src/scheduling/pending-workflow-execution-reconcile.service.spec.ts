@@ -7,6 +7,7 @@ interface FakeRow {
   id: string;
   organizationId: string;
   createdAt: Date;
+  cancelRequestedAt?: Date | null;
 }
 
 interface FakeQueryOptions {
@@ -43,10 +44,11 @@ class FakeStaleExecutionFinder {
     return [...this.rows.values()]
       .filter(predicate)
       .sort(tupleCompare)
-      .map(({ id, organizationId, createdAt }) => ({
+      .map(({ id, organizationId, createdAt, cancelRequestedAt }) => ({
         id,
         organizationId,
         createdAt,
+        cancelRequestedAt: cancelRequestedAt ?? null,
       }));
   }
 
@@ -244,6 +246,96 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       expect.stringContaining('failed to reconcile'),
       expect.objectContaining({ executionId: 'execution-3' }),
     );
+  });
+
+  describe('drain cancellation intent (#5450)', () => {
+    it('silently cancels a recent execution whose drain cancellation intent was persisted, instead of failing it', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: new Date(Date.now() - 6 * 60_000),
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-drained',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await service.reconcile();
+
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-drained',
+      );
+      // completeExecution is the loud-failure path: it records the run and
+      // can push a strategy already at 2 failures over the disable threshold.
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('still fails a recent execution with no cancellation intent (#5162 unchanged)', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: null,
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-never-claimed',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await service.reconcile();
+
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledOnce();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+    });
+
+    it('keeps the intent and never fails the run while the database stays down, then clears it once cancellation succeeds', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: new Date(Date.now() - 6 * 60_000),
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-drained-retry',
+          organizationId: 'org-1',
+        },
+      ]);
+      workflowExecutions.cancelExecution.mockRejectedValueOnce(
+        new Error('db unavailable'),
+      );
+
+      await service.reconcile();
+
+      // The row is still PENDING with its intent, so the next lap retries it.
+      expect(staleExecutionFinder.rows.has('execution-drained-retry')).toBe(
+        true,
+      );
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+
+      await service.reconcile();
+
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(2);
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+      expect(staleExecutionFinder.rows.has('execution-drained-retry')).toBe(
+        false,
+      );
+
+      // Idempotent: the row left PENDING, so a further pass does nothing.
+      await service.reconcile();
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(2);
+    });
+
+    it('leaves an intent-marked execution alone when its job is somehow claimable again', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: new Date(Date.now() - 6 * 60_000),
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-drain-race',
+          organizationId: 'org-1',
+        },
+      ]);
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+
+      await service.reconcile();
+
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+    });
   });
 
   describe('ancient (>24h) candidates (#5252 review)', () => {
