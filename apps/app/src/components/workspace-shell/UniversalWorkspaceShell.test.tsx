@@ -166,7 +166,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/review',
+              route: '/publishing/posts?view=calendar',
             },
             arguments: 'post-1',
           })
@@ -1774,7 +1774,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/publishing/review'),
+      expect.stringContaining('view=calendar'),
     );
   });
 
