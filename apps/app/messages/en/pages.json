@@ -1087,7 +1087,34 @@
       "missingTitle": "Content not found"
     },
     "detail": {
+      "header": {
+        "askAgent": "Ask Agent",
+        "delete": "Delete",
+        "edit": "Edit",
+        "expandingToThread": "Expanding…",
+        "expandToThread": "Expand to Thread",
+        "performance": "Performance",
+        "preview": "Preview",
+        "publishing": "Publishing…",
+        "publishNow": "Publish now",
+        "remix": "Remix",
+        "repurpose": "Repurpose",
+        "schedule": "Schedule",
+        "scheduling": "Scheduling…",
+        "threadLengthOption": "{count} tweets",
+        "threadLengthPrompt": "Select thread length",
+        "viewLivePost": "View live post"
+      },
       "loadingSubtitle": "Loading post…",
+      "needsYou": {
+        "failedAction": "Retry publish",
+        "failedDescription": "This post failed to publish.",
+        "overdueAction": "Publish now",
+        "overdueDescription": "The scheduled time has passed.",
+        "pendingReviewAction": "Review",
+        "pendingReviewDescription": "Awaiting review before it can publish.",
+        "title": "Needs you"
+      },
       "notFound": "Post not found",
       "title": "Post detail",
       "tweetFieldLabel": "Post"
@@ -2029,6 +2056,7 @@
     "allSequences": "All sequences",
     "backToSequences": "Back to sequences",
     "columnSequence": "Sequence",
+    "complete": "Complete",
     "createAction": "Create outreach sequence",
     "createDescription": "Set up a DM or growth sequence",
     "createTitle": "Create outreach sequence",
@@ -2040,12 +2068,26 @@
     "maxPerDay": "Max/Day:",
     "maxPerHour": "Max/Hour:",
     "name": "Name:",
+    "needsYou": {
+      "pausedDescription": "This sequence is paused.",
+      "resume": "Resume",
+      "title": "Needs you"
+    },
     "notFoundDescription": "The requested outreach sequence could not be found",
     "notFoundTitle": "Outreach sequence not found",
+    "pause": "Pause",
     "platform": "Platform:",
+    "resume": "Resume",
     "reviewTitle": "Review your outreach sequence",
     "sequenceType": "Sequence type",
+    "start": "Start",
     "statisticsTitle": "Sequence statistics",
+    "statusOptions": {
+      "active": "Active",
+      "completed": "Completed",
+      "draft": "Draft",
+      "paused": "Paused"
+    },
     "timezone": "Timezone:",
     "tone": "Tone:",
     "totalSequences": "Total sequences",

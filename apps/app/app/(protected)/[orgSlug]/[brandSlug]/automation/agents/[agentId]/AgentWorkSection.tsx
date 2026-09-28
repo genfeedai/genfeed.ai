@@ -4,54 +4,16 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IPost } from '@genfeedai/contracts/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import {
-  isCollectionFetchReady,
-  toBrandListParams,
-  useCollectionScope,
-} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
-import { PostsService } from '@services/content/posts.service';
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useAgentDetailPosts } from './use-agent-detail-posts';
 
 export default function AgentWorkSection({ agentId }: AgentDetailPageProps) {
-  const scope = useCollectionScope();
   const { href } = useOrgUrl();
   const detail = useTranslations('common.automation.agentDetail');
-  const getService = useAuthedService((token: string) =>
-    PostsService.getInstance(token),
-  );
-  const {
-    data: posts = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<IPost[]>({
-    queryKey: ['agent-posts', scope.organizationId, scope.brandId, agentId],
-    enabled: isCollectionFetchReady(scope),
-    queryFn: async ({ signal }) =>
-      (await getService()).findAll(
-        {
-          ...toBrandListParams(scope),
-          agentStrategyId: agentId,
-          limit: 50,
-          sort: '-createdAt',
-        },
-        signal,
-      ),
-  });
-
-  useVisiblePolling(
-    () => {
-      void refetch();
-    },
-    { intervalMs: 30_000, isEnabled: isCollectionFetchReady(scope) },
-  );
+  const { posts, isLoading, isError } = useAgentDetailPosts(agentId);
 
   return (
     <section aria-label={detail('contentLabel')} className="space-y-3">

@@ -1,26 +1,27 @@
 'use client';
 
 import {
-  AlertCategory,
   normalizeReviewDecision,
   type PageScope,
   PostRepurposeMode,
-  PostStatus,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
+import PostDetailNeedsYou from '@pages/posts/detail/components/PostDetailNeedsYou';
+import { buildPostDetailFacts } from '@pages/posts/detail/post-detail-facts.helper';
 import { buildPostTargetPreview } from '@pages/posts/detail/post-detail-preview.helpers';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
 import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import TargetPreview from '@ui/previews/TargetPreview';
+import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -332,34 +333,44 @@ export default function PostDetail({
         ? renderContextSidebar?.(sidebar, contextLabel)
         : null}
       <div className={wrapperClassName}>
-        {post?.status === PostStatus.FAILED ? (
-          <Alert type={AlertCategory.ERROR} className="mb-6">
-            <p className="font-semibold">Publication Failed</p>
-            <p>
-              This post failed to publish. You can edit and reschedule it below.
-            </p>
-          </Alert>
-        ) : null}
-
         {post ? (
-          <PostDetailHeader
-            post={post}
-            scope={scope}
-            isPublished={isPublished}
-            hasChildren={hasChildren}
-            viewMode={viewMode}
-            isExpandingToThread={isExpandingToThread}
-            onViewModeChange={setViewMode}
-            onDelete={handleDeletePost}
-            onCreateRemix={
-              isSourcePostVariationPlatform(post.platform)
-                ? handleCreateRemix
-                : undefined
-            }
-            onDuplicate={handleDuplicate}
-            onExpandToThread={handleExpandToThread}
-            onRepurpose={handleRepurpose}
-          />
+          <>
+            <PostDetailHeader
+              post={post}
+              scope={scope}
+              isPublished={isPublished}
+              hasChildren={hasChildren}
+              viewMode={viewMode}
+              isExpandingToThread={isExpandingToThread}
+              onViewModeChange={setViewMode}
+              onDelete={handleDeletePost}
+              onCreateRemix={
+                isSourcePostVariationPlatform(post.platform)
+                  ? handleCreateRemix
+                  : undefined
+              }
+              onDuplicate={handleDuplicate}
+              onExpandToThread={handleExpandToThread}
+              onRepurpose={handleRepurpose}
+              onPublishNow={handlePublishNow}
+              onScheduleSave={handleScheduleSave}
+              isScheduleDirty={isScheduleDirty}
+              isSavingSchedule={isSavingSchedule}
+            />
+
+            <RecordFactLine
+              className="mb-6"
+              facts={buildPostDetailFacts(post, isPublished)}
+            />
+
+            <PostDetailNeedsYou
+              className="mb-6"
+              isPublished={isPublished}
+              onPublishNow={handlePublishNow}
+              onReviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+              post={post}
+            />
+          </>
         ) : (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>

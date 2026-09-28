@@ -139,4 +139,86 @@ describe('OutreachCampaignDetail', () => {
       screen.queryByText('Outreach sequence not found'),
     ).not.toBeInTheDocument();
   });
+
+  it('shows exactly one primary action — Pause — for a running sequence', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'Running sequence',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.ACTIVE,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Resume' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Resume as the primary action for a paused sequence and surfaces Needs you', () => {
+    const handleStartCampaign = vi.fn();
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'Paused sequence',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.PAUSED,
+    });
+    mockUseOutreachCampaignDetail.mockReturnValue({
+      ...mockUseOutreachCampaignDetail(),
+      handleStartCampaign,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Needs you' }),
+    ).toBeInTheDocument();
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+    expect(resumeButtons.length).toBeGreaterThan(0);
+  });
+
+  it('hides Needs you and carries no primary action once the sequence is completed', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'Wrapped up sequence',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.COMPLETED,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Pause' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Start' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Resume' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the known lifecycle facts on one line', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'X replies',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.ACTIVE,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    const factLine = screen.getByTestId('record-fact-line');
+    expect(factLine).toHaveTextContent('Platform');
+    expect(factLine).toHaveTextContent('Twitter / X');
+    expect(factLine).toHaveTextContent('Status');
+    expect(factLine).toHaveTextContent('Active');
+  });
 });

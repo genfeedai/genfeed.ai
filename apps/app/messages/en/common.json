@@ -261,6 +261,18 @@
     "brief": "Program Brief",
     "campaignLabel": "Program Label *",
     "creditsAllocated": "Credits Allocated",
+    "detail": {
+      "backToPrograms": "Back to Programs",
+      "complete": "Complete",
+      "needsYou": {
+        "pausedDescription": "This Program is paused.",
+        "resume": "Resume",
+        "title": "Needs you"
+      },
+      "pause": "Pause",
+      "resume": "Resume",
+      "start": "Start"
+    },
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
     "loadingBrand": "Loading the selected brand\u2026",
@@ -930,6 +942,7 @@
       }
     },
     "agentDetail": {
+      "activate": "Activate",
       "agents": "Agents",
       "attributed": "Attributed to content from this agent.",
       "attributedVisits": "{impressions} impressions · {clicks} clicks · {visits} visits attributed to this agent.",
@@ -937,6 +950,13 @@
       "bestWindows": "Best posting windows: {windows}",
       "budget": "Budget: {amount}",
       "consecutiveErrors": "Consecutive errors",
+      "deactivate": "Deactivate",
+      "factAutonomy": "Autonomy",
+      "factBrand": "Brand",
+      "factCreditsToday": "Credits today",
+      "factLastRun": "Last run",
+      "factNextRun": "Next run",
+      "factType": "Type",
       "contentError": "Could not load agent content.",
       "contentLabel": "Agent content",
       "contentTitle": "Content",
@@ -957,6 +977,9 @@
       "loadingReport": "Loading daily report…",
       "measuredTitle": "Measured content performance",
       "measurementUnavailable": "Performance measurement period unavailable.",
+      "needsYouFailures": "{count, plural, one {# consecutive run failed} other {# consecutive runs failed}}.",
+      "needsYouPendingReview": "{count, plural, one {# post is} other {# posts are}} awaiting review.",
+      "needsYouTitle": "Needs you",
       "noMeasuredPerformance": "No measured performance yet.",
       "noRecommendations": "No allocation recommendations yet.",
       "noReport": "No daily report yet.",
@@ -979,6 +1002,7 @@
       "title": "Agent Detail",
       "topHooks": "Top hooks: {hooks}",
       "topTopics": "Top topics: {topics}",
+      "viewRuns": "View runs",
       "unavailable": "Unavailable",
       "untitledPost": "Untitled post",
       "usage": "Usage"
