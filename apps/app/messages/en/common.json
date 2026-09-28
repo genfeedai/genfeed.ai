@@ -678,7 +678,9 @@
     "expand": "Expand details",
     "label": "Selection details",
     "open": "Open details",
-    "resize": "Resize details"
+    "resize": "Resize details",
+    "workflow": "Workflow",
+    "workflowRun": "Workflow run"
   },
   "desktop": {
     "local": {
