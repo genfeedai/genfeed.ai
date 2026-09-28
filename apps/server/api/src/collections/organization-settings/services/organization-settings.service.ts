@@ -158,7 +158,6 @@ export class OrganizationSettingsService extends BaseService<
         brandsLimit: 0,
         enabledModelIds,
         isAutoEvaluateEnabled: false,
-        isFastlaneEnabled: false,
         isGenerateArticlesEnabled: false,
         isGenerateImagesEnabled: true,
         isGenerateMusicEnabled: true,

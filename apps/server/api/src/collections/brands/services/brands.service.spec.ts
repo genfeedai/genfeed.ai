@@ -34,7 +34,7 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ReferenceImageCategory } from '@genfeedai/contracts';
-import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
+import type { BatchIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
@@ -1686,7 +1686,7 @@ describe('BrandsService', () => {
     });
   });
 
-  describe('generateFastlaneIdeas', () => {
+  describe('generateBatchIdeas', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
@@ -1725,9 +1725,9 @@ describe('BrandsService', () => {
         ],
       });
 
-      const result = await service.generateFastlaneIdeas(
+      const result = await service.generateBatchIdeas(
         brandId,
-        { count: 2, formats: ['image', 'avatar'] as FastlaneFormat[] },
+        { count: 2, formats: ['image', 'avatar'] as BatchIdeaFormat[] },
         organizationId,
       );
 
@@ -1744,9 +1744,9 @@ describe('BrandsService', () => {
       delegate.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.generateFastlaneIdeas(
+        service.generateBatchIdeas(
           brandId,
-          { count: 2, formats: ['image'] as FastlaneFormat[] },
+          { count: 2, formats: ['image'] as BatchIdeaFormat[] },
           organizationId,
         ),
       ).rejects.toThrow(NotFoundException);
@@ -1763,9 +1763,9 @@ describe('BrandsService', () => {
       });
 
       await expect(
-        service.generateFastlaneIdeas(
+        service.generateBatchIdeas(
           brandId,
-          { count: 2, formats: ['image'] as FastlaneFormat[] },
+          { count: 2, formats: ['image'] as BatchIdeaFormat[] },
           organizationId,
         ),
       ).rejects.toThrow(BadRequestException);
@@ -1784,9 +1784,9 @@ describe('BrandsService', () => {
         choices: [{ message: { content: 'not json at all' } }],
       });
 
-      const result = await service.generateFastlaneIdeas(
+      const result = await service.generateBatchIdeas(
         brandId,
-        { count: 2, formats: ['image'] as FastlaneFormat[] },
+        { count: 2, formats: ['image'] as BatchIdeaFormat[] },
         organizationId,
       );
 

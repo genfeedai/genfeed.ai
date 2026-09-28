@@ -286,7 +286,7 @@ export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
     provide: BrandGenerationService,
     useValue: {
       generateBrandVoice: () => Promise.resolve(null),
-      generateFastlaneIdeas: () => Promise.resolve([]),
+      generateBatchIdeas: () => Promise.resolve([]),
     },
   },
   {

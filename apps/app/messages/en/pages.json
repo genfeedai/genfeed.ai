@@ -2831,10 +2831,6 @@
       "title": "Batch",
       "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
     },
-    "studioFastlane": {
-      "title": "Fastlane",
-      "body": "The quickest path from an idea to a scheduled post, with sensible defaults at every step."
-    },
     "studioEdit": {
       "title": "Edit",
       "body": "Long-form editing for articles and newsletters, with the agent as a co-writer."
@@ -3305,6 +3301,10 @@
         "desktop_local_workspace": {
           "label": "Desktop local workspace",
           "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+        },
+        "batch_ideas": {
+          "label": "Batch ideas",
+          "description": "Idea batches: turn brand data into a batch of content ideas in Studio batches."
         }
       }
     },
@@ -3535,7 +3535,7 @@
     "name": "Batch name",
     "fromIdeas": "From ideas",
     "fromWorkflow": "From a workflow",
-    "ideasDisabled": "Idea batches are disabled for this organization.",
+    "ideasDisabled": "Idea batches are not available right now.",
     "workflow": "Workflow",
     "chooseWorkflow": "Choose a workflow",
     "noWorkflows": "No saved workflows yet. Create a workflow or start from ideas.",

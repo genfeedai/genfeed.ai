@@ -1,4 +1,4 @@
-import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
+import type { BatchIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMinSize,
@@ -12,38 +12,38 @@ import {
   Min,
 } from 'class-validator';
 
-/** Canonical set of formats Fastlane can fan generation across. */
-export const FASTLANE_FORMATS: readonly FastlaneFormat[] = [
+/** Canonical set of formats an idea batch can fan generation across. */
+export const BATCH_IDEA_FORMATS: readonly BatchIdeaFormat[] = [
   'image',
   'video',
   'avatar',
 ] as const;
 
 /**
- * Idea-count bounds for a Fastlane batch. These mirror the UI stepper limits in
- * `FastlaneIdeaSelector` (the only consumer of this endpoint) so the server
+ * Idea-count bounds for an idea batch. These mirror the UI stepper limits in
+ * `BatchIdeasEditor` (the only consumer of this endpoint) so the server
  * rejects counts the UI can never produce, instead of silently accepting 1–12.
  */
-export const FASTLANE_MIN_IDEAS = 3;
-export const FASTLANE_MAX_IDEAS = 9;
+export const BATCH_IDEA_MIN_COUNT = 3;
+export const BATCH_IDEA_MAX_COUNT = 9;
 
-export class GenerateFastlaneIdeasDto {
+export class GenerateBatchIdeasDto {
   @IsArray()
   @ArrayMinSize(1)
-  @IsIn([...FASTLANE_FORMATS], { each: true })
+  @IsIn([...BATCH_IDEA_FORMATS], { each: true })
   @ApiProperty({
     description: 'Content formats to distribute the idea batch across',
-    enum: FASTLANE_FORMATS,
+    enum: BATCH_IDEA_FORMATS,
     isArray: true,
   })
-  readonly formats!: FastlaneFormat[];
+  readonly formats!: BatchIdeaFormat[];
 
   @IsInt()
-  @Min(FASTLANE_MIN_IDEAS)
-  @Max(FASTLANE_MAX_IDEAS)
+  @Min(BATCH_IDEA_MIN_COUNT)
+  @Max(BATCH_IDEA_MAX_COUNT)
   @ApiProperty({
     default: 6,
-    description: `Number of ideas to generate (${FASTLANE_MIN_IDEAS}-${FASTLANE_MAX_IDEAS})`,
+    description: `Number of ideas to generate (${BATCH_IDEA_MIN_COUNT}-${BATCH_IDEA_MAX_COUNT})`,
   })
   readonly count!: number;
 

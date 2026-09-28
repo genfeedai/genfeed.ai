@@ -26,7 +26,6 @@ export class OrganizationSetting
   declare public isGenerateImagesEnabled: boolean;
   declare public isGenerateMusicEnabled: boolean;
   declare public isAutoEvaluateEnabled: boolean;
-  declare public isFastlaneEnabled: boolean;
   declare public isFleetNsfwVisible: boolean;
 
   declare public isAdvancedMode: boolean;

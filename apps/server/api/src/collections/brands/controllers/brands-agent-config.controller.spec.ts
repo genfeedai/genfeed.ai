@@ -50,7 +50,6 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     controller = new BrandsAgentConfigController(
       mockBrandsService as unknown as BrandsService,
       mockIngredientsService as never,
-      {} as never,
       mockSkillsService as unknown as SkillsService,
     );
 

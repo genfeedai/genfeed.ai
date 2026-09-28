@@ -1,5 +1,5 @@
 'use client';
-import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
+import type { BatchIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import Field from '@ui/primitives/field';
@@ -7,7 +7,7 @@ import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import type { BatchIdeasEditorProps } from './batch-project.types';
 
-const FORMATS: FastlaneFormat[] = ['image', 'video', 'avatar'];
+const FORMATS: BatchIdeaFormat[] = ['image', 'video', 'avatar'];
 export default function BatchIdeasEditor({
   canGenerate,
   settings,

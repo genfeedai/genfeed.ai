@@ -3,6 +3,7 @@ import {
   BATCH_PROJECT_MAX_INPUTS,
 } from '@api/collections/batch-projects/dto/add-batch-project-items.dto';
 import type { CreateBatchProjectDto } from '@api/collections/batch-projects/dto/create-batch-project.dto';
+import type { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type { QuoteBatchProjectDto } from '@api/collections/batch-projects/dto/quote-batch-project.dto';
 import type { ReviewBatchProjectItemsDto } from '@api/collections/batch-projects/dto/review-batch-project-items.dto';
 import type { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/update-batch-project.dto';
@@ -23,8 +24,8 @@ import {
   mergeBatchProjectSettings,
 } from '@api/collections/batch-projects/services/batch-project-settings.util';
 import { countBatchProjectItems } from '@api/collections/batch-projects/services/batch-project-status.util';
-import type { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -52,7 +53,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
@@ -91,6 +91,7 @@ export class BatchProjectsService {
     private readonly batchGenerationService: BatchGenerationService,
     private readonly ideaGeneration: BatchProjectIdeaGenerationService,
     private readonly brandsService: BrandsService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   async list(
@@ -159,7 +160,7 @@ export class BatchProjectsService {
   ): Promise<IBatchProject> {
     await this.assertBrand(dto.brandId, scope.organizationId);
     if (dto.kind === BatchProjectKind.IDEAS) {
-      await this.assertIdeasEnabled(scope.organizationId);
+      await this.assertIdeasEnabled(scope);
     }
     if (dto.workflowId) {
       await this.assertWorkflow(dto.workflowId, scope.organizationId);
@@ -292,10 +293,10 @@ export class BatchProjectsService {
 
   async generateIdeas(
     id: string,
-    dto: GenerateFastlaneIdeasDto,
+    dto: GenerateBatchIdeasDto,
     scope: IBatchProjectScope,
   ): Promise<IBatchProject> {
-    await this.assertIdeasEnabled(scope.organizationId);
+    await this.assertIdeasEnabled(scope);
     const before = await this.requireProject(id, scope);
     this.assertDraft(before);
     if (before.kind !== BatchProjectKind.IDEAS)
@@ -305,7 +306,7 @@ export class BatchProjectsService {
       { settings: { ideas: dto }, step: BatchProjectStep.IDEAS },
       scope,
     );
-    const ideas = await this.brandsService.generateFastlaneIdeas(
+    const ideas = await this.brandsService.generateBatchIdeas(
       project.brandId,
       dto,
       scope.organizationId,
@@ -899,15 +900,14 @@ export class BatchProjectsService {
     }
   }
 
-  private async assertIdeasEnabled(organizationId: string): Promise<void> {
-    const settings = await this.prisma.organizationSetting.findFirst({
-      select: { isFastlaneEnabled: true },
-      where: { organizationId },
-    });
-    if (!settings?.isFastlaneEnabled) {
-      throw new ForbiddenException(
-        'Idea batches are not enabled for this organization',
-      );
+  /** Idea batches are gated by the central `batch_ideas` Admin platform flag (#5463). */
+  private async assertIdeasEnabled(scope: IBatchProjectScope): Promise<void> {
+    if (scope.isSuperAdmin) {
+      return;
+    }
+    const { flags } = await this.platformSettingsService.getFeatureSettings();
+    if (!flags.batch_ideas) {
+      throw new NotFoundException({ message: 'Idea batches are not enabled' });
     }
   }
 

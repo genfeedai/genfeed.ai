@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AcceptBatchProjectQuoteDto } from '@api/collections/batch-projects/dto/accept-batch-project-quote.dto';
 import { AddBatchProjectItemsDto } from '@api/collections/batch-projects/dto/add-batch-project-items.dto';
 import { CreateBatchProjectDto } from '@api/collections/batch-projects/dto/create-batch-project.dto';
+import { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import { QuoteBatchProjectDto } from '@api/collections/batch-projects/dto/quote-batch-project.dto';
 import { ReviewBatchProjectItemsDto } from '@api/collections/batch-projects/dto/review-batch-project-items.dto';
 import { ScheduleBatchProjectDto } from '@api/collections/batch-projects/dto/schedule-batch-project.dto';
@@ -9,7 +10,7 @@ import { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/updat
 import { UpdateBatchProjectItemDto } from '@api/collections/batch-projects/dto/update-batch-project-item.dto';
 import { BatchProjectSchedulingService } from '@api/collections/batch-projects/services/batch-project-scheduling.service';
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
-import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -19,6 +20,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -82,7 +84,7 @@ export class BatchProjectsController {
   ) {
     const project = await this.batchProjectsService.create(
       body,
-      this.requireScope(user),
+      this.requireScope(user, request),
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }
@@ -180,17 +182,18 @@ export class BatchProjectsController {
   }
 
   @Post(':id/ideas')
+  @FeatureFlag('batch_ideas')
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   async generateIdeas(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body() body: GenerateFastlaneIdeasDto,
+    @Body() body: GenerateBatchIdeasDto,
   ) {
     const project = await this.batchProjectsService.generateIdeas(
       id,
       body,
-      this.requireScope(user),
+      this.requireScope(user, request),
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }
@@ -295,7 +298,7 @@ export class BatchProjectsController {
     );
   }
 
-  private requireScope(user: User): IBatchProjectScope {
+  private requireScope(user: User, request?: Request): IBatchProjectScope {
     const organizationId = user.organizationId;
     const userId = user.userId ?? user.id;
     if (!organizationId || !userId) {
@@ -305,6 +308,9 @@ export class BatchProjectsController {
     }
     return {
       ...(user.brandId ? { brandId: user.brandId } : {}),
+      ...(request && getIsSuperAdmin(user, request)
+        ? { isSuperAdmin: true }
+        : {}),
       organizationId,
       userId,
     };

@@ -1,6 +1,6 @@
-import { FASTLANE_FORMATS } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { BATCH_IDEA_FORMATS } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
+import type { BatchIdeaFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -24,9 +24,9 @@ export class BatchProjectIdeaDto {
   @MaxLength(100)
   readonly id!: string;
 
-  @ApiProperty({ enum: FASTLANE_FORMATS })
-  @IsIn([...FASTLANE_FORMATS])
-  readonly format!: FastlaneFormat;
+  @ApiProperty({ enum: BATCH_IDEA_FORMATS })
+  @IsIn([...BATCH_IDEA_FORMATS])
+  readonly format!: BatchIdeaFormat;
 
   @ApiProperty()
   @IsString()

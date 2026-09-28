@@ -202,7 +202,7 @@
     "apps/app/app/(protected)/admin/library/voices/voices-catalog-controls.tsx": 8,
     "apps/app/app/(protected)/admin/library/voices/voices-library-page.tsx": 3,
     "apps/app/app/(protected)/admin/organization/components/edit-setting-modal.tsx": 3,
-    "apps/app/app/(protected)/admin/organization/components/organization-settings-table.tsx": 34,
+    "apps/app/app/(protected)/admin/organization/components/organization-settings-table.tsx": 33,
     "apps/app/app/(protected)/admin/organization/components/setting-row.tsx": 1,
     "apps/app/app/(protected)/admin/organization/organization-config-page.tsx": 8,
     "apps/app/app/(protected)/admin/overview/analytics/business/business-dashboard.tsx": 37,

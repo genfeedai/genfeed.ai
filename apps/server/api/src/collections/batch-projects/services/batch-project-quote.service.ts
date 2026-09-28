@@ -13,8 +13,8 @@ import { AgentGenerationEstimateService } from '@api/services/router/agent-gener
 import { ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
+  BatchIdeaFormat,
   BatchProjectBillingMode,
-  FastlaneFormat,
   IBatchProjectQuote,
   IBatchProjectQuoteLine,
 } from '@genfeedai/contracts/interfaces';
@@ -53,7 +53,7 @@ export class BatchProjectQuoteService {
     userId: string;
     revision: number;
   }): Promise<IBatchProjectQuote> {
-    const pricedByFormat = new Map<FastlaneFormat, PricedModel>();
+    const pricedByFormat = new Map<BatchIdeaFormat, PricedModel>();
     const items: IBatchProjectQuoteLine[] = [];
     for (const { attempt, item } of input.items) {
       const idea = readBatchProjectIdea(item.idea);
@@ -95,7 +95,7 @@ export class BatchProjectQuoteService {
 
   private async priceFormat(
     organizationId: string,
-    format: FastlaneFormat,
+    format: BatchIdeaFormat,
     prompt: string,
     brandId: string,
     userId: string,

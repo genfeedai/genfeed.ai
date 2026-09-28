@@ -322,26 +322,6 @@ describe('BrandsService HTTP methods', () => {
     expect(result).toEqual([{ id: 'pt_1', views: 2 }]);
   });
 
-  it('generateFastlaneIdeas unwraps the plain data envelope', async () => {
-    const ideas = [{ hook: 'Try this', id: 'idea_1' }];
-    http.post.mockResolvedValue(axiosResponse({ data: ideas }));
-
-    const result = await service.generateFastlaneIdeas(brandId, { count: 1 });
-
-    expect(http.post).toHaveBeenCalledWith(`/${brandId}/fastlane/ideas`, {
-      count: 1,
-    });
-    expect(result).toEqual(ideas);
-  });
-
-  it('generateFastlaneIdeas defaults to [] when the payload is empty', async () => {
-    http.post.mockResolvedValue(axiosResponse(undefined));
-
-    await expect(
-      service.generateFastlaneIdeas(brandId, { count: 1 }),
-    ).resolves.toEqual([]);
-  });
-
   it('createManualBrandKitDraft POSTs the manual input', async () => {
     http.post.mockResolvedValue(
       axiosResponse(resourceDocument({ status: 'draft' }, { id: 'draft_2' })),

@@ -58,7 +58,6 @@ export interface IOrganizationSetting extends IBaseEntity {
   isGenerateImagesEnabled: boolean;
   isGenerateMusicEnabled: boolean;
   isAutoEvaluateEnabled: boolean;
-  isFastlaneEnabled: boolean;
   isFleetNsfwVisible: boolean;
 
   isWebhookEnabled: boolean;

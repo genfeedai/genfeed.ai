@@ -20,6 +20,7 @@ export const PLATFORM_FEATURE_FLAG_KEYS = [
   'library_canvas',
   'low_credits_banner',
   'desktop_local_workspace',
+  'batch_ideas',
 ] as const;
 
 export type PlatformModuleFlagKey = (typeof PLATFORM_MODULE_FLAG_KEYS)[number];
@@ -92,6 +93,9 @@ export const LIBRARY_CANVAS_FEATURE_FLAG =
 /** Low-credits banner in the protected shell. */
 export const LOW_CREDITS_BANNER_FEATURE_FLAG =
   'low_credits_banner' satisfies PlatformFlagKey;
+
+/** Batch idea projects (brand data → content ideas) in Studio batches (#5463). */
+export const BATCH_IDEAS_FEATURE_FLAG = 'batch_ideas' satisfies PlatformFlagKey;
 
 export type AppRailFeatureFlagApp = keyof typeof APP_RAIL_FEATURE_FLAGS;
 

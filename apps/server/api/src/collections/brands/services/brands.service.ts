@@ -1,3 +1,4 @@
+import type { GenerateBatchIdeasDto } from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
@@ -5,7 +6,6 @@ import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
 } from '@api/collections/brands/dto/generate-brand-voice.dto';
-import type { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import type { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
@@ -59,7 +59,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {
-  FastlaneIdea,
+  BatchIdea,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
@@ -842,12 +842,12 @@ export class BrandsService extends BaseService<
     );
   }
 
-  async generateFastlaneIdeas(
+  async generateBatchIdeas(
     brandId: string,
-    dto: GenerateFastlaneIdeasDto,
+    dto: GenerateBatchIdeasDto,
     organizationId: string,
-  ): Promise<FastlaneIdea[]> {
-    return this.brandGenerationService.generateFastlaneIdeas(
+  ): Promise<BatchIdea[]> {
+    return this.brandGenerationService.generateBatchIdeas(
       brandId,
       dto,
       organizationId,

@@ -122,7 +122,7 @@ describe('AdminFlagsPage (#5468)', () => {
     expect(
       await screen.findByRole('switch', { name: 'Library canvas' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(3);
+    expect(screen.getAllByRole('switch')).toHaveLength(4);
   });
 
   it('saves only the switched flag, at once', async () => {

@@ -1,10 +1,10 @@
 import {
-  FASTLANE_FORMATS,
-  FASTLANE_MAX_IDEAS,
-  FASTLANE_MIN_IDEAS,
-} from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+  BATCH_IDEA_FORMATS,
+  BATCH_IDEA_MAX_COUNT,
+  BATCH_IDEA_MIN_COUNT,
+} from '@api/collections/batch-projects/dto/generate-batch-ideas.dto';
 import type {
-  FastlaneFormat,
+  BatchIdeaFormat,
   IBatchProjectIdeaSettings,
   IBatchProjectScheduledTarget,
   IBatchProjectScheduleSettings,
@@ -40,13 +40,16 @@ function parseIdeaSettings(
     return undefined;
   }
   const formats = Array.isArray(record.formats)
-    ? record.formats.filter((format): format is FastlaneFormat =>
-        (FASTLANE_FORMATS as readonly unknown[]).includes(format),
+    ? record.formats.filter((format): format is BatchIdeaFormat =>
+        (BATCH_IDEA_FORMATS as readonly unknown[]).includes(format),
       )
     : [];
   const count =
     typeof record.count === 'number' && Number.isInteger(record.count)
-      ? Math.min(FASTLANE_MAX_IDEAS, Math.max(FASTLANE_MIN_IDEAS, record.count))
+      ? Math.min(
+          BATCH_IDEA_MAX_COUNT,
+          Math.max(BATCH_IDEA_MIN_COUNT, record.count),
+        )
       : DEFAULT_IDEA_SETTINGS.count;
   const angle = readString(record.angle)?.slice(0, MAX_ANGLE_LENGTH);
   return {
