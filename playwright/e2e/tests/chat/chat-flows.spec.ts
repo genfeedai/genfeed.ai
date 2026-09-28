@@ -415,9 +415,19 @@ test.describe('Agent Chat', () => {
       .getByRole('button', { name: 'Confirm schedule' })
       .click();
 
+    // The eventual server reply — reconciled through the async ack by its
+    // runId — and its CTAs, not the card's own local success copy.
     await expect(
-      conversation.getByText('Publish scheduled from chat.'),
+      conversation.getByText(
+        'Publish confirmed. Your post is ready to review.',
+      ),
     ).toBeVisible();
+    await expect(
+      conversation.getByRole('link', { name: 'Open Posts' }),
+    ).toHaveAttribute('href', /\/content\/posts$/);
+    await expect(
+      conversation.getByRole('link', { name: 'Open Published' }),
+    ).toHaveAttribute('href', /\/content\/posts\/published$/);
     // respondToUiAction sends the thread's brandId/contextVersion alongside
     // the action (see agent-chat-container.ui-actions.ts), and the card
     // normalizes the datetime-local input to an ISO instant in the browser's

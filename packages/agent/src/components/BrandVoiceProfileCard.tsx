@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -6,7 +7,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Sparkles } from 'lucide-react';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { type ReactElement, useCallback, useMemo } from 'react';
 
 interface BrandVoiceProfileCardProps {
   action: AgentUiAction;
@@ -25,10 +26,7 @@ export function BrandVoiceProfileCard({
   action,
   onUiAction,
 }: BrandVoiceProfileCardProps): ReactElement {
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAwaitingResult, setIsAwaitingResult] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const hasSaved = isSaved || action.status === 'completed';
+  const request = useAgentUiActionRequest(onUiAction);
   const profile = useMemo(() => {
     const data = action.data ?? {};
     const rawProfile =
@@ -58,45 +56,33 @@ export function BrandVoiceProfileCard({
   }, [action.data]);
 
   const approveCta = action.ctas?.find((cta) => cta.action);
+  const phase = approveCta?.action
+    ? request.getPhase(approveCta.action, approveCta.payload)
+    : 'idle';
+  const hasSaved = phase === 'completed' || action.status === 'completed';
+  const isInFlight = phase === 'running' || phase === 'awaiting';
+  const failure =
+    phase === 'failed' && approveCta?.action
+      ? request.getError(approveCta.action, approveCta.payload)
+      : null;
 
   const handleApprove = useCallback(async () => {
-    if (
-      !approveCta?.action ||
-      !onUiAction ||
-      isSaving ||
-      isAwaitingResult ||
-      hasSaved
-    ) {
+    if (!approveCta?.action || !onUiAction || isInFlight || hasSaved) {
       return;
     }
-
-    setIsSaving(true);
-
-    try {
-      const outcome = await onUiAction(approveCta.action, approveCta.payload);
-      // Accepted but unconfirmed: the save may still land, so neither claim
-      // it nor offer a second submission.
-      if (outcome === 'pending') {
-        setIsAwaitingResult(true);
-        return;
-      }
-      if (outcome !== false) {
-        useAgentChatStore.getState().setUiActionStatus(action.id, 'completed');
-        setIsSaved(true);
-      }
-    } finally {
-      setIsSaving(false);
+    const outcome = await request.submit(approveCta.action, approveCta.payload);
+    if (outcome === true) {
+      useAgentChatStore.getState().setUiActionStatus(action.id, 'completed');
     }
   }, [
     action.id,
     approveCta?.action,
     approveCta?.payload,
     hasSaved,
-    isAwaitingResult,
-    isSaving,
+    isInFlight,
     onUiAction,
+    request,
   ]);
-  const isInFlight = isSaving || isAwaitingResult;
 
   if (hasSaved) {
     return (
@@ -250,9 +236,14 @@ export function BrandVoiceProfileCard({
           {isInFlight ? 'Saving...' : approveCta.label}
         </Button>
       ) : null}
-      {isAwaitingResult ? (
+      {phase === 'awaiting' ? (
         <p className="mt-2 text-xs text-muted-foreground" role="status">
-          Still saving. The result appears in this thread when it finishes.
+          Still saving. This card updates when the save finishes.
+        </p>
+      ) : null}
+      {failure ? (
+        <p className="mt-2 text-xs text-destructive" role="alert">
+          {failure}
         </p>
       ) : null}
     </div>

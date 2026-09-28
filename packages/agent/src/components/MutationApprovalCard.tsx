@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -58,53 +59,58 @@ export function MutationApprovalCard({
 }: MutationApprovalCardProps): ReactElement {
   const translate = useTranslations('agent.mutationApproval');
   const approval = readApproval(action.data);
-  const [resolved, setResolved] = useState<{
-    id: string;
-    status: 'approved' | 'declined';
-  } | null>(null);
-  const [isPending, setIsPending] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const request = useAgentUiActionRequest(onUiAction, { isVoidSuccess: false });
+  const [lastDecision, setLastDecision] = useState<
+    'approved' | 'declined' | null
+  >(null);
   const inFlight = useRef(false);
+  const payload = approval
+    ? {
+        approvalId: approval.approvalId,
+        sourceActionId: approval.sourceActionId,
+      }
+    : undefined;
+  const approvePhase = request.getPhase('confirm_mutation', payload);
+  const declinePhase = request.getPhase('decline_mutation', payload);
+  const lastPhase =
+    lastDecision === 'approved'
+      ? approvePhase
+      : lastDecision === 'declined'
+        ? declinePhase
+        : 'idle';
+  // A pending decision stays locked until its run settles (or a remount finds
+  // it still reconciling); a failed one can be retried.
+  const isPending =
+    [approvePhase, declinePhase].includes('running') ||
+    [approvePhase, declinePhase].includes('awaiting');
+  const hasError = lastPhase === 'failed';
   const status =
     approval?.status !== 'pending'
       ? approval?.status
-      : resolved?.id === approval?.approvalId
-        ? resolved?.status
-        : 'pending';
+      : approvePhase === 'completed'
+        ? 'approved'
+        : declinePhase === 'completed'
+          ? 'declined'
+          : 'pending';
 
   async function respond(decision: 'approved' | 'declined') {
-    if (!approval || !onUiAction || status !== 'pending' || inFlight.current)
+    if (
+      !approval ||
+      !onUiAction ||
+      status !== 'pending' ||
+      isPending ||
+      inFlight.current
+    )
       return;
     inFlight.current = true;
-    setIsPending(true);
-    setHasError(false);
-    let isAwaitingResult = false;
+    setLastDecision(decision);
     try {
-      const accepted = await onUiAction(
+      await request.submit(
         decision === 'approved' ? 'confirm_mutation' : 'decline_mutation',
-        {
-          approvalId: approval.approvalId,
-          sourceActionId: approval.sourceActionId,
-        },
+        payload,
       );
-      // Accepted but unconfirmed: the decision may still apply, so the card
-      // neither resolves nor reports a failure, and stays locked.
-      if (accepted === 'pending') {
-        isAwaitingResult = true;
-        return;
-      }
-      if (accepted !== true) {
-        setHasError(true);
-        return;
-      }
-      setResolved({ id: approval.approvalId, status: decision });
-    } catch {
-      setHasError(true);
     } finally {
-      if (!isAwaitingResult) {
-        inFlight.current = false;
-        setIsPending(false);
-      }
+      inFlight.current = false;
     }
   }
 

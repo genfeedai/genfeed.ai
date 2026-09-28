@@ -353,46 +353,25 @@ test.describe('Agent Onboarding', () => {
           }
         | undefined;
 
-      await mockThreads(authenticatedPage, [
-        {
-          brandId: 'brand-1',
-          contextVersion: 1,
-          id: threadId,
-          messageContent: 'I drafted a voice profile for your approval.',
-          messageMetadata: {
-            toolCalls: [
+      const voiceDraftMetadata = {
+        toolCalls: [
+          {
+            creditsUsed: 0,
+            durationMs: 220,
+            status: 'completed',
+            toolName: 'draft_brand_voice_profile',
+          },
+        ],
+        uiActions: [
+          {
+            brandId: 'brand-1',
+            ctas: [
               {
-                creditsUsed: 0,
-                durationMs: 220,
-                status: 'completed',
-                toolName: 'draft_brand_voice_profile',
-              },
-            ],
-            uiActions: [
-              {
-                brandId: 'brand-1',
-                ctas: [
-                  {
-                    action: 'confirm_save_brand_voice_profile',
-                    label: 'Approve and save',
-                    payload: {
-                      brandId: 'brand-1',
-                      sourceActionId: 'brand-voice-card-e2e',
-                      voiceProfile: {
-                        audience: ['startup operators'],
-                        doNotSoundLike: ['corporate jargon'],
-                        messagingPillars: ['clarity', 'proof'],
-                        sampleOutput:
-                          'Clear systems create compounding output.',
-                        style: 'direct',
-                        tone: 'confident',
-                        values: ['clarity'],
-                      },
-                    },
-                  },
-                ],
-                data: {
+                action: 'confirm_save_brand_voice_profile',
+                label: 'Approve and save',
+                payload: {
                   brandId: 'brand-1',
+                  sourceActionId: 'brand-voice-card-e2e',
                   voiceProfile: {
                     audience: ['startup operators'],
                     doNotSoundLike: ['corporate jargon'],
@@ -403,13 +382,35 @@ test.describe('Agent Onboarding', () => {
                     values: ['clarity'],
                   },
                 },
-                description: 'Review the brand voice and save it if it fits.',
-                id: 'brand-voice-card-e2e',
-                title: 'Brand Voice Draft',
-                type: 'brand_voice_profile_card',
               },
             ],
+            data: {
+              brandId: 'brand-1',
+              voiceProfile: {
+                audience: ['startup operators'],
+                doNotSoundLike: ['corporate jargon'],
+                messagingPillars: ['clarity', 'proof'],
+                sampleOutput: 'Clear systems create compounding output.',
+                style: 'direct',
+                tone: 'confident',
+                values: ['clarity'],
+              },
+            },
+            description: 'Review the brand voice and save it if it fits.',
+            id: 'brand-voice-card-e2e',
+            title: 'Brand Voice Draft',
+            type: 'brand_voice_profile_card',
           },
+        ],
+      };
+
+      await mockThreads(authenticatedPage, [
+        {
+          brandId: 'brand-1',
+          contextVersion: 1,
+          id: threadId,
+          messageContent: 'I drafted a voice profile for your approval.',
+          messageMetadata: voiceDraftMetadata,
           title: 'Brand voice onboarding',
         },
       ]);
@@ -433,6 +434,36 @@ test.describe('Agent Onboarding', () => {
         },
       );
 
+      // `POST .../ui-actions` only acks the enqueued workflow; the run's reply
+      // is persisted with `metadata.runId` = the ack's `executionId` and read
+      // back from the thread's messages. This route (registered after
+      // `mockThreads`', which it supersedes) grows that reply once the ack
+      // fires, the way the real workflow's completion appends it.
+      const draftMessage = {
+        content: 'I drafted a voice profile for your approval.',
+        createdAt: '2026-03-10T10:05:00.000Z',
+        id: `msg-${threadId}`,
+        metadata: voiceDraftMetadata,
+        role: 'assistant',
+        threadId,
+      };
+      let savedReply: Record<string, unknown> | null = null;
+      await authenticatedPage.route(
+        `**/threads/${threadId}/messages?*`,
+        async (route) => {
+          await route.fulfill({
+            body: JSON.stringify(
+              buildJsonApiCollection(
+                savedReply ? [draftMessage, savedReply] : [draftMessage],
+                'message',
+              ),
+            ),
+            contentType: 'application/json',
+            status: 200,
+          });
+        },
+      );
+
       await authenticatedPage.route(
         `**/threads/${threadId}/ui-actions`,
         async (route) => {
@@ -440,32 +471,34 @@ test.describe('Agent Onboarding', () => {
             action: string;
             payload?: Record<string, unknown>;
           };
+          savedReply = {
+            content: 'Brand voice saved to the selected brand.',
+            createdAt: '2026-03-10T10:06:00.000Z',
+            id: `msg-${threadId}-saved`,
+            metadata: {
+              runId: 'exec-onboarding-voice-e2e',
+              uiActions: [],
+            },
+            role: 'assistant',
+            threadId,
+            toolCalls: [
+              {
+                creditsUsed: 0,
+                durationMs: 180,
+                status: 'completed',
+                toolName: 'save_brand_voice_profile',
+              },
+            ],
+          };
 
           await route.fulfill({
             body: JSON.stringify({
-              brandId: 'brand-1',
-              contextVersion: 1,
-              creditsRemaining: 118,
-              creditsUsed: 0,
-              message: {
-                content: 'Brand voice saved to the selected brand.',
-                metadata: {
-                  uiActions: [],
-                },
-                role: 'assistant',
-              },
+              executionId: 'exec-onboarding-voice-e2e',
+              status: 'queued',
               threadId,
-              toolCalls: [
-                {
-                  creditsUsed: 0,
-                  durationMs: 180,
-                  status: 'completed',
-                  toolName: 'save_brand_voice_profile',
-                },
-              ],
             }),
             contentType: 'application/json',
-            status: 200,
+            status: 202,
           });
         },
       );
@@ -511,6 +544,11 @@ test.describe('Agent Onboarding', () => {
         .getByRole('button', { name: 'Approve and save' })
         .click();
 
+      // The eventual server reply, reconciled through the async ack, and the
+      // card settled by it.
+      await expect(
+        authenticatedPage.getByText('Brand voice saved to the selected brand.'),
+      ).toBeVisible();
       await expect(
         authenticatedPage.getByText('Brand voice saved to this brand.'),
       ).toBeVisible();

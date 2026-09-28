@@ -1,7 +1,11 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
-import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import {
+  type HandleUiActionDeps,
+  handleAgentUiAction,
+  resumeUiActionRun,
+} from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
@@ -742,53 +746,42 @@ export function useAgentChatContainer({
   );
   submitInputRequestRef.current = handleSubmitInputRequest;
 
+  const buildUiActionDeps = (signal: AbortSignal): HandleUiActionDeps => ({
+    activeThreadId,
+    activeUiAction: activeUiActionRef.current,
+    addMessage,
+    apiService,
+    draftAgentMode,
+    followLatestTurn,
+    isBusy,
+    isReadOnly,
+    latestProposedPlan,
+    sendMessage,
+    setActiveThread,
+    setActiveUiAction,
+    setCreditsRemaining,
+    setError,
+    setLatestProposedPlan,
+    signal,
+    threads,
+    upsertThread,
+  });
+  const buildUiActionDepsRef = useRef(buildUiActionDeps);
+  buildUiActionDepsRef.current = buildUiActionDeps;
+
   const handleUiAction = useCallback(
     async (action: string, payload?: Record<string, unknown>) => {
+      // Kept until the thread changes or the container unmounts: a run that
+      // outlives its foreground window keeps reconciling on this signal.
       const controller = new AbortController();
       uiActionAbortControllersRef.current.add(controller);
-      try {
-        return await handleAgentUiAction(action, payload, {
-          activeThreadId,
-          activeUiAction: activeUiActionRef.current,
-          addMessage,
-          apiService,
-          draftAgentMode,
-          followLatestTurn,
-          isBusy,
-          isReadOnly,
-          latestProposedPlan,
-          sendMessage,
-          setActiveThread,
-          setActiveUiAction,
-          setCreditsRemaining,
-          setError,
-          setLatestProposedPlan,
-          signal: controller.signal,
-          threads,
-          upsertThread,
-        });
-      } finally {
-        uiActionAbortControllersRef.current.delete(controller);
-      }
+      return await handleAgentUiAction(
+        action,
+        payload,
+        buildUiActionDepsRef.current(controller.signal),
+      );
     },
-    [
-      activeThreadId,
-      addMessage,
-      apiService,
-      draftAgentMode,
-      isBusy,
-      isReadOnly,
-      latestProposedPlan,
-      followLatestTurn,
-      sendMessage,
-      setActiveThread,
-      setActiveUiAction,
-      setCreditsRemaining,
-      setError,
-      setLatestProposedPlan,
-      threads,
-      upsertThread,
-    ],
+    [],
   );
 
   const handleApprovePlan = useCallback(async () => {
@@ -934,11 +927,27 @@ export function useAgentChatContainer({
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();
     olderMessagesAbortControllerRef.current = null;
-    // A ui-action still reconciling belongs to the thread being left.
+    // A ui-action still reconciling belongs to the thread being left; runs
+    // left pending on the thread now shown resume where they stopped.
     for (const controller of uiActionAbortControllersRef.current) {
       controller.abort();
     }
     uiActionAbortControllersRef.current.clear();
+    if (activeThreadId) {
+      for (const run of Object.values(
+        useAgentChatStore.getState().uiActionRuns,
+      )) {
+        if (run.status !== 'pending' || run.threadId !== activeThreadId) {
+          continue;
+        }
+        const controller = new AbortController();
+        uiActionAbortControllersRef.current.add(controller);
+        void resumeUiActionRun(
+          run,
+          buildUiActionDepsRef.current(controller.signal),
+        );
+      }
+    }
     pendingScrollAnchorRef.current = null;
     setIsAtBottom(true);
   }, [activeThreadId]);

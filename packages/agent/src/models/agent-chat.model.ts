@@ -618,6 +618,22 @@ export interface AgentUiActionAckResponse {
   threadId: string;
 }
 
+/**
+ * An acknowledged ui-action run the client is still reconciling or has
+ * settled, keyed by `getUiActionRunKey`. Cards derive their in-flight, done or
+ * failed state from it, so a result that lands after the card stopped waiting
+ * (or after a remount) still settles the card.
+ */
+export interface AgentUiActionRun {
+  action: string;
+  error?: string;
+  executionId: string;
+  key: string;
+  payload?: Record<string, unknown>;
+  status: 'pending' | 'completed' | 'failed';
+  threadId: string;
+}
+
 export interface AgentMemoryEntry {
   id: string;
   campaignId?: string;

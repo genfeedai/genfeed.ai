@@ -221,6 +221,7 @@
     "scheduledTime": "Scheduled time"
   },
   "publishPostCard": {
+    "awaitingResult": "Still publishing. This card updates when it finishes.",
     "cannotPublish": "Cannot confirm this channel",
     "caption": "Caption",
     "captionPlaceholder": "Optional caption override",
@@ -245,6 +246,7 @@
     "visibilityUnlisted": "Unlisted"
   },
   "schedulePostCard": {
+    "awaitingResult": "Still scheduling. This card updates when it finishes.",
     "cannotSchedule": "Cannot confirm this channel",
     "channels": "Channels",
     "confirmSchedule": "Schedule",

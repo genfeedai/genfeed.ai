@@ -380,6 +380,8 @@ type StoreState = {
     streamingContent: string;
     streamingReasoning: string;
   };
+  setUiActionRun: ReturnType<typeof vi.fn>;
+  uiActionRuns: Record<string, unknown>;
   upsertThread: ReturnType<typeof vi.fn>;
   updateThread: ReturnType<typeof vi.fn>;
   workEvents: [];
@@ -450,6 +452,8 @@ const storeState: StoreState = {
     streamingReasoning: '',
   },
   threads: [],
+  setUiActionRun: vi.fn(),
+  uiActionRuns: {},
   updateThread: vi.fn(),
   upsertThread: vi.fn(),
   workEvents: [],

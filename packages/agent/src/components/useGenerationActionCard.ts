@@ -1,3 +1,4 @@
+import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
   AgentUiAction,
@@ -247,6 +248,14 @@ export function useGenerationActionCard({
   const [referenceIds, setReferenceIds] = useState<string[]>(
     generationType === 'image' ? (initParams?.references ?? []) : [],
   );
+  const uiActionRuns = useAgentChatStore((s) => s.uiActionRuns);
+  // A generate or decline the server accepted but had not settled when the
+  // card stopped waiting; its reconciled run settles the card.
+  const [awaitedRun, setAwaitedRun] = useState<{
+    action: 'confirm_generate_media' | 'decline_generate_media';
+    isPilot: boolean;
+    key: string;
+  } | null>(null);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
@@ -692,8 +701,17 @@ export function useGenerationActionCard({
           );
         }
         // Accepted but no result yet: the run is still generating server
-        // side, so the card stays in flight instead of claiming a result.
+        // side, so the card stays in flight until the run settles.
         if (outcome === 'pending') {
+          setAwaitedRun({
+            action: 'confirm_generate_media',
+            isPilot: !isFullRun && pilotDuration !== null,
+            key: getUiActionRunKey(
+              requestThreadId ?? '',
+              'confirm_generate_media',
+              { sourceActionId: action.id },
+            ),
+          });
           return;
         }
         setIsFullRun(false);
@@ -852,6 +870,35 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [clearGenerationOutcome, paidRejectedCount, status]);
 
+  const settledRun = awaitedRun ? uiActionRuns[awaitedRun.key] : undefined;
+  useEffect(() => {
+    if (!awaitedRun || !settledRun || settledRun.status === 'pending') {
+      return;
+    }
+    const isCompleted = settledRun.status === 'completed';
+    if (awaitedRun.action === 'confirm_generate_media') {
+      if (isCompleted) {
+        setIsFullRun(false);
+        setStatus(awaitedRun.isPilot ? 'pilot_review' : 'done');
+      } else {
+        setError(
+          formatGenerationError(settledRun.error ?? 'Generation failed', {
+            isAutoMode,
+          }),
+        );
+        setStatus('error');
+      }
+    } else {
+      if (isCompleted) {
+        setStatus('declined');
+      } else {
+        setError(settledRun.error ?? 'Failed to decline generation.');
+      }
+      setIsDeclining(false);
+    }
+    setAwaitedRun(null);
+  }, [awaitedRun, isAutoMode, settledRun]);
+
   useEffect(() => {
     if (action.data?.decision === 'declined') setStatus('declined');
     if (action.data?.decision === 'approved') setHasStarted(true);
@@ -875,7 +922,19 @@ export function useGenerationActionCard({
       // Accepted but unconfirmed: stay declining rather than offering a
       // second decline or claiming this one landed.
       isAwaitingResult = outcome === 'pending';
-      if (!isAwaitingResult) setStatus('declined');
+      if (isAwaitingResult) {
+        setAwaitedRun({
+          action: 'decline_generate_media',
+          isPilot: false,
+          key: getUiActionRunKey(
+            activeThreadId ?? '',
+            'decline_generate_media',
+            { sourceActionId: action.id },
+          ),
+        });
+      } else {
+        setStatus('declined');
+      }
     } catch (failure) {
       setError(
         failure instanceof Error
@@ -886,7 +945,7 @@ export function useGenerationActionCard({
     } finally {
       if (!isAwaitingResult) setIsDeclining(false);
     }
-  }, [action.id, canDecline, onUiAction, setComposerError]);
+  }, [action.id, activeThreadId, canDecline, onUiAction, setComposerError]);
 
   // #4670 Open in Studio: a concrete model is required — the resolved
   // org-scoped estimate model when the operator left Auto, or their explicit
