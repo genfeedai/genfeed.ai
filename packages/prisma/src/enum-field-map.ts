@@ -1229,6 +1229,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isFleetEnabled',
       'isHighlighted',
       'isPromptEnhancementEnabled',
+      'isSocialHistoryImportEnabled',
       'label',
       'moodBoard',
       'musicIngredient',

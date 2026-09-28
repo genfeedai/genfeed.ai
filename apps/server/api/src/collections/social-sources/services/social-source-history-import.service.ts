@@ -112,7 +112,10 @@ export class SocialSourceHistoryImportService {
       return { skipReason: 'unsupported_platform', status: 'skipped' };
     }
 
-    if (!params.isRequestedByUser && !credential.isHistoryImportRequested) {
+    if (
+      !params.isRequestedByUser &&
+      credential.isHistoryImportRequested === false
+    ) {
       await this.recordActivity(ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED, {
         ...activityBase,
         entityId: credential.id,
