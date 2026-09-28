@@ -60,7 +60,7 @@ describe('useAnalytics', () => {
     vi.mocked(analyticsService.getPlatformStats).mockResolvedValue({
       data: [
         {
-          attributes: { platform: 'x', totalPosts: 2 },
+          attributes: { platform: 'x', postCount: 2 },
           id: 'x',
           type: 'platform-stats',
         },
@@ -75,7 +75,7 @@ describe('useAnalytics', () => {
     } as never);
 
     const { result } = renderHook(() =>
-      useAnalytics({ brand: 'acme', startDate: '2026-08-01' }),
+      useAnalytics({ brandId: 'acme', startDate: '2026-08-01' }),
     );
 
     await waitFor(() => {
@@ -90,11 +90,11 @@ describe('useAnalytics', () => {
       { id: 'post-1', title: 'Launch' },
     ]);
     expect(result.current.data.platformStats).toEqual([
-      { platform: 'x', totalPosts: 2 },
+      { platform: 'x', postCount: 2 },
     ]);
     expect(result.current.data.engagement).toEqual({ totalEngagement: 12 });
     expect(analyticsService.getTopContent).toHaveBeenCalledWith('test-token', {
-      brand: 'acme',
+      brandId: 'acme',
       limit: 5,
       startDate: '2026-08-01',
     });

@@ -6,7 +6,10 @@ vi.mock('@/services/api/base-http.service', () => ({
   apiRequest,
 }));
 
-import { analyticsService } from '@/services/api/analytics.service';
+import {
+  type AnalyticsQueryOptions,
+  analyticsService,
+} from '@/services/api/analytics.service';
 
 describe('analyticsService', () => {
   beforeEach(() => {
@@ -14,8 +17,13 @@ describe('analyticsService', () => {
     apiRequest.mockResolvedValue({ data: {} });
   });
 
+  // The API's `AnalyticsDateRangeDto` only declares `brandId`; the validation
+  // pipe silently strips `brand`, widening reads to the whole organization.
   it('prefixes every request with analytics/ and forwards query params', async () => {
-    const options = { brand: 'acme', startDate: '2026-08-01' };
+    const options = {
+      brandId: 'acme',
+      startDate: '2026-08-01',
+    } satisfies AnalyticsQueryOptions;
 
     await analyticsService.getOverview('token', options);
     await analyticsService.getTopContent('token', { ...options, limit: 5 });

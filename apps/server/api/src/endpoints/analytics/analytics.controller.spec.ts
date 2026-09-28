@@ -361,9 +361,7 @@ describe('AnalyticsController', () => {
     });
 
     it('should return platform comparison', async () => {
-      analyticsService.getPlatformComparison.mockResolvedValueOnce({
-        platforms: [],
-      });
+      analyticsService.getPlatformComparison.mockResolvedValueOnce([]);
 
       const query = {
         brandId: 'brand_1',
@@ -601,9 +599,7 @@ describe('AnalyticsController', () => {
     };
 
     it('scopes platform, growth, and engagement reads to the session organization', async () => {
-      analyticsService.getPlatformComparison.mockResolvedValueOnce({
-        platforms: [],
-      });
+      analyticsService.getPlatformComparison.mockResolvedValueOnce([]);
       analyticsService.getGrowthTrends.mockResolvedValueOnce({ total: 0 });
       analyticsService.getEngagementBreakdown.mockResolvedValueOnce({
         rows: [],

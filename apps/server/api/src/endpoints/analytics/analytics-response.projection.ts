@@ -4,6 +4,7 @@ import {
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import type {
+  IPlatformComparison,
   IViralHookEffectiveness,
   IViralHookPlatformSummary,
   IViralHooksResult,
@@ -18,12 +19,6 @@ interface PlatformMetrics {
   likes: number;
   saves: number;
   shares: number;
-  views: number;
-}
-
-interface PlatformTotals {
-  engagement: number;
-  posts: number;
   views: number;
 }
 
@@ -157,37 +152,21 @@ export class AnalyticsResponseProjection {
     }));
   }
 
-  buildPlatformComparison(
-    rows: RawAnalyticsRow[],
-  ): Array<Record<string, unknown>> {
-    const totals = rows.reduce<PlatformTotals>(
-      (acc, platform) => {
-        acc.views += Number(platform.total_views);
-        acc.engagement += Number(platform.total_engagement);
-        acc.posts += Number(platform.total_posts);
-        return acc;
-      },
-      { engagement: 0, posts: 0, views: 0 },
-    );
-
-    return rows.map((platform) => {
-      const totalViews = Number(platform.total_views);
-      const totalEngagement = Number(platform.total_engagement);
-      const totalPosts = Number(platform.total_posts);
+  buildPlatformComparison(rows: RawAnalyticsRow[]): IPlatformComparison[] {
+    return rows.map((row) => {
+      const views = Number(row.total_views) || 0;
+      const postCount = Number(row.total_posts) || 0;
       return {
-        avgEngagementRate: Number(platform.avg_engagement_rate) || 0,
-        engagementPercentage:
-          totals.engagement > 0
-            ? (totalEngagement / totals.engagement) * 100
-            : 0,
-        platform: toDomainPlatform(platform.platform),
-        postsPercentage:
-          totals.posts > 0 ? (totalPosts / totals.posts) * 100 : 0,
-        totalEngagement,
-        totalPosts,
-        totalViews,
-        viewsPercentage:
-          totals.views > 0 ? (totalViews / totals.views) * 100 : 0,
+        avgViewsPerPost: postCount > 0 ? views / postCount : 0,
+        comments: Number(row.total_comments) || 0,
+        engagementRate: Number(row.avg_engagement_rate) || 0,
+        likes: Number(row.total_likes) || 0,
+        platform: toDomainPlatform(row.platform),
+        postCount,
+        saves: Number(row.total_saves) || 0,
+        shares: Number(row.total_shares) || 0,
+        totalEngagement: Number(row.total_engagement) || 0,
+        views,
       };
     });
   }

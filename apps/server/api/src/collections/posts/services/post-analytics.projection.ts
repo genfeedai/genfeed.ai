@@ -5,7 +5,6 @@ import type {
   EngagementBreakdown,
   GrowthTrends,
   OverviewMetrics,
-  PlatformComparison,
   PlatformComparisonRow,
   PlatformMetrics,
   TimeSeriesDataPoint,
@@ -16,7 +15,11 @@ import type {
   TopContentScore,
   ViewsByDateRow,
 } from '@api/collections/posts/services/analytics-aggregation.types';
-import { AnalyticsMetric } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 
 type TimeSeriesGroup = 'day' | 'week';
 
@@ -218,19 +221,27 @@ export class PostAnalyticsProjection {
     );
   }
 
-  buildPlatformComparison(rows: PlatformComparisonRow[]): PlatformComparison[] {
+  buildPlatformComparison(
+    rows: PlatformComparisonRow[],
+  ): IPlatformComparison[] {
     return rows.map((row) => {
       const postCount = this.readNumber(row.post_count);
       const views = this.readNumber(row.views);
+      const likes = this.readNumber(row.likes);
+      const comments = this.readNumber(row.comments);
+      const shares = this.readNumber(row.shares);
+      const saves = this.readNumber(row.saves);
+      const label = row.platform || 'unknown';
       return {
         avgViewsPerPost: postCount > 0 ? views / postCount : 0,
-        comments: this.readNumber(row.comments),
+        comments,
         engagementRate: this.readNumber(row.engagement_rate),
-        likes: this.readNumber(row.likes),
-        platform: row.platform || 'unknown',
+        likes,
+        platform: fromPrismaCredentialPlatform(label) ?? label,
         postCount,
-        saves: this.readNumber(row.saves),
-        shares: this.readNumber(row.shares),
+        saves,
+        shares,
+        totalEngagement: likes + comments + shares + saves,
         views,
       };
     });

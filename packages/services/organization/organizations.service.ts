@@ -15,6 +15,7 @@ import type {
   IOrganization,
   IOrganizationSetting,
   IPaginatedResponse,
+  IPlatformComparison,
   IPost,
   IQueryParams,
   ISubscription,
@@ -395,12 +396,12 @@ export class OrganizationsService extends BaseService<Organization> {
   public async findOrganizationAnalyticsPlatforms(
     id: string,
     query?: { timeframe?: '7d' | '30d' | '90d'; brandId?: string },
-  ): Promise<unknown[]> {
+  ): Promise<IPlatformComparison[]> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/analytics/platforms`, {
         params: query,
       })
-      .then((res) => deserializeCollection<unknown>(res.data));
+      .then((res) => deserializeCollection<IPlatformComparison>(res.data));
   }
 
   public async findOrganizationAnalyticsTopContent(

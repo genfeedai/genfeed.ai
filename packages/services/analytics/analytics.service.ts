@@ -4,6 +4,7 @@ import type {
   IBrandWithStats,
   IOrgLeaderboardItem,
   IOrganizationWithStats as IOrgWithStats,
+  IPlatformComparison,
   IQueryParams,
   IViralHooksResult,
 } from '@genfeedai/contracts/interfaces';
@@ -184,10 +185,12 @@ export class AnalyticsService extends HTTPBaseService {
       .then((res) => deserializeCollection<unknown>(res.data));
   }
 
-  public async getPlatformComparison(query?: IQueryParams): Promise<unknown> {
+  public async getPlatformComparison(
+    query?: IQueryParams,
+  ): Promise<IPlatformComparison[]> {
     return await this.instance
       .get<JsonApiResponseDocument>('platforms', { params: query })
-      .then((res) => deserializeResource<unknown>(res.data));
+      .then((res) => deserializeCollection<IPlatformComparison>(res.data));
   }
 
   public async getTimeSeries(query?: IQueryParams): Promise<unknown> {

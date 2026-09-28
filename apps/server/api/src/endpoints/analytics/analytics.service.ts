@@ -17,7 +17,10 @@ import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformComparison,
+  IViralHooksResult,
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -293,7 +296,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
           AVG("engagementRate") AS avg_engagement_rate,
           COUNT(*) AS post_count
         FROM "post_analytics"
-        WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+        WHERE "isDeleted" = false
+          AND "date" >= ${startDate} AND "date" <= ${endDate}
           ${brandFilter}
           ${orgFilter}
         GROUP BY "platform", EXTRACT(HOUR FROM "date")
@@ -397,7 +401,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM "post_analytics" pa
       LEFT JOIN "posts" p ON p.id = pa."postId"
       LEFT JOIN "brands" b ON b.id = pa."brandId"
-      WHERE pa."date" >= ${startDate}
+      WHERE pa."isDeleted" = false
+        AND pa."date" >= ${startDate}
         AND pa."date" <= ${endDate}
         ${brandFilter}
         ${platformFilter}
@@ -418,7 +423,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDateStr?: string,
     brandId?: string,
     organizationId?: string,
-  ): Promise<unknown> {
+  ): Promise<IPlatformComparison[]> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
@@ -433,19 +438,21 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       organizationId,
     );
 
+    // One row per post per day: count posts, not snapshot rows.
     const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         "platform"::text AS platform,
         AVG("engagementRate") AS avg_engagement_rate,
         SUM("totalComments") AS total_comments,
         SUM("totalLikes") AS total_likes,
-        COUNT(*) AS total_posts,
+        COUNT(DISTINCT "postId") AS total_posts,
         SUM("totalSaves") AS total_saves,
         SUM("totalShares") AS total_shares,
         SUM("totalViews") AS total_views,
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement
       FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+      WHERE "isDeleted" = false
+        AND "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
       GROUP BY "platform"
@@ -523,7 +530,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SUM("totalViews") AS views,
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS engagement
       FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+      WHERE "isDeleted" = false
+        AND "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
       GROUP BY TO_CHAR("date", 'YYYY-MM-DD')
@@ -548,7 +556,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SUM("totalShares") AS total_shares,
         SUM("totalViews") AS total_views
       FROM "post_analytics"
-      WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
+      WHERE "isDeleted" = false
+        AND "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
         ${brandFilter}
         ${orgFilter}
     `;
@@ -598,7 +607,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SUM("totalSaves") AS total_saves,
         SUM("totalShares") AS total_shares
       FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
+      WHERE "isDeleted" = false
+        AND "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
         ${platformFilter}
         ${orgFilter}
@@ -711,7 +721,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         p.label AS title
       FROM "post_analytics" pa
       LEFT JOIN "posts" p ON p.id = pa."postId"
-      WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
+      WHERE pa."isDeleted" = false
+        AND pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
         ${postSetFilter}
@@ -740,7 +751,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         SUM(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
         SUM(pa."totalViews") AS total_views
       FROM "post_analytics" pa
-      WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
+      WHERE pa."isDeleted" = false
+        AND pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
         ${postSetFilter}

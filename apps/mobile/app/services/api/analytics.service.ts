@@ -1,3 +1,4 @@
+import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 import { apiRequest } from '@/services/api/base-http.service';
 
 export interface AnalyticsOverview {
@@ -23,16 +24,6 @@ export interface TopContent {
   engagementRate: number;
   thumbnailUrl?: string;
   publishedAt: string;
-}
-
-export interface PlatformStats {
-  platform: string;
-  totalViews: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalPosts: number;
-  engagementRate: number;
 }
 
 export interface GrowthData {
@@ -72,14 +63,15 @@ interface JsonApiArrayWrapper<T> {
 
 export type AnalyticsOverviewResponse = JsonApiWrapper<AnalyticsOverview>;
 export type TopContentResponse = JsonApiArrayWrapper<TopContent>;
-export type PlatformStatsResponse = JsonApiArrayWrapper<PlatformStats>;
+export type PlatformStatsResponse = JsonApiArrayWrapper<IPlatformComparison>;
 export type GrowthDataResponse = JsonApiArrayWrapper<GrowthData>;
 export type EngagementResponse = JsonApiWrapper<EngagementBreakdown>;
 
+/** Query params of `/analytics/*` (`AnalyticsDateRangeDto` and its extensions). */
 export interface AnalyticsQueryOptions {
   startDate?: string;
   endDate?: string;
-  brand?: string;
+  brandId?: string;
   metric?: string;
   limit?: number;
   platform?: string;

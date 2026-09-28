@@ -247,21 +247,19 @@ export default function AnalyticsOrganizationOverview({
       setLoadingPlatform(true);
       try {
         const service = await getAnalyticsService();
-        const response = (await service.getPlatformComparison({
+        const platforms = await service.getPlatformComparison({
           brandId: brandId || undefined,
           endDate,
           startDate,
-        })) as Record<string, { posts?: number; views?: number }>;
+        });
 
-        const transformed = Object.entries(response).map(
-          ([platform, data]) => ({
-            platform,
-            posts: data.posts || 0,
-            value: data.views || 0,
-          }),
+        setPlatformData(
+          platforms.map((row) => ({
+            platform: row.platform,
+            posts: row.postCount,
+            value: row.views,
+          })),
         );
-
-        setPlatformData(transformed);
       } catch (error) {
         logger.error('Failed to fetch organization platform analytics', error);
         setPlatformData([]);

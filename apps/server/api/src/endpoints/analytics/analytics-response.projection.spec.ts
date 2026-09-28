@@ -1,5 +1,7 @@
 import { AnalyticsResponseProjection } from '@api/endpoints/analytics/analytics-response.projection';
 import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
+import { AnalyticsPlatformSerializer } from '@genfeedai/serializers';
 
 const projection = new AnalyticsResponseProjection();
 
@@ -78,66 +80,68 @@ describe('AnalyticsResponseProjection', () => {
     });
   });
 
-  it('projects platform shares and save-inclusive engagement breakdowns', () => {
-    expect(
-      projection.buildPlatformComparison([
-        {
-          avg_engagement_rate: 10,
-          platform: 'YOUTUBE',
-          total_engagement: BigInt(75),
-          total_posts: BigInt(3),
-          total_views: BigInt(300),
-        },
-        {
-          avg_engagement_rate: 5,
-          platform: 'TIKTOK',
-          total_engagement: BigInt(25),
-          total_posts: BigInt(1),
-          total_views: BigInt(100),
-        },
-      ]),
-    ).toEqual([
+  // genfeedai/genfeed.ai#5419: the projection, the serializer and the client
+  // share `IPlatformComparison`; every metric must survive serialization.
+  it('projects IPlatformComparison rows that the platform serializer keeps whole', () => {
+    const rows = projection.buildPlatformComparison([
       {
-        avgEngagementRate: 10,
-        engagementPercentage: 75,
-        platform: CredentialPlatform.YOUTUBE,
-        postsPercentage: 75,
-        totalEngagement: 75,
-        totalPosts: 3,
-        totalViews: 300,
-        viewsPercentage: 75,
+        avg_engagement_rate: 10,
+        platform: 'YOUTUBE',
+        total_comments: BigInt(20),
+        total_engagement: BigInt(75),
+        total_likes: BigInt(40),
+        total_posts: BigInt(3),
+        total_saves: BigInt(5),
+        total_shares: BigInt(10),
+        total_views: BigInt(300),
       },
       {
-        avgEngagementRate: 5,
-        engagementPercentage: 25,
-        platform: CredentialPlatform.TIKTOK,
-        postsPercentage: 25,
-        totalEngagement: 25,
-        totalPosts: 1,
-        totalViews: 100,
-        viewsPercentage: 25,
+        avg_engagement_rate: null,
+        platform: 'TIKTOK',
+        total_comments: null,
+        total_engagement: null,
+        total_likes: null,
+        total_posts: BigInt(0),
+        total_saves: null,
+        total_shares: null,
+        total_views: null,
       },
     ]);
-    expect(
-      projection.buildEngagementBreakdown({
-        total_comments: 20,
-        total_likes: 50,
-        total_saves: 10,
-        total_shares: 20,
-      }),
-    ).toEqual({
-      comments: 20,
-      likes: 50,
-      percentages: {
+
+    const expected: IPlatformComparison[] = [
+      {
+        avgViewsPerPost: 100,
         comments: 20,
-        likes: 50,
-        saves: 10,
-        shares: 20,
+        engagementRate: 10,
+        likes: 40,
+        platform: CredentialPlatform.YOUTUBE,
+        postCount: 3,
+        saves: 5,
+        shares: 10,
+        totalEngagement: 75,
+        views: 300,
       },
-      saves: 10,
-      shares: 20,
-      total: 100,
-    });
+      {
+        avgViewsPerPost: 0,
+        comments: 0,
+        engagementRate: 0,
+        likes: 0,
+        platform: CredentialPlatform.TIKTOK,
+        postCount: 0,
+        saves: 0,
+        shares: 0,
+        totalEngagement: 0,
+        views: 0,
+      },
+    ];
+    expect(rows).toEqual(expected);
+
+    const document = AnalyticsPlatformSerializer.serialize(rows) as {
+      data: Array<{ attributes: Record<string, unknown> }>;
+    };
+    expect(document.data.map((resource) => resource.attributes)).toEqual(
+      expected,
+    );
   });
 
   it('preserves per-day growth metric selection and trend labels', () => {

@@ -2,6 +2,7 @@ import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import type {
   DashboardPresetData,
+  IPlatformComparison,
   ITimeSeriesApiDataPoint,
 } from '@genfeedai/contracts/interfaces';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
@@ -94,21 +95,12 @@ export function normalizeTimeSeries(
 }
 
 export function normalizePlatformComparison(
-  value: unknown,
+  rows: readonly IPlatformComparison[],
 ): Array<Record<string, unknown>> {
-  const rows: Array<Record<string, unknown>> = Array.isArray(value)
-    ? value.filter(isRecord)
-    : isRecord(value)
-      ? Object.entries(value).flatMap(([platform, metrics]) =>
-          isRecord(metrics) ? [{ ...metrics, platform }] : [],
-        )
-      : [];
-
   return rows.map((row) => ({
     ...row,
-    engagement: row.engagement ?? row.totalEngagement ?? 0,
-    posts: row.posts ?? row.totalPosts ?? 0,
-    views: row.views ?? row.totalViews ?? 0,
+    engagement: row.totalEngagement,
+    posts: row.postCount,
   }));
 }
 
@@ -161,7 +153,7 @@ export function useWorkspaceDashboardData(brandId: string) {
       queryFn: async () => {
         const service = await getAnalyticsService();
         const value = await service.getPlatformComparison({
-          brand: brandId,
+          brandId,
           endDate: endDateKey ?? undefined,
           startDate: startDateKey ?? undefined,
         });
@@ -181,7 +173,7 @@ export function useWorkspaceDashboardData(brandId: string) {
       queryFn: async () => {
         const service = await getAnalyticsService();
         const value = await service.getTimeSeries({
-          brand: brandId,
+          brandId,
           endDate: endDateKey ?? undefined,
           startDate: startDateKey ?? undefined,
         });
