@@ -91,6 +91,11 @@ export interface DesktopCliAgentRuntimeServiceOptions {
 
 type TurnStopReason = 'cancelled' | 'timeout';
 
+/** A turn still loading or creating its Genfeed thread (no process yet). */
+interface PendingCliTurn {
+  isCancelled: boolean;
+}
+
 interface ActiveCliTurn {
   child: ChildProcess;
   emit: (event: DesktopCliAgentEvent) => void;
@@ -248,6 +253,7 @@ function toPersistedToolCall(
  */
 export class DesktopCliAgentRuntimeService {
   private readonly turns = new Map<string, ActiveCliTurn>();
+  private readonly pendingTurns = new Map<string, PendingCliTurn>();
   private readonly idleTimeoutMs: number;
   private readonly killProcessTree: (child: ChildProcess) => void;
   private readonly mcpConfigDir: string;
@@ -275,7 +281,7 @@ export class DesktopCliAgentRuntimeService {
   }
 
   hasActiveTurns(): boolean {
-    return this.turns.size > 0;
+    return this.turns.size > 0 || this.pendingTurns.size > 0;
   }
 
   async startTurn(
@@ -284,7 +290,10 @@ export class DesktopCliAgentRuntimeService {
   ): Promise<IDesktopCliAgentTurnHandle> {
     const request = parseDesktopCliAgentTurnRequest(rawRequest);
 
-    if (this.turns.has(request.turnId)) {
+    if (
+      this.turns.has(request.turnId) ||
+      this.pendingTurns.has(request.turnId)
+    ) {
       throw new DesktopCliAgentRequestError(
         'That agent turn is already running.',
       );
@@ -298,14 +307,35 @@ export class DesktopCliAgentRuntimeService {
     }
 
     const runtime = DESKTOP_CLI_AGENT_RUNTIMES[request.runtimeKey];
-    const thread = request.threadId
-      ? await this.options.cloud.getAgentThread(request.threadId)
-      : await this.options.cloud.createAgentThread({
-          brandId: request.brandId ?? null,
-          runtimeKey: request.runtimeKey,
-          source: AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
-          title: request.prompt.replace(/\s+/g, ' ').slice(0, 60),
-        });
+    // Registered before the API call so Stop during it is not lost.
+    const pending: PendingCliTurn = { isCancelled: false };
+    this.pendingTurns.set(request.turnId, pending);
+    let thread: IDesktopCloudAgentThread;
+    try {
+      thread = request.threadId
+        ? await this.options.cloud.getAgentThread(request.threadId)
+        : await this.options.cloud.createAgentThread({
+            brandId: request.brandId ?? null,
+            runtimeKey: request.runtimeKey,
+            source: AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
+            title: request.prompt.replace(/\s+/g, ' ').slice(0, 60),
+          });
+    } finally {
+      this.pendingTurns.delete(request.turnId);
+    }
+
+    if (pending.isCancelled) {
+      this.options.log?.(
+        'info',
+        `cli agent turn cancelled before launch runtime=${request.runtimeKey} thread=${thread.id}`,
+      );
+      emit({
+        event: { code: 'cancelled', message: 'Stopped.', type: 'error' },
+        threadId: thread.id,
+        turnId: request.turnId,
+      });
+      return { threadId: thread.id, turnId: request.turnId };
+    }
     const resumeSessionId =
       thread.externalRuntime?.runtimeKey === request.runtimeKey
         ? thread.externalRuntime.sessionId
@@ -335,6 +365,12 @@ export class DesktopCliAgentRuntimeService {
       return;
     }
 
+    const pending = this.pendingTurns.get(turnId);
+    if (pending) {
+      pending.isCancelled = true;
+      return;
+    }
+
     const turn = this.turns.get(turnId);
     if (!turn || turn.isFinished) {
       return;
@@ -345,7 +381,7 @@ export class DesktopCliAgentRuntimeService {
   }
 
   cancelAll(): void {
-    for (const turnId of this.turns.keys()) {
+    for (const turnId of [...this.pendingTurns.keys(), ...this.turns.keys()]) {
       this.cancelTurn(turnId);
     }
   }

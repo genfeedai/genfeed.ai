@@ -1047,12 +1047,23 @@ export interface IDesktopWorkflowRunResult {
 
 /* ─── Bridge (renderer ↔ main) ─── */
 
+/** An installed CLI that is too old to run Genfeed agent turns. */
+export interface IDesktopLocalToolUpgrade {
+  key: string;
+  message: string;
+}
+
 export interface IDesktopLocalToolReadiness {
   anyDetected: boolean;
   claude: boolean;
   codex: boolean;
   detected: string[];
   grok: boolean;
+  /**
+   * Installed CLIs reported as not ready until they are updated. Optional
+   * because older Desktop builds do not send it.
+   */
+  upgradesRequired?: IDesktopLocalToolUpgrade[];
 }
 
 export interface IGenfeedDesktopBridge {

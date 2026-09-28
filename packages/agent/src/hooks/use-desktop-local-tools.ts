@@ -8,9 +8,10 @@ let cachedDetection: Promise<IDesktopLocalToolReadiness | null> | null = null;
 
 /**
  * Detection spawns `--version` for each CLI in Electron main, so it runs once
- * per renderer session and is shared by every consumer.
+ * per renderer session and is shared by every consumer. Resolves to null
+ * outside Genfeed Desktop or when detection fails.
  */
-function detectDesktopLocalTools(): Promise<IDesktopLocalToolReadiness | null> {
+function loadDesktopLocalTools(): Promise<IDesktopLocalToolReadiness | null> {
   const bridge = getGenfeedDesktopBridge();
   if (!bridge) {
     return Promise.resolve(null);
@@ -28,26 +29,36 @@ export function resetDesktopLocalToolsCache(): void {
   cachedDetection = null;
 }
 
-/** Local CLIs installed on this desktop, or null outside Genfeed Desktop. */
-export function useDesktopLocalTools(): IDesktopLocalToolReadiness | null {
-  const [tools, setTools] = useState<IDesktopLocalToolReadiness | null>(null);
+export interface DesktopLocalToolsState {
+  /** False while Genfeed Desktop is still detecting the local CLIs. */
+  isResolved: boolean;
+  /** Local CLIs on this desktop; null outside Desktop or if detection failed. */
+  tools: IDesktopLocalToolReadiness | null;
+}
+
+/** Local CLIs installed on this desktop, and whether detection has finished. */
+export function useDesktopLocalTools(): DesktopLocalToolsState {
+  const [state, setState] = useState<DesktopLocalToolsState>(() => ({
+    // Browsers have nothing to detect.
+    isResolved: getGenfeedDesktopBridge() === null,
+    tools: null,
+  }));
 
   useEffect(() => {
-    // Browsers have nothing to detect; skip the async round-trip entirely.
     if (!getGenfeedDesktopBridge()) {
       return;
     }
 
     const controller = new AbortController();
 
-    void detectDesktopLocalTools().then((readiness) => {
+    void loadDesktopLocalTools().then((tools) => {
       if (!controller.signal.aborted) {
-        setTools(readiness);
+        setState({ isResolved: true, tools });
       }
     });
 
     return () => controller.abort();
   }, []);
 
-  return tools;
+  return state;
 }

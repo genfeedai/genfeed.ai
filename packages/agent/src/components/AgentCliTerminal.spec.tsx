@@ -70,8 +70,11 @@ vi.mock('./agent-terminal-availability', () => ({
 
 import {
   AgentCliTerminalBody,
+  type AgentCliTerminalController,
   useAgentCliTerminal,
 } from '@genfeedai/agent/components/AgentCliTerminal';
+
+type DesktopWindow = Window & { genfeedDesktop?: unknown };
 
 const SESSION: TerminalSessionDto = {
   createdAt: '2026-08-30T08:00:00.000Z',
@@ -81,8 +84,15 @@ const SESSION: TerminalSessionDto = {
   threadId: 'thread-active',
 };
 
-function TerminalHarness({ apiService }: { apiService: AgentApiService }) {
+function TerminalHarness({
+  apiService,
+  onController,
+}: {
+  apiService: AgentApiService;
+  onController?: (controller: AgentCliTerminalController) => void;
+}) {
   const controller = useAgentCliTerminal(apiService);
+  onController?.(controller);
 
   return <AgentCliTerminalBody containerRef={controller.containerRef} />;
 }
@@ -157,5 +167,61 @@ describe('useAgentCliTerminal', () => {
       ([event]) => event === 'terminal:attach',
     );
     expect(attachCalls).toHaveLength(1);
+  });
+
+  it('keeps a newly created desktop terminal session alive', async () => {
+    const terminalBridge = {
+      create: vi.fn().mockResolvedValue({
+        command: 'zsh',
+        createdAt: '2026-09-25T00:00:00.000Z',
+        cwd: '/Users/me',
+        id: 'pty-1',
+        kind: 'shell',
+        pid: 42,
+      }),
+      kill: vi.fn().mockResolvedValue(undefined),
+      onData: vi.fn(() => () => undefined),
+      onExit: vi.fn(() => () => undefined),
+      resize: vi.fn().mockResolvedValue(undefined),
+      write: vi.fn().mockResolvedValue(undefined),
+    };
+    (window as DesktopWindow).genfeedDesktop = { terminal: terminalBridge };
+    const apiService = {
+      getToken: vi.fn().mockResolvedValue('terminal-token'),
+    } as unknown as AgentApiService;
+    let controller: AgentCliTerminalController | null = null;
+
+    try {
+      render(
+        <TerminalHarness
+          apiService={apiService}
+          onController={(next) => {
+            controller = next;
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(controller?.status).toBe('local terminal ready');
+      });
+
+      await act(async () => {
+        controller?.startSession('shell');
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(controller?.activeSessionId).toBe('pty-1');
+      });
+      expect(terminalBridge.kill).not.toHaveBeenCalled();
+      expect(
+        useAgentChatStore
+          .getState()
+          .terminalSessionsByThread.get('thread-active')
+          ?.map((session) => session.id),
+      ).toEqual(['pty-1']);
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+    }
   });
 });

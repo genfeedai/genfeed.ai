@@ -12,7 +12,9 @@ import type {
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentRuntimeCatalog,
+  getDesktopCliRuntimeOption,
   isDesktopCliRuntimeKey,
+  resolveDesktopCliRuntimeBlocker,
   resolveThreadRuntimeOption,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,6 +24,11 @@ export interface AgentRuntimeSelection {
   /** True when a local Claude Code / Codex runtime can run on this desktop. */
   hasDesktopCliRuntimes: boolean;
   onRuntimeChange: (runtime: AgentRuntimeOption) => void;
+  /**
+   * What the composer must say about local CLIs: why the selected local
+   * runtime cannot run, else which installed CLI needs an update.
+   */
+  runtimeNotice: string | null;
   selectedRuntime: AgentRuntimeOption;
 }
 
@@ -39,7 +46,7 @@ export function useAgentRuntimeSelection(params: {
   const updateThread = useAgentChatStore((s) => s.updateThread);
   const draftRuntimeKey = useAgentChatStore((s) => s.draftRuntimeKey);
   const setDraftRuntimeKey = useAgentChatStore((s) => s.setDraftRuntimeKey);
-  const desktopTools = useDesktopLocalTools();
+  const { tools: desktopTools } = useDesktopLocalTools();
   const [installReadiness, setInstallReadiness] =
     useState<AgentInstallReadiness | null>(null);
 
@@ -84,7 +91,9 @@ export function useAgentRuntimeSelection(params: {
     () =>
       draftRuntimeKey
         ? (catalog.options.find((option) => option.key === draftRuntimeKey) ??
-          null)
+          (isDesktopCliRuntimeKey(draftRuntimeKey)
+            ? getDesktopCliRuntimeOption(draftRuntimeKey)
+            : null))
         : null,
     [catalog, draftRuntimeKey],
   );
@@ -175,12 +184,18 @@ export function useAgentRuntimeSelection(params: {
     [activeThreadId, apiService, setDraftRuntimeKey, updateThread],
   );
 
+  const selectedRuntimeBlocker =
+    desktopTools && isDesktopCliRuntimeKey(selectedRuntime.key)
+      ? resolveDesktopCliRuntimeBlocker(selectedRuntime.key, desktopTools)
+      : null;
+
   return {
     catalog,
     hasDesktopCliRuntimes: catalog.options.some((option) =>
       isDesktopCliRuntimeKey(option.key),
     ),
     onRuntimeChange,
+    runtimeNotice: selectedRuntimeBlocker ?? catalog.localToolNotice,
     selectedRuntime,
   };
 }
