@@ -1,11 +1,20 @@
 import AgentCampaignsPage from '@pages/agents/campaigns/AgentCampaignsPage';
+import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-const mockCampaigns = [
+const campaignDefaults = {
+  organizationId: 'org-1',
+  userId: 'user-1',
+  createdAt: '2026-03-01T00:00:00Z',
+  updatedAt: '2026-03-01T00:00:00Z',
+};
+
+const mockCampaigns: AgentCampaign[] = [
   {
+    ...campaignDefaults,
     agents: ['agent-1', 'agent-2'],
     brief: 'Launch sequence',
     creditsAllocated: 1000,
@@ -19,6 +28,7 @@ const mockCampaigns = [
     status: 'active' as const,
   },
   {
+    ...campaignDefaults,
     agents: ['agent-3'],
     brief: 'Draft program',
     creditsAllocated: 500,
@@ -31,6 +41,7 @@ const mockCampaigns = [
     status: 'draft' as const,
   },
   {
+    ...campaignDefaults,
     agents: ['agent-4'],
     brief: 'Paused program',
     creditsAllocated: 800,
@@ -42,6 +53,7 @@ const mockCampaigns = [
     status: 'paused' as const,
   },
   {
+    ...campaignDefaults,
     agents: ['agent-5', 'agent-6', 'agent-7'],
     brief: 'Out of credits',
     creditsAllocated: 400,
