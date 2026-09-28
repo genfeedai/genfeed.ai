@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import {
   ButtonVariant,
   KnowledgeProcessingState,
@@ -7,7 +8,7 @@ import {
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { formatDate } from '@helpers/formatting/date/date.helper';
-import type { KnowledgeSourceDetailSheetProps } from '@props/content/knowledge-library.props';
+import type { KnowledgeSourceDetailPanelProps } from '@props/content/knowledge-library.props';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import {
@@ -17,14 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 import { PURPOSE_OPTIONS } from './knowledge-add-source-sheet';
@@ -45,8 +38,11 @@ function readUrl(
   return typeof candidate === 'string' && candidate ? candidate : null;
 }
 
-export default function KnowledgeSourceDetailSheet({
-  isOpen,
+/**
+ * The selected Knowledge source, rendered into the shell's context sidebar.
+ * The sidebar header carries the title and close; closing deselects.
+ */
+export default function KnowledgeSourceDetailPanel({
   onArchive,
   onClose,
   onMoveToSpace,
@@ -56,7 +52,7 @@ export default function KnowledgeSourceDetailSheet({
   onUpdateRefreshPolicy,
   row,
   spaces,
-}: KnowledgeSourceDetailSheetProps) {
+}: KnowledgeSourceDetailPanelProps) {
   const translate = useTranslations('pages.library.knowledge.detail');
   const translatePurpose = useTranslations('pages.library.knowledge.purpose');
   if (!row) {
@@ -74,27 +70,27 @@ export default function KnowledgeSourceDetailSheet({
   );
 
   return (
-    <Sheet
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
+    <ContextSidebarPanel
+      onClose={onClose}
+      selection={{
+        id: source.id,
+        kind: 'source',
+        // Only a row click selects a source.
+        origin: 'user',
+        subtitle: translate('captured', {
+          date: version
+            ? formatDate(version.observedAt)
+            : translate('neverCaptured'),
+          kind: source.kind,
+        }),
+        title: source.title,
       }}
-      open={isOpen}
     >
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{source.title}</SheetTitle>
-          <SheetDescription>
-            {translate('captured', {
-              date: version
-                ? formatDate(version.observedAt)
-                : translate('neverCaptured'),
-              kind: source.kind,
-            })}
-          </SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-col gap-4 py-4">
+      <div
+        className="flex flex-col gap-4 px-4 py-4"
+        data-testid="knowledge-source-detail"
+      >
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-2">
             <KnowledgeStateBadge version={version} />
             {version ? (
@@ -230,10 +226,10 @@ export default function KnowledgeSourceDetailSheet({
             ) : null}
           </Field>
         </div>
-        <SheetFooter>
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
           {isFailed ? (
             <Button
-              label={translate('retryIngestion')}
+              label={translate('retry')}
               onClick={() => {
                 void onRetry(source);
               }}
@@ -247,8 +243,8 @@ export default function KnowledgeSourceDetailSheet({
             }}
             variant={ButtonVariant.DESTRUCTIVE}
           />
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </div>
+    </ContextSidebarPanel>
   );
 }

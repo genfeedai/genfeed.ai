@@ -89,6 +89,16 @@ function getLocalToolSummary(
   return `Local CLIs: ${detected.join(', ')}`;
 }
 
+function getLocalToolNotice(
+  desktopTools?: IDesktopLocalToolReadiness | null,
+): string | null {
+  const messages = (desktopTools?.upgradesRequired ?? []).map(
+    (upgrade) => upgrade.message,
+  );
+
+  return messages.length > 0 ? messages.join(' ') : null;
+}
+
 function getProviderSummary(readiness?: AgentInstallReadiness | null): string {
   const configured = readiness?.providers.configured ?? [];
   if (configured.length === 0) {
@@ -136,19 +146,34 @@ export function buildAgentRuntimeCatalog(params: {
 
   return {
     environmentLabel: localOptions.length > 0 ? 'local' : 'cloud',
+    localToolNotice: getLocalToolNotice(params.desktopTools),
     localToolSummary: getLocalToolSummary(params.desktopTools),
     options: [autoOption, ...localOptions, ...hostedOptions],
     providerSummary: getProviderSummary(params.readiness),
   };
 }
 
+export const DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE =
+  'Checking the local CLI on this computer. Send again in a moment.';
+
+/** The picker option for a local CLI runtime, installed or not. */
+export function getDesktopCliRuntimeOption(
+  key: AgentExternalRuntimeKey,
+): AgentRuntimeOption {
+  return key === AGENT_EXTERNAL_RUNTIME_KEYS.CLAUDE_CLI
+    ? DESKTOP_CLAUDE_CLI_RUNTIME_OPTION
+    : DESKTOP_CODEX_CLI_RUNTIME_OPTION;
+}
+
 /**
- * The CLI runtime a send should use, or null for the hosted API path. Uses
- * the active thread's runtime, or the draft runtime for a new thread.
+ * The local CLI runtime the active thread (or the draft runtime for a new
+ * thread) is bound to in Desktop, or null for the hosted API path. It stays
+ * bound while the CLI is missing or outdated: sends are blocked (see
+ * `resolveDesktopCliRuntimeBlocker`) instead of silently spending Genfeed
+ * credits on the hosted runtime.
  */
 export function resolveDesktopCliRuntimeKey(params: {
   activeThreadId: string | null;
-  desktopTools?: IDesktopLocalToolReadiness | null;
   draftRuntimeKey?: string | null;
   hasDesktopBridge: boolean;
   thread?: Pick<AgentThread, 'runtimeKey'> | null;
@@ -161,10 +186,30 @@ export function resolveDesktopCliRuntimeKey(params: {
     ? params.thread?.runtimeKey
     : params.draftRuntimeKey;
 
-  return isDesktopCliRuntimeKey(key) &&
-    isDesktopCliRuntimeAvailable(key, params.desktopTools)
-    ? key
-    : null;
+  return isDesktopCliRuntimeKey(key) ? key : null;
+}
+
+/**
+ * Why a local CLI runtime cannot take a turn on this desktop, or null when it
+ * can. `desktopTools` is null when detection failed.
+ */
+export function resolveDesktopCliRuntimeBlocker(
+  key: AgentExternalRuntimeKey,
+  desktopTools: IDesktopLocalToolReadiness | null,
+): string | null {
+  if (isDesktopCliRuntimeAvailable(key, desktopTools)) {
+    return null;
+  }
+
+  const option = getDesktopCliRuntimeOption(key);
+  const upgrade = desktopTools?.upgradesRequired?.find(
+    (item) => item.key === option.provider,
+  );
+  const reason =
+    upgrade?.message ??
+    `${option.label} was not found on this computer. Install it, then restart Genfeed Desktop.`;
+
+  return `${reason} This thread runs on ${option.label}; to use Genfeed credits instead, pick a Genfeed runtime for it.`;
 }
 
 export function resolveThreadRuntimeOption(params: {
@@ -179,6 +224,11 @@ export function resolveThreadRuntimeOption(params: {
 
     if (byRuntimeKey) {
       return byRuntimeKey;
+    }
+
+    // A thread bound to a CLI that is not usable here still shows that CLI.
+    if (isDesktopCliRuntimeKey(runtimeKey)) {
+      return getDesktopCliRuntimeOption(runtimeKey);
     }
   }
 

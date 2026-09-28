@@ -22,6 +22,11 @@ export interface RegistryMediaModel {
   cost: number;
   isActive: boolean;
   isLegacy: boolean;
+  /** Dimension/duration-aware pricing (`@genfeedai/pricing` PricingType); null for flat. */
+  pricingType: string | null;
+  /** Rate `cost` scales by per megapixel or per second, when `pricingType` needs it. */
+  costPerUnit: number | null;
+  minCost: number | null;
 }
 
 export interface BuildContestantsOptions {
@@ -44,6 +49,15 @@ function resolveSupport(medium: Medium, key: string) {
   return medium === 'image'
     ? resolveImageGenerationBriefSupport(key)
     : resolveVideoGenerationBriefSupport(key);
+}
+
+function pricingOf(model: RegistryMediaModel): MediaContestant['pricing'] {
+  return {
+    cost: model.cost,
+    costPerUnit: model.costPerUnit,
+    minCost: model.minCost,
+    pricingType: model.pricingType,
+  };
 }
 
 export function buildMediaContestants(
@@ -85,6 +99,7 @@ export function buildMediaContestants(
         }),
         creditsPerOutput: model.cost,
         family,
+        pricing: pricingOf(model),
         registryKey: model.key,
         route: { kind: 'raw' },
       }),
@@ -106,6 +121,7 @@ export function buildMediaContestants(
         }),
         creditsPerOutput: model.cost,
         family,
+        pricing: pricingOf(model),
         registryKey: model.key,
         route: {
           compilerId: support.compilerId,

@@ -223,6 +223,7 @@ export function useAgentChatContainer({
   // on the user's own CLI subscription instead of the hosted API stream.
   const desktopCliChat = useDesktopCliAgentChat();
   const cancelDesktopCliTurn = desktopCliChat.cancelActiveTurn;
+  const desktopCliBlockedReason = desktopCliChat.blockedReason;
   const sendMessage = desktopCliChat.isEnabled
     ? desktopCliChat.sendMessage
     : isStreaming
@@ -512,6 +513,12 @@ export function useAgentChatContainer({
         setError('Archived threads are read-only.');
         return false;
       }
+      // A thread bound to a local CLI that cannot run keeps the draft and
+      // never falls back to the hosted runtime.
+      if (desktopCliBlockedReason) {
+        setError(desktopCliBlockedReason);
+        return false;
+      }
       const liveState = useAgentChatStore.getState();
       const shouldQueueFollowUp =
         Boolean(activeUiActionRef.current) ||
@@ -567,6 +574,7 @@ export function useAgentChatContainer({
     },
     [
       sendAgentMode,
+      desktopCliBlockedReason,
       followLatestTurn,
       followUpQueue,
       isReadOnly,

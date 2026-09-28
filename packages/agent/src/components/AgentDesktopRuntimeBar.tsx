@@ -10,12 +10,14 @@ interface AgentDesktopRuntimeBarProps {
 
 /**
  * Composer runtime picker shown in Genfeed Desktop when a local Claude Code
- * or Codex CLI is installed, with a plain statement of who pays for the turn.
+ * or Codex CLI is installed, with a plain statement of who pays for the turn
+ * and how to update a CLI too old to run turns.
  */
 export function AgentDesktopRuntimeBar({
   selection,
 }: AgentDesktopRuntimeBarProps): ReactElement {
-  const { catalog, onRuntimeChange, selectedRuntime } = selection;
+  const { catalog, onRuntimeChange, runtimeNotice, selectedRuntime } =
+    selection;
 
   return (
     <div
@@ -27,7 +29,7 @@ export function AgentDesktopRuntimeBar({
         localToolSummary={catalog.localToolSummary}
         options={catalog.options}
         providerSummary={catalog.providerSummary}
-        selectedRuntimeKey={selectedRuntime.key}
+        selectedRuntime={selectedRuntime}
         onRuntimeChange={onRuntimeChange}
       />
       <p
@@ -39,6 +41,14 @@ export function AgentDesktopRuntimeBar({
       >
         {selectedRuntime.hint ?? 'Runs on Genfeed — uses Genfeed credits'}
       </p>
+      {runtimeNotice ? (
+        <p
+          className="min-w-0 text-2xs text-warning"
+          data-testid="agent-desktop-runtime-notice"
+        >
+          {runtimeNotice}
+        </p>
+      ) : null}
     </div>
   );
 }

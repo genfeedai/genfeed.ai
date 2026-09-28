@@ -25,8 +25,11 @@ import { Button } from '@ui/primitives/button';
 import { Download, ExternalLink, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
+  createContext,
   type ReactNode,
+  use,
   useCallback,
   useEffect,
   useId,
@@ -47,6 +50,9 @@ import {
   type RestoredAnalyticsSurfaceState,
   restoreAnalyticsSurfaceState,
 } from './analytics-work-surface-state';
+
+/** Opens the export for the visible query, or `null` when none applies. */
+const AnalyticsScopedExportContext = createContext<(() => void) | null>(null);
 
 function buildHref(pathname: string, searchParams: URLSearchParams): string {
   const query = searchParams.toString();
@@ -92,13 +98,11 @@ function AnalyticsComposerQueryChip({
 
 function AnalyticsInspector({
   canonicalHref,
-  onOpenExport,
   reference,
   restoredState,
   scopeLabel,
 }: {
   readonly canonicalHref: string;
-  readonly onOpenExport: () => void;
   readonly reference: AnalyticsQueryReference | null;
   readonly restoredState: RestoredAnalyticsSurfaceState;
   readonly scopeLabel: string;
@@ -219,17 +223,6 @@ function AnalyticsInspector({
       </section>
 
       <div className="grid gap-2">
-        {isExportAvailable ? (
-          <Button
-            icon={<Download aria-hidden="true" className="size-4" />}
-            onClick={onOpenExport}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            Export scoped data
-          </Button>
-        ) : null}
         <Button
           asChild
           size={ButtonSize.SM}
@@ -264,6 +257,7 @@ function AnalyticsWorkSurfaceBridge({
   const { brands, organizationId } = useBrand();
   const { brandSlug, orgSlug } = useOrgUrl();
   const { openExport } = useExportModal();
+  const translateExport = useTranslations('pages.analytics.scopedExport');
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -364,13 +358,13 @@ function AnalyticsWorkSurfaceBridge({
           startDate: queryReference.dateRange.startDate,
         });
         downloadAnalyticsExport(data, format);
-        NotificationsService.getInstance().success('Scoped analytics exported');
+        NotificationsService.getInstance().success(translateExport('success'));
       } catch (error) {
         logger.error('Scoped analytics export failed', { error });
-        NotificationsService.getInstance().error('Analytics export');
+        NotificationsService.getInstance().error(translateExport('error'));
       }
     },
-    [getAnalyticsService, queryReference],
+    [getAnalyticsService, queryReference, translateExport],
   );
   const handleOpenExport = useCallback(() => {
     openExport({ onExport: handleExport });
@@ -385,7 +379,6 @@ function AnalyticsWorkSurfaceBridge({
       inspectorContent: (
         <AnalyticsInspector
           canonicalHref={canonicalHref}
-          onOpenExport={handleOpenExport}
           reference={queryReference}
           restoredState={restoredState}
           scopeLabel={scopeLabel}
@@ -394,18 +387,48 @@ function AnalyticsWorkSurfaceBridge({
       key: `analytics:${restoredState.normalizedRoute}`,
       surfaceKey: 'analytics',
     }),
-    [
-      canonicalHref,
-      handleOpenExport,
-      queryReference,
-      restoredState,
-      routeBrand,
-      scopeLabel,
-    ],
+    [canonicalHref, queryReference, restoredState, routeBrand, scopeLabel],
   );
   useAnalyticsWorkspaceSurfaceAdapter(adapter);
 
-  return children;
+  const isExportAvailable =
+    queryReference?.provenance.source === 'genfeed-analytics-api' &&
+    restoredState.descriptor.exportKind === 'published-posts';
+  const scopedExport = useMemo(
+    () => (isExportAvailable ? handleOpenExport : null),
+    [handleOpenExport, isExportAvailable],
+  );
+
+  return (
+    <AnalyticsScopedExportContext value={scopedExport}>
+      {children}
+    </AnalyticsScopedExportContext>
+  );
+}
+
+/**
+ * Exports exactly the query the page shows. Lives in the analytics toolbar;
+ * renders nothing where the visible data has no authoritative export.
+ */
+export function AnalyticsScopedExportButton() {
+  const translate = useTranslations('pages.analytics.scopedExport');
+  const openScopedExport = use(AnalyticsScopedExportContext);
+
+  if (!openScopedExport) {
+    return null;
+  }
+
+  return (
+    <Button
+      icon={<Download aria-hidden="true" className="size-4" />}
+      onClick={openScopedExport}
+      size={ButtonSize.SM}
+      variant={ButtonVariant.SECONDARY}
+      withWrapper={false}
+    >
+      {translate('label')}
+    </Button>
+  );
 }
 
 export default function AnalyticsWorkSurfaceAdapter({

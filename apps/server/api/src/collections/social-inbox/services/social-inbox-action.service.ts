@@ -301,8 +301,7 @@ export class SocialInboxActionService implements OnModuleInit {
     );
 
     const data: Prisma.SocialConversationUpdateInput = {};
-    // Resolving/archiving reads the thread through the view this request
-    // loaded; replies ingested after it stay unread (see markReadThrough).
+    // Resolve/archive reads through this view; later replies stay unread.
     let isReadThrough = false;
 
     if (patch.status !== undefined) {
@@ -331,8 +330,7 @@ export class SocialInboxActionService implements OnModuleInit {
       where: { id: conversationId },
     });
 
-    // Shared with mark-read (markReadThrough); it emits its own realtime
-    // update when it clears anything.
+    // Shared with mark-read (markReadThrough), which emits its own update.
     if (isReadThrough && updated.unreadCount > 0) {
       return this.readStateService.markReadThrough(
         scope,

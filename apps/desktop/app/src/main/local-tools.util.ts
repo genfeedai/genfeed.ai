@@ -1,4 +1,9 @@
 import { spawnSync } from 'node:child_process';
+import type { IDesktopLocalToolUpgrade } from '@genfeedai/contracts/desktop';
+import {
+  CODEX_IGNORE_USER_CONFIG_FLAG,
+  CODEX_UPGRADE_COMMAND,
+} from './cli-agent-runtime.constants';
 
 export interface DesktopLocalToolReadiness {
   anyDetected: boolean;
@@ -6,7 +11,12 @@ export interface DesktopLocalToolReadiness {
   codex: boolean;
   detected: string[];
   grok: boolean;
+  upgradesRequired: IDesktopLocalToolUpgrade[];
 }
+
+const CODEX_HELP_TIMEOUT_MS = 10_000;
+
+export const CODEX_UPGRADE_MESSAGE = `This Codex CLI is too old to run Genfeed agent turns. Update it with \`${CODEX_UPGRADE_COMMAND}\`, then restart Genfeed Desktop.`;
 
 const DESKTOP_LOCAL_TOOL_COMMANDS = [
   { command: 'claude', key: 'claude' },
@@ -55,13 +65,41 @@ export function isDesktopLocalToolCommandAvailable(
   return result.status === 0;
 }
 
+/**
+ * Genfeed agent turns run `codex exec` with flags that isolate it from the
+ * user's own Codex config. Older CLIs reject them during argument parsing, so
+ * the installed CLI must advertise them before Codex counts as ready.
+ */
+export function isDesktopCodexAgentRuntimeSupported(
+  spawnCommand: typeof spawnSync = spawnSync,
+): boolean {
+  const result = spawnCommand('codex', ['exec', '--help'], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: buildDesktopToolPath(),
+    },
+    shell: false,
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: CODEX_HELP_TIMEOUT_MS,
+  });
+
+  if (result.error || result.status !== 0) {
+    return false;
+  }
+
+  return String(result.stdout ?? '').includes(CODEX_IGNORE_USER_CONFIG_FLAG);
+}
+
 export function detectDesktopLocalTools(
   isCommandAvailable: (
     command: string,
   ) => boolean = isDesktopLocalToolCommandAvailable,
+  isCodexAgentRuntimeSupported: () => boolean = isDesktopCodexAgentRuntimeSupported,
 ): DesktopLocalToolReadiness {
   const claude = isCommandAvailable('claude');
-  const codex = isCommandAvailable('codex');
+  const isCodexInstalled = isCommandAvailable('codex');
+  const codex = isCodexInstalled && isCodexAgentRuntimeSupported();
   const grok = isCommandAvailable('grok');
   const detected = DESKTOP_LOCAL_TOOL_COMMANDS.flatMap(({ key }) => {
     if (key === 'claude' && claude) return [key];
@@ -76,5 +114,9 @@ export function detectDesktopLocalTools(
     codex,
     detected,
     grok,
+    upgradesRequired:
+      isCodexInstalled && !codex
+        ? [{ key: 'codex', message: CODEX_UPGRADE_MESSAGE }]
+        : [],
   };
 }

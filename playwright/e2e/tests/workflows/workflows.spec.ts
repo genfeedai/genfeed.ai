@@ -62,12 +62,16 @@ test.describe('Workflows', () => {
       'workflow-editor-section-actions',
     );
     await expect(editorActions).toBeVisible();
-    const workspaceInspector = authenticatedPage.getByRole('complementary', {
-      name: 'Workspace inspector',
+    // The workflow's context sidebar starts closed; the topbar opens it.
+    const toggle = authenticatedPage.getByTestId('topbar-inspector-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    const contextSidebar = authenticatedPage.getByRole('complementary', {
+      name: 'Selection details',
     });
-    await expect(workspaceInspector).toBeVisible();
+    await expect(contextSidebar).toBeVisible();
     await expect(
-      workspaceInspector.getByText(workflow.name, { exact: true }),
+      contextSidebar.getByText(workflow.name, { exact: true }),
     ).toBeVisible();
     await expect(
       editorActions.getByRole('button', { name: 'Publish' }),

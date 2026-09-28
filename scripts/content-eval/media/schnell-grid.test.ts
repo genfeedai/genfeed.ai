@@ -28,6 +28,7 @@ function contestant(isCompiled: boolean): MediaContestant {
     },
     creditsPerOutput: 1,
     family: 'black-forest-labs',
+    pricing: { cost: 1, costPerUnit: null, minCost: null, pricingType: null },
     registryKey: SCHNELL_ABLATION_MODEL_KEY,
     route: isCompiled
       ? {
