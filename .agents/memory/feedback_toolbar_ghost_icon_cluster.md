@@ -8,9 +8,13 @@ type: feedback
 
 Labeled and bordered toolbar controls (filters, search, sort, segmented
 view toggle, primary Generate) come first. Icon-only actions (refresh,
-upload) are **ghost**, **32×32**, **14px** Lucide (`SHELL_ICON_*`), and
-grouped in one cluster after those controls. Do not mix `secondary`
-bordered icon buttons next to `ghost` refresh.
+upload) are **ghost** and grouped in one cluster after those controls.
+Do not mix `secondary` bordered icon buttons next to `ghost` refresh.
+
+Sizing itself is no longer a judgment call: `packages/ui/src/components/constants/shell-chrome.constant.ts`
+defines `SHELL_ICON_CLASS` (14px, chrome tier) vs `CONTENT_ICON_CLASS` (16px,
+content tier), with its own test. Use those constants instead of restating this
+rule's ordering intent as a sizing rule.
 
 **Why:** Library had a 24px Upload on `secondary` beside a 14px ghost
 Refresh, so some squares had borders and the glyphs did not match.

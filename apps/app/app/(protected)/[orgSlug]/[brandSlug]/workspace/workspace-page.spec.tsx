@@ -7,6 +7,7 @@ import { WorkflowExecutionsService } from '@services/automation/workflow-executi
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -15,7 +16,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
+import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
 
 vi.mock('next-intl', async () => {
@@ -258,7 +259,9 @@ function buildTask(overrides: Record<string, unknown> = {}) {
 }
 
 async function openTaskComposerFromSidebar() {
-  fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
+  act(() => {
+    dispatchOpenTaskComposer();
+  });
   expect(
     await screen.findByText(
       'New Task',
@@ -403,6 +406,16 @@ describe('WorkspacePageContent', () => {
       'aria-busy',
       'false',
     );
+  });
+
+  it('opens the task composer for a sidebar request made before the page mounted', async () => {
+    dispatchOpenTaskComposer();
+
+    render(<WorkspacePageContent section="overview" />);
+
+    expect(
+      await screen.findByText('New Task', {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
   });
 
   it('opens the task composer modal when the sidebar requests a new task', async () => {

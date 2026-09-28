@@ -12,8 +12,8 @@ vi.mock('@services/core/clipboard.service', () => ({
 
 const logError = vi.fn();
 
-vi.mock('@services/core/logger.service', () => ({
-  logger: { error: (...args: unknown[]) => logError(...args) },
+vi.mock('@services/core/deferred-logger', () => ({
+  deferredLogger: { error: (...args: unknown[]) => logError(...args) },
 }));
 
 beforeEach(() => {

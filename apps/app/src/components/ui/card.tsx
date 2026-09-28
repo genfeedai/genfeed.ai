@@ -5,7 +5,7 @@ import type * as React from 'react';
 
 /**
  * shadcn-API surface that shares the canonical card chrome from
- * packages/ui (rounded-card = near-sharp 2px + inset hairline border).
+ * packages/ui (rounded-card = square 0px + inset hairline border).
  * Kept only as a Card/CardContent composition shim for the few public
  * pages that use that API; styling is NOT a second card system.
  */

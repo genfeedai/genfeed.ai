@@ -82,7 +82,8 @@ export class CreateSubscriptionDto {
   readonly customerId!: string;
 
   // admin user id
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({
     description: 'The admin user ID who created the subscription',
     required: true,

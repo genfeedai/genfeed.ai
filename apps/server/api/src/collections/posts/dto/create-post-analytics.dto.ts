@@ -1,6 +1,13 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsDate, IsNumber, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreatePostAnalyticsDto {
   @ApiProperty({
@@ -19,7 +26,8 @@ export class CreatePostAnalyticsDto {
   @ApiProperty({
     description: 'User ID',
   })
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   userId!: string;
 
   @ApiProperty({

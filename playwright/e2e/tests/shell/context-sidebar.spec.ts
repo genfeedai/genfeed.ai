@@ -87,6 +87,31 @@ test.describe('Context sidebar — selection driven', () => {
     await mockStudioGallery(authenticatedPage);
   });
 
+  test('shows no right column and no toggle while nothing is selected', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await openStudioList(authenticatedPage);
+
+    await expect(
+      authenticatedPage.getByRole('complementary', {
+        name: 'Selection details',
+      }),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByTestId('topbar-inspector-toggle'),
+    ).toHaveCount(0);
+    // The legacy agent inspector and its tabs are gone.
+    await expect(
+      authenticatedPage.getByRole('complementary', {
+        name: 'Workspace inspector',
+      }),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByRole('tab', { exact: true, name: 'Chat' }),
+    ).toHaveCount(0);
+  });
+
   test('opens on asset selection and closes on deselect', async ({
     authenticatedPage,
   }) => {
@@ -131,6 +156,30 @@ test.describe('Context sidebar — selection driven', () => {
     ).toHaveCount(0);
     await expect(card).toHaveAttribute('data-selected', 'false');
     await expectNoErrorOverlay(authenticatedPage);
+  });
+
+  test('hands the selected asset to the agent dock without leaving Studio', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await openStudioList(authenticatedPage);
+    const studioUrl = authenticatedPage.url();
+
+    await authenticatedPage
+      .getByTestId(`studio-asset-${ASSET_ID}`)
+      .getByText(ASSET_PROMPT)
+      .click();
+    await authenticatedPage
+      .getByRole('group', { name: 'Asset actions' })
+      .getByRole('button', { name: 'Ask Agent about this' })
+      .click();
+
+    const dock = authenticatedPage.getByRole('region', { name: 'Agent' });
+    await expect(dock).toBeVisible();
+    await expect(
+      dock.getByLabel(`Referenced content: ${ASSET_PROMPT}`),
+    ).toBeVisible();
+    expect(authenticatedPage.url()).toBe(studioUrl);
   });
 
   test('keeps the selection while the topbar collapses and reopens it', async ({

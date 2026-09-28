@@ -483,7 +483,7 @@ async function main(): Promise<void> {
       const ownerUserId =
         args.userId ||
         ((brand as Record<string, unknown>).userId as string | undefined);
-      if (!ownerUserId || !isEntityId(ownerUserId)) {
+      if (!ownerUserId?.trim()) {
         logger.warn(
           `Skipping brand ${brand.id} (${(brand as Record<string, unknown>).label}) because no valid owner userId is available`,
         );

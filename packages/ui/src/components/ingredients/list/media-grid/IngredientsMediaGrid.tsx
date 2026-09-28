@@ -77,7 +77,7 @@ function IngredientsMediaGridSkeleton({
       {Array.from({ length: 12 }).map((_, index) => (
         <Skeleton
           key={index}
-          className="mb-1 aspect-[4/5] w-full break-inside-avoid rounded-lg"
+          className="mb-1 aspect-[4/5] w-full break-inside-avoid rounded-card"
           variant="rounded"
         />
       ))}

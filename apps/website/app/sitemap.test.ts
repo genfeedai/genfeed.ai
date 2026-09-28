@@ -54,6 +54,16 @@ describe('website sitemap', () => {
     expect(urls.has('https://genfeed.ai/experts')).toBe(true);
   });
 
+  it('keeps the developer landing page discoverable when the article API is unavailable', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+
+    expect(
+      routes.find((route) => route.url === 'https://genfeed.ai/developers'),
+    ).toMatchObject({ changeFrequency: 'weekly', priority: 0.8 });
+  });
+
   it('merges API articles with launch fallbacks without duplicate URLs', async () => {
     findAllPublicArticles.mockResolvedValue([
       {

@@ -2345,14 +2345,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/captions/videos-captions.controller.spec.ts",
-      "fingerprint": "dcef470ce1d089d47638",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 2,
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
@@ -3070,22 +3062,6 @@
       "file": "apps/server/api/src/helpers/utils/collection-filter/collection-filter.util.spec.ts",
       "fingerprint": "d7eb935ea57159a2cdad",
       "message": "'onlyEnd.createdAt' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "8d53b5d1e7422823def0",
-      "message": "Argument of type '{ id: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'organizationId' is missing in type '{ id: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "af5e929b6f08988ce69d",
-      "message": "Argument of type '{ organizationId: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'id' is missing in type '{ organizationId: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
       "workspace": "api"
     },
     {
@@ -6953,22 +6929,6 @@
       "workspace": "app"
     },
     {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/app/src/lib/workspace-shell/workspace-shell-transition.util.test.ts",
-      "fingerprint": "433349bf84e8452bcb8c",
-      "message": "Type '\"shell-preview\"' is not assignable to type '\"library_picker\" | \"notifications\" | \"shell_preview\" | \"workflow_picker\" | null'. Did you mean '\"shell_preview\"'?",
-      "workspace": "app"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/app/src/lib/workspace-shell/workspace-shell-transition.util.test.ts",
-      "fingerprint": "b9a368382e70f0f10041",
-      "message": "Type '\"shell-preview\"' is not assignable to type '\"library_picker\" | \"notifications\" | \"shell_preview\" | \"workflow_picker\" | null'. Did you mean '\"shell_preview\"'?",
-      "workspace": "app"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/tests/post-detail-context-handoff.test.tsx",
@@ -9243,22 +9203,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "packages/agent/src/components/AgentThreadContextPanel.tsx",
-      "fingerprint": "adf5352ff72a5f9f0476",
-      "message": "Cannot find module '@genfeedai/models/organization/brand.model' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentThreadContextPanel.tsx",
-      "fingerprint": "f0f2cba4c88ecb823a62",
-      "message": "Cannot find module '@genfeedai/props/ui/agent/agent-thread-context-panel.props' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "packages/agent/src/components/AgentWorkObjectEditor.tsx",
       "fingerprint": "e7ba11aeb3282a3eaf25",
       "message": "Cannot find module '@genfeedai/props/ui/agent/agent-work-objects.props' or its corresponding type declarations.",
@@ -11478,14 +11422,6 @@
       "file": "packages/pages/activities/activities-list.tsx",
       "fingerprint": "a667509286102e79b6dc",
       "message": "Cannot find module '@providers/global-modals/global-modals.provider' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/AgentCampaignsPage.tsx",
-      "fingerprint": "c107aff12bd61292261b",
-      "message": "Parameter 'campaign' implicitly has an 'any' type.",
       "workspace": "pages"
     },
     {
@@ -14692,8 +14628,8 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/display/error-boundary/ErrorBoundary.tsx",
-      "fingerprint": "0c57a2f2aca347517972",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "9db2e4b22f3caabb1278",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -15732,16 +15668,16 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/error/ErrorBoundary.tsx",
-      "fingerprint": "a770907aaf4d312a5c1e",
-      "message": "Cannot find module '@genfeedai/props/ui/feedback/error-boundary.props' or its corresponding type declarations.",
+      "fingerprint": "2ee7b92574d2befd5f7a",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/error/ErrorBoundary.tsx",
-      "fingerprint": "ebaadc1e66c8552bcaba",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "a770907aaf4d312a5c1e",
+      "message": "Cannot find module '@genfeedai/props/ui/feedback/error-boundary.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -16620,8 +16556,8 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/layout/container/Container.tsx",
-      "fingerprint": "90275b058381f166b14c",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "6ccf45ca07b7f19d6705",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {

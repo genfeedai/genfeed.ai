@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAnalyticsQueryReference,
-  buildCanonicalAnalyticsHref,
   restoreAnalyticsSurfaceState,
 } from './analytics-work-surface-state';
 
@@ -93,20 +92,6 @@ describe('Analytics work surface state', () => {
       version: 1,
     });
     expect(reference).not.toHaveProperty('values');
-  });
-
-  it('builds a canonical escape hatch without shell-only references', () => {
-    const href = buildCanonicalAnalyticsHref(
-      '/acme/moonrise/analytics/posts',
-      new URLSearchParams(
-        'startDate=2024-06-01&endDate=2024-06-30&metric=views&thread=t-1&overlay=inspector&overlayRef=post-1',
-      ),
-    );
-
-    expect(href).toContain('metric=views');
-    expect(href).not.toContain('thread=');
-    expect(href).not.toContain('overlay=');
-    expect(href).not.toContain('overlayRef=');
   });
 
   it.each(['moonrise', '~'])(

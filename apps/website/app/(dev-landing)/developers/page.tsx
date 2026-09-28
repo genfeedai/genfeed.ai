@@ -3,7 +3,7 @@ import DevelopersLandingPage from '@web-components/landing/DevelopersLandingPage
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Genfeed for Developers',
-  'Open-source content infrastructure for developers. Generate, review, and publish brand-native content on every channel from an MCP server, workflows, or your own self-hosted stack.',
+  'Build with open-source content infrastructure: generate, review, and publish on-brand content through MCP, workflows, or your self-hosted Genfeed stack.',
   '/developers',
 );
 

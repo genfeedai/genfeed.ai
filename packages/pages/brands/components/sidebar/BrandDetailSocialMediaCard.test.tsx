@@ -501,7 +501,7 @@ describe('BrandDetailSocialMediaCard', () => {
     });
   });
 
-  it('opens the posting times editor for an account from the accounts table', () => {
+  it('opens account settings on posting times from the accounts table', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -525,11 +525,44 @@ describe('BrandDetailSocialMediaCard', () => {
     })[0];
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Posting times' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
 
+    expect(
+      screen.getByRole('heading', { name: 'Genfeed settings' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
       'credential-1',
     );
+    expect(screen.getByRole('tab', { name: 'Import' })).toBeInTheDocument();
+  });
+
+  it('shows no section tabs for an account with posting times only', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            name: 'Genfeed',
+            platform: CredentialPlatform.FACEBOOK,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    const moreActionsTrigger = screen.getAllByRole('button', {
+      name: 'More actions for Genfeed',
+    })[0];
+    fireEvent.pointerDown(moreActionsTrigger);
+    fireEvent.click(moreActionsTrigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
+
+    expect(screen.getByTestId('posting-times-editor')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Import' })).toBeNull();
   });
 
   it('opens the Connect account modal and starts oauth for a chosen platform', async () => {
@@ -547,8 +580,17 @@ describe('BrandDetailSocialMediaCard', () => {
     );
     fireEvent.click(screen.getByText('Instagram'));
 
+    expect(postConnect).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('heading', { name: 'Import existing posts?' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Import posts' }));
+
     await waitFor(() => {
-      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        isHistoryImportRequested: true,
+      });
     });
   });
 
@@ -693,10 +735,14 @@ describe('BrandDetailSocialMediaCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /connect/i }));
     fireEvent.click(screen.getByRole('button', { name: /instagram/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(getToken).toHaveBeenCalled();
-      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        isHistoryImportRequested: false,
+      });
       expect(openSpy).toHaveBeenCalledWith(
         'https://oauth.example/connect',
         '_self',

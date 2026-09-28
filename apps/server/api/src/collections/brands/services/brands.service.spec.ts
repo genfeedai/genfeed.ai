@@ -1799,6 +1799,28 @@ describe('BrandsService', () => {
    * independent global-unique column, so reusing the org's slug without
    * checking it against the Brand table deterministically threw P2002.
    */
+  describe('isSlugAvailable', () => {
+    it('is free when no other brand holds the slug', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.isSlugAvailable('vincent-on-ai', 'brand_1'),
+      ).resolves.toBe(true);
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: { not: 'brand_1' }, slug: 'vincent-on-ai' },
+      });
+    });
+
+    it('is taken when any other brand holds it, deleted or in another organization', async () => {
+      delegate.findFirst.mockResolvedValue({ id: 'brand_deleted' });
+
+      await expect(service.isSlugAvailable('taken', 'brand_1')).resolves.toBe(
+        false,
+      );
+    });
+  });
+
   describe('generateUniqueSlug', () => {
     it('returns the base slug when unused', async () => {
       delegate.findFirst.mockResolvedValue(null);

@@ -5,7 +5,7 @@ import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
-import { logger } from '@genfeedai/services/core/logger.service';
+import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -115,7 +115,7 @@ export default function Container({
 
     const previous = previousModuleChromeRef.current;
     if (previous !== null && previous !== usesModuleLocalChrome) {
-      logger.warn(
+      deferredLogger.warn(
         "Container's chrome mode changed between renders (classic ↔ SectionTopbar), which reflows the page. If this page's loading/error/loaded branches populate `right`/`tabs`/`headerTabs`/`leading` differently, pass the same `moduleChrome` value on every branch instead of leaving Container to infer it.",
         { next: usesModuleLocalChrome, previous },
       );

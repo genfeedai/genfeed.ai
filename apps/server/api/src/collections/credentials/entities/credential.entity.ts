@@ -28,6 +28,7 @@ export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly label: Credential['label'];
   declare readonly description: Credential['description'];
   declare readonly postingTimes: Credential['postingTimes'];
+  declare readonly isHistoryImportRequested: Credential['isHistoryImportRequested'];
 
   declare readonly warmupState: Credential['warmupState'];
   declare readonly warmupScore: Credential['warmupScore'];

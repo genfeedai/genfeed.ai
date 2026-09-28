@@ -13,15 +13,6 @@ const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
   value: '/acme/brand/workspace',
 }));
-const workspaceInspectorState = vi.hoisted(() => ({
-  value: null as {
-    isMobileOpen: boolean;
-    isOpen: boolean;
-    isRegistered: boolean;
-    setIsMobileOpen: (isMobileOpen: boolean) => void;
-    toggle: () => void;
-  } | null,
-}));
 const originalLocation = window.location;
 
 // The constants barrel is mocked below, so the catalog-backed stub cannot load.
@@ -149,10 +140,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
-  useWorkspaceInspector: () => workspaceInspectorState.value,
-}));
-
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   default: (props: {
     brandId?: string;
@@ -233,7 +220,6 @@ describe('AppProtectedBrandSwitcher', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
-    workspaceInspectorState.value = null;
     brandSwitcherSpy.mockClear();
     brandContextState.brands = [
       {

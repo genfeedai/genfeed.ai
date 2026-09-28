@@ -50,7 +50,7 @@ describe('workspace shell telemetry privacy contract', () => {
   });
 
   it('emits content-free safety, performance, and error properties', () => {
-    captureWorkspaceShellRestorationFailure('invalid_overlay_reference');
+    captureWorkspaceShellRestorationFailure('invalid_overlay');
     captureWorkspaceShellScopeCorrection('failure');
     captureWorkspaceShellPerformance({
       deviceClass: 'mobile',

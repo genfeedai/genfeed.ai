@@ -1,4 +1,3 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AgentThreadMode,
   GenerationPriority,
@@ -17,6 +16,7 @@ import {
   IsEmail,
   IsEnum,
   IsIn,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -26,7 +26,8 @@ import {
 } from 'class-validator';
 
 export class CreateSettingDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({
     description: 'The user ID that owns these settings',
     required: true,

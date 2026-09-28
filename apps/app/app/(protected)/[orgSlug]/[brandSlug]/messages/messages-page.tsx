@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useAgentChatStore } from '@genfeedai/agent';
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -119,12 +120,13 @@ function MessageBubble({
   onToggleReference,
 }: {
   busyAction: string | null;
-  canAttachReference: boolean;
-  isReferenced: boolean;
+  canAttachReference?: boolean;
+  isReferenced?: boolean;
   message: SocialMessageModel;
   onApproveDraft: (messageId: string) => void;
   onRejectDraft: (messageId: string) => void;
-  onToggleReference: (message: SocialMessageModel) => void;
+  /** Only offered where an agent conversation can consume the reference. */
+  onToggleReference?: (message: SocialMessageModel) => void;
 }) {
   const translate = useTranslations('common.messages');
   const isOutbound = message.direction === 'outbound';
@@ -188,23 +190,27 @@ function MessageBubble({
             </Button>
           </div>
         ) : null}
-        <div className="mt-2 flex justify-end border-t border-border pt-2">
-          <Button
-            ariaLabel={
-              isReferenced
-                ? 'Remove message from agent context'
-                : 'Attach message to agent context'
-            }
-            icon={<LinkIcon className="size-3.5" />}
-            isDisabled={!canAttachReference}
-            onClick={() => onToggleReference(message)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {isReferenced ? 'Referenced' : 'Reference'}
-          </Button>
-        </div>
+        {onToggleReference ? (
+          <div className="mt-2 flex justify-end border-t border-border pt-2">
+            <Button
+              ariaLabel={
+                isReferenced
+                  ? translate('agent.removeMessage')
+                  : translate('agent.attachMessage')
+              }
+              icon={<LinkIcon className="size-3.5" />}
+              isDisabled={!canAttachReference}
+              onClick={() => onToggleReference(message)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              {isReferenced
+                ? translate('agent.attached')
+                : translate('agent.askMessage')}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -214,6 +220,7 @@ export default function MessagesPage() {
   const translate = useTranslations('common.messages');
   const { brandSlug, href } = useOrgUrl();
   const {
+    brandId,
     brands,
     credentialsLoading,
     isBrandScopeResolved,
@@ -359,10 +366,15 @@ export default function MessagesPage() {
     [setSelectedId, updateSelectedConversationParam],
   );
 
+  // Social references ride the dock conversation: an existing thread must be
+  // bound to the conversation's brand; a new one binds to the selected brand.
+  const agentDock = useAgentDock();
+  const isAgentDockAvailable = agentDock?.isAvailable === true;
+  const referenceBrandId = activeThreadId ? activeThread?.brandId : brandId;
   const canAttachReferences = Boolean(
-    activeThreadId &&
-      activeThread?.brandId &&
-      selectedConversation?.brandId === activeThread.brandId,
+    isAgentDockAvailable &&
+      referenceBrandId &&
+      selectedConversation?.brandId === referenceBrandId,
   );
 
   const {
@@ -418,13 +430,31 @@ export default function MessagesPage() {
     return href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_NEW}?${params.toString()}`);
   }, [href, selectedConversation]);
 
-  useMessagesSurfaceAdapter({
-    canAttachReferences,
+  useMessagesSurfaceAdapter({ references });
+
+  // Asking attaches the typed selector (never the message body) and opens the
+  // dock; asking about something already attached only reopens the dock.
+  const openAgentDock = agentDock?.open;
+  const handleAskAgentAboutConversation = useCallback(() => {
+    if (!isConversationReferenced) {
+      handleToggleConversationReference();
+    }
+    openAgentDock?.();
+  }, [
+    handleToggleConversationReference,
     isConversationReferenced,
-    onToggleConversationReference: handleToggleConversationReference,
-    references,
-    selectedConversation,
-  });
+    openAgentDock,
+  ]);
+  const handleAskAgentAboutMessage = useCallback(
+    (message: SocialMessageModel) => {
+      const isAttaching = !isMessageReferenced(message);
+      handleToggleMessageReference(message);
+      if (isAttaching) {
+        openAgentDock?.();
+      }
+    },
+    [handleToggleMessageReference, isMessageReferenced, openAgentDock],
+  );
 
   // A DM has no post or comment behind it, so the thread reads top-to-bottom
   // on its own instead of hanging off a source-content anchor.
@@ -608,6 +638,18 @@ export default function MessagesPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {isAgentDockAvailable ? (
+                      <Button
+                        data-testid="messages-ask-agent"
+                        icon={<Sparkles className="size-4" />}
+                        isDisabled={!canAttachReferences}
+                        onClick={handleAskAgentAboutConversation}
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.GHOST}
+                      >
+                        {translate('agent.askConversation')}
+                      </Button>
+                    ) : null}
                     <Button
                       asChild
                       variant={ButtonVariant.GHOST}
@@ -684,7 +726,11 @@ export default function MessagesPage() {
                       message={message}
                       onApproveDraft={handleApproveDraft}
                       onRejectDraft={handleRejectDraft}
-                      onToggleReference={handleToggleMessageReference}
+                      onToggleReference={
+                        isAgentDockAvailable
+                          ? handleAskAgentAboutMessage
+                          : undefined
+                      }
                     />
                   ))
                 )}

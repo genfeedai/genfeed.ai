@@ -16,14 +16,12 @@ import type {
 import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { formatApiDate } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useExportModal } from '@providers/global-modals/global-modals.provider';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
-import { Download, ExternalLink, LinkIcon } from 'lucide-react';
-import Link from 'next/link';
+import { Download, LinkIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -32,7 +30,6 @@ import {
   use,
   useCallback,
   useEffect,
-  useId,
   useMemo,
   useRef,
 } from 'react';
@@ -44,9 +41,7 @@ import {
 import {
   ANALYTICS_DATE_SEARCH_KEYS,
   ANALYTICS_FILTER_SEARCH_KEYS,
-  ANALYTICS_METRIC_DEFINITIONS,
   buildAnalyticsQueryReference,
-  buildCanonicalAnalyticsHref,
   type RestoredAnalyticsSurfaceState,
   restoreAnalyticsSurfaceState,
 } from './analytics-work-surface-state';
@@ -96,154 +91,6 @@ function AnalyticsComposerQueryChip({
   );
 }
 
-function AnalyticsInspector({
-  canonicalHref,
-  reference,
-  restoredState,
-  scopeLabel,
-}: {
-  readonly canonicalHref: string;
-  readonly reference: AnalyticsQueryReference | null;
-  readonly restoredState: RestoredAnalyticsSurfaceState;
-  readonly scopeLabel: string;
-}) {
-  const visibleQueryId = useId();
-  const metricDefinitionsId = useId();
-  const provenanceId = useId();
-  const { descriptor } = restoredState;
-  const filterEntries = reference
-    ? Object.entries(reference.filters).filter((entry) => Boolean(entry[1]))
-    : [];
-  const isExportAvailable =
-    reference?.provenance.source === 'genfeed-analytics-api' &&
-    descriptor.exportKind === 'published-posts';
-
-  return (
-    <div className="space-y-4" data-testid="analytics-context-inspector">
-      <section
-        aria-labelledby={visibleQueryId}
-        className="gen-shell-empty-state space-y-3 p-4"
-      >
-        <div>
-          <h3
-            className="text-sm font-medium text-foreground"
-            id={visibleQueryId}
-          >
-            Visible query
-          </h3>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Server-hydrated Analytics data remains authoritative.
-          </p>
-        </div>
-        <dl className="space-y-2 text-xs">
-          <div>
-            <dt className="text-muted-foreground">Scope</dt>
-            <dd className="mt-0.5 break-words text-foreground/86">
-              {scopeLabel}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Date range</dt>
-            <dd className="mt-0.5 text-foreground/86">
-              {restoredState.dateRangeKeys.startDate} —{' '}
-              {restoredState.dateRangeKeys.endDate}
-            </dd>
-          </div>
-          {filterEntries.length > 0 ? (
-            <div>
-              <dt className="text-muted-foreground">Active filters</dt>
-              <dd className="mt-1 flex flex-wrap gap-1.5">
-                {filterEntries.map(([key, value]) => (
-                  <span
-                    className="rounded border border-border bg-background px-1.5 py-0.5 text-foreground/82"
-                    key={key}
-                  >
-                    {key}: {value}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          ) : null}
-          {reference?.selectedResource ? (
-            <div>
-              <dt className="text-muted-foreground">Selected resource</dt>
-              <dd className="mt-0.5 break-all text-foreground/86">
-                {reference.selectedResource.kind}:
-                {reference.selectedResource.id}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      </section>
-
-      <section aria-labelledby={metricDefinitionsId} className="space-y-2">
-        <h3
-          className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground"
-          id={metricDefinitionsId}
-        >
-          Metric definitions
-        </h3>
-        <dl className="space-y-2">
-          {descriptor.metrics.map((metric) => (
-            <div className="border-l border-border pl-3" key={metric}>
-              <dt className="text-xs font-medium text-foreground">{metric}</dt>
-              <dd className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                {ANALYTICS_METRIC_DEFINITIONS[metric]}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section
-        aria-labelledby={provenanceId}
-        className="space-y-2 border-t border-border pt-4"
-      >
-        <h3 className="text-xs font-medium text-foreground" id={provenanceId}>
-          Provenance
-        </h3>
-        <p className="text-xs leading-5 text-muted-foreground">
-          {reference?.provenance.source ?? 'Resolving scoped source'} · cached
-          for up to {descriptor.cacheMinutes} minutes · visible results bounded
-          to {descriptor.maxVisibleResults.toLocaleString()} items.
-        </p>
-        {isExportAvailable ? (
-          <p className="text-xs leading-5 text-muted-foreground">
-            Exports preserve the active server scope and are capped at 5,000
-            published rows.
-          </p>
-        ) : null}
-        <p
-          className="rounded border border-warning/30 bg-warning/5 p-2 text-xs leading-5 text-warning"
-          data-testid="analytics-derivative-summary-notice"
-        >
-          Agent summaries are derivative and non-authoritative. Verify numbers
-          against the visible dashboard or an export.
-        </p>
-      </section>
-
-      <div className="grid gap-2">
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          <Link
-            aria-label="Open canonical Analytics route in a new tab"
-            href={canonicalHref}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <ExternalLink aria-hidden="true" className="size-4" />
-            Open canonical route
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function AnalyticsWorkSurfaceBridge({
   children,
   pathname,
@@ -255,7 +102,6 @@ function AnalyticsWorkSurfaceBridge({
 }) {
   const { brandId, dateRange, filters } = useAnalyticsContext();
   const { brands, organizationId } = useBrand();
-  const { brandSlug, orgSlug } = useOrgUrl();
   const { openExport } = useExportModal();
   const translateExport = useTranslations('pages.analytics.scopedExport');
   const getAnalyticsService = useAuthedService((token: string) =>
@@ -289,20 +135,9 @@ function AnalyticsWorkSurfaceBridge({
       restoredState.selectedResource,
     ],
   );
-  const canonicalHref = useMemo(
-    () =>
-      buildCanonicalAnalyticsHref(
-        pathname,
-        restoredState.canonicalSearchParams,
-      ),
-    [pathname, restoredState.canonicalSearchParams],
-  );
-  // `brandSlug` is empty on the org-wide `/~/` routes, and even on brand-shell
-  // routes it names the top-nav brand, not necessarily the one `/analytics/
-  // brands/:id` (or its `/platforms/:platform` child) actually scopes to.
-  // Resolve the route's own brand id to its real name so the chrome never
-  // claims "all brands" — or names the wrong brand — directly above a
-  // Selected resource naming a different, single brand.
+  // The route's own brand (`/analytics/brands/:id` and its
+  // `/platforms/:platform` child), authorized against this organization, so
+  // the shell can rebind the open thread to it.
   const routeBrandId = restoredState.routeBrandId;
   const routeBrand = useMemo(
     () =>
@@ -315,10 +150,6 @@ function AnalyticsWorkSurfaceBridge({
         : undefined,
     [brands, organizationId, routeBrandId],
   );
-  const brandScopeLabel =
-    routeBrand?.label ??
-    (routeBrandId ? 'all brands' : brandSlug || 'all brands');
-  const scopeLabel = `${orgSlug || 'organization'} / ${brandScopeLabel}`;
 
   useEffect(() => {
     if (!queryReference) {
@@ -376,18 +207,10 @@ function AnalyticsWorkSurfaceBridge({
         <AnalyticsComposerQueryChip reference={queryReference} />
       ) : null,
       contextLabel: `Canvas · ${restoredState.descriptor.label}`,
-      inspectorContent: (
-        <AnalyticsInspector
-          canonicalHref={canonicalHref}
-          reference={queryReference}
-          restoredState={restoredState}
-          scopeLabel={scopeLabel}
-        />
-      ),
       key: `analytics:${restoredState.normalizedRoute}`,
       surfaceKey: 'analytics',
     }),
-    [canonicalHref, queryReference, restoredState, routeBrand, scopeLabel],
+    [queryReference, restoredState, routeBrand],
   );
   useAnalyticsWorkspaceSurfaceAdapter(adapter);
 

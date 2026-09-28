@@ -29,8 +29,12 @@ because they create in-product review drafts rather than a headless publish.
   (`brand_create_card`, `check_onboarding_status`, `complete_onboarding`). MCP reaches brands
   through `get_brand`, `list_brands`, `get_brand_completeness`, and the approval-gated interview
   tools.
-- **`get_campaign_analytics`** — the whole campaign family is agent-only, so MCP has no campaign
-  discovery and the tool would be uncallable without an id.
+- **`get_outreach_sequence_analytics`** (renamed from the generic `get_campaign_analytics`;
+  `complete_campaign` / `create_campaign` / `get_campaign_analytics` / `pause_campaign` /
+  `start_campaign` are now banned names enforced by
+  `packages/actions/src/registry/outreach-sequence-terminology.spec.ts`) — the whole outreach
+  sequence family is agent-only, so MCP has no campaign discovery and the tool would be
+  uncallable without an id.
 - **`schedule_post`** — the same canonical `/post-groups` backend as the scheduler tools, reached
   through a post id the agent already holds. MCP's native entry is
   `update_scheduled_release` with `scope: 'target'`, which carries the full target contract.

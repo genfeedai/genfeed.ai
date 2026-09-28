@@ -13,6 +13,7 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -478,7 +479,7 @@ describe('UsersController', () => {
   });
 
   describe('updateSettings', () => {
-    it('should update user settings by user id route', async () => {
+    it('updates the settings when the route user is the caller', async () => {
       usersService.findOne.mockResolvedValue({
         id: 'prisma-user-id',
         settings: { id: settingsId },
@@ -490,6 +491,7 @@ describe('UsersController', () => {
 
       const result = await relationshipsController.updateSettings(
         mockRequest,
+        mockUser,
         userId,
         {
           theme: 'light',
@@ -506,6 +508,79 @@ describe('UsersController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('rejects updating another user settings with 403', async () => {
+      const otherUserId = testId('other-user');
+
+      await expect(
+        relationshipsController.updateSettings(
+          mockRequest,
+          mockUser,
+          otherUserId,
+          { theme: 'light' } as never,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects a route user matching only the auth subject id', async () => {
+      await expect(
+        relationshipsController.updateSettings(
+          mockRequest,
+          mockUser,
+          'user_subject_123',
+          { theme: 'light' } as never,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(settingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('lets a superadmin update another user settings', async () => {
+      const otherUserId = testId('other-user');
+      const otherSettingsId = testId('other-settings');
+      usersService.findOne.mockResolvedValue({
+        id: otherUserId,
+        settings: { id: otherSettingsId },
+      });
+      settingsService.patch.mockResolvedValue({
+        id: otherSettingsId,
+        theme: 'dark',
+      });
+
+      const result = await relationshipsController.updateSettings(
+        mockRequest,
+        { ...(mockUser as object), isSuperAdmin: true } as never,
+        otherUserId,
+        { theme: 'dark' } as never,
+      );
+
+      expect(usersService.findOne).toHaveBeenCalledWith({ id: otherUserId });
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        otherSettingsId,
+        expect.objectContaining({ theme: 'dark' }),
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('honours a request context that revokes superadmin', async () => {
+      await expect(
+        relationshipsController.updateSettings(
+          {
+            ...(mockRequest as object),
+            context: { isSuperAdmin: false },
+          } as never,
+          { ...(mockUser as object), isSuperAdmin: true } as never,
+          testId('other-user'),
+          { theme: 'dark' } as never,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(settingsService.patch).not.toHaveBeenCalled();
     });
   });
 

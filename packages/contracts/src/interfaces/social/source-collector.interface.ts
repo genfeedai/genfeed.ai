@@ -47,9 +47,9 @@ export interface SocialSourceHistoryImportScheduleResult {
   status: 'scheduled' | 'skipped';
   sourceId?: string;
   skipReason?:
-    | 'brand_opted_out'
     | 'credential_unavailable'
     | 'missing_handle'
+    | 'not_requested'
     | 'unsupported_platform';
 }
 

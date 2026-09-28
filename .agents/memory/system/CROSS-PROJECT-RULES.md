@@ -2,17 +2,10 @@
 
 Applies to all code within this repository.
 
-## Protected Files (NEVER DELETE)
+## Protected Files / Repo Root Policy
 
-Repo root MUST have: `AGENTS.md`, `CLAUDE.md`. These are required for the Agentic Dashboard -- NOT duplicates of `.agents/` files.
-
-## Repo Root Policy
-
-**Allowed at root:** `AGENTS.md`, `CLAUDE.md`, `README.md`, app/package folders, config files, `.agents/`, `scripts/`.
-
-**NOT at root:** Session notes, implementation docs, guides, architecture docs -- all go in `.agents/`.
-
-**Golden Rule:** If it's documentation, it goes in `.agents/`.
+Full, current list: `system/CRITICAL-NEVER-DO.md` (File Management section). Golden rule: if it's
+documentation, it goes in `.agents/`.
 
 ## File Placement
 
@@ -29,10 +22,6 @@ Repo root MUST have: `AGENTS.md`, `CLAUDE.md`. These are required for the Agenti
 - Type used in 1-2 places -> self-contain locally
 - Type used in 3+ places -> canonical definition in `packages/`
 - When in doubt, self-contain first, consolidate later
-
-## API Testing
-
-Every controller MUST have a co-located `.http` file. Update when adding/modifying endpoints.
 
 ## File Hierarchy Priority
 

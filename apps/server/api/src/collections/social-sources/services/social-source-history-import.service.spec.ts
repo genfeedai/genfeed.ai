@@ -47,6 +47,7 @@ describe('SocialSourceHistoryImportService', () => {
     externalId: 'ig-123',
     externalName: 'Brand',
     id: 'cred-1',
+    isHistoryImportRequested: true,
     organizationId: 'org-1',
     platform: 'INSTAGRAM',
     userId: 'user-1',
@@ -58,10 +59,7 @@ describe('SocialSourceHistoryImportService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     credential.findFirst.mockResolvedValue(connectedCredential);
-    brand.findFirst.mockResolvedValue({
-      id: 'brand-1',
-      isSocialHistoryImportEnabled: true,
-    });
+    brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     socialSource.findFirst.mockResolvedValue(null);
     socialSource.create.mockImplementation(async ({ data }) => ({
       id: 'source-1',
@@ -126,10 +124,10 @@ describe('SocialSourceHistoryImportService', () => {
     );
   });
 
-  it('skips and audits when the brand opted out of history import', async () => {
-    brand.findFirst.mockResolvedValue({
-      id: 'brand-1',
-      isSocialHistoryImportEnabled: false,
+  it('skips and audits when the import was declined at connect', async () => {
+    credential.findFirst.mockResolvedValue({
+      ...connectedCredential,
+      isHistoryImportRequested: false,
     });
 
     const result = await service.scheduleForCredential({
@@ -138,7 +136,7 @@ describe('SocialSourceHistoryImportService', () => {
     });
 
     expect(result).toEqual({
-      skipReason: 'brand_opted_out',
+      skipReason: 'not_requested',
       status: 'skipped',
     });
     expect(socialSource.create).not.toHaveBeenCalled();
@@ -148,6 +146,53 @@ describe('SocialSourceHistoryImportService', () => {
         key: ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED,
       }),
     );
+  });
+
+  it('imports by default when no choice was made at connect', async () => {
+    credential.findFirst.mockResolvedValue({
+      ...connectedCredential,
+      isHistoryImportRequested: null,
+    });
+
+    const result = await service.scheduleForCredential({
+      credentialId: 'cred-1',
+      organizationId: 'org-1',
+    });
+
+    expect(result).toEqual({ sourceId: 'source-1', status: 'scheduled' });
+  });
+
+  it('imports on an explicit request even when declined at connect', async () => {
+    credential.findFirst.mockResolvedValue({
+      ...connectedCredential,
+      isHistoryImportRequested: false,
+    });
+
+    const result = await service.scheduleForCredential({
+      brandId: 'brand-1',
+      credentialId: 'cred-1',
+      isRequestedByUser: true,
+      organizationId: 'org-1',
+      userId: 'user-2',
+    });
+
+    expect(result).toEqual({ sourceId: 'source-1', status: 'scheduled' });
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledOnce();
+  });
+
+  it('refuses an account that belongs to another brand', async () => {
+    const result = await service.scheduleForCredential({
+      brandId: 'brand-2',
+      credentialId: 'cred-1',
+      isRequestedByUser: true,
+      organizationId: 'org-1',
+    });
+
+    expect(result).toEqual({
+      skipReason: 'credential_unavailable',
+      status: 'skipped',
+    });
+    expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 
   it('skips platforms without a source collector', async () => {

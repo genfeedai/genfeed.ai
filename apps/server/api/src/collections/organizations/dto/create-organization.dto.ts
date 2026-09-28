@@ -1,4 +1,3 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -13,7 +12,8 @@ import {
 } from 'class-validator';
 
 export class CreateOrganizationDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({
     description: 'The user ID who owns this organization',
     required: true,

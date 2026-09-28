@@ -43,8 +43,8 @@ type AgentChatEmptyStateProps = {
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
-  /** Compact rail layout for the workspace inspector drawer. */
-  variant?: 'default' | 'inspector';
+  /** Compact rail layout for the workspace agent dock. */
+  variant?: 'default' | 'dock';
   onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
   onPromoteQueuedFollowUp?: () => void;
   onRemoveFollowUp?: (id: string) => void;
@@ -101,7 +101,7 @@ export function AgentChatEmptyState({
   removeAttachment,
   creditsAvailable = null,
 }: AgentChatEmptyStateProps): ReactElement {
-  const isInspector = variant === 'inspector';
+  const isDock = variant === 'dock';
   const followUpQueue =
     followUps.length > 0 &&
     onMoveFollowUp &&
@@ -125,7 +125,7 @@ export function AgentChatEmptyState({
       </>
     ) : null;
 
-  if (isInspector) {
+  if (isDock) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-4 py-6">

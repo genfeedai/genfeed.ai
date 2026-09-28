@@ -1,6 +1,12 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateMemberDto {
   @IsString()
@@ -21,7 +27,8 @@ export class CreateMemberDto {
   })
   readonly organizationId!: string;
 
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({
     description: 'The user ID of this member',
     required: true,

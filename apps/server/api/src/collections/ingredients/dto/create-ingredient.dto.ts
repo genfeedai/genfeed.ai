@@ -16,6 +16,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -47,7 +48,8 @@ export class CreateAvatarDto {
 }
 
 export class CreateIngredientDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly userId?: string;
