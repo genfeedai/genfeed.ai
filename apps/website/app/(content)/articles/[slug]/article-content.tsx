@@ -1,15 +1,17 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight, Check, Copy, ListTree } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import ArticleExperience from './article-experience';
+import { hasArticleExperience } from './article-experience-slugs';
+import { copyText } from './copy-text';
+
+/** Only one article has a lab; the rest never download it. */
+const ArticleExperience = dynamic(() => import('./article-experience'));
 
 const COPIED_RESET_MS = 2000;
 
@@ -35,7 +37,6 @@ function headingId(label: string, index: number): string {
 }
 
 function CopyCodeButton({ code }: { code: string }): React.ReactElement {
-  const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const [isCopied, setIsCopied] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -44,7 +45,7 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
   }, []);
 
   const handleCopy = async (): Promise<void> => {
-    await clipboardService.copyToClipboard(code);
+    await copyText(code);
     setIsCopied(true);
     clearTimeout(resetTimer.current);
     resetTimer.current = setTimeout(() => setIsCopied(false), COPIED_RESET_MS);
@@ -75,11 +76,12 @@ function CopyCodeButton({ code }: { code: string }): React.ReactElement {
  * neither has to know about the other.
  */
 export default function ArticleContent({
-  articleLabel,
+  applyHref,
   sanitizedHtml,
   slug,
 }: {
-  articleLabel: string;
+  /** The agent link for this guide, built on the server. */
+  applyHref: string;
   /** Already sanitized on the server — this component never sanitizes. */
   sanitizedHtml: string;
   slug?: string;
@@ -154,11 +156,6 @@ export default function ArticleContent({
     };
   }, [sanitizedHtml]);
 
-  const applyHref = useMemo(() => {
-    const prompt = `Help me apply the guide "${articleLabel}" to my brand. Ask for any context you need, then turn the article into a concrete content plan and create the first asset.`;
-    return `${EnvironmentService.apps.app}${buildAgentPromptHref(prompt)}`;
-  }, [articleLabel]);
-
   return (
     <div>
       <div className="mb-8 border-y border-edge/[0.08] py-4">
@@ -205,7 +202,7 @@ export default function ArticleContent({
         </div>
       </div>
 
-      <ArticleExperience slug={slug} />
+      {hasArticleExperience(slug) ? <ArticleExperience slug={slug} /> : null}
 
       <div className="gen-article-prose prose prose-invert prose-lg max-w-none">
         <div ref={containerRef} {...contentProps} />

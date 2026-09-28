@@ -19,7 +19,7 @@ describe('ArticleContent', () => {
   it('turns headings and prompt blocks into useful article actions', async () => {
     render(
       <ArticleContent
-        articleLabel="A useful guide"
+        applyHref="https://app.genfeed.ai/agent/new?prompt=Apply"
         sanitizedHtml="<h2>First step</h2><p>Read this.</p><pre><code>Generate a useful asset.</code></pre>"
         slug="a-useful-guide"
       />,
@@ -33,7 +33,7 @@ describe('ArticleContent', () => {
     const applyLink = screen.getByRole('link', { name: /apply this guide/i });
     expect(applyLink).toHaveAttribute(
       'href',
-      expect.stringContaining('https://app.genfeed.ai/agent/new?prompt='),
+      'https://app.genfeed.ai/agent/new?prompt=Apply',
     );
 
     const copyButton = await screen.findByRole('button', {
@@ -48,14 +48,17 @@ describe('ArticleContent', () => {
   it('mounts the filmmaking effect lab on the matching article', async () => {
     render(
       <ArticleContent
-        articleLabel="How to prompt assets"
+        applyHref="https://app.genfeed.ai/agent/new?prompt=Apply"
         sanitizedHtml="<h2>Video</h2><p>Direct the shot.</p>"
         slug="how-to-prompt-ai-images-videos-and-audio"
       />,
     );
 
+    // The lab loads on demand, only for this article.
     expect(
-      screen.getByRole('heading', { name: 'See the effect, then apply it' }),
+      await screen.findByRole('heading', {
+        name: 'See the effect, then apply it',
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('img', { name: 'Film grain applied preview' }),
@@ -73,5 +76,20 @@ describe('ArticleContent', () => {
     expect(
       screen.getByRole('link', { name: /use in genfeed/i }),
     ).toHaveAttribute('href', expect.stringContaining('dolly-zoom'));
+  });
+
+  it('does not load the lab on other articles', async () => {
+    render(
+      <ArticleContent
+        applyHref="https://app.genfeed.ai/agent/new?prompt=Apply"
+        sanitizedHtml="<h2>Only text</h2><p>Nothing interactive.</p>"
+        slug="a-plain-article"
+      />,
+    );
+
+    await screen.findByRole('link', { name: 'Only text' });
+    expect(
+      screen.queryByRole('heading', { name: 'See the effect, then apply it' }),
+    ).toBeNull();
   });
 });

@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import {
   authClient,
+  type BetterAuthTokenContext,
   type BetterAuthTokenRequestOptions,
   clearBetterAuthTokenCache,
   getBetterAuthToken,
   getBetterAuthTokenContextKey,
+  getSession,
 } from './client';
 
 /**
@@ -29,6 +31,62 @@ interface BetterAuthSessionShape {
   id?: string | null;
 }
 
+interface BetterAuthSessionData {
+  session?: unknown;
+  user?: { id?: string | null } | null;
+}
+
+/** The token cache context for a session, shared by the hook and non-hook paths. */
+function toTokenContext(
+  data: BetterAuthSessionData | null | undefined,
+): BetterAuthTokenContext {
+  const session = data?.session as BetterAuthSessionShape | undefined;
+
+  return {
+    organizationId: session?.activeOrganizationId ?? null,
+    sessionId: session?.id ?? null,
+    userId: data?.user?.id ?? null,
+  };
+}
+
+export class BetterAuthTokenUnavailableError extends Error {
+  constructor() {
+    super('Authentication token unavailable');
+    this.name = 'BetterAuthTokenUnavailableError';
+  }
+}
+
+/**
+ * The signed-in visitor's API token, outside React.
+ *
+ * For a page that only needs the session when the visitor acts (submits a
+ * form), so it can import this module then instead of mounting
+ * `useBetterAuthIdentity` and shipping the auth client with the page. Keys the
+ * token cache exactly as the hook does. Resolves `null` when nobody is signed
+ * in, and rejects with {@link BetterAuthTokenUnavailableError} when a session
+ * exists but no token could be minted.
+ */
+export async function getSignedInBetterAuthToken(
+  options?: BetterAuthTokenRequestOptions,
+): Promise<string | null> {
+  const result = await getSession();
+
+  if (!result?.data?.session) {
+    return null;
+  }
+
+  const token = await getBetterAuthToken(
+    getBetterAuthTokenContextKey(toTokenContext(result.data)),
+    options,
+  );
+
+  if (!token) {
+    throw new BetterAuthTokenUnavailableError();
+  }
+
+  return token;
+}
+
 /**
  * Adapts the Better Auth session to {@link AuthIdentity}. Better Auth is the
  * active provider, so downstream hooks never import provider-specific SDKs.
@@ -38,10 +96,7 @@ interface BetterAuthSessionShape {
  */
 export function useBetterAuthIdentity(): AuthIdentity {
   const { data, isPending } = authClient.useSession();
-  const session = data?.session as BetterAuthSessionShape | undefined;
-  const organizationId = session?.activeOrganizationId ?? null;
-  const sessionId = session?.id ?? null;
-  const userId = data?.user?.id ?? null;
+  const { organizationId, sessionId, userId } = toTokenContext(data);
   const tokenContextKey = getBetterAuthTokenContextKey({
     organizationId,
     sessionId,

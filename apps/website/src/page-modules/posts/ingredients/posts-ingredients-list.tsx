@@ -1,20 +1,14 @@
-'use client';
-
-import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Ingredient } from '@models/content/ingredient.model';
-import { deferredLogger } from '@services/core/deferred-logger';
-import { PublicService } from '@services/external/public.service';
+import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Container from '@ui/layout/container/Container';
-import Loading from '@ui/loading/default/Loading';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import PublicListPage from '@web-components/content/PublicListPage';
 import { Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
 
-// ingredients list with posts to load in the public gallery
+// The public gallery: ingredients with the posts made from them. The page
+// fetches on the server, so the grid is in the HTML and ships no client code.
 
 type IngredientWithMetrics = Ingredient & {
   totalPosts?: number;
@@ -22,82 +16,27 @@ type IngredientWithMetrics = Ingredient & {
 };
 
 interface PostsIngredientsListProps {
-  page: number;
+  ingredients: IngredientWithMetrics[];
+  pagination?: PublicListPageProps['pagination'];
 }
 
 export default function PostsIngredientsList({
-  page,
+  ingredients,
+  pagination,
 }: PostsIngredientsListProps) {
-  const [ingredients, setIngredients] = useState<IngredientWithMetrics[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const findAllIngredients = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        setIsLoading(true);
-
-        const publicService = PublicService.getInstance();
-        const data = await publicService.findPublicIngredients({
-          limit: ITEMS_PER_PAGE,
-          page,
-          sort: 'createdAt: -1',
-        });
-
-        if (signal?.aborted) {
-          return;
-        }
-
-        setIngredients(data);
-        setIsLoading(false);
-      } catch (error) {
-        deferredLogger.error('Failed to fetch ingredients:', error);
-        setIsLoading(false);
-      }
-    },
-    [page],
-  );
-
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    // Defer the call to avoid synchronous setState in effect
-    queueMicrotask(() => {
-      findAllIngredients(abortController.signal);
-    });
-
-    return () => {
-      abortController.abort();
-    };
-  }, [findAllIngredients]);
-
-  if (isLoading) {
-    return (
-      <Container
-        label="Posts by Ingredient"
-        description="Content organized by ingredient."
-        icon={ImageIcon}
-      >
-        <Loading isFullSize={false} />
-      </Container>
-    );
-  }
-
   return (
-    <Container
-      label="Posts by Ingredient"
+    <PublicListPage
       description="Content organized by ingredient."
       icon={ImageIcon}
+      label="Posts by Ingredient"
+      pagination={ingredients.length > 0 ? pagination : undefined}
+      totalLabel="ingredients"
     >
       {ingredients.length === 0 ? (
         <CardEmpty label="No ingredients available" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {ingredients.map((ingredient) => {
-            const ingredientMetrics = ingredient as Ingredient & {
-              totalPosts?: number;
-              totalViews?: number;
-            };
-
             return (
               <Link
                 key={ingredient.id}
@@ -132,11 +71,11 @@ export default function PostsIngredientsList({
                     <div className="flex items-center gap-4 text-sm text-foreground/60">
                       <div className="flex items-center gap-2">
                         <FileText className="text-base" />
-                        <span>{ingredientMetrics.totalPosts || 0} posts</span>
+                        <span>{ingredient.totalPosts || 0} posts</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Eye className="text-base" />
-                        <span>{ingredientMetrics.totalViews || 0} views</span>
+                        <span>{ingredient.totalViews || 0} views</span>
                       </div>
                     </div>
 
@@ -155,10 +94,6 @@ export default function PostsIngredientsList({
           })}
         </div>
       )}
-
-      <div className="mt-4">
-        <AutoPagination />
-      </div>
-    </Container>
+    </PublicListPage>
   );
 }

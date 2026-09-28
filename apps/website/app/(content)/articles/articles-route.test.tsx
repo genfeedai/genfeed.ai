@@ -1,3 +1,4 @@
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import {
   Children,
@@ -7,11 +8,16 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const findPublicArticles =
-  vi.fn<(query: { page: number; limit: number }) => Promise<Article[]>>();
+const findPublicArticlesPage =
+  vi.fn<
+    (query: {
+      page: number;
+      limit: number;
+    }) => Promise<IPaginatedResponse<Article>>
+  >();
 
 vi.mock('@services/external/public.service', () => ({
-  PublicService: { getInstance: () => ({ findPublicArticles }) },
+  PublicService: { getInstance: () => ({ findPublicArticlesPage }) },
 }));
 
 const { default: ArticlesPage, generateMetadata } = await import('./page');
@@ -21,17 +27,25 @@ const EMPTY_PARENT = Promise.resolve({}) as unknown as Parameters<
   typeof generateMetadata
 >[1];
 
-const ARTICLES = [{ id: 'a1', label: 'One' }] as unknown as Article[];
+const ARTICLES_PAGE = {
+  hasNext: false,
+  hasPrevious: false,
+  items: [{ id: 'a1', label: 'One' }],
+  page: 1,
+  pageSize: 12,
+  total: 1,
+  totalPages: 1,
+} as unknown as IPaginatedResponse<Article>;
 
 beforeEach(() => {
-  findPublicArticles.mockReset();
-  findPublicArticles.mockResolvedValue(ARTICLES);
+  findPublicArticlesPage.mockReset();
+  findPublicArticlesPage.mockResolvedValue(ARTICLES_PAGE);
 });
 
 describe('getPublicArticlesPageCached', () => {
   it('requests the newest-first page from the public service', async () => {
-    await expect(getPublicArticlesPageCached(3)).resolves.toBe(ARTICLES);
-    expect(findPublicArticles).toHaveBeenCalledWith(
+    await expect(getPublicArticlesPageCached(3)).resolves.toBe(ARTICLES_PAGE);
+    expect(findPublicArticlesPage).toHaveBeenCalledWith(
       expect.objectContaining({
         page: 3,
         sortBy: 'publishedAt',
@@ -78,7 +92,7 @@ describe('ArticlesPage', () => {
     };
 
     expect(jsonLd['@type']).toBe('CollectionPage');
-    expect(findPublicArticles).toHaveBeenCalledWith(
+    expect(findPublicArticlesPage).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1 }),
     );
   });
@@ -91,7 +105,7 @@ describe('ArticlesPage', () => {
   ])('resolves %s to page %s', async (_label, raw, expected) => {
     await ArticlesPage({ searchParams: Promise.resolve({ page: raw }) });
 
-    expect(findPublicArticles).toHaveBeenLastCalledWith(
+    expect(findPublicArticlesPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: expected }),
     );
   });

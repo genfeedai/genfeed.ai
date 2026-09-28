@@ -7,8 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { ArrowUpRight, RotateCcw, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
-
-const FILMMAKING_LEXICON_SLUG = 'how-to-prompt-ai-images-videos-and-audio';
+import { hasArticleExperience } from './article-experience-slugs';
 
 type FilmmakingEffectKind =
   | 'color-grade'
@@ -357,7 +356,7 @@ export default function ArticleExperience({
 }: {
   slug?: string;
 }): React.ReactElement | null {
-  if (slug !== FILMMAKING_LEXICON_SLUG) {
+  if (!hasArticleExperience(slug)) {
     return null;
   }
 

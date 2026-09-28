@@ -6,6 +6,7 @@ import {
   SKILL_CATEGORIES,
   type SkillRegistry,
   type SkillRegistryEntry,
+  TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { Button } from '@ui/primitives/button';
 import {
@@ -209,7 +210,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                 </div>
               </div>
               <div className="flex flex-col justify-center">
-                <TerminalDemo />
+                <TerminalDemo lines={TERMINAL_COMMANDS} />
               </div>
             </div>
           </WebSection>

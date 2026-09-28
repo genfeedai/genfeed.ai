@@ -1,11 +1,13 @@
 'use client';
 
-import { TERMINAL_COMMANDS } from '@public/skills/_data';
+import type { TerminalDemoProps } from '@props/website/terminal-demo.props';
 import { useEffect, useState } from 'react';
 
-export default function TerminalDemo(): React.ReactElement {
+export default function TerminalDemo({
+  lines,
+}: TerminalDemoProps): React.ReactElement {
   const [currentLine, setCurrentLine] = useState(0);
-  const isTyping = currentLine < TERMINAL_COMMANDS.length;
+  const isTyping = currentLine < lines.length;
 
   useEffect(() => {
     if (!isTyping) {
@@ -36,7 +38,7 @@ export default function TerminalDemo(): React.ReactElement {
       </div>
 
       <div className="p-6 font-mono text-sm space-y-1.5 min-h-card">
-        {TERMINAL_COMMANDS.slice(0, currentLine).map((line) => (
+        {lines.slice(0, currentLine).map((line) => (
           <div key={line.command} className="flex flex-wrap gap-2">
             {line.prompt && (
               <span className="text-surface/30">{line.prompt}</span>
@@ -60,9 +62,9 @@ export default function TerminalDemo(): React.ReactElement {
         {isTyping && (
           <div className="flex items-center gap-2">
             <span className="text-surface/30">
-              {TERMINAL_COMMANDS[currentLine]?.prompt || ''}
+              {lines[currentLine]?.prompt || ''}
             </span>
-            {TERMINAL_COMMANDS[currentLine]?.prompt && (
+            {lines[currentLine]?.prompt && (
               <span className="text-surface/40">$</span>
             )}
             <span className="w-2 h-4 bg-fill/40 animate-pulse" />

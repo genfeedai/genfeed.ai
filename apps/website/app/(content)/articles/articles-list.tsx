@@ -1,14 +1,15 @@
 import type { Article } from '@models/content/article.model';
+import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Container from '@ui/layout/container/Container';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import PublicListPage from '@web-components/content/PublicListPage';
 import { Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
 import ArticleCover from './article-cover';
 
 interface ArticlesListProps {
   articles: Article[];
+  pagination?: PublicListPageProps['pagination'];
 }
 
 const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -22,17 +23,22 @@ function formatArticleDate(publishedAt: string): string {
   return articleDateFormatter.format(new Date(publishedAt));
 }
 
-export default function ArticlesList({ articles }: ArticlesListProps) {
+export default function ArticlesList({
+  articles,
+  pagination,
+}: ArticlesListProps) {
   return (
     /*
       The site shell already says where you are, so the page repeats no title
       of its own. `label` stays for the accessible name and the breadcrumb;
-      `sr-only` is what drops the visible chrome.
+      `isLabelHidden` is what drops the visible chrome.
     */
-    <Container
+    <PublicListPage
       className="min-h-screen pt-10"
+      isLabelHidden
       label="Articles"
-      titleVisibility="sr-only"
+      pagination={articles.length > 0 ? pagination : undefined}
+      totalLabel="articles"
     >
       {articles.length === 0 ? (
         <div className="space-y-4">
@@ -116,12 +122,8 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
               </Link>
             );
           })}
-
-          <div className="mt-4">
-            <AutoPagination />
-          </div>
         </div>
       )}
-    </Container>
+    </PublicListPage>
   );
 }

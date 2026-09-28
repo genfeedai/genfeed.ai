@@ -16,9 +16,8 @@ describe('posts index content depth', () => {
       .split(/\s+/)
       .filter(Boolean);
 
-    // The gallery itself is client-fetched, so the crawler only ever sees this
-    // section plus the container title. Ahrefs flags a page under 50 words as
-    // "Low word count"; /posts sat at 23 before the intro existed.
+    // Ahrefs flags a page under 50 words as "Low word count"; /posts sat at 23
+    // before the intro existed, when the gallery was still client-fetched.
     expect(words.length).toBeGreaterThan(100);
   });
 });

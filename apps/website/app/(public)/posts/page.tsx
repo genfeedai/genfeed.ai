@@ -1,5 +1,6 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PostsIngredientsList from '@pages/posts/ingredients/posts-ingredients-list';
+import { getPublicIngredientsPageCached } from '@public/posts/posts-loader';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 
@@ -8,6 +9,18 @@ export const generateMetadata = createPageMetadataWithCanonical(
   'Browse AI-generated content organized by ingredient. Discover how different AI models and templates produce professional marketing content.',
   '/posts',
 );
+
+/** Streams in under the intro, which renders without waiting on the API. */
+async function IngredientsGallery({ page }: { page: number }) {
+  const ingredientsPage = await getPublicIngredientsPageCached(page);
+
+  return (
+    <PostsIngredientsList
+      ingredients={ingredientsPage.items}
+      pagination={ingredientsPage}
+    />
+  );
+}
 
 export default async function PostsByIngredientsPage({
   searchParams,
@@ -21,10 +34,11 @@ export default async function PostsByIngredientsPage({
   return (
     <>
       {/*
-        The gallery below is fetched client-side, so the only text a crawler
-        used to see was the container title and its one-line subtitle — 23
+        The gallery below used to be fetched client-side, so the only text a
+        crawler saw was the container title and its one-line subtitle — 23
         words, which the 2026-08-19 site audit flagged as "Low word count".
-        This intro is server-rendered and explains the route on its own.
+        The gallery now renders on the server too; this intro still explains
+        the route on its own.
       */}
       <section className="mx-auto w-full max-w-3xl px-4 pt-10 pb-2">
         <h2 className="text-2xl font-semibold tracking-[-0.01em] text-foreground">
@@ -46,7 +60,7 @@ export default async function PostsByIngredientsPage({
         </p>
       </section>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <PostsIngredientsList page={page} />
+        <IngredientsGallery page={page} />
       </Suspense>
     </>
   );

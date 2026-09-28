@@ -27,15 +27,18 @@ vi.mock('@web-components/PageLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
 
-vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isSignedIn: mocks.isSignedIn }),
+// The session is read on submit; a token means a signed-in visitor.
+vi.mock('@genfeedai/auth-client', () => ({
+  getSignedInBetterAuthToken: async () => (mocks.isSignedIn ? 'jwt' : null),
 }));
 
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    create: mocks.authenticatedCreate,
-    promoteSourceToLibrary: mocks.promote,
-  }),
+vi.mock('@services/content/youtube-long-form.service', () => ({
+  YoutubeLongFormService: {
+    getInstance: () => ({
+      create: mocks.authenticatedCreate,
+      promoteSourceToLibrary: mocks.promote,
+    }),
+  },
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -44,12 +47,10 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@services/external/public.service', () => ({
-  PublicService: {
-    getInstance: () => ({
-      createPublicYoutubeLongForm: mocks.publicCreate,
-    }),
-  },
+vi.mock('../../../../packages/api/load-public-service', () => ({
+  loadPublicService: async () => ({
+    createPublicYoutubeLongForm: mocks.publicCreate,
+  }),
 }));
 
 vi.mock('../../../../packages/analytics/posthog-client', () => ({

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ArticleDetail, {
   ArticleAbout,
+  buildArticleApplyHref,
   formatArticlePublishedAt,
 } from './article-detail';
 
@@ -87,5 +88,16 @@ describe('ArticleDetail sticky aside', () => {
     const sticky = container.querySelector('.lg\\:sticky');
     expect(sticky).toHaveClass('lg:top-24');
     expect(sticky).not.toHaveClass('lg:top-4');
+  });
+});
+
+describe('buildArticleApplyHref', () => {
+  it('links the guide to a new agent chat in the app', () => {
+    const href = buildArticleApplyHref('A useful guide');
+
+    expect(href).toMatch(/^https:\/\/app\.genfeed\.ai\/agent\/new\?prompt=/);
+    expect(new URL(href).searchParams.get('prompt')).toContain(
+      '"A useful guide"',
+    );
   });
 });

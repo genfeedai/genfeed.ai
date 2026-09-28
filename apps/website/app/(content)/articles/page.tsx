@@ -60,7 +60,7 @@ export default async function ArticlesPage({
   const { page: rawPage } = await searchParams;
   const parsedPage = Number.parseInt(rawPage ?? '1', 10);
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const articles = await getPublicArticlesPageCached(page);
+  const articlesPage = await getPublicArticlesPageCached(page);
 
   return (
     <>
@@ -68,7 +68,7 @@ export default async function ArticlesPage({
         {stringifyJsonLd(articlesJsonLd)}
       </script>
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <ArticlesList articles={articles} />
+        <ArticlesList articles={articlesPage.items} pagination={articlesPage} />
       </Suspense>
     </>
   );

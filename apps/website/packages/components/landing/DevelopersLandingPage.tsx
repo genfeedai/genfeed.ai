@@ -1,9 +1,6 @@
-'use client';
-
 import { agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Code } from '@ui/primitives/code';
@@ -12,6 +9,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import FaqGrid from '@web-components/content/FaqGrid';
 import LandingFooter from '@web-components/landing/LandingFooter';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
   ArrowRight,
@@ -110,12 +108,11 @@ const FAQS = [
 ];
 
 export default function DevelopersLandingPage(): React.ReactElement {
-  const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
   const githubHref = EnvironmentService.github.core;
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance>
       <PageLayout
         badge="Genfeed for Developers"
         badgeIcon={Terminal}
@@ -341,6 +338,6 @@ export default function DevelopersLandingPage(): React.ReactElement {
       </PageLayout>
 
       <LandingFooter />
-    </div>
+    </MarketingEntrance>
   );
 }

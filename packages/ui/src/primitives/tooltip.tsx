@@ -4,12 +4,10 @@ import { cn } from '@genfeedai/helpers';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import {
   type ComponentPropsWithRef,
-  createContext,
   type ReactElement,
   useContext,
 } from 'react';
-
-const TooltipProviderContext = createContext(false);
+import { TooltipProviderContext } from './tooltip-context';
 
 function TooltipProvider({
   children,
@@ -17,7 +15,7 @@ function TooltipProvider({
   ...props
 }: ComponentPropsWithRef<typeof TooltipPrimitive.Provider>) {
   return (
-    <TooltipProviderContext.Provider value={true}>
+    <TooltipProviderContext.Provider value={SimpleTooltip}>
       <TooltipPrimitive.Provider delayDuration={delayDuration} {...props}>
         {children}
       </TooltipPrimitive.Provider>
@@ -79,7 +77,7 @@ function SimpleTooltip({
   position = 'top',
   isDisabled = false,
 }: SimpleTooltipProps) {
-  const hasSharedProvider = useContext(TooltipProviderContext);
+  const hasSharedProvider = useContext(TooltipProviderContext) !== null;
 
   if (isDisabled || !label) {
     return children;

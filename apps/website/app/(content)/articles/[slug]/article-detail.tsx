@@ -7,6 +7,7 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -19,6 +20,15 @@ import Link from 'next/link';
 import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
 import ArticleShareButton from './article-share-button';
+
+/**
+ * The "apply this guide" agent link. Built here so the app's route table stays
+ * on the server instead of shipping with the article's client island.
+ */
+export function buildArticleApplyHref(articleLabel: string): string {
+  const prompt = `Help me apply the guide "${articleLabel}" to my brand. Ask for any context you need, then turn the article into a concrete content plan and create the first asset.`;
+  return `${EnvironmentService.apps.app}${buildAgentPromptHref(prompt)}`;
+}
 
 const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -282,7 +292,7 @@ export default function ArticleDetail({
               ever receives markup that already went through it.
             */}
             <ArticleContent
-              articleLabel={article.label}
+              applyHref={buildArticleApplyHref(article.label)}
               sanitizedHtml={createMarkup(article.content || '').__html}
               slug={article.slug}
             />
