@@ -223,6 +223,10 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany('musics', Music, query);
   }
 
+  public async findPublicPosts(query?: IQueryParams): Promise<Post[]> {
+    return this.fetchMany('posts', Post, query);
+  }
+
   public async findPublicPostsPage(
     query?: IQueryParams,
   ): Promise<IPaginatedResponse<Post>> {

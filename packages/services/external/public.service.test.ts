@@ -147,6 +147,7 @@ describe('PublicService', () => {
       ['findPublicVideos', 'videos', Video],
       ['findPublicImages', 'images', Image],
       ['findPublicMusics', 'musics', Music],
+      ['findPublicPosts', 'posts', Post],
       ['findPublicArticles', 'articles', Article],
     ] as const;
 
