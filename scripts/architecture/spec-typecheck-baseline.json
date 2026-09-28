@@ -10220,24 +10220,8 @@
       "code": 2345,
       "count": 1,
       "file": "packages/services/social/brands.service.http.test.ts",
-      "fingerprint": "1047b06a879fdb041b35",
-      "message": "Argument of type '{ count: number; }' is not assignable to parameter of type 'FastlaneGenerateIdeasRequest'.   Property 'formats' is missing in type '{ count: number; }' but required in type 'FastlaneGenerateIdeasRequest'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/services/social/brands.service.http.test.ts",
       "fingerprint": "5be21c97b6ec8b55e728",
       "message": "Argument of type '{ draftId: string; }' is not assignable to parameter of type 'Omit<IBrandKitApplyRequest, \"brandId\">'.   Property 'fields' is missing in type '{ draftId: string; }' but required in type 'Omit<IBrandKitApplyRequest, \"brandId\">'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/services/social/brands.service.http.test.ts",
-      "fingerprint": "94ea12e8e0be5c8970ab",
-      "message": "Argument of type '{ count: number; }' is not assignable to parameter of type 'FastlaneGenerateIdeasRequest'.   Property 'formats' is missing in type '{ count: number; }' but required in type 'FastlaneGenerateIdeasRequest'.",
       "workspace": "services"
     },
     {
@@ -10246,22 +10230,6 @@
       "file": "packages/services/social/brands.service.http.test.ts",
       "fingerprint": "5a05e6b8b5c29a62440c",
       "message": "Object literal may only specify known properties, and 'url' does not exist in type 'IBrandSetupRequest'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/services/social/brands.service.test.ts",
-      "fingerprint": "5f64c3f0916033909bff",
-      "message": "Argument of type '{ count: number; formats: readonly [\"image\", \"video\"]; }' is not assignable to parameter of type 'FastlaneGenerateIdeasRequest'.   Types of property 'formats' are incompatible.     The type 'readonly [\"image\", \"video\"]' is 'readonly' and cannot be assigned to the mutable type 'FastlaneFormat[]'.",
-      "workspace": "services"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "packages/services/social/brands.service.test.ts",
-      "fingerprint": "fda41ceddfc4c1edd2c9",
-      "message": "Argument of type '{ count: number; formats: readonly [\"image\", \"video\"]; }' is not assignable to parameter of type 'FastlaneGenerateIdeasRequest'.   Types of property 'formats' are incompatible.     The type 'readonly [\"image\", \"video\"]' is 'readonly' and cannot be assigned to the mutable type 'FastlaneFormat[]'.",
       "workspace": "services"
     },
     {
