@@ -39,6 +39,18 @@ const DRAIN_MARKER_KEY = 'genfeed:platform-schedules:5162-job-drain';
 
 const DRAIN_PAGE_SIZE = 100;
 
+/**
+ * Bounded immediate retry for the post-removal cancellation CAS (release
+ * review finding): the removal already committed, so a transient DB blip on
+ * the very next call would otherwise turn a routine one-time migration
+ * cleanup into a row the reconciler later fails loudly — customer-visible
+ * notification/webhook plus `consecutiveFailures` accounting the row never
+ * earned, potentially disabling a strategy. Matches the immediate bounded
+ * retry loops already used for a Prisma write elsewhere in this app (e.g.
+ * `SchedulerPublishStateService.transition`).
+ */
+const CANCEL_EXECUTION_MAX_ATTEMPTS = 3;
+
 @Injectable()
 export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
   private readonly context = PlatformScheduleRegistryService.name;
@@ -189,16 +201,29 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       return false;
     }
 
-    try {
-      await this.workflowExecutions.cancelExecution(executionId);
-      return true;
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.context} removed a stale platform-sourced job but failed to cancel its execution — the row stays PENDING for the reconciler to close`,
-        { error, executionId, jobId: job.id },
-      );
-      return false;
+    for (
+      let attempt = 1;
+      attempt <= CANCEL_EXECUTION_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        await this.workflowExecutions.cancelExecution(executionId);
+        return true;
+      } catch (error: unknown) {
+        if (attempt === CANCEL_EXECUTION_MAX_ATTEMPTS) {
+          this.logger.error(
+            `${this.context} removed a stale platform-sourced job but failed to cancel its execution after ${CANCEL_EXECUTION_MAX_ATTEMPTS} attempts — the row stays PENDING for the reconciler to close`,
+            { error, executionId, jobId: job.id },
+          );
+          return false;
+        }
+        this.logger.debug(
+          `${this.context} retrying cancellation of a stale platform-sourced job's execution`,
+          { attempt, error, executionId, jobId: job.id },
+        );
+      }
     }
+    return false;
   }
 
   async reconcile(): Promise<void> {

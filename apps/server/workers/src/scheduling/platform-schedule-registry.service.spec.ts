@@ -219,7 +219,7 @@ describe('PlatformScheduleRegistryService', () => {
       expect(triggerJob.remove).not.toHaveBeenCalled();
     });
 
-    it('logs an error but does not fail the sweep when cancelExecution fails after removal', async () => {
+    it('logs an error but does not fail the sweep when cancelExecution keeps failing after removal', async () => {
       const staleJob = platformJob(
         'system-workflow-cancel-fails',
         'PlatformWorkflowSchedulesService',
@@ -234,13 +234,43 @@ describe('PlatformScheduleRegistryService', () => {
       await service.drainStalePlatformSourcedJobs();
 
       // The job is already gone by the time cancellation is attempted — it
-      // cannot be "un-removed", so the row is left PENDING for
-      // PendingWorkflowExecutionReconcileService's own sweep to close.
+      // cannot be "un-removed", so after every bounded retry is exhausted the
+      // row is left PENDING for PendingWorkflowExecutionReconcileService's
+      // own sweep to close.
       expect(staleJob.remove).toHaveBeenCalledOnce();
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(3);
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to cancel its execution'),
+        expect.stringContaining(
+          'failed to cancel its execution after 3 attempts',
+        ),
         expect.objectContaining({ jobId: staleJob.id }),
       );
+    });
+
+    it('retries a transient cancelExecution failure and still cancels (release review finding)', async () => {
+      const staleJob = platformJob(
+        'system-workflow-cancel-transient-failure',
+        'PlatformWorkflowSchedulesService',
+        'execution-transient-failure',
+      );
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([staleJob])
+        .mockResolvedValue([]);
+      workflowExecutions.cancelExecution
+        .mockRejectedValueOnce(new Error('connection reset'))
+        .mockResolvedValueOnce({ status: 'CANCELLED' });
+
+      await service.drainStalePlatformSourcedJobs();
+
+      // A single transient DB blip right after removal must not turn a
+      // routine migration cleanup into a row the reconciler later fails
+      // loudly (customer notification/webhook plus consecutiveFailures
+      // accounting it never earned).
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(2);
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-transient-failure',
+      );
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('leaves the row alone when the job has no priorExecution.executionId to cancel', async () => {

@@ -369,18 +369,6 @@ export class CronXReplyWatchService {
       ...mentions.map((mention) => mention.tweetId),
     ]);
     if (hasUnreadPages) {
-      // Persist where this sequence left off (release review finding):
-      // without this, the next sweep has no memory of the token above and
-      // restarts from the newest page every tick, so an account with a
-      // backlog bigger than the page cap never makes it past the newest
-      // mentions and the rest goes unprocessed forever.
-      if (sinceId && paginationToken) {
-        await this.cacheService.set(
-          xReplyWatchResumeKey(credential.id),
-          { newestSeenId: newestSeen, paginationToken, sinceId },
-          { ttl: X_REPLY_WATCH_CURSOR_TTL_SECONDS },
-        );
-      }
       this.logger.warn(
         'X reply watch hit the mention page cap; resuming from the saved page next sweep',
         {
@@ -388,8 +376,6 @@ export class CronXReplyWatchService {
           pages: X_REPLY_WATCH_MAX_PAGES,
         },
       );
-    } else if (resumeState) {
-      await this.cacheService.del(xReplyWatchResumeKey(credential.id));
     }
 
     const replies = matchRepliesToPosts(mentions, posts);
@@ -401,18 +387,47 @@ export class CronXReplyWatchService {
 
     let createdMessages: CreatedSocialMessageRef[] = [];
     if (replies.length > 0) {
-      const ingested = await this.socialInboxService.ingestXPostReplies(
-        {
-          brandId: credential.brandId,
+      try {
+        const ingested = await this.socialInboxService.ingestXPostReplies(
+          {
+            brandId: credential.brandId,
+            organizationId: credential.organizationId,
+            userId: credential.userId ?? undefined,
+          },
+          { credentialId: credential.id, replies },
+        );
+        outcome.repliesCreated = ingested.messagesCreated;
+        createdMessages = ingested.createdMessages;
+      } catch (error: unknown) {
+        // Release review finding: the pages just fetched were never
+        // persisted, so advancing past them here — either by saving a resume
+        // token beyond this batch or by moving the cursor — would skip these
+        // replies for good. Leave the previous resume state (or cursor)
+        // completely untouched so the next sweep re-fetches and re-ingests
+        // this exact same batch instead.
+        this.logger.error('X reply ingestion failed', error, {
+          context: this.context,
+          credentialId: credential.id,
           organizationId: credential.organizationId,
-          userId: credential.userId ?? undefined,
-        },
-        { credentialId: credential.id, replies },
-      );
-      outcome.repliesCreated = ingested.messagesCreated;
-      createdMessages = ingested.createdMessages;
+        });
+        return { ...outcome, failed: 1 };
+      }
     }
     outcome.notified = await this.notify(credential, createdMessages);
+
+    // Only now that this batch's replies are durably ingested is it safe to
+    // move the pagination position forward (release review finding).
+    if (hasUnreadPages) {
+      if (sinceId && paginationToken) {
+        await this.cacheService.set(
+          xReplyWatchResumeKey(credential.id),
+          { newestSeenId: newestSeen, paginationToken, sinceId },
+          { ttl: X_REPLY_WATCH_CURSOR_TTL_SECONDS },
+        );
+      }
+    } else if (resumeState) {
+      await this.cacheService.del(xReplyWatchResumeKey(credential.id));
+    }
 
     const nextCursor = newestSnowflake([sinceId, newestSeen]);
     if (!hasUnreadPages && nextCursor && nextCursor !== storedCursor) {

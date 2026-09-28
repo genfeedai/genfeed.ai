@@ -419,6 +419,65 @@ describe('CronXReplyWatchService', () => {
     expect(context.cache.has(xReplyWatchResumeKey('a'))).toBe(false);
   });
 
+  it('does not advance the pagination position when reply ingestion fails, so the retry re-fetches the same batch (release review finding)', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    const reply = tweet('1800000000000000120', {
+      conversationId: '1800000000000000100',
+      inReplyToId: '1800000000000000100',
+    });
+    // Hits the page cap: this batch is never fully drained in tick 1.
+    context.twitterService.listMentionsPage.mockResolvedValue({
+      nextToken: 'more',
+      tweets: [reply],
+    });
+    context.socialInboxService.ingestXPostReplies.mockRejectedValueOnce(
+      new Error('db unavailable'),
+    );
+
+    const first = await context.service.watchRecentPostReplies(NOW);
+
+    expect(first.failed).toBe(1);
+    // The fetched pages were never durably ingested: saving a resume token
+    // (or advancing the cursor) here would skip these exact replies forever
+    // once the next sweep moves past them.
+    expect(context.cache.has(xReplyWatchResumeKey('a'))).toBe(false);
+    expect(context.cache.has(xReplyWatchCursorKey('a'))).toBe(false);
+    expect(context.logger.error).toHaveBeenCalledWith(
+      'X reply ingestion failed',
+      expect.any(Error),
+      expect.objectContaining({ credentialId: 'a' }),
+    );
+
+    context.twitterService.listMentionsPage.mockClear();
+    context.socialInboxService.ingestXPostReplies.mockResolvedValueOnce({
+      conversationsCreated: 1,
+      createdMessages: [
+        { conversationId: 'conv-p1', externalMessageId: reply.tweetId },
+      ],
+      messagesCreated: 1,
+    });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // The crucial assertion: the retry sweep re-fetches from page one with
+    // no pagination token and the original since_id — it must not resume
+    // from wherever the failed sweep's pagination happened to reach, which
+    // would silently drop the un-ingested replies from that batch.
+    expect(context.twitterService.listMentionsPage).toHaveBeenNthCalledWith(
+      1,
+      'org-a',
+      'brand-a',
+      { limit: 100, sinceId: '1800000000000000100' },
+      'a',
+    );
+    expect(context.socialInboxService.ingestXPostReplies).toHaveBeenCalledTimes(
+      2,
+    );
+  });
+
   it('retries a failed notification next tick without another X call', async () => {
     context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
     context.prisma.post.findMany.mockResolvedValue([
