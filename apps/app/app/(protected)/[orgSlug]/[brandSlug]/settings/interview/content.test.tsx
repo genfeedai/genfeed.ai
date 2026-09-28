@@ -501,6 +501,98 @@ describe('BrandSettingsInterviewPage', () => {
     ).toBeVisible();
   });
 
+  it('advances to the next question after answering the current one, without user navigation (#5391)', async () => {
+    const toneQuestion = {
+      answerType: 'text',
+      fieldKey: 'tone',
+      group: 'voice',
+      isRequired: true,
+      questionText: 'How would you describe your brand tone of voice?',
+      weight: 8,
+    };
+    const audienceQuestion = {
+      answerType: 'text',
+      fieldKey: 'audience',
+      group: 'voice',
+      isRequired: true,
+      questionText: 'Who is your target audience?',
+      weight: 8,
+    };
+
+    mocks.useBrandInterview = {
+      ...mocks.useBrandInterview,
+      currentQuestion: toneQuestion,
+      interviewId: 'iv-123',
+      progress: { answeredFields: 0, percentComplete: 0, totalFields: 13 },
+      status: 'in_progress',
+      steps: [
+        {
+          fieldKey: 'tone',
+          group: 'voice',
+          isNavigable: true,
+          label: toneQuestion.questionText,
+          question: toneQuestion,
+          status: 'current',
+        },
+        {
+          fieldKey: 'audience',
+          group: 'voice',
+          isNavigable: false,
+          label: audienceQuestion.questionText,
+          question: audienceQuestion,
+          status: 'upcoming',
+        },
+      ],
+    };
+
+    const { rerender } = render(<BrandSettingsInterviewPage />);
+
+    expect(
+      screen.getByRole('heading', { name: toneQuestion.questionText }),
+    ).toBeVisible();
+
+    // Answering the tone question never calls setSelectedFieldKey directly on
+    // this (non-editing-past-answer) path — only the hook's own state
+    // (currentQuestion/steps) advances, exactly as it does after a real
+    // submitAnswer() resolves.
+    mocks.useBrandInterview = {
+      ...mocks.useBrandInterview,
+      answeredFields: { tone: 'Bold, witty, and direct' },
+      currentQuestion: audienceQuestion,
+      progress: { answeredFields: 1, percentComplete: 50, totalFields: 13 },
+      steps: [
+        {
+          answerPreview: 'Bold, witty, and direct',
+          fieldKey: 'tone',
+          group: 'voice',
+          isNavigable: true,
+          label: toneQuestion.questionText,
+          question: toneQuestion,
+          status: 'answered',
+        },
+        {
+          fieldKey: 'audience',
+          group: 'voice',
+          isNavigable: true,
+          label: audienceQuestion.questionText,
+          question: audienceQuestion,
+          status: 'current',
+        },
+      ],
+    };
+    rerender(<BrandSettingsInterviewPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: audienceQuestion.questionText }),
+      ).toBeVisible();
+    });
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Back to current' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('clears drafts and refreshes brand when interview completes', async () => {
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,

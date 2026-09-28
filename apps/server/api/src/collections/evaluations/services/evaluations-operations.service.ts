@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
@@ -7,9 +8,12 @@ import {
   type TextByokDispatch,
   textDispatchApiKey,
 } from '@api/services/byok/text-dispatch-byok.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   ModelCategory,
   PromptTemplateKey,
@@ -18,10 +22,12 @@ import {
 import { normalizePersuasionScores } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface EvaluationContext {
   prompt?: string;
+  /** Stored video duration; frame sampling probes the file only without it. */
+  durationSeconds?: number;
   brand?: PromptBuilderParams['brand'];
   platform?: string;
   metadata?: unknown;
@@ -43,8 +49,7 @@ interface EvaluationConfig {
   promptTemplate: PromptTemplateKey;
   contentType: string;
   maxContentLength: number;
-  mediaKey?: 'videos' | 'images';
-  mediaUrl?: string;
+  imageUrls?: string[];
 }
 
 interface EvaluationResponsePayload {
@@ -70,6 +75,15 @@ interface EvaluationResponsePayload {
   weaknesses?: string[];
 }
 
+/**
+ * The evaluation model reads images, not video, so a video is evaluated from
+ * frames sampled evenly across its duration.
+ */
+const VIDEO_EVALUATION_FRAME_COUNT = 4;
+const VIDEO_EVALUATION_FRAME_WIDTH = 512;
+/** Where the files service stores a thumbnail generated under a given id. */
+const THUMBNAIL_STORAGE_PREFIX = 'ingredients/thumbnails/';
+
 type EvaluationPromptOptions = PromptBuilderParams & {
   isThread?: boolean;
   label?: string;
@@ -86,6 +100,8 @@ export class EvaluationsOperationsService {
     private readonly replicateService: ReplicateService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly logger: LoggerService,
+    private readonly filesClientService: FilesClientService,
+    private readonly mediaUrlService: MediaUrlService,
   ) {}
 
   private toEvaluationResponsePayload(
@@ -170,11 +186,9 @@ export class EvaluationsOperationsService {
         organizationId,
       )) || { input: {} };
 
-      // Add media if provided
-      const finalInput =
-        config.mediaKey && config.mediaUrl
-          ? { ...input, [config.mediaKey]: [config.mediaUrl] }
-          : input;
+      const finalInput = config.imageUrls?.length
+        ? { ...input, images: config.imageUrls }
+        : input;
 
       const responseText =
         await this.replicateService.generateTextCompletionSync(
@@ -206,26 +220,107 @@ export class EvaluationsOperationsService {
     }
   }
 
-  evaluateVideo(
+  async evaluateVideo(
     videoUrl: string,
     context: EvaluationContext = {},
     organizationId: string,
     onBilling?: (amount: number) => void,
     byok?: TextByokDispatch,
   ): Promise<unknown> {
-    return this.evaluate(
-      context.prompt || 'No context provided',
-      context,
-      organizationId,
-      {
-        contentType: 'Video',
-        maxContentLength: 4000,
-        mediaKey: 'videos',
-        mediaUrl: videoUrl,
-        promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
-      },
-      onBilling,
-      byok,
+    // Frames are extracted and stored through the files service's S3 path, and
+    // the model provider must fetch them from a public CDN. Self-hosted media
+    // lives in local storage, so no frame can reach the provider.
+    if (isSelfHostedDeployment()) {
+      throw new BadRequestException(
+        'Video evaluation needs cloud media storage; this deployment stores media locally.',
+      );
+    }
+    const frameStorageKeys: string[] = [];
+    try {
+      return await this.evaluate(
+        context.prompt || 'No context provided',
+        context,
+        organizationId,
+        {
+          contentType: 'Video',
+          imageUrls: await this.sampleVideoFrames(
+            videoUrl,
+            context.durationSeconds,
+            frameStorageKeys,
+          ),
+          maxContentLength: 4000,
+          promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
+        },
+        onBilling,
+        byok,
+      );
+    } finally {
+      await this.deleteVideoFrames(frameStorageKeys);
+    }
+  }
+
+  /**
+   * Frames at the midpoints of equal slices of the video, signed for the CDN
+   * so the model provider can fetch them. Each frame gets its own thumbnail id
+   * so it never overwrites the video's own thumbnail; its storage key is
+   * recorded before extraction so the caller deletes even a partial sample.
+   */
+  private async sampleVideoFrames(
+    videoUrl: string,
+    storedDuration: number | undefined,
+    frameStorageKeys: string[],
+  ): Promise<string[]> {
+    try {
+      // The probe downloads the whole file (capped), so the stored duration
+      // wins whenever the video has one.
+      const duration =
+        storedDuration && Number.isFinite(storedDuration) && storedDuration > 0
+          ? storedDuration
+          : (await this.filesClientService.extractMetadataFromUrl(videoUrl))
+              .duration;
+      if (!duration || !Number.isFinite(duration) || duration <= 0) {
+        throw new Error('Video duration could not be read');
+      }
+      const frameUrls: string[] = [];
+      for (let index = 0; index < VIDEO_EVALUATION_FRAME_COUNT; index += 1) {
+        const frameId = `evaluation-frame-${randomUUID()}`;
+        frameStorageKeys.push(`${THUMBNAIL_STORAGE_PREFIX}${frameId}`);
+        const { thumbnailUrl } =
+          (await this.filesClientService.generateThumbnail(
+            videoUrl,
+            frameId,
+            (duration * (index + 0.5)) / VIDEO_EVALUATION_FRAME_COUNT,
+            VIDEO_EVALUATION_FRAME_WIDTH,
+          )) as { thumbnailUrl?: unknown };
+        if (typeof thumbnailUrl !== 'string' || !thumbnailUrl) {
+          throw new Error('Frame extraction returned no image');
+        }
+        frameUrls.push(this.mediaUrlService.buildUrlFromAbsolute(thumbnailUrl));
+      }
+      return frameUrls;
+    } catch (error: unknown) {
+      this.logger.error('Video frame sampling failed', { error });
+      throw new ExternalServiceException(
+        'Files',
+        'Video frame sampling failed',
+        error,
+      );
+    }
+  }
+
+  /** Sampled frames are transient: a failed delete is logged, never thrown. */
+  private async deleteVideoFrames(storageKeys: readonly string[]) {
+    await Promise.all(
+      storageKeys.map(async (storageKey) => {
+        try {
+          await this.filesClientService.deleteStoredObject(storageKey);
+        } catch (error: unknown) {
+          this.logger.warn('Evaluation frame cleanup failed', {
+            error,
+            storageKey,
+          });
+        }
+      }),
     );
   }
 
@@ -242,9 +337,8 @@ export class EvaluationsOperationsService {
       organizationId,
       {
         contentType: 'Image',
+        imageUrls: [imageUrl],
         maxContentLength: 4000,
-        mediaKey: 'images',
-        mediaUrl: imageUrl,
         promptTemplate: PromptTemplateKey.EVALUATION_IMAGE,
       },
       onBilling,

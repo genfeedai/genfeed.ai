@@ -605,6 +605,101 @@ describe('ReplicateService', () => {
       );
     });
 
+    it('sends image inputs to OpenRouter as multimodal user content', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: '{}' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+
+      await service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+        images: ['https://cdn.test/image.png'],
+        prompt: 'Evaluate this asset',
+        system_prompt: 'You are an evaluator.',
+      });
+
+      expect(chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            { content: 'You are an evaluator.', role: 'system' },
+            {
+              content: [
+                { text: 'Evaluate this asset', type: 'text' },
+                {
+                  image_url: { url: 'https://cdn.test/image.png' },
+                  type: 'image_url',
+                },
+              ],
+              role: 'user',
+            },
+          ],
+        }),
+        undefined,
+      );
+    });
+
+    it('keeps multimodal chat messages and attaches media to the last user turn', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: 'ok' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+      const imagePart = {
+        image_url: { url: 'https://cdn.test/reference.png' },
+        type: 'image_url',
+      };
+
+      await service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+        images: ['https://cdn.test/asset.png'],
+        messages: [
+          { content: 'System rules.', role: 'system' },
+          {
+            content: [{ text: 'Compare these.', type: 'text' }, imagePart],
+            role: 'user',
+          },
+        ],
+      });
+
+      expect(chatCompletion.mock.calls[0][0].messages).toEqual([
+        { content: 'System rules.', role: 'system' },
+        {
+          content: [
+            { text: 'Compare these.', type: 'text' },
+            imagePart,
+            {
+              image_url: { url: 'https://cdn.test/asset.png' },
+              type: 'image_url',
+            },
+          ],
+          role: 'user',
+        },
+      ]);
+    });
+
+    it('never sends video to a text model', async () => {
+      const chatCompletion = vi.fn();
+      const { service } = createHarness({}, { chatCompletion });
+
+      await expect(
+        service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+          prompt: 'Evaluate this asset',
+          videos: ['https://cdn.test/video.mp4'],
+        }),
+      ).rejects.toThrow('cannot read video');
+      expect(chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('rejects media inputs it cannot send instead of completing without them', async () => {
+      const chatCompletion = vi.fn();
+      const { service } = createHarness({}, { chatCompletion });
+
+      await expect(
+        service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+          images: [{ url: 'https://cdn.test/image.png' }],
+          prompt: 'Evaluate this asset',
+        }),
+      ).rejects.toThrow('images');
+      expect(chatCompletion).not.toHaveBeenCalled();
+    });
+
     it('throws when an OpenRouter model is requested without OpenRouter configured', async () => {
       const { service } = createHarness();
 
