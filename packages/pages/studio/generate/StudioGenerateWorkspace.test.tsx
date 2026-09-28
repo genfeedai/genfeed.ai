@@ -1676,6 +1676,12 @@ describe('StudioGenerateWorkspace', () => {
       render(<StudioGenerateWorkspace />);
       await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
       act(() => lastComposerProps().onPromptChange('Ship it'));
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          expect.objectContaining({ prompt: 'Ship it' }),
+          expect.any(AbortSignal),
+        ),
+      );
       act(() => lastComposerProps().onSubmit());
 
       await waitFor(() => expect(lastComposerProps().prompt).toBe(''));
