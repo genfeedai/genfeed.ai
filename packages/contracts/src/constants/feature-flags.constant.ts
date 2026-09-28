@@ -1,5 +1,3 @@
-import type { IPlatformFlags } from '../interfaces/settings/platform-setting.interface';
-
 /**
  * Product modules a superadmin can switch off for the whole platform from
  * Admin → Flags → Modules (#5468). Off hides the module's app-rail entry and
@@ -29,13 +27,16 @@ export type PlatformFeatureFlagKey =
   (typeof PLATFORM_FEATURE_FLAG_KEYS)[number];
 export type PlatformFlagKey = PlatformModuleFlagKey | PlatformFeatureFlagKey;
 
+/** Same shape as `IPlatformFlags`, declared here so contracts stay acyclic. */
+type PlatformFlagValues = Readonly<Record<PlatformFlagKey, boolean>>;
+
 export const PLATFORM_FLAG_KEYS: readonly PlatformFlagKey[] = [
   ...PLATFORM_MODULE_FLAG_KEYS,
   ...PLATFORM_FEATURE_FLAG_KEYS,
 ];
 
 /** Everything on: what a deployment gets until an operator switches a flag off. */
-export const DEFAULT_PLATFORM_FLAGS: IPlatformFlags = Object.freeze(
+export const DEFAULT_PLATFORM_FLAGS: PlatformFlagValues = Object.freeze(
   Object.fromEntries(PLATFORM_FLAG_KEYS.map((key) => [key, true])) as Record<
     PlatformFlagKey,
     boolean
@@ -53,7 +54,7 @@ export function isPlatformFlagKey(value: string): value is PlatformFlagKey {
  * off: a missing, unknown or malformed entry keeps the default (on), so a
  * flag added by a newer release is on until an operator says otherwise.
  */
-export function parsePlatformFlags(value: unknown): IPlatformFlags {
+export function parsePlatformFlags(value: unknown): PlatformFlagValues {
   const stored =
     value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)

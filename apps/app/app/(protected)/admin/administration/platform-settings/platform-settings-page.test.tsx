@@ -11,6 +11,9 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlatformSettingsPage from './platform-settings-page';
 
+// Flags are edited on Admin → Flags (#5468); the settings page never resends them.
+const { flags: _flags, ...SAVED_SWITCHES } = DEFAULT_PLATFORM_FEATURE_SETTINGS;
+
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getSettings: vi.fn(),
@@ -274,7 +277,7 @@ describe('PlatformSettingsPage', () => {
       marginMultiplierAgentChat: 1.7,
       marginMultiplierGeneration: 4,
       typedDecisionProvider: 'jev',
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      ...SAVED_SWITCHES,
     });
     // Refreshed from the mocked server response (marginMultiplierGeneration:
     // 4 => 75% margin), not the stale value from before the save.
@@ -299,7 +302,7 @@ describe('PlatformSettingsPage', () => {
         marginMultiplierAgentChat: 1.7,
         marginMultiplierGeneration: 3.33,
         typedDecisionProvider: 'jev',
-        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        ...SAVED_SWITCHES,
       });
     });
   });
@@ -321,7 +324,7 @@ describe('PlatformSettingsPage', () => {
       marginMultiplierAgentChat: 1.7,
       marginMultiplierGeneration: 3.33,
       typedDecisionProvider: 'none',
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      ...SAVED_SWITCHES,
     });
     expect(select).toHaveValue('none');
   });
