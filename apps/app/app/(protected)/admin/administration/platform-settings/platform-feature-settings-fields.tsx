@@ -42,6 +42,7 @@ const MODERATION_CATEGORIES = Object.values(ModerationCategory);
  */
 export default function PlatformFeatureSettingsFields({
   isDisabled,
+  isEmailDeliveryConfigured,
   onChange,
   onValidityChange,
   settings,
@@ -336,9 +337,17 @@ export default function PlatformFeatureSettingsFields({
       <Switch
         aria-label={translate('platform.emailVerificationLabel')}
         label={translate('platform.emailVerificationLabel')}
-        description={translate('platform.emailVerificationHelp')}
-        isChecked={settings.isEmailVerificationRequired}
-        isDisabled={isDisabled}
+        description={translate(
+          isEmailDeliveryConfigured
+            ? 'platform.emailVerificationHelp'
+            : 'platform.emailVerificationUnavailable',
+        )}
+        // Without a mailer the stored value is not enforced, so the switch
+        // shows off; saving never rewrites the stored value.
+        isChecked={
+          isEmailDeliveryConfigured && settings.isEmailVerificationRequired
+        }
+        isDisabled={isDisabled || !isEmailDeliveryConfigured}
         onCheckedChange={(isChecked) =>
           update('isEmailVerificationRequired', isChecked)
         }

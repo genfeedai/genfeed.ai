@@ -73,7 +73,12 @@ export interface IPlatformFeatureSettings {
    * recorded, so enabling never replays historical signups.
    */
   systemEventsEnabledAt: string | null;
-  /** Better Auth: email/password accounts must verify their email to sign in. */
+  /**
+   * Better Auth: email/password accounts must verify their email to sign in.
+   * Enforced only while an email provider is configured
+   * (`IPlatformSetting.isEmailDeliveryConfigured`); without one the stored
+   * value is kept but sign-in is never blocked.
+   */
   isEmailVerificationRequired: boolean;
   /** Module and feature flags (#5468), edited from Admin → Flags. */
   flags: IPlatformFlags;
@@ -137,6 +142,14 @@ export interface IPlatformSetting
    * misbehaving vendor off takes a click rather than a deploy.
    */
   typedDecisionProvider: TypedDecisionProviderName;
+
+  /**
+   * Read-only deployment fact: the notifications service has an email provider
+   * (`RESEND_API_KEY`). Not stored — computed on every read. While `false`,
+   * `isEmailVerificationRequired` is not enforced and the admin toggle is
+   * unavailable.
+   */
+  isEmailDeliveryConfigured: boolean;
 }
 
 /** Fields a platform operator may update via `/admin`. */

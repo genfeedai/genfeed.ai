@@ -93,6 +93,11 @@ RESEND_FROM_EMAIL=updates@example.com
 RESEND_REPLY_TO_EMAIL=support@example.com
 ```
 
+Email verification (Admin -> Platform settings -> Require email verification) is
+enforced only while `RESEND_API_KEY` is set on the notifications service. Without
+it the switch is unavailable and sign-up and sign-in are never blocked, whatever
+value was stored; setting the key later enforces the stored value again.
+
 Google sign-in and the Google API connectors share one Google Cloud OAuth web
 client. Register every enabled connector callback on that client:
 

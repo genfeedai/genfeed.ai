@@ -3396,6 +3396,7 @@
         "heading": "Accounts and alerts",
         "emailVerificationLabel": "Require email verification",
         "emailVerificationHelp": "Email and password accounts must verify their address before signing in. Needs a working notifications service to send the email.",
+        "emailVerificationUnavailable": "Unavailable: no email provider is configured. Set RESEND_API_KEY on the notifications service to require email verification. Until then, sign-up and sign-in are never blocked, whatever this was set to before.",
         "systemEventsLabel": "Record system events",
         "systemEventsHelp": "Records signup and billing events for operator alerts. Events before recording started are never replayed.",
         "systemEventsSince": "Recording since {date}"

@@ -80,6 +80,14 @@ export interface IEmailDeliveryResponse {
   emailId: string;
 }
 
+/**
+ * Whether the notifications service has an email provider (`RESEND_API_KEY`).
+ * Only that service holds the key, so the API asks rather than reading env.
+ */
+export interface IEmailDeliveryStatusResponse {
+  isConfigured: boolean;
+}
+
 export interface IEmailDeliveryErrorResponse {
   message: string;
   retryable: boolean;

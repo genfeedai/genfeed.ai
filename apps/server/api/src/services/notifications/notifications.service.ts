@@ -4,6 +4,7 @@ import type {
   IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
+  IEmailDeliveryStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
@@ -79,6 +80,13 @@ function isRetryableEmailDeliveryStatus(
 export class NotificationsService {
   private readonly constructorName = this.constructor.name;
   private static readonly EMAIL_DELIVERY_TIMEOUT_MS = 10_000;
+  private static readonly EMAIL_STATUS_TTL_MS = 60_000;
+  private static readonly EMAIL_STATUS_RETRY_MS = 10_000;
+  private static readonly EMAIL_STATUS_TIMEOUT_MS = 3_000;
+  private emailDeliveryStatus:
+    | { expiresAtMs: number; isConfigured: boolean }
+    | undefined;
+  private pendingEmailDeliveryStatus: Promise<boolean> | undefined;
 
   constructor(
     private readonly configService: ConfigService,
@@ -152,6 +160,100 @@ export class NotificationsService {
       return await response.json();
     } catch {
       throw new Error('Notifications service request failed');
+    }
+  }
+
+  /**
+   * Whether the notifications service can send email (it holds
+   * `RESEND_API_KEY`; this process does not, so it asks). Cached for a minute
+   * because the answer gates every auth request.
+   *
+   * No notifications URL or internal key means no mailer is reachable: `false`.
+   * A failed check keeps the last answer, and before any answer assumes a
+   * mailer exists, so an outage never silently disables email verification
+   * where one is deployed.
+   */
+  async isEmailDeliveryConfigured(): Promise<boolean> {
+    const notificationsUrl = this.configService
+      .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
+      ?.trim();
+    const internalApiKey = this.configService.get('GENFEEDAI_API_KEY')?.trim();
+    if (!notificationsUrl || !internalApiKey) {
+      return false;
+    }
+
+    const cached = this.emailDeliveryStatus;
+    if (cached && Date.now() < cached.expiresAtMs) {
+      return cached.isConfigured;
+    }
+
+    this.pendingEmailDeliveryStatus ??= this.loadEmailDeliveryStatus(
+      notificationsUrl,
+      internalApiKey,
+    ).finally(() => {
+      this.pendingEmailDeliveryStatus = undefined;
+    });
+    return this.pendingEmailDeliveryStatus;
+  }
+
+  private async loadEmailDeliveryStatus(
+    notificationsUrl: string,
+    internalApiKey: string,
+  ): Promise<boolean> {
+    try {
+      const baseUrl = new URL(
+        notificationsUrl.endsWith('/')
+          ? notificationsUrl
+          : `${notificationsUrl}/`,
+      );
+      if (baseUrl.protocol !== 'http:' && baseUrl.protocol !== 'https:') {
+        throw new Error('Notifications service URL must use HTTP or HTTPS');
+      }
+
+      const response = await safeFetch(
+        new URL('v1/internal/email-deliveries', baseUrl),
+        {
+          headers: { Authorization: `Bearer ${internalApiKey}` },
+          method: 'GET',
+          signal: AbortSignal.timeout(
+            NotificationsService.EMAIL_STATUS_TIMEOUT_MS,
+          ),
+        },
+        {
+          allowedOrigins: [baseUrl.origin],
+          allowPrivateNetwork: true,
+          maxRedirects: 0,
+        },
+      );
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error(
+          `Notifications service returned HTTP ${response.status}`,
+        );
+      }
+
+      const body: unknown = await response.json();
+      if (!this.isEmailDeliveryStatusResponse(body)) {
+        throw new Error('Notifications service returned an invalid status');
+      }
+
+      this.emailDeliveryStatus = {
+        expiresAtMs: Date.now() + NotificationsService.EMAIL_STATUS_TTL_MS,
+        isConfigured: body.isConfigured,
+      };
+      return body.isConfigured;
+    } catch (error: unknown) {
+      const isConfigured = this.emailDeliveryStatus?.isConfigured ?? true;
+      this.logger.warn(
+        `${this.constructorName} could not read the email provider status`,
+        { error, isAssumedConfigured: isConfigured },
+      );
+      // Back off briefly so an outage is not one 3s request per auth call.
+      this.emailDeliveryStatus = {
+        expiresAtMs: Date.now() + NotificationsService.EMAIL_STATUS_RETRY_MS,
+        isConfigured,
+      };
+      return isConfigured;
     }
   }
 
@@ -329,6 +431,16 @@ export class NotificationsService {
     } catch {
       return null;
     }
+  }
+
+  private isEmailDeliveryStatusResponse(
+    value: unknown,
+  ): value is IEmailDeliveryStatusResponse {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof Reflect.get(value, 'isConfigured') === 'boolean'
+    );
   }
 
   private isEmailDeliveryResponse(
