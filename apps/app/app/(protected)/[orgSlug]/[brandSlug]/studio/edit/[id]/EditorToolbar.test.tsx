@@ -4,6 +4,11 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditorToolbar from './EditorToolbar';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 class ResizeObserverMock {
   observe() {}
   unobserve() {}

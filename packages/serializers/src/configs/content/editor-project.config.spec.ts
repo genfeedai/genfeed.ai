@@ -41,10 +41,11 @@ describe('editor project serializer lock contract', () => {
       { config: [], id: 'project-5' },
     ]);
 
-    expect(
-      (output.data as Array<{ attributes: { isLocked: boolean } }>).map(
-        (item) => item.attributes.isLocked,
-      ),
-    ).toEqual([false, false, false]);
+    const items = Array.isArray(output.data) ? output.data : [];
+    expect(items.map((item) => item.attributes?.isLocked)).toEqual([
+      false,
+      false,
+      false,
+    ]);
   });
 });

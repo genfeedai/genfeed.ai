@@ -119,9 +119,14 @@ export class EditorProjectsService extends BaseService<
             ...(name !== undefined ? { name } : {}),
             ...(settings !== undefined
               ? {
+                  // A partial update merges; null leaves a setting unchanged.
                   settings: {
                     ...this.readProjectConfig(config.settings),
-                    ...settings,
+                    ...Object.fromEntries(
+                      Object.entries(settings ?? {}).filter(
+                        ([, value]) => value !== null && value !== undefined,
+                      ),
+                    ),
                   },
                 }
               : {}),

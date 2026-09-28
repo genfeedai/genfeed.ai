@@ -26,6 +26,7 @@ import {
   StepBack,
   StepForward,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { formatPlaybackFrameTime } from './editor-time-format.util';
 
@@ -69,6 +70,8 @@ function EditorToolbar({
   onRender,
   onBack,
 }: EditorToolbarProps) {
+  const t = useTranslations('pages.studioEditorLock');
+
   return (
     <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
       {/* Left section - Navigation & Project info */}
@@ -86,7 +89,9 @@ function EditorToolbar({
         <div className="flex items-center gap-2">
           <span className="font-medium">{projectName}</span>
           {isReadOnly ? (
-            <span className="text-xs text-muted-foreground">(read-only)</span>
+            <span className="text-xs text-muted-foreground">
+              {t('readOnlyBadge')}
+            </span>
           ) : (
             isDirty && (
               <span className="text-xs text-muted-foreground">(unsaved)</span>

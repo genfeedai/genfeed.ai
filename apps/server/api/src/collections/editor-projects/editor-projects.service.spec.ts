@@ -157,6 +157,21 @@ describe('EditorProjectsService.updateEditorContent', () => {
     expect(args.data.config.settings).toEqual({ ...saved, fps: 60 });
   });
 
+  it('leaves a setting unchanged when the update sends null for it', async () => {
+    // `@IsOptional()` lets null through validation; null is not "clear".
+    const saved = { fps: 30, height: 1920, width: 1080 };
+    const { service, tx } = setup(() => row({ settings: saved }));
+
+    await service.updateEditorContent(PROJECT_ID, ORG_ID, {
+      settings: { fps: 60, width: null } as never,
+    });
+
+    const [args] = tx.editorProject.update.mock.calls[0] as [
+      { data: { config: Record<string, unknown> } },
+    ];
+    expect(args.data.config.settings).toEqual({ ...saved, fps: 60 });
+  });
+
   it('refuses a composition-backed project under the lock', async () => {
     const { service, tx } = setup(() =>
       row({ composition: { id: 'product-story' }, name: 'Story' }),

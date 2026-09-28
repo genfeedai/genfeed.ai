@@ -189,7 +189,11 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'credit-transactions:CreditTransaction': [],
   'distribution:Distribution': ['errorMessage', 'publishedAt'],
-  'editor-project:EditorProject': ['name'],
+  'editor-project:EditorProject': [
+    // Derived on read from config.composition (computeEditorProjectIsLocked).
+    'isLocked',
+    'name',
+  ],
   'fanvue-content:FanvueContent': [
     'caption',
     'externalId',
