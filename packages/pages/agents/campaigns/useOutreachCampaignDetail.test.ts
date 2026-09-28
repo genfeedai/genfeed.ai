@@ -39,13 +39,15 @@ vi.mock('@services/automation/outreach-campaigns.service', () => ({
   OutreachCampaignsService: { getInstance: vi.fn() },
 }));
 
+const notificationsServiceMock = {
+  error: mocks.notificationsError,
+  success: mocks.notificationsSuccess,
+};
+// Same stability concern as the service resolver above: `notificationsService`
+// sits in `loadCampaign`'s dependency array, so a new object per call
+// re-fires the load effect on every render.
 vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({
-      error: mocks.notificationsError,
-      success: mocks.notificationsSuccess,
-    }),
-  },
+  NotificationsService: { getInstance: () => notificationsServiceMock },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
