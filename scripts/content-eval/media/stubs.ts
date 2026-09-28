@@ -13,6 +13,7 @@ import type {
   MediaGenerationPort,
   MediaGenerationRequest,
   MediaGenerationResult,
+  MediaReferencePort,
 } from './generation';
 import { buildGenerationBody, settingsFromBody } from './generation';
 import type { FrameSamplerPort } from './judge';
@@ -33,60 +34,84 @@ export const STUB_REGISTRY: Readonly<Record<Medium, RegistryMediaModel[]>> = {
   image: [
     {
       cost: 4,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'bytedance/seedream-5-pro',
+      pricingType: null,
       label: 'Seedream 5 Pro',
     },
     {
       cost: 6,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'google/nano-banana-2',
+      pricingType: null,
       label: 'Nano Banana 2',
     },
     {
       cost: 5,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'black-forest-labs/flux-2-pro',
+      pricingType: null,
       label: 'FLUX.2 Pro',
     },
     {
       cost: 8,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'openai/gpt-image-2',
+      pricingType: null,
       label: 'GPT Image 2',
     },
     {
       cost: 1,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'black-forest-labs/flux-schnell',
+      pricingType: null,
       label: 'FLUX Schnell',
     },
   ],
   video: [
     {
       cost: 40,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'google/veo-3-fast',
+      pricingType: null,
       label: 'Veo 3 Fast',
     },
     {
       cost: 30,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'kwaivgi/kling-v2.1',
+      pricingType: null,
       label: 'Kling 2.1',
     },
     {
       cost: 20,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
+      minCost: null,
       key: 'prunaai/p-video',
+      pricingType: null,
       label: 'P-Video',
     },
   ],
@@ -139,6 +164,12 @@ export class StubMediaProbe implements MediaProbePort {
 export class StubFrameSampler implements FrameSamplerPort {
   async sample(url: string): Promise<string[]> {
     return [url];
+  }
+}
+
+export class StubMediaReferences implements MediaReferencePort {
+  async resolveUrl(ingredientId: string): Promise<string> {
+    return `${STUB_ARTIFACT_HOST}/reference/${encodeURIComponent(ingredientId)}.png`;
   }
 }
 

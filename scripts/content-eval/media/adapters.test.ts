@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MediaContestant, MediaTask } from './contracts';
 import { mediaTaskSchema } from './contracts';
 import {
@@ -27,6 +27,7 @@ const RAW: MediaContestant = {
   },
   creditsPerOutput: 1,
   family: 'black-forest-labs',
+  pricing: { cost: 1, costPerUnit: null, minCost: null, pricingType: null },
   registryKey: 'black-forest-labs/flux-schnell',
   route: { kind: 'raw' },
 };
@@ -172,6 +173,295 @@ describe('ProductApiMediaGeneration', () => {
     );
     expect(result.status).toBe('refused');
     expect(result.creditsCharged).toBe(0);
+  });
+
+  describe('background-only providers (Fal never resolves waitForCompletion)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** A `POST /images` that returns pending, then two GET polls: pending, then done. */
+    function fakePendingFetch(): typeof fetch {
+      const balances = [100, 100, 100, 97];
+      let pollCalls = 0;
+      return (async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: balances.shift() } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // GET /images/ing-1 — the poll route.
+        pollCalls += 1;
+        if (pollCalls < 2) {
+          return Response.json({
+            data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' },
+          });
+        }
+        return Response.json({
+          data: {
+            attributes: {
+              status: 'GENERATED',
+              url: 'https://cdn.example/ing-1.jpg',
+            },
+            id: 'ing-1',
+          },
+        });
+      }) as typeof fetch;
+    }
+
+    it('polls a pending ingredient to completion instead of failing it immediately', async () => {
+      const fetchImpl = fakePendingFetch();
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      // Two 2s image-poll intervals must elapse before the second GET resolves it.
+      await vi.advanceTimersByTimeAsync(5_000);
+      const result = await resultPromise;
+      expect(result).toMatchObject({
+        fetchUrl: 'https://cdn.example/ing-1.jpg',
+        status: 'generated',
+      });
+    });
+
+    it('fails a generation that is still pending once the poll times out', async () => {
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: 100 } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // Never leaves PROCESSING.
+        return Response.json({
+          data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' },
+        });
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      // Past the 180s image poll ceiling.
+      await vi.advanceTimersByTimeAsync(185_000);
+      const result = await resultPromise;
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('still "PROCESSING"');
+      expect(result.error).toContain('polling 180000ms');
+    });
+
+    it('retries a transient network error while polling instead of aborting the run', async () => {
+      const balances = [100, 100, 100, 97];
+      let pollCalls = 0;
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: balances.shift() } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // GET /images/ing-1 — first poll drops the connection, second succeeds.
+        pollCalls += 1;
+        if (pollCalls === 1) {
+          throw new TypeError('fetch failed');
+        }
+        return Response.json({
+          data: {
+            attributes: {
+              status: 'GENERATED',
+              url: 'https://cdn.example/ing-1.jpg',
+            },
+            id: 'ing-1',
+          },
+        });
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      // Two 2s poll intervals: the failed attempt, then the successful retry.
+      await vi.advanceTimersByTimeAsync(5_000);
+      const result = await resultPromise;
+      expect(result).toMatchObject({
+        fetchUrl: 'https://cdn.example/ing-1.jpg',
+        status: 'generated',
+      });
+    });
+
+    it('returns a metered failure instead of throwing when polling never recovers from network errors', async () => {
+      const balanceCalls: string[] = [];
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          balanceCalls.push(url);
+          return Response.json({
+            data: { attributes: { currentBalance: 100 } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // Every poll drops the connection — the generation was still paid
+        // for and must not be lost to an unhandled rejection.
+        throw new TypeError('fetch failed');
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      await vi.advanceTimersByTimeAsync(185_000);
+      const result = await resultPromise;
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('still "PROCESSING"');
+      // The balance is still reconciled after the poll gives up, so the
+      // caller's ledger can record whatever the generation actually cost.
+      expect(balanceCalls.length).toBe(2);
+    });
+
+    it('retries an unreadable poll response body instead of treating it as terminal', async () => {
+      const balances = [100, 100, 100, 97];
+      let pollCalls = 0;
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: balances.shift() } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // GET /images/ing-1 — first poll's body is unreadable, second is valid.
+        pollCalls += 1;
+        if (pollCalls === 1) {
+          return new Response('not json', { status: 200 });
+        }
+        return Response.json({
+          data: {
+            attributes: {
+              status: 'GENERATED',
+              url: 'https://cdn.example/ing-1.jpg',
+            },
+            id: 'ing-1',
+          },
+        });
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      // Two 2s poll intervals: the unreadable attempt, then the valid retry.
+      await vi.advanceTimersByTimeAsync(5_000);
+      const result = await resultPromise;
+      expect(result).toMatchObject({
+        fetchUrl: 'https://cdn.example/ing-1.jpg',
+        status: 'generated',
+      });
+    });
+
+    it('waits out the full poll timeout instead of failing immediately when every poll body is unreadable', async () => {
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: 100 } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // Every poll's body fails to parse.
+        return new Response('not json', { status: 200 });
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      await vi.advanceTimersByTimeAsync(185_000);
+      const result = await resultPromise;
+      // Falls back to the last valid document — the original POST's
+      // PROCESSING status — and reports the poll timeout, not a premature
+      // "terminal" failure from the first unreadable body.
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('still "PROCESSING"');
+      expect(result.error).toContain('polling 180000ms');
+    });
   });
 });
 

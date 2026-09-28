@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  calculateImageGenerationCredits,
+  calculateVideoGenerationCredits,
+} from '@genfeedai/pricing';
 import type { Match } from '../bench/schema';
 import { matchSchema } from '../bench/schema';
 import {
@@ -22,12 +26,13 @@ import {
   type TaskWinRate,
 } from './contracts';
 import { recomputeElo } from './elo';
-import type { MediaGenerationPort } from './generation';
+import type { MediaGenerationPort, MediaReferencePort } from './generation';
 import {
   assertVerdictCoversRubric,
   buildJudgeMessages,
   type FrameSamplerPort,
   JUDGE_SCHEMA_NAME,
+  type JudgeReferenceVisuals,
   meanAdherence,
   type VisionJudgePort,
 } from './judge';
@@ -83,6 +88,8 @@ export interface MediaLadderDeps {
   frames: FrameSamplerPort;
   judge: VisionJudgePort;
   spend: MediaSpendPort;
+  /** Resolves a `--references` ingredient id to a URL the judge can be shown. */
+  references: MediaReferencePort;
   now: () => Date;
 }
 
@@ -214,6 +221,35 @@ function taskPrompt(mediaTask: MediaTask, kit: BrandKit): string {
     : mediaTask.task.prompt;
 }
 
+/**
+ * Credits this exact request will cost, not the model's default-size rate:
+ * `contestant.creditsPerOutput` is the registry's flat/default price, but a
+ * dimension- or duration-priced model (`pricing.pricingType`) charges by the
+ * width/height/duration actually requested. Every call here sends `outputs:
+ * 1` (`buildGenerationBody`), so fan-out and batching never apply.
+ */
+export function estimatedGenerationCredits(
+  medium: Medium,
+  contestant: MediaContestant,
+  width: number,
+  height: number,
+  durationSeconds: number | null,
+): number {
+  const shared = {
+    height,
+    isBatchSupported: true,
+    modelKey: contestant.registryKey,
+    pricing: contestant.pricing,
+    width,
+  };
+  return medium === 'video'
+    ? calculateVideoGenerationCredits({
+        ...shared,
+        duration: durationSeconds ?? undefined,
+      }).credits
+    : calculateImageGenerationCredits(shared).credits;
+}
+
 async function generateAnswer(
   deps: MediaLadderDeps,
   options: MediaLadderOptions,
@@ -252,7 +288,15 @@ async function generateAnswer(
 
   for (let index = 0; index < task.outputSpec.count; index += 1) {
     const seed = seedFor(index);
-    deps.spend.reserveGeneration(contestant.creditsPerOutput);
+    deps.spend.reserveGeneration(
+      estimatedGenerationCredits(
+        task.medium,
+        contestant,
+        width,
+        height,
+        task.outputSpec.durationSeconds ?? null,
+      ),
+    );
     const result = await deps.generation.generate(
       {
         brandId,
@@ -348,6 +392,39 @@ async function generateAnswer(
   };
 }
 
+/**
+ * Reference assets a task cites (product shot, character sheet, style frame)
+ * so the judge can weigh fidelity to them, not just the two generated
+ * answers. Shared by every pair on the task, since references don't change
+ * per contestant. `planTasks` already voids a task whose required roles have
+ * no supplied asset, so every role here resolves to at least one id.
+ */
+async function resolveTaskReferences(
+  deps: MediaLadderDeps,
+  options: MediaLadderOptions,
+  mediaTask: MediaTask,
+  signal: AbortSignal,
+): Promise<JudgeReferenceVisuals[]> {
+  const roles = mediaTask.task.referenceRoles.filter(
+    (role) => role !== 'none' && role !== 'brand-kit',
+  );
+  const visuals: JudgeReferenceVisuals[] = [];
+  for (const role of roles) {
+    const ingredientIds = options.references[role] ?? [];
+    if (ingredientIds.length === 0) continue;
+    const frames = (
+      await Promise.all(
+        ingredientIds.map(async (ingredientId) => {
+          const url = await deps.references.resolveUrl(ingredientId, signal);
+          return deps.frames.sample(url, 'image', signal);
+        }),
+      )
+    ).flat();
+    visuals.push({ frames, role });
+  }
+  return visuals;
+}
+
 async function judgePair(
   deps: MediaLadderDeps,
   options: MediaLadderOptions,
@@ -356,6 +433,7 @@ async function judgePair(
   shownB: AnswerState,
   judges: readonly JudgeSpec[],
   matchId: string,
+  referenceVisuals: readonly JudgeReferenceVisuals[],
   signal: AbortSignal,
 ): Promise<MediaVoteRecord[]> {
   const sampleAll = async (answer: AnswerState) =>
@@ -370,6 +448,7 @@ async function judgePair(
     a: { frames: await sampleAll(shownA) },
     b: { frames: await sampleAll(shownB) },
     kit: options.kit,
+    references: referenceVisuals,
     task: mediaTask,
   });
 
@@ -427,9 +506,11 @@ async function judgePair(
 }
 
 /**
- * Runs the ladder. `onProgress` receives the section after every task, so a
- * spend-cap abort still leaves a reportable partial ladder; the cap error is
- * then rethrown for the harness to mark the report `aborted: spend`.
+ * Runs the ladder. `onProgress` receives the section after every task, and
+ * again with whatever ran before any error that stops the loop — a spend
+ * cap, a reference lookup, a dropped connection — so paid, already-generated
+ * answers are never dropped from the report; the error is then rethrown for
+ * the harness to mark the report `aborted: 'spend'` or `'error'`.
  */
 export async function runMediaLadder(
   deps: MediaLadderDeps,
@@ -448,6 +529,16 @@ export async function runMediaLadder(
 
   try {
     for (const { mediaTask } of runnable) {
+      // Resolved before any contestant is generated: a reference-lookup
+      // failure must not strand paid, ungenerated-yet answers — nothing has
+      // been dispatched (and charged) for this task while this can still fail.
+      const referenceVisuals = await resolveTaskReferences(
+        deps,
+        options,
+        mediaTask,
+        signal,
+      );
+
       const byContestant = new Map<string, AnswerState>();
       for (const contestant of options.contestants) {
         const state = await generateAnswer(
@@ -519,6 +610,7 @@ export async function runMediaLadder(
           stateB,
           judges,
           matchId,
+          referenceVisuals,
           signal,
         );
         const panel = resolvePanelVerdict(
@@ -544,7 +636,14 @@ export async function runMediaLadder(
       onProgress(snapshot(false));
     }
   } catch (error: unknown) {
-    if (isSpendCapError(error)) onProgress(snapshot(true));
+    // Publish whatever answers and matches are already recorded before
+    // propagating: a caller (the runner's own catch, and every SuiteOutcome
+    // consumer) only ever sees the last `onProgress` snapshot, so skipping
+    // this for a non-spend-cap error would drop paid, already-generated
+    // answers from the report. `isAborted` still names the spend cap
+    // specifically; any other error is a genuine partial run, reported as
+    // such by the runner's own `aborted: 'error'`.
+    onProgress(snapshot(isSpendCapError(error)));
     throw error;
   }
 

@@ -1,11 +1,13 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { matchSchema } from '../bench/schema';
 import type { ContentEvalRunOptions } from '../contracts';
 import { contentEvalReportSchema } from '../contracts';
 import { createStubDispatcher } from '../dispatchers/stub';
+import { buildReport } from '../report';
 import { runContentEval } from '../runner';
 import { pairRatingSchema } from './rating-sheet';
 import { mediaReportSchema } from './report';
@@ -16,6 +18,13 @@ const JUDGES = [
   'qwen/qwen3-vl-235b',
   'mistralai/pixtral-large',
 ];
+
+const JUDGE_FIXTURE = fileURLToPath(
+  new URL(
+    '../../../apps/server/api/test/fixtures/content-evals/judge/social-post.synthetic.jsonl',
+    import.meta.url,
+  ),
+);
 
 function options(
   argv: string[],
@@ -145,5 +154,97 @@ describe('media-ladder suite (stub dispatcher)', () => {
         }),
       ),
     ).rejects.toThrow(/Fewer than 3 eligible cross-family judges/);
+  });
+
+  it('does not mark decision-grade a passing calibration report that never assessed model quality', async () => {
+    const { report: judgeReport } = await runContentEval(
+      options(['--task-set=bench'], {
+        fixturePath: JUDGE_FIXTURE,
+        models: [],
+        suite: 'judge',
+      }),
+    );
+    // Force a passing report regardless of the stub judge's actual band
+    // agreement: the bug this guards is that ANY passing judge report was
+    // accepted, stub or live, so the report must be built passing on purpose.
+    const stubCalibrationReport = buildReport(
+      {
+        aborted: null,
+        abortMessage: null,
+        config: judgeReport.config,
+        fixture: {
+          digest: judgeReport.fixture.digest,
+          path: judgeReport.fixture.path,
+          rows: [],
+        },
+        generatedAt: judgeReport.generatedAt,
+        outcome: { ...judgeReport.outcome, thresholdChecks: [] },
+        revision: {
+          sourceRevision: judgeReport.sourceRevision,
+          workingTreeDirty: judgeReport.workingTreeDirty,
+        },
+        rubrics: judgeReport.rubrics,
+        runId: judgeReport.runId,
+        spend: { calls: judgeReport.calls, summary: judgeReport.spend },
+      },
+      [],
+    );
+    expect(stubCalibrationReport.passed).toBe(true);
+    expect(stubCalibrationReport.modelQualityAssessed).toBe(false);
+
+    const dir = mkdtempSync(join(tmpdir(), 'media-calibration-'));
+    const calibrationPath = join(dir, 'stub-judge-report.json');
+    writeFileSync(calibrationPath, JSON.stringify(stubCalibrationReport));
+
+    const { report } = await runContentEval(
+      options(['--task-set=bench', `--calibration-report=${calibrationPath}`]),
+    );
+    const media = mediaReportSchema.parse(report.media);
+    expect(media.ladder.calibration.isDecisionGrade).toBe(false);
+    expect(media.ladder.calibration.reason).toContain('stub dispatcher');
+  });
+
+  it('marks decision-grade a passing live calibration report for the same judge panel', async () => {
+    const { report: judgeReport } = await runContentEval(
+      options(['--task-set=bench'], {
+        fixturePath: JUDGE_FIXTURE,
+        models: [],
+        suite: 'judge',
+      }),
+    );
+    const liveCalibrationReport = buildReport(
+      {
+        aborted: null,
+        abortMessage: null,
+        config: { ...judgeReport.config, dispatcher: 'live' },
+        fixture: {
+          digest: judgeReport.fixture.digest,
+          path: judgeReport.fixture.path,
+          rows: [],
+        },
+        generatedAt: judgeReport.generatedAt,
+        outcome: { ...judgeReport.outcome, thresholdChecks: [] },
+        revision: {
+          sourceRevision: judgeReport.sourceRevision,
+          workingTreeDirty: judgeReport.workingTreeDirty,
+        },
+        rubrics: judgeReport.rubrics,
+        runId: judgeReport.runId,
+        spend: { calls: judgeReport.calls, summary: judgeReport.spend },
+      },
+      [],
+    );
+    expect(liveCalibrationReport.passed).toBe(true);
+    expect(liveCalibrationReport.modelQualityAssessed).toBe(true);
+
+    const dir = mkdtempSync(join(tmpdir(), 'media-calibration-'));
+    const calibrationPath = join(dir, 'live-judge-report.json');
+    writeFileSync(calibrationPath, JSON.stringify(liveCalibrationReport));
+
+    const { report } = await runContentEval(
+      options(['--task-set=bench', `--calibration-report=${calibrationPath}`]),
+    );
+    const media = mediaReportSchema.parse(report.media);
+    expect(media.ladder.calibration.isDecisionGrade).toBe(true);
   });
 });

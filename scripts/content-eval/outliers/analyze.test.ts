@@ -18,6 +18,7 @@ import {
   buildSyntheticFixtureRows,
   buildSyntheticOutlierPairs,
   buildSyntheticOutlierRows,
+  SYNTHETIC_CONTESTANTS,
   SYNTHETIC_OUTLIER_RUN_ID,
   syntheticRow,
   syntheticVote,
@@ -352,6 +353,56 @@ describe('score helpers', () => {
     });
     expect(rowScore(row)).toBe(0.2);
     expect(rowScore({ ...row, votes: [] })).toBeNull();
+  });
+
+  it('does not flag a round-robin contestant whose matches were each unanimous', () => {
+    // Media-ladder rows carry every match a contestant played, round-robin
+    // style. B beat every judge's vote against A (task:a~b) and lost every
+    // vote against C (task:b~c) — each match is unanimous, so this must not
+    // read as the judges disagreeing with each other.
+    const bRow = syntheticRow({
+      contentKind: 'media-image',
+      contestant: SYNTHETIC_CONTESTANTS.challenger,
+      fixtureId: 'round-robin-task',
+      votes: [
+        syntheticVote('gamma', 0.5, 'a', 'gamma: B beats A', 'task:a~b'),
+        syntheticVote('delta', 0.5, 'a', 'delta: B beats A', 'task:a~b'),
+        syntheticVote('gamma', 0.5, 'b', 'gamma: C beats B', 'task:b~c'),
+        syntheticVote('delta', 0.5, 'b', 'delta: C beats B', 'task:b~c'),
+      ],
+    });
+    const section = analyzeOutliers({
+      fixtureRowsById: new Map(),
+      pairs: [],
+      rows: [bRow],
+      thresholds: DEFAULT_OUTLIER_THRESHOLDS,
+    });
+    expect(
+      section.cases.filter((record) => record.class === 'judge_disagreement'),
+    ).toEqual([]);
+  });
+
+  it('still flags judges who disagree within the same match', () => {
+    const bRow = syntheticRow({
+      contentKind: 'media-image',
+      contestant: SYNTHETIC_CONTESTANTS.challenger,
+      fixtureId: 'contested-task',
+      votes: [
+        syntheticVote('gamma', 0.5, 'a', 'gamma: B beats A', 'task:a~b'),
+        syntheticVote('delta', 0.5, 'b', 'delta: A beats B', 'task:a~b'),
+      ],
+    });
+    const section = analyzeOutliers({
+      fixtureRowsById: new Map(),
+      pairs: [],
+      rows: [bRow],
+      thresholds: DEFAULT_OUTLIER_THRESHOLDS,
+    });
+    const record = section.cases.find(
+      (candidate) => candidate.class === 'judge_disagreement',
+    );
+    expect(record).toBeDefined();
+    expect(record?.reason).toContain('split verdict');
   });
 
   it('splits pairs on judges, not on one position-biased judge', () => {

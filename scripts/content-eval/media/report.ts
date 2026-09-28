@@ -101,6 +101,11 @@ function toScoredRows(
           choice: choiceForAnswer(vote.rawChoice, side),
           family: vote.judgeFamily,
           judgeRegistryKey: vote.vote.judgeModelId,
+          // Every task round-robins each contestant against every other, so
+          // one contestant's votes span several matches; keep the match this
+          // choice belongs to so a disagreement check can't compare choices
+          // from different opponents.
+          matchId: record.match.id,
           model: vote.vote.judgeModelId,
           modelVersion: null,
           provider: null,
