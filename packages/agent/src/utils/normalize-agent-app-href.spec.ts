@@ -23,7 +23,10 @@ describe('normalizeAgentAppHref', () => {
       `${APP_ROUTES.PUBLISHING.CALENDAR}#week`,
     );
     expect(normalizeAgentAppHref('/calendar/posts')).toBe(
-      APP_ROUTES.PUBLISHING.CALENDAR,
+      '/publishing/posts?view=calendar',
+    );
+    expect(normalizeAgentAppHref('/calendar?release=r-1')).toBe(
+      '/publishing/posts?view=calendar&release=r-1',
     );
     expect(normalizeAgentAppHref('/drafts')).toBe(
       `${APP_ROUTES.PUBLISHING.POSTS}?publicationState=not-posted`,

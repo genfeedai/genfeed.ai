@@ -131,7 +131,7 @@ export function validationBadge(
 /**
  * JSON:API to-many sideloads sometimes collapse `targets` to a single object
  * or a string. `for...of` / `.find` on those shapes throw and loop the
- * protected-shell ErrorBoundary on `/publishing/calendar`.
+ * protected-shell ErrorBoundary on the Posts calendar view.
  */
 export function releaseTargets(
   release: IReleaseGroup | null | undefined,

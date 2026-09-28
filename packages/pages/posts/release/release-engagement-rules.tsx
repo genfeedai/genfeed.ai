@@ -8,6 +8,7 @@ import {
   EngagementRuleMode,
   EngagementRuleState,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 import { useEngagementRules } from '@hooks/data/content/use-engagement-rules';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
@@ -227,7 +228,7 @@ export default function ReleaseEngagementRules({
                     <Link
                       className="text-foreground underline"
                       href={href(
-                        `/publishing/calendar?release=${rule.resultingReleaseId}`,
+                        `${APP_ROUTES.PUBLISHING.CALENDAR}&release=${encodeURIComponent(rule.resultingReleaseId)}`,
                       )}
                     >
                       {rule.resultingReleaseId}

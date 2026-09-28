@@ -8,7 +8,11 @@ import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-sur
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  PUBLISHING_POSTS_QUERY_KEYS,
+} from '@genfeedai/contracts/constants';
 import {
   Calendar,
   ChartColumn,
@@ -29,7 +33,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { createElement, useEffect, useMemo } from 'react';
 
 interface PageContextConfig {
@@ -646,12 +650,19 @@ function normalizeAgentContextPathname(rawPathname: string): string {
  */
 export function useAgentPageContext(role?: MemberRole): PageContextConfig {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isCalendarView =
+    searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW) === 'calendar';
   const { selectedBrand } = useBrand();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
-  const contextPathname = useMemo(
-    () => normalizeAgentContextPathname(pathname),
-    [pathname],
-  );
+  const contextPathname = useMemo(() => {
+    const normalized = normalizeAgentContextPathname(pathname);
+    // The calendar is the Posts desk's calendar view, so its context keys on
+    // the view query rather than a path of its own.
+    return normalized === APP_ROUTES.PUBLISHING.POSTS && isCalendarView
+      ? APP_ROUTES.PUBLISHING.CALENDAR
+      : normalized;
+  }, [isCalendarView, pathname]);
 
   const config = useMemo(() => {
     const base = getContextForRoute(contextPathname);

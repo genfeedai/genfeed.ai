@@ -24,7 +24,6 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'publishingOverview', prefix: APP_ROUTES.PUBLISHING.OVERVIEW },
   { key: 'publishingPosts', prefix: APP_ROUTES.PUBLISHING.POSTS },
   { key: 'publishingApprovalQueue', prefix: APP_ROUTES.PUBLISHING.REVIEW },
-  { key: 'publishingCalendar', prefix: APP_ROUTES.PUBLISHING.CALENDAR },
   { key: 'publishingCampaigns', prefix: APP_ROUTES.PUBLISHING.CAMPAIGNS },
   { key: 'publishingRemix', prefix: APP_ROUTES.PUBLISHING.REMIX },
   { key: 'analyticsOverview', prefix: APP_ROUTES.ANALYTICS.OVERVIEW },
@@ -79,6 +78,11 @@ export function resolvePageHelpKey(
     new URLSearchParams(search).get('place') === 'trash'
   )
     return 'libraryTrash';
+  if (
+    path === APP_ROUTES.PUBLISHING.POSTS &&
+    new URLSearchParams(search).get('view') === 'calendar'
+  )
+    return 'publishingCalendar';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {
     const isMatch =

@@ -39,7 +39,6 @@ describe('workspace shell URL restoration', () => {
     '/acme/~/discovery/overview',
     '/acme/moonrise/settings/skills',
     '/acme/moonrise/overview/activities',
-    '/acme/moonrise/publishing/calendar',
     '/acme/moonrise/studio/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automation/templates',
@@ -96,7 +95,7 @@ describe('workspace shell URL restoration', () => {
 
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/publishing/calendar',
+      pathname: '/acme/moonrise/publishing/review',
       searchParams: new URLSearchParams({
         overlay: 'model-produced-surface',
         taskId: 'task-1',

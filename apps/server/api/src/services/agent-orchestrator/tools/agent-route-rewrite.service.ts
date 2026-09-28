@@ -1,6 +1,7 @@
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -42,10 +43,10 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
 
 /** Legacy unscoped paths that 404 after brand-scoping if left alone. */
 const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
-  '/calendar': '/publishing/calendar',
-  '/calendar/posts': '/publishing/calendar',
+  '/calendar': APP_ROUTES.PUBLISHING.CALENDAR,
+  '/calendar/posts': APP_ROUTES.PUBLISHING.CALENDAR,
   '/drafts': '/publishing/posts?publicationState=not-posted',
-  '/review': '/publishing/review',
+  '/review': APP_ROUTES.PUBLISHING.REVIEW,
 };
 
 @Injectable()
@@ -168,8 +169,17 @@ export class AgentRouteRewriteService {
       return href;
     }
 
-    const { path: rawPath, suffix } = this.splitHrefSuffix(href);
-    const path = LEGACY_INTERNAL_PATH_REWRITES[rawPath] ?? rawPath;
+    const { path: rawPath, suffix: rawSuffix } = this.splitHrefSuffix(href);
+    const rewrite = LEGACY_INTERNAL_PATH_REWRITES[rawPath];
+    // Rewrites may carry their own query (`/drafts`, `/calendar`); merge the
+    // caller's query into it instead of appending a second `?`.
+    const { path, suffix } = rewrite
+      ? this.splitHrefSuffix(
+          rawSuffix.startsWith('?') && rewrite.includes('?')
+            ? `${rewrite}&${rawSuffix.slice(1)}`
+            : `${rewrite}${rawSuffix}`,
+        )
+      : { path: rawPath, suffix: rawSuffix };
     const firstSegment = path.split('/').filter(Boolean)[0];
 
     if (!firstSegment || UNSCOPED_ROUTE_PREFIXES.has(firstSegment)) {

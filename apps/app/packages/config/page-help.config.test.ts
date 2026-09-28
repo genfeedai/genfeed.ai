@@ -28,6 +28,16 @@ describe('page help routing', () => {
     ).toBe('automationTemplates');
   });
 
+  it('resolves the calendar from the Posts desk calendar view', () => {
+    expect(
+      resolvePageHelpKey('/acme/brand/publishing/posts', 'view=calendar'),
+    ).toBe('publishingCalendar');
+    expect(resolvePageHelpKey('/acme/brand/publishing/posts')).toBe(
+      'publishingPosts',
+    );
+    expect(resolvePageHelpKey('/acme/brand/publishing/calendar')).toBeNull();
+  });
+
   it('returns null for pages without help copy', () => {
     expect(resolvePageHelpKey('/acme/brand/settings/general')).toBeNull();
   });

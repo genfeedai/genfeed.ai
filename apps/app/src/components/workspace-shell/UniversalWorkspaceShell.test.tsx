@@ -166,7 +166,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/publishing/calendar',
+              route: '/publishing/review',
             },
             arguments: 'post-1',
           })
@@ -1774,7 +1774,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/publishing/calendar'),
+      expect.stringContaining('/publishing/review'),
     );
   });
 
@@ -1886,7 +1886,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('canonicalizes an unknown overlay without leaving the current route', () => {
-    navigation.pathname = '/acme/moonrise/publishing/calendar';
+    navigation.pathname = '/acme/moonrise/publishing/review';
     navigation.searchParams = new URLSearchParams({
       overlay: 'untrusted-output',
       taskId: 'task-1',
@@ -1894,12 +1894,12 @@ describe('UniversalWorkspaceShell', () => {
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Calendar</div>
+        <div>Approval queue</div>
       </UniversalWorkspaceShell>,
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/calendar?taskId=task-1',
+      '/acme/moonrise/publishing/review?taskId=task-1',
     );
   });
 });

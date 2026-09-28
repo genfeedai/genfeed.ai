@@ -992,7 +992,7 @@ export const testRoutes = {
   billing: '/billing',
   calendar: {
     articles: '/publishing/posts?type=article',
-    posts: '/publishing/calendar',
+    posts: '/publishing/posts?view=calendar',
   },
   editor: '/studio/edit',
   generation: {

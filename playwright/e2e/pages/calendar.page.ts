@@ -260,11 +260,10 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    // /publishing/calendar permanently redirects to the unified Posts
-    // desk's calendar view (`/publishing/posts?view=calendar`); assert the
-    // canonical destination, still in calendar view, and not filtered to
-    // one of the other content types (excluding only 'article' let
-    // 'newsletter' through as "posts tab active" too).
+    // The calendar is the unified Posts desk's calendar view
+    // (`/publishing/posts?view=calendar`); assert it is still in calendar
+    // view and not filtered to one of the other content types (excluding
+    // only 'article' let 'newsletter' through as "posts tab active" too).
     await expect(this.page).toHaveURL(
       (url) =>
         url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&

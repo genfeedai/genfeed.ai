@@ -155,13 +155,10 @@ test.describe('Core Content Loop', () => {
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);
     await postsPage.gotoCalendar();
-    // `/publishing/calendar` redirects to the Posts desk's calendar view
-    // (`/publishing/posts?view=calendar`). The redirect runs client-side after
-    // the old route's shell has rendered, so a "Calendar" breadcrumb only
-    // exists for the frame before it. Assert the settled destination: the
-    // canonical URL, the desk's breadcrumb identity (the topbar breadcrumb owns
-    // visible page identity under ADR-CONVERSATION-SHELL-CONTRACTS v3.2), and
-    // the rendered calendar grid.
+    // The calendar is the Posts desk's calendar view
+    // (`/publishing/posts?view=calendar`). The topbar breadcrumb owns visible
+    // page identity under ADR-CONVERSATION-SHELL-CONTRACTS v3.2, so assert the
+    // desk's breadcrumb alongside the canonical URL and the calendar grid.
     await calendarPage.assertPostsTabActive();
     await expect(
       authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),

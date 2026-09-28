@@ -198,7 +198,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
-  usePathname: () => '/acme-org/acme-creator/publishing/calendar',
+  usePathname: () => '/acme-org/acme-creator/publishing/posts',
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),
