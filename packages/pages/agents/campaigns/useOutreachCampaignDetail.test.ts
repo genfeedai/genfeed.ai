@@ -15,9 +15,20 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-1' }),
 }));
 
+const outreachCampaignsServiceMock = {
+  findOne: mocks.findOne,
+  getTargets: mocks.getTargets,
+  start: mocks.start,
+};
+// A stable resolver, like the real `useCallback`-memoized one: a fresh
+// closure per render invalidates every consumer `useCallback` that depends
+// on it (`loadCampaign`, `handleStartCampaign`, …), which re-fires their
+// effects on every commit and hangs the test in an infinite render loop.
+const resolveOutreachCampaignsService = async () =>
+  outreachCampaignsServiceMock;
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('token'),
+  useAuthedService: () => resolveOutreachCampaignsService,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -25,13 +36,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('@services/automation/outreach-campaigns.service', () => ({
-  OutreachCampaignsService: {
-    getInstance: () => ({
-      findOne: mocks.findOne,
-      getTargets: mocks.getTargets,
-      start: mocks.start,
-    }),
-  },
+  OutreachCampaignsService: { getInstance: vi.fn() },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
