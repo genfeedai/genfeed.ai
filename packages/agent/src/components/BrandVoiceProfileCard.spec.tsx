@@ -62,6 +62,7 @@ function realUiActionHandler(
     isBusy: false,
     isReadOnly: false,
     latestProposedPlan: null,
+    reconcilingRuns: new Map(),
     sendMessage: vi.fn(),
     setActiveThread: vi.fn(),
     setActiveUiAction: vi.fn(),

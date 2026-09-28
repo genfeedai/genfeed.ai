@@ -474,6 +474,7 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   return {
     cancelWorkflowExecution: vi.fn(),
     getActiveWorkflowExecutions: vi.fn().mockResolvedValue([]),
+    getMessages: vi.fn(),
     getMessagesPage: vi.fn(),
     respondToInputRequest: vi.fn(),
     respondToUiAction: vi.fn(),
