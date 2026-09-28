@@ -1,6 +1,12 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope, FontFamily } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_FORMAT_MESSAGE,
+  BRAND_HANDLE_MAX_LENGTH,
+  BRAND_HANDLE_MIN_LENGTH,
+  BRAND_HANDLE_PATTERN,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -8,15 +14,27 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
+  MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateBrandDto {
+  // Omitted: the server derives a free handle from the label.
+  @IsOptional()
   @IsString()
+  @MinLength(BRAND_HANDLE_MIN_LENGTH)
+  @MaxLength(BRAND_HANDLE_MAX_LENGTH)
+  @Matches(BRAND_HANDLE_PATTERN, { message: BRAND_HANDLE_FORMAT_MESSAGE })
   @ApiProperty({
-    description: 'The unique slug for the brand',
+    description:
+      'The brand handle: its public profile path and app route segment. ' +
+      'Unique across all brands.',
+    maxLength: BRAND_HANDLE_MAX_LENGTH,
+    minLength: BRAND_HANDLE_MIN_LENGTH,
     required: false,
   })
-  readonly slug!: string;
+  readonly slug?: string;
 
   @IsString()
   @IsNotEmpty()

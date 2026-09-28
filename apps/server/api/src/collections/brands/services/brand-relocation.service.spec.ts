@@ -361,6 +361,65 @@ describe('BrandRelocationService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  describe('handle on relocation', () => {
+    // Like primeRelocatableBrand, plus a handle lookup (`where.slug`) that
+    // resolves to the brand holding it.
+    function primeHandleHeldBy(holderId: string): void {
+      primeRelocatableBrand();
+      getDelegate('brand').findFirst.mockImplementation(
+        async (args?: { where?: { id?: unknown; slug?: unknown } }) => {
+          if (args?.where?.slug !== undefined) {
+            return { id: holderId };
+          }
+          const idFilter = args?.where?.id;
+          if (idFilter && typeof idFilter === 'object' && 'not' in idFilter) {
+            return {
+              id: SOURCE_FALLBACK_BRAND_ID,
+              isDeleted: false,
+              organizationId: SOURCE_ORG,
+            };
+          }
+          return { id: BRAND_ID, isDeleted: false, organizationId: SOURCE_ORG };
+        },
+      );
+    }
+
+    it('authorizes the move before revealing whether a handle is taken', async () => {
+      primeHandleHeldBy('brand_other');
+      getDelegate('member').findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG, slug: 'taken' },
+          { isSuperAdmin: false, userId: USER_ID },
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(getDelegate('brand').findFirst).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ slug: 'taken' }),
+        }),
+      );
+    });
+
+    it('rejects a handle another brand holds once the move is authorized', async () => {
+      primeHandleHeldBy('brand_other');
+
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG, slug: 'taken' },
+          { isSuperAdmin: true, userId: USER_ID },
+        ),
+      ).rejects.toThrow('This handle is already taken.');
+      expect(getDelegate('brand').findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: { not: BRAND_ID }, slug: 'taken' },
+      });
+      expect(transactionSpy).not.toHaveBeenCalled();
+    });
+  });
+
   it("refuses to relocate an organization's only brand", async () => {
     // Identity lookup succeeds, but the fallback-guard query for a second,
     // non-deleted brand in SOURCE_ORG finds nothing — this is the org's last brand.

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { BRAND_HANDLE_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -18,6 +19,7 @@ export default function BrandDetailOverview({
   onUploadLogo,
   onGenerateLogo,
   onUpdateBrand,
+  onUpdateHandle,
   onCopyPublicProfile,
 }: BrandDetailOverviewProps) {
   const profileUrl = `${EnvironmentService.apps.website}/u/${brand.slug}`;
@@ -75,7 +77,18 @@ export default function BrandDetailOverview({
               onSave={(value) => onUpdateBrand('label', value)}
               value={brand.label}
             />
-            {brand.slug ? (
+            {brand.slug && onUpdateHandle ? (
+              // The leading `@` is display only; the save normalizes it away.
+              <EditableText
+                ariaLabel="Edit brand handle"
+                className="mb-1"
+                displayClassName="text-xs text-muted-foreground"
+                isRequired
+                maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
+                onSave={onUpdateHandle}
+                value={`@${brand.slug}`}
+              />
+            ) : brand.slug ? (
               <p className="mb-1 text-xs text-muted-foreground">
                 @{brand.slug}
               </p>
