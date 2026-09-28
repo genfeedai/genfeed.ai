@@ -18,6 +18,11 @@ class MockIntersectionObserver {
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/evaluation/card/EvaluationCard', () => ({
   default: () => <div data-testid="evaluation-card" />,
 }));

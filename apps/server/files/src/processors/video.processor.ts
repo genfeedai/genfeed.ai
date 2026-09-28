@@ -757,6 +757,17 @@ export class VideoProcessor extends WorkerHost {
         sourceS3Key = this.s3Service.generateS3Key('videos', ingredientId);
         await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
         sourceUrl = this.s3Service.getPublicUrl(sourceS3Key);
+      } else if (
+        params.materializeSource &&
+        !params.s3Key &&
+        params.inputPath
+      ) {
+        // Guarded download (public network only), then keep a stored copy so
+        // later steps read the source by key instead of its remote URL.
+        await this.downloadInput(params, inputPath);
+        sourceS3Key = this.s3Service.generateS3Key('videos', ingredientId);
+        await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
+        sourceUrl = this.s3Service.getPublicUrl(sourceS3Key);
       } else {
         await this.downloadInput(params, inputPath);
       }

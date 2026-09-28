@@ -491,6 +491,7 @@
     "cuttingSelectedHighlights": "Cutting {count} selected highlights...",
     "description": "Split long-form videos into clips. Open a source to review every generated clip.",
     "doneClipCount": "{count, plural, one {Done — # clip generated} other {Done — # clips generated}}",
+    "draftBadge": "Draft",
     "draftRepickFile": "Choose {name} again to continue. Drafts keep the filename, not the file.",
     "draftSaveFailed": "Draft not saved. Your changes are still on this page.",
     "draftSaved": "Draft saved",
@@ -1658,6 +1659,13 @@
     "assetDeepLink": {
       "opening": "Opening your asset…",
       "unavailable": "This asset is unavailable in this brand, or you no longer have access to it."
+    },
+    "videoDetail": {
+      "availableVersions": "Available Versions:",
+      "editInStudio": "Edit in Studio",
+      "makeClips": "Make clips",
+      "moreVersions": "+{count} more",
+      "viewMoreVersions": "View more versions"
     }
   },
   "onboarding": {

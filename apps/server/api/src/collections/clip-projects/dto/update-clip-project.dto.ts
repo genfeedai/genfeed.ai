@@ -64,15 +64,21 @@ export class TranscriptSegmentDto {
   readonly text!: string;
 }
 
+/** Drafts are created and started through the draft routes only. */
+const UPDATABLE_CLIP_PROJECT_STATUSES = ClipProjectStatus.filter(
+  (status) => status !== 'draft',
+);
+
 export class UpdateClipProjectDto extends PartialType(
   OmitType(CreateClipProjectDto, ['organizationId', 'userId'] as const),
 ) {
   @IsOptional()
-  @IsIn([...ClipProjectStatus])
+  @IsIn(UPDATABLE_CLIP_PROJECT_STATUSES)
   @ApiProperty({
-    description: 'Project processing status',
-    enum: ClipProjectStatus,
-    enumName: 'ClipProjectStatus',
+    description:
+      'Project processing status. A project cannot be moved back to draft.',
+    enum: UPDATABLE_CLIP_PROJECT_STATUSES,
+    enumName: 'UpdatableClipProjectStatus',
     required: false,
   })
   readonly status?: string;

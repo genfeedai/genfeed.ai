@@ -6,7 +6,10 @@ import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  brand: { isReady: true, selectedBrand: { id: 'brand-1' } },
+  brand: {
+    isReady: true,
+    selectedBrand: { id: 'brand-1' } as { id: string } | undefined,
+  },
   createDraft: vi.fn(),
   createFromIngredient: vi.fn(),
   loggerError: vi.fn(),

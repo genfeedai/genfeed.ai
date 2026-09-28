@@ -425,9 +425,11 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           id: `clip-audio-${projectId}`,
           ingredientId: ingredientId ?? projectId,
           organizationId,
+          // A remote source is stored during extraction so reference frames
+          // can later read it by key (provider-hosted Library videos).
           params: sourceS3Key
             ? { s3Key: sourceS3Key }
-            : { inputPath: youtubeUrl },
+            : { inputPath: youtubeUrl, materializeSource: true },
           type: 'video-to-audio',
           userId,
         },

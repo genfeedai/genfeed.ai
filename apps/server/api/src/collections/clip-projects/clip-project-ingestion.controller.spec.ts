@@ -4,6 +4,7 @@ import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-yo
 import { CreateClipProjectFromIngredientDto } from '@api/collections/clip-projects/dto/create-clip-project-from-ingredient.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import { PrepareClipUploadDto } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
+import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { UpdateClipProjectDraftDto } from '@api/collections/clip-projects/dto/update-clip-project-draft.dto';
 import type { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -164,6 +165,20 @@ describe('ClipProjectIngestionController', () => {
           'sourceKind',
         ]),
       );
+    });
+
+    it('does not let the generic project update move a project back to draft', () => {
+      const toDraft = plainToInstance(UpdateClipProjectDto, {
+        status: 'draft',
+      });
+      const toFailed = plainToInstance(UpdateClipProjectDto, {
+        status: 'failed',
+      });
+
+      expect(validateSync(toDraft).map((error) => error.property)).toContain(
+        'status',
+      );
+      expect(validateSync(toFailed)).toEqual([]);
     });
 
     it('requires the Library asset id', () => {

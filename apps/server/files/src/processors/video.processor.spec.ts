@@ -1282,6 +1282,57 @@ describe('VideoProcessor', () => {
       expect(s3Service.downloadFromUrl).not.toHaveBeenCalled();
     });
 
+    it('stores a remote non-YouTube source when the caller asks to materialize it', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://media.argil.test/videos/library-video.mp4',
+          materializeSource: true,
+          s3Key: undefined,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.VIDEO_TO_AUDIO, data);
+
+      const result = await processor.handleVideoToAudio(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalledWith(
+        'https://media.argil.test/videos/library-video.mp4',
+        expect.stringContaining('input.mp4'),
+      );
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('input.mp4'),
+        'video/mp4',
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          sourceS3Key: expect.any(String),
+          sourceUrl: expect.stringContaining('https://'),
+        }),
+      );
+      expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('does not store a remote source unless asked to', async () => {
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://media.argil.test/videos/library-video.mp4',
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      const result = await processor.handleVideoToAudio(job);
+
+      expect(result.sourceS3Key).toBeUndefined();
+      expect(s3Service.uploadFile).not.toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'video/mp4',
+      );
+    });
+
     it('rejects a YouTube source beyond the six-hour policy before upload', async () => {
       ffmpegService.getVideoMetadata.mockResolvedValueOnce({
         codec: 'h264',

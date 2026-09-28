@@ -298,27 +298,33 @@ export class ClipProjectIngestionService {
 
     const projectId = String(project.id);
     const queuedSource = this.withJobId(source, `clip-factory-${projectId}`);
-    await this.clipProjectsService.patch(
-      projectId,
-      { source: queuedSource },
-      [],
+    const batchJobId = await this.dispatchOrReleaseDraft(
+      dto.draftProjectId,
       orgId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source: queuedSource },
+          [],
+          orgId,
+        );
+        return await this.clipFactoryWorkflowQueue.enqueue({
+          avatarId: identity?.avatarId,
+          avatarProvider: provider,
+          language: dto.language ?? 'en',
+          maxClips: estimatedClips,
+          minViralityScore: dto.minViralityScore ?? 50,
+          mode,
+          orgId,
+          projectId,
+          runReferences,
+          userId,
+          voiceId: identity?.voiceId,
+          youtubeUrl: dto.youtubeUrl,
+          source: queuedSource,
+        });
+      },
     );
-    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
-      avatarId: identity?.avatarId,
-      avatarProvider: provider,
-      language: dto.language ?? 'en',
-      maxClips: estimatedClips,
-      minViralityScore: dto.minViralityScore ?? 50,
-      mode,
-      orgId,
-      projectId,
-      runReferences,
-      userId,
-      voiceId: identity?.voiceId,
-      youtubeUrl: dto.youtubeUrl,
-      source: queuedSource,
-    });
 
     return {
       batchJobId,
@@ -367,22 +373,23 @@ export class ClipProjectIngestionService {
 
     const projectId = String(project.id);
     const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
-    await this.clipProjectsService.patch(
-      projectId,
-      { source: queuedSource },
-      [],
-      orgId,
-    );
-
-    await this.clipAnalysisWorkflowQueue.enqueue({
-      language: dto.language ?? 'en',
-      maxClips: dto.maxClips ?? 10,
-      minViralityScore: dto.minViralityScore ?? 50,
-      orgId,
-      projectId,
-      userId,
-      youtubeUrl: dto.youtubeUrl,
-      source: queuedSource,
+    await this.dispatchOrReleaseDraft(dto.draftProjectId, orgId, async () => {
+      await this.clipProjectsService.patch(
+        projectId,
+        { source: queuedSource },
+        [],
+        orgId,
+      );
+      return await this.clipAnalysisWorkflowQueue.enqueue({
+        language: dto.language ?? 'en',
+        maxClips: dto.maxClips ?? 10,
+        minViralityScore: dto.minViralityScore ?? 50,
+        orgId,
+        projectId,
+        userId,
+        youtubeUrl: dto.youtubeUrl,
+        source: queuedSource,
+      });
     });
 
     return { identity, projectId, status: 'analyzing' };
@@ -575,24 +582,6 @@ export class ClipProjectIngestionService {
       throw new BadRequestException('Clip sources may be up to 6 hours long.');
     }
 
-    if (project.status === 'draft') {
-      const isClaimed = await this.clipProjectsService.claimDraft(
-        projectId,
-        user.organizationId,
-      );
-      if (!isClaimed) {
-        throw new ConflictException(
-          'This clip project draft was already started or no longer exists.',
-        );
-      }
-      await this.clipProjectsService.patch(
-        projectId,
-        { draft: null },
-        [],
-        user.organizationId,
-      );
-    }
-
     const flow = project.settings?.flow ?? source.flow;
     const expectedJobId = `${flow === 'review' ? 'clip-analysis' : 'clip-factory'}-${projectId}`;
     const queuedSource: ClipSourceContract = {
@@ -604,7 +593,13 @@ export class ClipProjectIngestionService {
       status: 'queued',
       updatedAt: new Date().toISOString(),
     };
-    return await this.enqueueUploadedProject(user, project, queuedSource);
+    // A draft is claimed only after its prerequisites pass, inside dispatch.
+    return await this.enqueueUploadedProject(
+      user,
+      project,
+      queuedSource,
+      project.status === 'draft',
+    );
   }
 
   async retrySource(
@@ -673,6 +668,7 @@ export class ClipProjectIngestionService {
     user: User,
     project: ClipProjectDocument,
     source: ClipSourceContract,
+    isDraftStart = false,
   ): Promise<ClipProjectIngestionResult> {
     const projectId = String(project.id);
     const settings = project.settings ?? {};
@@ -685,23 +681,32 @@ export class ClipProjectIngestionService {
       throw new BadRequestException('The clip source URL is unavailable.');
     }
 
+    const draftProjectId = isDraftStart ? projectId : undefined;
+
     if (flow === 'review') {
-      await this.clipProjectsService.patch(
-        projectId,
-        { source },
-        [],
+      await this.claimDraftIfStarting(draftProjectId, user.organizationId);
+      const batchJobId = await this.dispatchOrReleaseDraft(
+        draftProjectId,
         user.organizationId,
+        async () => {
+          await this.clipProjectsService.patch(
+            projectId,
+            { source },
+            [],
+            user.organizationId,
+          );
+          return await this.clipAnalysisWorkflowQueue.enqueue({
+            language: settings.language ?? project.language ?? 'en',
+            maxClips: estimatedClips,
+            minViralityScore: settings.minViralityScore ?? 50,
+            orgId: user.organizationId,
+            projectId,
+            source,
+            userId,
+            youtubeUrl: sourceUrl,
+          });
+        },
       );
-      const batchJobId = await this.clipAnalysisWorkflowQueue.enqueue({
-        language: settings.language ?? project.language ?? 'en',
-        maxClips: estimatedClips,
-        minViralityScore: settings.minViralityScore ?? 50,
-        orgId: user.organizationId,
-        projectId,
-        source,
-        userId,
-        youtubeUrl: sourceUrl,
-      });
       return {
         batchJobId,
         estimatedClips,
@@ -754,29 +759,35 @@ export class ClipProjectIngestionService {
       throw new InsufficientCreditsException(estimatedClips, currentBalance);
     }
 
-    await this.clipProjectsService.patch(
-      projectId,
-      { source },
-      [],
+    await this.claimDraftIfStarting(draftProjectId, user.organizationId);
+    const batchJobId = await this.dispatchOrReleaseDraft(
+      draftProjectId,
       user.organizationId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source },
+          [],
+          user.organizationId,
+        );
+        return await this.clipFactoryWorkflowQueue.enqueue({
+          avatarId: identity?.avatarId,
+          avatarProvider: provider,
+          language: settings.language ?? project.language ?? 'en',
+          maxClips: estimatedClips,
+          minViralityScore: settings.minViralityScore ?? 50,
+          mode,
+          orgId: user.organizationId,
+          projectId,
+          referenceImageUrl: reference.referenceImageUrl,
+          runReferences,
+          source,
+          userId,
+          voiceId: identity?.voiceId,
+          youtubeUrl: sourceUrl,
+        });
+      },
     );
-
-    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
-      avatarId: identity?.avatarId,
-      avatarProvider: provider,
-      language: settings.language ?? project.language ?? 'en',
-      maxClips: estimatedClips,
-      minViralityScore: settings.minViralityScore ?? 50,
-      mode,
-      orgId: user.organizationId,
-      projectId,
-      referenceImageUrl: reference.referenceImageUrl,
-      runReferences,
-      source,
-      userId,
-      voiceId: identity?.voiceId,
-      youtubeUrl: sourceUrl,
-    });
 
     return {
       batchJobId,
@@ -800,6 +811,28 @@ export class ClipProjectIngestionService {
       return await this.clipProjectsService.create(input);
     }
 
+    await this.claimDraftIfStarting(draftProjectId, organizationId);
+    return await this.dispatchOrReleaseDraft(
+      draftProjectId,
+      organizationId,
+      () =>
+        this.clipProjectsService.patch(
+          draftProjectId,
+          { ...input },
+          [],
+          organizationId,
+        ),
+    );
+  }
+
+  private async claimDraftIfStarting(
+    draftProjectId: string | undefined,
+    organizationId: string,
+  ): Promise<void> {
+    if (!draftProjectId) {
+      return;
+    }
+
     const isClaimed = await this.clipProjectsService.claimDraft(
       draftProjectId,
       organizationId,
@@ -809,13 +842,29 @@ export class ClipProjectIngestionService {
         'This clip project draft was already started or no longer exists.',
       );
     }
+  }
 
-    return await this.clipProjectsService.patch(
-      draftProjectId,
-      { ...input, draft: null },
-      [],
-      organizationId,
-    );
+  /**
+   * Runs the persist-and-queue step of a start. When a claimed draft cannot be
+   * dispatched it goes back to `draft` (its form state is kept), so the
+   * creator can fix the cause and start it again instead of hitting a 409.
+   */
+  private async dispatchOrReleaseDraft<T>(
+    draftProjectId: string | undefined,
+    organizationId: string,
+    dispatch: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await dispatch();
+    } catch (error: unknown) {
+      if (draftProjectId) {
+        await this.clipProjectsService.releaseDraft(
+          draftProjectId,
+          organizationId,
+        );
+      }
+      throw error;
+    }
   }
 
   private assertEligibleLibrarySource(

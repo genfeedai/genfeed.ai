@@ -51,6 +51,8 @@ export type ClipProjectCreateInput = Omit<
   readonly sourceVideoUrl?: string;
 };
 
+const DRAFT_WRITE_ATTEMPTS = 3;
+
 const DRAFT_STARTED_MESSAGE =
   'This clip project has already started and its setup can no longer be edited.';
 
@@ -345,81 +347,140 @@ export class ClipProjectsService extends BaseService<
     organizationId: string,
     update: UpdateClipProjectDraftDto,
   ): Promise<ClipProjectDocument> {
-    const where = { id: projectId, isDeleted: false, organizationId };
-    const project = await this.findOne(where);
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-    if (project.status !== 'draft') {
-      throw new ConflictException(DRAFT_STARTED_MESSAGE);
-    }
+    return await this.writeDraft(projectId, organizationId, (project) => {
+      const draft: Partial<ClipProjectDraft> = project.draft ?? {};
+      const settings: ClipProjectSettings = {
+        ...(project.settings ?? {}),
+        ...(update.mode !== undefined ? { mode: update.mode } : {}),
+        ...(update.maxClips !== undefined ? { maxClips: update.maxClips } : {}),
+        ...(update.minViralityScore !== undefined
+          ? { minViralityScore: update.minViralityScore }
+          : {}),
+      };
+      const nextDraft: ClipProjectDraft = {
+        filename: update.filename ?? draft.filename,
+        sourceKind: update.sourceKind ?? draft.sourceKind ?? 'youtube',
+        updatedAt: new Date().toISOString(),
+        youtubeUrl: update.youtubeUrl ?? draft.youtubeUrl,
+      };
 
-    const draft: Partial<ClipProjectDraft> = project.draft ?? {};
-    const settings: ClipProjectSettings = {
-      ...(project.settings ?? {}),
-      ...(update.mode !== undefined ? { mode: update.mode } : {}),
-      ...(update.maxClips !== undefined ? { maxClips: update.maxClips } : {}),
-      ...(update.minViralityScore !== undefined
-        ? { minViralityScore: update.minViralityScore }
-        : {}),
-    };
-    const nextDraft: ClipProjectDraft = {
-      filename: update.filename ?? draft.filename,
-      sourceKind: update.sourceKind ?? draft.sourceKind ?? 'youtube',
-      updatedAt: new Date().toISOString(),
-      youtubeUrl: update.youtubeUrl ?? draft.youtubeUrl,
-    };
-    const result = await this.prisma.clipProject.updateMany({
-      data: {
+      return {
         config: toPrismaJson({
           ...this.readRecord((project as Record<string, unknown>).config),
           draft: nextDraft,
           settings,
         }),
-      },
-      where: { ...where, status: 'draft' },
+      };
     });
-    if (result.count !== 1) {
-      throw new ConflictException(DRAFT_STARTED_MESSAGE);
-    }
-
-    return { ...project, draft: nextDraft, settings };
   }
 
   /**
    * Writes project fields onto a project that is still a draft, keeping it a
    * draft. Used to attach a prepared upload, so a failed transfer can be
    * prepared again; the draft is claimed only once the upload is finalized.
+   * Omitted fields keep their saved value.
    */
   async patchDraft(
     projectId: string,
     organizationId: string,
     update: Record<string, unknown>,
   ): Promise<ClipProjectDocument> {
-    const where = { id: projectId, isDeleted: false, organizationId };
-    const project = await this.findOne(where);
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-    if (project.status !== 'draft') {
-      throw new ConflictException(DRAFT_STARTED_MESSAGE);
-    }
+    const fields = Object.fromEntries(
+      Object.entries(update).filter(
+        ([key, value]) => key !== 'status' && value !== undefined,
+      ),
+    );
 
-    const { status: _status, ...fields } = update;
-    const data = this.toPrismaWriteData(
-      fields,
-      'update',
-      this.readRecord((project as Record<string, unknown>).config),
-    ) as Prisma.ClipProjectUncheckedUpdateManyInput;
+    return await this.writeDraft(
+      projectId,
+      organizationId,
+      (project) =>
+        this.toPrismaWriteData(
+          fields,
+          'update',
+          this.readRecord((project as Record<string, unknown>).config),
+        ) as Prisma.ClipProjectUncheckedUpdateManyInput,
+    );
+  }
+
+  /**
+   * Returns a claimed draft to `draft` when its start could not be
+   * dispatched, so the creator can start it again.
+   */
+  async releaseDraft(
+    projectId: string,
+    organizationId: string,
+  ): Promise<boolean> {
     const result = await this.prisma.clipProject.updateMany({
-      data,
-      where: { ...where, status: 'draft' },
+      data: {
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({
+            status: 'draft',
+          }),
+        ),
+        status: 'draft',
+      },
+      where: {
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+        status: 'pending',
+      },
     });
-    if (result.count !== 1) {
-      throw new ConflictException(DRAFT_STARTED_MESSAGE);
+
+    return result.count === 1;
+  }
+
+  /**
+   * Draft config is one JSON column with two writers (autosave and upload
+   * preparation). Each write is conditional on the row still being the draft
+   * version it was built from, and is rebuilt from a fresh read when another
+   * writer got there first, so neither can overwrite the other's fields.
+   */
+  private async writeDraft(
+    projectId: string,
+    organizationId: string,
+    buildData: (
+      project: ClipProjectDocument,
+    ) => Prisma.ClipProjectUncheckedUpdateManyInput,
+  ): Promise<ClipProjectDocument> {
+    for (let attempt = 0; attempt < DRAFT_WRITE_ATTEMPTS; attempt += 1) {
+      const project = await this.findOne({
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+      });
+      if (!project) {
+        throw new NotFoundException('ClipProject', projectId);
+      }
+      if (project.status !== 'draft') {
+        throw new ConflictException(DRAFT_STARTED_MESSAGE);
+      }
+
+      const result = await this.prisma.clipProject.updateMany({
+        data: buildData(project),
+        where: {
+          id: projectId,
+          isDeleted: false,
+          organizationId,
+          status: 'draft',
+          updatedAt: project.updatedAt,
+        },
+      });
+      if (result.count === 1) {
+        return (
+          (await this.findOne({
+            id: projectId,
+            isDeleted: false,
+            organizationId,
+          })) ?? project
+        );
+      }
     }
 
-    return (await this.findOne(where)) ?? project;
+    throw new ConflictException(
+      'This draft was changed by another save. Try again.',
+    );
   }
 
   private toPrismaWriteData(

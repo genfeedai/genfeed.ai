@@ -38,6 +38,7 @@ describe('ClipProjectIngestionService', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     patchDraft: ReturnType<typeof vi.fn>;
+    releaseDraft: ReturnType<typeof vi.fn>;
   };
   let clipFactoryWorkflowQueue: {
     enqueue: ReturnType<typeof vi.fn>;
@@ -77,6 +78,7 @@ describe('ClipProjectIngestionService', () => {
       patchDraft: vi.fn().mockResolvedValue({
         id: 'draft-1',
       } as ClipProjectDocument),
+      releaseDraft: vi.fn().mockResolvedValue(true),
     };
     clipFactoryWorkflowQueue = {
       enqueue: vi.fn().mockResolvedValue('clip-factory-project-1'),
@@ -964,7 +966,6 @@ describe('ClipProjectIngestionService', () => {
         1,
         'draft-1',
         expect.objectContaining({
-          draft: null,
           sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
           status: 'pending',
         }),
@@ -1058,15 +1059,108 @@ describe('ClipProjectIngestionService', () => {
         'draft-1',
         'org-1',
       );
-      expect(clipProjectsService.patch).toHaveBeenCalledWith(
-        'draft-1',
-        { draft: null },
-        [],
-        'org-1',
+      expect(
+        clipProjectsService.claimDraft.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        clipAnalysisWorkflowQueue.enqueue.mock.invocationCallOrder[0] ?? 0,
       );
       expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: 'draft-1' }),
       );
+      expect(clipProjectsService.releaseDraft).not.toHaveBeenCalled();
+    });
+
+    const quickUploadDraft = {
+      id: 'draft-1',
+      organizationId: 'org-1',
+      settings: { flow: 'quick', maxClips: 4, mode: 'raw-cut' },
+      source: {
+        contentType: 'video/mp4',
+        filename: 'podcast.mp4',
+        flow: 'quick',
+        ingredientId: 'ingredient-1',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        status: 'uploading',
+      },
+      sourceVideoUrl: 'https://cdn.test/videos/ingredient-1',
+      status: 'draft',
+    } as ClipProjectDocument;
+    const uploadedIngredient = {
+      id: 'ingredient-1',
+      metadata: { duration: 600, size: 1_000 },
+      mimeType: 'video/mp4',
+      status: 'UPLOADED',
+    };
+
+    it('keeps an upload draft startable when credits run out at finalize', async () => {
+      clipProjectsService.findOne.mockResolvedValue(quickUploadDraft);
+      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        false,
+      );
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).rejects.toBeInstanceOf(InsufficientCreditsException);
+
+      expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
+      expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('returns a claimed draft to draft when dispatch fails', async () => {
+      clipProjectsService.findOne.mockResolvedValue(quickUploadDraft);
+      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
+      const queueError = new Error('queue unavailable');
+      clipFactoryWorkflowQueue.enqueue.mockRejectedValue(queueError);
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).rejects.toBe(queueError);
+
+      expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+      );
+      expect(clipProjectsService.releaseDraft).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+      );
+    });
+
+    it('returns a claimed YouTube draft to draft when analysis cannot be queued', async () => {
+      clipProjectsService.patch.mockResolvedValue({
+        id: 'draft-1',
+      } as ClipProjectDocument);
+      clipAnalysisWorkflowQueue.enqueue.mockRejectedValue(
+        new Error('queue unavailable'),
+      );
+
+      await expect(
+        service.analyzeYoutube(currentUser as never, {
+          draftProjectId: 'draft-1',
+          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        }),
+      ).rejects.toThrow('queue unavailable');
+      expect(clipProjectsService.releaseDraft).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+      );
+    });
+
+    it('does not release a project it did not start from a draft', async () => {
+      clipAnalysisWorkflowQueue.enqueue.mockRejectedValue(
+        new Error('queue unavailable'),
+      );
+
+      await expect(
+        service.analyzeYoutube(currentUser as never, {
+          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        }),
+      ).rejects.toThrow('queue unavailable');
+      expect(clipProjectsService.releaseDraft).not.toHaveBeenCalled();
     });
 
     it('does not queue a finalized upload whose draft another start claimed', async () => {

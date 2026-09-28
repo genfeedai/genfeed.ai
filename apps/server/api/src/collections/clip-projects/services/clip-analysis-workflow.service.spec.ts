@@ -161,4 +161,42 @@ describe('ClipAnalysisWorkflowService', () => {
       expect(result.referenceFrames.status).toBe('unavailable');
     },
   );
+
+  it('asks the files service to store a remote source while extracting audio', async () => {
+    http.post.mockReturnValue(of({ data: {} }));
+    const prepare = actions.get('clip.analysis.prepare-source');
+
+    await expect(
+      prepare?.({
+        input: {
+          job: {
+            orgId: 'org-1',
+            projectId: 'project-1',
+            source: {
+              artifact: {
+                contentType: 'video/mp4',
+                mediaUrl: 'https://media.argil.test/videos/library-video.mp4',
+              },
+              contentType: 'video/mp4',
+              kind: 'library',
+            },
+            userId: 'user-1',
+            youtubeUrl: 'https://media.argil.test/videos/library-video.mp4',
+          },
+        },
+      } as never),
+    ).rejects.toThrow(/jobId/);
+
+    expect(http.post).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/files/process/video'),
+      expect.objectContaining({
+        params: {
+          inputPath: 'https://media.argil.test/videos/library-video.mp4',
+          materializeSource: true,
+        },
+        type: 'video-to-audio',
+      }),
+      expect.anything(),
+    );
+  });
 });
