@@ -134,20 +134,47 @@ describe('VideosCaptionsController', () => {
     },
   ];
 
-  type VideoRow = (typeof videoRows)[number];
-  type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+  const deletedCaptionId = testId('caption', 2);
+  const foreignCaptionId = testId('caption', 3);
+  const captionRows = [
+    { ...mockVideo.captions[0], isDeleted: false, organizationId },
+    {
+      ...mockVideo.captions[0],
+      id: deletedCaptionId,
+      isDeleted: true,
+      organizationId,
+    },
+    {
+      ...mockVideo.captions[0],
+      content: 'Other organization caption',
+      id: foreignCaptionId,
+      isDeleted: false,
+      organizationId: testId('org', 2),
+    },
+  ];
 
-  const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+  type RowWhere = Record<string, unknown> & { OR?: RowWhere[] };
+
+  const matchesWhere = (
+    row: Record<string, unknown>,
+    where: RowWhere,
+  ): boolean =>
     Object.entries(where).every(([key, value]) =>
       key === 'OR'
-        ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
-        : row[key as keyof VideoRow] === value,
+        ? (value as RowWhere[]).some((branch) => matchesWhere(row, branch))
+        : row[key] === value,
     );
 
   const useVideoRows = () =>
     mockServices.videosService.findOne.mockImplementation(
-      async (where: VideoWhere) =>
+      async (where: RowWhere) =>
         videoRows.find((row) => matchesWhere(row, where)) ?? null,
+    );
+
+  const useCaptionRows = () =>
+    mockServices.captionsService.findOne.mockImplementation(
+      async (where: RowWhere) =>
+        captionRows.find((row) => matchesWhere(row, where)) ?? null,
     );
 
   it('should be defined', () => {
@@ -299,6 +326,73 @@ describe('VideosCaptionsController', () => {
         mockServices.sharedService.createMediaDocuments,
       ).not.toHaveBeenCalled();
       expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    describe('caption lookup', () => {
+      beforeEach(() => {
+        useVideoRows();
+        useCaptionRows();
+        mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+          ingredientData: { id: ingredientId },
+          metadataData: { id: metadataId },
+        });
+        mockServices.fileQueueService.processVideo.mockResolvedValue({
+          jobId: 'job123',
+        });
+      });
+
+      it('scopes the caption to the caller organization and burns its content', async () => {
+        await controller.createVideoWithCaptions(mockReq, mockUser, videoId, {
+          caption: captionId,
+        });
+
+        expect(captionsService.findOne).toHaveBeenCalledWith({
+          id: captionId,
+          isDeleted: false,
+          organizationId: mockUser.organizationId,
+        });
+        expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              captionContent: 'Test caption content',
+            }),
+          }),
+        );
+      });
+
+      it('returns not found for a soft-deleted caption', async () => {
+        const result = await controller.createVideoWithCaptions(
+          mockReq,
+          mockUser,
+          videoId,
+          { caption: deletedCaptionId },
+        );
+
+        expect(result).toHaveProperty('statusCode', 404);
+        expect(
+          mockServices.sharedService.createMediaDocuments,
+        ).not.toHaveBeenCalled();
+        expect(
+          mockServices.fileQueueService.processVideo,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('returns not found for a caption from another organization', async () => {
+        const result = await controller.createVideoWithCaptions(
+          mockReq,
+          mockUser,
+          videoId,
+          { caption: foreignCaptionId },
+        );
+
+        expect(result).toHaveProperty('statusCode', 404);
+        expect(
+          mockServices.sharedService.createMediaDocuments,
+        ).not.toHaveBeenCalled();
+        expect(
+          mockServices.fileQueueService.processVideo,
+        ).not.toHaveBeenCalled();
+      });
     });
 
     it('should return not found when video does not exist', async () => {
