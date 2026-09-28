@@ -16,6 +16,7 @@ const conversation: SocialConversation = {
   conversationType: 'comment',
   createdAt: '2026-07-13T08:00:00.000Z',
   id: 'conversation-1',
+  inboundSequence: 1,
   needsReview: false,
   organizationId: 'organization-1',
   platform: 'youtube',

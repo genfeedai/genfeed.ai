@@ -816,11 +816,14 @@ describe('SocialInboxService', () => {
         id: 'race',
       });
       const conversationId = inbound.conversationId;
+      type UpdateManyArgs = { data: { unreadCount?: unknown } };
       const originalUpdateMany =
-        context.prisma.socialConversation.updateMany.getMockImplementation();
+        context.prisma.socialConversation.updateMany.getMockImplementation() as
+          | ((args: UpdateManyArgs) => Promise<{ count: number }>)
+          | undefined;
       let hasRaced = false;
       context.prisma.socialConversation.updateMany.mockImplementation(
-        async (args: { data: { unreadCount?: unknown } }) => {
+        async (args: UpdateManyArgs) => {
           if (!hasRaced && typeof args.data.unreadCount === 'number') {
             hasRaced = true;
             // A reply is ingested after this receipt computed its target.
