@@ -15,6 +15,7 @@ import {
   SystemPromptKey,
 } from '@genfeedai/contracts';
 import {
+  BRAND_HANDLE_PATTERN,
   createBrandAppRoute,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
@@ -592,7 +593,7 @@ export function useModalBrand(
             setError('Label and slug are required.');
             return;
           }
-          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+          if (!BRAND_HANDLE_PATTERN.test(slug)) {
             setError(
               'Slug must be lowercase letters, numbers, and hyphens only.',
             );

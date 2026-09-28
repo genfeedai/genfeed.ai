@@ -53,6 +53,7 @@ export default function BrandDetail() {
     handleGenerateBanner,
     handleGenerateLogo,
     handleUpdateAccount,
+    handleUpdateHandle,
     handleOpenUploadModal,
     handleCopy,
     handleRefreshBrand,
@@ -154,6 +155,7 @@ export default function BrandDetail() {
                 onUpdateBrand={(field, value) =>
                   handleUpdateAccount(field, value)
                 }
+                onUpdateHandle={handleUpdateHandle}
                 onCopyPublicProfile={
                   isPublicProfile ? handleCopyPublicProfile : undefined
                 }

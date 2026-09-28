@@ -1,4 +1,5 @@
 import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
+import { BRAND_HANDLE_FORMAT_MESSAGE } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -17,6 +18,8 @@ const mockFindPublicArticles = vi.fn();
 const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
 const mockSubscribe = vi.fn(() => vi.fn());
+const mockReplace = vi.fn();
+const mockRefreshBrands = vi.fn();
 
 const mockPublicService = {
   findPublicArticles: mockFindPublicArticles,
@@ -31,7 +34,10 @@ const mockClipboardService = {
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({ orgSlug: 'acme', slug: 'brand-1' })),
   usePathname: vi.fn(() => '/settings/brands/brand-1'),
-  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: (...args: unknown[]) => mockReplace(...args),
+  })),
 }));
 
 // Every mocked hook/singleton below returns one stable object, matching the
@@ -39,7 +45,10 @@ vi.mock('next/navigation', () => ({
 // singletons. Returning a fresh object per call makes effect dependencies
 // change on every render and spins the hook in a render loop.
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => {
-  const brandContext = { brands: [] };
+  const brandContext = {
+    brands: [],
+    refreshBrands: (...args: unknown[]) => mockRefreshBrands(...args),
+  };
   return { useBrand: vi.fn(() => brandContext) };
 });
 
@@ -114,6 +123,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 }));
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePathname } from 'next/navigation';
 
 describe('useBrandDetail', () => {
   beforeEach(() => {
@@ -194,6 +204,77 @@ describe('useBrandDetail', () => {
         parentModel: 'Brand',
       }),
     );
+  });
+
+  describe('handleUpdateHandle', () => {
+    async function renderLoadedBrand() {
+      mockFindOne.mockResolvedValue({
+        id: 'brand-1',
+        links: [],
+        scope: AssetScope.BRAND,
+        slug: 'brand-1',
+      } as IBrand);
+      const hook = renderHook(() => useBrandDetail());
+      await waitFor(() => {
+        expect(hook.result.current.brand).not.toBeNull();
+      });
+      return hook;
+    }
+
+    it('saves the normalized handle and moves the page to the new route', async () => {
+      vi.mocked(usePathname).mockReturnValue('/acme/brand-1/settings');
+      mockPatch.mockResolvedValue({
+        id: 'brand-1',
+        links: [],
+        slug: 'acme-labs',
+      } as IBrand);
+      const { result } = await renderLoadedBrand();
+
+      await act(async () => {
+        await result.current.handleUpdateHandle(' @Acme-Labs ');
+      });
+
+      expect(mockPatch).toHaveBeenCalledWith('brand-1', { slug: 'acme-labs' });
+      expect(mockReplace).toHaveBeenCalledWith('/acme/acme-labs/settings');
+      expect(mockRefreshBrands).toHaveBeenCalledOnce();
+    });
+
+    it('rejects a malformed handle without saving', async () => {
+      const { result } = await renderLoadedBrand();
+
+      await expect(
+        result.current.handleUpdateHandle('bad_handle'),
+      ).rejects.toThrow(BRAND_HANDLE_FORMAT_MESSAGE);
+
+      expect(mockNotifyError).toHaveBeenCalledWith(BRAND_HANDLE_FORMAT_MESSAGE);
+      expect(mockPatch).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the handle is unchanged', async () => {
+      const { result } = await renderLoadedBrand();
+
+      await act(async () => {
+        await result.current.handleUpdateHandle('@brand-1');
+      });
+
+      expect(mockPatch).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('stays on the page when the save fails', async () => {
+      mockPatch.mockRejectedValue(new Error('This handle is already taken.'));
+      const { result } = await renderLoadedBrand();
+
+      await act(async () => {
+        await expect(
+          result.current.handleUpdateHandle('taken'),
+        ).rejects.toThrow();
+      });
+
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(mockRefreshBrands).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleUpdateAccount scope toggle', () => {

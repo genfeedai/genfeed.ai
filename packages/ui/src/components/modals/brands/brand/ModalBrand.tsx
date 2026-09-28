@@ -8,6 +8,7 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/contracts';
+import { BRAND_HANDLE_PATTERN } from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
@@ -147,8 +148,7 @@ export default function BrandOverlay({
     if (!label || !slug) {
       return false;
     }
-    // URL-safe slug: lowercase alphanumerics with optional single hyphens.
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    if (!BRAND_HANDLE_PATTERN.test(slug)) {
       return false;
     }
     const website = (watchedCreateWebsite ?? '').trim();

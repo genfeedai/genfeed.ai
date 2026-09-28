@@ -540,6 +540,19 @@ export class BrandsService extends BaseService<
     return candidate;
   }
 
+  /**
+   * Whether `slug` is free for `brandId`. Global like the database constraint:
+   * another organization's brand, or a soft-deleted one, still holds its slug.
+   */
+  async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
+    const holder = await this.delegate.findFirst({
+      select: { id: true },
+      where: { id: { not: brandId }, slug },
+    });
+
+    return !holder;
+  }
+
   async updateAgentConfig(
     brandId: string,
     orgId: string,

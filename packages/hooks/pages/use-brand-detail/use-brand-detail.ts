@@ -12,7 +12,12 @@ import {
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/contracts';
-import { createBrandAppRoute } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_FORMAT_MESSAGE,
+  createBrandAppRoute,
+  isValidBrandHandle,
+  normalizeBrandHandle,
+} from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   IBrand,
@@ -101,7 +106,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { brands } = useBrand();
+  const { brands, refreshBrands } = useBrand();
 
   const notificationsService = NotificationsService.getInstance();
   const publicService = PublicService.getInstance();
@@ -412,6 +417,45 @@ export function useBrandDetail(): UseBrandDetailReturn {
     ],
   );
 
+  // The handle is the `[brandSlug]` route segment, so a saved rename moves the
+  // page to the new URL; the brand list refresh keeps the switcher in step.
+  const handleUpdateHandle = useCallback(
+    async (value: string): Promise<void> => {
+      const handle = normalizeBrandHandle(value);
+      if (!state.brand || handle === state.brand.slug) {
+        return;
+      }
+
+      if (!isValidBrandHandle(handle)) {
+        notificationsService.error(BRAND_HANDLE_FORMAT_MESSAGE);
+        throw new Error(BRAND_HANDLE_FORMAT_MESSAGE);
+      }
+
+      await handleUpdateAccount('slug', handle);
+
+      const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+      if (orgSlug && pathname && routeBrandParam) {
+        const currentPrefix = createBrandAppRoute(orgSlug, routeBrandParam);
+        const suffix = pathname.startsWith(currentPrefix)
+          ? pathname.slice(currentPrefix.length)
+          : '/settings';
+        router.replace(createBrandAppRoute(orgSlug, handle, suffix));
+      }
+
+      await refreshBrands();
+    },
+    [
+      handleUpdateAccount,
+      notificationsService,
+      params?.orgSlug,
+      pathname,
+      refreshBrands,
+      routeBrandParam,
+      router,
+      state.brand,
+    ],
+  );
+
   const handleGenerateBanner = useCallback(() => {
     if (!state.brand) {
       return;
@@ -559,6 +603,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     handleRefreshBrand: findOneBrand,
     handleRequestDeleteReference,
     handleUpdateAccount,
+    handleUpdateHandle,
     hasBrandId,
     images: state.images,
     isGeneratingBanner,

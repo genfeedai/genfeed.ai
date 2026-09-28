@@ -39,7 +39,11 @@ import {
 } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -131,6 +135,7 @@ describe('BrandsController', () => {
             findOneBySlug: vi.fn(),
             generateBrandVoice: vi.fn(),
             importBrandKitAssets: vi.fn(),
+            isSlugAvailable: vi.fn(),
             patch: vi.fn(),
             readClaimedBrandOsPreview: vi.fn(),
             relocateToOrganization: vi.fn(),
@@ -322,6 +327,56 @@ describe('BrandsController', () => {
 
     expect(brandsService.patch).not.toHaveBeenCalled();
     expect(brandSetupService.updateBrandNameById).not.toHaveBeenCalled();
+  });
+
+  describe('brand handle', () => {
+    it('saves a free handle through the default patch', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand as never);
+      brandsService.isSlugAvailable.mockResolvedValue(true);
+      brandsService.patch.mockResolvedValue({
+        ...mockBrand,
+        slug: 'vincent-on-ai',
+      } as never);
+
+      await controller.patch(mockRequest, mockUser, mockBrand.id, {
+        slug: 'vincent-on-ai',
+      });
+
+      expect(brandsService.isSlugAvailable).toHaveBeenCalledWith(
+        'vincent-on-ai',
+        mockBrand.id,
+      );
+      expect(brandsService.patch).toHaveBeenCalledWith(
+        mockBrand.id,
+        { slug: 'vincent-on-ai' },
+        [],
+      );
+    });
+
+    it('rejects a taken handle with a conflict before patching', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand as never);
+      brandsService.isSlugAvailable.mockResolvedValue(false);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, mockBrand.id, {
+          slug: 'taken',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(brandsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('does not reveal handle availability through a brand the caller cannot access', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, mockBrand.id, {
+          slug: 'taken',
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
+    });
   });
 
   it('routes an explicit organization change through the relocation operation', async () => {

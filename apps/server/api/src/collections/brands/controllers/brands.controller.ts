@@ -33,6 +33,7 @@ import {
   ActivitySource,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -42,6 +43,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpException,
@@ -156,6 +158,19 @@ export class BrandsController extends BaseCRUDController<
         user.organizationId.toString(),
         rest.watermarkLogoId,
       );
+    }
+
+    if (rest.slug !== undefined) {
+      // Access first: a caller must not learn which handles are taken
+      // through a brand they cannot edit.
+      await verifyBrandAccess(this.brandsService, id, user);
+      const isAvailable = await this.brandsService.isSlugAvailable(
+        rest.slug,
+        id,
+      );
+      if (!isAvailable) {
+        throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
+      }
     }
 
     if (rest.agentConfig !== undefined && !syncOrganizationName) {

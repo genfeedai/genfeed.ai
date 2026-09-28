@@ -8,6 +8,7 @@ export * from './api-key-scope-labels.constant';
 export * from './app-display.constant';
 export * from './avatar-generation-pricing.constant';
 export * from './batch-generation-pricing.constant';
+export * from './brand-handle.constant';
 export * from './carousel.constant';
 export * from './context-embedding.constant';
 export * from './credit-display.constant';
