@@ -20,6 +20,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -83,7 +84,7 @@ export class BatchProjectsController {
   ) {
     const project = await this.batchProjectsService.create(
       body,
-      this.requireScope(user),
+      this.requireScope(user, request),
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }
@@ -192,7 +193,7 @@ export class BatchProjectsController {
     const project = await this.batchProjectsService.generateIdeas(
       id,
       body,
-      this.requireScope(user),
+      this.requireScope(user, request),
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }
@@ -297,7 +298,7 @@ export class BatchProjectsController {
     );
   }
 
-  private requireScope(user: User): IBatchProjectScope {
+  private requireScope(user: User, request?: Request): IBatchProjectScope {
     const organizationId = user.organizationId;
     const userId = user.userId ?? user.id;
     if (!organizationId || !userId) {
@@ -307,6 +308,9 @@ export class BatchProjectsController {
     }
     return {
       ...(user.brandId ? { brandId: user.brandId } : {}),
+      ...(request && getIsSuperAdmin(user, request)
+        ? { isSuperAdmin: true }
+        : {}),
       organizationId,
       userId,
     };

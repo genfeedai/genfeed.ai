@@ -161,6 +161,23 @@ describe('BatchProjectsService', () => {
       expect(prisma.batchProject.create).not.toHaveBeenCalled();
     });
 
+    it('lets a superadmin open an idea batch while batch_ideas is off', async () => {
+      platformSettingsService.getFeatureSettings.mockResolvedValue({
+        flags: { batch_ideas: false },
+      });
+      prisma.batchProject.create.mockImplementation(async ({ data }) => ({
+        ...makeProject(),
+        ...data,
+      }));
+
+      await service.create(
+        { brandId: 'brand-1', kind: BatchProjectKind.IDEAS },
+        { ...scope, isSuperAdmin: true },
+      );
+
+      expect(prisma.batchProject.create).toHaveBeenCalled();
+    });
+
     it('opens an idea batch on the ideas step with default idea choices', async () => {
       prisma.batchProject.create.mockImplementation(async ({ data }) => ({
         ...makeProject(),

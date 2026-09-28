@@ -171,6 +171,8 @@ export interface IBatchProjectScope {
   organizationId: string;
   userId: string;
   brandId?: string;
+  /** Trusted from auth, like FeatureFlagGuard: superadmins may use switched-off features. */
+  isSuperAdmin?: boolean;
 }
 
 export interface ICreateBatchProjectInput {

@@ -160,7 +160,7 @@ export class BatchProjectsService {
   ): Promise<IBatchProject> {
     await this.assertBrand(dto.brandId, scope.organizationId);
     if (dto.kind === BatchProjectKind.IDEAS) {
-      await this.assertIdeasEnabled();
+      await this.assertIdeasEnabled(scope);
     }
     if (dto.workflowId) {
       await this.assertWorkflow(dto.workflowId, scope.organizationId);
@@ -296,7 +296,7 @@ export class BatchProjectsService {
     dto: GenerateBatchIdeasDto,
     scope: IBatchProjectScope,
   ): Promise<IBatchProject> {
-    await this.assertIdeasEnabled();
+    await this.assertIdeasEnabled(scope);
     const before = await this.requireProject(id, scope);
     this.assertDraft(before);
     if (before.kind !== BatchProjectKind.IDEAS)
@@ -901,7 +901,10 @@ export class BatchProjectsService {
   }
 
   /** Idea batches are gated by the central `batch_ideas` Admin platform flag (#5463). */
-  private async assertIdeasEnabled(): Promise<void> {
+  private async assertIdeasEnabled(scope: IBatchProjectScope): Promise<void> {
+    if (scope.isSuperAdmin) {
+      return;
+    }
     const { flags } = await this.platformSettingsService.getFeatureSettings();
     if (!flags.batch_ideas) {
       throw new NotFoundException({ message: 'Idea batches are not enabled' });
