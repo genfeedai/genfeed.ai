@@ -342,6 +342,13 @@ const UI_TEST_MESSAGES = {
         type: 'Type',
       },
       otherAssets: 'Other assets',
+      videoDetail: {
+        availableVersions: 'Available Versions:',
+        editInStudio: 'Edit in Studio',
+        makeClips: 'Make clips',
+        moreVersions: '+{count} more',
+        viewMoreVersions: 'View more versions',
+      },
     },
     publishing: {
       calendar: {
