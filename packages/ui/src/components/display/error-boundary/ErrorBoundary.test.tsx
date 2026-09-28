@@ -3,7 +3,7 @@ import {
   closeModal,
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { logErrorDeferred } from '@genfeedai/services/core/deferred-logger';
+import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
@@ -21,7 +21,7 @@ vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   openModal: vi.fn(),
 }));
 vi.mock('@genfeedai/services/core/deferred-logger', () => ({
-  logErrorDeferred: vi.fn(),
+  deferredLogger: { error: vi.fn() },
 }));
 
 describe('ErrorBoundary', () => {
@@ -94,7 +94,7 @@ describe('ErrorBoundary', () => {
     }
 
     expect(onError).toHaveBeenCalledTimes(4);
-    expect(logErrorDeferred).toHaveBeenCalledTimes(4);
+    expect(deferredLogger.error).toHaveBeenCalledTimes(4);
     expect(closeModal).toHaveBeenCalledTimes(3);
     expect(closeModal).toHaveBeenLastCalledWith(ModalEnum.ERROR_DEBUG);
     expect(setErrorDebugInfo).toHaveBeenLastCalledWith(

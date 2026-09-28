@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { logErrorDeferred } from '@genfeedai/services/core/deferred-logger';
+import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +17,7 @@ function Thrower() {
 }
 
 vi.mock('@genfeedai/services/core/deferred-logger', () => ({
-  logErrorDeferred: vi.fn(),
+  deferredLogger: { error: vi.fn() },
 }));
 
 describe('ErrorBoundary', () => {
@@ -134,7 +134,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
-    expect(logErrorDeferred).toHaveBeenCalledWith(
+    expect(deferredLogger.error).toHaveBeenCalledWith(
       '[ErrorBoundary]',
       expect.objectContaining({ error: expect.any(Error) }),
     );
