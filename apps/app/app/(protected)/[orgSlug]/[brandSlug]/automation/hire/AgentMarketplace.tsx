@@ -6,6 +6,9 @@ import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-t
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
 import Card from '@ui/card/Card';
+import CollectionList from '@ui/collection/CollectionList';
+import CollectionSection from '@ui/collection/CollectionSection';
+import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -63,7 +66,7 @@ function AgentPresetAvatar({
   return (
     <NextImage
       alt=""
-      className="rounded-md object-cover"
+      className="object-cover"
       height={size}
       onError={() => setHasFailed(true)}
       src={cdnProductStill('agents', presetId)}
@@ -101,6 +104,8 @@ export default function AgentMarketplace({
   );
 
   const featuredPresets = query ? [] : visiblePresets.slice(0, FEATURED_COUNT);
+  // Featured presets already sit in the carousel; the list holds the rest.
+  const listedPresets = visiblePresets.slice(featuredPresets.length);
 
   return (
     <div className="flex flex-col gap-6" data-testid="agent-marketplace">
@@ -132,108 +137,110 @@ export default function AgentMarketplace({
         ))}
       </div>
 
-      {featuredPresets.length > 0 ? (
-        <section>
-          <p className="mb-3 text-sm font-semibold text-foreground">
-            {translate('featured')}
-          </p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {featuredPresets.map((preset) => {
-              const Icon = getAgentTypeIcon(preset.type);
-              const isActivating = submittingPresetId === preset.id;
-              return (
-                <Card
-                  key={`featured-${preset.id}`}
-                  className="h-full"
-                  data-testid={`agent-preset-featured-${preset.id}`}
-                  description={preset.description}
-                  icon={
+      <CollectionSection
+        data-testid="agent-marketplace-featured"
+        itemCount={featuredPresets.length}
+        title={translate('featured')}
+      >
+        <HorizontalCarousel gap="md">
+          {featuredPresets.map((preset) => {
+            const Icon = getAgentTypeIcon(preset.type);
+            const isActivating = submittingPresetId === preset.id;
+            return (
+              <Card
+                key={`featured-${preset.id}`}
+                className="w-64 shrink-0"
+                data-testid={`agent-preset-featured-${preset.id}`}
+                description={preset.description}
+                icon={
+                  <AgentPresetAvatar
+                    fallbackIcon={Icon}
+                    presetId={preset.id}
+                    size={FEATURED_AVATAR_SIZE}
+                  />
+                }
+                iconWrapperClassName="bg-transparent p-0"
+                isDisabled={isSubmitting}
+                label={preset.displayRole}
+                onClick={() => {
+                  if (!isSubmitting) {
+                    void onActivate(preset.id);
+                  }
+                }}
+              >
+                <p className="text-xs text-foreground/45">
+                  {isActivating
+                    ? translate('activating')
+                    : translate('creditsPerDay', {
+                        credits: preset.defaultBudget,
+                      })}
+                </p>
+              </Card>
+            );
+          })}
+        </HorizontalCarousel>
+      </CollectionSection>
+
+      {visiblePresets.length === 0 ? (
+        <p className="py-8 text-center text-sm text-foreground/50">
+          {translate('emptySearch')}
+        </p>
+      ) : null}
+
+      <CollectionSection
+        data-testid="agent-marketplace-list"
+        itemCount={listedPresets.length}
+        title={
+          featuredPresets.length > 0
+            ? translate('moreAgents')
+            : translate('allAgents')
+        }
+      >
+        <CollectionList>
+          {listedPresets.map((preset) => {
+            const Icon = getAgentTypeIcon(preset.type);
+            const isActivating = submittingPresetId === preset.id;
+            return (
+              <ListRow
+                key={preset.id}
+                data-testid={`agent-preset-row-${preset.id}`}
+                density="compact"
+                description={preset.description}
+                leading={
+                  <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden">
                     <AgentPresetAvatar
                       fallbackIcon={Icon}
                       presetId={preset.id}
-                      size={FEATURED_AVATAR_SIZE}
+                      size={LIST_AVATAR_SIZE}
                     />
-                  }
-                  iconWrapperClassName="bg-transparent p-0"
-                  isDisabled={isSubmitting}
-                  label={preset.displayRole}
-                  onClick={() => {
-                    if (!isSubmitting) {
-                      void onActivate(preset.id);
+                  </span>
+                }
+                meta={`${preset.teamGroup} · ${translate('creditsPerDay', {
+                  credits: preset.defaultBudget,
+                })}`}
+                title={preset.displayRole}
+                trailing={
+                  <Button
+                    data-testid={`activate-${preset.id}`}
+                    isDisabled={isSubmitting}
+                    isLoading={isActivating}
+                    label={
+                      isActivating
+                        ? translate('activating')
+                        : translate('activate')
                     }
-                  }}
-                >
-                  <p className="text-xs text-foreground/45">
-                    {isActivating
-                      ? translate('activating')
-                      : translate('creditsPerDay', {
-                          credits: preset.defaultBudget,
-                        })}
-                  </p>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      <section>
-        {featuredPresets.length > 0 ? (
-          <p className="mb-3 text-sm font-semibold text-foreground">
-            {translate('allAgents')}
-          </p>
-        ) : null}
-        <div className="overflow-hidden rounded-card border border-border">
-          {visiblePresets.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-foreground/50">
-              {translate('emptySearch')}
-            </p>
-          ) : (
-            visiblePresets.map((preset) => {
-              const Icon = getAgentTypeIcon(preset.type);
-              const isActivating = submittingPresetId === preset.id;
-              return (
-                <ListRow
-                  key={preset.id}
-                  data-testid={`agent-preset-row-${preset.id}`}
-                  density="compact"
-                  description={preset.description}
-                  leading={
-                    <span className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-foreground/5">
-                      <AgentPresetAvatar
-                        fallbackIcon={Icon}
-                        presetId={preset.id}
-                        size={LIST_AVATAR_SIZE}
-                      />
-                    </span>
-                  }
-                  meta={`${preset.teamGroup} · ${translate('creditsPerDay', {
-                    credits: preset.defaultBudget,
-                  })}`}
-                  title={preset.displayRole}
-                  trailing={
-                    <Button
-                      data-testid={`activate-${preset.id}`}
-                      isDisabled={isSubmitting}
-                      isLoading={isActivating}
-                      label={
-                        isActivating
-                          ? translate('activating')
-                          : translate('activate')
-                      }
-                      onClick={() => {
-                        void onActivate(preset.id);
-                      }}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.DEFAULT}
-                    />
-                  }
-                />
-              );
-            })
-          )}
-        </div>
-      </section>
+                    onClick={() => {
+                      void onActivate(preset.id);
+                    }}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.DEFAULT}
+                  />
+                }
+              />
+            );
+          })}
+        </CollectionList>
+      </CollectionSection>
     </div>
   );
 }

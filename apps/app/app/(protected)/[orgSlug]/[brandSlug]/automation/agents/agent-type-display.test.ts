@@ -1,5 +1,11 @@
 import { AgentType, Platform } from '@genfeedai/contracts';
 import { PUBLISH_PLATFORMS } from '@genfeedai/contracts/constants';
+import {
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import { MessageSquareText, Newspaper, ScrollText } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_PLATFORM_OPTIONS,
@@ -49,6 +55,30 @@ describe('agent-type-display', () => {
     expect(getAgentTypeLabel(undefined)).toBe('');
     expect(getAgentTypeIcon(undefined)).toBe(
       AGENT_TYPE_ICON_COMPONENTS[AgentType.GENERAL],
+    );
+    expect(getAgentTypeIcon('not-a-type')).toBe(
+      AGENT_TYPE_ICON_COMPONENTS[AgentType.GENERAL],
+    );
+  });
+
+  it('depicts the output type, never the platform brand', () => {
+    const brandIcons = new Set<unknown>([
+      LinkedinIcon,
+      XTwitterIcon,
+      YoutubeIcon,
+    ]);
+
+    for (const type of Object.values(AgentType)) {
+      expect(brandIcons.has(AGENT_TYPE_ICON_COMPONENTS[type])).toBe(false);
+    }
+    expect(AGENT_TYPE_ICON_COMPONENTS[AgentType.X_CONTENT]).toBe(
+      MessageSquareText,
+    );
+    expect(AGENT_TYPE_ICON_COMPONENTS[AgentType.LINKEDIN_CONTENT]).toBe(
+      Newspaper,
+    );
+    expect(AGENT_TYPE_ICON_COMPONENTS[AgentType.YOUTUBE_SCRIPT]).toBe(
+      ScrollText,
     );
   });
 });

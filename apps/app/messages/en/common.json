@@ -872,6 +872,7 @@
       "loadingBrand": "Loading the selected brand\u2026",
       "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
+      "moreAgents": "More agents",
       "search": "Search agents",
       "title": "Add agent",
       "customAgent": "Custom agent",
@@ -899,19 +900,33 @@
       }
     },
     "agentHub": {
+      "activate": "Activate",
+      "loadError": "Agents couldn't load.",
+      "pause": "Pause",
+      "retry": "Retry",
       "runNow": "Run now",
+      "runNowTooltip": "Queue a run with this agent's current schedule and skills",
+      "runWorkflow": "Run workflow",
       "schedule": "Schedule",
       "card": {
         "brand": "Brand: {brand}",
-        "creditsToday": "Credits today",
-        "lastRun": "Last run",
-        "viewDetail": "View detail",
-        "workflow": "Workflow: {workflow}",
-        "workflowDefault": "Workflow: type default on first run"
+        "creditsToday": "{used} / {budget} credits today",
+        "lastRun": "Ran {time}",
+        "workflow": "Workflow: {workflow}"
       },
       "empty": {
         "description": "Hire a content agent to fill workflow prompts and run production graphs",
         "title": "No agents yet"
+      },
+      "sections": {
+        "all": "All",
+        "needsYou": "Needs you",
+        "yours": "Your agents"
+      },
+      "status": {
+        "lastRunFailed": "Last run failed",
+        "paused": "Paused",
+        "pausedAfterFailures": "Paused after {count, plural, one {# failed run} other {# failed runs}}"
       }
     },
     "agentDetail": {
