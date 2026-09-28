@@ -284,6 +284,54 @@ describe('AvatarVideoGenerationService', () => {
     });
   });
 
+  it('with HeyGen BYOK, still charges for speech from a saved Genfeed voice', async () => {
+    const {
+      brandsService,
+      byokService,
+      creditsUtilsService,
+      managedInferenceRuntimeService,
+      service,
+      voicesService,
+    } = createService();
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    voicesService.findOne.mockResolvedValue({
+      externalVoiceId: null,
+      id: 'voice-fleet-1',
+      isCloned: true,
+      organizationId: context.organizationId,
+      provider: VoiceProvider.GENFEED_AI,
+      sampleAudioUrl: 'https://cdn.example.com/reference.wav',
+    });
+    byokService.resolveApiKey.mockImplementation(
+      async (_organizationId: string, provider: ByokProvider) =>
+        provider === ByokProvider.HEYGEN
+          ? { apiKey: 'heygen-byok-test-key' }
+          : null,
+    );
+    managedInferenceRuntimeService.generateVoice.mockResolvedValue({
+      jobId: 'voice-job-1',
+    });
+    managedInferenceRuntimeService.pollJob.mockResolvedValue({
+      audioUrl: 'https://cdn.example.com/fleet.mp3',
+    });
+
+    await service.generateAvatarVideo(
+      {
+        clonedVoiceId: 'voice-fleet-1',
+        photoIngredientId: 'avatar-1',
+        text: 'Create the founder update',
+      },
+      context,
+    );
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
+  });
+
   it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {
     const {
       brandsService,

@@ -76,6 +76,8 @@ interface ResolvedIdentity {
   audioUrl?: string;
   elevenlabsVoiceId?: string;
   heygenVoiceId?: string;
+  /** Set when `audioUrl` was synthesized on the shared Genfeed voice runtime. */
+  isPlatformFundedSpeech?: boolean;
   photoIngredientId?: string;
   photoUrl?: string;
   savedVoice?: ResolvableVoiceDocument;
@@ -567,6 +569,7 @@ export class AvatarVideoGenerationService {
       return {
         audioDuration: 0,
         audioUrl: resolvedIdentity.audioUrl,
+        isPlatformFundedSpeech: resolvedIdentity.isPlatformFundedSpeech,
       };
     }
 
@@ -691,7 +694,7 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      return { audioUrl: pollResult.audioUrl };
+      return { audioUrl: pollResult.audioUrl, isPlatformFundedSpeech: true };
     }
 
     return {};
