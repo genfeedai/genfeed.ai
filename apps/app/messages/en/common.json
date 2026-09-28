@@ -269,8 +269,23 @@
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
+      "completed": "Completed",
       "draft": "Draft",
-      "label": "Status"
+      "label": "Status",
+      "paused": "Paused"
+    },
+    "collection": {
+      "agents": "{count, plural, one {# agent} other {# agents}}",
+      "all": "All programs",
+      "credits": "{used} / {allocated} credits",
+      "creditsProgress": "{percent}% of credits used",
+      "lastRun": "Last run {time}",
+      "needsYou": "Needs you",
+      "needsYouDescription": "Paused, or out of allocated credits.",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "review": "Review",
+      "reviewLabel": "Review {label}"
     },
     "template": {
       "blankDescription": "Coordinate only the existing agents you select below.",

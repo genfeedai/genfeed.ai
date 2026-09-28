@@ -1,5 +1,5 @@
 import AgentCampaignsPage from '@pages/agents/campaigns/AgentCampaignsPage';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -20,7 +20,7 @@ const mockCampaigns = [
   },
   {
     agents: ['agent-3'],
-    brief: 'Draft campaign',
+    brief: 'Draft program',
     creditsAllocated: 500,
     creditsUsed: 0,
     id: 'campaign-2',
@@ -29,6 +29,28 @@ const mockCampaigns = [
     orchestrationIntervalHours: 24,
     startDate: '2026-05-01',
     status: 'draft' as const,
+  },
+  {
+    agents: ['agent-4'],
+    brief: 'Paused program',
+    creditsAllocated: 800,
+    creditsUsed: 200,
+    id: 'campaign-3',
+    label: 'Autumn Pause',
+    orchestrationEnabled: false,
+    startDate: '2026-06-01',
+    status: 'paused' as const,
+  },
+  {
+    agents: ['agent-5', 'agent-6', 'agent-7'],
+    brief: 'Out of credits',
+    creditsAllocated: 400,
+    creditsUsed: 400,
+    id: 'campaign-4',
+    label: 'Winter Spend',
+    orchestrationEnabled: true,
+    startDate: '2026-07-01',
+    status: 'active' as const,
   },
 ];
 
@@ -45,6 +67,11 @@ vi.mock('@hooks/data/agent-campaigns/use-agent-campaigns', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/demo${path}` }),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
@@ -78,60 +105,32 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     bodyClassName,
+    'data-testid': dataTestId,
   }: {
     children: ReactNode;
     bodyClassName?: string;
-    className?: string;
-    label?: string;
-    headerAction?: ReactNode;
-  }) => <div data-body-class={bodyClassName}>{children}</div>,
+    'data-testid'?: string;
+  }) => (
+    <div data-body-class={bodyClassName} data-testid={dataTestId}>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
-vi.mock('@ui/display/table/Table', () => ({
-  default: ({
-    items,
-    columns,
-  }: {
-    items: Array<{ id: string; label: string }>;
-    columns: Array<{
-      header: string;
-      key: string;
-      render: (item: Record<string, unknown>) => ReactNode;
-    }>;
-    isLoading?: boolean;
-    getRowKey?: (item: Record<string, unknown>) => string;
-    emptyLabel?: string;
-  }) => (
-    <table>
-      <thead>
-        <tr>
-          {columns.map((col) => (
-            <th key={col.key}>{col.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={item.id}>
-            {columns.map((col) => (
-              <td key={col.key}>
-                {col.render(item as unknown as Record<string, unknown>)}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  ),
-}));
+function getRowLabels(section: HTMLElement): string[] {
+  return within(section)
+    .getAllByTestId('campaign-row')
+    .map((row) => row.querySelector('p')?.textContent ?? '');
+}
 
 describe('AgentCampaignsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
       isLoading: false,
@@ -159,24 +158,121 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByText('Next Orchestration')).toBeInTheDocument();
   });
 
-  it('renders active campaign cards', () => {
+  it('lists paused and out-of-credit programs in Needs you, above All', () => {
     render(<AgentCampaignsPage />);
 
-    const cardsSection = screen.getByTestId('campaign-active-cards');
-    expect(cardsSection).toBeInTheDocument();
-    expect(screen.getAllByText('Spring Launch').length).toBeGreaterThanOrEqual(
-      1,
-    );
+    const needsYou = screen.getByTestId('campaign-needs-you');
+    const all = screen.getByTestId('campaign-all');
+
+    expect(
+      within(needsYou).getByRole('heading', { name: /needs you/i }),
+    ).toBeInTheDocument();
+    expect(getRowLabels(needsYou)).toEqual(['Autumn Pause', 'Winter Spend']);
+    expect(
+      needsYou.compareDocumentPosition(all) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Needs-you rows lead with the resolving action.
+    expect(
+      within(needsYou).getByRole('link', { name: 'Review Autumn Pause' }),
+    ).toHaveAttribute('href', '/acme/demo/automation/campaigns/campaign-3');
   });
 
-  it('renders the campaign table with orchestration and progress columns', () => {
+  it('hides Needs you when no program needs attention', () => {
+    mockUseAgentCampaigns.mockReturnValue({
+      campaigns: mockCampaigns.slice(0, 2),
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByTestId('campaign-table')).toBeInTheDocument();
-    expect(screen.getByText('Orchestration')).toBeInTheDocument();
-    expect(screen.getByText('Progress')).toBeInTheDocument();
-    expect(screen.getByText('Every 12h')).toBeInTheDocument();
-    expect(screen.getByText('Off')).toBeInTheDocument();
+    expect(screen.queryByTestId('campaign-needs-you')).toBeNull();
+    expect(screen.queryByText('Needs you')).toBeNull();
+    expect(screen.getByTestId('campaign-all')).toBeInTheDocument();
+  });
+
+  it('shows All as a list by default and switches to a grid', () => {
+    render(<AgentCampaignsPage />);
+
+    const all = screen.getByTestId('campaign-all');
+    expect(getRowLabels(all)).toEqual([
+      'Spring Launch',
+      'Summer Draft',
+      'Autumn Pause',
+      'Winter Spend',
+    ]);
+    expect(within(all).queryAllByTestId('campaign-card')).toHaveLength(0);
+    expect(within(all).getByRole('radio', { name: 'List' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+
+    expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
+    expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
+    // Program cards cap at three container-query columns.
+    const grid = within(all).getByTestId('campaign-collection')
+      .firstElementChild as HTMLElement;
+    expect(grid.className).toContain('@[60rem]:grid-cols-3');
+    expect(grid.className).not.toContain('grid-cols-4');
+    expect(
+      window.localStorage.getItem(
+        'genfeed:collection-view:automation.campaigns',
+      ),
+    ).toBe('grid');
+  });
+
+  it('shows one fact line with credits, agents and no empty placeholders', () => {
+    render(<AgentCampaignsPage />);
+
+    const all = screen.getByTestId('campaign-all');
+    const springRow = within(all)
+      .getAllByTestId('campaign-row')
+      .find((row) => row.textContent?.includes('Spring Launch'));
+
+    expect(springRow).toBeDefined();
+    expect(springRow).toHaveTextContent('320 / 1,000 credits · 2 agents');
+    expect(springRow).not.toHaveTextContent('—');
+    expect(
+      within(springRow as HTMLElement).getByRole('progressbar', {
+        name: '32% of credits used',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders exactly one visible action per row and per card', () => {
+    render(<AgentCampaignsPage />);
+
+    for (const row of screen.getAllByTestId('campaign-row')) {
+      expect(within(row).getAllByRole('link')).toHaveLength(1);
+      expect(within(row).queryAllByRole('button')).toHaveLength(0);
+    }
+
+    const all = screen.getByTestId('campaign-all');
+    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+
+    for (const card of within(all).getAllByTestId('campaign-card')) {
+      expect(within(card).getAllByRole('link')).toHaveLength(1);
+      expect(within(card).queryAllByRole('button')).toHaveLength(0);
+    }
+    expect(
+      within(all).getByRole('link', { name: 'Open Spring Launch' }),
+    ).toHaveAttribute('href', '/acme/demo/automation/campaigns/campaign-1');
+  });
+
+  it('keeps program cards free of nested filled boxes', () => {
+    render(<AgentCampaignsPage />);
+
+    const all = screen.getByTestId('campaign-all');
+    fireEvent.click(within(all).getByRole('radio', { name: 'Grid' }));
+
+    const card = within(all).getAllByTestId('campaign-card')[0];
+    expect(card).toHaveTextContent('Launch sequence');
+    expect(card.querySelector('[class*="bg-secondary"]')).toBeNull();
+    expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
+    expect(card.querySelector('[class~="rounded"]')).toBeNull();
   });
 
   it('shows empty state when no campaigns', () => {
@@ -197,9 +293,10 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getAllByRole('link', { name: /new program/i })).toHaveLength(
       1,
     );
+    expect(screen.queryByTestId('campaign-all')).toBeNull();
   });
 
-  it('shows loading state', () => {
+  it('shows a list skeleton while loading', () => {
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: [],
       isLoading: true,
@@ -208,6 +305,10 @@ describe('AgentCampaignsPage', () => {
 
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByText('Loading programs…')).toBeInTheDocument();
+    const all = screen.getByTestId('campaign-all');
+    expect(all).toHaveAttribute('aria-busy', 'true');
+    expect(within(all).getByTestId('list-rows-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('campaign-needs-you')).toBeNull();
+    expect(screen.queryByText('No programs yet')).toBeNull();
   });
 });

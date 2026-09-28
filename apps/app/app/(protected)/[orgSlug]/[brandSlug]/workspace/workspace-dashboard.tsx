@@ -17,17 +17,20 @@ import type {
   DashboardProps,
   ReviewInboxSummary,
 } from '@props/workspace/workspace-dashboard.props';
+import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
-import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
+import CollectionGrid from '@ui/collection/CollectionGrid';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionSection from '@ui/collection/CollectionSection';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, Cpu } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
@@ -53,68 +56,93 @@ function formatStatusLabel(status: WorkflowExecutionStatus): string {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
+/** Pass a `pages.workspaceOverview.relativeTime`-scoped translate. */
+function formatRunTime(date: string, translate: WorkspaceTranslate): string {
+  const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60_000);
+  if (minutes < 1) return translate('justNow');
+  if (minutes < 60) return translate('minutesAgo', { minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return translate('hoursAgo', { hours });
+  return translate('daysAgo', { days: Math.floor(hours / 24) });
+}
+
 function WorkflowExecutionCard({
   execution,
 }: {
   execution: IWorkflowExecution;
 }) {
   const { href } = useOrgUrl();
-  const statusLabel =
-    execution.status === WorkflowExecutionStatus.RUNNING
-      ? 'Live now'
-      : execution.status === WorkflowExecutionStatus.PENDING
-        ? 'Queued'
-        : formatStatusLabel(execution.status);
+  const translate = useTranslations('pages.workspaceOverview.runCards');
+  const translateTime = useTranslations('pages.workspaceOverview.relativeTime');
+  const isRunning = execution.status === WorkflowExecutionStatus.RUNNING;
+  const statusLabel = isRunning
+    ? translate('status.live')
+    : execution.status === WorkflowExecutionStatus.PENDING
+      ? translate('status.queued')
+      : formatStatusLabel(execution.status);
 
   const label = getWorkflowExecutionLabel(execution);
+  const failureMessage =
+    execution.status === WorkflowExecutionStatus.FAILED
+      ? execution.error
+      : undefined;
+  const facts = [
+    formatRunTime(execution.startedAt ?? execution.createdAt, translateTime),
+    isRunning && execution.progress > 0
+      ? translate('progress', { percent: Math.round(execution.progress) })
+      : null,
+    execution.creditsUsed
+      ? translate('credits', {
+          credits: execution.creditsUsed.toLocaleString(),
+        })
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      className="group"
-      bodyClassName="gap-2 p-3"
+      bodyClassName="gap-2 p-4"
+      data-testid="workflow-execution-card"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded border border-border bg-muted">
-            <Cpu className="size-3.5 text-foreground/60" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-foreground">{label}</p>
-            <Badge
-              status={execution.status.toLowerCase()}
-              size={ComponentSize.SM}
-            >
-              {statusLabel}
-            </Badge>
-          </div>
-        </div>
-        <Button
-          asChild
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="opacity-100 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100"
-        >
-          <Link
-            href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}
-            aria-label={`Open ${label}`}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Badge
+            status={execution.status.toLowerCase()}
+            size={ComponentSize.SM}
           >
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </Button>
+            {statusLabel}
+          </Badge>
+          <p className="truncate text-sm font-semibold text-foreground">
+            {label}
+          </p>
+        </div>
+        <CollectionItemActions
+          primary={
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.XS}
+            >
+              <Link
+                href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}
+                aria-label={translate('openLabel', { label })}
+              >
+                {translate('open')}
+              </Link>
+            </Button>
+          }
+        />
       </div>
 
-      <div className="rounded border border-border bg-muted/50 px-2.5 py-2">
-        <p className="line-clamp-1 text-xs font-medium text-foreground/75">
-          {label}
+      {failureMessage ? (
+        <p className="line-clamp-1 text-xs text-destructive">
+          {failureMessage}
         </p>
-        <p className="mt-0.5 line-clamp-2 text-2xs font-mono text-foreground/45">
-          {execution.status === WorkflowExecutionStatus.RUNNING ||
-          execution.status === WorkflowExecutionStatus.PENDING
-            ? 'Workflow nodes are executing.'
-            : (execution.error ?? 'Workflow execution completed.')}
-        </p>
-      </div>
+      ) : null}
+
+      <p className="truncate text-xs text-muted-foreground">{facts}</p>
     </Card>
   );
 }
@@ -129,6 +157,7 @@ export function DashboardAgentCards({
   isLoading?: boolean;
 }) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.workspaceOverview.runCards');
   const displayExecutions = useMemo(() => {
     const active = activeExecutions.slice(0, 3);
     if (active.length >= 3) return active;
@@ -144,42 +173,44 @@ export function DashboardAgentCards({
     return [...active, ...recentCompleted];
   }, [activeExecutions, executions]);
 
-  if (displayExecutions.length === 0 && !isLoading) {
-    return null;
-  }
+  const isSkeletonVisible = isLoading && displayExecutions.length === 0;
 
   return (
-    <section data-testid="dashboard-agents">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-foreground">
-          Running Agents
-        </h2>
-        {(activeExecutions.length > 3 || executions.length > 3) && (
+    <CollectionSection
+      actions={
+        activeExecutions.length > 3 || executions.length > 3 ? (
           <Button
             asChild
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={href(APP_ROUTES.AUTOMATION.RUNS)}>View All</Link>
+            <Link href={href(APP_ROUTES.AUTOMATION.RUNS)}>
+              {translate('viewAll')}
+            </Link>
           </Button>
-        )}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {isLoading && displayExecutions.length === 0
+        ) : null
+      }
+      data-testid="dashboard-agents"
+      isLoading={isSkeletonVisible}
+      itemCount={displayExecutions.length}
+      title={translate('title')}
+    >
+      <CollectionGrid maxColumns={3}>
+        {isSkeletonVisible
           ? [
               'agent-run-skeleton-1',
               'agent-run-skeleton-2',
               'agent-run-skeleton-3',
             ].map((key) => (
-              <Card key={key} variant={CardVariant.DEFAULT} bodyClassName="p-3">
+              <Card key={key} variant={CardVariant.DEFAULT} bodyClassName="p-4">
                 <WorkspaceTaskRowsSkeleton rows={1} />
               </Card>
             ))
           : displayExecutions.map((execution) => (
               <WorkflowExecutionCard execution={execution} key={execution.id} />
             ))}
-      </div>
-    </section>
+      </CollectionGrid>
+    </CollectionSection>
   );
 }
 
@@ -543,7 +574,7 @@ export function WorkspaceDashboard({
         isLoading={isExecutionsLoading}
       />
 
-      <DashboardGrid cols={3}>
+      <CollectionGrid data-testid="dashboard-panels" maxColumns={3}>
         <DashboardRecentActivity
           isLoading={isTasksLoading}
           workspaceTasks={workspaceTasks}
@@ -557,7 +588,7 @@ export function WorkspaceDashboard({
           isLoading={isTrendsLoading}
           viewAllHref={scopedTrendsHref}
         />
-      </DashboardGrid>
+      </CollectionGrid>
     </div>
   );
 }

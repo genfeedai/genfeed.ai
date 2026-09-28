@@ -1984,6 +1984,18 @@
       "confidencePercent": "{percent}% confidence"
     },
     "liveRuns": "Live runs",
+    "runCards": {
+      "credits": "{credits} credits",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "progress": "{percent}% done",
+      "status": {
+        "live": "Live now",
+        "queued": "Queued"
+      },
+      "title": "Running agents",
+      "viewAll": "View all"
+    },
     "noActiveTasks": "No active workspace tasks right now.",
     "openInbox": "Open Inbox",
     "openReview": "Open Review",
