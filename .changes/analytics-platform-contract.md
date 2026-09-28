@@ -1,4 +1,4 @@
-packages: @genfeedai/contracts @genfeedai/serializers @genfeedai/services
+packages: @genfeedai/client @genfeedai/contracts @genfeedai/serializers @genfeedai/services
 
 `IPlatformComparison` is now the one contract for `GET /analytics/platforms` and
 `GET /organizations/:id/analytics/platforms`. It gains `totalEngagement` (likes + comments +
