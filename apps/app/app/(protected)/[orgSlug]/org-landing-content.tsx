@@ -11,6 +11,7 @@ import {
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -38,6 +39,15 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 const ORG_LANDING_GRID_BRAND_LIMIT = 6;
 
 const ORG_LANDING_VIEW_SURFACE = 'org.brands';
+
+function hasCompletedOnboarding(user: IUser): boolean {
+  const completedSteps = user.onboardingStepsCompleted ?? [];
+
+  return (
+    user.isOnboardingCompleted === true ||
+    ONBOARDING_STEPS.every((step) => completedSteps.includes(step))
+  );
+}
 
 function BrandLogo({ brand, className }: OrgLandingBrandLogoProps) {
   if (brand.logoUrl) {
@@ -166,16 +176,11 @@ export default function OrgLandingContent() {
       return;
     }
 
-    const completedSteps = currentUser.onboardingStepsCompleted ?? [];
-    const hasCompletedOnboarding =
-      currentUser.isOnboardingCompleted === true ||
-      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
-
-    if (!hasCompletedOnboarding) {
+    if (!hasCompletedOnboarding(currentUser)) {
       replace(
         resolveForcedOnboardingHref({
           accountType,
-          completedSteps,
+          completedSteps: currentUser.onboardingStepsCompleted ?? [],
           hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
           orgSlug,
         }),
@@ -202,27 +207,46 @@ export default function OrgLandingContent() {
     replace,
   ]);
 
-  if (!isReady || isCurrentUserLoading || !currentUser || brands.length <= 1) {
+  const isResolving = !isReady || isCurrentUserLoading || !currentUser;
+  const isOnboardingPending =
+    currentUser !== null &&
+    !isCurrentUserLoading &&
+    !hasCompletedOnboarding(currentUser);
+  // Zero or one brand, or unfinished onboarding, always ends in a redirect, so
+  // the picker never paints for those viewers — not even as a skeleton.
+  const isRedirecting = isReady && (brands.length <= 1 || isOnboardingPending);
+
+  if (isRedirecting) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div
+        className="flex min-h-[60vh] items-center justify-center"
+        data-testid="org-landing-redirecting"
+        role="status"
+      >
         <div
           aria-hidden="true"
           className="size-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground"
         />
+        <span className="sr-only">{translate('redirecting')}</span>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12">
+    <div
+      aria-busy={isResolving || undefined}
+      className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12"
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-foreground">
             {translate('title')}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {translate('brandCount', { count: brands.length })}
-          </p>
+          {isResolving ? null : (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {translate('brandCount', { count: brands.length })}
+            </p>
+          )}
         </div>
         <Button
           asChild
@@ -242,6 +266,7 @@ export default function OrgLandingContent() {
       <CollectionView
         data-testid="org-brands"
         getItemKey={(brand) => brand.id}
+        isLoading={isResolving}
         items={brands}
         maxColumns={3}
         renderGridItem={(brand) => (

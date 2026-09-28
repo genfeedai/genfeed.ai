@@ -17,11 +17,11 @@ import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -46,6 +46,13 @@ const AUTOMATION_SURFACES = [
     id: 'analytics',
     path: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
+] as const;
+
+/** Placeholder cards while the brand context resolves. */
+const ORGANIZATION_AUTOMATION_SKELETON_KEYS = [
+  'brand-skeleton-1',
+  'brand-skeleton-2',
+  'brand-skeleton-3',
 ] as const;
 
 /**
@@ -119,18 +126,25 @@ export default function OrganizationAutomationOverviewPage() {
         </div>
       ) : null}
 
-      {isReady ? (
-        <CollectionSection
-          itemCount={brandCards.length}
-          title={translate('brandsTitle')}
-        >
-          <CollectionGrid data-testid="organization-automation-brands">
-            {brandCards.map((brand) => (
-              <OrganizationAutomationBrandCard key={brand.id} brand={brand} />
-            ))}
-          </CollectionGrid>
-        </CollectionSection>
-      ) : null}
+      <CollectionSection
+        isLoading={!isReady}
+        itemCount={brandCards.length}
+        title={translate('brandsTitle')}
+      >
+        <CollectionGrid data-testid="organization-automation-brands">
+          {isReady
+            ? brandCards.map((brand) => (
+                <OrganizationAutomationBrandCard key={brand.id} brand={brand} />
+              ))
+            : ORGANIZATION_AUTOMATION_SKELETON_KEYS.map((key) => (
+                <SkeletonCard
+                  key={key}
+                  label={translate('loadingBrand')}
+                  showImage={false}
+                />
+              ))}
+        </CollectionGrid>
+      </CollectionSection>
     </OverviewLayout>
   );
 }
@@ -139,7 +153,6 @@ function OrganizationAutomationBrandCard({
   brand,
 }: OrganizationAutomationBrandCardProps) {
   const translate = useTranslations('common.automation.organizationOverview');
-  const { push } = useRouter();
   const facts = [
     `@${brand.slug}`,
     brand.totalCredentials > 0
@@ -167,10 +180,10 @@ function OrganizationAutomationBrandCard({
 
       <CollectionItemActions
         overflow={brand.surfaces.map((surface) => ({
+          href: surface.href,
           icon: <surface.icon className="size-4" />,
           id: surface.id,
           label: surface.label,
-          onSelect: () => push(surface.href),
         }))}
         overflowLabel={translate('moreActions', { brand: brand.label })}
         primary={

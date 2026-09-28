@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import type { ComponentProps, ReactNode } from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -29,9 +30,12 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+// Spreads every prop so the real Radix menu can make the link a menu item.
 vi.mock('next/link', () => ({
-  default: ({ children, href }: ComponentProps<'a'>) => (
-    <a href={href}>{children}</a>
+  default: ({ children, href, ...props }: ComponentProps<'a'>) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -44,38 +48,6 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-
-// Radix menus only open on pointer events jsdom does not synthesize; render
-// the overflow items inline so their labels and handlers are assertable.
-vi.mock('@ui/primitives/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuContent: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="overflow-menu">{children}</div>
-  ),
-  DropdownMenuItem: ({
-    children,
-    onSelect,
-  }: {
-    children?: ReactNode;
-    onSelect?: () => void;
-  }) => (
-    <div
-      data-testid="overflow-item"
-      onClick={onSelect}
-      onKeyDown={onSelect}
-      role="menuitem"
-      tabIndex={-1}
-    >
-      {children}
-    </div>
-  ),
-  DropdownMenuSeparator: () => <div data-testid="overflow-separator" />,
-  DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => (
-    <>{children}</>
-  ),
-}));
 
 const { default: OrganizationAutomationOverviewPage } = await import(
   './OrganizationAutomationOverviewPage'
@@ -131,7 +103,7 @@ describe('OrganizationAutomationOverviewPage', () => {
     expect(screen.queryByRole('link', { name: 'Workflows' })).toBeNull();
   });
 
-  it('moves the automation surfaces into the overflow menu', () => {
+  it('keeps the automation surfaces in a closed overflow menu', () => {
     mocks.brandState.brands = [
       { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
       { id: 'brand_2', label: 'Solar', slug: 'solar' },
@@ -143,23 +115,77 @@ describe('OrganizationAutomationOverviewPage', () => {
       'organization-automation-brand-card',
     );
     expect(
-      within(moonrise)
-        .getAllByTestId('overflow-item')
-        .map((item) => item.textContent),
-    ).toEqual(['Workflows', 'Runs', 'Agents', 'Analytics']);
-    expect(
-      within(solar).getByRole('button', {
-        name: 'More automation for Solar',
+      within(moonrise).getByRole('button', {
+        name: 'More automation for Moonrise',
       }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      within(solar).getByRole('button', { name: 'More automation for Solar' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('menuitem')).toBeNull();
+  });
 
-    fireEvent.click(within(solar).getByText('Runs'));
-    expect(mocks.push).toHaveBeenCalledWith('/acme/solar/automation/runs');
+  it('opens the overflow from the keyboard with brand-scoped surface links', async () => {
+    const user = userEvent.setup();
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+      { id: 'brand_2', label: 'Solar', slug: 'solar' },
+    ];
 
-    fireEvent.click(within(moonrise).getByText('Workflows'));
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/moonrise/automation/workflows',
+    render(<OrganizationAutomationOverviewPage />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'More automation for Solar',
+    });
+    trigger.focus();
+    await user.keyboard('{Enter}');
+
+    const menu = await screen.findByRole('menu');
+    const items = within(menu).getAllByRole('menuitem');
+
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Workflows',
+      'Runs',
+      'Agents',
+      'Analytics',
+    ]);
+    for (const item of items) {
+      expect(item.tagName).toBe('A');
+      expect(item).not.toHaveAttribute('target');
+    }
+    expect(items.map((item) => item.getAttribute('href'))).toEqual([
+      '/acme/solar/automation/workflows',
+      '/acme/solar/automation/runs',
+      '/acme/solar/automation/agents',
+      '/acme/solar/analytics/overview',
+    ]);
+
+    await waitFor(() =>
+      expect(menu).toContainElement(document.activeElement as HTMLElement),
     );
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('closes the overflow on Escape and returns focus to its trigger', async () => {
+    const user = userEvent.setup();
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+    ];
+
+    render(<OrganizationAutomationOverviewPage />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'More automation for Moonrise',
+    });
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(trigger).toHaveFocus();
   });
 
   it('renders one fact line and omits empty facts', () => {
@@ -224,12 +250,27 @@ describe('OrganizationAutomationOverviewPage', () => {
     expect(screen.getByRole('heading', { name: 'Moonrise' })).toBeVisible();
   });
 
-  it('waits for the brand context before deciding the empty state', () => {
+  it('shows card skeletons in the Brands section while the brand context loads', () => {
     mocks.brandState.isReady = false;
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+    ];
 
     render(<OrganizationAutomationOverviewPage />);
 
-    expect(screen.queryByTestId('organization-automation-brands')).toBeNull();
+    const section = screen.getByRole('region', { name: 'Brands' });
+    expect(section).toHaveAttribute('aria-busy', 'true');
+
+    const skeletons = within(section).getAllByTestId('skeleton-card');
+    expect(skeletons).toHaveLength(3);
+    for (const skeleton of skeletons) {
+      expect(skeleton).toHaveAttribute('aria-label', 'Loading brand');
+      expect(skeleton).toHaveClass('rounded-card');
+    }
+    expect(getBrandGridItems()).toHaveLength(3);
+    expect(
+      screen.queryByTestId('organization-automation-brand-card'),
+    ).toBeNull();
     expect(screen.queryByRole('link', { name: 'Go to brands' })).toBeNull();
   });
 });

@@ -1893,6 +1893,7 @@
     "brandCount": "{count, plural, one {# brand} other {# brands}} in this workspace",
     "newBrand": "New Brand",
     "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+    "redirecting": "Opening your workspace",
     "title": "Projects"
   },
   "organizationRouting": {

@@ -979,6 +979,7 @@
       "emptyAction": "Go to brands",
       "emptyDescription": "Automation runs against a brand. Create your first brand, then open Automation to build workflows and autopilot policies for it.",
       "emptyTitle": "Automation needs a brand",
+      "loadingBrand": "Loading brand",
       "moreActions": "More automation for {brand}",
       "openAutomation": "Open Automation",
       "platformCount": "{count, plural, one {# platform} other {# platforms}}",
