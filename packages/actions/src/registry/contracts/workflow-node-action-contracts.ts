@@ -94,6 +94,7 @@ type InputField =
   | 'includeEmojis'
   | 'includeHashtags'
   | 'includeMetadata'
+  | 'ingredientId'
   | 'isContactSheetEnabled'
   | 'isContinuityCharacterGateEnabled'
   | 'isContinuityQaEnabled'
@@ -559,7 +560,9 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       ),
     },
     attachPostIngredient: {
-      inputSchema: inputSchema(['brandId', 'media', 'post']),
+      // The executor reads `postId`, then `ingredientId` or `image`, from its
+      // inputs or config; the weekly content template wires both ids in.
+      inputSchema: inputSchema(['brandId', 'image', 'ingredientId', 'postId']),
       outputSchema: objectOutput({
         ingredientId: STRING_SCHEMA,
         postId: STRING_SCHEMA,

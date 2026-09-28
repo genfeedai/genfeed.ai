@@ -161,7 +161,8 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       data: {
         config: {
           fontColor: '#FFFFFF',
-          fontSize: 'large',
+          // The effect-captions contract types fontSize as a number.
+          fontSize: 48,
           position: 'bottom',
           style: 'dynamic',
         },
