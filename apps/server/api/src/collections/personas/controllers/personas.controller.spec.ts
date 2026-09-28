@@ -140,6 +140,35 @@ describe('PersonasController', () => {
       expect(patchArg.label).toBe('Renamed Persona');
     });
 
+    it('assigns members whose user IDs are legacy Better Auth IDs', async () => {
+      // Legacy base62 user IDs fail every Genfeed entity-id shape (#5410).
+      const legacyUserId = 'LegacyBetterAuthUserIdBase62Abcd';
+      mockServiceMethods.assignMembers.mockResolvedValue({ id: personaId });
+      mockServiceMethods.findOne.mockResolvedValue({ id: personaId, userId });
+      mockServiceMethods.patch.mockResolvedValue({ id: personaId });
+
+      await controller.patch(mockRequest, mockUser, personaId, {
+        memberIds: [legacyUserId],
+      });
+
+      expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
+        personaId,
+        [legacyUserId],
+        organizationId,
+      );
+    });
+
+    it('rejects a blank member user ID', async () => {
+      await expect(
+        controller.patch(mockRequest, mockUser, personaId, {
+          memberIds: ['  '],
+        }),
+      ).rejects.toMatchObject({
+        response: { detail: 'memberIds[0] cannot be empty' },
+      });
+      expect(mockServiceMethods.assignMembers).not.toHaveBeenCalled();
+    });
+
     it('should propagate errors from the assignment call', async () => {
       mockServiceMethods.assignMembers.mockRejectedValue(new Error('DB error'));
       mockServiceMethods.findOne.mockResolvedValue({

@@ -69,6 +69,48 @@ describe('opaque user ID guard', () => {
     ]);
   });
 
+  it('rejects entity-id helpers applied to a user ID', () => {
+    const source = [
+      "EntityIdUtil.validate(user.userId ?? user.id, 'userId');",
+      'EntityIdUtil.validateMany(dto.memberUserIds);',
+      "InputValidationUtil.validateEntityId(value, 'ownerUserId');",
+      'if (EntityIdUtil.isValid(targetUser.id)) {}',
+    ].join('\n');
+
+    expect(collectOpaqueUserIdViolations(DTO_FILE, source)).toEqual([
+      { file: DTO_FILE, kind: 'entity-id-call', line: 1, name: 'userId' },
+      {
+        file: DTO_FILE,
+        kind: 'entity-id-call',
+        line: 2,
+        name: 'memberUserIds',
+      },
+      {
+        file: DTO_FILE,
+        kind: 'entity-id-call',
+        line: 3,
+        name: 'ownerUserId',
+      },
+      {
+        file: DTO_FILE,
+        kind: 'entity-id-call',
+        line: 4,
+        name: 'targetUser.id',
+      },
+    ]);
+  });
+
+  it('accepts entity-id helpers on Genfeed-owned IDs', () => {
+    const source = [
+      "EntityIdUtil.validate(id, 'personaId');",
+      "EntityIdUtil.validate(user.organizationId, 'organizationId');",
+      "EntityIdUtil.validateMany(body.ingredientIds, 'ingredientIds');",
+      "InputValidationUtil.validateString(memberId, 'memberIds[0]');",
+    ].join('\n');
+
+    expect(collectOpaqueUserIdViolations(DTO_FILE, source)).toEqual([]);
+  });
+
   it('rejects @IsEntityId() on user ID properties', () => {
     const source = [
       'export class ExampleDto {',

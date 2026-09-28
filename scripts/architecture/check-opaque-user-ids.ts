@@ -8,9 +8,13 @@
  * or ownership is ever checked. Treat user IDs as non-empty strings and
  * authorize them through membership and ownership queries.
  *
- * The guard fails on `isEntityId(<user id>)` calls and on `@IsEntityId()`
- * properties that hold user IDs, where a user ID is named `user`, `userId(s)`,
- * `<prefix>UserId(s)`, or `<user>.id`. Fields named otherwise (for example
+ * The guard fails when an entity-id check runs on a user ID:
+ * - `isEntityId(...)`, `*.validateEntityId(...)` and
+ *   `EntityIdUtil.validate` / `validateMany` / `isValid` / `toValidId` calls
+ *   whose value, or whose field-name argument, names a user ID;
+ * - `@IsEntityId()` on a property that names a user ID.
+ * A user ID is named `user`, `userId(s)`, `<prefix>UserId(s)` or `<user>.id`,
+ * on either side of `??` / `||`. Values named otherwise (for example
  * `memberIds` holding user IDs) are outside what a name check can see.
  *
  *   bun run check:opaque-user-ids
@@ -24,6 +28,15 @@ import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
 const ENTITY_ID_CHECK = 'isEntityId';
 const ENTITY_ID_DECORATOR = 'IsEntityId';
+/** Helpers that apply the entity-id format check, by receiver and method. */
+const ENTITY_ID_UTIL = 'EntityIdUtil';
+const ENTITY_ID_UTIL_METHODS = new Set([
+  'isValid',
+  'toValidId',
+  'validate',
+  'validateMany',
+]);
+const ENTITY_ID_METHODS = new Set([ENTITY_ID_CHECK, 'validateEntityId']);
 const USER_ID_NAME = /^(?:user|userIds?|[a-z][A-Za-z0-9]*UserIds?)$/u;
 const USER_OBJECT_NAME = /^(?:user|[a-z][A-Za-z0-9]*User)$/u;
 
@@ -66,8 +79,25 @@ function nameOf(expression: ts.Expression): string | undefined {
   return undefined;
 }
 
-/** `userId`, `dto.ownerUserId`, `user`, `session.user.id`, `targetUser.id`. */
+/**
+ * `userId`, `dto.ownerUserId`, `user`, `session.user.id`, `targetUser.id`,
+ * and either side of `user.userId ?? user.id`.
+ */
 function userIdName(expression: ts.Expression): string | undefined {
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isNonNullExpression(expression) ||
+    ts.isAsExpression(expression)
+  ) {
+    return userIdName(expression.expression);
+  }
+  if (
+    ts.isBinaryExpression(expression) &&
+    (expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+      expression.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+  ) {
+    return userIdName(expression.left) ?? userIdName(expression.right);
+  }
   const name = nameOf(expression);
   if (name === undefined) {
     return undefined;
@@ -85,7 +115,36 @@ function userIdName(expression: ts.Expression): string | undefined {
 }
 
 function isEntityIdCall(node: ts.CallExpression): boolean {
-  return nameOf(node.expression) === ENTITY_ID_CHECK;
+  const callee = node.expression;
+  if (ts.isIdentifier(callee)) {
+    return callee.text === ENTITY_ID_CHECK;
+  }
+  if (!ts.isPropertyAccessExpression(callee)) {
+    return false;
+  }
+  const method = callee.name.text;
+  return (
+    ENTITY_ID_METHODS.has(method) ||
+    (nameOf(callee.expression) === ENTITY_ID_UTIL &&
+      ENTITY_ID_UTIL_METHODS.has(method))
+  );
+}
+
+/** The value checked, or the field name a helper reports it under. */
+function calledOnUserId(node: ts.CallExpression): string | undefined {
+  const [value, fieldName] = node.arguments;
+  const valueName = value ? userIdName(value) : undefined;
+  if (valueName !== undefined) {
+    return valueName;
+  }
+  if (
+    fieldName &&
+    ts.isStringLiteralLike(fieldName) &&
+    USER_ID_NAME.test(fieldName.text)
+  ) {
+    return fieldName.text;
+  }
+  return undefined;
 }
 
 function hasEntityIdDecorator(node: ts.PropertyDeclaration): boolean {
@@ -108,7 +167,9 @@ export function collectOpaqueUserIdViolations(
 ): OpaqueUserIdViolation[] {
   if (
     !sourceText.includes(ENTITY_ID_CHECK) &&
-    !sourceText.includes(ENTITY_ID_DECORATOR)
+    !sourceText.includes(ENTITY_ID_DECORATOR) &&
+    !sourceText.includes(ENTITY_ID_UTIL) &&
+    !sourceText.includes('validateEntityId')
   ) {
     return [];
   }
@@ -123,8 +184,7 @@ export function collectOpaqueUserIdViolations(
 
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node) && isEntityIdCall(node)) {
-      const [argument] = node.arguments;
-      const name = argument ? userIdName(argument) : undefined;
+      const name = calledOnUserId(node);
       if (name !== undefined) {
         violations.push({
           file,
@@ -184,7 +244,7 @@ if (import.meta.main) {
     for (const violation of violations) {
       const site =
         violation.kind === 'entity-id-call'
-          ? `isEntityId(${violation.name})`
+          ? `entity-id check on ${violation.name}`
           : `@IsEntityId() ${violation.name}`;
       console.error(
         `- ${violation.file}:${violation.line}: ${site}. User IDs are opaque; check a non-empty string and authorize by membership.`,
