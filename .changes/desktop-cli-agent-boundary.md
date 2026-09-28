@@ -6,5 +6,14 @@ Desktop local CLI agent: turn ownership and Codex readiness.
   and `threadId`, so Stop only cancels the local turn of the visible thread.
   `AgentRuntimeCatalog` adds `localToolNotice`, the upgrade step for an
   installed CLI that is too old to run agent turns.
+- `@genfeedai/agent`: a thread bound to `local/claude-cli` or
+  `local/codex-cli` stays on that runtime in Desktop when the CLI is missing
+  or outdated. `resolveDesktopCliRuntimeKey` no longer takes `desktopTools`.
+  `resolveDesktopCliRuntimeBlocker` explains why the CLI cannot run.
+  `DesktopCliAgentChat.blockedReason` makes the composer refuse the send, and
+  `AgentRuntimeSelection.runtimeNotice` shows why in the runtime bar.
+  `AgentRuntimeSelector` takes `selectedRuntime` instead of
+  `selectedRuntimeKey`. New exports are `getDesktopCliRuntimeOption` and
+  `loadDesktopLocalTools`.
 - `@genfeedai/contracts`: `IDesktopLocalToolReadiness.upgradesRequired`
   (optional, `IDesktopLocalToolUpgrade[]`) lists those CLIs.
