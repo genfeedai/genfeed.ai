@@ -411,6 +411,9 @@ export function useBrandProviderState({
   });
 
   const refreshSettings = useCallback(async () => {
+    // Settings are part of the 60s client bootstrap snapshot; refetching
+    // without dropping it re-serves the pre-mutation values (#5416).
+    clearClientProtectedBootstrapCache();
     await refetchSettings();
   }, [refetchSettings]);
 
