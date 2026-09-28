@@ -151,6 +151,20 @@ export class BatchGenerationService {
     );
   }
 
+  linkDestinationPosts(
+    batchId: string,
+    itemId: string,
+    postIds: string[],
+    orgId: string,
+  ): Promise<void> {
+    return this.reviewService.linkDestinationPosts(
+      batchId,
+      itemId,
+      postIds,
+      orgId,
+    );
+  }
+
   @HandleErrors('assign item', 'batch-generation')
   assignItem(
     batchId: string,

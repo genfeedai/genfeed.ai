@@ -327,6 +327,27 @@ describe('BatchProjectsService', () => {
     });
   });
 
+  describe('update', () => {
+    it('changes the workflow under the project lock, only while a draft', async () => {
+      useProject(makeProject());
+      workflowsService.findOwnedOrThrow.mockResolvedValue({ id: 'workflow-2' });
+
+      await service.update('project-1', { workflowId: 'workflow-2' }, scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+      expect(prisma.batchProject.updateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({ workflowId: 'workflow-2' }),
+        where: expect.objectContaining({
+          id: 'project-1',
+          status: BatchProjectStatus.DRAFT,
+        }),
+      });
+    });
+  });
+
   describe('list', () => {
     it('returns the pagination fields the collection serializer reads', async () => {
       prisma.batchProject.findMany.mockResolvedValue([

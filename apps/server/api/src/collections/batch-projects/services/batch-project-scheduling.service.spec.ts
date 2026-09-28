@@ -118,11 +118,13 @@ describe('BatchProjectSchedulingService', () => {
     syncReviewDecisions: vi.fn(),
   };
   const postsService = { batchSchedule: vi.fn(), create: vi.fn() };
+  const batchGenerationService = { linkDestinationPosts: vi.fn() };
   const service = new BatchProjectSchedulingService(
     prisma as never,
     logger as never,
     reconcileService as never,
     postsService as never,
+    batchGenerationService as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -374,6 +376,65 @@ describe('BatchProjectSchedulingService', () => {
       );
     });
 
+    it('records every destination draft on its review item before scheduling it', async () => {
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      expect(batchGenerationService.linkDestinationPosts).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(batchGenerationService.linkDestinationPosts).toHaveBeenCalledWith(
+        'review-batch-1',
+        'review-item-1',
+        ['clone-post-1'],
+        'org-1',
+      );
+      expect(
+        batchGenerationService.linkDestinationPosts.mock.invocationCallOrder[0],
+      ).toBeLessThan(postsService.batchSchedule.mock.invocationCallOrder[1]);
+    });
+
+    it('schedules again a destination whose post a review decision pulled back', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }), [
+        {
+          ...approvedItem,
+          scheduledAt: new Date('2026-09-28T11:00:00Z'),
+          scheduledTargets: [
+            {
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+              scheduledAt: '2026-09-28T11:00:00.000Z',
+              status: 'scheduled',
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(result).toEqual({ failedCount: 0, scheduledCount: 1 });
+      expect(postsService.batchSchedule).toHaveBeenCalledWith(
+        [expect.objectContaining({ postId: 'review-post-1' })],
+        'org-1',
+        { credentialId: 'credential-tiktok', platform: 'tiktok' },
+        'user-1',
+      );
+    });
+
     it('retries only the destinations that have not scheduled yet', async () => {
       useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }), [
         {
@@ -389,6 +450,18 @@ describe('BatchProjectSchedulingService', () => {
           ],
         },
       ]);
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          scheduledPosts: [
+            {
+              credentialId: 'credential-tiktok',
+              id: 'review-post-1',
+              publishApprovalId: 'approval-1',
+              targetExecutionState: TargetExecutionState.SCHEDULED,
+            },
+          ],
+        }),
+      );
 
       const result = await service.schedule(
         'project-1',

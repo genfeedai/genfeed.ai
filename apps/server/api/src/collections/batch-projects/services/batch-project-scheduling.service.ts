@@ -16,6 +16,7 @@ import type { PostCreateInput } from '@api/collections/posts/services/posts.serv
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchProjectItemStatus,
@@ -94,6 +95,7 @@ export class BatchProjectSchedulingService {
     private readonly logger: LoggerService,
     private readonly reconcileService: BatchProjectReconcileService,
     private readonly postsService: PostsService,
+    private readonly batchGenerationService: BatchGenerationService,
   ) {}
 
   schedule(
@@ -325,13 +327,27 @@ export class BatchProjectSchedulingService {
     target: BatchProjectScheduleTargetDto,
     destination: Destination | undefined,
   ): Promise<IScheduleBatchProjectResult> {
-    const due = run.approved.filter(
-      (item) =>
-        run.bindingsByItem
-          .get(item.id)
-          ?.find((binding) => binding.credentialId === target.credentialId)
-          ?.status !== 'scheduled',
+    const bindingOf = (item: BatchProjectItem) =>
+      run.bindingsByItem
+        .get(item.id)
+        ?.find((binding) => binding.credentialId === target.credentialId);
+    // A binding counts as scheduled only while its post still is: a review
+    // decision can pull a scheduled post back to draft, and re-approval must
+    // then be able to schedule it again.
+    const stillScheduled = await this.readScheduledPostIds(
+      run.approved.flatMap((item) => {
+        const binding = bindingOf(item);
+        return binding?.status === 'scheduled' ? [binding.postId] : [];
+      }),
+      target.credentialId,
+      run.scope,
     );
+    const due = run.approved.filter((item) => {
+      const binding = bindingOf(item);
+      return !(
+        binding?.status === 'scheduled' && stillScheduled.has(binding.postId)
+      );
+    });
     if (due.length === 0) {
       return { failedCount: 0, scheduledCount: 0 };
     }
@@ -459,6 +475,9 @@ export class BatchProjectSchedulingService {
             destination.credentialId,
             caption,
           ));
+    if (postId !== item.postId) {
+      await this.linkToReviewItem(run, item, postId);
+    }
     await this.writeBindings(run, item, [
       ...bindings.filter(
         (binding) => binding.credentialId !== destination.credentialId,
@@ -509,6 +528,29 @@ export class BatchProjectSchedulingService {
     return item.outputIngredientId ? [item.outputIngredientId] : [];
   }
 
+  /**
+   * A destination draft carries the item's approval, so it is recorded on
+   * the review item before it can be scheduled: rejecting, requesting
+   * changes or rewriting the item then withdraws it too.
+   */
+  private async linkToReviewItem(
+    run: ScheduleRun,
+    item: BatchProjectItem,
+    postId: string,
+  ): Promise<void> {
+    if (!item.reviewBatchId || !item.reviewItemId) {
+      throw new BadRequestException(
+        'This item is not linked to its review item',
+      );
+    }
+    await this.batchGenerationService.linkDestinationPosts(
+      item.reviewBatchId,
+      item.reviewItemId,
+      [postId],
+      run.scope.organizationId,
+    );
+  }
+
   private async writeBindings(
     run: ScheduleRun,
     item: BatchProjectItem,
@@ -552,6 +594,9 @@ export class BatchProjectSchedulingService {
     credentialId: string,
     scope: IBatchProjectScope,
   ): Promise<Set<string>> {
+    if (postIds.length === 0) {
+      return new Set();
+    }
     const posts = await this.prisma.post.findMany({
       select: {
         credentialId: true,

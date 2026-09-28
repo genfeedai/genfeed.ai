@@ -195,7 +195,22 @@ export class BatchProjectsService {
     return this.loadProject(id, scope);
   }
 
-  async update(
+  /**
+   * Updates take the project lock start takes, and a workflow change is
+   * rechecked as a draft inside it, so a started run and its retries always
+   * use the workflow the run started with.
+   */
+  update(
+    id: string,
+    dto: UpdateBatchProjectDto,
+    scope: IBatchProjectScope,
+  ): Promise<IBatchProject> {
+    return this.reconcileService.runExclusive(id, () =>
+      this.updateLocked(id, dto, scope),
+    );
+  }
+
+  private async updateLocked(
     id: string,
     dto: UpdateBatchProjectDto,
     scope: IBatchProjectScope,
@@ -222,7 +237,12 @@ export class BatchProjectsService {
               ),
             }),
       },
-      where: scopedWhere(scope.organizationId, { id }),
+      where: scopedWhere(scope.organizationId, {
+        id,
+        ...(dto.workflowId === undefined
+          ? {}
+          : { status: BatchProjectStatus.DRAFT }),
+      }),
     });
     return this.loadProject(id, scope);
   }

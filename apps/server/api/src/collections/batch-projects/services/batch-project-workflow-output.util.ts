@@ -5,6 +5,21 @@ export const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
 
 const OUTPUT_MEDIA_KEYS = ['video', 'image'] as const;
 const OUTPUT_ID_KEYS = ['outputIngredientId', 'ingredientId', 'id'] as const;
+/** Keys where media nodes (e.g. videoStitch) return their output as a URL. */
+const OUTPUT_URL_KEYS = [
+  'outputVideoUrl',
+  'outputImageUrl',
+  'videoUrl',
+  'imageUrl',
+  'video',
+  'image',
+  'url',
+] as const;
+/**
+ * The canonical ingredient media URL (`<ingredients endpoint>/videos/<id>`,
+ * as `WorkflowEngineExecutorHelperService` builds it) carries the id.
+ */
+const INGREDIENT_MEDIA_URL = /\/(?:images|videos)\/([^/?#]+)(?:[/?#]|$)/i;
 
 function readRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -18,11 +33,18 @@ function readString(value: unknown): string | undefined {
     : undefined;
 }
 
+function ingredientIdFromMediaUrl(value: unknown): string | undefined {
+  const url = readString(value);
+  return url ? url.match(INGREDIENT_MEDIA_URL)?.[1] : undefined;
+}
+
 /**
  * Candidate output ingredient ids of one child workflow run, most likely
  * first: the last node's output is checked before earlier ones, and a nested
- * `video` / `image` payload before the output itself. Callers verify each id
- * against the tenant's ingredients, so a non-media id here is harmless.
+ * `video` / `image` payload before the output itself. A node that returns its
+ * media only as an ingredient URL is read through that URL before any earlier
+ * node. Callers verify each id against the tenant's ingredients, so a
+ * non-media or foreign id here is harmless.
  */
 export function readWorkflowOutputIngredientIds(
   nodeOutputs: readonly unknown[],
@@ -36,12 +58,15 @@ export function readWorkflowOutputIngredientIds(
       ...OUTPUT_MEDIA_KEYS.map((key) => readRecord(output[key])),
       output,
     ];
-    for (const candidate of candidates) {
-      for (const key of OUTPUT_ID_KEYS) {
-        const id = readString(candidate[key]);
-        if (id && !ids.includes(id)) {
-          ids.push(id);
-        }
+    const nodeIds = [
+      ...candidates.flatMap((candidate) =>
+        OUTPUT_ID_KEYS.map((key) => readString(candidate[key])),
+      ),
+      ...OUTPUT_URL_KEYS.map((key) => ingredientIdFromMediaUrl(output[key])),
+    ];
+    for (const id of nodeIds) {
+      if (id && !ids.includes(id)) {
+        ids.push(id);
       }
     }
   }

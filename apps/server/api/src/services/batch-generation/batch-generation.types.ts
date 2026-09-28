@@ -25,6 +25,11 @@ export interface BatchItemFull extends BatchItem {
   caption?: string;
   prompt?: string;
   postId?: string;
+  /**
+   * Further posts publishing this item on other accounts (a batch project
+   * schedules one draft per destination). Review decisions reach them too.
+   */
+  destinationPostIds?: string[];
   mediaUrl?: string;
   error?: string;
   assigneeId?: string | null;

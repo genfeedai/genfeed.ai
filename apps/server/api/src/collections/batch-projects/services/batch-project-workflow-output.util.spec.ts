@@ -23,6 +23,29 @@ describe('batch project workflow output', () => {
     ).toEqual(['stitched']);
   });
 
+  it('reads a final node that returns its output only as a media URL', () => {
+    expect(
+      readWorkflowOutputIngredientIds([
+        { id: 'clip-1', video: { id: 'clip-1' } },
+        { id: 'clip-2' },
+        {
+          jobId: 'job-1',
+          outputVideoUrl:
+            'https://api.genfeed.ai/ingredients/videos/stitched-1',
+        },
+      ]),
+    ).toEqual(['stitched-1', 'clip-2', 'clip-1']);
+    expect(
+      readWorkflowOutputIngredientIds([
+        { id: 'clip-1' },
+        {
+          video: 'https://cdn.genfeed.ai/ingredients/videos/final-2?v=1',
+          videoUrl: 'https://cdn.genfeed.ai/ingredients/videos/final-2',
+        },
+      ]),
+    ).toEqual(['final-2', 'clip-1']);
+  });
+
   it('ignores outputs that carry no id', () => {
     expect(
       readWorkflowOutputIngredientIds([null, 'text', { url: 'x' }]),
