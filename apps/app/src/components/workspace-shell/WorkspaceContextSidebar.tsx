@@ -77,10 +77,23 @@ export function WorkspaceContextSidebarDrawerBody({
   return (
     <>
       <DrawerHeader>
-        <DrawerTitle>{selection?.title ?? translate('label')}</DrawerTitle>
-        <DrawerDescription>
-          {selection?.subtitle ?? translate('drawerDescription')}
-        </DrawerDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <DrawerTitle>{selection?.title ?? translate('label')}</DrawerTitle>
+            <DrawerDescription>
+              {selection?.subtitle ?? translate('drawerDescription')}
+            </DrawerDescription>
+          </div>
+          <Button
+            ariaLabel={translate('close')}
+            data-testid="context-sidebar-drawer-close"
+            icon={<X className="size-4" />}
+            onClick={contextSidebar.close}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </div>
       </DrawerHeader>
       <ContextSidebarOutlet
         className={OUTLET_CLASS_NAME}

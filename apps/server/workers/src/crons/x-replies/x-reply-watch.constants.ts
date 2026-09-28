@@ -40,6 +40,15 @@ export function xReplyWatchCursorKey(credentialId: string): string {
 }
 
 /**
+ * Backlogs beyond `X_REPLY_WATCH_MAX_PAGES` resume from this saved
+ * pagination token (paired with the `since_id` that opened the sequence)
+ * instead of restarting from the newest page every tick.
+ */
+export function xReplyWatchResumeKey(credentialId: string): string {
+  return `x-reply-watch:resume:${credentialId}`;
+}
+
+/**
  * Stored reply ids whose notification failed. Retried on the next tick
  * without another X call, since re-ingesting them creates nothing new.
  */

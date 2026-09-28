@@ -181,6 +181,9 @@
       "title": "Ads hub needs attention"
     },
     "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research.",
+    "detail": {
+      "title": "Ad detail"
+    },
     "swipeFile": {
       "brandRequired": "Choose a brand before saving reference ads.",
       "emptyFilters": "No ads match the current filters.",
@@ -1508,7 +1511,6 @@
       }
     },
     "inspector": {
-      "empty": "Select one asset to inspect it.",
       "surface": "Library",
       "type": "Type",
       "untitled": "Untitled asset"

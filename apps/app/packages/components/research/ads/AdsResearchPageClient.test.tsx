@@ -179,6 +179,27 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+// The shell owns the real sidebar chrome; this stand-in renders the panel in
+// place with the sidebar header's title and close control.
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  ContextSidebarPanel: ({
+    children,
+    onClose,
+    selection,
+  }: {
+    children: ReactNode;
+    onClose?: () => void;
+    selection: { title: string } | null;
+  }) =>
+    selection ? (
+      <section aria-label="Selection details">
+        <h2>{selection.title}</h2>
+        <button type="button" aria-label="Close detail" onClick={onClose} />
+        {children}
+      </section>
+    ) : null,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog, useLocale: () => 'en' };
@@ -613,7 +634,7 @@ describe('AdsResearchPageClient', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Ad Detail' }),
+      screen.getByRole('heading', { name: 'Ad detail' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Google lead gen detail')).toBeInTheDocument();
     expect(
@@ -679,7 +700,7 @@ describe('AdsResearchPageClient', () => {
     );
 
     expect(
-      screen.queryByRole('heading', { name: 'Ad Detail' }),
+      screen.queryByRole('heading', { name: 'Ad detail' }),
     ).not.toBeInTheDocument();
   });
 
@@ -847,7 +868,7 @@ describe('AdsResearchPageClient', () => {
       expect.objectContaining({ id: 'saved-1' }),
     ]);
     expect(
-      screen.getByRole('heading', { name: 'Ad Detail' }),
+      screen.getByRole('heading', { name: 'Ad detail' }),
     ).toBeInTheDocument();
   });
 
@@ -907,7 +928,6 @@ describe('AdsResearchPageClient', () => {
       detailLoading: false,
       href: (path: string) => path,
       launchPrepResult: null,
-      onClose: vi.fn(),
       onOpenRemix: vi.fn(),
       onRunAction: vi.fn(),
       onToggleSaved: vi.fn(),
@@ -1104,7 +1124,7 @@ describe('AdsResearchPageClient', () => {
 
     expect(await screen.findByText('workflow failed')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
-    expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Ad detail' })).toBeNull();
   });
 
   it('shows an unavailable detail state after a selected ad disappears', () => {

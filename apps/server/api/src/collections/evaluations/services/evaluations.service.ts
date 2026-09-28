@@ -258,9 +258,15 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const prompt = video.prompt as { enhanced?: string; original?: string };
     const brand = video.brand as { name?: string; guidelines?: string };
+    const storedDuration = (video.metadata as { duration?: unknown } | null)
+      ?.duration;
 
     const context: EvaluationContext = {
       brand: evaluationResultProjection.buildBrandContext(brand),
+      durationSeconds:
+        typeof storedDuration === 'number' && storedDuration > 0
+          ? storedDuration
+          : undefined,
       prompt:
         evaluationResultProjection.readString(prompt?.enhanced) ??
         evaluationResultProjection.readString(prompt?.original),

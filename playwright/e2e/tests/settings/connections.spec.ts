@@ -1,16 +1,66 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IApiKeyAttributes } from '@genfeedai/contracts/interfaces';
+import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
+import { brandPath, orgSettingsRoute } from '../../utils/app-chrome';
+import { selectVisibleRadixOption } from '../../utils/radix-select';
+import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
- * E2E Tests for Settings Connections & Sub-Pages
+ * E2E Tests for Organization Settings, API Keys, Models, Scenes and Brands
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
- * Tests verify API keys, models, elements/scenes, and brands UI.
+ * Every route is a live settings route with the explicit E2E org (or
+ * org+brand) slug. The legacy `/settings/organization`, `/organization/policy`
+ * and `/organization/api-keys` paths call notFound()
+ * (LegacyOrganizationSettingsNotFound), and bare `/settings/brands/:id/*`
+ * paths render the 404 page — so each test asserts the surface's real
+ * content, never just the URL.
  */
+const API_KEYS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.API_KEYS);
+const GENERAL_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.GENERAL);
+const AGENTS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.AGENTS);
+const MODELS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.MODELS);
+const SCENES_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
+const BRANDS_ROUTE = orgSettingsRoute(APP_ROUTES.SETTINGS.BRANDS);
+
+const API_KEYS_PATTERN = '**/api.genfeed.ai/v1/api-keys**';
+const BRANDS_LIST_PATTERN = '**/api.genfeed.ai/v1/brands?**';
+
+/** Answer the API key list GET; everything else falls back to the mocks. */
+async function mockApiKeyList(
+  page: Page,
+  response: { status: 200; keys: IApiKeyAttributes[] } | { status: 500 },
+): Promise<void> {
+  await page.route(API_KEYS_PATTERN, async (route: Route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify(
+        response.status === 200
+          ? {
+              data: response.keys.map((attributes, index) => ({
+                attributes,
+                id: `api-key-${index + 1}`,
+                type: 'api-key',
+              })),
+              meta: { totalCount: response.keys.length },
+            }
+          : { errors: [{ status: '500', title: 'Internal Server Error' }] },
+      ),
+      contentType: 'application/json',
+      status: response.status,
+    });
+  });
+}
+
 test.describe('Settings Connections & Sub-Pages', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -20,339 +70,420 @@ test.describe('Settings Connections & Sub-Pages', () => {
   });
 
   test.describe('API Keys Page', () => {
-    test('should load API keys page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
-    });
-
-    test('should display API key management UI', async ({
-      authenticatedPage,
-    }) => {
-      // Mock API keys endpoint
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/api-keys**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            await route.fulfill({
-              body: JSON.stringify({
-                data: [
-                  {
-                    attributes: {
-                      createdAt: new Date().toISOString(),
-                      key: 'gf_***abc123',
-                      name: 'Test API Key',
-                    },
-                    id: 'key-1',
-                    type: 'api-keys',
-                  },
-                ],
-              }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
-
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
-      );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
-
-      await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
-    });
-
-    test('should show generate API key button or form', async ({
+    test('shows the key creation form and the empty key list', async ({
       authenticatedPage,
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
+      await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await settingsPage.goToApiKeys();
 
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
-      );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
-
-      // Should have a generate button or key input
-      const generateOrInput = settingsPage.generateApiKeyButton.or(
-        settingsPage.apiKeyInput,
-      );
-      await expect(generateOrInput).toBeVisible({ timeout: 10000 });
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'API keys',
+        }),
+      ).toBeVisible();
+      await expect(settingsPage.generateApiKeyButton).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByText('No active Genfeed API keys.'),
+      ).toBeVisible();
     });
 
-    test('should handle empty API keys state', async ({
+    test('lists existing keys with rotate and revoke actions', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/api-keys**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            await route.fulfill({
-              body: JSON.stringify({ data: [] }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await mockApiKeyList(authenticatedPage, {
+        keys: [
+          {
+            isRevoked: false,
+            label: 'Test API Key',
+            lastUsedAt: null,
+            scopes: ['videos:read'],
+          },
+        ],
+        status: 200,
+      });
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await settingsPage.goToApiKeys();
 
-      await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
+      await expect(
+        settingsPage.canvas.getByText('Test API Key', { exact: true }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByText('Last used: Never'),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('button', {
+          exact: true,
+          name: 'Rotate',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('button', {
+          exact: true,
+          name: 'Revoke',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByText('No active Genfeed API keys.'),
+      ).toHaveCount(0);
+    });
+
+    test('shows a load error when the key list request fails', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await mockApiKeyList(authenticatedPage, { status: 500 });
+
+      await settingsPage.goToApiKeys();
+
+      await expect(
+        settingsPage.canvas.getByText("Couldn't load API keys"),
+      ).toBeVisible();
+      // Creating a key stays available after a failed load.
+      await expect(settingsPage.generateApiKeyButton).toBeVisible();
+    });
+
+    test('is reachable from the organization settings sidebar', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await mockApiKeyList(authenticatedPage, { keys: [], status: 200 });
+
+      await settingsPage.goToOrganization();
+      await settingsPage.navigateFromSidebar('API Keys', API_KEYS_ROUTE);
+
+      await expect(settingsPage.generateApiKeyButton).toBeVisible();
     });
   });
 
   test.describe('Models Page', () => {
-    test('should load models page for video type', async ({
+    test('shows the model catalog and its empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*models/);
+      await settingsPage.open(MODELS_ROUTE);
+
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Model catalog',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
+      ).toContainText('All');
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'No models found',
+        }),
+      ).toBeVisible();
     });
 
-    test('should load models page for image type', async ({
+    test('filters the catalog to video models', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_IMAGE);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*models/);
-    });
-
-    test('should display model selection UI', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
+      await settingsPage.open(MODELS_ROUTE);
+      await selectVisibleRadixOption(
+        authenticatedPage,
+        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
+        'Videos',
       );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
+
+      await expect(authenticatedPage).toHaveURL(/[?&]type=videos(?:&|$)/);
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'No models found',
+        }),
+      ).toBeVisible();
+    });
+
+    test('opens the image model filter directly', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+
+      await settingsPage.open(`${MODELS_ROUTE}?type=images`);
+
+      await expect(
+        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
+      ).toContainText('Images');
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Model catalog',
+        }),
+      ).toBeVisible();
     });
 
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await settingsPage.open(`${MODELS_ROUTE}?type=videos`);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*models/);
+      await expect(
+        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
+      ).toContainText('Videos');
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Model catalog',
+        }),
+      ).toBeVisible();
     });
   });
 
   test.describe('Elements / Scenes Page', () => {
-    test('should load scenes page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*elements.*scenes/);
-    });
-
-    test('should display scene library content', async ({
+    test('shows the scenes library empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
-      );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
+      await settingsPage.open(SCENES_ROUTE);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*scenes/);
-    });
-
-    test('should handle empty scenes state', async ({ authenticatedPage }) => {
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/scenes**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            await route.fulfill({
-              body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
-      );
-
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*scenes/);
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          level: 1,
+          name: 'Scenes',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'No scenes found',
+        }),
+      ).toBeVisible();
+      await expect(settingsPage.canvas.getByText('0 scenes')).toBeVisible();
     });
 
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await settingsPage.open(SCENES_ROUTE);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*scenes/);
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'No scenes found',
+        }),
+      ).toBeVisible();
     });
   });
 
   test.describe('Brands Page', () => {
-    test('should load brands page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+    test('lists the organization brands', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*brands/);
+      await settingsPage.open(BRANDS_ROUTE);
+
+      const brandRow = settingsPage.canvas
+        .getByRole('row')
+        .filter({ hasText: '@brand-1' });
+      await expect(brandRow).toBeVisible();
+      await expect(
+        brandRow.getByRole('link', { name: 'Open Brand 1 settings' }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('button', {
+          exact: true,
+          name: 'Add Brand',
+        }),
+      ).toBeVisible();
     });
 
-    test('should display brand list content', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+    test('shows the empty state when the organization has no brands', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+      await authenticatedPage.route(BRANDS_LIST_PATTERN, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.fallback();
+          return;
+        }
+        await route.fulfill({
+          body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
+          contentType: 'application/json',
+          status: 200,
+        });
+      });
 
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
-      );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
+      await settingsPage.open(BRANDS_ROUTE);
+
+      await expect(settingsPage.canvas.getByText('0 brands')).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('row').filter({ hasText: '@brand-1' }),
+      ).toHaveCount(0);
     });
 
-    test('should handle empty brands state', async ({ authenticatedPage }) => {
-      await authenticatedPage.route(
-        '**/api.genfeed.ai/*/brands**',
-        async (route) => {
-          if (route.request().method() === 'GET') {
-            await route.fulfill({
-              body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
-              contentType: 'application/json',
-              status: 200,
-            });
-            return;
-          }
-          await route.continue();
-        },
+    test('opens a brand settings page from the list', async ({
+      authenticatedPage,
+    }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
+
+      await settingsPage.open(BRANDS_ROUTE);
+      await settingsPage.canvas
+        .getByRole('link', { name: 'Open Brand 1 settings' })
+        .click();
+
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${brandPath(APP_ROUTES.SETTINGS.ROOT)}$`),
       );
-
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*brands/);
+      await expect(
+        settingsPage.canvas.getByRole('button', {
+          exact: true,
+          name: 'Edit brand name',
+        }),
+      ).toContainText('Brand 1');
     });
 
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await settingsPage.open(BRANDS_ROUTE);
 
-      await expect(authenticatedPage).toHaveURL(/settings.*brands/);
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          level: 1,
+          name: 'Brands',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('row').filter({ hasText: '@brand-1' }),
+      ).toBeVisible();
     });
   });
 
   test.describe('Brand Settings Detail', () => {
-    test('should load brand voice settings route', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/voice`,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+    test('shows the brand voice settings', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(/settings\/brands\/.+\/voice/);
+      await settingsPage.open(brandPath('/settings/voice'));
+
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Brand voice',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Voice fields',
+        }),
+      ).toBeVisible();
     });
 
-    test('should load brand publishing settings route', async ({
+    test('shows the brand publishing defaults', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(
-        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/publishing`,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(
-        /settings\/brands\/.+\/publishing/,
-      );
+      await settingsPage.open(brandPath(APP_ROUTES.SETTINGS.PUBLISHING));
+
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Publishing defaults',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('button', {
+          exact: true,
+          name: 'Save defaults',
+        }),
+      ).toBeVisible();
     });
 
-    test('should load brand agent defaults route', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/agent-defaults`,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
+    test('shows the brand agent defaults', async ({ authenticatedPage }) => {
+      const settingsPage = new SettingsPage(authenticatedPage);
 
-      await expect(authenticatedPage).toHaveURL(
-        /settings\/brands\/.+\/agent-defaults/,
-      );
+      await settingsPage.open(brandPath(APP_ROUTES.SETTINGS.AGENT_DEFAULTS));
+
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Agent defaults',
+        }),
+      ).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByRole('heading', {
+          exact: true,
+          name: 'Brand identity',
+        }),
+      ).toBeVisible();
     });
+  });
+});
+
+test.describe('Organization Settings', () => {
+  test.beforeEach(async ({ authenticatedPage }) => {
+    await mockActiveSubscription(authenticatedPage, {
+      credits: 1000,
+      plan: 'pro',
+    });
+  });
+
+  test('shows organization general settings', async ({ authenticatedPage }) => {
+    const settingsPage = new SettingsPage(authenticatedPage);
+
+    await settingsPage.open(GENERAL_ROUTE);
+
+    await expect(
+      settingsPage.canvas.getByRole('heading', {
+        exact: true,
+        name: 'Organization Information',
+      }),
+    ).toBeVisible();
+    await expect(
+      settingsPage.canvas.getByText('mock-org-id-e2e-test', { exact: true }),
+    ).toBeVisible();
+    await expect(settingsPage.orgIdentityCard).toBeVisible();
+  });
+
+  test('shows organization agent policy settings', async ({
+    authenticatedPage,
+  }) => {
+    const settingsPage = new SettingsPage(authenticatedPage);
+
+    // The former /settings/organization/policy content now lives at
+    // /settings/agents ((organization)/agents/page.tsx).
+    await settingsPage.open(AGENTS_ROUTE);
+
+    await expect(
+      settingsPage.canvas.getByRole('heading', {
+        exact: true,
+        name: 'Autonomous Agent Policy',
+      }),
+    ).toBeVisible();
+    await expect(
+      settingsPage.canvas.getByRole('heading', {
+        exact: true,
+        name: 'Credit Governance',
+      }),
+    ).toBeVisible();
   });
 });
 
 test.describe('Settings Connections — Unauthenticated Access', () => {
-  test('should redirect api-keys page to login', async ({
-    unauthenticatedPage,
-  }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS, {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
+  for (const route of [API_KEYS_ROUTE, BRANDS_ROUTE, MODELS_ROUTE]) {
+    test(`redirects ${route} to login`, async ({ unauthenticatedPage }) => {
+      await assertRouteRenders(unauthenticatedPage, route, {
+        allowRedirectToLogin: true,
+      });
+
+      await expect(unauthenticatedPage).toHaveURL(/\/login\?callbackUrl=/);
     });
-
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
-      timeout: 10000,
-    });
-  });
-
-  test('should redirect brands page to login', async ({
-    unauthenticatedPage,
-  }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS, {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
-      timeout: 10000,
-    });
-  });
-
-  test('should redirect models page to login', async ({
-    unauthenticatedPage,
-  }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO, {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
-      timeout: 10000,
-    });
-  });
-});
-test.describe('Organization Settings', () => {
-  test('should load organization general settings', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION);
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(authenticatedPage).toHaveURL(/settings\/organization$/);
-  });
-
-  test('should load organization policy settings', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_POLICY);
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(authenticatedPage).toHaveURL(/settings\/organization\/policy/);
-  });
+  }
 });
