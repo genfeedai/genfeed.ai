@@ -7057,6 +7057,11 @@ model BatchProject {
   /// Idea inputs (formats, count, angle) and schedule choices (targets,
   /// posting set, timezone). Shape: `IBatchProjectSettings`.
   settings       Json                  @default("{}")
+  /// Bumped by every change that affects cost (inputs, ideas, workflow); an
+  /// accepted quote is bound to the revision it priced.
+  revision       Int                   @default(0)
+  /// Latest credit quote for idea generation. Shape: `IBatchProjectQuote`.
+  quote          Json?
   reviewBatchId  String?
   isDeleted      Boolean               @default(false)
   createdAt      DateTime              @default(now())
@@ -7098,6 +7103,9 @@ model BatchProjectItem {
   scheduledTargets    Json                   @default("[]")
   /// Retry attempts; each attempt dispatches under its own idempotency key.
   retryCount          Int                    @default(0)
+  /// Server-side idea generation: accepted quote line, credit reservation and
+  /// its settlement state. Shape: `IBatchProjectItemDispatch`.
+  dispatch            Json?
   isDeleted           Boolean                @default(false)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt

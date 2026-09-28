@@ -1,4 +1,5 @@
 import type { RouterPriority } from '../..';
+import type { GenerationExecutionDimensions } from '../billing/generation-credit-calculation.interface';
 
 /**
  * `POST /router/estimate-generation-credits` request (#4672 Manual-mode
@@ -21,6 +22,12 @@ export interface AgentGenerationQuoteRequest {
 /** Server-side quote input: the request plus the authenticated organization. */
 export interface AgentGenerationQuoteInput extends AgentGenerationQuoteRequest {
   organizationId: string;
+  /**
+   * Pixel size a server-side caller will execute with (e.g. batch idea
+   * generation at 1080×1920). Quotes exactly that instead of the Agent
+   * aspect-ratio table, so the quote matches the charge.
+   */
+  dimensions?: GenerationExecutionDimensions;
 }
 
 export interface AgentGenerationQuote {

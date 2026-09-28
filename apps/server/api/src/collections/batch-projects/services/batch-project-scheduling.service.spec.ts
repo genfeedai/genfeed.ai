@@ -278,6 +278,59 @@ describe('BatchProjectSchedulingService', () => {
       expect(secondItems[0].ingredientIds).toEqual(['swapped-1']);
     });
 
+    it('never retargets a draft review post already aimed at another account', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [
+            {
+              ...reviewPost,
+              credentialId: 'credential-elsewhere',
+              targetExecutionState: TargetExecutionState.DRAFT,
+            },
+          ],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      const [items] = postsService.batchSchedule.mock.calls[0];
+      expect(items.map((item: { postId: string }) => item.postId)).toEqual([
+        'clone-post-1',
+      ]);
+    });
+
+    it('reuses a draft review post already aimed at the same account', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [
+            {
+              ...reviewPost,
+              credentialId: 'credential-tiktok',
+              targetExecutionState: TargetExecutionState.DRAFT,
+            },
+          ],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(postsService.create).not.toHaveBeenCalled();
+      const [items] = postsService.batchSchedule.mock.calls[0];
+      expect(items[0].postId).toBe('review-post-1');
+    });
+
     it('never retargets a review draft already scheduled outside the project', async () => {
       prisma.post.findMany.mockImplementation(
         postsReading({

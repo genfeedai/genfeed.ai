@@ -1,6 +1,7 @@
 import {
   BatchProjectReconcileService,
-  IDEA_DISPATCH_TIMEOUT_MS,
+  IDEA_REQUEUE_AFTER_MS,
+  UNRECORDED_RUN_TIMEOUT_MS,
 } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
 import { batchChildExecutionKey } from '@api/collections/batch-projects/services/batch-project-workflow-output.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -82,6 +83,11 @@ describe('BatchProjectReconcileService', () => {
         await operation(),
     ),
   };
+  const ideaCredits = {
+    release: vi.fn(),
+    settle: vi.fn(),
+  };
+  const ideaDispatcher = { enqueue: vi.fn() };
   const batchGenerationService = {
     appendManualReviewItems: vi.fn(),
     createManualReviewBatch: vi.fn(),
@@ -91,6 +97,8 @@ describe('BatchProjectReconcileService', () => {
     logger as never,
     cacheService as never,
     batchGenerationService as never,
+    ideaCredits as never,
+    ideaDispatcher as never,
   );
 
   function useProject(project: Row) {
@@ -428,7 +436,7 @@ describe('BatchProjectReconcileService', () => {
   });
 
   it('resolves idea items from their generated ingredient', async () => {
-    const stale = new Date(Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000);
+    const stale = new Date(Date.now() - UNRECORDED_RUN_TIMEOUT_MS - 1000);
     useProject(
       makeProject(
         [
@@ -500,11 +508,154 @@ describe('BatchProjectReconcileService', () => {
       error: 'Safety filter',
       status: BatchProjectItemStatus.FAILED,
     });
-    expect(updatedItem('never-dispatched')).toContainEqual({
-      error: 'Generation did not start. Retry this item.',
-      status: BatchProjectItemStatus.FAILED,
-    });
+    // Generated server-side: an idea without an ingredient is still queued,
+    // however long ago it was claimed.
+    expect(updatedItem('never-dispatched')).toEqual([]);
     expect(updatedItem('in-flight')).toEqual([]);
+  });
+
+  describe('idea credits', () => {
+    const reserved = {
+      attempt: 1,
+      billingMode: 'platform',
+      credits: 4,
+      key: 'batch-project-item:item-1:dispatch:1',
+      model: 'model-image',
+      reservationId: 'reservation-1',
+      state: 'reserved',
+    };
+    const idea = {
+      caption: 'Fresh drop',
+      format: 'image',
+      hook: 'Meet the new mug',
+      id: 'idea-1',
+      platformHints: [],
+      visualPrompt: 'A mug on a desk',
+    };
+
+    function useIdeaItem(ingredientStatus: string) {
+      useProject(
+        makeProject(
+          [
+            makeItem({
+              dispatch: reserved,
+              idea,
+              outputIngredientId: 'ingredient-1',
+              workflowExecutionId: null,
+              workflowItemIndex: null,
+            }),
+          ],
+          { kind: BatchProjectKind.IDEAS, workflowId: null },
+        ),
+      );
+      prisma.ingredient.findMany.mockResolvedValue([
+        {
+          category: IngredientCategory.IMAGE,
+          generationError: 'Provider error',
+          id: 'ingredient-1',
+          status: ingredientStatus,
+        },
+      ]);
+    }
+
+    it('queues again a claimed idea whose job never started', async () => {
+      const queued = { ...reserved, reservationId: undefined, state: 'queued' };
+      const stale = new Date(Date.now() - IDEA_REQUEUE_AFTER_MS - 1000);
+      useProject(
+        makeProject(
+          [
+            makeItem({ dispatch: queued, dispatchedAt: stale, idea }),
+            makeItem({
+              dispatch: {
+                ...queued,
+                key: 'batch-project-item:item-2:dispatch:1',
+              },
+              dispatchedAt: new Date(),
+              id: 'item-2',
+              idea,
+            }),
+            makeItem({
+              dispatch: {
+                ...reserved,
+                key: 'batch-project-item:item-3:dispatch:1',
+              },
+              dispatchedAt: stale,
+              id: 'item-3',
+              idea,
+            }),
+          ],
+          { kind: BatchProjectKind.IDEAS, workflowId: null },
+        ),
+      );
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(ideaDispatcher.enqueue).toHaveBeenCalledTimes(1);
+      expect(ideaDispatcher.enqueue).toHaveBeenCalledWith({
+        itemId: 'item-1',
+        key: 'batch-project-item:item-1:dispatch:1',
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        userId: 'user-1',
+      });
+      expect(updatedItem('item-1')).not.toContainEqual(
+        expect.objectContaining({ status: BatchProjectItemStatus.FAILED }),
+      );
+    });
+
+    it('settles the reserved line once a usable output lands, before review', async () => {
+      useIdeaItem(IngredientStatus.GENERATED);
+      ideaCredits.settle.mockResolvedValue('settled');
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(ideaCredits.settle).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: 'user-1',
+          dispatch: expect.objectContaining({ reservationId: 'reservation-1' }),
+          organizationId: 'org-1',
+        }),
+      );
+      expect(ideaCredits.settle.mock.invocationCallOrder[0]).toBeLessThan(
+        batchGenerationService.createManualReviewBatch.mock
+          .invocationCallOrder[0],
+      );
+      expect(updatedItem('item-1')).toContainEqual({
+        dispatch: expect.objectContaining({ state: 'settled' }),
+      });
+      expect(ideaCredits.release).not.toHaveBeenCalled();
+    });
+
+    it('releases the reserved line when generation fails', async () => {
+      useIdeaItem(IngredientStatus.FAILED);
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(ideaCredits.release).toHaveBeenCalledWith({
+        dispatch: expect.objectContaining({ reservationId: 'reservation-1' }),
+        organizationId: 'org-1',
+      });
+      expect(ideaCredits.settle).not.toHaveBeenCalled();
+      expect(updatedItem('item-1')).toContainEqual({
+        dispatch: expect.objectContaining({ state: 'released' }),
+      });
+      expect(updatedItem('item-1')).toContainEqual({
+        error: 'Provider error',
+        status: BatchProjectItemStatus.FAILED,
+      });
+    });
+
+    it('keeps an output out of review until its credits settle', async () => {
+      useIdeaItem(IngredientStatus.GENERATED);
+      ideaCredits.settle.mockRejectedValue(new Error('Billing unavailable'));
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(
+        batchGenerationService.createManualReviewBatch,
+      ).not.toHaveBeenCalled();
+      expect(updatedItem('item-1')).toEqual([]);
+    });
   });
 
   it('mirrors review inbox decisions onto the project items', async () => {
@@ -690,7 +841,7 @@ describe('BatchProjectReconcileService', () => {
     'recovers the run of %s whose execution link was never saved',
     async (_label, overrides, keyOf) => {
       const dispatchedAt = new Date(
-        Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000,
+        Date.now() - UNRECORDED_RUN_TIMEOUT_MS - 1000,
       );
       useProject(
         makeProject([
@@ -746,7 +897,7 @@ describe('BatchProjectReconcileService', () => {
     useProject(
       makeProject([
         makeItem({
-          dispatchedAt: new Date(Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000),
+          dispatchedAt: new Date(Date.now() - UNRECORDED_RUN_TIMEOUT_MS - 1000),
           workflowExecutionId: null,
           workflowItemIndex: null,
         }),

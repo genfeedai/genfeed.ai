@@ -50,8 +50,8 @@ describe('BatchProjectsController publishing scopes', () => {
     'addItems',
     'updateItem',
     'removeItem',
+    'quote',
     'start',
-    'dispatchItem',
     'retryItem',
   ] as const)('requires a draft write scope to %s', (method) => {
     expect(

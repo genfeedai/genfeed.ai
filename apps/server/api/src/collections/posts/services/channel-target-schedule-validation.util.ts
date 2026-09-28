@@ -107,6 +107,7 @@ export function mediaKindForIngredientCategory(
   category: string | null | undefined,
 ): ChannelValidationMedia[number]['kind'] | undefined {
   switch (category) {
+    case IngredientCategory.AVATAR:
     case IngredientCategory.VIDEO:
     case IngredientCategory.VIDEO_EDIT:
       return 'video';

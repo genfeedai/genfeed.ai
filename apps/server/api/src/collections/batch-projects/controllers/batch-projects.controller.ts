@@ -1,7 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AcceptBatchProjectQuoteDto } from '@api/collections/batch-projects/dto/accept-batch-project-quote.dto';
 import { AddBatchProjectItemsDto } from '@api/collections/batch-projects/dto/add-batch-project-items.dto';
 import { CreateBatchProjectDto } from '@api/collections/batch-projects/dto/create-batch-project.dto';
-import { DispatchBatchProjectItemDto } from '@api/collections/batch-projects/dto/dispatch-batch-project-item.dto';
+import { QuoteBatchProjectDto } from '@api/collections/batch-projects/dto/quote-batch-project.dto';
 import { ReviewBatchProjectItemsDto } from '@api/collections/batch-projects/dto/review-batch-project-items.dto';
 import { ScheduleBatchProjectDto } from '@api/collections/batch-projects/dto/schedule-batch-project.dto';
 import { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/update-batch-project.dto';
@@ -177,6 +178,24 @@ export class BatchProjectsController {
     return serializeSingle(request, BatchProjectSerializer, project);
   }
 
+  @Post(':id/quote')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async quote(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: QuoteBatchProjectDto,
+  ) {
+    return {
+      data: await this.batchProjectsService.quote(
+        id,
+        body,
+        this.requireScope(user),
+      ),
+    };
+  }
+
   @Post(':id/start')
   @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
@@ -185,30 +204,12 @@ export class BatchProjectsController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Body() body: AcceptBatchProjectQuoteDto,
   ) {
     const project = await this.batchProjectsService.start(
       id,
       this.requireScope(user),
-    );
-    return serializeSingle(request, BatchProjectSerializer, project);
-  }
-
-  @Post(':id/items/:itemId/dispatch')
-  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async dispatchItem(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-    @Body() body: DispatchBatchProjectItemDto,
-  ) {
-    const project = await this.batchProjectsService.dispatchItem(
-      id,
-      itemId,
-      body,
-      this.requireScope(user),
+      body.quoteId,
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }
@@ -222,11 +223,13 @@ export class BatchProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Param('itemId') itemId: string,
+    @Body() body: AcceptBatchProjectQuoteDto,
   ) {
     const project = await this.batchProjectsService.retryItem(
       id,
       itemId,
       this.requireScope(user),
+      body.quoteId,
     );
     return serializeSingle(request, BatchProjectSerializer, project);
   }

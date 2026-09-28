@@ -1,4 +1,8 @@
+import { BatchProjectCreditsService } from '@api/collections/batch-projects/services/batch-project-credits.service';
+import { parseBatchProjectItemDispatch } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
+import { BatchProjectIdeaDispatchService } from '@api/collections/batch-projects/services/batch-project-idea-dispatch.service';
+import { findReviewBatchIdBySourceKeys } from '@api/collections/batch-projects/services/batch-project-review-batch.util';
 import {
   type BatchProjectItemStatusValue,
   deriveBatchProjectStatus,
@@ -15,6 +19,7 @@ import type { CreateManualReviewBatchDto } from '@api/services/batch-generation/
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ActivitySource,
   BatchProjectItemStatus,
   BatchProjectKind,
   BatchProjectStatus,
@@ -30,11 +35,18 @@ import type {
   IBatchSummary,
 } from '@genfeedai/contracts/interfaces';
 import type { BatchProject, BatchProjectItem } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
-/** An idea dispatched from the browser that never recorded an ingredient. */
-export const IDEA_DISPATCH_TIMEOUT_MS = 5 * 60 * 1000;
+/** A workflow run claimed for an item but never recorded is failed after this. */
+export const UNRECORDED_RUN_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * A claimed idea whose job has not started this long may never have been
+ * queued (the process stopped between the claim and the enqueue).
+ */
+export const IDEA_REQUEUE_AFTER_MS = 2 * 60 * 1000;
 const RECONCILE_LOCK_TTL_SECONDS = 120;
 const SWEEP_BATCH_SIZE = 50;
 /** Creator actions wait this long for an in-flight reconcile to finish. */
@@ -118,6 +130,8 @@ export class BatchProjectReconcileService {
     private readonly logger: LoggerService,
     private readonly cacheService: CacheService,
     private readonly batchGenerationService: BatchGenerationService,
+    private readonly credits: BatchProjectCreditsService,
+    private readonly ideaDispatcher: BatchProjectIdeaDispatchService,
   ) {}
 
   /** Reconcile one project; a concurrent reconcile of it makes this a no-op. */
@@ -138,6 +152,25 @@ export class BatchProjectReconcileService {
    * overwrite the other's half-applied state. Waits briefly for an in-flight
    * reconcile, then reports the project as busy.
    */
+  /**
+   * Mirror inbox decisions onto one project under its reconcile lock, so
+   * the sync never interleaves with scheduling or a review action. A project
+   * that is busy is skipped; its own operation syncs it.
+   */
+  async syncReviewState(
+    projectId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.cacheService.withLock(
+      reconcileLockKey(projectId),
+      async () => {
+        await this.syncReviewDecisions(projectId, organizationId);
+        await this.refreshProjectStatus(projectId, organizationId);
+      },
+      RECONCILE_LOCK_TTL_SECONDS,
+    );
+  }
+
   async runExclusive<T>(
     projectId: string,
     operation: () => Promise<T>,
@@ -239,10 +272,19 @@ export class BatchProjectReconcileService {
       return;
     }
 
-    const outcomes =
+    const resolved =
       project.kind === BatchProjectKind.WORKFLOW
         ? await this.resolveWorkflowOutcomes(project)
         : await this.resolveIdeaOutcomes(project);
+    // Idea credits settle before an output counts as done and release before
+    // a failure is recorded; an outcome whose settlement fails waits for the
+    // next reconcile instead of leaving its hold unaccounted.
+    const outcomes: ItemOutcome[] = [];
+    for (const outcome of resolved) {
+      if (await this.settleIdeaCredits(project, outcome)) {
+        outcomes.push(outcome);
+      }
+    }
 
     for (const outcome of outcomes) {
       if (outcome.kind === 'failed') {
@@ -276,6 +318,57 @@ export class BatchProjectReconcileService {
     await this.refreshProjectStatus(projectId, organizationId);
   }
 
+  /**
+   * Settle a finished idea's reserved line (only usable output is charged)
+   * or release a failed one's. Returns false when the credit write failed and
+   * the outcome must wait for the next reconcile.
+   */
+  private async settleIdeaCredits(
+    project: ProjectWithItems,
+    outcome: ItemOutcome,
+  ): Promise<boolean> {
+    const dispatch = parseBatchProjectItemDispatch(outcome.item.dispatch);
+    if (dispatch?.state !== 'reserved') {
+      return true;
+    }
+    try {
+      let state: 'released' | 'settled' = 'released';
+      if (outcome.kind === 'completed') {
+        state = await this.credits.settle({
+          actorUserId: project.userId,
+          description: `Batch idea ${outcome.category.toLowerCase()} generation`,
+          dispatch,
+          organizationId: project.organizationId,
+          source:
+            outcome.category === IngredientCategory.IMAGE
+              ? ActivitySource.IMAGE_GENERATION
+              : ActivitySource.VIDEO_GENERATION,
+        });
+      } else {
+        await this.credits.release({
+          dispatch,
+          organizationId: project.organizationId,
+        });
+      }
+      await this.prisma.batchProjectItem.updateMany({
+        data: { dispatch: toPrismaJson({ ...dispatch, state }) },
+        where: scopedWhere(project.organizationId, {
+          dispatch: { equals: dispatch.key, path: ['key'] },
+          id: outcome.item.id,
+        }),
+      });
+      return true;
+    } catch (error: unknown) {
+      this.logger.error('Batch project idea credits did not settle', error, {
+        batchProjectId: project.id,
+        batchProjectItemId: outcome.item.id,
+        context: this.context,
+        organizationId: project.organizationId,
+      });
+      return false;
+    }
+  }
+
   private loadProject(
     projectId: string,
     organizationId: string,
@@ -289,6 +382,45 @@ export class BatchProjectReconcileService {
       },
       where: scopedWhere(organizationId, { id: projectId }),
     });
+  }
+
+  /**
+   * Queue again every claimed idea whose job never started. The job id is the
+   * attempt's dispatch key, so a job that is still queued is not added twice,
+   * and a job that already ran skips an attempt that is no longer queued.
+   */
+  private async requeueUnstartedIdeas(
+    project: ProjectWithItems,
+    generating: BatchProjectItem[],
+  ): Promise<void> {
+    const deadline = Date.now() - IDEA_REQUEUE_AFTER_MS;
+    for (const item of generating) {
+      const dispatch = parseBatchProjectItemDispatch(item.dispatch);
+      if (
+        item.outputIngredientId ||
+        dispatch?.state !== 'queued' ||
+        (item.dispatchedAt?.getTime() ?? 0) >= deadline
+      ) {
+        continue;
+      }
+      try {
+        await this.ideaDispatcher.enqueue({
+          itemId: item.id,
+          key: dispatch.key,
+          organizationId: project.organizationId,
+          projectId: project.id,
+          userId: project.userId,
+        });
+      } catch (error: unknown) {
+        this.logger.warn('Batch project idea could not be queued again', {
+          batchProjectId: project.id,
+          batchProjectItemId: item.id,
+          context: this.context,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: project.organizationId,
+        });
+      }
+    }
   }
 
   private async resolveIdeaOutcomes(
@@ -317,20 +449,14 @@ export class BatchProjectReconcileService {
     const ingredientsById = new Map(
       ingredients.map((ingredient) => [ingredient.id, ingredient]),
     );
-    const dispatchDeadline = Date.now() - IDEA_DISPATCH_TIMEOUT_MS;
+
+    await this.requeueUnstartedIdeas(project, generating);
 
     return generating.flatMap((item): ItemOutcome[] => {
+      // Not dispatched yet: its durable job is still queued, or its failure
+      // workflow will fail it.
       if (!item.outputIngredientId) {
-        const dispatchedAt = item.dispatchedAt?.getTime() ?? 0;
-        return dispatchedAt < dispatchDeadline
-          ? [
-              {
-                error: 'Generation did not start. Retry this item.',
-                item,
-                kind: 'failed',
-              },
-            ]
-          : [];
+        return [];
       }
       const ingredient = ingredientsById.get(item.outputIngredientId);
       if (!ingredient) {
@@ -364,7 +490,7 @@ export class BatchProjectReconcileService {
   ): Promise<ItemOutcome[]> {
     const outcomes: ItemOutcome[] = [];
     const byExecution = new Map<string, BatchProjectItem[]>();
-    const dispatchDeadline = Date.now() - IDEA_DISPATCH_TIMEOUT_MS;
+    const dispatchDeadline = Date.now() - UNRECORDED_RUN_TIMEOUT_MS;
     for (const item of project.items) {
       if (item.status !== BatchProjectItemStatus.GENERATING) {
         continue;
@@ -604,7 +730,8 @@ export class BatchProjectReconcileService {
         return {
           caption: item.caption ?? idea?.caption ?? undefined,
           format:
-            category === IngredientCategory.VIDEO
+            category === IngredientCategory.VIDEO ||
+            category === IngredientCategory.AVATAR
               ? ContentFormat.VIDEO
               : ContentFormat.IMAGE,
           ingredientId,
@@ -676,9 +803,12 @@ export class BatchProjectReconcileService {
 
     // A crash between creating the review batch and saving its id leaves a
     // batch that already holds these items; adopt it instead of a second one.
-    const handedOffBatchId = await this.findHandedOffReviewBatchId(
+    const handedOffBatchId = await findReviewBatchIdBySourceKeys(
+      this.prisma,
       project.organizationId,
-      dto,
+      dto.items.flatMap((item) =>
+        item.sourceActionId ? [item.sourceActionId] : [],
+      ),
     );
     const adopted = handedOffBatchId
       ? await this.appendIfLive(project, handedOffBatchId, dto)
@@ -716,29 +846,6 @@ export class BatchProjectReconcileService {
       }
       throw error;
     }
-  }
-
-  /** The live review batch already holding one of these items, if any. */
-  private async findHandedOffReviewBatchId(
-    organizationId: string,
-    dto: CreateManualReviewBatchDto,
-  ): Promise<string | null> {
-    const sourceKeys = dto.items.flatMap((item) =>
-      item.sourceActionId ? [item.sourceActionId] : [],
-    );
-    if (sourceKeys.length === 0) {
-      return null;
-    }
-    const row = await this.prisma.batchItem.findFirst({
-      select: { batchId: true },
-      where: scopedWhere(organizationId, {
-        batch: { isDeleted: false, organizationId },
-        OR: sourceKeys.map((sourceKey) => ({
-          data: { equals: sourceKey, path: ['sourceActionId'] },
-        })),
-      }),
-    });
-    return row?.batchId ?? null;
   }
 
   /**

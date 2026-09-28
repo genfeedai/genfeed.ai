@@ -72,12 +72,20 @@ interface AvatarVideoGenerationResult {
   status: 'processing';
 }
 
+export interface AvatarGenerationPrice {
+  billingMode: 'byok' | 'platform';
+  credits: number;
+}
+
+interface AvatarGenerationFunding extends AvatarGenerationPrice {
+  heygenApiKey?: string;
+  elevenLabsApiKey?: string;
+}
+
 interface ResolvedIdentity {
   audioUrl?: string;
   elevenlabsVoiceId?: string;
   heygenVoiceId?: string;
-  /** Set when `audioUrl` was synthesized on the shared Genfeed voice runtime. */
-  isPlatformFundedSpeech?: boolean;
   photoIngredientId?: string;
   photoUrl?: string;
   savedVoice?: ResolvableVoiceDocument;
@@ -94,8 +102,6 @@ interface ResolvedAudioSource {
   audioDuration: number;
   audioUrl?: string;
   heygenVoiceId?: string;
-  /** Speech synthesized on Genfeed's ElevenLabs key, so the run is billable even with HeyGen BYOK. */
-  isPlatformFundedSpeech?: boolean;
 }
 
 @Injectable()
@@ -121,12 +127,54 @@ export class AvatarVideoGenerationService {
     private readonly lifecycleService: AvatarVideoLifecycleService,
   ) {}
 
+  /** Quote the same resolved identity and funding sources generation will use. */
+  async quoteCredits(
+    params: AvatarVideoGenerationParams,
+    context: AvatarVideoGenerationContext,
+  ): Promise<AvatarGenerationPrice> {
+    const brand = await this.findBrandForContext(context);
+    const identity = await this.resolveIdentityInputs(params, context, brand);
+    this.assertUsableVoiceSource(params, identity);
+    const { billingMode, credits } = await this.resolveFunding(
+      identity,
+      context,
+    );
+    return { billingMode, credits };
+  }
+
+  /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */
+  private async resolveFunding(
+    identity: ResolvedIdentity,
+    context: AvatarVideoGenerationContext,
+  ): Promise<AvatarGenerationFunding> {
+    const heygenKey = await this.byokService.resolveApiKey(
+      context.organizationId,
+      ByokProvider.HEYGEN,
+    );
+    const elevenLabsKey = identity.elevenlabsVoiceId
+      ? await this.byokService.resolveApiKey(
+          context.organizationId,
+          ByokProvider.ELEVENLABS,
+        )
+      : null;
+    const usesPlatformSpeech =
+      Boolean(identity.savedVoice) ||
+      (Boolean(identity.elevenlabsVoiceId) && !elevenLabsKey);
+    const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
+    return {
+      billingMode: isByok ? 'byok' : 'platform',
+      credits: isByok ? 0 : AVATAR_GENERATION_CREDIT_COST,
+      heygenApiKey: heygenKey?.apiKey,
+      elevenLabsApiKey: elevenLabsKey?.apiKey,
+    };
+  }
+
   async generateAvatarVideo(
     params: AvatarVideoGenerationParams,
     context: AvatarVideoGenerationContext,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
     placeholderScope?: GenerationPlaceholderScope,
-    onCreditsPrepared?: () => Promise<void>,
+    onCreditsPrepared?: (price: AvatarGenerationPrice) => Promise<void>,
   ): Promise<AvatarVideoGenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | null = null;
@@ -139,6 +187,7 @@ export class AvatarVideoGenerationService {
         brand,
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
+      const funding = await this.resolveFunding(resolvedIdentity, context);
 
       const { ingredientData, metadataData } =
         await this.sharedService.createMediaDocumentsInternal({
@@ -166,7 +215,10 @@ export class AvatarVideoGenerationService {
       });
       await onPlaceholderCreated?.(ingredientId);
       await this.assertPlaceholderCredits(context, placeholderScope);
-      await onCreditsPrepared?.();
+      await onCreditsPrepared?.({
+        billingMode: funding.billingMode,
+        credits: funding.credits,
+      });
 
       const photoUrl = await this.resolvePhotoUrl(
         params,
@@ -183,13 +235,14 @@ export class AvatarVideoGenerationService {
         params.text,
         context.organizationId,
       );
-      const { audioDuration, audioUrl, heygenVoiceId, isPlatformFundedSpeech } =
-        await this.resolveAudioSource(params, context, materializedIdentity);
+      const { audioDuration, audioUrl, heygenVoiceId } =
+        await this.resolveAudioSource(
+          params,
+          context,
+          materializedIdentity,
+          funding,
+        );
 
-      const heygenByokKey = await this.byokService.resolveApiKey(
-        context.organizationId,
-        ByokProvider.HEYGEN,
-      );
       const externalId = await this.heygenService.generatePhotoAvatarVideo(
         ingredientId,
         photoUrl,
@@ -200,7 +253,7 @@ export class AvatarVideoGenerationService {
         },
         context.organizationId,
         context.userId,
-        heygenByokKey?.apiKey,
+        funding.heygenApiKey,
         params.aspectRatio ?? '9:16',
       );
 
@@ -212,9 +265,10 @@ export class AvatarVideoGenerationService {
         }),
       );
 
-      const isFullyByokFunded =
-        Boolean(heygenByokKey) && !isPlatformFundedSpeech;
-      if (!isFullyByokFunded && !placeholderScope?.settleCreditsExternally) {
+      if (
+        funding.billingMode === 'platform' &&
+        !placeholderScope?.settleCreditsExternally
+      ) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
           context.userId,
@@ -564,12 +618,12 @@ export class AvatarVideoGenerationService {
     params: AvatarVideoGenerationParams,
     context: AvatarVideoGenerationContext,
     resolvedIdentity: ResolvedIdentity,
+    funding: AvatarGenerationFunding,
   ): Promise<ResolvedAudioSource> {
     if (resolvedIdentity.audioUrl) {
       return {
         audioDuration: 0,
         audioUrl: resolvedIdentity.audioUrl,
-        isPlatformFundedSpeech: resolvedIdentity.isPlatformFundedSpeech,
       };
     }
 
@@ -591,23 +645,18 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      const elevenLabsByokKey = await this.byokService.resolveApiKey(
-        context.organizationId,
-        ByokProvider.ELEVENLABS,
-      );
       const audioResult = await this.elevenlabsService.generateAndUploadAudio(
         resolvedIdentity.elevenlabsVoiceId,
         params.text,
         randomUUID(),
         context.organizationId,
         context.userId,
-        elevenLabsByokKey?.apiKey,
+        funding.elevenLabsApiKey,
       );
 
       return {
         audioDuration: audioResult.duration,
         audioUrl: audioResult.audioUrl,
-        isPlatformFundedSpeech: !elevenLabsByokKey,
       };
     }
 
@@ -694,7 +743,7 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      return { audioUrl: pollResult.audioUrl, isPlatformFundedSpeech: true };
+      return { audioUrl: pollResult.audioUrl };
     }
 
     return {};
