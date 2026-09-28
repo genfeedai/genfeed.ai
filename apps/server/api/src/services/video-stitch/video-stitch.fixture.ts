@@ -260,7 +260,7 @@ export class VideoStitchFixture {
             : undefined,
         jobId,
         result: this.jobResults.get(jobId),
-        state: this.jobStates.get(jobId) ?? JobState.WAITING,
+        state: this.jobStates.get(jobId) ?? JobState.PENDING,
       }),
       processVideo: async (job: IFileProcessingJob) => {
         this.queued.push(job);

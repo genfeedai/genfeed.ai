@@ -595,7 +595,9 @@ export class VideoStitchService {
       const captionContent = await this.whisperService.generateCaptions(
         context.outputId,
       );
-      const caption = await this.captionsService.create({
+      // Same caption row the merge flow has always written; ownership and
+      // soft-delete columns pass through the collection's create.
+      const captionInput = {
         content: null,
         format: CaptionFormat.SRT,
         ingredientId: context.outputId,
@@ -603,7 +605,8 @@ export class VideoStitchService {
         language: CaptionLanguage.EN,
         organizationId: context.organizationId,
         userId: context.userId,
-      });
+      };
+      const caption = await this.captionsService.create(captionInput);
       if (caption?.id) {
         await this.captionsService.patch(caption.id, {
           content: captionContent,
