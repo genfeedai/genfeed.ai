@@ -102,7 +102,7 @@ function WorkflowExecutionCard({
       : null,
     execution.creditsUsed
       ? translate('credits', {
-          credits: execution.creditsUsed.toLocaleString(),
+          credits: execution.creditsUsed.toLocaleString('en-US'),
         })
       : null,
   ]
