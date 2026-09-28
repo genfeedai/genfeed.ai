@@ -3,8 +3,10 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ComponentProps } from 'react';
+import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type UserEventInstance = ReturnType<typeof userEvent.setup>;
 
 const mocks = vi.hoisted(() => ({
   brandState: {
@@ -16,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     }>,
     isReady: true,
   },
+  navigate: vi.fn(),
   push: vi.fn(),
 }));
 
@@ -30,10 +33,30 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-// Spreads every prop so the real Radix menu can make the link a menu item.
+// jsdom cannot navigate, so this Link records every activation that would
+// reach the router. It spreads every prop so the real Radix menu can make the
+// anchor a menu item.
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: ComponentProps<'a'>) => (
-    <a href={href} {...props}>
+  default: ({
+    children,
+    href,
+    onClick,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a
+      {...props}
+      href={href}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) {
+          mocks.navigate(href);
+        }
+        event.preventDefault();
+      }}
+    >
       {children}
     </a>
   ),
@@ -57,6 +80,18 @@ function getBrandGridItems(): HTMLElement[] {
   const grid = screen.getByTestId('organization-automation-brands')
     .firstElementChild as HTMLElement;
   return Array.from(grid.children) as HTMLElement[];
+}
+
+// Tabs through the page like a keyboard user until the target has focus, so
+// the trigger's tooltip state updates happen inside userEvent's act().
+async function tabTo(
+  user: UserEventInstance,
+  target: HTMLElement,
+): Promise<void> {
+  for (let step = 0; step < 25 && document.activeElement !== target; step++) {
+    await user.tab();
+  }
+  expect(target).toHaveFocus();
 }
 
 describe('OrganizationAutomationOverviewPage', () => {
@@ -138,7 +173,7 @@ describe('OrganizationAutomationOverviewPage', () => {
     const trigger = screen.getByRole('button', {
       name: 'More automation for Solar',
     });
-    trigger.focus();
+    await tabTo(user, trigger);
     await user.keyboard('{Enter}');
 
     const menu = await screen.findByRole('menu');
@@ -178,7 +213,7 @@ describe('OrganizationAutomationOverviewPage', () => {
     const trigger = screen.getByRole('button', {
       name: 'More automation for Moonrise',
     });
-    trigger.focus();
+    await tabTo(user, trigger);
     await user.keyboard('{Enter}');
     await screen.findByRole('menu');
 
@@ -186,6 +221,37 @@ describe('OrganizationAutomationOverviewPage', () => {
 
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     expect(trigger).toHaveFocus();
+  });
+
+  it('activates a surface link from the keyboard and closes the overflow', async () => {
+    const user = userEvent.setup();
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+      { id: 'brand_2', label: 'Solar', slug: 'solar' },
+    ];
+
+    render(<OrganizationAutomationOverviewPage />);
+
+    await tabTo(
+      user,
+      screen.getByRole('button', { name: 'More automation for Solar' }),
+    );
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitem', { name: 'Workflows' })).toHaveFocus(),
+    );
+
+    // Items: Workflows, Runs, Agents, Analytics — step from the first to Runs.
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Runs' })).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+
+    expect(mocks.navigate).toHaveBeenCalledTimes(1);
+    expect(mocks.navigate).toHaveBeenCalledWith('/acme/solar/automation/runs');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it('renders one fact line and omits empty facts', () => {
