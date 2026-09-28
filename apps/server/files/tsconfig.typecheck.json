@@ -11,7 +11,53 @@
   ],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@genfeedai/contracts/api-types/*": [
+        "../../../packages/contracts/dist/api-types/*"
+      ],
+      "@cloud-types/*": ["../../../packages/contracts/dist/types/*"],
+      "@config/*": ["../../../packages/config/dist/*"],
+      "@files/*": ["./src/*"],
+      "@genfeedai/config": ["../../../packages/config/dist/index.d.ts"],
+      "@genfeedai/config/*": ["../../../packages/config/dist/*"],
+      "@genfeedai/contracts/constants": [
+        "../../../packages/contracts/dist/constants/index"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../../packages/contracts/dist/constants/*"
+      ],
+      "@genfeedai/contracts": ["../../../packages/contracts/dist/index"],
+      "@genfeedai/contracts/*": ["../../../packages/contracts/dist/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../../packages/contracts/dist/interfaces/index.d.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../packages/contracts/dist/interfaces/*"
+      ],
+      "@genfeedai/prisma": ["../../../packages/prisma/dist/src/index.d.ts"],
+      "@genfeedai/prisma/*": ["../../../packages/prisma/dist/src/*"],
+      "@genfeedai/serializers": [
+        "../../../packages/serializers/dist/index.d.ts"
+      ],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/dist/*"],
+      "@genfeedai/storage": ["../../../packages/storage/dist/index.d.ts"],
+      "@genfeedai/storage/*": ["../../../packages/storage/dist/*"],
+      "@genfeedai/contracts/types": [
+        "../../../packages/contracts/dist/types/index.d.ts"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../../packages/contracts/dist/types/*"
+      ],
+      "@genfeedai/utils/server": [
+        "../../../packages/utils/dist/server/server.d.ts"
+      ],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@helpers/*": ["../../../packages/helpers/dist/*"],
+      "@libs/*": ["../../../packages/libs/dist/*", "../../../packages/libs/*"],
+      "@serializers/*": ["../../../packages/serializers/dist/*"]
+    }
   },
   "extends": "../tsconfig.typecheck.base.json",
   "include": ["src/**/*"]

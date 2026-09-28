@@ -1,4 +1,70 @@
 {
+  "compilerOptions": {
+    "paths": {
+      "@genfeedai/contracts/api-types/*": [
+        "../../../packages/contracts/dist/api-types/*"
+      ],
+      "@cloud-types/*": ["../../../packages/contracts/dist/types/*"],
+      "@config/*": ["../../../packages/config/dist/*"],
+      "@discord/*": ["./src/*"],
+      "@genfeedai/agent/server": [
+        "../../../packages/agent/dist/server/server.d.ts"
+      ],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/auth-client": [
+        "../../../packages/auth-client/dist/index.d.ts"
+      ],
+      "@genfeedai/auth-client/*": ["../../../packages/auth-client/dist/*"],
+      "@genfeedai/config": ["../../../packages/config/dist/index.d.ts"],
+      "@genfeedai/config/*": ["../../../packages/config/dist/*"],
+      "@genfeedai/contracts/constants": [
+        "../../../packages/contracts/dist/constants/index"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../../packages/contracts/dist/constants/*"
+      ],
+      "@genfeedai/contracts": ["../../../packages/contracts/dist/index"],
+      "@genfeedai/contracts/*": ["../../../packages/contracts/dist/*"],
+      "@genfeedai/integrations": [
+        "../../../packages/integrations/dist/index.d.ts"
+      ],
+      "@genfeedai/integrations/*": ["../../../packages/integrations/dist/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../../packages/contracts/dist/interfaces/index.d.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../packages/contracts/dist/interfaces/*"
+      ],
+      "@genfeedai/pricing": ["../../../packages/pricing/dist/index.d.ts"],
+      "@genfeedai/pricing/*": ["../../../packages/pricing/dist/*"],
+      "@genfeedai/prisma": ["../../../packages/prisma/dist/src/index.d.ts"],
+      "@genfeedai/prisma/*": ["../../../packages/prisma/dist/src/*"],
+      "@genfeedai/serializers": [
+        "../../../packages/serializers/dist/index.d.ts"
+      ],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/dist/*"],
+      "@genfeedai/storage": ["../../../packages/storage/dist/index.d.ts"],
+      "@genfeedai/storage/*": ["../../../packages/storage/dist/*"],
+      "@genfeedai/contracts/types": [
+        "../../../packages/contracts/dist/types/index.d.ts"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../../packages/contracts/dist/types/*"
+      ],
+      "@genfeedai/ui": ["../../../packages/ui/dist/index.d.ts"],
+      "@genfeedai/ui/*": ["../../../packages/ui/dist/*"],
+      "@genfeedai/utils/server": [
+        "../../../packages/utils/dist/server/server.d.ts"
+      ],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@helpers/*": ["../../../packages/helpers/dist/*"],
+      "@libs/*": ["../../../packages/libs/dist/*", "../../../packages/libs/*"],
+      "@serializers/*": ["../../../packages/serializers/dist/*"],
+      "@ui/*": ["../../../packages/ui/src/*"]
+    }
+  },
   "exclude": [
     "node_modules",
     "dist",

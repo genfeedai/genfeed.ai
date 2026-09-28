@@ -33,7 +33,6 @@
       "@schemas/*": ["../schemas/*"],
       "@serializers/*": ["../serializers/src/*"],
       "@services/*": ["../services/*"],
-      "@styles/*": ["../styles/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"]
     }

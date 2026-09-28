@@ -381,12 +381,23 @@ jobs:
           else
             bun run lint
           fi
+      # `--affected` follows package.json dependencies only. The scope adds
+      # workspaces whose type-check hashes a changed sibling source through a
+      # tsconfig-alias input (scripts/ci/typecheck-affected-scope.ts).
       - name: Run typecheck
         run: |
           set -o pipefail
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
-            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1 \
-              2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+            filters="$(bun run scripts/ci/typecheck-affected-scope.ts)"
+            if [ -n "${filters}" ]; then
+              # shellcheck disable=SC2086 # intentional word-splitting of --filter args
+              bunx turbo run type-check ${filters} --concurrency=1 \
+                2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+            else
+              # Selects nothing, but turbo still logs its remote cache status.
+              TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1 \
+                2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
+            fi
           else
             bunx turbo run type-check --concurrency=1 \
               2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
