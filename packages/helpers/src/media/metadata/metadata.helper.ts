@@ -11,7 +11,7 @@ export const metadata = {
   // category every competitor also claims, and it names no mechanism, output
   // or destination to a reader who arrived from a link.
   description:
-    'Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.',
+    'Create on-brand videos, images, ads, and posts with Genfeed, review every draft, and schedule approved content across more than 20 channels.',
   keywords: [
     'genfeed',
     'genfeed.ai',
