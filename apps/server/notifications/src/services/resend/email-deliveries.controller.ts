@@ -2,10 +2,12 @@ import type {
   IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
+  IEmailDeliveryStatusResponse,
 } from '@genfeedai/contracts/interfaces';
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -23,6 +25,11 @@ import {
 @UseGuards(InternalApiKeyGuard)
 export class EmailDeliveriesController {
   constructor(private readonly resendService: ResendService) {}
+
+  @Get()
+  status(): IEmailDeliveryStatusResponse {
+    return { isConfigured: this.resendService.isConfigured() };
+  }
 
   @HttpCode(HttpStatus.OK)
   @Post()

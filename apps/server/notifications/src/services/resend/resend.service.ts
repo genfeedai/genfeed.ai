@@ -107,6 +107,11 @@ export class ResendService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  /** Whether an email provider is configured; `sendEmail` no-ops without one. */
+  isConfigured(): boolean {
+    return this.configService.isResendEnabled();
+  }
+
   async sendEmail(payload: ResendEmailPayload): Promise<string | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

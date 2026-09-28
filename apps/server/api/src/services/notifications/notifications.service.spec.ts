@@ -312,4 +312,72 @@ describe('NotificationsService', () => {
       );
     });
   });
+  describe('isEmailDeliveryConfigured', () => {
+    const statusResponse = (isConfigured: boolean) =>
+      new Response(JSON.stringify({ isConfigured }), { status: 200 });
+
+    it('reads the provider status from the notifications service', async () => {
+      mockSafeFetch.mockResolvedValue(statusResponse(true));
+
+      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(true);
+      expect(mockSafeFetch).toHaveBeenCalledWith(
+        new URL('http://notifications:3011/v1/internal/email-deliveries'),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer internal-api-key' },
+          method: 'GET',
+        }),
+        expect.objectContaining({
+          allowedOrigins: ['http://notifications:3011'],
+        }),
+      );
+    });
+
+    it('reports no provider when the service says none is configured', async () => {
+      mockSafeFetch.mockResolvedValue(statusResponse(false));
+
+      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(false);
+    });
+
+    it('caches the answer between calls', async () => {
+      mockSafeFetch.mockResolvedValue(statusResponse(true));
+
+      await service.isEmailDeliveryConfigured();
+      await service.isEmailDeliveryConfigured();
+
+      expect(mockSafeFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('has no mailer when there is no notifications service to ask', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(false);
+      expect(mockSafeFetch).not.toHaveBeenCalled();
+    });
+
+    it('assumes a mailer exists when the status was never readable', async () => {
+      mockSafeFetch.mockRejectedValue(new Error('connection refused'));
+
+      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(true);
+      expect(loggerService.warn).toHaveBeenCalled();
+    });
+
+    it('keeps the last known answer through an outage', async () => {
+      vi.useFakeTimers();
+      try {
+        mockSafeFetch.mockResolvedValueOnce(statusResponse(false));
+        await expect(service.isEmailDeliveryConfigured()).resolves.toBe(false);
+
+        vi.advanceTimersByTime(61_000);
+        mockSafeFetch.mockRejectedValueOnce(new Error('connection refused'));
+        await expect(service.isEmailDeliveryConfigured()).resolves.toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('treats a non-OK or malformed response as unreadable', async () => {
+      mockSafeFetch.mockResolvedValueOnce(new Response('{}', { status: 404 }));
+      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(true);
+    });
+  });
 });

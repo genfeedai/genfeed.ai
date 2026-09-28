@@ -61,6 +61,14 @@ describe('ResendService', () => {
     vi.mocked(Resend).mockClear();
   });
 
+  it('reports whether Resend is configured', () => {
+    configMock.isResendEnabled.mockReturnValue(true);
+    expect(service.isConfigured()).toBe(true);
+
+    configMock.isResendEnabled.mockReturnValue(false);
+    expect(service.isConfigured()).toBe(false);
+  });
+
   it('skips when Resend is not configured', async () => {
     configMock.isResendEnabled.mockReturnValue(false);
 

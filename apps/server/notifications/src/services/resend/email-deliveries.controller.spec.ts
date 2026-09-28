@@ -10,7 +10,10 @@ import {
 
 describe('EmailDeliveriesController', () => {
   let controller: EmailDeliveriesController;
-  let resendService: { sendEmail: ReturnType<typeof vi.fn> };
+  let resendService: {
+    isConfigured: ReturnType<typeof vi.fn>;
+    sendEmail: ReturnType<typeof vi.fn>;
+  };
 
   const payload = {
     html: '<p>Sign in</p>',
@@ -20,7 +23,7 @@ describe('EmailDeliveriesController', () => {
   };
 
   beforeEach(async () => {
-    resendService = { sendEmail: vi.fn() };
+    resendService = { isConfigured: vi.fn(), sendEmail: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmailDeliveriesController],
@@ -40,6 +43,14 @@ describe('EmailDeliveriesController', () => {
     controller = module.get<EmailDeliveriesController>(
       EmailDeliveriesController,
     );
+  });
+
+  it('reports whether an email provider is configured', () => {
+    resendService.isConfigured.mockReturnValue(true);
+    expect(controller.status()).toEqual({ isConfigured: true });
+
+    resendService.isConfigured.mockReturnValue(false);
+    expect(controller.status()).toEqual({ isConfigured: false });
   });
 
   it('returns the provider id after Resend accepts the message', async () => {

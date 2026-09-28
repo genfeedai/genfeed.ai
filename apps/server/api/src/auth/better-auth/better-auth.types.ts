@@ -5,6 +5,14 @@ import type { PrismaClient } from '@genfeedai/prisma';
 import type { RateLimit } from 'better-auth';
 
 /** OAuth credentials for first-party social sign-in providers. */
+/** Inputs to the email-verification enforcement decision. */
+export interface IEmailVerificationEnforcementSources {
+  /** The operator's stored switch (`isEmailVerificationRequired`). */
+  isRequired: () => Promise<boolean>;
+  /** Whether the notifications service has an email provider configured. */
+  isMailerConfigured: () => Promise<boolean>;
+}
+
 export interface IBetterAuthSocialProviderConfig {
   clientId: string;
   clientSecret: string;

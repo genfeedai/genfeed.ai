@@ -10,6 +10,7 @@ import { CommonModule } from '@api/common/common.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SystemEventsModule } from '@api/services/system-events/system-events.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -32,6 +33,7 @@ import {
   createBetterAuthInstance,
 } from './better-auth.factory';
 import { BetterAuthService } from './better-auth.service';
+import { resolveIsEmailVerificationEnforced } from './better-auth-email-verification.util';
 import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
@@ -81,6 +83,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         RateLimitClientService,
         LoggerService,
         PlatformSettingsService,
+        NotificationsService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -91,6 +94,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         rateLimitClient: RateLimitClientService,
         logger: LoggerService,
         platformSettings: PlatformSettingsService,
+        notifications: NotificationsService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
@@ -164,9 +168,14 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           },
           prisma,
           rateLimitStore,
-          resolveIsEmailVerificationRequired: async () =>
-            (await platformSettings.getFeatureSettings())
-              .isEmailVerificationRequired,
+          resolveIsEmailVerificationRequired: () =>
+            resolveIsEmailVerificationEnforced({
+              isMailerConfigured: () =>
+                notifications.isEmailDeliveryConfigured(),
+              isRequired: async () =>
+                (await platformSettings.getFeatureSettings())
+                  .isEmailVerificationRequired,
+            }),
           sendMagicLink: (params) => mailer.sendMagicLink(params),
           sendResetPassword: (params) => mailer.sendResetPassword(params),
           sendVerificationEmail: (params) =>

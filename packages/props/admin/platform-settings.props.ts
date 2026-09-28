@@ -17,6 +17,8 @@ export interface AdminFlagsPageProps {
 
 /** The product feature switches section of /admin platform settings (#5407). */
 export interface PlatformFeatureSettingsFieldsProps {
+  /** The deployment has an email provider; email verification needs one. */
+  isEmailDeliveryConfigured: boolean;
   isDisabled: boolean;
   onChange: (next: IPlatformFeatureSettings) => void;
   /** Reports each numeric field's validity so the page can block a save. */
