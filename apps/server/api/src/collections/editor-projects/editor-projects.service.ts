@@ -1,6 +1,7 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import type { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -14,8 +15,9 @@ import type {
   IEditorRenderFailure,
   IEditorRenderOutputMetadata,
   IEditorRenderProvenance,
+  IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -75,6 +77,59 @@ export class EditorProjectsService extends BaseService<
     )
       ? (status as EditorProjectStatus)
       : undefined;
+  }
+
+  /**
+   * Apply Editor edits. `tracks` is a column; the Editor's other fields live
+   * under `config`, which the render lifecycle also writes (status,
+   * renderExport). Lock the row and re-read it inside the transaction so a
+   * render status change that lands mid-request is merged, not overwritten.
+   */
+  async updateEditorContent(
+    id: string,
+    organizationId: string,
+    changes: IUpdateEditorProjectDto,
+  ): Promise<EditorProjectDocument> {
+    const { name, settings, thumbnailUrl, totalDurationFrames, tracks } =
+      changes;
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "editor_projects" WHERE "id" = ${id} AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`,
+      );
+      const current = await tx.editorProject.findFirst({
+        where: scopedWhere(organizationId, { id }),
+      });
+
+      if (!current) {
+        throw new NotFoundException('Editor project', id);
+      }
+
+      const config = this.readProjectConfig(current.config);
+      if (config.composition) {
+        throw new ConflictException(
+          'Approved compositions are immutable. Submit updated inputs with a new requestId.',
+        );
+      }
+
+      const updated = await tx.editorProject.update({
+        data: {
+          config: toPrismaJson({
+            ...config,
+            ...(name !== undefined ? { name } : {}),
+            ...(settings !== undefined ? { settings } : {}),
+            ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
+            ...(totalDurationFrames !== undefined
+              ? { totalDurationFrames }
+              : {}),
+          }),
+          ...(tracks !== undefined ? { tracks: toPrismaJson(tracks) } : {}),
+        },
+        where: scopedWhere(organizationId, { id }),
+      });
+
+      return this.normalizeDocument(updated);
+    });
   }
 
   async findForRender(

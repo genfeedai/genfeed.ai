@@ -109,7 +109,7 @@ describe('EditorProjectsService.updateEditorContent', () => {
         },
         tracks,
       },
-      where: { id: PROJECT_ID },
+      where: { id: PROJECT_ID, isDeleted: false, organizationId: ORG_ID },
     });
   });
 

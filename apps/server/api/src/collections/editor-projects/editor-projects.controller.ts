@@ -28,6 +28,7 @@ import {
   IngredientFormat,
 } from '@genfeedai/contracts';
 import type {
+  IEditorTrack,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -255,23 +256,20 @@ export class EditorProjectsController {
       );
     }
 
-    // Only `tracks` is a column; the Editor's other fields live under config
-    // (see create), so merge them in rather than handing Prisma unknown keys.
     const { name, settings, thumbnailUrl, totalDurationFrames, tracks } =
       updateDto;
-    const data: EditorProjectDocument = await this.editorProjectsService.patch(
-      id,
-      {
-        config: {
-          ...this.editorProjectsService.readProjectConfig(existing.config),
-          ...(name !== undefined ? { name } : {}),
-          ...(settings !== undefined ? { settings } : {}),
-          ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
-          ...(totalDurationFrames !== undefined ? { totalDurationFrames } : {}),
+    const data: EditorProjectDocument =
+      await this.editorProjectsService.updateEditorContent(
+        id,
+        user.organizationId,
+        {
+          name,
+          settings,
+          thumbnailUrl,
+          totalDurationFrames,
+          tracks: tracks as IEditorTrack[] | undefined,
         },
-        ...(tracks !== undefined ? { tracks } : {}),
-      },
-    );
+      );
 
     return serializeSingle(request, EditorProjectSerializer, data);
   }
