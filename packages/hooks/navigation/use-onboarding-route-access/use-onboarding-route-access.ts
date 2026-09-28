@@ -12,9 +12,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useMemo } from 'react';
 
 export function useOnboardingRouteAccess(pathname: string) {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
@@ -65,7 +68,7 @@ export function useOnboardingRouteAccess(pathname: string) {
       // Cloud / Community share `/onboarding/brand` with Desktop. After that
       // step the agent workspace owns the rest of first-run; this guard must
       // not pull those users into providers/summary.
-      if (hasAgentFirstOnboarding()) {
+      if (hasAgentFirstOnboarding(isAgentModuleEnabled)) {
         if (
           !hasCompletedBrandOnboardingStep(currentUser.onboardingStepsCompleted)
         ) {
@@ -110,9 +113,11 @@ export function useOnboardingRouteAccess(pathname: string) {
     isSuperAdmin,
     isUserLoading,
     needsOnboarding,
+    isAgentModuleEnabled,
   ]);
 
-  const canRenderWithoutAccessState = hasAgentFirstOnboarding();
+  const canRenderWithoutAccessState =
+    hasAgentFirstOnboarding(isAgentModuleEnabled);
 
   const canRender = !(
     !effectiveIsAuthLoaded ||

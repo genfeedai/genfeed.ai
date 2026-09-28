@@ -190,7 +190,11 @@ export function isCommunity(): boolean {
  * workspace. SaaS cut over in #1726 and Community in #1835. Every surface
  * still shares `/onboarding/brand` first. The desktop client keeps the
  * classic providers/summary wizard after brand until #2380.
+ *
+ * Pass the Admin `agent` module flag (#5468): with Agent switched off the
+ * agent handoff would land on a 404, so every surface takes the classic
+ * wizard instead. Omitting it keeps the deployment default.
  */
-export function hasAgentFirstOnboarding(): boolean {
-  return !isDesktopClient();
+export function hasAgentFirstOnboarding(isAgentModuleEnabled = true): boolean {
+  return isAgentModuleEnabled && !isDesktopClient();
 }

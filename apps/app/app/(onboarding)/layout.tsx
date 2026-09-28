@@ -3,6 +3,7 @@
 import { BrandProvider } from '@contexts/user/brand-context/brand-context';
 import { UserProvider } from '@contexts/user/user-context/user-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
@@ -12,6 +13,7 @@ import { ErrorBoundary } from '@ui/error';
 import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
+import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
@@ -24,24 +26,31 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
       pathname === APP_ROUTES.ONBOARDING.PROVIDERS ||
       pathname.startsWith(`${APP_ROUTES.ONBOARDING.PROVIDERS}/`));
 
-  const content = (
-    <ApiStatusProvider>
-      <UserProvider>
-        <BrandProvider>
-          <ThemePreferenceSync />
-          <ErrorBoundary
-            title="Onboarding Error"
-            description="Something went wrong during setup. Please try again."
-          >
-            <Suspense fallback={null}>
-              <AnalyticsOrganizationSync />
-              <OnboardingFunnelAnalytics />
-            </Suspense>
-            {children}
-          </ErrorBoundary>
-        </BrandProvider>
-      </UserProvider>
-    </ApiStatusProvider>
+  // Admin flags (#5468): onboarding routes by the `agent` module flag, so it
+  // waits for the first read rather than routing on the all-on default.
+  const { flags: platformFlags, isReady: isPlatformFlagsReady } =
+    usePlatformFlags();
+
+  const content = !isPlatformFlagsReady ? null : (
+    <FeatureFlagProvider defaults={platformFlags}>
+      <ApiStatusProvider>
+        <UserProvider>
+          <BrandProvider>
+            <ThemePreferenceSync />
+            <ErrorBoundary
+              title="Onboarding Error"
+              description="Something went wrong during setup. Please try again."
+            >
+              <Suspense fallback={null}>
+                <AnalyticsOrganizationSync />
+                <OnboardingFunnelAnalytics />
+              </Suspense>
+              {children}
+            </ErrorBoundary>
+          </BrandProvider>
+        </UserProvider>
+      </ApiStatusProvider>
+    </FeatureFlagProvider>
   );
 
   if (isDesktopLocalOnboarding) {

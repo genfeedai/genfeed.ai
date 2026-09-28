@@ -13,6 +13,7 @@ import {
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -25,6 +26,8 @@ import { resolveOperationalHomeScope } from './home/operational-home.helpers';
 const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
 
 export default function ProtectedRootResolver() {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { brands, isReady, organizationId, refreshBrands, selectedBrand } =
     useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
@@ -36,7 +39,7 @@ export default function ProtectedRootResolver() {
 
   useEffect(() => {
     if (
-      !hasAgentFirstOnboarding() ||
+      !hasAgentFirstOnboarding(isAgentModuleEnabled) ||
       isReady ||
       isAccessStateLoading ||
       isCurrentUserLoading ||
@@ -59,6 +62,7 @@ export default function ProtectedRootResolver() {
     isCurrentUserLoading,
     isReady,
     needsWorkspaceAction,
+    isAgentModuleEnabled,
   ]);
 
   useEffect(() => {
@@ -86,7 +90,7 @@ export default function ProtectedRootResolver() {
         selectedBrand,
       }).orgSlug;
       if (
-        hasAgentFirstOnboarding() &&
+        hasAgentFirstOnboarding(isAgentModuleEnabled) &&
         hasCompletedBrandOnboardingStep(completedSteps) &&
         !agentOrgSlug
       ) {
@@ -100,7 +104,8 @@ export default function ProtectedRootResolver() {
             selectedBrand ?? brands[0],
           ),
           completedSteps,
-          hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+          hasAgentFirstOnboarding:
+            hasAgentFirstOnboarding(isAgentModuleEnabled),
           orgSlug: agentOrgSlug,
         }),
       );
@@ -148,6 +153,7 @@ export default function ProtectedRootResolver() {
     replace,
     searchParams,
     selectedBrand,
+    isAgentModuleEnabled,
   ]);
 
   if (needsWorkspaceAction) {
