@@ -13,7 +13,7 @@ const {
   mockCaptureException: vi.fn(),
   mockCaptureMessage: vi.fn(),
   // A started SDK by default; the held-report tests below clear it.
-  mockGetClient: vi.fn(() => ({})),
+  mockGetClient: vi.fn<() => object | undefined>(() => ({})),
   mockPinoDebug: vi.fn(),
   mockPinoError: vi.fn(),
   mockPinoInfo: vi.fn(),
