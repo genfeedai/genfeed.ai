@@ -56,7 +56,7 @@ export default function StudioGenerateResults({
   const jobsByIngredientId = useMemo(
     () =>
       new Map(
-        jobs.flatMap((job) =>
+        jobs.flatMap((job: StudioGenerateJob) =>
           job.ingredientId ? [[job.ingredientId, job] as const] : [],
         ),
       ),

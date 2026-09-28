@@ -867,7 +867,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
           (reference) => reference.role === 'startFrame',
         ) ||
         attachments.some(
-          (attachment) => getAttachmentRole(attachment) === 'startFrame',
+          (attachment: AttachmentItem) =>
+            getAttachmentRole(attachment) === 'startFrame',
         );
       if (
         contentLibraryRole === 'endFrame' &&
@@ -888,7 +889,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
             (reference) => reference.role === 'videoReference',
           ).length +
           attachments.filter(
-            (attachment) => getAttachmentRole(attachment) === 'videoReference',
+            (attachment: AttachmentItem) =>
+              getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
           settings.modelKey,
@@ -943,14 +945,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
 
   const handleAddFiles = useCallback<StudioGenerateComposerProps['onAddFiles']>(
-    (files, role = 'reference') => {
+    (files, role: StudioGenerateReferenceRole = 'reference') => {
       const supportsInterpolation = hasInterpolation(settings.modelKey);
       const hasStartFrame =
         contentReferences.some(
           (reference) => reference.role === 'startFrame',
         ) ||
         attachments.some(
-          (attachment) => getAttachmentRole(attachment) === 'startFrame',
+          (attachment: AttachmentItem) =>
+            getAttachmentRole(attachment) === 'startFrame',
         );
       if (role === 'endFrame' && supportsInterpolation && !hasStartFrame) {
         notificationsService.warning(
@@ -987,7 +990,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
             (reference) => reference.role === 'videoReference',
           ).length +
           attachments.filter(
-            (attachment) => getAttachmentRole(attachment) === 'videoReference',
+            (attachment: AttachmentItem) =>
+              getAttachmentRole(attachment) === 'videoReference',
           ).length;
         const maxVideoReferences = getModelMaxVideoReferences(
           settings.modelKey,
@@ -1036,7 +1040,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const handleOpenLibrary = useCallback<
     StudioGenerateComposerProps['onOpenLibrary']
-  >((role = 'reference') => {
+  >((role: StudioGenerateReferenceRole = 'reference') => {
     setContentLibraryRole(role);
     setIsContentLibraryOpen(true);
   }, []);
@@ -1050,7 +1054,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const hasStartFrame =
       contentReferences.some((reference) => reference.role === 'startFrame') ||
       attachments.some(
-        (attachment) => getAttachmentRole(attachment) === 'startFrame',
+        (attachment: AttachmentItem) =>
+          getAttachmentRole(attachment) === 'startFrame',
       );
     if (!hasEndFrame(settings.modelKey)) {
       unsupportedRoles.add('endFrame');
@@ -1065,10 +1070,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const removedContentCount = contentReferences.filter((reference) =>
       unsupportedRoles.has(reference.role),
     ).length;
-    const unsupportedAttachments = attachments.filter((attachment) => {
-      const role = getAttachmentRole(attachment);
-      return role ? unsupportedRoles.has(role) : false;
-    });
+    const unsupportedAttachments = attachments.filter(
+      (attachment: AttachmentItem) => {
+        const role = getAttachmentRole(attachment);
+        return role ? unsupportedRoles.has(role) : false;
+      },
+    );
     if (removedContentCount === 0 && unsupportedAttachments.length === 0) {
       return;
     }
@@ -1108,7 +1115,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const attachedAssets = useMemo<PromptBarAttachedAsset[]>(
     () => [
-      ...attachments.map((attachment) => ({
+      ...attachments.map((attachment: AttachmentItem) => ({
         id: attachment.id,
         kind: attachment.kind,
         name: attachment.name,
@@ -1134,7 +1141,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
     StudioGenerateComposerProps['onRemoveAttachedAsset']
   >(
     (assetId) => {
-      if (attachments.some((attachment) => attachment.id === assetId)) {
+      if (
+        attachments.some(
+          (attachment: AttachmentItem) => attachment.id === assetId,
+        )
+      ) {
         removeAttachment(assetId);
         return;
       }
@@ -1147,7 +1158,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const draftPayload = useMemo<StudioGenerateDraftPayload>(
     () => ({
-      attachments: attachments.flatMap((attachment) =>
+      attachments: attachments.flatMap((attachment: AttachmentItem) =>
         attachment.status === UploadStatus.COMPLETED && attachment.ingredientId
           ? [
               {

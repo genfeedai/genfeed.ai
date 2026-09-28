@@ -685,7 +685,7 @@ describe('Studio generation lifecycle recovery', () => {
         }),
     );
     const { result } = renderStudioGeneration();
-    let request: Promise<void> | undefined;
+    let request: Promise<boolean> | undefined;
     await act(async () => {
       request = result.current.submit('Portrait');
       void result.current.submit('Portrait');
