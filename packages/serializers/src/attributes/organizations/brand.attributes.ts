@@ -10,7 +10,6 @@ export const brandAttributes = createEntityAttributes([
   'watermarkLogoId',
   'watermarkOpacity',
   'watermarkPosition',
-  'isSocialHistoryImportEnabled',
   'description',
   'text',
   'fontFamily',

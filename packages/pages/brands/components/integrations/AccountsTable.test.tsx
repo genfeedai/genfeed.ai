@@ -70,7 +70,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -90,7 +90,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection({ isConnected: false })]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -106,7 +106,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection({ externalId: undefined })]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -124,7 +124,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -140,7 +140,7 @@ describe('AccountsTable', () => {
         connections={[buildConnection()]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -163,7 +163,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -198,7 +198,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -219,7 +219,7 @@ describe('AccountsTable', () => {
         connections={[]}
         onConnectAccount={onConnectAccount}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         unavailablePlatforms={new Set()}
       />,
@@ -249,7 +249,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c-twitter"
         unavailablePlatforms={new Set()}
@@ -290,7 +290,7 @@ describe('AccountsTable', () => {
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
-        onPostingTimes={noop}
+        onOpenSettings={noop}
         onReconnect={noop}
         reconnectingCredentialId="c-twitter-1"
         unavailablePlatforms={new Set()}

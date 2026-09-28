@@ -97,7 +97,11 @@ export class TwitterController {
           brand,
           user.userId ?? user.id,
           CredentialPlatform.TWITTER,
-          { isConnected: false },
+          {
+            isConnected: false,
+            isHistoryImportRequested:
+              createCredentialDto.isHistoryImportRequested,
+          },
           createCredentialDto.credentialId,
         );
 

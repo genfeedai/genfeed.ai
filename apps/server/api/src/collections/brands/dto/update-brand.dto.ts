@@ -51,16 +51,6 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   })
   readonly watermarkPosition?: string;
 
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: true,
-    description:
-      'Import the existing posts of a social account when it is connected',
-    required: false,
-  })
-  readonly isSocialHistoryImportEnabled?: boolean;
-
   // isDeleted is deliberately not a settable field here (#5295). A plain
   // PATCH bypassed remove()'s last-brand guard and member reassignment,
   // letting an organization end up with zero live brands and members
