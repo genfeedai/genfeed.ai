@@ -1,6 +1,7 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -41,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   href: vi.fn((path: string) => `/acme/demo${path}`),
   listMessagesPage: vi.fn(),
   markRead: vi.fn(),
+  realtimeRefresh: null as (() => Promise<void>) | null,
   refreshInboxIndicators: vi.fn(),
   searchParams: new URLSearchParams(),
   listPage: vi.fn(),
@@ -275,7 +277,10 @@ vi.mock('./messages-surface-adapter', () => ({
 }));
 
 vi.mock('./use-messages-realtime', () => ({
-  useMessagesRealtime: () => 'connected',
+  useMessagesRealtime: ({ onRefresh }: { onRefresh: () => Promise<void> }) => {
+    mocks.realtimeRefresh = onRefresh;
+    return 'connected';
+  },
 }));
 
 const conversation = {
@@ -602,6 +607,41 @@ describe('SocialMessagesPage', () => {
       expect.anything(),
     );
     expect(mocks.markRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('acknowledges a reply that a realtime refresh fetched into the open thread', async () => {
+    const read = { ...conversation, inboundSequence: 10, unreadCount: 0 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [read],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    const withReply = { ...read, inboundSequence: 11, unreadCount: 1 };
+    mocks.getConversation.mockResolvedValue(withReply);
+    mocks.markRead.mockResolvedValue({ ...withReply, unreadCount: 0 });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(mocks.markRead).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await mocks.realtimeRefresh?.();
+    });
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        11,
+        expect.any(AbortSignal),
+      ),
+    );
   });
 
   it('does not send a read receipt for an already read conversation', async () => {

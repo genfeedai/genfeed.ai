@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OrganizationPublishingCapsCard from './organization-publishing-caps-card';
 
 const mocks = vi.hoisted(() => ({
-  clearBootstrapCache: vi.fn(),
   getOrganizationsService: vi.fn(),
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
@@ -25,13 +24,6 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
-
-vi.mock(
-  '@contexts/providers/protected-bootstrap/client-protected-bootstrap',
-  () => ({
-    clearClientProtectedBootstrapCache: mocks.clearBootstrapCache,
-  }),
-);
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -142,7 +134,6 @@ describe('OrganizationPublishingCapsCard', () => {
         quotaYoutube: 5,
       });
     });
-    expect(mocks.clearBootstrapCache).toHaveBeenCalledTimes(1);
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
       'Publishing caps saved',

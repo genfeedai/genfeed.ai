@@ -10,6 +10,7 @@ import {
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
   xReplyWatchPendingNotifyKey,
+  xReplyWatchResumeKey,
 } from '@workers/crons/x-replies/x-reply-watch.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -340,6 +341,141 @@ describe('CronXReplyWatchService', () => {
       '1800000000000000150',
     );
     expect(context.logger.warn).toHaveBeenCalledOnce();
+  });
+
+  it('resumes mention pagination from the saved token instead of restarting after the page cap (release review finding)', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    // X pages newest first: the first tick's first page is the true newest
+    // mention of the whole backlog, and each later page is older.
+    context.twitterService.listMentionsPage
+      .mockResolvedValueOnce({
+        nextToken: 'page-2',
+        tweets: [tweet('1800000000000000900')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-3',
+        tweets: [tweet('1800000000000000800')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-4',
+        tweets: [tweet('1800000000000000700')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-5',
+        tweets: [tweet('1800000000000000600')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-6',
+        tweets: [tweet('1800000000000000500')],
+      });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // Tick 1 hits the page cap with more pages remaining: the cursor must
+    // not move, and the sequence's position must be saved for next tick.
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(
+      X_REPLY_WATCH_MAX_PAGES,
+    );
+    expect(context.cache.has(xReplyWatchCursorKey('a'))).toBe(false);
+    expect(context.cache.get(xReplyWatchResumeKey('a'))).toEqual({
+      newestSeenId: '1800000000000000900',
+      paginationToken: 'page-6',
+      sinceId: '1800000000000000100',
+    });
+
+    // Tick 2 drains the rest of the backlog in one more page.
+    context.twitterService.listMentionsPage.mockResolvedValueOnce({
+      tweets: [tweet('1800000000000000400')],
+    });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // The crucial assertion: tick 2 resumed from the saved page-6 token and
+    // the *original* since_id, instead of restarting from page one with no
+    // pagination token (which would re-read the same newest 500 mentions
+    // forever and never reach anything past them).
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(
+      X_REPLY_WATCH_MAX_PAGES + 1,
+    );
+    expect(context.twitterService.listMentionsPage).toHaveBeenLastCalledWith(
+      'org-a',
+      'brand-a',
+      {
+        limit: 100,
+        paginationToken: 'page-6',
+        sinceId: '1800000000000000100',
+      },
+      'a',
+    );
+    // Once fully drained, the cursor advances to the newest mention ever
+    // seen across the whole sequence (tick 1's first page) — not merely the
+    // oldest page fetched in the final, draining tick.
+    expect(context.cache.get(xReplyWatchCursorKey('a'))).toBe(
+      '1800000000000000900',
+    );
+    expect(context.cache.has(xReplyWatchResumeKey('a'))).toBe(false);
+  });
+
+  it('does not advance the pagination position when reply ingestion fails, so the retry re-fetches the same batch (release review finding)', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    const reply = tweet('1800000000000000120', {
+      conversationId: '1800000000000000100',
+      inReplyToId: '1800000000000000100',
+    });
+    // Hits the page cap: this batch is never fully drained in tick 1.
+    context.twitterService.listMentionsPage.mockResolvedValue({
+      nextToken: 'more',
+      tweets: [reply],
+    });
+    context.socialInboxService.ingestXPostReplies.mockRejectedValueOnce(
+      new Error('db unavailable'),
+    );
+
+    const first = await context.service.watchRecentPostReplies(NOW);
+
+    expect(first.failed).toBe(1);
+    // The fetched pages were never durably ingested: saving a resume token
+    // (or advancing the cursor) here would skip these exact replies forever
+    // once the next sweep moves past them.
+    expect(context.cache.has(xReplyWatchResumeKey('a'))).toBe(false);
+    expect(context.cache.has(xReplyWatchCursorKey('a'))).toBe(false);
+    expect(context.logger.error).toHaveBeenCalledWith(
+      'X reply ingestion failed',
+      expect.any(Error),
+      expect.objectContaining({ credentialId: 'a' }),
+    );
+
+    context.twitterService.listMentionsPage.mockClear();
+    context.socialInboxService.ingestXPostReplies.mockResolvedValueOnce({
+      conversationsCreated: 1,
+      createdMessages: [
+        { conversationId: 'conv-p1', externalMessageId: reply.tweetId },
+      ],
+      messagesCreated: 1,
+    });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // The crucial assertion: the retry sweep re-fetches from page one with
+    // no pagination token and the original since_id — it must not resume
+    // from wherever the failed sweep's pagination happened to reach, which
+    // would silently drop the un-ingested replies from that batch.
+    expect(context.twitterService.listMentionsPage).toHaveBeenNthCalledWith(
+      1,
+      'org-a',
+      'brand-a',
+      { limit: 100, sinceId: '1800000000000000100' },
+      'a',
+    );
+    expect(context.socialInboxService.ingestXPostReplies).toHaveBeenCalledTimes(
+      2,
+    );
   });
 
   it('retries a failed notification next tick without another X call', async () => {

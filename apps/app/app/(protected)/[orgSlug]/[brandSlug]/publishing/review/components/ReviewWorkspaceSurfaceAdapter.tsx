@@ -1,28 +1,27 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { useAgentChatStore } from '@genfeedai/agent';
 import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import {
-  type ProductWorkspaceSurfaceAdapter,
-  useRegisterWorkspaceSurfaceAdapter,
-  useRegisterWorkspaceSurfacePresentationAdapter,
-  type WorkspaceSurfacePresentationAdapter,
-} from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
-import { dispatchOpenContextTab } from '@/lib/workspace/agent-composer-events';
+import { createElement, useCallback, useEffect, useState } from 'react';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
 import { getReviewItemTitle } from './review-item.helpers';
 import { isReadyToReview } from './review-state';
 
 /**
- * Project review details into the workspace agent Context rail so the canvas
- * stays a table-only queue. Conversation remains available for agent cleanup.
+ * Renders the active review item into the shell's context sidebar so the
+ * canvas stays a table-only queue, and keeps the agent's page context on it.
+ * The queue always keeps an active row, so closing dismisses the details (the
+ * right column goes back to the workspace panes) until a row tap or "Open in
+ * Context" asks for them again.
  */
 export default function ReviewWorkspaceSurfaceAdapter({
   activeItem,
+  activeItemOrigin,
   isActioning,
   isSelected,
   onApprove,
@@ -31,43 +30,41 @@ export default function ReviewWorkspaceSurfaceAdapter({
   onRequestChanges,
   onToggleSelect,
   onUnassign,
+  revealRequest,
 }: ReviewWorkspaceSurfaceAdapterProps) {
   const pathname = usePathname();
-  const { brandId, organizationId } = useBrand();
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
-  const inspector = useWorkspaceInspector();
-  // Stable setters — the full `inspector` object identity flips whenever
-  // isOpen changes, which would re-fire an open-on-select effect and fight
-  // the topbar collapse control.
-  const setInspectorOpen = inspector?.setIsOpen;
-  const previousActiveItemIdRef = useRef<string | null>(null);
+  const reveal = useContextSidebar()?.reveal;
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isRevealPending, setIsRevealPending] = useState(false);
+  const handleClose = useCallback(() => {
+    setIsDismissed(true);
+  }, []);
+  const requestDetails = useCallback(() => {
+    setIsDismissed(false);
+    setIsRevealPending(true);
+  }, []);
 
-  // Auto-open the Context rail when the selected row *changes* to a new item.
-  // Never re-open just because the operator collapsed the rail while a row is
-  // still selected (that is what broke "collapse then click another row").
+  // Every row tap asks for the details, including a tap on the active row.
   useEffect(() => {
-    const nextId = activeItem?.id ?? null;
-    const previousId = previousActiveItemIdRef.current;
-    previousActiveItemIdRef.current = nextId;
+    if (revealRequest > 0) {
+      requestDetails();
+    }
+  }, [requestDetails, revealRequest]);
 
-    if (!nextId || nextId === previousId || !setInspectorOpen) {
+  // Reveal only once the selection is registered again.
+  useEffect(() => {
+    if (!isRevealPending || isDismissed) {
       return;
     }
+    setIsRevealPending(false);
+    reveal?.();
+  }, [isDismissed, isRevealPending, reveal]);
 
-    setInspectorOpen(true);
-    dispatchOpenContextTab();
-  }, [activeItem?.id, setInspectorOpen]);
-
-  // Explicit "Open in Context" row action — must open even when the same row
-  // is already selected and the rail was collapsed.
+  // Explicit "Open in Context" row action.
   useEffect(() => {
-    if (!setInspectorOpen) {
-      return;
-    }
-
     const handleForceOpen = (): void => {
-      setInspectorOpen(true);
-      dispatchOpenContextTab();
+      requestDetails();
     };
 
     window.addEventListener(
@@ -80,7 +77,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
         handleForceOpen,
       );
     };
-  }, [setInspectorOpen]);
+  }, [requestDetails]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
@@ -170,10 +167,22 @@ export default function ReviewWorkspaceSurfaceAdapter({
     };
   }, [activeItem, pathname, setPageContext]);
 
-  const inspectorNode = useMemo(
-    () => (
+  return (
+    <ContextSidebarPanel
+      onClose={handleClose}
+      selection={
+        activeItem && !isDismissed
+          ? {
+              id: activeItem.id,
+              kind: 'post',
+              origin: activeItemOrigin,
+              title: getReviewItemTitle(activeItem),
+            }
+          : null
+      }
+    >
       <div
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        className="flex min-h-0 flex-1 flex-col"
         data-testid="review-surface-inspector"
       >
         <ReviewDetailPanel
@@ -188,52 +197,6 @@ export default function ReviewWorkspaceSurfaceAdapter({
           onUnassign={onUnassign}
         />
       </div>
-    ),
-    [
-      activeItem,
-      isActioning,
-      isSelected,
-      onApprove,
-      onAssign,
-      onReject,
-      onRequestChanges,
-      onToggleSelect,
-      onUnassign,
-    ],
+    </ContextSidebarPanel>
   );
-
-  const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
-
-  const contextLabel = activeItem
-    ? `Approval queue · ${getReviewItemTitle(activeItem)}`
-    : 'Approval queue';
-
-  const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
-    () => ({
-      contextLabel,
-      references: [],
-      renderInspector,
-      scope: {
-        ...(brandId ? { brandId } : {}),
-        organizationId: organizationId ?? '',
-      },
-      surfaceKey: 'publishing',
-    }),
-    [brandId, contextLabel, organizationId, renderInspector],
-  );
-
-  // Presentation adapter is a second registration path used by some shell
-  // branches — keep both so Context never falls through empty on review.
-  const presentation = useMemo<WorkspaceSurfacePresentationAdapter>(
-    () => ({
-      contextLabel,
-      inspector: inspectorNode,
-      surfaceKey: 'publishing',
-    }),
-    [contextLabel, inspectorNode],
-  );
-
-  useRegisterWorkspaceSurfaceAdapter(registration);
-  useRegisterWorkspaceSurfacePresentationAdapter(presentation);
-  return null;
 }

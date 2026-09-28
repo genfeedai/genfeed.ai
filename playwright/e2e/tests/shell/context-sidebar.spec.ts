@@ -2,7 +2,10 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { IngredientCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
-import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
+import {
+  mockActiveSubscription,
+  mockLibraryData,
+} from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
@@ -174,5 +177,34 @@ test.describe('Context sidebar — selection driven', () => {
     await authenticatedPage.keyboard.press('Escape');
     await expect(drawer).toHaveCount(0);
     await expect(card).toHaveAttribute('data-selected', 'false');
+  });
+
+  test('opens a Library asset on selection and deselects it on close', async ({
+    authenticatedPage,
+  }) => {
+    await mockLibraryData(authenticatedPage);
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.IMAGES), {
+      waitUntil: 'domcontentloaded',
+    });
+
+    const selectToggle = authenticatedPage.getByTestId(
+      'masonry-select-ingredient-image-1',
+    );
+    await selectToggle.hover();
+    await selectToggle.click();
+
+    const contextSidebar = authenticatedPage.getByRole('complementary', {
+      name: 'Selection details',
+    });
+    await expect(contextSidebar).toBeVisible();
+    await expect(contextSidebar.getByLabel('Asset details')).toBeVisible();
+
+    await contextSidebar
+      .getByRole('button', { exact: true, name: 'Close details' })
+      .click();
+
+    await expect(contextSidebar).toHaveCount(0);
+    await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
   });
 });

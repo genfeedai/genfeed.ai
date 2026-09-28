@@ -5,6 +5,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ByokService } from '@api/services/byok/byok.service';
+import { resolveTextDispatchByokProvider } from '@api/services/byok/text-dispatch-byok.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -265,6 +266,12 @@ export class MediaLocalizationService {
         request.organizationId,
         ByokProvider.REPLICATE,
       );
+      // Translation completes through the text provider, not Replicate: an
+      // org's Replicate key must never reach OpenRouter.
+      const translationKey = await this.byok.resolveApiKey(
+        request.organizationId,
+        resolveTextDispatchByokProvider(DEFAULT_TEXT_MODEL),
+      );
       const voiceKey = await this.byok.resolveApiKey(
         request.organizationId,
         ByokProvider.ELEVENLABS,
@@ -285,7 +292,7 @@ export class MediaLocalizationService {
         sourceSegments,
         overridden,
         tolerance,
-        replicateApiKey: replicateKey?.apiKey,
+        translationApiKey: translationKey?.apiKey,
         voiceApiKey: voiceKey?.apiKey,
         usage,
         providerData,
@@ -464,7 +471,7 @@ export class MediaLocalizationService {
       sourceSegments: SpeechSegment[];
       overridden: boolean;
       tolerance: number;
-      replicateApiKey: string | undefined;
+      translationApiKey: string | undefined;
       voiceApiKey: string | undefined;
       usage: LocalizationUsage;
       providerData: LocalizationProviderData;
@@ -477,7 +484,7 @@ export class MediaLocalizationService {
       sourceSegments,
       overridden,
       tolerance,
-      replicateApiKey,
+      translationApiKey,
       voiceApiKey,
       usage,
       providerData,
@@ -495,7 +502,7 @@ export class MediaLocalizationService {
             segment.text,
             language,
             segment.end - segment.start,
-            replicateApiKey,
+            translationApiKey,
           );
       let generated:
         | Awaited<ReturnType<ElevenLabsService['generateAndUploadAudio']>>
@@ -543,7 +550,7 @@ export class MediaLocalizationService {
           segment.text,
           language,
           Math.max(0.1, (window * window) / speechDuration - tolerance),
-          replicateApiKey,
+          translationApiKey,
         );
       }
       if (!generated) throw new Error('Speech generation returned no audio');
