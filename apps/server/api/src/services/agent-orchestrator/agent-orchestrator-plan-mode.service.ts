@@ -424,6 +424,9 @@ export class AgentOrchestratorPlanModeService {
     summary: string;
     plan: {
       id: string;
+      /** Stamped at creation so a client can order this plan against others. */
+      createdAt: string;
+      updatedAt: string;
       content: string;
       explanation?: string;
       steps?: Record<string, unknown>[];
@@ -468,14 +471,19 @@ export class AgentOrchestratorPlanModeService {
       ? (parsed?.steps as Record<string, unknown>[])
       : undefined;
 
+    const createdAtMs = Date.now();
+    const createdAt = new Date(createdAtMs).toISOString();
+
     return {
       plan: {
         awaitingApproval: true,
         content,
+        createdAt,
         ...(explanation ? { explanation } : {}),
-        id: `plan-${Date.now()}`,
+        id: `plan-${createdAtMs}`,
         status: 'awaiting_approval',
         ...(steps ? { steps } : {}),
+        updatedAt: createdAt,
         ...(params.reviewMetadata?.lastReviewAction
           ? { lastReviewAction: params.reviewMetadata.lastReviewAction }
           : {}),

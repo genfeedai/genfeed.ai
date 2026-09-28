@@ -166,6 +166,66 @@ describe('agent-chat.store messages and plans', () => {
       );
     });
 
+    describe('plans as the agent drafts them (no timestamps)', () => {
+      const draftedB = {
+        awaitingApproval: true,
+        content: 'Plan B',
+        id: 'plan-1790000500000',
+        status: 'awaiting_approval',
+      } as AgentProposedPlan;
+      const approvedA = makeDatedPlan('plan-1790000000000', planA.createdAt, {
+        approvedAt: '2026-09-28T10:06:00.000Z',
+        status: 'approved',
+        updatedAt: '2026-09-28T10:06:00.000Z',
+      });
+
+      it('does not let a late timestamped approval of an older plan replace it', () => {
+        const store = useAgentChatStore.getState();
+        store.addMessage(
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+        );
+        store.addMessage(
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        );
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+
+      it('does not let a late finalized run replace it', () => {
+        const store = useAgentChatStore.getState();
+        store.addMessage(
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+        );
+
+        store.finalizeStream(
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        );
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+
+      it('derives it when hydrating messages listed out of plan order', () => {
+        useAgentChatStore.getState().setMessages([
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        ]);
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+    });
+
     it('derives the newest plan when hydrating messages listed out of plan order', () => {
       useAgentChatStore.getState().setMessages([
         makeMessage('m-b', { metadata: { proposedPlan: planB } }),
