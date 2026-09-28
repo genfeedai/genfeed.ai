@@ -36,6 +36,7 @@ export interface StitchFixtureRow {
   status: string;
   transformations: string[];
   userId: string | null;
+  workflowExecutionId?: string | null;
 }
 
 export interface StitchFixtureEvent {
@@ -284,6 +285,7 @@ export class VideoStitchFixture {
           status: String(input.status),
           transformations: (input.transformations ?? []).map(String),
           userId: input.userId,
+          workflowExecutionId: input.workflowExecutionId ?? null,
         });
         return {
           ingredientData: { id },

@@ -227,6 +227,7 @@ describe('video stitch parity across callers', () => {
         'activity.record',
         'background',
         'metadata.update',
+        'asset-gate',
         'video.complete',
         'activity.update',
         'background',

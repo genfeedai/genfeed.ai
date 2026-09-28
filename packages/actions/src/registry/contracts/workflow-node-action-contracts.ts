@@ -1436,7 +1436,10 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'transitionType',
         'videos',
       ]),
+      // `ingredientId` lets batch output discovery resolve the stitched
+      // output by id (#5460, #5491).
       outputSchema: objectOutput({
+        ingredientId: STRING_SCHEMA,
         video: STRING_SCHEMA,
         videoUrl: STRING_SCHEMA,
       }),
