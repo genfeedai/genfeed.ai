@@ -88,8 +88,19 @@ describe('BatchProjectSchedulingService', () => {
     credential: { findMany: vi.fn() },
     ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
     organizationSetting: { findFirst: vi.fn() },
+    batchItem: { findMany: vi.fn() },
     post: { findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   };
+  const reviewPost = { description: 'Stored caption', id: 'review-post-1' };
+  /** The review draft for caption/approval reads; nothing else scheduled. */
+  function postsReading(
+    overrides: { reviewPosts?: Row[]; scheduledPosts?: Row[] } = {},
+  ) {
+    return async (args: { select?: Record<string, boolean> }) =>
+      args.select?.targetExecutionState
+        ? (overrides.scheduledPosts ?? [])
+        : (overrides.reviewPosts ?? [reviewPost]);
+  }
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const reconcileService = {
     reconcileProject: vi.fn(),
@@ -120,8 +131,11 @@ describe('BatchProjectSchedulingService', () => {
     prisma.batchProjectItem.findMany.mockResolvedValue([]);
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     prisma.post.findFirst.mockResolvedValue(null);
-    prisma.post.findMany.mockResolvedValue([]);
+    prisma.post.findMany.mockImplementation(postsReading());
     prisma.post.updateMany.mockResolvedValue({ count: 1 });
+    prisma.batchItem.findMany.mockResolvedValue([
+      { id: 'review-item-1', reviewDecision: 'APPROVED', status: 'COMPLETED' },
+    ]);
   });
 
   describe('schedule', () => {
@@ -329,10 +343,11 @@ describe('BatchProjectSchedulingService', () => {
 
     it('keeps the caption the review inbox approved when there is no override', async () => {
       prisma.post.findMany.mockImplementation(
-        async (args: { select?: Record<string, boolean> }) =>
-          args.select?.description
-            ? [{ description: 'Rewritten in the inbox', id: 'review-post-1' }]
-            : [],
+        postsReading({
+          reviewPosts: [
+            { description: 'Rewritten in the inbox', id: 'review-post-1' },
+          ],
+        }),
       );
 
       await service.schedule(
@@ -362,17 +377,22 @@ describe('BatchProjectSchedulingService', () => {
         new Error('Media readiness failed for one approval'),
       );
       prisma.post.findMany.mockImplementation(
-        async (args: { select?: Record<string, boolean> }) =>
-          args.select?.targetExecutionState
-            ? [
+        async (args: { select?: Record<string, boolean> }) => {
+          if (!args.select?.targetExecutionState) {
+            return [reviewPost];
+          }
+          // Nothing had gone out before the call; the call then half-commits.
+          return postsService.batchSchedule.mock.calls.length === 0
+            ? []
+            : [
                 {
                   credentialId: 'credential-tiktok',
                   id: 'review-post-1',
                   publishApprovalId: 'approval-1',
                   targetExecutionState: TargetExecutionState.SCHEDULED,
                 },
-              ]
-            : [],
+              ];
+        },
       );
 
       const result = await service.schedule(
@@ -434,6 +454,107 @@ describe('BatchProjectSchedulingService', () => {
         ['clone-post-1', 'credential-tiktok'],
         ['review-post-1', 'credential-instagram'],
       ]);
+    });
+
+    it('refuses an item the review inbox rejected after Batch approved it', async () => {
+      prisma.batchItem.findMany.mockResolvedValue([
+        { id: 'review-item-1', reviewDecision: 'REJECTED', status: 'SKIPPED' },
+      ]);
+
+      await expect(
+        service.schedule(
+          'project-1',
+          {
+            targets: [
+              { credentialId: 'credential-tiktok', platform: 'tiktok' },
+              { credentialId: 'credential-instagram', platform: 'instagram' },
+            ],
+          },
+          scope,
+        ),
+      ).rejects.toThrow('Approve at least one item before scheduling');
+      expect(prisma.batchItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['review-item-1'] },
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      expect(postsService.create).not.toHaveBeenCalled();
+      expect(postsService.batchSchedule).not.toHaveBeenCalled();
+    });
+
+    it('refuses an item whose review draft is gone', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({ reviewPosts: [] }),
+      );
+
+      await expect(
+        service.schedule(
+          'project-1',
+          {
+            targets: [
+              { credentialId: 'credential-tiktok', platform: 'tiktok' },
+              { credentialId: 'credential-instagram', platform: 'instagram' },
+            ],
+          },
+          scope,
+        ),
+      ).rejects.toThrow('Approve at least one item before scheduling');
+      expect(postsService.create).not.toHaveBeenCalled();
+      expect(postsService.batchSchedule).not.toHaveBeenCalled();
+    });
+
+    it('does not schedule again a destination whose bound post already went out', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }), [
+        {
+          ...approvedItem,
+          scheduledTargets: [
+            {
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+              status: 'pending',
+            },
+          ],
+        },
+      ]);
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          scheduledPosts: [
+            {
+              credentialId: 'credential-tiktok',
+              id: 'review-post-1',
+              publishApprovalId: 'approval-1',
+              targetExecutionState: TargetExecutionState.PUBLISHED,
+            },
+          ],
+        }),
+      );
+
+      const result = await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(postsService.batchSchedule).not.toHaveBeenCalled();
+      expect(result).toEqual({ failedCount: 0, scheduledCount: 1 });
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          scheduledTargets: [
+            expect.objectContaining({
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+              status: 'scheduled',
+            }),
+          ],
+        }),
+        where: expect.objectContaining({ id: 'item-1' }),
+      });
     });
 
     it('counts a destination the channel rejects as failed', async () => {

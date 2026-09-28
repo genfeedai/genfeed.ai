@@ -25,6 +25,8 @@ import {
   type Platform,
   PostCategory,
   PostVisibility,
+  parseReviewDecision,
+  ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
@@ -161,26 +163,22 @@ export class BatchProjectSchedulingService {
     if (!project) {
       throw new NotFoundException('Batch project', id);
     }
-    const approved = project.items.filter(
+    const candidates = project.items.filter(
       (item) =>
         item.status === BatchProjectItemStatus.APPROVED &&
         item.postId &&
+        item.reviewItemId &&
         item.outputIngredientId,
+    );
+    const { approved, reviewPosts } = await this.readCanonicalApprovals(
+      candidates,
+      scope,
     );
     if (approved.length === 0) {
       throw new BadRequestException(
         'Approve at least one item before scheduling',
       );
     }
-
-    const reviewPosts = await this.prisma.post.findMany({
-      select: { description: true, id: true },
-      where: scopedWhere(scope.organizationId, {
-        id: {
-          in: approved.flatMap((item) => (item.postId ? [item.postId] : [])),
-        },
-      }),
-    });
 
     return {
       approved,
@@ -197,6 +195,65 @@ export class BatchProjectSchedulingService {
         reviewPosts.map((post) => [post.id, post.description]),
       ),
       scope,
+    };
+  }
+
+  /**
+   * The project's APPROVED status mirrors the review inbox and can be stale.
+   * Keep only items the inbox still approves and whose review draft still
+   * exists, so content rejected there is never scheduled or cloned.
+   */
+  private async readCanonicalApprovals(
+    candidates: BatchProjectItem[],
+    scope: IBatchProjectScope,
+  ): Promise<{
+    approved: BatchProjectItem[];
+    reviewPosts: { description: string; id: string }[];
+  }> {
+    if (candidates.length === 0) {
+      return { approved: [], reviewPosts: [] };
+    }
+    const [reviewRows, reviewPosts] = await Promise.all([
+      this.prisma.batchItem.findMany({
+        select: { id: true, reviewDecision: true },
+        where: scopedWhere(scope.organizationId, {
+          id: {
+            in: candidates.flatMap((item) =>
+              item.reviewItemId ? [item.reviewItemId] : [],
+            ),
+          },
+        }),
+      }),
+      this.prisma.post.findMany({
+        select: { description: true, id: true },
+        where: scopedWhere(scope.organizationId, {
+          id: {
+            in: candidates.flatMap((item) =>
+              item.postId ? [item.postId] : [],
+            ),
+          },
+        }),
+      }),
+    ]);
+    const approvedReviewIds = new Set(
+      reviewRows
+        .filter(
+          (row) =>
+            parseReviewDecision(row.reviewDecision).decision ===
+            ReviewDecision.APPROVED,
+        )
+        .map((row) => row.id),
+    );
+    const livePostIds = new Set(reviewPosts.map((post) => post.id));
+    return {
+      approved: candidates.filter(
+        (item) =>
+          item.reviewItemId !== null &&
+          approvedReviewIds.has(item.reviewItemId) &&
+          item.postId !== null &&
+          livePostIds.has(item.postId),
+      ),
+      reviewPosts,
     };
   }
 
@@ -262,38 +319,27 @@ export class BatchProjectSchedulingService {
       entries.push(await this.bindEntry(run, item, destination));
     }
 
-    let scheduledPostIds: Set<string>;
-    try {
-      const result = await this.postsService.batchSchedule(
-        entries.map((entry) => ({
-          ingredientIds: entry.item.outputIngredientId
-            ? [entry.item.outputIngredientId]
-            : [],
-          postId: entry.postId,
-          scheduledDate: target.scheduledDate ?? run.now.toISOString(),
-          text: entry.caption,
-        })),
-        run.scope.organizationId,
-        {
-          credentialId: destination.credentialId,
-          platform: destination.platform,
-        },
-        run.scope.userId,
+    // A pending binding can be a publish that went out before its outcome was
+    // saved. Its post carries the operation (destination + publish approval),
+    // so a post already scheduled there is recorded, never sent again.
+    const scheduledPostIds = await this.readScheduledPostIds(
+      entries.map((entry) => entry.postId),
+      destination.credentialId,
+      run.scope,
+    );
+    const toSchedule = entries.filter(
+      (entry) => !scheduledPostIds.has(entry.postId),
+    );
+    if (toSchedule.length > 0) {
+      const sent = await this.sendSchedule(
+        run,
+        target,
+        destination,
+        toSchedule,
       );
-      scheduledPostIds = new Set(result.posts.map((post) => String(post.id)));
-    } catch (error: unknown) {
-      this.logger.error('Batch project destination failed to schedule', error, {
-        batchProjectId: run.project.id,
-        context: this.context,
-        credentialId: destination.credentialId,
-        organizationId: run.scope.organizationId,
-      });
-      // Part of the call may have committed; read what actually scheduled.
-      scheduledPostIds = await this.readScheduledPostIds(
-        entries.map((entry) => entry.postId),
-        destination.credentialId,
-        run.scope,
-      );
+      for (const postId of sent) {
+        scheduledPostIds.add(postId);
+      }
     }
 
     let scheduledCount = 0;
@@ -321,6 +367,47 @@ export class BatchProjectSchedulingService {
       );
     }
     return { failedCount: entries.length - scheduledCount, scheduledCount };
+  }
+
+  /** Schedule entries on one destination; returns the posts that went out. */
+  private async sendSchedule(
+    run: ScheduleRun,
+    target: BatchProjectScheduleTargetDto,
+    destination: Destination,
+    entries: ScheduleEntry[],
+  ): Promise<Set<string>> {
+    try {
+      const result = await this.postsService.batchSchedule(
+        entries.map((entry) => ({
+          ingredientIds: entry.item.outputIngredientId
+            ? [entry.item.outputIngredientId]
+            : [],
+          postId: entry.postId,
+          scheduledDate: target.scheduledDate ?? run.now.toISOString(),
+          text: entry.caption,
+        })),
+        run.scope.organizationId,
+        {
+          credentialId: destination.credentialId,
+          platform: destination.platform,
+        },
+        run.scope.userId,
+      );
+      return new Set(result.posts.map((post) => String(post.id)));
+    } catch (error: unknown) {
+      this.logger.error('Batch project destination failed to schedule', error, {
+        batchProjectId: run.project.id,
+        context: this.context,
+        credentialId: destination.credentialId,
+        organizationId: run.scope.organizationId,
+      });
+      // Part of the call may have committed; read what actually scheduled.
+      return this.readScheduledPostIds(
+        entries.map((entry) => entry.postId),
+        destination.credentialId,
+        run.scope,
+      );
+    }
   }
 
   /**

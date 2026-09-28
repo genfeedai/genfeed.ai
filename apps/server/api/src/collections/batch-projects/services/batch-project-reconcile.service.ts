@@ -89,6 +89,19 @@ export function batchProjectItemSourceKey(itemId: string): string {
   return `batch-project-item:${itemId}`;
 }
 
+/** Idempotency key of the workflow run a batch project start enqueues. */
+export function batchProjectStartKey(
+  projectId: string,
+  dispatchedAt: Date,
+): string {
+  return `batch-project:${projectId}:start:${dispatchedAt.toISOString()}`;
+}
+
+/** Idempotency key of the workflow run one item retry enqueues. */
+export function batchProjectRetryKey(itemId: string, attempt: number): string {
+  return `${batchProjectItemSourceKey(itemId)}:retry:${attempt}`;
+}
+
 /**
  * Moves a batch project forward from server state alone, so generation that
  * continues after the creator leaves still lands (#5463). Idea items resolve
@@ -356,9 +369,12 @@ export class BatchProjectReconcileService {
       if (item.status !== BatchProjectItemStatus.GENERATING) {
         continue;
       }
-      if (!item.workflowExecutionId || item.workflowItemIndex === null) {
-        // Claimed for a run that never got recorded (the start or retry
-        // failed half-way); let the creator retry it.
+      const executionId =
+        item.workflowExecutionId ??
+        (await this.recoverUnrecordedRun(project, item));
+      if (!executionId || item.workflowItemIndex === null) {
+        // Claimed for a run that never started (the start or retry failed
+        // half-way); let the creator retry it.
         if ((item.dispatchedAt?.getTime() ?? 0) < dispatchDeadline) {
           outcomes.push({
             error: 'The workflow run did not start. Retry this item.',
@@ -368,9 +384,9 @@ export class BatchProjectReconcileService {
         }
         continue;
       }
-      const group = byExecution.get(item.workflowExecutionId) ?? [];
-      group.push(item);
-      byExecution.set(item.workflowExecutionId, group);
+      const group = byExecution.get(executionId) ?? [];
+      group.push({ ...item, workflowExecutionId: executionId });
+      byExecution.set(executionId, group);
     }
 
     for (const [executionId, items] of byExecution) {
@@ -383,6 +399,41 @@ export class BatchProjectReconcileService {
       );
     }
     return outcomes;
+  }
+
+  /**
+   * A run can be enqueued while saving its id onto the item fails. Find it by
+   * the attempt's deterministic key and link it, so the paid run is followed
+   * instead of being failed and run a second time.
+   */
+  private async recoverUnrecordedRun(
+    project: ProjectWithItems,
+    item: BatchProjectItem,
+  ): Promise<string | null> {
+    if (!item.dispatchedAt || item.workflowItemIndex === null) {
+      return null;
+    }
+    const idempotencyKey =
+      item.retryCount > 0
+        ? batchProjectRetryKey(item.id, item.retryCount)
+        : batchProjectStartKey(project.id, item.dispatchedAt);
+    const execution = await this.prisma.workflowExecution.findFirst({
+      select: { id: true },
+      where: scopedWhere(project.organizationId, { idempotencyKey }),
+    });
+    if (!execution) {
+      return null;
+    }
+    await this.prisma.batchProjectItem.updateMany({
+      data: { workflowExecutionId: execution.id },
+      where: scopedWhere(project.organizationId, {
+        id: item.id,
+        retryCount: item.retryCount,
+        status: BatchProjectItemStatus.GENERATING,
+        workflowExecutionId: null,
+      }),
+    });
+    return execution.id;
   }
 
   private async resolveExecutionOutcomes(

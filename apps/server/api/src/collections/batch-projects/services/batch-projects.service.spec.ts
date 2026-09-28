@@ -409,12 +409,16 @@ describe('BatchProjectsService', () => {
       const enqueueOrder =
         batchWorkflowExecutionService.startBatchExecution.mock
           .invocationCallOrder[0];
+      // Each item's index is claimed with it, so a lost execution link can
+      // be recovered from the run's deterministic key.
       expect(prisma.batchProjectItem.updateMany).toHaveBeenNthCalledWith(1, {
         data: expect.objectContaining({
           status: BatchProjectItemStatus.GENERATING,
           workflowExecutionId: null,
+          workflowItemIndex: 0,
         }),
         where: expect.objectContaining({
+          id: 'item-1',
           status: BatchProjectItemStatus.PENDING,
         }),
       });
@@ -482,6 +486,7 @@ describe('BatchProjectsService', () => {
           retryCount: 1,
           status: BatchProjectItemStatus.GENERATING,
           workflowExecutionId: null,
+          workflowItemIndex: 0,
         }),
         where: expect.objectContaining({
           id: 'item-1',
@@ -645,6 +650,26 @@ describe('BatchProjectsService', () => {
         'project-1',
         'org-1',
       );
+    });
+
+    it('refuses to approve an item the inbox already rejected', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      prisma.batchProjectItem.findMany.mockResolvedValue([
+        makeItem({
+          reviewBatchId: 'review-batch-1',
+          reviewItemId: 'review-item-1',
+          status: BatchProjectItemStatus.REJECTED,
+        }),
+      ]);
+
+      await expect(
+        service.review(
+          'project-1',
+          { decision: 'approved', itemIds: ['item-1'] },
+          scope,
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     });
 
     it('rejects through the review inbox', async () => {

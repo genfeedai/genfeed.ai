@@ -600,7 +600,75 @@ describe('BatchProjectReconcileService', () => {
     );
   });
 
+  it.each([
+    [
+      'a start',
+      { retryCount: 0, workflowItemIndex: 1 },
+      (dispatchedAt: Date) =>
+        `batch-project:project-1:start:${dispatchedAt.toISOString()}`,
+    ],
+    [
+      'a retry',
+      { retryCount: 2, workflowItemIndex: 0 },
+      () => 'batch-project-item:item-1:retry:2',
+    ],
+  ])(
+    'recovers the run of %s whose execution link was never saved',
+    async (_label, overrides, keyOf) => {
+      const dispatchedAt = new Date(
+        Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000,
+      );
+      useProject(
+        makeProject([
+          makeItem({
+            dispatchedAt,
+            workflowExecutionId: null,
+            ...overrides,
+          }),
+        ]),
+      );
+      prisma.workflowExecution.findFirst.mockImplementation(
+        async (args: { where: { id?: string; idempotencyKey?: string } }) => {
+          if (args.where.idempotencyKey === keyOf(dispatchedAt)) {
+            return { id: 'parent-recovered' };
+          }
+          return args.where.id === 'parent-recovered'
+            ? {
+                error: null,
+                id: 'parent-recovered',
+                result: {
+                  metadata: {
+                    batchExecution: { childWorkflowVersionId: 'version-1' },
+                  },
+                },
+                status: WorkflowExecutionStatus.RUNNING,
+              }
+            : null;
+        },
+      );
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            idempotencyKey: keyOf(dispatchedAt),
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      expect(updatedItem('item-1')).toContainEqual({
+        workflowExecutionId: 'parent-recovered',
+      });
+      expect(updatedItem('item-1')).not.toContainEqual(
+        expect.objectContaining({ status: BatchProjectItemStatus.FAILED }),
+      );
+    },
+  );
+
   it('fails a workflow item whose run never got recorded', async () => {
+    prisma.workflowExecution.findFirst.mockResolvedValue(null);
     useProject(
       makeProject([
         makeItem({

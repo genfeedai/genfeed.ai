@@ -14,7 +14,8 @@ import {
 } from '@api/collections/batch-projects/services/batch-project.mapper';
 import {
   BatchProjectReconcileService,
-  batchProjectItemSourceKey,
+  batchProjectRetryKey,
+  batchProjectStartKey,
 } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
 import {
   DEFAULT_IDEA_SETTINGS,
@@ -337,7 +338,8 @@ export class BatchProjectsService {
       if (pending.length === 0) {
         throw new BadRequestException('Add at least one input before starting');
       }
-      if (project.kind === BatchProjectKind.WORKFLOW && !project.workflowId) {
+      const isWorkflow = project.kind === BatchProjectKind.WORKFLOW;
+      if (isWorkflow && !project.workflowId) {
         throw new BadRequestException('Choose a workflow before starting');
       }
 
@@ -357,27 +359,31 @@ export class BatchProjectsService {
         if (claim.count !== 1) {
           throw new ConflictException('This batch has already started');
         }
-        await tx.batchProjectItem.updateMany({
-          data: {
-            dispatchedAt,
-            status: BatchProjectItemStatus.GENERATING,
-            workflowExecutionId: null,
-            workflowItemIndex: null,
-          },
-          where: scopedWhere(scope.organizationId, {
-            id: { in: pendingIds },
-            projectId: id,
-            status: BatchProjectItemStatus.PENDING,
-          }),
-        });
+        // The run's index is claimed with each item, so reconcile can recover
+        // a run whose execution link was never saved from its start key.
+        for (const [index, item] of pending.entries()) {
+          await tx.batchProjectItem.updateMany({
+            data: {
+              dispatchedAt,
+              status: BatchProjectItemStatus.GENERATING,
+              workflowExecutionId: null,
+              workflowItemIndex: isWorkflow ? index : null,
+            },
+            where: scopedWhere(scope.organizationId, {
+              id: item.id,
+              projectId: id,
+              status: BatchProjectItemStatus.PENDING,
+            }),
+          });
+        }
       });
 
-      if (project.kind === BatchProjectKind.WORKFLOW && project.workflowId) {
+      if (isWorkflow && project.workflowId) {
         let executionId: string;
         try {
           executionId =
             await this.batchWorkflowExecutionService.startBatchExecution({
-              idempotencyKey: `batch-project:${id}:start:${dispatchedAt.toISOString()}`,
+              idempotencyKey: batchProjectStartKey(id, dispatchedAt),
               ingredientIds: pending.flatMap((item) =>
                 item.inputIngredientId ? [item.inputIngredientId] : [],
               ),
@@ -522,7 +528,7 @@ export class BatchProjectsService {
           retryCount: attempt,
           status: BatchProjectItemStatus.GENERATING,
           workflowExecutionId: null,
-          workflowItemIndex: null,
+          workflowItemIndex: isWorkflow ? 0 : null,
         },
         where: scopedWhere(scope.organizationId, {
           id: itemId,
@@ -538,7 +544,7 @@ export class BatchProjectsService {
         try {
           const executionId =
             await this.batchWorkflowExecutionService.startBatchExecution({
-              idempotencyKey: `${batchProjectItemSourceKey(itemId)}:retry:${attempt}`,
+              idempotencyKey: batchProjectRetryKey(itemId, attempt),
               ingredientIds: [item.inputIngredientId],
               organizationId: scope.organizationId,
               userId: scope.userId,
@@ -603,6 +609,16 @@ export class BatchProjectsService {
     });
     if (items.length !== new Set(dto.itemIds).size) {
       throw new NotFoundException('Batch project item');
+    }
+
+    if (
+      dto.decision === 'approved' &&
+      items.some((item) => item.status === BatchProjectItemStatus.REJECTED)
+    ) {
+      // The inbox deletes a rejected item's draft; approving cannot bring it back.
+      throw new ConflictException(
+        'A rejected item cannot be approved. Retry or regenerate it instead.',
+      );
     }
 
     const reviewItemIdsByBatch = new Map<string, string[]>();
