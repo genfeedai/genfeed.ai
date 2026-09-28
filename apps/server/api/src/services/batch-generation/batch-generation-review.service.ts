@@ -44,7 +44,11 @@ import {
   resolveBatchItems,
   toBatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
-import { withdrawDestinationPosts } from '@api/services/batch-generation/batch-generation-destination-posts';
+import {
+  declineReviewPost,
+  linkReviewDestinationPosts,
+  withdrawDestinationPosts,
+} from '@api/services/batch-generation/batch-generation-destination-posts';
 import {
   appendApprovedReviewEvent,
   pinApprovedDrafts,
@@ -555,47 +559,20 @@ export class BatchGenerationReviewService {
               post.updatedAt,
               expectedPostVersions,
             );
-            await this.autonomousPublishPolicy.recordReviewDecision(
-              {
-                organizationId: orgId,
-                postId: item.postId,
-                userId: actorUserId ?? batch.userId,
-                decision,
-                previousDecision: item.reviewDecision,
-                generatedCaption: item.caption,
-                hasRewriteHistory: Boolean(item.reviewEvents?.length),
-              },
-              transaction,
-            );
-            await this.publishApprovalsService.invalidatePost(
-              orgId,
-              item.postId,
-              feedback ?? 'Review declined publication',
+            await declineReviewPost({
               actorUserId,
+              autonomousPublishPolicy: this.autonomousPublishPolicy,
+              decision,
+              feedback,
+              item,
+              organizationId: orgId,
+              postId: post.id,
+              postLifecycleService: this.postLifecycleService,
+              publishApprovalsService: this.publishApprovalsService,
+              reviewedAt,
               transaction,
-            );
-            await this.postLifecycleService.transition(
-              {
-                actorId: actorUserId,
-                organizationId: orgId,
-                postId: item.postId,
-                nextState:
-                  decision === ReviewDecision.REJECTED
-                    ? TargetExecutionState.CANCELLED
-                    : TargetExecutionState.DRAFT,
-                mutation: {
-                  isDeleted: decision === ReviewDecision.REJECTED,
-                  reviewDecision:
-                    decision === ReviewDecision.REJECTED
-                      ? PersistedReviewDecision.REJECTED
-                      : PersistedReviewDecision.REQUEST_CHANGES,
-                  reviewedAt: new Date(reviewedAt),
-                  reviewFeedback: feedback,
-                },
-                reason: feedback ?? 'Review declined publication',
-              },
-              transaction,
-            );
+              userId: batch.userId,
+            });
           }
           if (decision === ReviewDecision.REJECTED)
             item.status = BatchItemStatus.SKIPPED;
@@ -633,10 +610,7 @@ export class BatchGenerationReviewService {
     return this.summaryService.toBatchSummary(updated);
   }
 
-  /**
-   * Record further posts that publish a review item on other accounts, so
-   * the item's review decisions reach them (see `withdrawDestinationPosts`).
-   */
+  /** Link additional destination posts so review decisions reach every account. */
   async linkDestinationPosts(
     batchId: string,
     itemId: string,
@@ -644,25 +618,13 @@ export class BatchGenerationReviewService {
     orgId: string,
   ): Promise<void> {
     await this.withLockedBatch(batchId, orgId, async (transaction, batch) => {
-      const items = resolveBatchItems(batch);
-      const item = items.find((candidate) => candidate.id === itemId);
-      if (!item) {
-        throw new NotFoundException('Batch item', itemId);
-      }
-      const linked = new Set(item.destinationPostIds ?? []);
-      const fresh = postIds.filter(
-        (postId) => postId !== item.postId && !linked.has(postId),
+      await linkReviewDestinationPosts(
+        transaction,
+        batch,
+        itemId,
+        postIds,
+        orgId,
       );
-      if (fresh.length === 0) {
-        return;
-      }
-      item.destinationPostIds = [...linked, ...fresh];
-      await writeBatchJsonAndItemRows(transaction, {
-        batchId,
-        brandId: batch.brandId,
-        items,
-        organizationId: orgId,
-      });
     });
   }
 
