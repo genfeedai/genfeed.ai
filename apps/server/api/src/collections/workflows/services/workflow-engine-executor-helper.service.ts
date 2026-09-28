@@ -168,6 +168,7 @@ export class WorkflowEngineExecutorHelperService {
     continuation: {
       actionId: string;
       context: ExecutionContext;
+      isByok?: boolean;
       node: ExecutableNode;
       provider: string;
     };
@@ -237,6 +238,7 @@ export class WorkflowEngineExecutorHelperService {
     actionId: string;
     context: ExecutionContext;
     ingredientId: string;
+    isByok?: boolean;
     node: ExecutableNode;
     provider: string;
   }): Promise<{ continuationId: string }> {
@@ -251,6 +253,7 @@ export class WorkflowEngineExecutorHelperService {
       actionId: input.actionId,
       executionId: input.context.executionId,
       ingredientId: input.ingredientId,
+      isByok: input.isByok,
       nodeId: input.node.id,
       organizationId: input.context.organizationId,
       provider: input.provider,

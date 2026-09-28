@@ -18,14 +18,26 @@ function toModel(
   attributes: Record<string, unknown> | undefined,
 ): RegistryMediaModel | null {
   if (!attributes) return null;
-  const { key, label, cost, isActive, isLegacy } = attributes;
+  const {
+    key,
+    label,
+    cost,
+    isActive,
+    isLegacy,
+    pricingType,
+    costPerUnit,
+    minCost,
+  } = attributes;
   if (typeof key !== 'string' || key.length === 0) return null;
   return {
     cost: typeof cost === 'number' && cost >= 0 ? cost : 0,
+    costPerUnit: typeof costPerUnit === 'number' ? costPerUnit : null,
     isActive: isActive === true,
     isLegacy: isLegacy === true,
     key,
     label: typeof label === 'string' && label.length > 0 ? label : key,
+    minCost: typeof minCost === 'number' ? minCost : null,
+    pricingType: typeof pricingType === 'string' ? pricingType : null,
   };
 }
 

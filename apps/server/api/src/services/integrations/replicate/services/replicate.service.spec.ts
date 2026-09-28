@@ -214,6 +214,21 @@ describe('ReplicateService', () => {
       );
     });
 
+    it('never registers the platform webhook for a BYOK prediction', async () => {
+      isCloudMock.mockReturnValue(true);
+      const { service } = createHarness();
+
+      await service.runModel(
+        'owner/model',
+        {},
+        'org-replicate-key',
+        'continuation/1',
+      );
+
+      expect(constructed.at(-1)).toEqual({ auth: 'org-replicate-key' });
+      expect(predictionsCreate.mock.calls[0][0]).not.toHaveProperty('webhook');
+    });
+
     it('omits the webhook off-cloud', async () => {
       const { service } = createHarness();
 
@@ -385,6 +400,21 @@ describe('ReplicateService', () => {
         'v9',
         expect.any(Object),
       );
+    });
+
+    it('never registers the platform webhook for a BYOK training', async () => {
+      isCloudMock.mockReturnValue(true);
+      const { service } = createHarness();
+
+      await service.runTraining(
+        'acme/lora',
+        { input_images: 'x', training_steps: 1, trigger_word: 'TOK' },
+        undefined,
+        'org-replicate-key',
+      );
+
+      expect(constructed.at(-1)).toEqual({ auth: 'org-replicate-key' });
+      expect(trainingsCreate.mock.calls[0][3]).not.toHaveProperty('webhook');
     });
 
     it('adds the webhook on cloud deployments', async () => {

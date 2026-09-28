@@ -4282,6 +4282,10 @@ model SocialConversation {
   status                 String       @default("open")
   priority               String       @default("normal")
   unreadCount            Int          @default(0)
+  /// Monotonic count of inbound messages ingested into this thread. A read
+  /// receipt names the value it rendered, so replies ingested after that
+  /// view stay unread no matter how stale the receipt is.
+  inboundSequence        Int          @default(0)
   needsReview            Boolean      @default(false)
   automationState        String       @default("manual")
   assignedOwnerId        String?
@@ -4953,6 +4957,9 @@ model WorkflowNodeContinuation {
   ingredient            Ingredient                     @relation(fields: [ingredientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   provider              String
   externalId            String?
+  /// The provider call used the organization's own key (BYOK). Polling must
+  /// re-resolve that key; the platform key cannot read the customer's job.
+  isByok                Boolean                        @default(false)
   status                WorkflowNodeContinuationStatus @default(PENDING_SUBMISSION)
   initialOutput         Json?
   providerResult        Json?

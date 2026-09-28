@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -117,8 +118,14 @@ export function SchedulePostCard({
   });
   const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [isScheduled, setIsScheduled] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const request = useAgentUiActionRequest(onUiAction);
+  // The run is keyed by this card, so the phase is known before the payload.
+  const phase = request.getPhase('confirm_publish_post', {
+    sourceActionId: action.id,
+  });
+  const [isScheduledLocally, setIsScheduledLocally] = useState(false);
+  const isScheduled = isScheduledLocally || phase === 'completed';
+  const isSubmitting = phase === 'running' || phase === 'awaiting';
   const {
     createSet,
     expandError,
@@ -300,25 +307,20 @@ export function SchedulePostCard({
     });
 
     if (onUiAction && action.contentId) {
-      setIsSubmitting(true);
-      try {
-        await onUiAction('confirm_publish_post', {
-          contentId: action.contentId,
-          platforms,
-          ...(selectedSetId ? { postingSetId: selectedSetId } : {}),
-          scheduledAt: isoScheduledAt,
-          sourceActionId: action.id,
-          ...(payloadTargets.length > 0 ? { targets: payloadTargets } : {}),
-          timezone,
-        });
-      } catch {
-        setIsSubmitting(false);
-        return;
-      }
-      setIsSubmitting(false);
+      // The run's outcome (done, failed, or still pending) drives the card.
+      await request.submit('confirm_publish_post', {
+        contentId: action.contentId,
+        platforms,
+        ...(selectedSetId ? { postingSetId: selectedSetId } : {}),
+        scheduledAt: isoScheduledAt,
+        sourceActionId: action.id,
+        ...(payloadTargets.length > 0 ? { targets: payloadTargets } : {}),
+        timezone,
+      });
+      return;
     }
 
-    setIsScheduled(true);
+    setIsScheduledLocally(true);
   }, [
     action.contentId,
     action.id,
@@ -326,6 +328,7 @@ export function SchedulePostCard({
     hasSelectedTargetBlockers,
     onSchedule,
     onUiAction,
+    request,
     selectedPlatforms,
     selectedSetId,
     selectedTargets,
@@ -584,6 +587,11 @@ export function SchedulePostCard({
       >
         {isSubmitting ? translate('scheduling') : translate('confirmSchedule')}
       </Button>
+      {phase === 'awaiting' ? (
+        <p className="mt-2 text-xs text-muted-foreground" role="status">
+          {translate('awaitingResult')}
+        </p>
+      ) : null}
     </div>
   );
 }

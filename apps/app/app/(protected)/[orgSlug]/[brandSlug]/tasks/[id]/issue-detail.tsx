@@ -6,6 +6,7 @@ import {
 } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   IssueDetailAction,
   IssueDetailProps,
@@ -116,6 +117,7 @@ export default function IssueDetail({
 }: IssueDetailProps) {
   const statusLabels = useTaskStatusLabels();
   const priorityLabels = useTaskPriorityLabels();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const [state, dispatch] = useReducer(
     issueDetailReducer,
@@ -268,7 +270,7 @@ export default function IssueDetail({
     <Container>
       <div className="mb-4">
         <Link
-          href={APP_ROUTES.WORKSPACE.TASKS}
+          href={href(APP_ROUTES.WORKSPACE.TASKS)}
           className="inline-flex items-center gap-1 text-xs text-gray-800 transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3" />

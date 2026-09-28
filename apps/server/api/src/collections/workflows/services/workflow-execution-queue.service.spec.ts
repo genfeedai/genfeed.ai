@@ -421,9 +421,30 @@ describe('WorkflowExecutionQueueService', () => {
       expect(staleJob.remove).toHaveBeenCalled();
     });
 
-    it('fails loudly instead of silently when the enqueued job lands unclaimable (#5162)', async () => {
+    it('reports success when a worker already finished the freshly added job', async () => {
       mockQueue.add.mockResolvedValueOnce({
         getState: vi.fn().mockResolvedValue('completed'),
+        id: 'system-workflow-exec-8',
+      });
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'agent',
+        userId: 'user-1',
+      };
+
+      await expect(
+        service.queueSystemWorkflow(input, 'system-workflow-exec-8', {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        }),
+      ).resolves.toBe('system-workflow-exec-8');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('fails loudly instead of silently when the enqueued job lands unclaimable (#5162)', async () => {
+      mockQueue.add.mockResolvedValueOnce({
+        getState: vi.fn().mockResolvedValue('unknown'),
         id: 'job-123',
       });
       const input = {
@@ -438,10 +459,10 @@ describe('WorkflowExecutionQueueService', () => {
         service.queueSystemWorkflow(input, 'system-workflow-exec-3', {
           dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
         }),
-      ).rejects.toThrow(/unclaimable state "completed"/);
+      ).rejects.toThrow(/unclaimable state "unknown"/);
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('will never claim it'),
-        expect.objectContaining({ resultingState: 'completed' }),
+        expect.objectContaining({ resultingState: 'unknown' }),
       );
     });
   });

@@ -1642,14 +1642,9 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it.each([
-    ['/acme/moonrise/automation/workflows/new'],
     ['/acme/moonrise/automation/workflows/workflow-1'],
-    ['/acme/moonrise/automation/workflows'],
-    ['/acme/moonrise/automation/templates'],
-    ['/acme/moonrise/automation/workflows/templates'],
-    ['/acme/moonrise/automation/runs'],
     ['/acme/moonrise/automation/runs/run-1'],
-  ])('renders the workflow inspector on %s', (pathname) => {
+  ])('leaves the workflow detail to the page on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();
 
@@ -1659,30 +1654,8 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    const inspector = screen.getByText('Workflow surface inspector');
-    expect(inspector).toBeInTheDocument();
-    // The inspector resolves its own selection from the raw pathname, so the
-    // shell must hand it the untouched route plus the retained thread scope.
-    expect(inspector).toHaveAttribute('data-inspector-pathname', pathname);
-    expect(inspector).toHaveAttribute('data-inspector-thread', 'thread-1');
-    expect(inspector).toHaveAttribute('data-inspector-context-version', '3');
-  });
-
-  it.each([
-    ['/acme/moonrise/automation'],
-    ['/acme/moonrise/settings/skills'],
-    ['/acme/moonrise/automation/library/images'],
-    ['/acme/moonrise/automation/agents'],
-  ])('keeps the generic inspector on %s', (pathname) => {
-    navigation.pathname = pathname;
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Automation canvas</div>
-      </UniversalWorkspaceShell>,
-    );
-
+    // The automation layout registers the workflow or run as a context
+    // sidebar selection; the shell no longer mounts (and polls) its own copy.
     expect(
       screen.queryByText('Workflow surface inspector'),
     ).not.toBeInTheDocument();

@@ -69,6 +69,25 @@ describe('ByokService subscription entitlement', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('throws from lookupApiKey when the settings read fails, while resolveApiKey still reads it as no key', async () => {
+    organizationSettingsService.findOne.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+
+    await expect(
+      service.lookupApiKey('org-1', ByokProvider.REPLICATE),
+    ).rejects.toThrow('database unavailable');
+    await expect(
+      service.resolveApiKey('org-1', ByokProvider.REPLICATE),
+    ).resolves.toBeUndefined();
+  });
+
+  it('returns undefined from lookupApiKey only for a confirmed-missing key', async () => {
+    await expect(
+      service.lookupApiKey('org-1', ByokProvider.OPENAI),
+    ).resolves.toBeUndefined();
+  });
+
   it('refuses to store a key without a paid subscription', async () => {
     organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(true);
 

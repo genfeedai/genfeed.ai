@@ -311,11 +311,8 @@ export class VideoGenerationExecutionService {
         new MetadataEntity({ externalProvider }),
       );
     }
-    const byokApiKeyOverride = (
-      context.request as unknown as DeferredCreditsRequest | undefined
-    )?.creditsConfig?.byokApiKeyOverride;
     const result = await this.providerDispatchService.dispatch({
-      apiKeyOverride: byokApiKeyOverride,
+      apiKeyOverride: this.resolveByokApiKeyOverride(context),
       duration: context.createVideoDto.duration,
       height: context.height,
       imageUrl: context.referenceImageUrls[0],
@@ -351,9 +348,17 @@ export class VideoGenerationExecutionService {
       category: IngredientCategory.VIDEO,
       externalId: generation.externalId,
       ingredientId,
+      ...(this.resolveByokApiKeyOverride(context) ? { isByok: true } : {}),
       organizationId: context.user.organizationId,
       ...(outputIndex === undefined ? {} : { outputIndex }),
     });
+  }
+
+  private resolveByokApiKeyOverride(
+    context: VideoGenerationContext,
+  ): string | undefined {
+    return (context.request as unknown as DeferredCreditsRequest | undefined)
+      ?.creditsConfig?.byokApiKeyOverride;
   }
 
   private generationStartError(output?: number): HttpException {

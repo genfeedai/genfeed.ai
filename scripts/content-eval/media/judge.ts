@@ -6,6 +6,7 @@ import type {
   JudgeVerdict,
   MediaTask,
   Medium,
+  ReferenceRole,
 } from './contracts';
 import { judgeVerdictSchema, MEDIA_RUBRIC_VERSION } from './contracts';
 import { renderBrandKit } from './tasks';
@@ -33,6 +34,12 @@ export interface JudgeMessage {
 
 export interface JudgeAnswerVisuals {
   /** Image URLs, or keyframe data URLs for video, in display order. */
+  frames: readonly string[];
+}
+
+/** A task-supplied reference asset (product shot, character sheet, ...). */
+export interface JudgeReferenceVisuals {
+  role: ReferenceRole;
   frames: readonly string[];
 }
 
@@ -77,8 +84,11 @@ export function buildJudgeMessages(input: {
   kit: BrandKit | null;
   a: JudgeAnswerVisuals;
   b: JudgeAnswerVisuals;
+  /** Reference assets the task supplied (product shot, character sheet, ...). */
+  references?: readonly JudgeReferenceVisuals[];
 }): JudgeMessage[] {
   const { task } = input.task;
+  const references = input.references ?? [];
   const rubric = task.rubric
     .map((line, index) => `${index}. ${line}`)
     .join('\n');
@@ -97,6 +107,15 @@ export function buildJudgeMessages(input: {
       : task.outputSpec.count > 1
         ? `Each answer has ${task.outputSpec.count} images, judged as a set.`
         : 'Each answer is one image.';
+  const referenceNote =
+    references.length > 0
+      ? `Reference asset(s) for ${references.map((reference) => reference.role).join(', ')} follow, labelled by role, before Answer A. Judge each answer's fidelity to them.`
+      : null;
+
+  const referenceParts: JudgeContentPart[] = references.flatMap((reference) => [
+    { text: `Reference (${reference.role}):`, type: 'text' as const },
+    ...reference.frames.map(toImagePart),
+  ]);
 
   const content: JudgeContentPart[] = [
     {
@@ -108,10 +127,12 @@ export function buildJudgeMessages(input: {
           ? `Brand reference:\n${brandLines.join('\n\n')}`
           : 'Brand reference: none.',
         frameNote,
+        ...(referenceNote ? [referenceNote] : []),
         `Rubric version: ${MEDIA_RUBRIC_VERSION}.`,
       ].join('\n\n'),
       type: 'text',
     },
+    ...referenceParts,
     { text: 'Answer A:', type: 'text' },
     ...input.a.frames.map(toImagePart),
     { text: 'Answer B:', type: 'text' },

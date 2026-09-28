@@ -124,6 +124,7 @@ export type {
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
   AgentUiActionHandler,
+  AgentUiActionOutcome,
 } from '@genfeedai/contracts/interfaces';
 
 /**
@@ -600,6 +601,37 @@ export interface AgentChatResponse {
   toolCalls: AgentToolCallSummary[];
   creditsUsed: number;
   creditsRemaining: number;
+}
+
+/**
+ * The real shape of `POST /agent/threads/:threadId/ui-actions`
+ * (`AgentOrchestratorService.handleThreadUiAction` on the server) — it only
+ * enqueues the `agent.thread.ui-action` workflow and acks, the same async
+ * contract as a turn (`AgentChatStreamResponse`). There is no synchronous
+ * `message`/`toolCalls`/credits on this response; the resulting assistant
+ * message arrives through the thread's normal message stream, and callers
+ * must reconcile it the same way a turn does (poll `getMessages`).
+ */
+export interface AgentUiActionAckResponse {
+  executionId: string;
+  status: 'queued';
+  threadId: string;
+}
+
+/**
+ * An acknowledged ui-action run the client is still reconciling or has
+ * settled, keyed by `getUiActionRunKey`. Cards derive their in-flight, done or
+ * failed state from it, so a result that lands after the card stopped waiting
+ * (or after a remount) still settles the card.
+ */
+export interface AgentUiActionRun {
+  action: string;
+  error?: string;
+  executionId: string;
+  key: string;
+  payload?: Record<string, unknown>;
+  status: 'pending' | 'completed' | 'failed';
+  threadId: string;
 }
 
 export interface AgentMemoryEntry {

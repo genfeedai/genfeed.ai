@@ -255,9 +255,13 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = this.resolveCompletionWebhookUrl(
-        workflowContinuationId,
-      );
+      // A BYOK prediction lives in the customer's Replicate account, whose
+      // deliveries are signed with that account's secret. The platform
+      // callback can only authenticate platform-account deliveries, so BYOK
+      // callers complete by polling with the same key instead.
+      const webhookUrl = apiKeyOverride
+        ? undefined
+        : this.resolveCompletionWebhookUrl(workflowContinuationId);
 
       const res = await client.predictions.create({
         input,
@@ -311,7 +315,11 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = this.resolveCompletionWebhookUrl();
+      // Same rule as runModel: the platform callback cannot authenticate a
+      // delivery signed by the customer's Replicate account.
+      const webhookUrl = apiKeyOverride
+        ? undefined
+        : this.resolveCompletionWebhookUrl();
 
       const attempt = async () =>
         client.trainings.create(owner, model, version, {

@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -5,7 +6,7 @@ import type {
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Sparkles } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback } from 'react';
 
 interface BrandInterviewOfferCardProps {
   action: AgentUiAction;
@@ -16,8 +17,7 @@ export function BrandInterviewOfferCard({
   action,
   onUiAction,
 }: BrandInterviewOfferCardProps): ReactElement {
-  const [isStarting, setIsStarting] = useState(false);
-  const [isStarted, setIsStarted] = useState(false);
+  const request = useAgentUiActionRequest(onUiAction);
 
   const data = action.data ?? {};
   const completenessScore =
@@ -31,20 +31,25 @@ export function BrandInterviewOfferCard({
 
   const startCta = action.ctas?.find((cta) => cta.action === 'start_interview');
 
+  const phase = startCta?.action
+    ? request.getPhase(startCta.action, startCta.payload)
+    : 'idle';
+  const isStarting = phase === 'running' || phase === 'awaiting';
+  const isStarted = phase === 'completed';
+
   const handleStart = useCallback(async () => {
     if (!startCta?.action || !onUiAction || isStarting || isStarted) {
       return;
     }
-
-    setIsStarting(true);
-
-    try {
-      await onUiAction(startCta.action, startCta.payload);
-      setIsStarted(true);
-    } finally {
-      setIsStarting(false);
-    }
-  }, [isStarted, isStarting, onUiAction, startCta?.action, startCta?.payload]);
+    await request.submit(startCta.action, startCta.payload);
+  }, [
+    isStarted,
+    isStarting,
+    onUiAction,
+    request,
+    startCta?.action,
+    startCta?.payload,
+  ]);
 
   if (isStarted) {
     return (

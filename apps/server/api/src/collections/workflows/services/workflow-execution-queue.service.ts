@@ -172,6 +172,18 @@ export const CLAIMABLE_JOB_STATES = new Set<string>([
   'prioritized',
 ]);
 
+/**
+ * States a freshly added `system-run` job may report right after `add()`.
+ * The reservation guarantees `add()` created new work, so `completed` means
+ * a worker already claimed and finished it within this call — a success, not
+ * a silently reused stale job. `CLAIMABLE_JOB_STATES` stays narrower because
+ * the PENDING-run reconcile must still treat a completed job as unclaimable.
+ */
+const ENQUEUED_JOB_STATES = new Set<string>([
+  ...CLAIMABLE_JOB_STATES,
+  'completed',
+]);
+
 function requireQueueJobId(
   jobId: string | undefined,
   operation: string,
@@ -313,10 +325,11 @@ export class WorkflowExecutionQueueService {
 
     // Fail loudly instead of silently: the reservation above should have
     // guaranteed a fresh add, so the resulting job must be claimable
-    // (waiting/delayed, or already active if a worker grabbed it within this
-    // same call). Any other state means `add` still silently reused an
-    // existing job and this run will never be picked up — surface that
-    // immediately rather than letting the caller log a false "queued" success.
+    // (waiting/delayed), or already active/completed if a worker grabbed it
+    // within this same call. Any other state means `add` still silently
+    // reused an existing job and this run will never be picked up — surface
+    // that immediately rather than letting the caller log a false "queued"
+    // success.
     const resultingState = await job.getState().catch((error: unknown) => {
       this.logger.warn(
         `${this.logContext} could not verify system workflow job state after enqueue`,
@@ -324,7 +337,7 @@ export class WorkflowExecutionQueueService {
       );
       return undefined;
     });
-    if (resultingState && !CLAIMABLE_JOB_STATES.has(resultingState)) {
+    if (resultingState && !ENQUEUED_JOB_STATES.has(resultingState)) {
       this.logger.error(
         `${this.logContext} system workflow job was not queued for pickup after enqueue — a worker will never claim it`,
         {

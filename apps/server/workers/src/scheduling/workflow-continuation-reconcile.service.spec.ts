@@ -1,7 +1,9 @@
+import { ByokProvider } from '@genfeedai/contracts';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowContinuationReconcileService', () => {
+  const byok = { lookupApiKey: vi.fn() };
   const continuations = { findReplicatePollCandidates: vi.fn() };
   const coordinator = {
     completeProviderAction: vi.fn(),
@@ -31,6 +33,103 @@ describe('WorkflowContinuationReconcileService', () => {
       replicate as never,
       webhooks as never,
       logger as never,
+      byok as never,
+    );
+  });
+
+  it('reads a BYOK continuation prediction with the organization key that created it', async () => {
+    continuations.findReplicatePollCandidates.mockResolvedValue([
+      {
+        continuationId: 'continuation-byok',
+        externalId: 'prediction-byok',
+        ingredientId: 'ingredient-byok',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+    byok.lookupApiKey.mockResolvedValue({ apiKey: 'org-replicate-key' });
+    replicate.getPrediction.mockResolvedValue({ status: 'processing' });
+
+    await service.reconcile();
+
+    expect(byok.lookupApiKey).toHaveBeenCalledWith(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    expect(replicate.getPrediction).toHaveBeenCalledWith(
+      'prediction-byok',
+      'org-replicate-key',
+    );
+  });
+
+  it('skips a BYOK continuation for a later run when the key lookup errors, without failing it', async () => {
+    continuations.findReplicatePollCandidates.mockResolvedValue([
+      {
+        continuationId: 'continuation-byok',
+        externalId: 'prediction-byok',
+        ingredientId: 'ingredient-byok',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+    byok.lookupApiKey.mockRejectedValue(new Error('database unavailable'));
+
+    await service.reconcile();
+
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
+    expect(coordinator.failProviderAction).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('reads a platform continuation prediction with the platform key', async () => {
+    continuations.findReplicatePollCandidates.mockResolvedValue([
+      {
+        continuationId: 'continuation-platform',
+        externalId: 'prediction-platform',
+        ingredientId: 'ingredient-platform',
+        isByok: false,
+        organizationId: 'org-1',
+      },
+    ]);
+    replicate.getPrediction.mockResolvedValue({ status: 'processing' });
+
+    await service.reconcile();
+
+    expect(byok.lookupApiKey).not.toHaveBeenCalled();
+    expect(replicate.getPrediction).toHaveBeenCalledWith(
+      'prediction-platform',
+      undefined,
+    );
+  });
+
+  it('fails a BYOK continuation instead of polling with the platform key once the org key is gone', async () => {
+    continuations.findReplicatePollCandidates.mockResolvedValue([
+      {
+        continuationId: 'continuation-byok',
+        externalId: 'prediction-byok',
+        ingredientId: 'ingredient-byok',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+    byok.lookupApiKey.mockResolvedValue(undefined);
+
+    await service.reconcile();
+
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
+      'ingredient-byok',
+      expect.stringContaining('Replicate key'),
+    );
+    expect(coordinator.failProviderAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: {
+          continuationId: 'continuation-byok',
+          organizationId: 'org-1',
+        },
+        provider: 'replicate',
+      }),
     );
   });
 

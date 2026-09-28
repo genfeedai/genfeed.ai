@@ -29,6 +29,24 @@
     "version": "Version"
   },
   "analytics": {
+    "scopedExport": {
+      "error": "Analytics export failed",
+      "label": "Export scoped data",
+      "success": "Scoped analytics exported"
+    },
+    "layout": {
+      "brand": {
+        "description": "Track your brand performance, content analytics, and growth metrics",
+        "errorDescription": "Failed to load analytics.",
+        "title": "Analytics"
+      },
+      "errorTitle": "Analytics Error",
+      "organization": {
+        "description": "Aggregate analytics across all brands",
+        "errorDescription": "Failed to load organization analytics.",
+        "title": "Organization Analytics"
+      }
+    },
     "overview": {
       "checkConnections": "Check connections",
       "connectAccounts": "Connect accounts",

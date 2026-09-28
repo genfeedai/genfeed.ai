@@ -1,6 +1,9 @@
 import '@agent-tests/media-preview-mocks';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import type { AgentUiActionRun } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import {
   ModelCategory,
@@ -282,6 +285,7 @@ const { brandState, orgUrlParams, storeState } = vi.hoisted(() => ({
     error: null as string | null,
     setError: vi.fn(),
     setThreadUiBusy: vi.fn(),
+    uiActionRuns: {} as Record<string, AgentUiActionRun>,
   },
 }));
 
@@ -640,6 +644,7 @@ describe('GenerationActionCard', () => {
     useAgentWorkObjectGateStore.setState({ threads: {} });
     useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
     storeState.error = null;
+    storeState.uiActionRuns = {};
     storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();
     capturedModelSelectorPopoverProps.autoLabel = undefined;
@@ -1486,6 +1491,134 @@ describe('GenerationActionCard', () => {
     );
     expect(String(copyToClipboard.mock.calls[0]?.[0])).toContain(
       'Failed to respond to UI action: 401',
+    );
+  });
+
+  it('stays generating, not done, when the UI action is accepted but unconfirmed', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A lighthouse at dusk.' },
+          generationType: 'image',
+          id: 'action-ui-action-pending',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock() as unknown as AgentApiService}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    await clickGenerate('image');
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({ sourceActionId: 'action-ui-action-pending' }),
+      );
+    });
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+
+    expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'Stop generation' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['completes', 'completed' as const],
+    ['fails', 'failed' as const],
+  ])(
+    'settles a pending generation when its run %s later',
+    async (_label, status) => {
+      const onUiAction = vi.fn().mockResolvedValue('pending');
+      const card = () => (
+        <GenerationActionCard
+          action={{
+            generationParams: { prompt: 'A lighthouse at dusk.' },
+            generationType: 'image',
+            id: 'action-generation-late',
+            title: 'Generate Image',
+            type: 'generation_action_card',
+          }}
+          apiService={createApiServiceMock() as unknown as AgentApiService}
+          onUiAction={onUiAction}
+        />
+      );
+      const { rerender } = renderGenerationActionCard(card());
+
+      await clickGenerate('image');
+      await act(async () => {
+        await onUiAction.mock.results[0]?.value;
+      });
+      expect(
+        screen.getAllByRole('button', { name: 'Stop generation' }).length,
+      ).toBeGreaterThan(0);
+
+      const key = getUiActionRunKey('thread-1', 'confirm_generate_media', {
+        sourceActionId: 'action-generation-late',
+      });
+      storeState.uiActionRuns = {
+        [key]: {
+          action: 'confirm_generate_media',
+          ...(status === 'failed'
+            ? { error: 'Provider unavailable for this model.' }
+            : {}),
+          executionId: 'exec-generation',
+          key,
+          status,
+          threadId: 'thread-1',
+        },
+      };
+      // The mocked store does not notify subscribers; re-render to read it.
+      rerender(card());
+
+      if (status === 'completed') {
+        expect(await screen.findByText(/^Done$/)).toBeInTheDocument();
+      } else {
+        expect(
+          await screen.findByText(/Provider unavailable for this model/),
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/^Done$/)).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it('keeps a pending decline in flight without marking the review declined', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A lighthouse at dusk.' },
+          generationType: 'image',
+          id: 'action-decline-pending',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock() as unknown as AgentApiService}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Decline this generation' }),
+    );
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+
+    expect(
+      screen.queryByText('Declined — no credits were charged.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Decline this generation' }),
+    ).not.toBeInTheDocument();
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to decline generation. Try again.',
     );
   });
 

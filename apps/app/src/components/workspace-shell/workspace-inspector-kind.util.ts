@@ -8,7 +8,6 @@ export type WorkspaceInspectorBodyKind =
   | 'empty'
   | 'presentation-adapter'
   | 'surface-adapter'
-  | 'workflow'
   | 'workspace-adapter';
 
 export function resolveWorkspaceInspectorPaneKind(input: {
@@ -35,12 +34,7 @@ export function resolveWorkspaceInspectorBodyKind(input: {
   hasEffectiveSurfaceAdapter: boolean;
   hasPresentationAdapter: boolean;
   hasWorkspaceAdapter: boolean;
-  isWorkflowInspectorSurface: boolean;
 }): WorkspaceInspectorBodyKind {
-  if (input.isWorkflowInspectorSurface) {
-    return 'workflow';
-  }
-
   if (input.hasEffectiveSurfaceAdapter) {
     return 'surface-adapter';
   }

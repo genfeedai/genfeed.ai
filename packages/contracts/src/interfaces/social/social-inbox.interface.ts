@@ -75,6 +75,8 @@ export interface SocialConversation {
   status: SocialConversationStatus;
   priority: string;
   unreadCount: number;
+  /** Monotonic inbound-message cursor; a read receipt sends the value it rendered. */
+  inboundSequence: number;
   needsReview: boolean;
   automationState: SocialAutomationState;
   assignedOwnerId?: string | null;

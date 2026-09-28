@@ -301,6 +301,7 @@ export function AgentChatContainer({
             isAtBottom={container.isAtBottom}
             isBusy={container.isBusy}
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
+            isPlanReviewPending={container.isPlanReviewPending}
             isGenerating={container.isGenerating}
             isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}

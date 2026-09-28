@@ -1,6 +1,7 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
+  IngredientCategory,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
@@ -96,6 +97,105 @@ export function mediaKindForCategory(
   return category === PostCategory.VIDEO || category === PostCategory.REEL
     ? 'video'
     : 'image';
+}
+
+/**
+ * The media kind an ingredient's own category proves, or `undefined` when the
+ * category is not a publishable visual.
+ */
+export function mediaKindForIngredientCategory(
+  category: string | null | undefined,
+): ChannelValidationMedia[number]['kind'] | undefined {
+  switch (category) {
+    case IngredientCategory.VIDEO:
+    case IngredientCategory.VIDEO_EDIT:
+      return 'video';
+    case IngredientCategory.GIF:
+    case IngredientCategory.IMAGE:
+    case IngredientCategory.IMAGE_EDIT:
+      return 'image';
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * The Post category the linked ingredients describe: VIDEO when any is a
+ * video, IMAGE when any is an image, TEXT when there is no visual media.
+ */
+export function postCategoryForIngredientCategories(
+  categories: readonly (string | null | undefined)[],
+): PostCategory {
+  const kinds = categories.map(mediaKindForIngredientCategory);
+  if (kinds.includes('video')) {
+    return PostCategory.VIDEO;
+  }
+  return kinds.includes('image') ? PostCategory.IMAGE : PostCategory.TEXT;
+}
+
+/**
+ * The category a target keeps after its media is replaced. A format-specific
+ * category (REEL, STORY) survives while the new media still fits it;
+ * otherwise the category follows the media.
+ */
+export function categoryAfterMediaRewrite(
+  current: string | null | undefined,
+  derived: PostCategory,
+): PostCategory {
+  if (current === PostCategory.REEL && derived === PostCategory.VIDEO) {
+    return PostCategory.REEL;
+  }
+  if (current === PostCategory.STORY && derived !== PostCategory.TEXT) {
+    return PostCategory.STORY;
+  }
+  return derived;
+}
+
+/**
+ * The category a Post should carry for the media actually linked to it, or
+ * `undefined` when its current category already describes that media. Only
+ * corrects a category whose media kind the ingredients disprove (a legacy
+ * release target left at TEXT with a video, say); ingredients that prove no
+ * visual kind never override the Post's own category.
+ */
+export function correctedCategoryForLinkedMedia(
+  current: string | null | undefined,
+  ingredientCategories: readonly (string | null | undefined)[],
+): PostCategory | undefined {
+  const derived = postCategoryForIngredientCategories(ingredientCategories);
+  if (derived === PostCategory.TEXT) {
+    return undefined;
+  }
+  const corrected = categoryAfterMediaRewrite(current, derived);
+  if (corrected === current) {
+    return undefined;
+  }
+  const derivedKind = derived === PostCategory.VIDEO ? 'video' : 'image';
+  return mediaKindForCategory(current) === derivedKind &&
+    current !== PostCategory.TEXT
+    ? undefined
+    : corrected;
+}
+
+/**
+ * Build validation media from a Post's linked ingredients, classifying each
+ * by its own category. The Post category is only the fallback for an
+ * ingredient whose category proves nothing, because a Post can carry a
+ * category that no longer matches the media linked to it.
+ */
+export function toValidationMediaFromIngredients(
+  ingredients: readonly { category?: string | null; id: string }[],
+  postCategory: string | null | undefined,
+): ChannelValidationMedia | undefined {
+  if (ingredients.length === 0) {
+    return undefined;
+  }
+  return ingredients.map((ingredient) => ({
+    id: ingredient.id,
+    kind:
+      mediaKindForIngredientCategory(ingredient.category) ??
+      mediaKindForCategory(postCategory),
+  }));
 }
 
 /**

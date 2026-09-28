@@ -209,6 +209,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         continuation: {
           actionId: 'imageGen',
           context,
+          isByok: Boolean(byok),
           node,
           provider: 'replicate',
         },
@@ -349,6 +350,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         continuation: {
           actionId: 'videoGen',
           context,
+          isByok: Boolean(byok),
           node,
           provider: 'replicate',
         },
@@ -618,7 +620,13 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             references: [media.id, audio.id],
             transformations: [TransformationCategory.LIP_SYNCED],
           },
-          continuation: { actionId: 'lipSync', context, node, provider },
+          continuation: {
+            actionId: 'lipSync',
+            context,
+            isByok: Boolean(byok),
+            node,
+            provider,
+          },
           resultUrl: (id) => this.helper.buildVideoIngredientUrl(id),
           runProvider: async (id, continuationId) => {
             if (isVideo && this.replicateService) {

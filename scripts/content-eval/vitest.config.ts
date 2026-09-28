@@ -5,6 +5,7 @@ const repoPath = (path: string) =>
   fileURLToPath(new URL(`../../${path}`, import.meta.url));
 const contractsSource = repoPath('packages/contracts/src');
 const helpersSource = repoPath('packages/helpers/src');
+const pricingSource = repoPath('packages/pricing/src');
 
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
@@ -25,6 +26,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/helpers\/(.*)$/,
         replacement: `${helpersSource}/$1`,
+      },
+      {
+        find: /^@genfeedai\/pricing$/,
+        replacement: `${pricingSource}/index.ts`,
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: `${pricingSource}/$1`,
       },
       // Pure API modules (generation-brief resolvers, readiness) for media/.
       {

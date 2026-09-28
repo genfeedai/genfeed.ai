@@ -11,3 +11,13 @@ export interface UseMessagesConversationsParams {
   readonly requestedConversationId: string | null;
   readonly scopedOrganizationId?: string;
 }
+
+/**
+ * The newest inbound sequence the loaded transcript is known to contain for a
+ * conversation. Read receipts acknowledge only this cursor, never the
+ * sequence a receipt response or a conversation refresh reports.
+ */
+export interface MessagesAcknowledgeableCursor {
+  readonly conversationId: string;
+  readonly inboundSequence: number;
+}

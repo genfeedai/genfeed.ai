@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Ingredient } from '@models/content/ingredient.model';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -202,6 +203,7 @@ export function useWorkspaceTaskLinkedIssue(
   task: Task | null,
 ): WorkspaceTaskLinkedIssueSummary {
   const { getToken } = useAuthIdentity();
+  const { href } = useOrgUrl();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedIssueSummary>(() =>
     getEmptyLinkedIssueSummary(),
   );
@@ -242,7 +244,7 @@ export function useWorkspaceTaskLinkedIssue(
         }
 
         setSummary({
-          href: `${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`,
+          href: href(`${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`),
           identifier: issue.identifier,
           isLoading: false,
         });
@@ -265,7 +267,7 @@ export function useWorkspaceTaskLinkedIssue(
     return () => {
       isCancelled = true;
     };
-  }, [getToken, task]);
+  }, [getToken, href, task]);
 
   return summary;
 }
