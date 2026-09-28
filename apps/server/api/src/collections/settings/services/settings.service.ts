@@ -1,4 +1,7 @@
-import { MAX_FAVORITE_WORKFLOW_IDS } from '@api/collections/settings/constants/favorite-workflows.constant';
+import {
+  MAX_FAVORITE_WORKFLOW_IDS,
+  MAX_STORED_FAVORITE_WORKFLOW_IDS,
+} from '@api/collections/settings/constants/favorite-workflows.constant';
 import { CreateSettingDto } from '@api/collections/settings/dto/create-setting.dto';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
@@ -105,6 +108,55 @@ export class SettingsService extends BaseService<
     };
   }
 
+  /**
+   * Builds the list to persist for a favorites write that already passed
+   * `assertFavoriteWorkflowIds`. The stored list spans every organization the
+   * user belongs to, so a write replaces only the caller organization's subset:
+   * `(stored ids not in the caller org) ∪ submittedIds`. Caller-org ids whose
+   * workflow was since deleted are dropped with the rest of that subset.
+   *
+   * Other-org ids stay first and the submitted ids are appended, so the front
+   * of the list holds the least recently written organizations. Beyond
+   * `MAX_STORED_FAVORITE_WORKFLOW_IDS`, those oldest other-org ids are pruned.
+   * Without an active organization there is no subset to replace, so the
+   * stored list is kept.
+   */
+  async mergeFavoriteWorkflowIds(
+    settingsId: string,
+    submittedIds: readonly string[],
+    organizationId: string,
+  ): Promise<string[]> {
+    const setting = await this.prisma.setting.findFirst({
+      select: { favoriteWorkflowIds: true },
+      where: { id: settingsId, isDeleted: false },
+    });
+    const storedIds = setting?.favoriteWorkflowIds ?? [];
+
+    if (!organizationId) {
+      return storedIds;
+    }
+
+    const organizationIds =
+      storedIds.length > 0
+        ? await this.findOrganizationWorkflowIds(storedIds, organizationId)
+        : new Set<string>();
+    const submitted = new Set(submittedIds);
+    const otherOrganizationIds = storedIds.filter(
+      (id) => !organizationIds.has(id) && !submitted.has(id),
+    );
+    const otherOrganizationCapacity = Math.max(
+      0,
+      MAX_STORED_FAVORITE_WORKFLOW_IDS - submittedIds.length,
+    );
+
+    return [
+      ...otherOrganizationIds.slice(
+        Math.max(0, otherOrganizationIds.length - otherOrganizationCapacity),
+      ),
+      ...submittedIds,
+    ];
+  }
+
   private async findLiveWorkflowIds(
     workflowIds: readonly string[],
     organizationId: string,
@@ -114,5 +166,26 @@ export class SettingsService extends BaseService<
       where: scopedWhere(organizationId, { id: { in: [...workflowIds] } }),
     });
     return new Set(rows.map((row) => row.id));
+  }
+
+  /** Ids among `workflowIds` owned by the organization, deleted or not. */
+  private async findOrganizationWorkflowIds(
+    workflowIds: readonly string[],
+    organizationId: string,
+  ): Promise<Set<string>> {
+    const [liveIds, deletedRows] = await Promise.all([
+      this.findLiveWorkflowIds(workflowIds, organizationId),
+      this.prisma.workflow.findMany({
+        select: { id: true },
+        where: scopedWhere(organizationId, {
+          id: { in: [...workflowIds] },
+          isDeleted: true,
+        }),
+      }),
+    ]);
+    for (const row of deletedRows) {
+      liveIds.add(row.id);
+    }
+    return liveIds;
   }
 }
