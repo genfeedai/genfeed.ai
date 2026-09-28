@@ -3,20 +3,14 @@ import type {
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
-import {
-  BentoRowSpan,
-  BentoSize,
-  BentoSpan,
-  BentoVariant,
-  CardVariant,
-} from '@genfeedai/contracts';
+import { CardVariant } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { MouseEvent, ReactNode } from 'react';
 
-export { BentoRowSpan, BentoSize, BentoSpan, BentoVariant, CardVariant };
+export { CardVariant };
 
 export interface AlertProps {
   type?: AlertCategory;
@@ -130,22 +124,6 @@ export interface LinkProps {
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
   target?: '_blank' | '_self' | '_parent' | '_top';
   rel?: string;
-}
-
-export interface BentoItemProps {
-  span?: BentoSpan;
-  rowSpan?: BentoRowSpan;
-  variant?: BentoVariant;
-  size?: BentoSize;
-  className?: string;
-  children: ReactNode;
-}
-
-export interface BentoGridProps {
-  columns?: 2 | 3 | 4;
-  gap?: 'sm' | 'md' | 'lg';
-  className?: string;
-  children: ReactNode;
 }
 
 export interface DashboardGridProps {

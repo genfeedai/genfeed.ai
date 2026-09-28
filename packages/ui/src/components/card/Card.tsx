@@ -9,14 +9,12 @@ import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'shadow-border bg-card text-card-foreground',
-  [CardVariant.WHITE]: 'border border-border bg-card text-card-foreground',
-  [CardVariant.BLACK]: 'border border-border bg-card text-card-foreground',
+  [CardVariant.BORDERED]: 'border border-border bg-card text-card-foreground',
 };
 
 const INTERACTIVE_VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'hover:shadow-border-strong',
-  [CardVariant.WHITE]: 'hover:border-border-strong',
-  [CardVariant.BLACK]: 'hover:border-border-strong',
+  [CardVariant.BORDERED]: 'hover:border-border-strong',
 };
 
 const Card = memo(function Card({

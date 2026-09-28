@@ -124,18 +124,18 @@ describe('Card', () => {
     expect(container.firstChild).toHaveClass('overflow-hidden');
   });
 
-  it('uses the semantic card surface for the legacy black variant', () => {
-    const { container } = render(<Card variant={CardVariant.BLACK}>Body</Card>);
+  it('draws the bordered variant with a CSS border on the card plane', () => {
+    const { container } = render(
+      <Card variant={CardVariant.BORDERED}>Body</Card>,
+    );
 
-    expect(container.firstChild).toHaveClass('bg-card', 'text-card-foreground');
-    expect(container.firstChild).not.toHaveClass('bg-black', 'text-white');
-  });
-
-  it('uses the semantic card surface for the legacy white variant', () => {
-    const { container } = render(<Card variant={CardVariant.WHITE}>Body</Card>);
-
-    expect(container.firstChild).toHaveClass('bg-card', 'text-card-foreground');
-    expect(container.firstChild).not.toHaveClass('bg-white', 'text-black');
+    expect(container.firstChild).toHaveClass(
+      'border',
+      'border-border',
+      'bg-card',
+      'text-card-foreground',
+    );
+    expect(container.firstChild).not.toHaveClass('shadow-border');
   });
 });
 

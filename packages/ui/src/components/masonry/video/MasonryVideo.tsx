@@ -14,7 +14,7 @@ import MasonryVideoActionsBar from './MasonryVideoActionsBar';
 import MasonryVideoMediaArea from './MasonryVideoMediaArea';
 import { useMasonryVideo } from './useMasonryVideo';
 
-const MASONRY_TILE_RADIUS_CLASS = 'rounded-lg';
+const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
 export default function MasonryVideo({
   video,
