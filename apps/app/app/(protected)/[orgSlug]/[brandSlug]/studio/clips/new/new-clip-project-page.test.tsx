@@ -2,7 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -78,6 +78,21 @@ describe('NewClipProjectPage', () => {
     expect(mocks.createDraft).toHaveBeenCalledTimes(1);
     expect(mocks.createDraft).toHaveBeenCalledWith('brand-1');
     expect(mocks.createFromIngredient).not.toHaveBeenCalled();
+  });
+
+  it('creates a single draft when StrictMode mounts the page twice', async () => {
+    render(
+      <StrictMode>
+        <NewClipProjectPage />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/brand-1/studio/clips/draft-1',
+      );
+    });
+    expect(mocks.createDraft).toHaveBeenCalledTimes(1);
   });
 
   it('waits for the brand before creating anything', async () => {

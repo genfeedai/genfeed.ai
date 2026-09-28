@@ -11,16 +11,33 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ClipsApiService } from '../services/clips-api.service';
+
+let pendingCreation: { key: string; promise: Promise<string> } | null = null;
+
+/**
+ * One create per visit: a remount while the request is in flight (StrictMode,
+ * a fast re-render) joins the same request instead of creating a second
+ * project. The slot frees once it settles, so the next visit creates anew.
+ */
+function createClipProjectOnce(
+  key: string,
+  create: () => Promise<string>,
+): Promise<string> {
+  if (pendingCreation?.key === key) {
+    return pendingCreation.promise;
+  }
+
+  const promise = create().finally(() => {
+    if (pendingCreation?.promise === promise) {
+      pendingCreation = null;
+    }
+  });
+  pendingCreation = { key, promise };
+  return promise;
+}
 
 function NewClipProjectPageContent() {
   const t = useTranslations('pages.studioClips');
@@ -30,7 +47,6 @@ function NewClipProjectPageContent() {
   const videoId = searchParams.get('video');
   const { getToken } = useAuthIdentity();
   const { isReady: isBrandReady, selectedBrand } = useBrand();
-  const creating = useRef(false);
   const [refusal, setRefusal] = useState<string | null>(null);
 
   const resolveToken = useCallback(async (): Promise<string> => {
@@ -43,38 +59,30 @@ function NewClipProjectPageContent() {
   );
 
   useEffect(() => {
-    if (!isBrandReady || creating.current) {
+    if (!isBrandReady) {
       return;
     }
-    creating.current = true;
 
-    const controller = new AbortController();
+    let isActive = true;
     const brandId = selectedBrand?.id;
 
-    (async () => {
-      try {
-        // Aborting in cleanup runs synchronously before this microtask, so a
-        // StrictMode-discarded mount bails out before creating a project.
-        await Promise.resolve();
-        if (controller.signal.aborted) {
-          return;
+    createClipProjectOnce(`${brandId ?? ''}:${videoId ?? ''}`, async () =>
+      videoId
+        ? (
+            await clipsService.createFromIngredient({
+              brandId,
+              ingredientId: videoId,
+            })
+          ).projectId
+        : await clipsService.createDraft(brandId),
+    )
+      .then((projectId) => {
+        if (isActive) {
+          replace(href(`${APP_ROUTES.STUDIO.CLIPS}/${projectId}`));
         }
-
-        const projectId = videoId
-          ? (
-              await clipsService.createFromIngredient({
-                brandId,
-                ingredientId: videoId,
-              })
-            ).projectId
-          : await clipsService.createDraft(brandId);
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        replace(href(`${APP_ROUTES.STUDIO.CLIPS}/${projectId}`));
-      } catch (error) {
-        if (controller.signal.aborted) {
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
           return;
         }
         logger.error('Failed to create clip project', error);
@@ -83,12 +91,10 @@ function NewClipProjectPageContent() {
             ? error.message
             : 'The clip project could not be created.',
         );
-      }
-    })();
+      });
 
     return () => {
-      controller.abort();
-      creating.current = false;
+      isActive = false;
     };
   }, [clipsService, href, isBrandReady, replace, selectedBrand?.id, videoId]);
 
