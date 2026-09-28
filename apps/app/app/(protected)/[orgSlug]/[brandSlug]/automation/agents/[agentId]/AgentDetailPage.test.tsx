@@ -240,13 +240,14 @@ describe('AgentDetailPage', () => {
   });
 
   it('keys every agent query by organization, brand, and agent', () => {
+    // `agent-reports`/`agent-performance` now fire only inside the merged
+    // Activity section, mocked away here; their query keys stay covered by
+    // AgentWorkSections.test.tsx, which renders the real components.
     render(<AgentDetailPage agentId="strategy-1" />);
     for (const resource of [
       'agent-strategy',
       'agent-opportunities',
       'agent-posts',
-      'agent-reports',
-      'agent-performance',
     ]) {
       expect(useQueryMock).toHaveBeenCalledWith(
         expect.objectContaining({
