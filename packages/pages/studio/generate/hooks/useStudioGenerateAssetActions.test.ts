@@ -167,6 +167,34 @@ describe('useStudioGenerateAssetActions', () => {
     );
   });
 
+  it('starts one resize when the action is clicked twice before it answers', async () => {
+    let answer: (value: unknown) => void = () => undefined;
+    mocks.postResize.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({
+        onAttachReference: vi.fn(),
+        onRefresh: vi.fn(),
+      }),
+    );
+
+    let first: Promise<void> | void;
+    await act(async () => {
+      first = result.current.onResize(ingredient, IngredientFormat.SQUARE);
+      await result.current.onResize(ingredient, IngredientFormat.SQUARE);
+    });
+    await act(async () => {
+      answer({ id: 'resized-1' });
+      await first;
+    });
+
+    expect(mocks.postResize).toHaveBeenCalledTimes(1);
+  });
+
   it('reports a failed resize without refreshing', async () => {
     mocks.postResize.mockRejectedValueOnce(new Error('queue down'));
     const onRefresh = vi.fn();

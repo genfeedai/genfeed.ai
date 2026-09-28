@@ -654,6 +654,11 @@
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
     "resizeFailed": "Failed to resize video",
+    "resizeFormats": {
+      "landscape": "landscape",
+      "portrait": "portrait",
+      "square": "square"
+    },
     "resizeStarted": "Resizing to {format}. The result appears here when it is ready.",
     "runOutputs": "{count} outputs",
     "savedLooks": {

@@ -1,4 +1,5 @@
-import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
+import type { IngredientFormat } from '@genfeedai/contracts';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   IActionHandlers,
@@ -428,24 +429,20 @@ export const createGifAction = (
     isLoading,
   );
 
+/** Copy is passed in so the caller resolves it from the translation catalog. */
 export const createOpenInEditorAction = (
   ingredient: IIngredient,
-  handler?: IActionHandlers['onOpenInEditor'],
+  handler: IActionHandlers['onOpenInEditor'] | undefined,
+  copy: { label: string; tooltip: string },
 ): IQuickAction | null =>
   createStandardAction(ingredient, handler, {
     icon: <Clapperboard className={ICON_CLASS} />,
     id: 'open-in-editor',
-    label: 'Open in Editor',
+    label: copy.label,
     showInMenu: true,
-    tooltip: 'Open in the Studio editor',
+    tooltip: copy.tooltip,
     tooltipPosition: 'top',
   });
-
-const RESIZE_FORMAT_LABELS: Record<IngredientFormat, string> = {
-  [IngredientFormat.LANDSCAPE]: 'Landscape',
-  [IngredientFormat.PORTRAIT]: 'Portrait',
-  [IngredientFormat.SQUARE]: 'Square',
-};
 
 /**
  * Rescales to the target format's dimensions. Distinct from the Reframe
@@ -454,6 +451,7 @@ const RESIZE_FORMAT_LABELS: Record<IngredientFormat, string> = {
 export const createResizeAction = (
   ingredient: IIngredient,
   format: IngredientFormat,
+  label: string,
   handler?: IActionHandlers['onResize'],
   isLoading?: boolean,
 ): IQuickAction | null => {
@@ -461,15 +459,14 @@ export const createResizeAction = (
     return null;
   }
 
-  const formatLabel = RESIZE_FORMAT_LABELS[format];
   return {
     icon: <Scaling className={ICON_CLASS} />,
     id: `resize-${format}`,
     isLoading,
-    label: `Resize to ${formatLabel}`,
+    label,
     onClick: () => handler(ingredient, format),
     showInMenu: true,
-    tooltip: `Resize to ${formatLabel}`,
+    tooltip: label,
     tooltipPosition: 'top',
   };
 };

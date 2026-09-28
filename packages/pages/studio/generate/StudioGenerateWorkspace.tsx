@@ -259,6 +259,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
   const [restoredAttachments, setRestoredAttachments] =
     useState<AttachmentItem[]>(EMPTY_ATTACHMENTS);
+  // Restored uploads reach `attachments` one render after the Library
+  // references; until they do, frame validation would see half a restore.
+  const [pendingRestoredUploadIds, setPendingRestoredUploadIds] = useState<
+    string[] | null
+  >(null);
   const getAttachmentRole = useCallback(
     (attachment: AttachmentItem): StudioGenerateReferenceRole | undefined =>
       attachment.file
@@ -828,6 +833,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         setPrompt('');
         setContentReferences([]);
         restoredRolesRef.current.clear();
+        setPendingRestoredUploadIds(null);
         setRestoredAttachments(EMPTY_ATTACHMENTS);
         clearAttachments();
       }
@@ -1046,7 +1052,17 @@ export default function StudioGenerateWorkspace(): ReactElement {
   }, []);
 
   useEffect(() => {
-    if (type !== 'video') {
+    if (
+      pendingRestoredUploadIds?.every((id) =>
+        attachments.some((attachment: AttachmentItem) => attachment.id === id),
+      )
+    ) {
+      setPendingRestoredUploadIds(null);
+    }
+  }, [attachments, pendingRestoredUploadIds]);
+
+  useEffect(() => {
+    if (type !== 'video' || pendingRestoredUploadIds) {
       return;
     }
     const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
@@ -1097,6 +1113,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     contentReferences,
     getAttachmentRole,
     notificationsService,
+    pendingRestoredUploadIds,
     removeAttachment,
     settings.modelKey,
     type,
@@ -1230,6 +1247,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
         return [attachment];
       });
 
+      setPendingRestoredUploadIds(
+        restoredUploads.length > 0
+          ? restoredUploads.map((attachment) => attachment.id)
+          : null,
+      );
       setContentReferences(references);
       setRestoredAttachments(restoredUploads);
       return referenceIds.length - references.length - restoredUploads.length;

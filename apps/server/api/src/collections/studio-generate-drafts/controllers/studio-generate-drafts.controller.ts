@@ -16,6 +16,7 @@ import {
   Controller,
   Get,
   Put,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -35,9 +36,10 @@ export class StudioGenerateDraftsController {
   async findCurrent(
     @Req() request: Request,
     @CurrentUser() user: User,
+    @Query('brand') brandId?: string,
   ): Promise<JsonApiSingleResponse> {
     const draft = await this.studioGenerateDraftsService.findCurrent(
-      this.getScope(user),
+      this.getScope(user, brandId),
     );
 
     // No draft yet is the normal first-visit state, not a failed request.
@@ -55,22 +57,30 @@ export class StudioGenerateDraftsController {
   ): Promise<JsonApiSingleResponse> {
     const draft = await this.studioGenerateDraftsService.upsertCurrent(
       dto,
-      this.getScope(user),
+      this.getScope(user, dto.brandId),
     );
 
     return serializeSingle(request, StudioGenerateDraftSerializer, draft);
   }
 
-  private getScope(user: User): StudioGenerateDraftRequestScope {
+  /**
+   * The brand comes from the requesting tab, not the member's last-selected
+   * brand: two tabs on two brands must never write each other's draft. The
+   * service verifies the brand belongs to the caller's organization.
+   */
+  private getScope(
+    user: User,
+    requestedBrandId: string | undefined,
+  ): StudioGenerateDraftRequestScope {
     const organizationId = user.organizationId?.trim();
-    const brandId = user.brandId?.trim();
+    const brandId = requestedBrandId?.trim();
     const userId = (user.userId ?? user.id)?.trim();
 
     if (!organizationId || !userId) {
       throw new UnauthorizedException('Authenticated workspace is required');
     }
     if (!brandId) {
-      throw new BadRequestException('An active brand is required');
+      throw new BadRequestException('A brand is required');
     }
 
     return { brandId, organizationId, userId };

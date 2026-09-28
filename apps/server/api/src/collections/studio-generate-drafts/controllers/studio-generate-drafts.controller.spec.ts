@@ -22,6 +22,7 @@ const request = { originalUrl: '/studio-generate-drafts/current' } as never;
 
 const dto: UpsertStudioGenerateDraftDto = {
   attachments: [],
+  brandId: 'brand-routed',
   knowledgeSelection: {},
   prompt: 'Draft prompt',
   references: [],
@@ -43,11 +44,14 @@ describe('StudioGenerateDraftsController', () => {
   it('returns an empty document when the user has no draft for the brand', async () => {
     service.findCurrent.mockResolvedValueOnce(null);
 
-    await expect(controller.findCurrent(request, user)).resolves.toEqual({
+    await expect(
+      controller.findCurrent(request, user, 'brand-routed'),
+    ).resolves.toEqual({
       data: null,
     });
+    // The tab's brand wins over the member's last-selected brand.
     expect(service.findCurrent).toHaveBeenCalledWith({
-      brandId: 'brand-1',
+      brandId: 'brand-routed',
       organizationId: 'org-1',
       userId: 'opaque-user-id',
     });
@@ -59,17 +63,21 @@ describe('StudioGenerateDraftsController', () => {
     await controller.upsertCurrent(request, user, dto);
 
     expect(service.upsertCurrent).toHaveBeenCalledWith(dto, {
-      brandId: 'brand-1',
+      brandId: 'brand-routed',
       organizationId: 'org-1',
       userId: 'opaque-user-id',
     });
   });
 
-  it('requires an active brand', async () => {
+  it('requires the requesting tab to name its brand', async () => {
     await expect(
-      controller.findCurrent(request, { ...user, brandId: '' }),
+      controller.findCurrent(request, user, undefined),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.upsertCurrent(request, user, { ...dto, brandId: ' ' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(service.findCurrent).not.toHaveBeenCalled();
+    expect(service.upsertCurrent).not.toHaveBeenCalled();
   });
 
   it('requires an authenticated organization', async () => {

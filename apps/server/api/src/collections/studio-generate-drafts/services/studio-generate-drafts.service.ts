@@ -1,3 +1,4 @@
+import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import {
   STUDIO_GENERATE_DRAFT_TYPES,
   STUDIO_GENERATE_REFERENCE_ROLES,
@@ -14,15 +15,25 @@ import type {
   StudioGenerateDraftReference,
   StudioGenerateType,
 } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface StudioGenerateDraftRequestScope {
   brandId: string;
   organizationId: string;
   userId: string;
 }
+
+type StudioGenerateDraftWriteData = Pick<
+  Prisma.StudioGenerateDraftUncheckedCreateInput,
+  | 'attachments'
+  | 'knowledgeSelection'
+  | 'prompt'
+  | 'references'
+  | 'settingsByType'
+  | 'type'
+>;
 
 const REFERENCE_ROLES = new Set<string>(STUDIO_GENERATE_REFERENCE_ROLES);
 const DRAFT_TYPES = new Set<string>(STUDIO_GENERATE_DRAFT_TYPES);
@@ -46,7 +57,38 @@ function readReferences(value: unknown): StudioGenerateDraftReference[] {
   );
 }
 
-/** Keeps only per-type objects for asset types the composer knows. */
+const SETTING_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]{0,39}$/;
+const MAX_SETTINGS_PER_TYPE = 40;
+const MAX_SETTING_TEXT_LENGTH = 5_000;
+const MAX_SETTING_LIST_LENGTH = 100;
+/** Upper bound on the stored settings JSON, well above a real composer. */
+export const STUDIO_GENERATE_DRAFT_MAX_SETTINGS_BYTES = 32_768;
+
+function isSettingValue(value: unknown): boolean {
+  if (value === null || typeof value === 'boolean') {
+    return true;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+  if (typeof value === 'string') {
+    return value.length <= MAX_SETTING_TEXT_LENGTH;
+  }
+  return (
+    Array.isArray(value) &&
+    value.length <= MAX_SETTING_LIST_LENGTH &&
+    value.every(
+      (entry) =>
+        typeof entry === 'string' && entry.length <= MAX_SETTING_TEXT_LENGTH,
+    )
+  );
+}
+
+/**
+ * Keeps known asset types, and inside each only flat composer fields: short
+ * scalar values or string lists. Anything else is dropped, so the column can
+ * only ever hold what the composer itself would write.
+ */
 function readSettingsByType(
   value: unknown,
 ): StudioGenerateDraftPayload['settingsByType'] {
@@ -55,9 +97,18 @@ function readSettingsByType(
   }
 
   return Object.fromEntries(
-    Object.entries(value).filter(
-      ([type, settings]) => DRAFT_TYPES.has(type) && isRecord(settings),
-    ),
+    Object.entries(value).flatMap(([type, settings]) => {
+      if (!DRAFT_TYPES.has(type) || !isRecord(settings)) {
+        return [];
+      }
+      const fields = Object.entries(settings)
+        .filter(
+          ([key, fieldValue]) =>
+            SETTING_KEY_PATTERN.test(key) && isSettingValue(fieldValue),
+        )
+        .slice(0, MAX_SETTINGS_PER_TYPE);
+      return [[type, Object.fromEntries(fields)]];
+    }),
   );
 }
 
@@ -95,6 +146,7 @@ export class StudioGenerateDraftsService {
   async findCurrent(
     scope: StudioGenerateDraftRequestScope,
   ): Promise<IStudioGenerateDraft | null> {
+    await this.assertBrandInOrganization(scope);
     const draft = await this.prisma.studioGenerateDraft.findFirst({
       where: scopedWhere(scope.organizationId, {
         brandId: scope.brandId,
@@ -118,13 +170,14 @@ export class StudioGenerateDraftsService {
     dto: UpsertStudioGenerateDraftDto,
     scope: StudioGenerateDraftRequestScope,
   ): Promise<IStudioGenerateDraft> {
-    const brand = await this.prisma.brand.findFirst({
-      select: { id: true },
-      where: scopedWhere(scope.organizationId, { id: scope.brandId }),
-    });
-    if (!brand) {
-      throw new NotFoundException('Brand', scope.brandId);
+    const settingsByType = readSettingsByType(dto.settingsByType);
+    if (
+      JSON.stringify(settingsByType).length >
+      STUDIO_GENERATE_DRAFT_MAX_SETTINGS_BYTES
+    ) {
+      throw new BadRequestException('Composer settings are too large');
     }
+    await this.assertBrandInOrganization(scope);
 
     const references = dedupeReferences(dto.references);
     const attachments = dedupeReferences(dto.attachments);
@@ -143,7 +196,7 @@ export class StudioGenerateDraftsService {
         ? { purposes: dto.knowledgeSelection.purposes }
         : {}),
     };
-    const data = {
+    const data: StudioGenerateDraftWriteData = {
       attachments: toPrismaJson(
         attachments.filter((attachment) => allowedIds.has(attachment.id)),
       ),
@@ -152,32 +205,81 @@ export class StudioGenerateDraftsService {
       references: toPrismaJson(
         references.filter((reference) => allowedIds.has(reference.id)),
       ),
-      settingsByType: toPrismaJson(readSettingsByType(dto.settingsByType)),
+      settingsByType: toPrismaJson(settingsByType),
       type: dto.type,
     };
 
-    const draft = await this.prisma.studioGenerateDraft.upsert({
-      create: {
-        ...data,
-        brandId: scope.brandId,
-        organizationId: scope.organizationId,
-        userId: scope.userId,
-      },
-      update: { ...data, isDeleted: false },
-      where: {
-        organizationId_brandId_userId: {
-          brandId: scope.brandId,
-          organizationId: scope.organizationId,
-          userId: scope.userId,
-        },
-      },
-    });
+    const draft = await this.writeDraft(scope, data);
 
     return this.toScopedDraft(
       draft,
       allowedIds,
       [...references, ...attachments].map((reference) => reference.id),
     );
+  }
+
+  /**
+   * One row per organization, brand and user. Every write is a tenant-scoped
+   * update first; only the very first save creates the row, and a concurrent
+   * first save that loses the unique-key race lands as an update instead.
+   */
+  private async writeDraft(
+    scope: StudioGenerateDraftRequestScope,
+    data: StudioGenerateDraftWriteData,
+  ): Promise<StudioGenerateDraftDocument> {
+    const { count } = await this.prisma.studioGenerateDraft.updateMany({
+      data,
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        userId: scope.userId,
+      }),
+    });
+    if (count === 0) {
+      try {
+        await this.prisma.studioGenerateDraft.create({
+          data: {
+            ...data,
+            brandId: scope.brandId,
+            organizationId: scope.organizationId,
+            userId: scope.userId,
+          },
+        });
+      } catch (error) {
+        if (!isPrismaUniqueConstraintError(error)) {
+          throw error;
+        }
+        await this.prisma.studioGenerateDraft.updateMany({
+          data,
+          where: scopedWhere(scope.organizationId, {
+            brandId: scope.brandId,
+            userId: scope.userId,
+          }),
+        });
+      }
+    }
+
+    const draft = await this.prisma.studioGenerateDraft.findFirst({
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        userId: scope.userId,
+      }),
+    });
+    if (!draft) {
+      throw new NotFoundException('Studio generate draft', scope.brandId);
+    }
+    return draft;
+  }
+
+  private async assertBrandInOrganization(
+    scope: StudioGenerateDraftRequestScope,
+  ): Promise<void> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(scope.organizationId, { id: scope.brandId }),
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', scope.brandId);
+    }
   }
 
   private async findAllowedIngredientIds(
@@ -188,11 +290,14 @@ export class StudioGenerateDraftsService {
       return new Set();
     }
 
+    const uniqueIds = [...new Set(ids)];
+    // Bounded by the DTO: at most the references plus attachments of one draft.
     const ingredients = await this.prisma.ingredient.findMany({
       select: { id: true },
+      take: uniqueIds.length,
       where: scopedWhere(scope.organizationId, {
         brandId: scope.brandId,
-        id: { in: [...new Set(ids)] },
+        id: { in: uniqueIds },
       }),
     });
 

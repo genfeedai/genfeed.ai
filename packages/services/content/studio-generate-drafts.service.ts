@@ -8,8 +8,9 @@ import {
 } from '@services/core/base.service';
 
 /**
- * The Generate composer draft for the authenticated user and active brand.
- * There is exactly one per scope, so the API addresses it as `current`.
+ * The Generate composer draft for the authenticated user and a brand. There
+ * is exactly one per scope, so the API addresses it as `current`. The brand
+ * is always the one open in this tab, never the member's last-selected one.
  */
 export class StudioGenerateDraftsService extends BaseService<
   StudioGenerateDraft,
@@ -33,23 +34,40 @@ export class StudioGenerateDraftsService extends BaseService<
   }
 
   /** Resolves `null` when this user has never drafted under the brand. */
-  public getCurrent(signal?: AbortSignal): Promise<StudioGenerateDraft | null> {
+  public getCurrent(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<StudioGenerateDraft | null> {
     return this.executeWithErrorHandling(
       `GET ${API_ENDPOINTS.STUDIO_GENERATE_DRAFTS}/current`,
       this.instance
-        .get<JsonApiResponseDocument>('/current', { signal })
+        .get<JsonApiResponseDocument>('/current', {
+          params: { brand: brandId },
+          signal,
+        })
         .then((res) => (res.data?.data ? this.mapOne(res.data) : null)),
     );
   }
 
+  /**
+   * `isKeepalive` sends the write through `fetch` with `keepalive`, so a save
+   * started while the page unloads still reaches the API.
+   */
   public saveCurrent(
+    brandId: string,
     body: StudioGenerateDraftPayload,
-    signal?: AbortSignal,
+    options: { isKeepalive?: boolean; signal?: AbortSignal } = {},
   ): Promise<StudioGenerateDraft> {
     return this.executeWithErrorHandling(
       `PUT ${API_ENDPOINTS.STUDIO_GENERATE_DRAFTS}/current`,
       this.instance
-        .put<JsonApiResponseDocument>('/current', body, { signal })
+        .put<JsonApiResponseDocument>(
+          '/current',
+          { ...body, brandId },
+          options.isKeepalive
+            ? { adapter: 'fetch', fetchOptions: { keepalive: true } }
+            : { signal: options.signal },
+        )
         .then((res) => this.mapOne(res.data)),
     );
   }

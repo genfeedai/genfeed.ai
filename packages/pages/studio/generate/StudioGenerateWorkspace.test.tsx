@@ -4,6 +4,7 @@ import {
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,
@@ -12,7 +13,14 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { type ReactNode, StrictMode, useCallback, useRef } from 'react';
+import {
+  type ReactNode,
+  StrictMode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
@@ -1581,6 +1589,89 @@ describe('StudioGenerateWorkspace', () => {
       expect(mocks.notify).toHaveBeenCalledWith('draft.referencesDropped');
     });
 
+    it('keeps a restored library end frame next to a restored uploaded start frame', async () => {
+      mocks.type.value = 'video';
+      mocks.settings.mockReturnValue({
+        resetSettings: vi.fn(),
+        settings: { modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1 },
+        setType: mocks.setType,
+        type: 'video',
+        updateSettings: vi.fn(),
+      });
+      // Real hook timing: restored uploads land one render after the
+      // Library references.
+      mocks.attachments.mockImplementation(
+        (options: { initialAttachments?: unknown[] }) => {
+          const [items, setItems] = useState<unknown[]>([]);
+          useEffect(() => {
+            setItems(options.initialAttachments ?? []);
+          }, [options.initialAttachments]);
+          return {
+            addFiles: vi.fn(),
+            attachments: items,
+            clearAll: mocks.clearAttachments,
+            dragHandlers: {},
+            dragState: { isActive: false },
+            getCompletedAttachments: () => [],
+            isUploading: false,
+            removeAttachment: vi.fn(),
+          };
+        },
+      );
+      mocks.getDraft.mockResolvedValueOnce({
+        ...savedDraft,
+        attachments: [{ id: 'upload-start', role: 'startFrame' }],
+        droppedReferenceIds: [],
+        references: [{ id: 'library-end', role: 'endFrame' }],
+        type: 'video',
+      });
+      mocks.findByIds.mockResolvedValueOnce([
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/end.png',
+          id: 'library-end',
+        },
+        {
+          category: 'image',
+          cdnUrl: 'https://cdn.example/start.png',
+          id: 'upload-start',
+        },
+      ]);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() =>
+        expect(lastComposerProps().attachedAssets).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: 'upload-start', role: 'startFrame' }),
+            expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+          ]),
+        ),
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-end', role: 'endFrame' }),
+        ]),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'Unsupported frame or video references were cleared for the selected model.',
+      );
+    });
+
+    it('reads the draft of the brand open in this tab', async () => {
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() =>
+        expect(mocks.getDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.any(AbortSignal),
+        ),
+      );
+    });
+
     it('never restores the saved draft over an Agent handoff', async () => {
       mocks.getDraft.mockResolvedValue(savedDraft);
       mocks.handoff.value = {
@@ -1632,12 +1723,13 @@ describe('StudioGenerateWorkspace', () => {
 
       await waitFor(() =>
         expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
           expect.objectContaining({
             prompt: 'A new idea',
             settingsByType: { image: { outputs: 2 } },
             type: 'image',
           }),
-          expect.any(AbortSignal),
+          expect.anything(),
         ),
       );
       await waitFor(() =>
@@ -1678,8 +1770,9 @@ describe('StudioGenerateWorkspace', () => {
       act(() => lastComposerProps().onPromptChange('Ship it'));
       await waitFor(() =>
         expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
           expect.objectContaining({ prompt: 'Ship it' }),
-          expect.any(AbortSignal),
+          expect.anything(),
         ),
       );
       act(() => lastComposerProps().onSubmit());
@@ -1688,12 +1781,13 @@ describe('StudioGenerateWorkspace', () => {
       expect(mocks.clearAttachments).toHaveBeenCalledTimes(1);
       await waitFor(() =>
         expect(mocks.saveDraft).toHaveBeenLastCalledWith(
+          'brand-1',
           expect.objectContaining({
             prompt: '',
             references: [],
             settingsByType: { image: { outputs: 2 } },
           }),
-          expect.any(AbortSignal),
+          expect.anything(),
         ),
       );
     });

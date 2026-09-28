@@ -77,7 +77,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createPublishAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('publish', 'Publish') : null,
   ),
-  createResizeAction: vi.fn((_ingredient, format, handler) =>
+  createResizeAction: vi.fn((_ingredient, format, _label, handler) =>
     handler ? createAction(`resize-${format}`, `Resize to ${format}`) : null,
   ),
   createReverseAction: vi.fn((_ingredient, handler) =>
@@ -193,6 +193,15 @@ const mockLoadingStates = {
   isVoting: false,
 };
 
+const quickActionCopy = {
+  openInEditor: { label: 'Open in Editor', tooltip: 'Open in the editor' },
+  resize: {
+    [IngredientFormat.LANDSCAPE]: 'Resize to Landscape',
+    [IngredientFormat.PORTRAIT]: 'Resize to Portrait',
+    [IngredientFormat.SQUARE]: 'Resize to Square',
+  },
+};
+
 function createMockIngredient(
   overrides: Partial<IIngredient> = {},
 ): IIngredient {
@@ -281,6 +290,7 @@ describe('useQuickActions', () => {
   it('offers Open in Editor and resize to every other format on videos when opted in', () => {
     const { result } = renderHook(() =>
       useQuickActions({
+        copy: quickActionCopy,
         handlers: {
           ...mockHandlers,
           onOpenInEditor: vi.fn(),

@@ -78,6 +78,16 @@
       "placeholder": "Select provider"
     }
   },
+  "quickActions": {
+    "openInEditor": "Open in Editor",
+    "openInEditorTooltip": "Open in the Studio editor",
+    "resizeFormats": {
+      "landscape": "Landscape",
+      "portrait": "Portrait",
+      "square": "Square"
+    },
+    "resizeTo": "Resize to {format}"
+  },
   "watermarkDownload": {
     "options": "Download options",
     "original": "Download original",

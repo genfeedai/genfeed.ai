@@ -23,7 +23,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 export interface UseStudioGenerateAssetActionsParams {
   onAttachReference: (ingredient: IIngredient, type: 'image' | 'video') => void;
@@ -204,20 +204,33 @@ export function useStudioGenerateAssetActions({
   );
 
   // The resize endpoint answers with the new PROCESSING child at once; the
-  // refresh puts it in the gallery, where the socket queue settles it.
+  // refresh puts it in the gallery, where the socket queue settles it. A
+  // second click while that request is open would start a second resize.
+  const pendingResizesRef = useRef(new Set<string>());
   const onResize = useCallback(
     async (ingredient: IIngredient, format: IngredientFormat) => {
+      const resizeKey = `${ingredient.id}:${format}`;
+      if (pendingResizesRef.current.has(resizeKey)) {
+        return;
+      }
+      pendingResizesRef.current.add(resizeKey);
       try {
         const service = await getVideosService();
         await service.postResize(
           ingredient.id,
           VIDEO_FORMAT_DIMENSIONS[format],
         );
-        notificationsService.success(translate('resizeStarted', { format }));
+        notificationsService.success(
+          translate('resizeStarted', {
+            format: translate(`resizeFormats.${format}`),
+          }),
+        );
         onRefresh();
       } catch (error) {
         logger.error('Failed to resize Studio video', error);
         notificationsService.error(translate('resizeFailed'));
+      } finally {
+        pendingResizesRef.current.delete(resizeKey);
       }
     },
     [getVideosService, notificationsService, onRefresh, translate],

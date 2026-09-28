@@ -46,15 +46,51 @@ export interface UseStudioGenerateDraftReturn {
   saveStatus: StudioGenerateDraftSaveStatus;
 }
 
+/** Key order matches the composer's payload so equal content compares equal. */
 function serializeDraftPayload(payload: StudioGenerateDraftPayload): string {
-  return JSON.stringify(payload);
+  return JSON.stringify({
+    attachments: payload.attachments,
+    knowledgeSelection: payload.knowledgeSelection,
+    prompt: payload.prompt,
+    references: payload.references,
+    settingsByType: payload.settingsByType,
+    type: payload.type,
+  });
+}
+
+/** What the creator types or attaches — settings are not an edit to protect. */
+function serializeDraftContent(payload: StudioGenerateDraftPayload): string {
+  return JSON.stringify([
+    payload.prompt,
+    payload.references,
+    payload.attachments,
+  ]);
+}
+
+function hasDraftContent(payload: StudioGenerateDraftPayload): boolean {
+  return (
+    payload.prompt.trim().length > 0 ||
+    payload.references.length > 0 ||
+    payload.attachments.length > 0
+  );
+}
+
+function retryDelay(attempt: number): number {
+  return Math.min(
+    STUDIO_GENERATE_DRAFT_RETRY_BASE_MS * 2 ** attempt,
+    STUDIO_GENERATE_DRAFT_RETRY_MAX_MS,
+  );
 }
 
 /**
- * Server-side Generate composer draft for the active user and brand. The
- * saved draft is restored once per brand, then every composer change is
- * saved after a short quiet period; a failed save is retried with backoff
- * and reported through `saveStatus` while the composer stays usable.
+ * Server-side Generate composer draft for the active user and the brand open
+ * in this tab. The saved draft is restored once per brand — unless the
+ * creator already started editing — and every later change is saved after a
+ * short quiet period. Writes are serialized: when one lands, the latest
+ * composer is compared with what the server acknowledged and saved again if
+ * they differ. Pending edits are flushed when the brand changes, the
+ * workspace unmounts, or the page hides. A failed save is retried with
+ * backoff and reported through `saveStatus` while the composer stays usable.
  */
 export function useStudioGenerateDraft({
   brandId,
@@ -73,85 +109,138 @@ export function useStudioGenerateDraft({
     StudioGenerateDraftsService.getInstance(token),
   );
   const [loadedBrandId, setLoadedBrandId] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveStatus, setSaveStatus] =
     useState<StudioGenerateDraftSaveStatus>('idle');
   const payloadKey = useMemo(() => serializeDraftPayload(payload), [payload]);
+
+  // The last committed composer. Updated in an effect, not during render, so
+  // a brand-switch cleanup still sees the composer of the brand being left.
   const payloadRef = useRef(payload);
-  payloadRef.current = payload;
-  const lastSavedKeyRef = useRef<string | null>(null);
-  const saveControllerRef = useRef<AbortController | null>(null);
-  const retryTimerRef = useRef<number | null>(null);
-  const retryAttemptRef = useRef(0);
+  useEffect(() => {
+    payloadRef.current = payload;
+  }, [payload]);
+  const getDraftsServiceRef = useRef(getDraftsService);
+  getDraftsServiceRef.current = getDraftsService;
+  // Read through a ref: a new `translate` identity must never re-run the load.
+  const translateRef = useRef(translate);
+  translateRef.current = translate;
   const onRestoreRef = useRef(onRestore);
   onRestoreRef.current = onRestore;
   const isRestoreBlockedRef = useRef(isRestoreBlocked);
   isRestoreBlockedRef.current = isRestoreBlocked;
+  const isAutosaveEnabledRef = useRef(isAutosaveEnabled);
+  isAutosaveEnabledRef.current = isAutosaveEnabled;
+
+  /** Brand whose server baseline is known; saves go only to it. */
+  const armedBrandRef = useRef<string | null>(null);
+  /** Serialized payload the server last acknowledged for the armed brand. */
+  const acknowledgedKeyRef = useRef<string | null>(null);
+  const isSavingRef = useRef(false);
+  const isKeepaliveRequestedRef = useRef(false);
+  const saveRetryTimerRef = useRef<number | null>(null);
+  const saveRetryAttemptRef = useRef(0);
+  const loadRetryAttemptRef = useRef(0);
   const isArmed = loadedBrandId !== null && loadedBrandId === brandId;
 
-  const clearRetry = useCallback(() => {
-    if (retryTimerRef.current !== null) {
-      window.clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = null;
+  const clearSaveRetry = useCallback(() => {
+    if (saveRetryTimerRef.current !== null) {
+      window.clearTimeout(saveRetryTimerRef.current);
+      saveRetryTimerRef.current = null;
     }
   }, []);
 
-  const save = useCallback(async () => {
-    const nextPayload = payloadRef.current;
-    const key = serializeDraftPayload(nextPayload);
-    if (key === lastSavedKeyRef.current) {
-      return;
-    }
-
-    clearRetry();
-    saveControllerRef.current?.abort();
-    const controller = new AbortController();
-    saveControllerRef.current = controller;
-    setSaveStatus('saving');
-
-    try {
-      const service = await getDraftsService();
-      await service.saveCurrent(nextPayload, controller.signal);
-      if (controller.signal.aborted) {
+  // Stable on purpose: it reads everything through refs, so the brand-change
+  // cleanup below never fires for an identity change alone.
+  const flush = useCallback(
+    (options: { isKeepalive?: boolean } = {}) => {
+      if (options.isKeepalive) {
+        isKeepaliveRequestedRef.current = true;
+      }
+      // One write at a time. The running loop re-reads the latest composer
+      // when its request lands, so nothing requested meanwhile is lost.
+      if (isSavingRef.current) {
         return;
       }
-      lastSavedKeyRef.current = key;
-      retryAttemptRef.current = 0;
-      setSaveStatus('saved');
-    } catch (error) {
-      if (controller.signal.aborted) {
-        return;
-      }
-      logger.error('Failed to save the Studio composer draft', error);
-      setSaveStatus('error');
-      const delay = Math.min(
-        STUDIO_GENERATE_DRAFT_RETRY_BASE_MS * 2 ** retryAttemptRef.current,
-        STUDIO_GENERATE_DRAFT_RETRY_MAX_MS,
-      );
-      retryAttemptRef.current += 1;
-      retryTimerRef.current = window.setTimeout(() => {
-        retryTimerRef.current = null;
-        void save();
-      }, delay);
-    }
-  }, [clearRetry, getDraftsService]);
+      isSavingRef.current = true;
 
-  // Restore once per brand. Autosave stays disarmed until the restore has
-  // fully landed, so a half-applied draft is never written back.
+      void (async () => {
+        try {
+          for (;;) {
+            // Captured before any await: a brand switch or unmount that
+            // triggered this flush still saves to the brand it was edited in.
+            const targetBrandId = armedBrandRef.current;
+            if (!targetBrandId || !isAutosaveEnabledRef.current) {
+              return;
+            }
+            const nextPayload = payloadRef.current;
+            const key = serializeDraftPayload(nextPayload);
+            if (key === acknowledgedKeyRef.current) {
+              return;
+            }
+
+            clearSaveRetry();
+            setSaveStatus('saving');
+            const isKeepalive = isKeepaliveRequestedRef.current;
+            try {
+              const service = await getDraftsServiceRef.current();
+              await service.saveCurrent(targetBrandId, nextPayload, {
+                isKeepalive,
+              });
+            } catch (error) {
+              logger.error('Failed to save the Studio composer draft', error);
+              if (armedBrandRef.current !== targetBrandId) {
+                return;
+              }
+              setSaveStatus('error');
+              const delay = retryDelay(saveRetryAttemptRef.current);
+              saveRetryAttemptRef.current += 1;
+              saveRetryTimerRef.current = window.setTimeout(() => {
+                saveRetryTimerRef.current = null;
+                flush();
+              }, delay);
+              return;
+            }
+
+            if (armedBrandRef.current !== targetBrandId) {
+              return;
+            }
+            acknowledgedKeyRef.current = key;
+            saveRetryAttemptRef.current = 0;
+            setSaveStatus('saved');
+          }
+        } finally {
+          isSavingRef.current = false;
+        }
+      })();
+    },
+    [clearSaveRetry],
+  );
+
+  // Restore once per brand. Autosave stays disarmed until the server's draft
+  // is known, so a failed or half-applied load is never written back.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadAttempt re-runs the load after a failure.
   useEffect(() => {
     if (!brandId || !canRestore || loadedBrandId === brandId) {
       return;
     }
 
     const controller = new AbortController();
+    let retryTimer: number | null = null;
+    const contentAtStart = serializeDraftContent(payloadRef.current);
+
     void (async () => {
       try {
-        const service = await getDraftsService();
-        const draft = await service.getCurrent(controller.signal);
+        const service = await getDraftsServiceRef.current();
+        const draft = await service.getCurrent(brandId, controller.signal);
         if (controller.signal.aborted) {
           return;
         }
 
-        if (draft && !isRestoreBlockedRef.current) {
+        // Typing before the draft arrived wins over the older saved draft.
+        const isEditedWhileLoading =
+          serializeDraftContent(payloadRef.current) !== contentAtStart;
+        if (draft && !isRestoreBlockedRef.current && !isEditedWhileLoading) {
           const unresolvedCount = await onRestoreRef.current(
             draft,
             controller.signal,
@@ -163,81 +252,87 @@ export function useStudioGenerateDraft({
             draft.droppedReferenceIds.length + unresolvedCount;
           if (droppedCount > 0) {
             notificationsService.warning(
-              translate('draft.referencesDropped', { count: droppedCount }),
+              translateRef.current('draft.referencesDropped', {
+                count: droppedCount,
+              }),
             );
           }
         }
+
+        // The baseline is what the server holds. Composer content that
+        // differs from it (an Agent handoff, early typing) stays dirty and is
+        // saved by the autosave below.
+        acknowledgedKeyRef.current = draft
+          ? serializeDraftPayload(draft)
+          : hasDraftContent(payloadRef.current)
+            ? null
+            : serializeDraftPayload(payloadRef.current);
+        armedBrandRef.current = brandId;
+        loadRetryAttemptRef.current = 0;
+        setLoadedBrandId(brandId);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
-        // The composer stays usable without its draft; the next change
-        // saves a fresh one.
         logger.error('Failed to restore the Studio composer draft', error);
+        retryTimer = window.setTimeout(() => {
+          setLoadAttempt((attempt) => attempt + 1);
+        }, retryDelay(loadRetryAttemptRef.current));
+        loadRetryAttemptRef.current += 1;
       }
-
-      // The restored state is what the server already holds; only a later
-      // change needs saving.
-      lastSavedKeyRef.current = serializeDraftPayload(payloadRef.current);
-      setLoadedBrandId(brandId);
     })();
 
-    return () => controller.abort();
-  }, [
-    brandId,
-    canRestore,
-    getDraftsService,
-    loadedBrandId,
-    notificationsService,
-    translate,
-  ]);
+    return () => {
+      controller.abort();
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
+    };
+  }, [brandId, canRestore, loadAttempt, loadedBrandId, notificationsService]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: payloadKey is the change signal; save() reads the latest payload through a ref.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: payloadKey is the change signal; flush() reads the latest payload through a ref.
   useEffect(() => {
     if (!isArmed || !isAutosaveEnabled) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      void save();
+      flush();
     }, STUDIO_GENERATE_DRAFT_SAVE_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [isArmed, isAutosaveEnabled, payloadKey, save]);
+  }, [flush, isAutosaveEnabled, isArmed, payloadKey]);
 
-  // A reload inside the quiet period would otherwise lose the last keystrokes.
+  // A reload or tab close inside the quiet period would otherwise lose the
+  // last keystrokes; keepalive lets that final write outlive the page.
   useEffect(() => {
-    if (!isArmed || !isAutosaveEnabled) {
-      return;
-    }
-
-    const flush = () => {
+    const flushOnHide = () => {
       if (document.visibilityState === 'hidden') {
-        void save();
+        flush({ isKeepalive: true });
       }
     };
     const flushOnPageHide = () => {
-      void save();
+      flush({ isKeepalive: true });
     };
-    document.addEventListener('visibilitychange', flush);
+    document.addEventListener('visibilitychange', flushOnHide);
     window.addEventListener('pagehide', flushOnPageHide);
     return () => {
-      document.removeEventListener('visibilitychange', flush);
+      document.removeEventListener('visibilitychange', flushOnHide);
       window.removeEventListener('pagehide', flushOnPageHide);
     };
-  }, [isArmed, isAutosaveEnabled, save]);
+  }, [flush]);
 
-  // A brand switch starts from that brand's draft: drop anything in flight.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId is the reset trigger.
+  // Leaving the brand — a brand switch or an in-app navigation away from
+  // Generate — saves what was typed under that brand first, then disarms.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: brandId is the departure trigger.
   useEffect(() => {
     return () => {
-      clearRetry();
-      saveControllerRef.current?.abort();
-      saveControllerRef.current = null;
-      retryAttemptRef.current = 0;
-      lastSavedKeyRef.current = null;
+      flush({ isKeepalive: true });
+      armedBrandRef.current = null;
+      clearSaveRetry();
+      saveRetryAttemptRef.current = 0;
     };
-  }, [brandId, clearRetry]);
+  }, [brandId, clearSaveRetry, flush]);
 
   return { saveStatus: isArmed ? saveStatus : 'idle' };
 }

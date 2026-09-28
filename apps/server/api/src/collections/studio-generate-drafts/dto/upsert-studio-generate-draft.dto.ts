@@ -55,6 +55,15 @@ export class StudioGenerateDraftReferenceDto
 export class UpsertStudioGenerateDraftDto
   implements StudioGenerateDraftPayload
 {
+  @ApiProperty({
+    description:
+      'Brand open in the requesting tab; must belong to the caller organization',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  readonly brandId!: string;
+
   @ApiProperty({ enum: STUDIO_GENERATE_DRAFT_TYPES })
   @IsIn(STUDIO_GENERATE_DRAFT_TYPES)
   readonly type!: StudioGenerateType;

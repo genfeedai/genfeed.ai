@@ -52,6 +52,12 @@ export interface IActionHandlers {
   onResize?: (ingredient: IIngredient, format: IngredientFormat) => void;
 }
 
+/** Translated copy for quick actions whose labels are resolved by the host. */
+export interface IQuickActionCopy {
+  openInEditor: { label: string; tooltip: string };
+  resize: Record<IngredientFormat, string>;
+}
+
 export type TooltipPositionType = 'top' | 'bottom' | 'left' | 'right';
 export type QuickActionVariant = 'primary' | 'ghost' | 'error';
 

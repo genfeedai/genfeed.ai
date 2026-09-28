@@ -373,6 +373,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'subscribedAt',
     'utm',
   ],
+  'studio-generate-draft:StudioGenerateDraft': ['droppedReferenceIds'],
   'studio-look:StudioLook': [],
   'subscription:Subscription': [],
   'task-comment:TaskComment': [],
