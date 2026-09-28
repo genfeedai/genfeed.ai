@@ -9,7 +9,10 @@ import {
 import type { ScopedResearchFindingReference } from '@genfeedai/contracts/interfaces';
 import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindingInspector';
 import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
-import { getResearchFindingReferenceKey } from '@pages/research/work-surface/research-work-surface.types';
+import {
+  getResearchFindingReferenceKey,
+  isAdsResearchFindingReference,
+} from '@pages/research/work-surface/research-work-surface.types';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -90,7 +93,14 @@ export default function ResearchWorkspaceSurfaceAdapter() {
 
   // Rendered from the Discovery layout, inside ResearchWorkSurfaceProvider, so
   // the panel reads the live work surface rather than a detached copy.
-  const finding = surface?.authorizedFinding ?? null;
+  // The Ads page renders its own ad detail for ad findings; this panel covers
+  // every other Discovery finding.
+  const authorizedFinding = surface?.authorizedFinding ?? null;
+  const finding =
+    authorizedFinding &&
+    !isAdsResearchFindingReference(authorizedFinding.reference)
+      ? authorizedFinding
+      : null;
   const clearFinding = surface?.clearFinding;
   const handleClose = useCallback(() => clearFinding?.(), [clearFinding]);
 

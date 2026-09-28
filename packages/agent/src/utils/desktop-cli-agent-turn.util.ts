@@ -17,8 +17,17 @@ export const DESKTOP_CLI_RUN_ID_PREFIX = 'desktop-cli:';
 const ELECTRON_INVOKE_ERROR_PREFIX =
   /^Error invoking remote method '[^']+': (?:[A-Za-z]*Error: )?/;
 
+/** The running local turn, tied to the run and thread it belongs to. */
+export interface DesktopCliAgentTurnHandle {
+  bridge: IGenfeedDesktopBridge;
+  runId: string;
+  /** Null until Genfeed creates the thread for a new conversation. */
+  threadId: string | null;
+  turnId: string;
+}
+
 export interface DesktopCliAgentTurnHandleRef {
-  current: { bridge: IGenfeedDesktopBridge; turnId: string } | null;
+  current: DesktopCliAgentTurnHandle | null;
 }
 
 function createTurnId(): string {
@@ -109,7 +118,13 @@ export function runDesktopCliAgentTurn(params: {
   initialState.setError(null);
   initialState.setIsGenerating(true);
   initialState.setActiveRun(runId, { startedAt, status: 'running' });
-  activeTurnRef.current = { bridge, turnId };
+  const localTurn: DesktopCliAgentTurnHandle = {
+    bridge,
+    runId,
+    threadId,
+    turnId,
+  };
+  activeTurnRef.current = localTurn;
 
   const isVisible = () => store.getState().activeThreadId === visibleThreadId;
 
@@ -243,6 +258,7 @@ export function runDesktopCliAgentTurn(params: {
         // A new thread was created in Genfeed for this runtime.
         const state = store.getState();
         visibleThreadId = handle.threadId;
+        localTurn.threadId = handle.threadId;
         if (state.activeThreadId !== null) {
           return;
         }

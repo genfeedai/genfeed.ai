@@ -7,6 +7,7 @@ import type {
   WorkflowVisualNode,
 } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -154,6 +155,7 @@ export function useWorkflowBuilder({
         // Fetch node registry from API
         const response = await fetch(`${apiBaseUrl}/workflows/nodes/registry`, {
           headers: {
+            ...getRequestOrganizationHeaders(),
             Authorization: `Bearer ${token}`,
           },
           signal: controller.signal,
@@ -318,6 +320,7 @@ export function useWorkflowBuilder({
           nodes: workflowNodes,
         }),
         headers: {
+          ...getRequestOrganizationHeaders(),
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
@@ -346,6 +349,7 @@ export function useWorkflowBuilder({
         `${apiBaseUrl}/workflows/${workflowId}/validate`,
         {
           headers: {
+            ...getRequestOrganizationHeaders(),
             Authorization: `Bearer ${token}`,
           },
           method: 'POST',
@@ -390,6 +394,7 @@ export function useWorkflowBuilder({
           workflowId,
         }),
         headers: {
+          ...getRequestOrganizationHeaders(),
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },

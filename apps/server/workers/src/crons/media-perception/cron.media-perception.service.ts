@@ -48,7 +48,9 @@ export class CronMediaPerceptionService {
       queuedPerceptions: 0,
       queuedRetries: 0,
     };
-    const settings = this.mediaPerceptionService.settings;
+    // Read every tick: the switch is an operator platform setting (#5407),
+    // so flipping it in /admin takes effect on the next sweep.
+    const settings = await this.mediaPerceptionService.getSettings();
     if (!settings.isEnabled) {
       return totals;
     }

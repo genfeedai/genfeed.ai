@@ -11,7 +11,6 @@ import {
   ChartColumn,
   Clapperboard,
   Cpu,
-  GraduationCap,
   HeartHandshake,
   Megaphone,
   Rocket,
@@ -145,14 +144,11 @@ const SOLUTIONS_LINKS = [
     icon: HeartHandshake,
     label: 'Done For You',
   },
-  {
-    description: 'Training and content consultancy',
-    group: 'Managed',
-    href: '/services',
-    icon: GraduationCap,
-    label: 'Services',
-  },
 ];
+
+// The site's second path is agent-first: connect the agent you already use,
+// then open the app. There is no sales demo; calls are for done-for-you work.
+const AGENT_CONNECT_HREF = '/agent#connect';
 
 const NAV_LINKS = [
   { href: '/pricing', label: 'Pricing' },
@@ -162,7 +158,7 @@ const NAV_LINKS = [
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
 
-  // The desktop bar hides Log in and Book a Demo to fit, so on a phone they
+  // The desktop bar hides Log in and the agent action to fit, so on a phone they
   // live in the menu. Without them a returning visitor had no way to sign in.
   const mobileActions = isSignedIn ? (
     <ButtonTracked
@@ -191,16 +187,10 @@ export default function WebsiteTopbar() {
         size={ButtonSize.PUBLIC}
         variant={ButtonVariant.SECONDARY}
         className="h-12 w-full text-sm uppercase"
-        trackingData={{ action: 'book_demo_mobile_menu' }}
+        trackingData={{ action: 'connect_agent_mobile_menu' }}
         trackingName="topbar_cta_click"
       >
-        <a
-          href={EnvironmentService.calendly}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Book a Demo
-        </a>
+        <a href={AGENT_CONNECT_HREF}>Connect your agent</a>
       </ButtonTracked>
     </div>
   );
@@ -254,16 +244,10 @@ export default function WebsiteTopbar() {
                 size={ButtonSize.PUBLIC}
                 variant={ButtonVariant.SECONDARY}
                 className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
-                trackingData={{ action: 'book_demo_topbar' }}
+                trackingData={{ action: 'connect_agent_topbar' }}
                 trackingName="topbar_cta_click"
               >
-                <a
-                  href={EnvironmentService.calendly}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a Demo
-                </a>
+                <a href={AGENT_CONNECT_HREF}>Connect your agent</a>
               </ButtonTracked>
               <ButtonTracked
                 asChild

@@ -1,9 +1,10 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { MediaPerceptionModule } from '@api/services/media-perception/media-perception.module';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
 import { MediaModerationQueueService } from '@api/services/moderation/media-moderation-queue.service';
-import { MODERATION_PROVIDER } from '@api/services/moderation/moderation.tokens';
-import { createModerationProvider } from '@api/services/moderation/moderation-provider.factory';
+import { MODERATION_PROVIDERS } from '@api/services/moderation/moderation.tokens';
+import { createModerationProviders } from '@api/services/moderation/moderation-provider.factory';
 import { MEDIA_MODERATION_QUEUE } from '@genfeedai/contracts/queue';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
@@ -24,12 +25,13 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     LoggerModule,
     MediaPerceptionModule,
+    PlatformSettingsModule,
   ],
   providers: [
     {
       inject: [ConfigService, LoggerService],
-      provide: MODERATION_PROVIDER,
-      useFactory: createModerationProvider,
+      provide: MODERATION_PROVIDERS,
+      useFactory: createModerationProviders,
     },
     MediaModerationQueueService,
     MediaModerationService,

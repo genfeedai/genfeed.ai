@@ -1,3 +1,8 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -75,6 +80,7 @@ const SUMMARY_PAYLOAD = {
 describe('useLibrarySummary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRequestOrganizationId();
     vi.stubGlobal('fetch', fetchMock);
     getTokenMock.mockResolvedValue('token-123');
     scopeMock.brandId = 'brand-1';
@@ -104,6 +110,26 @@ describe('useLibrarySummary', () => {
     );
     expect(result.current.summary).toEqual(SUMMARY_PAYLOAD);
     expect(result.current.error).toBeNull();
+  });
+
+  it('sends the routed organization header with the bearer token', async () => {
+    fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
+    setRequestOrganizationId('org-a');
+
+    const { result } = renderHook(() => useLibrarySummary());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer token-123',
+          [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+        },
+      }),
+    );
   });
 
   it('sets an error when the response is not ok', async () => {

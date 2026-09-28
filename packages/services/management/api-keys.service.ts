@@ -77,6 +77,7 @@ export class ApiKeysService extends BaseService<
     const response = await fetch(`${this.baseURL}/${id}/verify-mcp`, {
       body: JSON.stringify(payload),
       headers: {
+        ...this.requestOrganizationHeaders(),
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
       },

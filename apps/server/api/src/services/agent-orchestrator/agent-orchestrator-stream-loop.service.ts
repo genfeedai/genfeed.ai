@@ -2,6 +2,7 @@ import { type AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { scopedWhere } from '@api/index';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
@@ -58,7 +59,6 @@ import type {
   AgentAutoRoutingResolution,
   AgentUIBlocksEvent,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -105,11 +105,16 @@ export class AgentOrchestratorStreamLoopService {
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
     @Optional()
-    private readonly configService?: ConfigService,
+    private readonly platformSettingsService?: PlatformSettingsService,
   ) {}
 
-  private isRealTokenStreamingEnabled(): boolean {
-    return this.configService?.get('AGENT_TOKEN_STREAMING_ENABLED') === 'true';
+  /** An operator platform setting (#5407); off when settings are not wired. */
+  private async isRealTokenStreamingEnabled(): Promise<boolean> {
+    if (!this.platformSettingsService) {
+      return false;
+    }
+    const settings = await this.platformSettingsService.getFeatureSettings();
+    return settings.isAgentTokenStreamingEnabled;
   }
 
   private async publishStreamDelta(
@@ -268,7 +273,7 @@ export class AgentOrchestratorStreamLoopService {
       // {title, content} envelope there — streaming raw deltas would flash JSON
       // at the user. Those turns keep the simulated word-split path.
       const canStreamLiveTokens =
-        this.isRealTokenStreamingEnabled() && !(seedTitle ?? '').trim();
+        !(seedTitle ?? '').trim() && (await this.isRealTokenStreamingEnabled());
 
       while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
         if (await this.isRunCancelled(context)) {

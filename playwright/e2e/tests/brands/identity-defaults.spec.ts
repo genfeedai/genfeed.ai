@@ -4,7 +4,9 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { BrandsPage } from '../../pages/brands.page';
+import { brandPath } from '../../utils/app-chrome';
 import { selectVisibleRadixOption } from '../../utils/radix-select';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 test.describe('Brand Identity Defaults', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -20,7 +22,24 @@ test.describe('Brand Identity Defaults', () => {
   }) => {
     const brandsPage = new BrandsPage(authenticatedPage);
 
-    await brandsPage.gotoBrandDetail('brand-1');
+    // gotoBrandDetail() targets `/settings/brands/:id`, which has no page
+    // component (only a brands *list* page exists under
+    // `~/settings/brands/`). The brand identity defaults card
+    // (BrandDetailIdentityCard, data-testid="brand-identity-card") actually
+    // renders on the brand-scoped Agent Defaults page. brandPath() uses the
+    // explicit E2E org+brand slugs (test-org/brand-1, matching this fixture's
+    // mocked brand) rather than a bare path, since bare-path active-workspace
+    // resolution is cached server-side per session and is not deterministic
+    // across parallel workers sharing one dev server.
+    const brandAgentDefaultsRoute = brandPath('/settings/agent-defaults');
+    await authenticatedPage.goto(brandAgentDefaultsRoute, {
+      timeout: 60000,
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(
+      authenticatedPage,
+      brandAgentDefaultsRoute,
+    );
 
     await expect(brandsPage.brandIdentityCard).toBeVisible({ timeout: 30000 });
     await expect(

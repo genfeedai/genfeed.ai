@@ -2,6 +2,7 @@ import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.
 import { describe, expect, it } from 'vitest';
 import {
   buildAgentRuntimeCatalog,
+  resolveDesktopCliRuntimeBlocker,
   resolveDesktopCliRuntimeKey,
   resolveThreadRuntimeOption,
 } from './agent-runtime-options.util';
@@ -118,6 +119,30 @@ describe('buildAgentRuntimeCatalog', () => {
     expect(catalog.providerSummary).toBe('Providers ready: openai');
   });
 
+  it('keeps an outdated Codex CLI out of the picker with its upgrade step', () => {
+    const upgradeMessage =
+      'This Codex CLI is too old to run Genfeed agent turns. Update it with `npm install -g @openai/codex@latest`, then restart Genfeed Desktop.';
+    const catalog = buildAgentRuntimeCatalog({
+      desktopTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+        grok: false,
+        upgradesRequired: [{ key: 'codex', message: upgradeMessage }],
+      },
+    });
+
+    expect(
+      catalog.options.some((option) => option.key === 'local/codex-cli'),
+    ).toBe(false);
+    expect(catalog.localToolNotice).toBe(upgradeMessage);
+    expect(buildAgentRuntimeCatalog({}).localToolNotice).toBeNull();
+    expect(
+      buildAgentRuntimeCatalog({ desktopTools: DESKTOP_TOOLS }).localToolNotice,
+    ).toBeNull();
+  });
+
   it('only offers the CLIs that are installed', () => {
     const catalog = buildAgentRuntimeCatalog({
       desktopTools: { ...DESKTOP_TOOLS, claude: false, detected: ['codex'] },
@@ -136,7 +161,6 @@ describe('resolveDesktopCliRuntimeKey', () => {
     expect(
       resolveDesktopCliRuntimeKey({
         activeThreadId: 'thread-1',
-        desktopTools: DESKTOP_TOOLS,
         hasDesktopBridge: true,
         thread: { runtimeKey: 'local/claude-cli' },
       }),
@@ -147,7 +171,6 @@ describe('resolveDesktopCliRuntimeKey', () => {
     expect(
       resolveDesktopCliRuntimeKey({
         activeThreadId: null,
-        desktopTools: DESKTOP_TOOLS,
         draftRuntimeKey: 'local/codex-cli',
         hasDesktopBridge: true,
         thread: null,
@@ -155,11 +178,10 @@ describe('resolveDesktopCliRuntimeKey', () => {
     ).toBe('local/codex-cli');
   });
 
-  it('keeps hosted, browser, and uninstalled cases on the API transport', () => {
+  it('keeps hosted threads and browsers on the API transport', () => {
     expect(
       resolveDesktopCliRuntimeKey({
         activeThreadId: 'thread-1',
-        desktopTools: DESKTOP_TOOLS,
         hasDesktopBridge: true,
         thread: { runtimeKey: 'hosted/genfeed' },
       }),
@@ -167,7 +189,6 @@ describe('resolveDesktopCliRuntimeKey', () => {
     expect(
       resolveDesktopCliRuntimeKey({
         activeThreadId: 'thread-1',
-        desktopTools: DESKTOP_TOOLS,
         hasDesktopBridge: false,
         thread: { runtimeKey: 'local/claude-cli' },
       }),
@@ -175,20 +196,46 @@ describe('resolveDesktopCliRuntimeKey', () => {
     expect(
       resolveDesktopCliRuntimeKey({
         activeThreadId: 'thread-1',
-        desktopTools: { ...DESKTOP_TOOLS, claude: false },
-        hasDesktopBridge: true,
-        thread: { runtimeKey: 'local/claude-cli' },
-      }),
-    ).toBeNull();
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: 'thread-1',
-        desktopTools: DESKTOP_TOOLS,
         draftRuntimeKey: 'local/claude-cli',
         hasDesktopBridge: true,
         thread: null,
       }),
     ).toBeNull();
+  });
+});
+
+describe('resolveDesktopCliRuntimeBlocker', () => {
+  const upgradeMessage =
+    'This Codex CLI is too old to run Genfeed agent turns. Update it with `npm install -g @openai/codex@latest`, then restart Genfeed Desktop.';
+
+  it('lets a ready CLI run', () => {
+    expect(
+      resolveDesktopCliRuntimeBlocker('local/codex-cli', DESKTOP_TOOLS),
+    ).toBeNull();
+  });
+
+  it('explains an outdated Codex CLI with its upgrade step', () => {
+    const blocker = resolveDesktopCliRuntimeBlocker('local/codex-cli', {
+      ...DESKTOP_TOOLS,
+      codex: false,
+      detected: ['claude'],
+      upgradesRequired: [{ key: 'codex', message: upgradeMessage }],
+    });
+
+    expect(blocker).toContain(upgradeMessage);
+    expect(blocker).toContain('pick a Genfeed runtime');
+  });
+
+  it('explains a missing CLI, including when detection failed', () => {
+    expect(
+      resolveDesktopCliRuntimeBlocker('local/claude-cli', {
+        ...DESKTOP_TOOLS,
+        claude: false,
+      }),
+    ).toContain('Claude Code was not found on this computer');
+    expect(resolveDesktopCliRuntimeBlocker('local/claude-cli', null)).toContain(
+      'Claude Code was not found on this computer',
+    );
   });
 });
 
@@ -219,5 +266,16 @@ describe('resolveThreadRuntimeOption', () => {
         thread: { requestedModel: '', runtimeKey: '' },
       }).key,
     ).toBe('');
+  });
+
+  it('keeps showing a local CLI the thread is bound to when it is not offered', () => {
+    const hostedOnly = buildAgentRuntimeCatalog({});
+
+    expect(
+      resolveThreadRuntimeOption({
+        catalog: hostedOnly,
+        thread: { runtimeKey: 'local/codex-cli' },
+      }),
+    ).toMatchObject({ key: 'local/codex-cli', label: 'Codex' });
   });
 });

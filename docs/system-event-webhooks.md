@@ -5,9 +5,13 @@ notifications service. They work without any external management application.
 
 ## Configuration
 
-Set `SYSTEM_EVENTS_ENABLED_AT` (ISO timestamp) on API and workers to begin
-recording. Unset means disabled: ordinary signup and billing continue, with no
-notification delivery calls. The timestamp prevents historical signup floods.
+Turn on **Record system events** in Admin → Platform settings
+(`/admin/administration/platform-settings`) to begin recording. It stores the
+moment recording started (`systemEventsEnabledAt`) on the platform-settings
+singleton, shared by API and workers (#5407). Off means disabled: ordinary
+signup and billing continue, with no notification delivery calls. The start
+time prevents historical signup floods: events that occurred earlier are never
+recorded.
 
 Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
 an incoming webhook owned by your deployment. Hosted SaaS allowlists that name
@@ -17,7 +21,7 @@ API/workers use the existing
 just as acknowledged email delivery does. No additional receiver endpoint,
 external account, bot token or event signing secret is required.
 
-Apply the additive outbox/settings migration before enabling recording.
+Apply the additive outbox/settings migrations before enabling recording.
 Notification settings, history and retry scheduling are available through
 `/v1/admin/system-notifications`, using existing super-admin and IP allowlist
 requirements. Any authorized administration client can consume this JSON:API

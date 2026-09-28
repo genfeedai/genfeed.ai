@@ -27,6 +27,7 @@ import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.u
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -114,11 +115,20 @@ export function useAgentCliTerminal(
   const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<XtermTerminal | null>(null);
   const activeThreadIdRef = useRef(activeThreadId);
+  const activeTerminalSessionByThreadRef = useRef(
+    activeTerminalSessionByThread,
+  );
 
   // Keep thread ref in sync for use inside callbacks
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
   }, [activeThreadId]);
+
+  // The boot effect reads the selection through a ref: selecting a session
+  // must not re-run it, because its cleanup kills the active session.
+  useEffect(() => {
+    activeTerminalSessionByThreadRef.current = activeTerminalSessionByThread;
+  }, [activeTerminalSessionByThread]);
 
   const threadKey = resolveThreadKey(activeThreadId);
   const activeThreadSessions = terminalSessionsByThread.get(threadKey);
@@ -452,7 +462,10 @@ export function useAgentCliTerminal(
 
       socket = io(`${resolveTerminalEndpoint()}/terminal`, {
         auth: { token },
-        extraHeaders: { Authorization: `Bearer ${token}` },
+        extraHeaders: {
+          ...getRequestOrganizationHeaders(),
+          Authorization: `Bearer ${token}`,
+        },
         reconnectionAttempts: 3,
         timeout: 8_000,
         transports: ['websocket', 'polling'],
@@ -493,7 +506,7 @@ export function useAgentCliTerminal(
           const currentKey = resolveThreadKey(activeThreadIdRef.current);
           const matchingSessions = next.get(currentKey) ?? [];
           const preferredId =
-            activeTerminalSessionByThread[currentKey] ??
+            activeTerminalSessionByThreadRef.current[currentKey] ??
             matchingSessions[0]?.id;
 
           if (preferredId) {
@@ -560,7 +573,6 @@ export function useAgentCliTerminal(
     fitAndSyncSize,
     setTerminalSessionsByThread,
     setActiveTerminalSession,
-    activeTerminalSessionByThread,
   ]);
 
   // T7: Cmd/Ctrl+F → open search bar

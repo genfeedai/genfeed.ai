@@ -1,10 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { resolveAuthToken } from '@genfeedai/helpers/auth/auth.helper';
 import { formatRecurringSchedule } from '@genfeedai/helpers/formatting/recurring-schedule/recurring-schedule.helper';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { WorkflowsService } from '@genfeedai/services/automation/workflows.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
@@ -61,7 +60,9 @@ export default function SchedulePanel({
   isCollapsed = false,
   onToggleCollapse,
 }: SchedulePanelProps) {
-  const { getToken } = useAuthIdentity();
+  const getWorkflowsService = useAuthedService((token: string) =>
+    WorkflowsService.getInstance(token),
+  );
   const enableScheduleId = useId();
   const cronExpressionId = useId();
   const timezoneId = useId();
@@ -81,26 +82,8 @@ export default function SchedulePanel({
 
     try {
       setIsSaving(true);
-      const token = await resolveAuthToken(getToken);
-      const response = await fetch(
-        `${EnvironmentService.apiEndpoint}/workflows/${workflowId}/schedule`,
-        {
-          body: JSON.stringify({
-            enabled,
-            schedule,
-            timezone,
-          }),
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to save schedule');
-      }
+      const service = await getWorkflowsService();
+      await service.setSchedule(workflowId, { enabled, schedule, timezone });
 
       NotificationsService.getInstance().success('Schedule saved');
       onScheduleUpdate?.();
@@ -109,25 +92,20 @@ export default function SchedulePanel({
     } finally {
       setIsSaving(false);
     }
-  }, [workflowId, schedule, timezone, enabled, onScheduleUpdate, getToken]);
+  }, [
+    workflowId,
+    schedule,
+    timezone,
+    enabled,
+    onScheduleUpdate,
+    getWorkflowsService,
+  ]);
 
   const handleRemoveSchedule = useCallback(async () => {
     try {
       setIsSaving(true);
-      const token = await resolveAuthToken(getToken);
-      const response = await fetch(
-        `${EnvironmentService.apiEndpoint}/workflows/${workflowId}/schedule`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          method: 'DELETE',
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to remove schedule');
-      }
+      const service = await getWorkflowsService();
+      await service.removeSchedule(workflowId);
 
       setSchedule('');
       setEnabled(false);
@@ -138,7 +116,7 @@ export default function SchedulePanel({
     } finally {
       setIsSaving(false);
     }
-  }, [workflowId, onScheduleUpdate, getToken]);
+  }, [workflowId, onScheduleUpdate, getWorkflowsService]);
 
   return (
     <div className="border-b border-white/[0.08]">

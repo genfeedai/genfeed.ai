@@ -1,9 +1,8 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
@@ -17,8 +16,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-
-const CALENDLY_URL = EnvironmentService.calendly;
 
 const SHOWCASE_IMAGES = [
   {
@@ -103,29 +100,11 @@ export default function CalendarContent() {
     <MarketingEntrance>
       <PageLayout
         heroActions={
-          <>
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              trackingName="calendar_hero_click"
-              trackingData={{ action: 'create_now' }}
-            >
-              <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Create now
-              </a>
-            </ButtonTracked>
-            <ButtonTracked
-              asChild
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.PUBLIC}
-              trackingName="calendar_hero_click"
-              trackingData={{ action: 'book_demo' }}
-            >
-              <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-                Book a Demo
-              </a>
-            </ButtonTracked>
-          </>
+          <AgentFirstActions
+            signUpHref={signUpHref}
+            signUpLabel="Create now"
+            trackingName="calendar_hero_click"
+          />
         }
         heroVisual={HERO_VISUAL}
         compact
@@ -274,31 +253,11 @@ export default function CalendarContent() {
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
+              <AgentFirstActions
+                signUpHref={signUpHref}
+                signUpLabel="Create now"
                 trackingName="calendar_cta_click"
-                trackingData={{ action: 'create_now' }}
-              >
-                <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Create now
-                </a>
-              </ButtonTracked>
-              <ButtonTracked
-                asChild
-                variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.PUBLIC}
-                trackingName="calendar_cta_click"
-                trackingData={{ action: 'book_demo' }}
-              >
-                <a
-                  href={CALENDLY_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a Demo
-                </a>
-              </ButtonTracked>
+              />
             </div>
           </div>
         </section>

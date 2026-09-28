@@ -1,30 +1,47 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
+import type { ModerationProviders } from '@api/services/moderation/moderation.tokens';
+import { NullModerationProvider } from '@api/services/moderation/providers/null-moderation.provider';
 import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type {
   IMediaPerception,
   IModerationProvider,
+  IPlatformFeatureSettings,
 } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
 const HASH = 'f'.repeat(64);
 const JOB = { ingredientId: 'asset-1', organizationId: 'org-1' };
 
+function sceneDescription(hasSuspectedMinors: boolean) {
+  return {
+    brandElements: [],
+    contentWarnings: [],
+    hasPeople: true,
+    hasSuspectedMinors,
+    setting: '',
+    subjects: [],
+    summary: 'Two people.',
+    textOnScreen: '',
+  };
+}
+
 function perception(overrides: Partial<IMediaPerception> = {}) {
   return {
     assetHash: HASH,
     createdAt: '2026-09-26T10:00:00.000Z',
-    description: null,
-    descriptionModel: null,
-    descriptionStatus: 'pending',
+    description: sceneDescription(false),
+    descriptionModel: 'vision-model',
+    descriptionStatus: 'ready',
     diagnostics: [],
     durationSeconds: 12,
     frames: [
@@ -66,7 +83,7 @@ function perception(overrides: Partial<IMediaPerception> = {}) {
 
 function makeHarness(
   options: {
-    config?: Record<string, unknown>;
+    featureSettings?: Partial<IPlatformFeatureSettings>;
     existing?: Record<string, unknown> | null;
     isEnabled?: boolean;
     perception?: IMediaPerception | null;
@@ -90,34 +107,46 @@ function makeHarness(
   const ingredientFindFirst = vi
     .fn()
     .mockResolvedValue({ brandId: 'brand-1', userId: 'user-1' });
+  const ingredientFindMany = vi.fn().mockResolvedValue([]);
   const activities = { record: vi.fn().mockResolvedValue({}) };
   const getForAsset = vi
     .fn()
     .mockResolvedValue(
       options.perception === undefined ? perception() : options.perception,
     );
-  const config: Record<string, unknown> = {
-    MODERATION_MODE: 'live',
-    MODERATION_PROVIDER: 'openai',
-    ...options.config,
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      moderationMode: 'live',
+      moderationProvider: 'openai',
+      ...options.featureSettings,
+    })),
+  };
+  const providers: ModerationProviders = {
+    none: new NullModerationProvider(),
+    openai: provider as unknown as IModerationProvider,
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
 
   const service = new MediaModerationService(
     {
-      ingredient: { findFirst: ingredientFindFirst },
+      ingredient: {
+        findFirst: ingredientFindFirst,
+        findMany: ingredientFindMany,
+      },
       mediaModeration: { findFirst, findMany: vi.fn(), upsert },
       mediaPerception: { findMany: vi.fn().mockResolvedValue([]) },
     } as unknown as PrismaService,
     { getForAsset } as unknown as MediaPerceptionService,
-    provider as unknown as IModerationProvider,
+    providers,
     activities as unknown as ActivityRecorderService,
-    { get: (key: string) => config[key] } as unknown as ConfigService,
+    platformSettingsService as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
   return {
     activities,
     ingredientFindFirst,
+    ingredientFindMany,
     findFirst,
     getForAsset,
     logger,
@@ -191,7 +220,7 @@ describe('MediaModerationService.moderate', () => {
   });
 
   it('persists isFlagged=false in shadow mode and logs what would have flagged', async () => {
-    const h = makeHarness({ config: { MODERATION_MODE: 'shadow' } });
+    const h = makeHarness({ featureSettings: { moderationMode: 'shadow' } });
 
     await h.service.moderate(JOB);
 
@@ -208,7 +237,10 @@ describe('MediaModerationService.moderate', () => {
 
   it.each([
     ['the provider is none', { isEnabled: false }],
-    ['the mode is off', { config: { MODERATION_MODE: 'off' } }],
+    [
+      'the mode is off',
+      { featureSettings: { moderationMode: 'off' as const } },
+    ],
   ])('persists no verdict when %s', async (_label, options) => {
     const h = makeHarness(options);
 
@@ -224,6 +256,78 @@ describe('MediaModerationService.moderate', () => {
 
     await expect(h.service.moderate(JOB)).resolves.toBe('skipped');
     expect(h.provider.classifyFrames).not.toHaveBeenCalled();
+  });
+
+  it('waits for the scene description, whose minors evidence sets the visual threshold', async () => {
+    const h = makeHarness({
+      perception: perception({
+        description: null,
+        descriptionModel: null,
+        descriptionStatus: 'pending',
+      }),
+    });
+
+    await expect(h.service.moderate(JOB)).resolves.toBe('skipped');
+    expect(h.provider.classifyFrames).not.toHaveBeenCalled();
+    expect(h.upsert).not.toHaveBeenCalled();
+  });
+
+  it('applies the minors threshold when the scene description could not be produced', async () => {
+    const h = makeHarness({
+      perception: perception({
+        description: null,
+        descriptionModel: null,
+        descriptionStatus: 'failed',
+      }),
+    });
+    h.provider.classifyFrames.mockResolvedValueOnce([
+      { sexual: 0.3 },
+      { sexual: 0.05 },
+    ]);
+
+    await h.service.moderate(JOB);
+
+    expect(h.upsert.mock.calls[0][0].create.flaggedCategories).toEqual([
+      'sexual_minors',
+    ]);
+  });
+
+  it('re-evaluates a cached clean verdict once the description suspects minors', async () => {
+    const h = makeHarness({
+      existing: storedRow({
+        inputs: [{ frameIndex: 0, scores: { sexual: 0.3 }, source: 'frame' }],
+        mode: 'live',
+      }),
+      perception: perception({ description: sceneDescription(true) }),
+    });
+
+    await expect(h.service.moderate(JOB)).resolves.toBe('reevaluated');
+
+    expect(h.provider.classifyFrames).not.toHaveBeenCalled();
+    const { create } = h.upsert.mock.calls[0][0];
+    expect(create.flaggedCategories).toEqual(['sexual_minors']);
+    expect(create.isFlagged).toBe(true);
+    expect(create.inputs[0].scores).toEqual({
+      sexual: 0.3,
+      sexual_minors: 0.3,
+    });
+  });
+
+  it('applies current minors evidence to reused scores of identical bytes', async () => {
+    const h = makeHarness({
+      perception: perception({ description: sceneDescription(true) }),
+      reusable: storedRow({
+        id: 'moderation-source',
+        ingredientId: 'asset-0',
+        inputs: [{ frameIndex: 0, scores: { sexual: 0.3 }, source: 'frame' }],
+      }),
+    });
+
+    await expect(h.service.moderate(JOB)).resolves.toBe('reused');
+
+    expect(h.upsert.mock.calls[0][0].create.flaggedCategories).toEqual([
+      'sexual_minors',
+    ]);
   });
 
   it('classifies a still image through its stored frame', async () => {
@@ -306,6 +410,19 @@ describe('MediaModerationService.moderate', () => {
     });
   });
 
+  it('never re-evaluates text-only scores because of visual minors evidence', async () => {
+    const h = makeHarness({
+      existing: storedRow({
+        inputs: [{ frameIndex: null, scores: { sexual: 0.3 }, source: 'ocr' }],
+        mode: 'live',
+      }),
+      perception: perception({ description: sceneDescription(true) }),
+    });
+
+    await expect(h.service.moderate(JOB)).resolves.toBe('skipped');
+    expect(h.upsert).not.toHaveBeenCalled();
+  });
+
   it('re-evaluates the stored scores of identical bytes instead of calling the provider', async () => {
     const h = makeHarness({
       reusable: {
@@ -345,6 +462,20 @@ describe('MediaModerationService.moderate', () => {
         isFlagged: true,
         reusedFromId: 'moderation-source',
       }),
+    );
+  });
+});
+
+describe('MediaModerationService.findUnmoderatedAssets', () => {
+  it('offers only assets whose scene description has settled', async () => {
+    const h = makeHarness();
+
+    await h.service.findUnmoderatedAssets(new Date(0), 10);
+
+    expect(
+      h.ingredientFindMany.mock.calls[0][0].where.mediaPerceptions.some,
+    ).toEqual(
+      expect.objectContaining({ descriptionStatus: { not: 'pending' } }),
     );
   });
 });

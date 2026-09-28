@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Reply Bot Module
  *
@@ -63,6 +64,7 @@ import { Module } from '@nestjs/common';
     SocialMonitorService,
   ],
   imports: [
+    PlatformSettingsModule,
     // Configuration
     ConfigModule,
     LoggerModule,

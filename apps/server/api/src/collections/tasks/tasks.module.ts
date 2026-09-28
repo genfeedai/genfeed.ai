@@ -3,6 +3,7 @@ import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messa
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { TaskCommentsModule } from '@api/collections/task-comments/task-comments.module';
 import { TaskCountersModule } from '@api/collections/task-counters/task-counters.module';
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
   controllers: [TasksPlanningController, TasksController],
   exports: [TasksService],
   imports: [
+    PlatformSettingsModule,
     AgentMessagesModule,
     AgentMemoriesModule,
     AgentOrchestratorModule,

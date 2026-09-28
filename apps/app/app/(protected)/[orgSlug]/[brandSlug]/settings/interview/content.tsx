@@ -32,6 +32,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
@@ -432,13 +433,27 @@ export default function BrandSettingsInterviewPage() {
 
   const frontierFieldKey = currentQuestion?.fieldKey ?? null;
 
+  // Tracks the frontier this effect last saw, so it can tell "the user is
+  // passively following the interview" (selection === the old frontier) from
+  // "the user deliberately opened a past step via the rail" (selection
+  // predates the frontier changing). Without this, answering the current
+  // question makes buildSteps() mark it `isNavigable: true` (answered steps
+  // stay navigable), so the naive "is the previous selection still
+  // navigable?" check kept the view pinned on the just-answered question
+  // instead of advancing — see #5391.
+  const lastFrontierFieldKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!frontierFieldKey) {
       return;
     }
 
+    const previousFrontier = lastFrontierFieldKeyRef.current;
+    lastFrontierFieldKeyRef.current = frontierFieldKey;
+
     setSelectedFieldKey((previous) => {
-      if (!previous) {
+      const wasFollowingFrontier = !previous || previous === previousFrontier;
+      if (wasFollowingFrontier) {
         return frontierFieldKey;
       }
       const stillNavigable = steps.some(

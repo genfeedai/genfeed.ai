@@ -1,7 +1,8 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ConfigService } from '@libs/config/config.service';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,11 +18,12 @@ const payload = JSON.stringify({
   data: { objectId: 'u1' },
 });
 function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
-  const values: Record<string, string> = enabled
-    ? {
-        SYSTEM_EVENTS_ENABLED_AT: enabledAt,
-      }
-    : {};
+  const platformSettings = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      systemEventsEnabledAt: enabled ? enabledAt : null,
+    })),
+  };
   const prisma = {
     user: { findFirst: vi.fn() },
     systemNotificationSettings: {
@@ -41,7 +43,7 @@ function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
   };
   const service = new SystemEventsService(
     prisma as unknown as PrismaService,
-    { get: (key: string) => values[key] } as ConfigService,
+    platformSettings as unknown as PlatformSettingsService,
     { warn: vi.fn() } as unknown as LoggerService,
     notifications as unknown as NotificationsService,
   );
@@ -55,23 +57,6 @@ describe('system event outbox', () => {
     await service.recordSignup('u1');
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
-  });
-  it('disables recording and recovery when the enablement timestamp is invalid', async () => {
-    const { service, prisma } = setup(true, 'not-a-date');
-    await service.recordSignup('u1');
-    await service.record({
-      version: 1,
-      id: 'user.created/u1',
-      type: 'user.created',
-      occurredAt: '2026-09-23T12:00:00Z',
-      data: { objectId: 'u1' },
-    });
-    await service.recover();
-    expect(prisma.user.findFirst).not.toHaveBeenCalled();
-    expect(prisma.systemEventWebhook.upsert).not.toHaveBeenCalled();
-    expect(prisma.$queryRaw).not.toHaveBeenCalled();
-    expect(prisma.systemEventWebhook.findMany).not.toHaveBeenCalled();
-    expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
   });
   it('does not backfill users before enablement and uses stable IDs for current users', async () => {
     const { service, prisma } = setup();

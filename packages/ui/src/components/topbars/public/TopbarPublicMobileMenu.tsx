@@ -35,7 +35,7 @@ type TopbarPublicMobileMenuProps = {
   isMobileMenuOpen: boolean;
   dropdowns: Dropdown[];
   navLinks: NavLink[];
-  /** Account actions (log in, open the app, book a demo) for small screens. */
+  /** Account actions (log in, open the app, connect an agent) for small screens. */
   actions?: ReactNode;
   pathname: string | null;
   onClose: () => void;

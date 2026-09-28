@@ -6,6 +6,7 @@
  */
 
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { deserializeCollection } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
@@ -97,6 +98,7 @@ class ContentOptimizerServiceClass {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       body: body ? JSON.stringify(body) : undefined,
       headers: {
+        ...getRequestOrganizationHeaders(),
         Authorization: `Bearer ${this.token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },

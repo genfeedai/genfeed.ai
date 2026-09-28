@@ -125,6 +125,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-raw-fetch-org-header.ts',
+    ],
+    name: 'Raw-fetch routed-organization header (#5393)',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-billing-account-scope-registration.ts',
     ],
     name: 'Billing-account scope registration ratchet',
@@ -168,6 +176,10 @@ const checks = [
       'scripts/architecture/check-activity-recording-boundary.ts',
     ],
     name: 'Activity recording boundary (#5197)',
+  },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-env-product-flags.ts'],
+    name: 'Env product-flag boundary (#5407)',
   },
 ] as const;
 

@@ -65,7 +65,10 @@ export default function AnalyticsOverviewPerformanceDataset() {
     return () => controller.abort();
   }, [brandId, getService, isFetchReady]);
 
-  if (!isFetchReady || isLoading || !summary) {
+  // A malformed or partial response (e.g. an unhandled API error falling
+  // through to a generic empty-collection shape) can resolve successfully
+  // without a `dataset` -- render nothing rather than crash. See #5381.
+  if (!isFetchReady || isLoading || !summary || !summary.dataset) {
     return null;
   }
 

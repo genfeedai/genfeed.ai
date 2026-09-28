@@ -232,7 +232,14 @@ export abstract class HTTPBaseService {
     this.instance.interceptors.response.use((res) => res, this.handleError);
   };
 
-  private handleRequest = (config: InternalAxiosRequestConfig) => {
+  /**
+   * Organization header for a subclass's raw `fetch` (one that must stay off
+   * the interceptor), under the interceptor's binding rule: a bound service
+   * whose organization is no longer confirmed throws `CanceledError` instead
+   * of sending the request. A binding that passes the check equals the
+   * routed organization, so the header is the routed one.
+   */
+  protected requestOrganizationHeaders(): Record<string, string> {
     if (
       this.boundOrganizationId !== undefined &&
       (!this.boundOrganizationId ||
@@ -241,10 +248,14 @@ export abstract class HTTPBaseService {
     ) {
       throw new CanceledError('Request organization is no longer confirmed');
     }
+    return getRequestOrganizationHeaders();
+  }
+
+  private handleRequest = (config: InternalAxiosRequestConfig) => {
+    const organizationHeaders = this.requestOrganizationHeaders();
     config.headers.Authorization = `Bearer ${this.token}`;
-    if (requestOrganizationId) {
-      config.headers[ORGANIZATION_CONTEXT_HEADER] =
-        this.boundOrganizationId ?? requestOrganizationId;
+    for (const [name, value] of Object.entries(organizationHeaders)) {
+      config.headers[name] = value;
     }
 
     // Don't auto-cancel previous requests - let them complete naturally

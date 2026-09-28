@@ -8,7 +8,6 @@ export const webhooksSchema = {
     .uri({ scheme: ['https'] })
     .optional()
     .allow(''),
-  SYSTEM_EVENTS_ENABLED_AT: Joi.string().isoDate().optional().allow(''),
   CHROME_EXTENSION_ID: Joi.string()
     .length(32)
     .optional()

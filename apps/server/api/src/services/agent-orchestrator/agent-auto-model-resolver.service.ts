@@ -1,10 +1,10 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentAutoRoutingResolveParams } from '@api/services/agent-orchestrator/interfaces/agent-auto-routing.interface';
 import { resolveAgentAutoRoutingDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-auto-routing-decision-config.util';
 import { RouterPriority } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -26,7 +26,7 @@ export class AgentAutoModelResolverService {
 
   constructor(
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -41,7 +41,9 @@ export class AgentAutoModelResolverService {
   async resolve(
     params: AgentAutoRoutingResolveParams,
   ): Promise<AgentAutoRoutingResolution> {
-    const { mode } = resolveAgentAutoRoutingDecisionConfig(this.configService);
+    const { mode } = resolveAgentAutoRoutingDecisionConfig(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
 
     // The candidate only ever replaces the gateway auto-router; an explicitly
     // chosen model is the user's decision.

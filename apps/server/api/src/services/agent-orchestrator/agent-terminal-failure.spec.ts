@@ -60,6 +60,59 @@ describe('background agent terminal failures', () => {
     expect(effects.publishStreamFailure).not.toHaveBeenCalled();
   });
 
+  it('reads the real-token-streaming switch from platform settings (#5407)', async () => {
+    const effects = {
+      publishStreamLifecycleStarted: vi.fn(),
+      publishStreamFailure: vi.fn(),
+    };
+    const contextService = {
+      buildMemoryEntriesForResponse: vi.fn().mockReturnValue([]),
+      buildMemoryInfluenceMetadata: vi.fn().mockReturnValue({}),
+      resolveThreadMessages: vi.fn().mockResolvedValue({ messages: [] }),
+      buildMessageHistory: vi
+        .fn()
+        .mockReturnValue([{ role: 'assistant', content: 'An older answer' }]),
+    };
+    const getFeatureSettings = vi
+      .fn()
+      .mockResolvedValue({ isAgentTokenStreamingEnabled: true });
+    const service = new AgentOrchestratorStreamLoopService(
+      { error: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { isBatchGenerationIntent: () => false } as never,
+      contextService as never,
+      {} as never,
+      effects as never,
+      { findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }) } as never,
+      { resolve: vi.fn().mockResolvedValue({ mode: 'off' }) } as never,
+      undefined,
+      { getFeatureSettings } as never,
+    );
+    await expect(
+      service.runStreamLoop(
+        {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          executionId: 'run-1',
+          executionMode: 'background',
+        },
+        'thread-1',
+        undefined,
+        'model',
+        0,
+        {} as never,
+        'standard' as never,
+        [],
+      ),
+    ).rejects.toThrow('Agent exceeded maximum tool-calling rounds');
+    expect(getFeatureSettings).toHaveBeenCalled();
+  });
+
   it('propagates failed batch execution to workflow finalization', async () => {
     const executor = {
       executeTool: vi

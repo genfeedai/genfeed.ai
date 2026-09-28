@@ -15,6 +15,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -88,8 +89,23 @@ export class OrganizationsSettingsController {
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
     private readonly webhookDispatchService: WebhookDispatchService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     readonly _loggerService: LoggerService,
   ) {}
+
+  /**
+   * Organization settings ship inside the cached `/auth/bootstrap` payload
+   * (30s Redis snapshot per user and organization). Every settings write must
+   * drop that organization's snapshots, or the next bootstrap read serves the
+   * pre-write settings (#5416).
+   */
+  private async invalidateBootstrapSnapshots(
+    organizationId: string,
+  ): Promise<void> {
+    await this.accessBootstrapCacheService.invalidateForOrganization(
+      organizationId,
+    );
+  }
 
   private async validateDefaultAvatarIngredient(
     organizationId: string,
@@ -218,6 +234,7 @@ export class OrganizationsSettingsController {
       organizationSettings.id,
       normalizedSettingsDto,
     );
+    await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return serializeSingle(req, OrganizationSettingSerializer, data);
   }
@@ -235,10 +252,12 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
+    // sendTestDelivery records the queued delivery status on the settings row.
     const data = await this.webhookDispatchService.sendTestDelivery({
       event: body.event,
       organizationId: resolvedOrganizationId,
     });
+    await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return { data };
   }
@@ -369,12 +388,17 @@ export class OrganizationsSettingsController {
       throw new BadRequestException('API key is required');
     }
 
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
+    );
     await this.byokService.saveKey(
-      this.resolveOrganizationId(req, organizationId),
+      resolvedOrganizationId,
       provider,
       trimmedApiKey,
       body.apiSecret?.trim(),
     );
+    await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
 
     return { isSuccess: true };
   }
@@ -389,10 +413,13 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
     @Param('provider', new ParseEnumPipe(ByokProvider)) provider: ByokProvider,
   ): Promise<{ isSuccess: boolean }> {
-    await this.byokService.removeKey(
-      this.resolveOrganizationId(req, organizationId),
-      provider,
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      req,
+      organizationId,
     );
+    await this.byokService.removeKey(resolvedOrganizationId, provider);
+    await this.invalidateBootstrapSnapshots(resolvedOrganizationId);
+
     return { isSuccess: true };
   }
 }

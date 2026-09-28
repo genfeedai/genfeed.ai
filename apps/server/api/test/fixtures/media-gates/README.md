@@ -13,8 +13,8 @@ bun run bench:typed-decisions -- --mode=media
 
 This prints the readiness results, per-category moderation precision and
 recall, accuracy by score decile, and per-question accuracy for the text
-decisions. Moderation uses `MODERATION_PROVIDER` / `MODERATION_THRESHOLDS`
-from the environment; the text decisions use `--provider` (default `jev`).
+decisions. Moderation uses `--moderation-provider` (default `openai`) against
+the default thresholds; the text decisions use `--provider` (default `jev`).
 Add `--image-manifest=<path>` for the private image set, and
 `--skip=readiness,moderation,text` to run a subset. The flags are documented
 in `scripts/typed-decisions/media-benchmark.ts`.
@@ -87,7 +87,7 @@ typed-decision fixture shape — `state` is exactly what
 
 They are **synthetic and small** (33 transcripts across three brand profiles,
 20 caption/description pairs) and exist so the wiring and the benchmark's
-media mode run end to end. The issue's gate for `MEDIA_TEXT_GATE_DECISION_MODE=live`
+media mode run end to end. The issue's gate for a `live` media text-gate mode
 — at least 150 transcripts and 150 caption/description pairs **labelled by an
 operator**, with accuracy reported — is not met by these files and stays open
 until an operator-labelled set replaces them.
