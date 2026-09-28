@@ -5,13 +5,24 @@ import {
   ButtonVariant,
   ComponentSize,
   formatEnumLabel,
+  ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionSection from '@ui/collection/CollectionSection';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
+import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
+import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
+import ListRow from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -24,6 +35,7 @@ import {
 import type { Edge, Node } from '@xyflow/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Suspense,
   useCallback,
@@ -60,16 +72,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   content: 'Content',
 };
 
-const SOURCE_FILTERS = [
-  { id: 'all', label: 'All sources' },
-  { id: 'installed', label: 'Installed' },
-  { id: 'available', label: 'Available' },
-] as const;
+const CATALOG_SOURCES = ['all', 'installed', 'available'] as const;
 
-type CatalogSource = (typeof SOURCE_FILTERS)[number]['id'];
+type CatalogSource = (typeof CATALOG_SOURCES)[number];
+
+/** View preference key — one list/grid choice per collection surface. */
+const TEMPLATES_COLLECTION_SURFACE = 'automation.templates';
+
+/** Featured is a short carousel, not a second copy of the catalog. */
+const FEATURED_TEMPLATE_LIMIT = 6;
+
+/** Type tiles only help when there is more than one type to pick between. */
+const MIN_TYPE_TILES = 2;
 
 type CatalogItem = {
-  actionLabel: string;
   category: string;
   changeSummary?: string;
   description: string;
@@ -82,6 +98,12 @@ type CatalogItem = {
   systemEntry?: SystemWorkflowCatalogEntry;
   thumbnail?: string | null;
   title: string;
+};
+
+type TypeTile = {
+  count: number;
+  id: string;
+  label: string;
 };
 
 type PageState = {
@@ -107,6 +129,7 @@ type PageAction =
   | { type: 'SET_CATEGORY'; category: string }
   | { type: 'SET_SOURCE'; source: CatalogSource }
   | { type: 'SET_SEARCH'; searchQuery: string }
+  | { type: 'CLEAR_FILTERS' }
   | { type: 'BOOTSTRAP_START' }
   | { type: 'BOOTSTRAP_ERROR'; error: string }
   | { type: 'INSTALL_START'; canonicalId: string }
@@ -148,6 +171,13 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return { ...state, selectedSource: action.source };
     case 'SET_SEARCH':
       return { ...state, searchQuery: action.searchQuery };
+    case 'CLEAR_FILTERS':
+      return {
+        ...state,
+        searchQuery: '',
+        selectedCategory: 'all',
+        selectedSource: 'all',
+      };
     case 'BOOTSTRAP_START':
       return { ...state, isBootstrapping: true, error: null };
     case 'BOOTSTRAP_ERROR':
@@ -187,19 +217,19 @@ export function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? formatEnumLabel(category) ?? category;
 }
 
-function cadenceLabel(cron?: string): string | null {
+function cadenceLabel(
+  cron: string | undefined,
+  scheduledLabel: string,
+): string | null {
   const described = describeCadence(cron);
   if (!described) {
     return null;
   }
-  return /[*]/.test(described) ? 'Scheduled' : described;
+  return /[*]/.test(described) ? scheduledLabel : described;
 }
 
-function sourceBadge(source: CatalogItem['source']): string {
-  if (source === 'installed') {
-    return 'Installed';
-  }
-  return 'Available';
+function isCatalogSource(value: string): value is CatalogSource {
+  return CATALOG_SOURCES.some((source) => source === value);
 }
 
 function buildCatalogItems({
@@ -212,7 +242,6 @@ function buildCatalogItems({
   templates: WorkflowTemplate[];
 }): CatalogItem[] {
   const catalogItems: CatalogItem[] = systemCatalog.map((entry) => ({
-    actionLabel: entry.installed ? 'Open' : 'Install',
     category: entry.category || entry.family || 'system',
     changeSummary: entry.changeSummary,
     description: entry.description,
@@ -232,7 +261,6 @@ function buildCatalogItems({
   }));
 
   const templateItems: CatalogItem[] = templates.map((template) => ({
-    actionLabel: 'Use template',
     category: template.category || 'generation',
     changeSummary: template.changeSummary,
     description: template.description,
@@ -248,6 +276,27 @@ function buildCatalogItems({
   }));
 
   return [...catalogItems, ...templateItems];
+}
+
+/**
+ * Featured is the official (app-owned system catalog) source, in catalog
+ * order. With no official entries it falls back to the head of the existing
+ * ordering — there is no separate ranking signal to consult.
+ */
+function selectFeaturedItems(items: CatalogItem[]): CatalogItem[] {
+  const officialItems = items.filter((item) => item.systemEntry);
+  const source = officialItems.length > 0 ? officialItems : items;
+  return source.slice(0, FEATURED_TEMPLATE_LIMIT);
+}
+
+function buildTypeTiles(items: CatalogItem[]): TypeTile[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([id, count]) => ({ count, id, label: categoryLabel(id) }))
+    .sort((left, right) => left.label.localeCompare(right.label));
 }
 
 function filterCatalogItems(
@@ -281,6 +330,8 @@ function filterCatalogItems(
 }
 
 function WorkflowTemplatesPageContent() {
+  const translate = useTranslations('pages.workflows.templates');
+  const translateWorkflows = useTranslations('common.automation.workflows');
   const { href } = useOrgUrl();
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
@@ -301,6 +352,10 @@ function WorkflowTemplatesPageContent() {
   const searchParams = useSearchParams();
   const templateId = searchParams.get('template');
   const [detailsItem, setDetailsItem] = useState<CatalogItem | null>(null);
+  const { view, setView } = useCollectionViewPreference({
+    defaultView: ViewType.LIST,
+    surface: TEMPLATES_COLLECTION_SURFACE,
+  });
 
   const loadTemplates = useCallback(async () => {
     dispatch({ type: 'LOAD_START' });
@@ -327,13 +382,10 @@ function WorkflowTemplatesPageContent() {
       logger.error('Failed to load workflow templates', { error: err });
 
       if (mountedRef.current) {
-        dispatch({
-          type: 'LOAD_ERROR',
-          error: 'Failed to load templates. Please try again.',
-        });
+        dispatch({ type: 'LOAD_ERROR', error: translate('errors.load') });
       }
     }
-  }, [getService]);
+  }, [getService, translate]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -406,7 +458,7 @@ function WorkflowTemplatesPageContent() {
             error:
               err instanceof Error
                 ? err.message
-                : 'Failed to install workflow template',
+                : translate('errors.bootstrap'),
           });
         }
       }
@@ -417,16 +469,26 @@ function WorkflowTemplatesPageContent() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, isLoading, replace, systemCatalog, templateId]);
+  }, [getService, isLoading, replace, systemCatalog, templateId, translate]);
 
-  const handleInstallSystem = useCallback(
-    async (entry: SystemWorkflowCatalogEntry) => {
+  /**
+   * Installs an app-owned catalog workflow. "Use template" installs and opens
+   * it; the overflow "Install" adds it to the library and keeps the viewer
+   * browsing, so the entry flips to Installed in place.
+   */
+  const installSystemEntry = useCallback(
+    async (
+      entry: SystemWorkflowCatalogEntry,
+      isOpeningAfterInstall: boolean,
+    ) => {
       if (entry.installed && entry.installedWorkflowId) {
-        replace(
-          href(
-            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
-          ),
-        );
+        if (isOpeningAfterInstall) {
+          replace(
+            href(
+              `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+            ),
+          );
+        }
         return;
       }
 
@@ -440,7 +502,9 @@ function WorkflowTemplatesPageContent() {
           canonicalId: entry.canonicalId,
           installedWorkflowId: workflow.id,
         });
-        replace(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`));
+        if (isOpeningAfterInstall) {
+          replace(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`));
+        }
       } catch (err) {
         logger.error('Failed to install system workflow', {
           canonicalId: entry.canonicalId,
@@ -449,13 +513,11 @@ function WorkflowTemplatesPageContent() {
         dispatch({
           type: 'INSTALL_ERROR',
           error:
-            err instanceof Error
-              ? err.message
-              : 'Failed to install system workflow',
+            err instanceof Error ? err.message : translate('errors.install'),
         });
       }
     },
-    [getService, href, replace],
+    [getService, href, replace, translate],
   );
 
   const catalogItems = useMemo(
@@ -478,68 +540,161 @@ function WorkflowTemplatesPageContent() {
     [catalogItems, searchQuery, selectedCategory, selectedSource],
   );
 
-  const categoryOptions = useMemo(() => {
-    const present = new Set(catalogItems.map((item) => item.category));
-    return [
-      { id: 'all', label: CATEGORY_LABELS.all },
-      ...[...present].sort().map((id) => ({ id, label: categoryLabel(id) })),
-    ];
-  }, [catalogItems]);
+  const featuredItems = useMemo(
+    () => selectFeaturedItems(catalogItems),
+    [catalogItems],
+  );
+
+  const typeTiles = useMemo(() => buildTypeTiles(catalogItems), [catalogItems]);
 
   const isContentLoading = isLoading || isBootstrapping;
 
+  function sourceLabel(source: CatalogSource): string {
+    return translate(`sources.${source}`);
+  }
+
+  function factsLine(item: CatalogItem): string {
+    return [
+      sourceLabel(item.source),
+      categoryLabel(item.category),
+      cadenceLabel(item.schedule, translate('scheduled')),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  function renderPrimaryAction(item: CatalogItem) {
+    if (item.href) {
+      return (
+        <Button
+          asChild
+          variant={ButtonVariant.DEFAULT}
+          size={ButtonSize.SM}
+          withWrapper={false}
+        >
+          <Link href={item.href}>{translate('actions.useTemplate')}</Link>
+        </Button>
+      );
+    }
+
+    const entry = item.systemEntry;
+    if (!entry) {
+      return null;
+    }
+
+    const isInstalling = entry.canonicalId === installingCanonicalId;
+    return (
+      <Button
+        variant={ButtonVariant.DEFAULT}
+        size={ButtonSize.SM}
+        disabled={isInstalling}
+        onClick={() => void installSystemEntry(entry, true)}
+      >
+        {isInstalling
+          ? translate('actions.installing')
+          : translate('actions.useTemplate')}
+      </Button>
+    );
+  }
+
+  function overflowActions(item: CatalogItem): CollectionOverflowAction[] {
+    const actions: CollectionOverflowAction[] = [
+      {
+        id: 'details',
+        label: translate('actions.viewDetails'),
+        onSelect: () => setDetailsItem(item),
+      },
+    ];
+
+    const entry = item.systemEntry;
+    if (entry && !entry.installed) {
+      actions.push({
+        id: 'install',
+        isDisabled: entry.canonicalId === installingCanonicalId,
+        label: translate('actions.install'),
+        onSelect: () => void installSystemEntry(entry, false),
+      });
+    }
+
+    return actions;
+  }
+
+  function renderItemActions(item: CatalogItem) {
+    return (
+      <CollectionItemActions
+        overflow={overflowActions(item)}
+        primary={renderPrimaryAction(item)}
+      />
+    );
+  }
+
+  function renderTemplateCard(item: CatalogItem) {
+    return (
+      <Card
+        className="h-full"
+        label={item.title}
+        description={item.description}
+        onDescriptionClick={() => setDetailsItem(item)}
+        bodyClassName="h-full justify-between gap-4"
+        data-testid="workflow-template-card"
+      >
+        <WorkflowCardPreview
+          name={item.title}
+          thumbnail={item.thumbnail}
+          nodes={item.nodes}
+          edges={item.edges}
+        />
+        <div className="flex items-center justify-between gap-2">
+          <span className="min-w-0 truncate text-xs text-muted-foreground">
+            {factsLine(item)}
+          </span>
+          {renderItemActions(item)}
+        </div>
+      </Card>
+    );
+  }
+
+  function renderTemplateRow(item: CatalogItem) {
+    return (
+      <ListRow
+        title={item.title}
+        description={item.description}
+        meta={factsLine(item)}
+        trailing={renderItemActions(item)}
+        data-testid="workflow-template-row"
+      />
+    );
+  }
+
+  const filterChips = [
+    ...(selectedCategory !== 'all'
+      ? [
+          {
+            id: 'category',
+            label: categoryLabel(selectedCategory),
+            onRemove: () => dispatch({ type: 'SET_CATEGORY', category: 'all' }),
+          },
+        ]
+      : []),
+    ...(selectedSource !== 'all'
+      ? [
+          {
+            id: 'source',
+            label: sourceLabel(selectedSource),
+            onRemove: () => dispatch({ type: 'SET_SOURCE', source: 'all' }),
+          },
+        ]
+      : []),
+  ];
+
+  const categoryOptions = [
+    { id: 'all', label: categoryLabel('all') },
+    ...typeTiles.map((tile) => ({ id: tile.id, label: tile.label })),
+  ];
+
   const catalogChrome = {
     headerTabs: workflowCollectionHeaderTabs(href),
-    label: 'Workflows',
-    leading: (
-      <FormSearchbar
-        className="w-64"
-        onSearch={(value) =>
-          dispatch({ type: 'SET_SEARCH', searchQuery: value })
-        }
-        placeholder="Search templates..."
-        size={ComponentSize.SM}
-        value={searchQuery}
-      />
-    ),
-    right: (
-      <div className="flex items-center gap-2">
-        <Select
-          value={selectedSource}
-          onValueChange={(value) =>
-            dispatch({ type: 'SET_SOURCE', source: value as CatalogSource })
-          }
-        >
-          <SelectTrigger aria-label="Source" className="h-8 w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SOURCE_FILTERS.map((filter) => (
-              <SelectItem key={filter.id} value={filter.id}>
-                {filter.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={selectedCategory}
-          onValueChange={(value) =>
-            dispatch({ type: 'SET_CATEGORY', category: value })
-          }
-        >
-          <SelectTrigger aria-label="Category" className="h-8 w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {categoryOptions.map((option) => (
-              <SelectItem key={option.id} value={option.id}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    ),
+    label: translateWorkflows('library.title'),
     titleVisibility: 'sr-only' as const,
   };
 
@@ -549,12 +704,14 @@ function WorkflowTemplatesPageContent() {
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
           <p className="text-destructive">{error}</p>
           <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
-            Retry
+            {translate('retry')}
           </Button>
         </div>
       </Container>
     );
   }
+
+  const isCatalogEmpty = !isContentLoading && catalogItems.length === 0;
 
   return (
     <Container {...catalogChrome}>
@@ -564,99 +721,154 @@ function WorkflowTemplatesPageContent() {
         </p>
       ) : null}
 
-      <div data-testid="templates-content">
-        {isContentLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
-              (skeletonId) => (
-                <div
-                  key={skeletonId}
-                  className="h-64 animate-pulse rounded-card bg-card shadow-border"
-                />
-              ),
-            )}
-          </div>
-        ) : visibleItems.length === 0 ? (
-          <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
-            <p className="text-sm text-foreground/50">
-              No workflows match these filters.
-            </p>
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => {
-                dispatch({ type: 'SET_CATEGORY', category: 'all' });
-                dispatch({ type: 'SET_SOURCE', source: 'all' });
-                dispatch({ type: 'SET_SEARCH', searchQuery: '' });
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {visibleItems.map((item) => {
-              const isInstalling =
-                item.systemEntry?.canonicalId === installingCanonicalId;
-              const schedule = cadenceLabel(item.schedule);
+      <div className="flex flex-col gap-8" data-testid="templates-content">
+        <CollectionSection
+          title={translate('sections.featured')}
+          itemCount={isContentLoading ? 0 : featuredItems.length}
+          data-testid="templates-featured-section"
+        >
+          <HorizontalCarousel gap="md">
+            {featuredItems.map((item) => (
+              <div key={item.id} className="w-[min(26rem,85%)] shrink-0">
+                {renderTemplateCard(item)}
+              </div>
+            ))}
+          </HorizontalCarousel>
+        </CollectionSection>
 
-              return (
-                <Card
-                  key={item.id}
-                  className="h-full"
-                  label={item.title}
-                  description={item.description}
-                  onDescriptionClick={() => setDetailsItem(item)}
-                  headerAction={
-                    <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-foreground/60">
-                      {sourceBadge(item.source)}
-                    </span>
-                  }
-                  bodyClassName="justify-between gap-4"
+        <CollectionSection
+          title={translate('sections.browseByType')}
+          itemCount={
+            isContentLoading || typeTiles.length < MIN_TYPE_TILES
+              ? 0
+              : typeTiles.length
+          }
+          data-testid="templates-browse-section"
+        >
+          <CollectionGrid density="tile" maxColumns={4}>
+            {typeTiles.map((tile) => (
+              <Card
+                key={tile.id}
+                className={cn(
+                  tile.id === selectedCategory && 'shadow-border-strong',
+                )}
+                bodyClassName="gap-1"
+                label={tile.label}
+                onClick={() =>
+                  dispatch({ type: 'SET_CATEGORY', category: tile.id })
+                }
+                data-testid="workflow-template-type-tile"
+              >
+                <span className="text-xs text-muted-foreground">
+                  {translate('templateCount', { count: tile.count })}
+                </span>
+              </Card>
+            ))}
+          </CollectionGrid>
+        </CollectionSection>
+
+        <CollectionSection
+          title={translate('sections.all')}
+          itemCount={catalogItems.length}
+          isLoading={isContentLoading}
+          data-testid="templates-all-section"
+        >
+          <CollectionToolbar
+            search={
+              <FormSearchbar
+                className="w-64"
+                onSearch={(value) =>
+                  dispatch({ type: 'SET_SEARCH', searchQuery: value })
+                }
+                placeholder={translate('searchPlaceholder')}
+                size={ComponentSize.SM}
+                value={searchQuery}
+              />
+            }
+            filters={
+              <>
+                <Select
+                  value={selectedSource}
+                  onValueChange={(value) => {
+                    if (isCatalogSource(value)) {
+                      dispatch({ type: 'SET_SOURCE', source: value });
+                    }
+                  }}
                 >
-                  <WorkflowCardPreview
-                    name={item.title}
-                    thumbnail={item.thumbnail}
-                    nodes={item.nodes}
-                    edges={item.edges}
-                  />
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate text-xs text-muted-foreground">
-                      {schedule ?? categoryLabel(item.category)}
-                    </span>
-                    {item.systemEntry && !item.href ? (
-                      <Button
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        disabled={isInstalling}
-                        onClick={() => {
-                          const entry = item.systemEntry;
-                          if (!entry) {
-                            return;
-                          }
-                          void handleInstallSystem(entry);
-                        }}
-                      >
-                        {isInstalling ? 'Installing…' : item.actionLabel}
-                      </Button>
-                    ) : item.href ? (
-                      <Button
-                        asChild
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        withWrapper={false}
-                      >
-                        <Link href={item.href}>{item.actionLabel}</Link>
-                      </Button>
-                    ) : null}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  <SelectTrigger
+                    aria-label={translate('source')}
+                    className="h-8 w-36"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATALOG_SOURCES.map((source) => (
+                      <SelectItem key={source} value={source}>
+                        {sourceLabel(source)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(value) =>
+                    dispatch({ type: 'SET_CATEGORY', category: value })
+                  }
+                >
+                  <SelectTrigger
+                    aria-label={translate('category')}
+                    className="h-8 w-40"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            }
+            view={view}
+            onViewChange={setView}
+            chips={filterChips}
+            onClearChips={() => dispatch({ type: 'CLEAR_FILTERS' })}
+          />
+          <CollectionView
+            items={visibleItems}
+            view={view}
+            getItemKey={(item) => item.id}
+            renderListItem={renderTemplateRow}
+            renderGridItem={renderTemplateCard}
+            maxColumns={3}
+            isLoading={isContentLoading}
+            emptyState={
+              <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
+                <p className="text-sm text-foreground/50">
+                  {translate('noMatches')}
+                </p>
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={() => dispatch({ type: 'CLEAR_FILTERS' })}
+                >
+                  {translate('clearFilters')}
+                </Button>
+              </div>
+            }
+            data-testid="templates-all-collection"
+          />
+        </CollectionSection>
+
+        {isCatalogEmpty ? (
+          <p className="py-16 text-center text-sm text-foreground/50">
+            {translate('emptyCatalog')}
+          </p>
+        ) : null}
       </div>
       <WorkflowTemplateDetailsDialog
-        actionLabel={detailsItem?.actionLabel ?? ''}
+        actionLabel={translate('actions.useTemplate')}
         categoryLabel={detailsItem ? categoryLabel(detailsItem.category) : ''}
         changeSummary={detailsItem?.changeSummary}
         description={detailsItem?.description ?? ''}
@@ -672,7 +884,7 @@ function WorkflowTemplatesPageContent() {
                 if (!entry) {
                   return;
                 }
-                void handleInstallSystem(entry);
+                void installSystemEntry(entry, true);
               }
             : undefined
         }
@@ -691,8 +903,12 @@ function WorkflowTemplatesPageContent() {
               }
             : undefined
         }
-        scheduleLabel={detailsItem ? cadenceLabel(detailsItem.schedule) : null}
-        sourceLabel={detailsItem ? sourceBadge(detailsItem.source) : ''}
+        scheduleLabel={
+          detailsItem
+            ? cadenceLabel(detailsItem.schedule, translate('scheduled'))
+            : null
+        }
+        sourceLabel={detailsItem ? sourceLabel(detailsItem.source) : ''}
         title={detailsItem?.title ?? ''}
       />
     </Container>

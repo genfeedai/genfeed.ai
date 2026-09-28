@@ -2158,9 +2158,37 @@
       }
     },
     "templates": {
+      "actions": {
+        "install": "Install",
+        "installing": "Installing…",
+        "useTemplate": "Use template",
+        "viewDetails": "View details"
+      },
       "category": "Category",
+      "clearFilters": "Clear filters",
+      "emptyCatalog": "No workflow templates are available yet.",
+      "errors": {
+        "bootstrap": "Failed to install workflow template",
+        "install": "Failed to install system workflow",
+        "load": "Failed to load templates. Please try again."
+      },
+      "noMatches": "No workflows match these filters.",
+      "retry": "Retry",
       "schedule": "Schedule",
-      "source": "Source"
+      "scheduled": "Scheduled",
+      "searchPlaceholder": "Search templates...",
+      "sections": {
+        "all": "All templates",
+        "browseByType": "Browse by type",
+        "featured": "Featured"
+      },
+      "source": "Source",
+      "sources": {
+        "all": "All sources",
+        "available": "Available",
+        "installed": "Installed"
+      },
+      "templateCount": "{count, plural, one {# template} other {# templates}}"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",

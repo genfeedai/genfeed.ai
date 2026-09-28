@@ -9,6 +9,7 @@ import WorkflowTemplatesPage, { categoryLabel } from './WorkflowTemplatesPage';
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   href: vi.fn((path: string) => `/demo/FUDNEWS${path}`),
+  installSystemCatalog: vi.fn(),
   list: vi.fn(),
   listSystemCatalog: vi.fn(),
   listTemplates: vi.fn(),
@@ -147,27 +148,81 @@ vi.mock('@ui/primitives/select', () => ({
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
+    className,
+    'data-testid': dataTestId,
     description,
-    headerAction,
     label,
+    onClick,
     onDescriptionClick,
   }: {
     children?: ReactNode;
+    className?: string;
+    'data-testid'?: string;
     description?: string;
-    headerAction?: ReactNode;
     label?: ReactNode;
+    onClick?: () => void;
     onDescriptionClick?: () => void;
+  }) =>
+    onClick ? (
+      <button
+        type="button"
+        aria-label={typeof label === 'string' ? label : undefined}
+        className={className}
+        data-testid={dataTestId}
+        onClick={onClick}
+      >
+        {label}
+        {children}
+      </button>
+    ) : (
+      <article className={className} data-testid={dataTestId}>
+        <h3>{label}</h3>
+        {description ? (
+          <button type="button" onClick={onDescriptionClick}>
+            {description}
+          </button>
+        ) : null}
+        {children}
+      </article>
+    ),
+}));
+
+vi.mock('@ui/layout/horizontal-carousel/HorizontalCarousel', () => ({
+  default: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="featured-carousel">{children}</div>
+  ),
+}));
+
+vi.mock('@ui/primitives/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DropdownMenuContent: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="overflow-menu">{children}</div>
+  ),
+  DropdownMenuItem: ({
+    children,
+    disabled,
+    onSelect,
+  }: {
+    children?: ReactNode;
+    disabled?: boolean;
+    onSelect?: () => void;
   }) => (
-    <article>
-      <h3>{label}</h3>
-      {description ? (
-        <button type="button" onClick={onDescriptionClick}>
-          {description}
-        </button>
-      ) : null}
-      {headerAction}
+    <div
+      aria-disabled={disabled || undefined}
+      data-testid="overflow-item"
+      onClick={onSelect}
+      onKeyDown={onSelect}
+      role="menuitem"
+      tabIndex={-1}
+    >
       {children}
-    </article>
+    </div>
+  ),
+  DropdownMenuSeparator: () => <div data-testid="overflow-separator" />,
+  DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => (
+    <>{children}</>
   ),
 }));
 
@@ -204,27 +259,42 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+const DAILY_DIGEST_ENTRY = {
+  canonicalId: 'system-1',
+  nodes: POST_HARD_CUT_TEMPLATE.nodes,
+  edges: POST_HARD_CUT_TEMPLATE.edges,
+  description: 'App-owned automation.',
+  family: 'content',
+  icon: '',
+  installable: true,
+  installed: false,
+  label: 'Daily digest',
+};
+
+const VIEW_STORAGE_KEY = 'genfeed:collection-view:automation.templates';
+
+function allSection() {
+  return screen.getByRole('region', { name: 'All templates' });
+}
+
+async function renderLoadedPage() {
+  render(<WorkflowTemplatesPage />);
+  await waitFor(() => {
+    expect(within(allSection()).getByText('Social blast')).toBeInTheDocument();
+  });
+}
+
 describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mocks.listTemplates.mockResolvedValue([POST_HARD_CUT_TEMPLATE]);
     mocks.list.mockResolvedValue([]);
-    mocks.listSystemCatalog.mockResolvedValue([
-      {
-        canonicalId: 'system-1',
-        nodes: POST_HARD_CUT_TEMPLATE.nodes,
-        edges: POST_HARD_CUT_TEMPLATE.edges,
-        description: 'App-owned automation.',
-        family: 'content',
-        icon: '',
-        installable: true,
-        installed: false,
-        label: 'Daily digest',
-      },
-    ]);
+    mocks.listSystemCatalog.mockResolvedValue([DAILY_DIGEST_ENTRY]);
+    mocks.installSystemCatalog.mockResolvedValue({ id: 'wf-installed' });
     mocks.getService.mockResolvedValue({
       create: vi.fn(),
-      installSystemCatalog: vi.fn(),
+      installSystemCatalog: mocks.installSystemCatalog,
       list: mocks.list,
       listSystemCatalog: mocks.listSystemCatalog,
       listTemplates: mocks.listTemplates,
@@ -249,6 +319,9 @@ describe('WorkflowTemplatesPage', () => {
       screen.getByRole('button', { name: 'Category' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('templates-content')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Featured' }),
+    ).not.toBeInTheDocument();
 
     resolveTemplates([]);
     await waitFor(() => {
@@ -256,13 +329,65 @@ describe('WorkflowTemplatesPage', () => {
     });
   });
 
-  it('renders catalog and templates without mixing in the saved library', async () => {
+  it('renders Featured, Browse by type and All in order', async () => {
+    await renderLoadedPage();
+
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['Featured', 'Browse by type', 'All templates']);
+  });
+
+  it('features official catalog templates with an output preview', async () => {
+    await renderLoadedPage();
+
+    const featured = screen.getByRole('region', { name: 'Featured' });
+    expect(within(featured).getByText('Daily digest')).toBeInTheDocument();
+    expect(
+      within(featured).queryByText('Social blast'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(featured).getByRole('img', {
+        name: 'Daily digest workflow diagram',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the head of the catalog when no official templates exist', async () => {
+    mocks.listSystemCatalog.mockResolvedValue([]);
+    await renderLoadedPage();
+
+    const featured = screen.getByRole('region', { name: 'Featured' });
+    expect(within(featured).getByText('Social blast')).toBeInTheDocument();
+  });
+
+  it('hides Browse by type when the catalog has a single type', async () => {
+    mocks.listSystemCatalog.mockResolvedValue([]);
+    await renderLoadedPage();
+
+    expect(
+      screen.queryByRole('region', { name: 'Browse by type' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Browse by type' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders no sections and one empty state for an empty catalog', async () => {
+    mocks.listTemplates.mockResolvedValue([]);
+    mocks.listSystemCatalog.mockResolvedValue([]);
     render(<WorkflowTemplatesPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Social blast')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Daily digest')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No workflow templates are available yet.'),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
+  });
+
+  it('renders catalog and templates without mixing in the saved library', async () => {
+    await renderLoadedPage();
+
+    const all = allSection();
+    expect(within(all).getByText('Daily digest')).toBeInTheDocument();
     expect(screen.queryByText('My pipeline')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
       'href',
@@ -273,12 +398,8 @@ describe('WorkflowTemplatesPage', () => {
       '/demo/FUDNEWS/automation/workflows/templates',
     );
     expect(
-      screen.getByRole('img', { name: 'Daily digest workflow diagram' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: 'Social blast workflow diagram' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Use template' })).toHaveAttribute(
+      within(all).getByRole('link', { name: 'Use template' }),
+    ).toHaveAttribute(
       'href',
       '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
     );
@@ -286,23 +407,184 @@ describe('WorkflowTemplatesPage', () => {
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
   });
 
-  it('opens a details dialog from the clamped card description', async () => {
+  it('defaults All to a list and persists the grid toggle', async () => {
     const user = userEvent.setup();
-    render(<WorkflowTemplatesPage />);
+    await renderLoadedPage();
 
-    await waitFor(() => {
-      expect(screen.getByText('Daily digest')).toBeInTheDocument();
-    });
+    const all = allSection();
+    expect(within(all).getAllByTestId('workflow-template-row')).toHaveLength(2);
+    expect(
+      within(all).queryByTestId('workflow-template-card'),
+    ).not.toBeInTheDocument();
+    expect(within(all).getByRole('radio', { name: 'List' })).toBeChecked();
+
+    await user.click(within(all).getByRole('radio', { name: 'Grid' }));
+
+    expect(within(all).getAllByTestId('workflow-template-card')).toHaveLength(
+      2,
+    );
+    expect(
+      within(all).queryByTestId('workflow-template-row'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(all).getByRole('img', { name: 'Social blast workflow diagram' }),
+    ).toBeInTheDocument();
+    expect(window.localStorage.getItem(VIEW_STORAGE_KEY)).toBe('grid');
+    const allGrid = within(all).getByTestId('templates-all-collection')
+      .firstElementChild as HTMLElement;
+    expect(allGrid).toHaveClass('@[60rem]:grid-cols-3');
+    expect(allGrid).not.toHaveClass('@[80rem]:grid-cols-4');
+    expect(
+      document.querySelector(
+        '[class*="md:grid-cols"], [class*="xl:grid-cols"], [class*="gap-6"]',
+      ),
+    ).toBeNull();
+  });
+
+  it('filters All from a type tile and shows a removable chip', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    const browse = screen.getByRole('region', { name: 'Browse by type' });
+    expect(
+      within(browse)
+        .getAllByTestId('workflow-template-type-tile')
+        .map((tile) => tile.getAttribute('aria-label')),
+    ).toEqual(['Content', 'Social Media']);
 
     await user.click(
-      screen.getByRole('button', { name: 'App-owned automation.' }),
+      within(browse).getByRole('button', { name: 'Social Media' }),
     );
+
+    const all = allSection();
+    expect(within(all).getByText('Social blast')).toBeInTheDocument();
+    expect(within(all).queryByText('Daily digest')).not.toBeInTheDocument();
+    expect(
+      within(browse).getByRole('button', { name: 'Social Media' }),
+    ).toHaveClass('shadow-border-strong');
+
+    await user.click(
+      within(all).getByRole('button', { name: 'Remove filter Social Media' }),
+    );
+
+    expect(within(all).getByText('Daily digest')).toBeInTheDocument();
+    expect(
+      within(all).queryByRole('button', { name: 'Remove filter Social Media' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Use template as the single visible action per template', async () => {
+    await renderLoadedPage();
+
+    for (const row of within(allSection()).getAllByTestId(
+      'workflow-template-row',
+    )) {
+      const visibleActions = [
+        ...within(row).queryAllByRole('link'),
+        ...within(row).queryAllByRole('button'),
+      ].map(
+        (element) => element.getAttribute('aria-label') ?? element.textContent,
+      );
+      expect(visibleActions).toEqual(['Use template', 'More actions']);
+    }
+
+    expect(
+      screen.queryByRole('button', { name: 'Install' }),
+    ).not.toBeInTheDocument();
+
+    const digestRow = within(allSection())
+      .getAllByTestId('workflow-template-row')
+      .find((row) => within(row).queryByText('Daily digest'));
+    expect(digestRow).toBeDefined();
+    expect(
+      within(digestRow as HTMLElement)
+        .getAllByTestId('overflow-item')
+        .map((item) => item.textContent),
+    ).toEqual(['View details', 'Install']);
+  });
+
+  it('opens a catalog template from Use template', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    const digestRow = within(allSection())
+      .getAllByTestId('workflow-template-row')
+      .find((row) => within(row).queryByText('Daily digest')) as HTMLElement;
+
+    await user.click(
+      within(digestRow).getByRole('button', { name: 'Use template' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/demo/FUDNEWS/automation/workflows/wf-installed',
+      );
+    });
+    expect(mocks.installSystemCatalog).toHaveBeenCalledWith('system-1');
+  });
+
+  it('installs from the overflow without leaving the page', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    const digestRow = within(allSection())
+      .getAllByTestId('workflow-template-row')
+      .find((row) => within(row).queryByText('Daily digest')) as HTMLElement;
+    const installItem = within(digestRow)
+      .getAllByTestId('overflow-item')
+      .find((item) => item.textContent === 'Install') as HTMLElement;
+
+    await user.click(installItem);
+
+    await waitFor(() => {
+      expect(mocks.installSystemCatalog).toHaveBeenCalledWith('system-1');
+    });
+    expect(mocks.replace).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(
+        within(digestRow).getByRole('link', { name: 'Use template' }),
+      ).toHaveAttribute(
+        'href',
+        '/demo/FUDNEWS/automation/workflows/wf-installed',
+      );
+    });
+  });
+
+  it('opens a details dialog from the overflow menu', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    const digestRow = within(allSection())
+      .getAllByTestId('workflow-template-row')
+      .find((row) => within(row).queryByText('Daily digest')) as HTMLElement;
+    const detailsItem = within(digestRow)
+      .getAllByTestId('overflow-item')
+      .find((item) => item.textContent === 'View details') as HTMLElement;
+
+    await user.click(detailsItem);
 
     const dialog = await screen.findByRole('dialog');
     expect(
       within(dialog).getByRole('heading', { name: 'Daily digest' }),
     ).toBeVisible();
     expect(within(dialog).getByText('App-owned automation.')).toBeVisible();
+  });
+
+  it('opens a details dialog from the clamped card description', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    await user.click(
+      within(screen.getByRole('region', { name: 'Featured' })).getByRole(
+        'button',
+        { name: 'App-owned automation.' },
+      ),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('heading', { name: 'Daily digest' }),
+    ).toBeVisible();
   });
 
   it('title-cases unknown category keys', () => {
