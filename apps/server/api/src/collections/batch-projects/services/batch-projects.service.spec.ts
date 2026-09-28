@@ -103,6 +103,7 @@ describe('BatchProjectsService', () => {
     ),
     refreshProjectStatus: vi.fn(),
     syncReviewDecisions: vi.fn(),
+    syncReviewState: vi.fn(),
   };
   const batchWorkflowExecutionService = { startBatchExecution: vi.fn() };
   const workflowsService = { findOwnedOrThrow: vi.fn() };
@@ -125,6 +126,11 @@ describe('BatchProjectsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    reconcileService.syncReviewDecisions.mockReset();
+    reconcileService.runExclusive.mockImplementation(
+      async (_projectId: string, operation: () => Promise<unknown>) =>
+        await operation(),
+    );
     prisma.batchProject.updateMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.updateMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.createMany.mockResolvedValue({ count: 1 });
@@ -325,6 +331,59 @@ describe('BatchProjectsService', () => {
         }),
       });
     });
+
+    it('waits for a scheduling run holding the project lock before editing', async () => {
+      // A real per-project mutex in place of the Redis lock.
+      let held: Promise<unknown> = Promise.resolve();
+      reconcileService.runExclusive.mockImplementation(
+        (_projectId: string, operation: () => Promise<unknown>) => {
+          const run = held.then(operation);
+          held = run.catch(() => undefined);
+          return run;
+        },
+      );
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({
+          postId: 'review-post-1',
+          status: BatchProjectItemStatus.APPROVED,
+        }),
+      );
+      let finishSchedule: () => void = () => undefined;
+      const events: string[] = [];
+      const scheduling = reconcileService.runExclusive(
+        'project-1',
+        () =>
+          new Promise<void>((resolve) => {
+            events.push('schedule-read-caption');
+            finishSchedule = () => {
+              events.push('schedule-published');
+              resolve();
+            };
+          }),
+      );
+      prisma.batchProjectItem.updateMany.mockImplementation(async () => {
+        events.push('caption-write');
+        return { count: 1 };
+      });
+
+      const editing = service.updateItem(
+        'project-1',
+        'item-1',
+        { caption: 'Edited mid-schedule' },
+        scope,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(events).toEqual(['schedule-read-caption']);
+
+      finishSchedule();
+      await Promise.all([scheduling, editing]);
+      expect(events).toEqual([
+        'schedule-read-caption',
+        'schedule-published',
+        'caption-write',
+      ]);
+    });
   });
 
   describe('update', () => {
@@ -377,7 +436,8 @@ describe('BatchProjectsService', () => {
 
       await service.list(scope, { limit: 20, page: 1 } as never);
 
-      expect(reconcileService.syncReviewDecisions).toHaveBeenCalledWith(
+      // Synced under the project's lock, never alongside scheduling.
+      expect(reconcileService.syncReviewState).toHaveBeenCalledWith(
         'project-1',
         'org-1',
       );
@@ -734,6 +794,36 @@ describe('BatchProjectsService', () => {
           scope,
         ),
       ).rejects.toThrow(ConflictException);
+      expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
+    });
+
+    it('reads the inbox decision before approving, under the project lock', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      const reviewed = {
+        reviewBatchId: 'review-batch-1',
+        reviewItemId: 'review-item-1',
+      };
+      // Batch still shows the item READY; the inbox has already rejected it.
+      prisma.batchProjectItem.findMany.mockResolvedValue([
+        makeItem({ ...reviewed, status: BatchProjectItemStatus.READY }),
+      ]);
+      reconcileService.syncReviewDecisions.mockImplementation(async () => {
+        prisma.batchProjectItem.findMany.mockResolvedValue([
+          makeItem({ ...reviewed, status: BatchProjectItemStatus.REJECTED }),
+        ]);
+      });
+
+      await expect(
+        service.review(
+          'project-1',
+          { decision: 'approved', itemIds: ['item-1'] },
+          scope,
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
       expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     });
 

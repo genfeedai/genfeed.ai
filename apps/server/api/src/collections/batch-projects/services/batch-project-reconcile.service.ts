@@ -1,4 +1,5 @@
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
+import { findReviewBatchIdBySourceKeys } from '@api/collections/batch-projects/services/batch-project-review-batch.util';
 import {
   type BatchProjectItemStatusValue,
   deriveBatchProjectStatus,
@@ -138,6 +139,25 @@ export class BatchProjectReconcileService {
    * overwrite the other's half-applied state. Waits briefly for an in-flight
    * reconcile, then reports the project as busy.
    */
+  /**
+   * Mirror inbox decisions onto one project under its reconcile lock, so
+   * the sync never interleaves with scheduling or a review action. A project
+   * that is busy is skipped; its own operation syncs it.
+   */
+  async syncReviewState(
+    projectId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.cacheService.withLock(
+      reconcileLockKey(projectId),
+      async () => {
+        await this.syncReviewDecisions(projectId, organizationId);
+        await this.refreshProjectStatus(projectId, organizationId);
+      },
+      RECONCILE_LOCK_TTL_SECONDS,
+    );
+  }
+
   async runExclusive<T>(
     projectId: string,
     operation: () => Promise<T>,
@@ -676,9 +696,12 @@ export class BatchProjectReconcileService {
 
     // A crash between creating the review batch and saving its id leaves a
     // batch that already holds these items; adopt it instead of a second one.
-    const handedOffBatchId = await this.findHandedOffReviewBatchId(
+    const handedOffBatchId = await findReviewBatchIdBySourceKeys(
+      this.prisma,
       project.organizationId,
-      dto,
+      dto.items.flatMap((item) =>
+        item.sourceActionId ? [item.sourceActionId] : [],
+      ),
     );
     const adopted = handedOffBatchId
       ? await this.appendIfLive(project, handedOffBatchId, dto)
@@ -716,29 +739,6 @@ export class BatchProjectReconcileService {
       }
       throw error;
     }
-  }
-
-  /** The live review batch already holding one of these items, if any. */
-  private async findHandedOffReviewBatchId(
-    organizationId: string,
-    dto: CreateManualReviewBatchDto,
-  ): Promise<string | null> {
-    const sourceKeys = dto.items.flatMap((item) =>
-      item.sourceActionId ? [item.sourceActionId] : [],
-    );
-    if (sourceKeys.length === 0) {
-      return null;
-    }
-    const row = await this.prisma.batchItem.findFirst({
-      select: { batchId: true },
-      where: scopedWhere(organizationId, {
-        batch: { isDeleted: false, organizationId },
-        OR: sourceKeys.map((sourceKey) => ({
-          data: { equals: sourceKey, path: ['sourceActionId'] },
-        })),
-      }),
-    });
-    return row?.batchId ?? null;
   }
 
   /**

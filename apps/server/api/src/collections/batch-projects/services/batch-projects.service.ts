@@ -121,11 +121,7 @@ export class BatchProjectsService {
     );
     if (reviewing.length > 0) {
       for (const row of reviewing) {
-        await this.reconcileService.syncReviewDecisions(
-          row.id,
-          scope.organizationId,
-        );
-        await this.reconcileService.refreshProjectStatus(
+        await this.reconcileService.syncReviewState(
           row.id,
           scope.organizationId,
         );
@@ -301,7 +297,22 @@ export class BatchProjectsService {
     return this.loadProject(id, scope);
   }
 
-  async updateItem(
+  /**
+   * Item edits take the project lock scheduling takes, so a caption can
+   * never change between scheduling reading it and publishing it.
+   */
+  updateItem(
+    id: string,
+    itemId: string,
+    dto: UpdateBatchProjectItemDto,
+    scope: IBatchProjectScope,
+  ): Promise<IBatchProject> {
+    return this.reconcileService.runExclusive(id, () =>
+      this.updateItemLocked(id, itemId, dto, scope),
+    );
+  }
+
+  private async updateItemLocked(
     id: string,
     itemId: string,
     dto: UpdateBatchProjectItemDto,
@@ -655,12 +666,27 @@ export class BatchProjectsService {
    * Approve or reject through the review inbox itself, so the decision is the
    * one the inbox shows; project items then mirror the recorded decision.
    */
-  async review(
+  review(
+    id: string,
+    dto: ReviewBatchProjectItemsDto,
+    scope: IBatchProjectScope,
+  ): Promise<IBatchProject> {
+    return this.reconcileService.runExclusive(id, () =>
+      this.reviewLocked(id, dto, scope),
+    );
+  }
+
+  /**
+   * Under the project lock, inbox decisions are mirrored first, so the
+   * checks below read the canonical review decision, not a stale copy.
+   */
+  private async reviewLocked(
     id: string,
     dto: ReviewBatchProjectItemsDto,
     scope: IBatchProjectScope,
   ): Promise<IBatchProject> {
     await this.requireProject(id, scope);
+    await this.reconcileService.syncReviewDecisions(id, scope.organizationId);
     const items = await this.prisma.batchProjectItem.findMany({
       where: scopedWhere(scope.organizationId, {
         id: { in: dto.itemIds },
