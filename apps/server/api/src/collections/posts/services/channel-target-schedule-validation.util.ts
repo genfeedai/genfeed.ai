@@ -134,6 +134,24 @@ export function postCategoryForIngredientCategories(
 }
 
 /**
+ * The category a target keeps after its media is replaced. A format-specific
+ * category (REEL, STORY) survives while the new media still fits it;
+ * otherwise the category follows the media.
+ */
+export function categoryAfterMediaRewrite(
+  current: string | null | undefined,
+  derived: PostCategory,
+): PostCategory {
+  if (current === PostCategory.REEL && derived === PostCategory.VIDEO) {
+    return PostCategory.REEL;
+  }
+  if (current === PostCategory.STORY && derived !== PostCategory.TEXT) {
+    return PostCategory.STORY;
+  }
+  return derived;
+}
+
+/**
  * Build validation media from a Post's linked ingredients, classifying each
  * by its own category. The Post category is only the fallback for an
  * ingredient whose category proves nothing, because a Post can carry a

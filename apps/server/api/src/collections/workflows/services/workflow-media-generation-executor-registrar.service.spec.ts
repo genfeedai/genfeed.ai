@@ -336,6 +336,11 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       'org-replicate-key',
       'continuation-1',
     );
+    expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        continuation: expect.objectContaining({ isByok: true }),
+      }),
+    );
   });
 
   it('forwards a resolved BYOK apiKeyOverride to the videoGen Replicate dispatch (#5294)', async () => {
@@ -407,6 +412,11 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       expect.any(Object),
       'org-replicate-key',
       'continuation-1',
+    );
+    expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        continuation: expect.objectContaining({ isByok: true }),
+      }),
     );
   });
 

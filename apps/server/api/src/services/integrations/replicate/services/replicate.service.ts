@@ -228,7 +228,11 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = this.resolveCompletionWebhookUrl();
+      // Same rule as runModel: the platform callback cannot authenticate a
+      // delivery signed by the customer's Replicate account.
+      const webhookUrl = apiKeyOverride
+        ? undefined
+        : this.resolveCompletionWebhookUrl();
 
       const attempt = async () =>
         client.trainings.create(owner, model, version, {

@@ -3,9 +3,15 @@ import { WorkflowNodeContinuationService } from '@api/collections/workflows/serv
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+type ReplicatePollCandidate = Awaited<
+  ReturnType<WorkflowNodeContinuationService['findReplicatePollCandidates']>
+>[number];
 
 @Injectable()
 export class WorkflowContinuationReconcileService {
@@ -16,6 +22,7 @@ export class WorkflowContinuationReconcileService {
     private readonly replicate: ReplicateService,
     private readonly webhooks: WebhooksService,
     private readonly logger: LoggerService,
+    private readonly byok: ByokService,
   ) {}
 
   async reconcile(): Promise<void> {
@@ -24,8 +31,26 @@ export class WorkflowContinuationReconcileService {
     const candidates = await this.continuations.findReplicatePollCandidates();
     for (const candidate of candidates) {
       try {
+        let apiKeyOverride: string | undefined;
+        if (candidate.isByok) {
+          apiKeyOverride = (
+            await this.byok.resolveApiKey(
+              candidate.organizationId,
+              ByokProvider.REPLICATE,
+            )
+          )?.apiKey;
+          if (!apiKeyOverride) {
+            await this.failContinuation(
+              candidate,
+              'The Replicate key that started this generation is no longer available',
+            );
+            continue;
+          }
+        }
+
         const prediction = (await this.replicate.getPrediction(
           candidate.externalId,
+          apiKeyOverride,
         )) as unknown as Record<string, unknown>;
         const status =
           typeof prediction.status === 'string' ? prediction.status : '';
@@ -82,19 +107,7 @@ export class WorkflowContinuationReconcileService {
           typeof prediction.error === 'string'
             ? prediction.error
             : `Replicate prediction ${candidate.externalId} ended with status ${status || 'unknown'}`;
-        await this.webhooks.handleFailedGenerationForIngredient(
-          candidate.ingredientId,
-          error,
-        );
-        await this.coordinator.failProviderAction({
-          error,
-          identity: {
-            continuationId: candidate.continuationId,
-            organizationId: candidate.organizationId,
-          },
-          provider: 'replicate',
-          providerResult: { externalId: candidate.externalId },
-        });
+        await this.failContinuation(candidate, error);
       } catch (error: unknown) {
         this.logger.error(
           'WorkflowContinuationReconcileService failed to reconcile Replicate continuation',
@@ -110,5 +123,24 @@ export class WorkflowContinuationReconcileService {
     // Provider polling records settlements in the same database outbox; this
     // second pass claims and resumes them without waiting for the next minute.
     await this.coordinator.reconcileProviderContinuations();
+  }
+
+  private async failContinuation(
+    candidate: ReplicatePollCandidate,
+    error: string,
+  ): Promise<void> {
+    await this.webhooks.handleFailedGenerationForIngredient(
+      candidate.ingredientId,
+      error,
+    );
+    await this.coordinator.failProviderAction({
+      error,
+      identity: {
+        continuationId: candidate.continuationId,
+        organizationId: candidate.organizationId,
+      },
+      provider: 'replicate',
+      providerResult: { externalId: candidate.externalId },
+    });
   }
 }

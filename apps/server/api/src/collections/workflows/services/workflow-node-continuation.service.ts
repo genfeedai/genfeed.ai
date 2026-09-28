@@ -108,6 +108,7 @@ export class WorkflowNodeContinuationService {
     actionId: string;
     executionId: string;
     ingredientId: string;
+    isByok?: boolean;
     nodeId: string;
     organizationId: string;
     provider: string;
@@ -165,6 +166,7 @@ export class WorkflowNodeContinuationService {
           actionId: input.actionId,
           executionId: input.executionId,
           ingredientId: input.ingredientId,
+          isByok: input.isByok ?? false,
           nodeId: input.nodeId,
           organizationId: input.organizationId,
           provider: input.provider,
@@ -816,6 +818,7 @@ export class WorkflowNodeContinuationService {
       continuationId: string;
       externalId: string;
       ingredientId: string;
+      isByok: boolean;
       organizationId: string;
     }>
   > {
@@ -824,6 +827,7 @@ export class WorkflowNodeContinuationService {
         externalId: true,
         id: true,
         ingredientId: true,
+        isByok: true,
         organizationId: true,
       },
       take: 100,
@@ -840,6 +844,7 @@ export class WorkflowNodeContinuationService {
               continuationId: row.id,
               externalId: row.externalId,
               ingredientId: row.ingredientId,
+              isByok: row.isByok,
               organizationId: row.organizationId,
             },
           ]

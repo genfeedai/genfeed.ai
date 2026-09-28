@@ -7,6 +7,7 @@ type MediaIntentInput = {
   executionId: string;
   nodeId: string;
   ingredientId: string;
+  isByok?: boolean;
   provider: string;
   actionId: string;
 };
@@ -50,7 +51,7 @@ export async function createWorkflowMediaCostIntent(
       vendorCostMicros: 0,
       costEvidence: 'pending',
       pricingSnapshot: {
-        isByok: isDirectPlatformMedia ? false : null,
+        isByok: isDirectPlatformMedia ? (input.isByok ?? false) : null,
         billingDisposition: isDirectPlatformMedia
           ? 'not_charged'
           : 'pending_charge',
