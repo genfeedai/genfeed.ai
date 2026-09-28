@@ -19,6 +19,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -171,6 +172,24 @@ describe('VideosCaptionsController', () => {
         videoRows.find((row) => matchesWhere(row, where)) ?? null,
     );
 
+  // Emulates Prisma applying the populated relation's `where` to `captions`.
+  const useVideoRowsWithCaptions = (captions: Record<string, unknown>[]) =>
+    mockServices.videosService.findOne.mockImplementation(
+      async (where: RowWhere, populate: PopulateOption[] = []) => {
+        const video = videoRows.find((row) => matchesWhere(row, where));
+        if (!video) {
+          return null;
+        }
+
+        const captionsWhere =
+          populate.find((option) => option.path === 'captions')?.where ?? {};
+        return {
+          ...video,
+          captions: captions.filter((row) => matchesWhere(row, captionsWhere)),
+        };
+      },
+    );
+
   const useCaptionRows = () =>
     mockServices.captionsService.findOne.mockImplementation(
       async (where: RowWhere) =>
@@ -289,7 +308,15 @@ describe('VideosCaptionsController', () => {
           isDeleted: false,
           organizationId: mockUser.organizationId,
         },
-        [{ path: 'captions' }],
+        [
+          {
+            path: 'captions',
+            where: {
+              isDeleted: false,
+              organizationId: mockUser.organizationId,
+            },
+          },
+        ],
       );
       expect(result).toBeDefined();
     });
@@ -383,6 +410,49 @@ describe('VideosCaptionsController', () => {
           mockUser,
           videoId,
           { caption: foreignCaptionId },
+        );
+
+        expect(result).toHaveProperty('statusCode', 404);
+        expect(
+          mockServices.sharedService.createMediaDocuments,
+        ).not.toHaveBeenCalled();
+        expect(
+          mockServices.fileQueueService.processVideo,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('skips a soft-deleted first caption when falling back to the populated captions', async () => {
+        useVideoRowsWithCaptions([
+          { ...captionRows[1], content: 'Deleted caption' },
+          captionRows[2],
+          captionRows[0],
+        ]);
+
+        await controller.createVideoWithCaptions(
+          mockReq,
+          mockUser,
+          videoId,
+          {},
+        );
+
+        expect(captionsService.findOne).not.toHaveBeenCalled();
+        expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              captionContent: 'Test caption content',
+            }),
+          }),
+        );
+      });
+
+      it('returns not found when every populated caption is soft-deleted', async () => {
+        useVideoRowsWithCaptions([captionRows[1]]);
+
+        const result = await controller.createVideoWithCaptions(
+          mockReq,
+          mockUser,
+          videoId,
+          {},
         );
 
         expect(result).toHaveProperty('statusCode', 404);

@@ -138,7 +138,7 @@ export class VideosCaptionsController {
     const url = `videos-captions:${this.constructorName}:createVideoWithCaptions:user:${user.id}:videoId:${videoId}`;
     const video = await this.videosService.findOne(
       scopedWhere(user.organizationId, { id: videoId }),
-      [{ path: 'captions' }],
+      [{ path: 'captions', where: scopedWhere(user.organizationId) }],
     );
 
     if (!video) {
