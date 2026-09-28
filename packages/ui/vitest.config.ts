@@ -7,6 +7,7 @@ const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
 const UI_CORE_SRC = path.resolve(UI_SRC, './core');
+const UI_DASHBOARD_SRC = path.resolve(UI_SRC, './dashboard');
 const UI_CHARTS_SRC = path.resolve(UI_SRC, './charts.ts');
 const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
@@ -282,6 +283,10 @@ export default defineConfig({
       {
         find: '@ui/core',
         replacement: UI_CORE_SRC,
+      },
+      {
+        find: /^@ui\/dashboard\/(.*)$/,
+        replacement: path.resolve(UI_DASHBOARD_SRC, '$1'),
       },
       {
         find: '@ui/charts',
