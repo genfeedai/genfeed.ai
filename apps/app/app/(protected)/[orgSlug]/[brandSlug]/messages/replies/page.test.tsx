@@ -8,7 +8,7 @@ assertSourceHasExport(
 );
 
 describe('messages/replies/page.tsx', () => {
-  it('gates Replies with the reply_bot feature flag', () => {
+  it('gates Replies behind the superadmin-aware reply_bot gate (#5468)', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -17,8 +17,7 @@ describe('messages/replies/page.tsx', () => {
       'utf8',
     );
 
-    expect(source).toContain('FeatureGate');
-    expect(source).toContain('REPLY_BOT_FEATURE_FLAG');
+    expect(source).toContain('<RepliesFeatureGate>');
   });
 });
 
