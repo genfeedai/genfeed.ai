@@ -57,8 +57,8 @@ describe('NegativePromptSelector', () => {
     expect((screen.getByLabelText('Custom') as HTMLInputElement).value).toBe(
       'ugly, deformed hands',
     );
-    // Every parsed term counts (3), plus one for the non-empty custom text.
-    expect(screen.getByText('4 selected')).toBeTruthy();
+    // One checked option (blurry) plus one for the non-empty custom group.
+    expect(screen.getByText('2 selected')).toBeTruthy();
   });
 
   it('emits the checked options in canonical order, keeping custom terms', () => {
