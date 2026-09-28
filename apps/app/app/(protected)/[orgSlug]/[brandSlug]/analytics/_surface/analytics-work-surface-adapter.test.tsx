@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -45,6 +45,11 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 
 const orgUrlValue = vi.hoisted(() => ({ brandSlug: '', orgSlug: 'acme' }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => orgUrlValue,
 }));
@@ -80,7 +85,9 @@ import {
   useActiveAnalyticsWorkspaceSurfaceAdapter,
 } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 
-import AnalyticsWorkSurfaceAdapter from './analytics-work-surface-adapter';
+import AnalyticsWorkSurfaceAdapter, {
+  AnalyticsScopedExportButton,
+} from './analytics-work-surface-adapter';
 
 function InspectorHarness() {
   const adapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
@@ -234,5 +241,46 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
+  });
+
+  it('offers the scoped export in the toolbar, not the inspector, on exportable routes', () => {
+    navigation.pathname = '/acme/moonrise/analytics/posts';
+    exportModalValue.openExport.mockClear();
+
+    render(
+      <AnalyticsWorkspaceSurfaceAdapterProvider>
+        <AnalyticsWorkSurfaceAdapter>
+          <AnalyticsScopedExportButton />
+          <InspectorHarness />
+        </AnalyticsWorkSurfaceAdapter>
+      </AnalyticsWorkspaceSurfaceAdapterProvider>,
+    );
+
+    const exportButtons = screen.getAllByRole('button', {
+      name: 'Export scoped data',
+    });
+    expect(exportButtons).toHaveLength(1);
+    expect(
+      screen.getByTestId('analytics-context-inspector'),
+    ).not.toContainElement(exportButtons[0]);
+
+    fireEvent.click(exportButtons[0]);
+    expect(exportModalValue.openExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the scoped export where the visible data has none', () => {
+    navigation.pathname = '/acme/~/analytics/brands';
+
+    render(
+      <AnalyticsWorkspaceSurfaceAdapterProvider>
+        <AnalyticsWorkSurfaceAdapter>
+          <AnalyticsScopedExportButton />
+        </AnalyticsWorkSurfaceAdapter>
+      </AnalyticsWorkspaceSurfaceAdapterProvider>,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Export scoped data' }),
+    ).toBeNull();
   });
 });

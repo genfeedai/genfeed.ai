@@ -22,6 +22,8 @@ vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
 
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();
+/** What the composer's `onSend` returned; false keeps the draft. */
+const composerSendResults: Array<boolean | undefined> = [];
 const adoptRun = vi.fn();
 const beginRunHandoff = vi.fn((threadId: string) => ({
   generation: 1,
@@ -185,9 +187,11 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
         <input
           aria-label="Composer paste"
           placeholder={props.placeholder}
-          onPaste={(event) =>
-            props.onSend?.(event.clipboardData.getData('text'))
-          }
+          onPaste={(event) => {
+            composerSendResults.push(
+              props.onSend?.(event.clipboardData.getData('text')),
+            );
+          }}
         />
         {props.showStop ? (
           <button type="button" onClick={props.onStop}>
@@ -340,9 +344,13 @@ type StoreState = {
     brandId?: string | null;
     contextVersion?: number;
     id: string;
+    runtimeKey?: string;
     source?: string;
     title?: string;
   }>;
+  draftRuntimeKey: string | null;
+  setDraftRuntimeKey: ReturnType<typeof vi.fn>;
+  conversationCacheByThread: Record<string, unknown>;
   error: string | null;
   isGenerating: boolean;
   messages: AgentChatMessageType[];
@@ -380,6 +388,8 @@ type StoreState = {
     streamingContent: string;
     streamingReasoning: string;
   };
+  setUiActionRun: ReturnType<typeof vi.fn>;
+  uiActionRuns: Record<string, unknown>;
   upsertThread: ReturnType<typeof vi.fn>;
   updateThread: ReturnType<typeof vi.fn>;
   workEvents: [];
@@ -395,7 +405,9 @@ const storeState: StoreState = {
   setPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
   markStreamLive: vi.fn(),
+  conversationCacheByThread: {},
   draftAgentMode: AgentThreadMode.MANUAL,
+  draftRuntimeKey: null,
   error: null,
   hasMoreMessages: false,
   isLoadingOlderMessages: false,
@@ -434,6 +446,7 @@ const storeState: StoreState = {
   setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
     storeState.draftAgentMode = mode;
   }),
+  setDraftRuntimeKey: vi.fn(),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
     storeState.latestProposedPlan = plan;
@@ -450,6 +463,8 @@ const storeState: StoreState = {
     streamingReasoning: '',
   },
   threads: [],
+  setUiActionRun: vi.fn(),
+  uiActionRuns: {},
   updateThread: vi.fn(),
   upsertThread: vi.fn(),
   workEvents: [],
@@ -459,12 +474,50 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   return {
     cancelWorkflowExecution: vi.fn(),
     getActiveWorkflowExecutions: vi.fn().mockResolvedValue([]),
+    getMessages: vi.fn(),
     getMessagesPage: vi.fn(),
     respondToInputRequest: vi.fn(),
     respondToUiAction: vi.fn(),
     updateThread: vi.fn(),
     uploadAttachment: vi.fn(),
     ...overrides,
+  };
+}
+
+/**
+ * `POST .../ui-actions` only acks the enqueued workflow; the run's reply is
+ * persisted with `metadata.runId` = the ack's `executionId` and read back from
+ * the thread's messages.
+ */
+function createUiActionApi(
+  reply: Pick<AgentChatMessageType, 'content'> & Partial<AgentChatMessageType>,
+  thread: Record<string, unknown> = {
+    brandId: null,
+    contextVersion: 1,
+    id: 'thread-1',
+  },
+) {
+  return {
+    getCreditsInfo: vi
+      .fn()
+      .mockResolvedValue({ balance: 48, modelAccess: {}, modelCosts: {} }),
+    getMessages: vi.fn().mockResolvedValue([
+      {
+        createdAt: '2026-03-11T00:01:00.000Z',
+        id: 'm-ui-action-reply',
+        role: 'assistant',
+        threadId: 'thread-1',
+        ...reply,
+        metadata: { runId: 'exec-ui-action', ...reply.metadata },
+      },
+    ]),
+    getThread: vi.fn().mockResolvedValue(thread),
+    getWorkflowExecution: vi.fn(),
+    respondToUiAction: vi.fn().mockResolvedValue({
+      executionId: 'exec-ui-action',
+      status: 'queued',
+      threadId: 'thread-1',
+    }),
   };
 }
 
@@ -490,6 +543,10 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { resetDesktopLocalToolsCache } from '@genfeedai/agent/hooks/use-desktop-local-tools';
+import { DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE } from '@genfeedai/agent/utils/agent-runtime-options.util';
+
+type DesktopWindow = Window & { genfeedDesktop?: unknown };
 
 describe('AgentChatContainer', () => {
   beforeAll(() => {
@@ -508,6 +565,7 @@ describe('AgentChatContainer', () => {
     pinConversationScrollToBottomMock.mockReset();
     sendNonStreaming.mockReset();
     sendStreaming.mockReset();
+    composerSendResults.length = 0;
     adoptRun.mockReset();
     beginRunHandoff.mockClear();
     cancelRunHandoff.mockReset();
@@ -527,6 +585,9 @@ describe('AgentChatContainer', () => {
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
     storeState.setUiActionStatus.mockReset();
+    storeState.setUiActionRun.mockReset();
+    storeState.uiActionRuns = {};
+    storeState.conversationCacheByThread = {};
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
@@ -553,6 +614,7 @@ describe('AgentChatContainer', () => {
     storeState.stream.streamingContent = '';
     storeState.workEvents = [];
     storeState.threads = [];
+    storeState.draftRuntimeKey = null;
     storeState.isGenerating = false;
     storeState.error = null;
     storeState.activeRunId = 'run-1';
@@ -877,6 +939,105 @@ describe('AgentChatContainer', () => {
       apiService.respondToInputRequest.mock.invocationCallOrder[0] ?? 0,
     );
     expect(cancelRunHandoff).not.toHaveBeenCalled();
+  });
+
+  it('refuses a local CLI send while detection is pending and keeps the draft', async () => {
+    const startTurn = vi.fn();
+    resetDesktopLocalToolsCache();
+    (window as DesktopWindow).genfeedDesktop = {
+      agentRuntime: {
+        cancelTurn: vi.fn(),
+        onEvent: vi.fn(() => () => undefined),
+        startTurn,
+      },
+      app: {
+        detectLocalTools: vi.fn(() => new Promise(() => undefined)),
+      },
+    };
+    storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/claude-cli' }];
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
+    });
+
+    try {
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      expect(composerSendResults).toEqual([false]);
+      expect(storeState.setError).toHaveBeenCalledWith(
+        DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
+      );
+      expect(sendStreaming).not.toHaveBeenCalled();
+      expect(sendNonStreaming).not.toHaveBeenCalled();
+      expect(startTurn).not.toHaveBeenCalled();
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
+  });
+
+  it('never sends a thread bound to an outdated local Codex CLI to the hosted runtime', async () => {
+    const upgradeCommand = 'npm install -g @openai/codex@latest';
+    const startTurn = vi.fn();
+    resetDesktopLocalToolsCache();
+    (window as DesktopWindow).genfeedDesktop = {
+      agentRuntime: {
+        cancelTurn: vi.fn(),
+        onEvent: vi.fn(() => () => undefined),
+        startTurn,
+      },
+      app: {
+        detectLocalTools: vi.fn().mockResolvedValue({
+          anyDetected: true,
+          claude: true,
+          codex: false,
+          detected: ['claude'],
+          grok: false,
+          upgradesRequired: [
+            {
+              key: 'codex',
+              message: `This Codex CLI is too old to run Genfeed agent turns. Update it with \`${upgradeCommand}\`, then restart Genfeed Desktop.`,
+            },
+          ],
+        }),
+      },
+    };
+    storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/codex-cli' }];
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
+    });
+
+    try {
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        await screen.findByTestId('agent-desktop-runtime-notice'),
+      ).toHaveTextContent(upgradeCommand);
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      expect(composerSendResults).toEqual([false]);
+      expect(storeState.setError).toHaveBeenCalledWith(
+        expect.stringContaining(upgradeCommand),
+      );
+      expect(sendStreaming).not.toHaveBeenCalled();
+      expect(sendNonStreaming).not.toHaveBeenCalled();
+      expect(startTurn).not.toHaveBeenCalled();
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
   });
 
   it('resolves a pasted URL on the same turn while the agent is waiting for input', async () => {
@@ -2083,6 +2244,109 @@ describe('AgentChatContainer', () => {
     expect(screen.getByText('Request changes')).toBeInTheDocument();
   });
 
+  it('locks the plan controls while an approval of that plan is still running', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.latestProposedPlan = {
+      content: '1. Add a toggle\n2. Pause after planning',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'plan-1',
+      status: 'awaiting_approval',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+    // The approval outlived its foreground window: the active ui-action lock
+    // is released, but the run executing the plan is still pending.
+    storeState.uiActionRuns = {
+      'thread-1:approve_plan:{"planId":"plan-1"}': {
+        action: 'approve_plan',
+        executionId: 'exec-plan-1',
+        key: 'thread-1:approve_plan:{"planId":"plan-1"}',
+        payload: { planId: 'plan-1' },
+        status: 'pending',
+        threadId: 'thread-1',
+      },
+    };
+
+    render(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Request changes' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    expect(apiService.respondToUiAction).not.toHaveBeenCalled();
+  });
+
+  it('reconciles a run whose ack lands after its thread was left and shown again', async () => {
+    let resolveAck: (ack: {
+      executionId: string;
+      status: 'queued';
+      threadId: string;
+    }) => void = () => undefined;
+    const apiService = createApiService({
+      ...createUiActionApi({ content: 'Plan executed.' }),
+      getWorkflowExecution: vi
+        .fn()
+        .mockResolvedValue({ id: 'exec-ui-action', status: 'running' }),
+      respondToUiAction: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveAck = resolve;
+          }),
+      ),
+    });
+    storeState.setUiActionRun.mockImplementation((run: { key: string }) => {
+      storeState.uiActionRuns = { ...storeState.uiActionRuns, [run.key]: run };
+    });
+    storeState.pendingInputRequest = null;
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
+    storeState.latestProposedPlan = {
+      content: '1. Add a toggle\n2. Pause after planning',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'plan-1',
+      status: 'awaiting_approval',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await waitFor(() =>
+      expect(apiService.respondToUiAction).toHaveBeenCalledTimes(1),
+    );
+
+    // Leave the thread and come back before the ack arrives.
+    storeState.activeThreadId = 'thread-2';
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+    storeState.activeThreadId = 'thread-1';
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    await act(async () => {
+      resolveAck({
+        executionId: 'exec-ui-action',
+        status: 'queued',
+        threadId: 'thread-1',
+      });
+    });
+    // The store notifies subscribers of the newly registered run.
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    await waitFor(() =>
+      expect(storeState.setUiActionRun).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          executionId: 'exec-ui-action',
+          status: 'completed',
+        }),
+      ),
+    );
+    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(storeState.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'Plan executed.' }),
+    );
+  });
+
   it('renders and executes the create follow-up tasks action for approved workspace plans', async () => {
     const apiService = createApiService();
     const onCreateFollowUpTasks = vi
@@ -2178,34 +2442,26 @@ describe('AgentChatContainer', () => {
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
-    const apiService = createApiService({
-      respondToUiAction: vi.fn().mockResolvedValue({
-        contextVersion: 1,
-        creditsRemaining: 48,
-        creditsUsed: 0,
-        message: {
-          content: 'Official workflow installed.',
-          metadata: {
-            uiActions: [
-              {
-                ctas: [
-                  {
-                    href: '/automation/workflows/wf-99',
-                    label: 'Open workflow',
-                  },
-                ],
-                id: 'workflow-created-success',
-                title: 'Automation installed',
-                type: 'workflow_created_card',
-              },
-            ],
-          },
-          role: 'assistant',
+    const apiService = createApiService(
+      createUiActionApi({
+        content: 'Official workflow installed.',
+        metadata: {
+          uiActions: [
+            {
+              ctas: [
+                {
+                  href: '/automation/workflows/wf-99',
+                  label: 'Open workflow',
+                },
+              ],
+              id: 'workflow-created-success',
+              title: 'Automation installed',
+              type: 'workflow_created_card',
+            },
+          ],
         },
-        threadId: 'thread-1',
-        toolCalls: [],
       }),
-    });
+    );
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2262,7 +2518,10 @@ describe('AgentChatContainer', () => {
       resolveAction = resolve;
     });
     const respondToUiAction = vi.fn(() => pendingAction);
-    const apiService = createApiService({ respondToUiAction });
+    const apiService = createApiService({
+      ...createUiActionApi({ content: 'Installed.' }),
+      respondToUiAction,
+    });
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2303,12 +2562,9 @@ describe('AgentChatContainer', () => {
     );
 
     resolveAction?.({
-      contextVersion: 1,
-      creditsRemaining: 48,
-      creditsUsed: 0,
-      message: { content: 'Installed.', metadata: {}, role: 'assistant' },
+      executionId: 'exec-ui-action',
+      status: 'queued',
       threadId: 'thread-1',
-      toolCalls: [],
     });
 
     await waitFor(() => {
@@ -2319,21 +2575,14 @@ describe('AgentChatContainer', () => {
   });
 
   it('replaces a brandless thread scope with the confirmed created brand', async () => {
-    const apiService = createApiService({
-      respondToUiAction: vi.fn().mockResolvedValue({
-        brandId: 'brand-created-1',
-        contextVersion: 2,
-        creditsRemaining: 48,
-        creditsUsed: 0,
-        message: {
-          content: 'Brand created and selected for this thread.',
-          metadata: {},
-          role: 'assistant',
-        },
-        threadId: 'thread-1',
-        toolCalls: [],
-      }),
-    });
+    // The ack carries no scope; the confirmed brand is read back from the
+    // thread once the run's reply lands.
+    const apiService = createApiService(
+      createUiActionApi(
+        { content: 'Brand created and selected for this thread.' },
+        { brandId: 'brand-created-1', contextVersion: 2, id: 'thread-1' },
+      ),
+    );
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];

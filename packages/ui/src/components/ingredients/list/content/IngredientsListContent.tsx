@@ -45,7 +45,7 @@ import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 // React Flow is heavier than the whole grid; only the canvas view pays for it.
 const LibraryCanvas = dynamic(
@@ -661,16 +661,41 @@ export default function IngredientsListContent({
   }, [filteredIngredients, selectedIngredientIds]);
 
   /**
-   * The grid owns the selection, the workspace shell owns the inspector.
+   * The grid owns the selection, the workspace shell owns the sidebar.
    * Publishing into the shared asset selection is the whole handoff: the
-   * library surface adapter reads it back and renders the inspector as a rail
-   * pane, so the canvas never carries a second inspector of its own.
+   * library surface adapter reads it back and renders the asset into the
+   * context sidebar, so the canvas never carries a second inspector.
    */
-  const { setSelectedAsset } = useAssetSelection();
+  const { selectedIngredient: publishedIngredient, setSelectedAsset } =
+    useAssetSelection();
+  const confirmedPublishedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSelectedAsset(inspectedIngredient);
   }, [inspectedIngredient, setSelectedAsset]);
+
+  // Closing the sidebar clears the shared selection; follow that back into
+  // the grid. Only a publish this grid saw land counts, so the render between
+  // selecting and publishing is never mistaken for a close.
+  useEffect(() => {
+    if (!inspectedIngredient) {
+      // A deselect or multi-select ends that publish; reselecting the same
+      // asset must wait for its new publish before a clear can count.
+      confirmedPublishedIdRef.current = null;
+      return;
+    }
+    if (publishedIngredient?.id === inspectedIngredient.id) {
+      confirmedPublishedIdRef.current = inspectedIngredient.id;
+      return;
+    }
+    if (
+      !publishedIngredient &&
+      confirmedPublishedIdRef.current === inspectedIngredient.id
+    ) {
+      confirmedPublishedIdRef.current = null;
+      onSelectionChange([]);
+    }
+  }, [inspectedIngredient, onSelectionChange, publishedIngredient]);
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.

@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MAX_VISION_ATTEMPTS } from '@api/services/media-assessment/media-vision-evaluation.service';
 import {
@@ -80,7 +81,7 @@ export function toPolicyMediaAssessment(
  * - readiness `error` diagnostics (always on) block;
  * - a moderation verdict blocks only when it was classified in `live`
  *   (a shadow verdict is never flagged by construction);
- * - vision flags block only while `MEDIA_GATE_VISION_MODE=live`;
+ * - vision flags block only while the vision gate mode is `live`;
  * - an asset without settled perception is reported as pending, never as
  *   clean and never as blocking.
  *
@@ -95,6 +96,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     private readonly mediaReadinessService: MediaReadinessService,
     private readonly configService: ConfigService,
     private readonly typedDecisionService: TypedDecisionService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   evaluatePublishReadiness(
@@ -196,7 +198,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
     reasons: MediaAssessmentReason[],
     unchecked: Set<string>,
   ): Promise<void> {
-    const settings = resolveModerationSettings(this.configService);
+    const settings = resolveModerationSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
     if (settings.mode === 'off') {
       return;
     }
@@ -272,7 +276,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
     warnings: MediaAssessmentReason[],
     unchecked: Set<string>,
   ): Promise<void> {
-    const settings = resolveMediaTextGateSettings(this.configService);
+    const settings = resolveMediaTextGateSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
     if (settings.mode !== 'live') {
       return;
     }
@@ -411,7 +417,10 @@ export class MediaAssessmentService implements IMediaPublishGate {
       }
     }
 
-    const isVisionLive = resolveVisionGateMode(this.configService) === 'live';
+    const isVisionLive =
+      resolveVisionGateMode(
+        await this.platformSettingsService.getFeatureSettings(),
+      ) === 'live';
     let validEvaluationIds: ReadonlySet<string> = new Set();
     let flagsById = new Map<string, IEvaluationFlags | undefined>();
     if (isVisionLive && evaluationByAsset.size > 0) {

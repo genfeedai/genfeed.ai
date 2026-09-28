@@ -3,7 +3,7 @@ import type {
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
-import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
   applyReleaseTargetUpdates,
@@ -15,6 +15,8 @@ import type { PublishApprovalsService } from '@api/collections/publish-approvals
 import type { PostLifecycleService } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  IngredientCategory,
+  PostCategory,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
@@ -36,7 +38,11 @@ describe('applyReleaseTargetUpdates', () => {
     dependencies = {
       contractService,
       enqueueReleaseTargets: vi.fn(),
-      persistenceService: {} as PostGroupPersistenceService,
+      persistenceService: new PostGroupPersistenceService(
+        {} as PrismaService,
+        contractService,
+        {} as PostGroupReadinessService,
+      ),
       postLifecycleService: { transition } as unknown as PostLifecycleService,
       prisma: { $transaction: transaction } as unknown as PrismaService,
       publishApprovalsService: {} as PublishApprovalsService,
@@ -161,7 +167,16 @@ describe('applyReleaseTargetUpdates', () => {
 
   it('resyncs each target ingredients relation when the release media changes', async () => {
     const update = vi.fn().mockResolvedValue({ id: 'target-scheduled' });
-    tx = { post: { update, updateMany } } as unknown as SchedulerTx;
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([
+        { category: IngredientCategory.IMAGE },
+        { category: IngredientCategory.IMAGE },
+      ]);
+    tx = {
+      ingredient: { findMany },
+      post: { update, updateMany },
+    } as unknown as SchedulerTx;
 
     await applyReleaseTargetUpdates(
       tx,
@@ -184,14 +199,94 @@ describe('applyReleaseTargetUpdates', () => {
 
     expect(update).toHaveBeenCalledWith({
       data: {
+        category: PostCategory.IMAGE,
         ingredients: { set: [{ id: 'asset-1' }, { id: 'asset-2' }] },
       },
       where: expect.objectContaining({ id: 'target-scheduled' }),
+    });
+    expect(findMany).toHaveBeenCalledWith({
+      select: { category: true },
+      where: {
+        id: { in: ['asset-1', 'asset-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
     expect(transition).toHaveBeenCalledTimes(1);
     expect(transition.mock.calls[0]?.[0]).toMatchObject({
       nextState: TargetExecutionState.SCHEDULED,
       postId: 'target-scheduled',
+    });
+  });
+
+  it('resets a target to TEXT in the same write that removes all of its media', async () => {
+    const update = vi.fn().mockResolvedValue({ id: 'target-scheduled' });
+    const findMany = vi.fn();
+    tx = {
+      ingredient: { findMany },
+      post: { update, updateMany },
+    } as unknown as SchedulerTx;
+
+    await applyReleaseTargetUpdates(
+      tx,
+      {
+        currentTargets: [
+          makeTarget({
+            category: PostCategory.IMAGE,
+            id: 'target-scheduled',
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+          }),
+        ],
+        groupId: 'group-1',
+        input: { media: [] },
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      dependencies,
+    );
+
+    expect(findMany).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith({
+      data: { category: PostCategory.TEXT, ingredients: { set: [] } },
+      where: expect.objectContaining({ id: 'target-scheduled' }),
+    });
+  });
+
+  it('keeps a REEL target a REEL when its replacement media is still a video', async () => {
+    const update = vi.fn().mockResolvedValue({ id: 'target-reel' });
+    tx = {
+      ingredient: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ category: IngredientCategory.VIDEO }]),
+      },
+      post: { update, updateMany },
+    } as unknown as SchedulerTx;
+
+    await applyReleaseTargetUpdates(
+      tx,
+      {
+        currentTargets: [
+          makeTarget({
+            category: PostCategory.REEL,
+            id: 'target-reel',
+            targetExecutionState: TargetExecutionState.DRAFT,
+          }),
+        ],
+        groupId: 'group-1',
+        input: { media: [{ assetId: 'video-2' }] },
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      dependencies,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      data: {
+        category: PostCategory.REEL,
+        ingredients: { set: [{ id: 'video-2' }] },
+      },
+      where: expect.objectContaining({ id: 'target-reel' }),
     });
   });
 
@@ -220,7 +315,8 @@ describe('applyReleaseTargetUpdates', () => {
 });
 
 function makeTarget(
-  overrides: Pick<SchedulerPostTarget, 'id' | 'targetExecutionState'>,
+  overrides: Pick<SchedulerPostTarget, 'id' | 'targetExecutionState'> &
+    Partial<Pick<SchedulerPostTarget, 'category'>>,
 ): SchedulerPostTarget {
   return {
     agentContextSource: null,

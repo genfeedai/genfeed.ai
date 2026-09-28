@@ -47,6 +47,7 @@ type StoreConversation = {
   status: string;
   priority: string;
   unreadCount: number;
+  inboundSequence: number;
   needsReview: boolean;
   automationState: string;
   assignedOwnerId: string | null;
@@ -216,8 +217,8 @@ function matchesWhere<T extends Record<string, unknown>>(
   });
 }
 
-/** Mirrors Prisma's numeric field update operators for `unreadCount`. */
-function resolveUnreadCountUpdate(current: number, nextValue: unknown): number {
+/** Mirrors Prisma's numeric field update operators for the counter columns. */
+function resolveCounterUpdate(current: number, nextValue: unknown): number {
   if (nextValue && typeof nextValue === 'object') {
     const operator = nextValue as { decrement?: number; increment?: number };
     if (typeof operator.increment === 'number') {
@@ -270,6 +271,7 @@ function createContext(): TestContext {
           externalParentId: data.externalParentId ?? null,
           externalThreadId: data.externalThreadId ?? null,
           id: `conversation-${++conversationCounter}`,
+          inboundSequence: data.inboundSequence ?? 0,
           isDeleted: false,
           lastInboundAt: data.lastInboundAt ?? null,
           lastOutboundAt: data.lastOutboundAt ?? null,
@@ -319,7 +321,11 @@ function createContext(): TestContext {
         }
         Object.assign(conversation, {
           ...data,
-          unreadCount: resolveUnreadCountUpdate(
+          inboundSequence: resolveCounterUpdate(
+            conversation.inboundSequence,
+            data.inboundSequence,
+          ),
+          unreadCount: resolveCounterUpdate(
             conversation.unreadCount,
             data.unreadCount,
           ),
@@ -333,7 +339,11 @@ function createContext(): TestContext {
         for (const conversation of matched) {
           Object.assign(conversation, {
             ...data,
-            unreadCount: resolveUnreadCountUpdate(
+            inboundSequence: resolveCounterUpdate(
+              conversation.inboundSequence,
+              data.inboundSequence,
+            ),
+            unreadCount: resolveCounterUpdate(
               conversation.unreadCount,
               data.unreadCount,
             ),
@@ -625,6 +635,24 @@ describe('SocialInboxService', () => {
       userId: 'user-1',
     };
 
+    async function ingestReply(
+      service: SocialInboxService,
+      threadId: string,
+      replyNumber: number,
+    ) {
+      return service.ingestInboundMessage({
+        body: `Reply ${replyNumber}`,
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: `thread-${threadId}`,
+        externalMessageId: `comment-${threadId}-${replyNumber}`,
+        organizationId: 'org-1',
+        participantExternalId: `author-${threadId}`,
+        participantName: 'Taylor',
+        platform: 'youtube',
+      });
+    }
+
     async function seedThread(
       service: SocialInboxService,
       input: { brandId: string; id: string; organizationId?: string },
@@ -707,63 +735,113 @@ describe('SocialInboxService', () => {
         id: 'gap',
       });
       const conversationId = inbound.conversationId;
-      // The client rendered the thread showing this many unread messages...
-      const unreadCountSeenByClient = context.conversations[0].unreadCount;
-      expect(unreadCountSeenByClient).toBe(1);
+      // The client rendered the thread at this inbound sequence...
+      const seenInboundSequence = context.conversations[0].inboundSequence;
+      expect(seenInboundSequence).toBe(1);
 
       // ...then, before its mark-read request lands, a second reply arrives.
-      await context.service.ingestInboundMessage({
-        body: "A second reply, after the client's view",
-        brandId: 'brand-1',
-        conversationType: 'comment',
-        externalConversationId: 'thread-gap',
-        externalMessageId: 'comment-gap-2',
-        organizationId: 'org-1',
-        participantExternalId: 'author-gap',
-        participantName: 'Taylor',
-        platform: 'youtube',
-      });
+      await ingestReply(context.service, 'gap', 2);
       expect(context.conversations[0].unreadCount).toBe(2);
 
       const read = await context.service.markConversationRead(
         scope,
         conversationId,
-        unreadCountSeenByClient,
+        seenInboundSequence,
       );
 
-      // A fresh server-side read here would have re-derived "2" and cleared
-      // the reply the client never saw. Only the seen message is cleared.
       expect(read.unreadCount).toBe(1);
       expect(context.conversations[0].unreadCount).toBe(1);
     });
 
-    it('re-reads and returns the current row when the clear guard does not match (a concurrent write already moved the counter)', async () => {
+    it('keeps an unseen reply unread when a stale tab submits its receipt after another tab already read the thread', async () => {
       const context = createContext();
-      await seedThread(context.service, { brandId: 'brand-1', id: 'race' });
-      const conversationId = context.conversations[0].id;
-      const unreadCountSeenByClient = context.conversations[0].unreadCount;
-      expect(unreadCountSeenByClient).toBe(1);
+      const inbound = await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'tabs',
+      });
+      await ingestReply(context.service, 'tabs', 2);
+      const conversationId = inbound.conversationId;
+      // Tabs A and B both render the thread with two unread messages.
+      const seenByBothTabs = context.conversations[0].inboundSequence;
+      expect(context.conversations[0].unreadCount).toBe(2);
 
-      // A concurrent action (e.g. another member resolving the thread
-      // through a different request) lands before this mark-read's
-      // conditional decrement runs, so the `gte` guard no longer matches —
-      // nothing here changes the row.
-      context.conversations[0].unreadCount = 0;
+      await context.service.markConversationRead(
+        scope,
+        conversationId,
+        seenByBothTabs,
+      );
+      expect(context.conversations[0].unreadCount).toBe(0);
+
+      // A new reply lands; neither tab has displayed it.
+      await ingestReply(context.service, 'tabs', 3);
+      expect(context.conversations[0].unreadCount).toBe(1);
+      context.socialReplyNotifications.markConversationRepliesRead.mockClear();
       context.notificationsPublisher.emit.mockClear();
 
       const read = await context.service.markConversationRead(
         scope,
         conversationId,
-        unreadCountSeenByClient,
+        seenByBothTabs,
       );
 
-      // The value fetched before the attempt (1) must never be returned as
-      // current — the guard didn't match, so the caller must see today's
-      // true state (0), not the stale value from before the attempt.
+      expect(read.unreadCount).toBe(1);
+      expect(context.conversations[0].unreadCount).toBe(1);
+      expect(context.notificationsPublisher.emit).not.toHaveBeenCalled();
+    });
+
+    it('never raises the counter when a receipt is older than one already applied', async () => {
+      const context = createContext();
+      const inbound = await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'order',
+      });
+      await ingestReply(context.service, 'order', 2);
+      const conversationId = inbound.conversationId;
+
+      await context.service.markConversationRead(scope, conversationId, 2);
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+        1,
+      );
+
       expect(read.unreadCount).toBe(0);
       expect(context.conversations[0].unreadCount).toBe(0);
-      // No update actually happened, so no realtime event for this call.
-      expect(context.notificationsPublisher.emit).not.toHaveBeenCalled();
+    });
+
+    it('recomputes against the new inbound sequence when a reply is ingested between the read and the guarded write', async () => {
+      const context = createContext();
+      const inbound = await seedThread(context.service, {
+        brandId: 'brand-1',
+        id: 'race',
+      });
+      const conversationId = inbound.conversationId;
+      type UpdateManyArgs = { data: { unreadCount?: unknown } };
+      const originalUpdateMany =
+        context.prisma.socialConversation.updateMany.getMockImplementation() as
+          | ((args: UpdateManyArgs) => Promise<{ count: number }>)
+          | undefined;
+      let hasRaced = false;
+      context.prisma.socialConversation.updateMany.mockImplementation(
+        async (args: UpdateManyArgs) => {
+          if (!hasRaced && typeof args.data.unreadCount === 'number') {
+            hasRaced = true;
+            // A reply is ingested after this receipt computed its target.
+            context.conversations[0].inboundSequence += 1;
+            context.conversations[0].unreadCount += 1;
+          }
+          return originalUpdateMany?.(args);
+        },
+      );
+
+      const read = await context.service.markConversationRead(
+        scope,
+        conversationId,
+        1,
+      );
+
+      expect(read.unreadCount).toBe(1);
+      expect(context.conversations[0].unreadCount).toBe(1);
     });
 
     it('clears reply notifications for the whole team when a thread is resolved', async () => {

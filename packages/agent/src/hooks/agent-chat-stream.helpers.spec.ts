@@ -1,5 +1,6 @@
 import {
   findRecoveredAssistantMessage,
+  findRunAssistantMessage,
   flushBufferedEventsForThread,
   isForeignRunEvent,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
@@ -69,5 +70,18 @@ describe('findRecoveredAssistantMessage', () => {
     expect(
       findRecoveredAssistantMessage(messages, new Set(), 'run-2')?.id,
     ).toBe('legacy-reply');
+  });
+});
+
+describe('findRunAssistantMessage', () => {
+  it('matches only the reply stamped with the run id', () => {
+    const messages = [
+      assistant('legacy-reply'),
+      assistant('reply-run-1', 'run-1'),
+      assistant('reply-run-2', 'run-2'),
+    ];
+
+    expect(findRunAssistantMessage(messages, 'run-1')?.id).toBe('reply-run-1');
+    expect(findRunAssistantMessage(messages, 'run-3')).toBeUndefined();
   });
 });

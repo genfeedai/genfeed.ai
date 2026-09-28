@@ -1,3 +1,4 @@
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   type ButtonHTMLAttributes,
@@ -39,6 +40,9 @@ vi.mock('next-intl', async () => {
     ReturnType<typeof translateFromCatalog>
   >();
   return {
+    useFormatter: () => ({
+      dateTime: (date: Date) => date.toISOString(),
+    }),
     useTranslations: (namespace: string) => {
       if (!translations.has(namespace))
         translations.set(namespace, translateFromCatalog(namespace));
@@ -103,11 +107,13 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('@ui/primitives/field', () => ({
   default: ({
     children,
+    error,
     helpText,
     htmlFor,
     label,
   }: {
     children: ReactNode;
+    error?: string;
     helpText?: string;
     htmlFor: string;
     label: string;
@@ -116,6 +122,35 @@ vi.mock('@ui/primitives/field', () => ({
       <label htmlFor={htmlFor}>{label}</label>
       {children}
       {helpText ? <p>{helpText}</p> : null}
+      {error ? <p role="alert">{error}</p> : null}
+    </div>
+  ),
+}));
+
+vi.mock('@ui/primitives/switch', () => ({
+  Switch: ({
+    'aria-label': ariaLabel,
+    description,
+    isChecked,
+    isDisabled,
+    onCheckedChange,
+  }: {
+    'aria-label'?: string;
+    description?: string;
+    isChecked?: boolean;
+    isDisabled?: boolean;
+    onCheckedChange?: (isChecked: boolean) => void;
+  }) => (
+    <div>
+      <button
+        aria-checked={isChecked}
+        aria-label={ariaLabel}
+        disabled={isDisabled}
+        onClick={() => onCheckedChange?.(!isChecked)}
+        role="switch"
+        type="button"
+      />
+      {description ? <p>{description}</p> : null}
     </div>
   ),
 }));
@@ -127,8 +162,8 @@ vi.mock('@ui/primitives/input', () => ({
 /**
  * Native selects stand in for the Radix ones: this suite is about the page's
  * load/save wiring, and Radix's portalled listbox needs a pointer environment
- * jsdom does not provide. The page renders two Selects (margin input mode,
- * typed-decision provider), so the mock reads each one's `data-testid` off
+ * jsdom does not provide. The page renders several Selects (margin input mode,
+ * typed-decision provider, feature modes), so the mock reads each one's `data-testid` off
  * its `SelectTrigger`'s `id` instead of hardcoding a single shared test id.
  */
 vi.mock('@ui/primitives/select', () => {
@@ -239,6 +274,7 @@ describe('PlatformSettingsPage', () => {
       marginMultiplierAgentChat: 1.7,
       marginMultiplierGeneration: 4,
       typedDecisionProvider: 'jev',
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     });
     // Refreshed from the mocked server response (marginMultiplierGeneration:
     // 4 => 75% margin), not the stale value from before the save.
@@ -263,6 +299,7 @@ describe('PlatformSettingsPage', () => {
         marginMultiplierAgentChat: 1.7,
         marginMultiplierGeneration: 3.33,
         typedDecisionProvider: 'jev',
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
       });
     });
   });
@@ -284,6 +321,7 @@ describe('PlatformSettingsPage', () => {
       marginMultiplierAgentChat: 1.7,
       marginMultiplierGeneration: 3.33,
       typedDecisionProvider: 'none',
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
     });
     expect(select).toHaveValue('none');
   });
@@ -331,5 +369,128 @@ describe('PlatformSettingsPage', () => {
       'Generation margin: Margin percent must be less than 100',
     );
     expect(mocks.updateSettings).not.toHaveBeenCalled();
+  });
+
+  describe('product feature switches (#5407)', () => {
+    it('loads the stored switches', async () => {
+      mocks.getSettings.mockResolvedValue({
+        id: 'platform-settings',
+        isEmailVerificationRequired: true,
+        isMediaPerceptionEnabled: false,
+        marginInputMode: 'MARGIN',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+        moderationMode: 'live',
+        moderationThresholds: { sexual: 0.4 },
+        systemEventsEnabledAt: '2026-09-20T10:00:00.000Z',
+        taskRoutingMinConfidence: 0.9,
+        typedDecisionProvider: 'none',
+      });
+      render(<PlatformSettingsPage />);
+
+      expect(
+        await screen.findByRole('switch', { name: /media perception/i }),
+      ).not.toBeChecked();
+      expect(
+        screen.getByRole('switch', { name: /require email verification/i }),
+      ).toBeChecked();
+      expect(screen.getByTestId('platform-moderation-mode')).toHaveValue(
+        'live',
+      );
+      expect(screen.getByLabelText('Sexual')).toHaveValue(0.4);
+      expect(screen.getByLabelText('Violence')).toHaveValue(null);
+      expect(
+        screen.getByLabelText('Task routing minimum confidence'),
+      ).toHaveValue(0.9);
+      expect(
+        screen.getByText('Recording since 2026-09-20T10:00:00.000Z'),
+      ).toBeInTheDocument();
+    });
+
+    it('saves edited switches with the rest of the settings', async () => {
+      render(<PlatformSettingsPage />);
+
+      fireEvent.click(
+        await screen.findByRole('switch', { name: /media perception/i }),
+      );
+      fireEvent.change(screen.getByTestId('platform-moderation-mode'), {
+        target: { value: 'live' },
+      });
+      fireEvent.change(screen.getByLabelText('Violence'), {
+        target: { value: '0.55' },
+      });
+      fireEvent.change(
+        screen.getByLabelText('Reply-bot intent minimum confidence'),
+        { target: { value: '0.7' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() => {
+        expect(mocks.updateSettings).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isMediaPerceptionEnabled: false,
+            moderationMode: 'live',
+            moderationThresholds: { violence: 0.55 },
+            replyBotIntentMinConfidence: 0.7,
+          }),
+        );
+      });
+    });
+
+    it('offers only off and shadow on a shadow-capped decision point', async () => {
+      render(<PlatformSettingsPage />);
+
+      const select = await screen.findByTestId('platform-task-routing-mode');
+      const options = Array.from(select.querySelectorAll('option')).map(
+        (option) => option.getAttribute('value'),
+      );
+      expect(options).toEqual(['off', 'shadow']);
+    });
+
+    it('blocks saving while a switch value is invalid', async () => {
+      render(<PlatformSettingsPage />);
+
+      const input = await screen.findByLabelText(
+        'Untrusted-content minimum confidence',
+      );
+      fireEvent.change(input, { target: { value: '1.5' } });
+
+      expect(
+        screen.getByText('Enter a number from 0 to 1'),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      expect(mocks.warning).toHaveBeenCalledWith(
+        'Fix the highlighted feature switch values before saving',
+      );
+      expect(mocks.updateSettings).not.toHaveBeenCalled();
+
+      fireEvent.change(input, { target: { value: '0.9' } });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() => {
+        expect(mocks.updateSettings).toHaveBeenCalledWith(
+          expect.objectContaining({ untrustedContentMinConfidence: 0.9 }),
+        );
+      });
+    });
+
+    it('starts system-event recording now when switched on', async () => {
+      const before = Date.now();
+      render(<PlatformSettingsPage />);
+
+      fireEvent.click(
+        await screen.findByRole('switch', { name: /record system events/i }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() => {
+        expect(mocks.updateSettings).toHaveBeenCalled();
+      });
+      const [payload] = mocks.updateSettings.mock.calls[0] ?? [];
+      const startedAt = Date.parse(payload?.systemEventsEnabledAt ?? '');
+      expect(startedAt).toBeGreaterThanOrEqual(before);
+      expect(startedAt).toBeLessThanOrEqual(Date.now());
+    });
   });
 });

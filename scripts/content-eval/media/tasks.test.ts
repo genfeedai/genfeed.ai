@@ -107,24 +107,33 @@ describe('buildMediaContestants', () => {
   const models = [
     {
       cost: 1,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
       key: 'black-forest-labs/flux-schnell',
       label: 'FLUX Schnell',
+      minCost: null,
+      pricingType: null,
     },
     {
       cost: 9,
+      costPerUnit: null,
       isActive: true,
       isLegacy: false,
       key: 'openai/gpt-image-2',
       label: 'GPT Image 2',
+      minCost: null,
+      pricingType: null,
     },
     {
       cost: 2,
+      costPerUnit: null,
       isActive: true,
       isLegacy: true,
       key: 'stability-ai/sdxl',
       label: 'SDXL',
+      minCost: null,
+      pricingType: null,
     },
   ];
 

@@ -2,10 +2,14 @@ import {
   ActivityKey,
   AgentThreadMode,
   type CredentialPlatform,
+  FleetReviewStatus,
   IngredientCategory,
+  IngredientStatus,
+  LibraryShelf,
   PostCategory,
   PostStatus,
   PostVisibility,
+  QualityStatus,
   ReleaseTargetSource,
   SocialSourceType,
   TargetAnalyticsCapability,
@@ -20,6 +24,7 @@ import type {
   AdsResearchItem,
   AdsResearchResponse,
   IChannelTarget,
+  ILibrarySummary,
   ISocialSource,
   ISourcePost,
   SocialSourcesResponse,
@@ -31,6 +36,7 @@ import {
   playwrightApiOrigin,
 } from '../config/environment';
 import {
+  buildProtectedAppBootstrapPayload,
   generateMockIngredient,
   generateMockOrganization,
   generateMockSubscription,
@@ -98,23 +104,57 @@ function buildAvatarIdentityFixture(
   };
 }
 
+function avatarMetadataId(avatar: MockAvatarIdentityFixture): string {
+  return `${avatar.id}-metadata`;
+}
+
+// IngredientSerializer emits metadata as relationship linkage plus an
+// `included` resource, not as an embedded attribute.
+function buildAvatarMetadataResource(avatar: MockAvatarIdentityFixture) {
+  return {
+    attributes: {
+      description: `${avatar.label} fixture`,
+      extension: avatar.extension,
+      label: avatar.label,
+    },
+    id: avatarMetadataId(avatar),
+    type: 'metadata',
+  };
+}
+
 function buildAvatarIngredientDocument(avatar: MockAvatarIdentityFixture) {
   return {
     attributes: {
-      category: 'avatar',
+      // IngredientCategory.AVATAR is 'AVATAR' (uppercase) — isAvatarIngredient()
+      // does a strict `category === IngredientCategory.AVATAR` check, so a
+      // lowercase 'avatar' here silently drops every fixture avatar from
+      // useAvatarImages()'s filtered list (#mock-shape).
+      category: IngredientCategory.AVATAR,
       createdAt: new Date().toISOString(),
       id: avatar.id,
-      metadata: {
-        description: `${avatar.label} fixture`,
-        extension: avatar.extension,
-        label: avatar.label,
-      },
       parent: avatar.parent ?? null,
-      status: 'generated',
+      // Awaiting review, unfoldered: the Unsorted and Needs review shelves
+      // (LibraryShelfUtil) — the counts the avatar library summary reports.
+      qualityStatus: QualityStatus.UNRATED,
+      reviewStatus: FleetReviewStatus.PENDING,
+      status: IngredientStatus.GENERATED,
       updatedAt: new Date().toISOString(),
     },
     id: avatar.id,
-    type: 'ingredients',
+    relationships: {
+      metadata: {
+        data: { id: avatarMetadataId(avatar), type: 'metadata' },
+      },
+    },
+    type: 'ingredient',
+  };
+}
+
+function buildAvatarIngredientCollection(avatars: MockAvatarIdentityFixture[]) {
+  return {
+    data: avatars.map(buildAvatarIngredientDocument),
+    included: avatars.map(buildAvatarMetadataResource),
+    meta: { page: 1, pageSize: avatars.length, totalCount: avatars.length },
   };
 }
 
@@ -129,7 +169,7 @@ function buildVoiceDocument(id: string, label: string, provider: string) {
         label,
       },
       provider,
-      status: 'generated',
+      status: IngredientStatus.GENERATED,
       updatedAt: new Date().toISOString(),
     },
     id,
@@ -3254,7 +3294,7 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
               name: 'Brand 1',
             },
             id: 'brand-1',
-            type: 'brands',
+            type: 'brand',
           },
         ],
         meta: {
@@ -3291,19 +3331,33 @@ export async function mockOrganizationIdentityDefaults(page: Page): Promise<{
     });
   });
 
+  // Organization settings also ship in the protected bootstrap payload, which
+  // BrandProvider reads first. Serve the same mutable settings there so the
+  // post-save refresh goes through the production bootstrap path (#5416).
+  await routeApiPattern(page, '/auth/bootstrap**', async (route) => {
+    const bootstrap = buildProtectedAppBootstrapPayload();
+    await route.fulfill({
+      body: JSON.stringify({
+        ...bootstrap,
+        settings: { ...bootstrap.settings, ...settings },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApiPattern(
     page,
     '/organizations/**/ingredients**',
     async (route) => {
       await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            buildAvatarIngredientDocument(avatars.source),
-            buildAvatarIngredientDocument(avatars.fallback),
-            buildAvatarIngredientDocument(avatars.video),
-          ],
-          meta: { page: 1, pageSize: 3, totalCount: 3 },
-        }),
+        body: JSON.stringify(
+          buildAvatarIngredientCollection([
+            avatars.source,
+            avatars.fallback,
+            avatars.video,
+          ]),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -3359,7 +3413,7 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
           {
             attributes: brand,
             id: brand.id,
-            type: 'brands',
+            type: 'brand',
           },
         ],
         meta: {
@@ -3379,7 +3433,27 @@ export async function mockBrandIdentityDefaults(page: Page): Promise<{
         data: {
           attributes: brand,
           id: brand.id,
-          type: 'brands',
+          type: 'brand',
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // useBrandDetail's findOneBrand (both the initial load and every
+  // handleRefreshBrand() after a save) calls BrandsService.findOneBySlug(),
+  // which hits `GET /brands/slug?slug=...` — a different path than
+  // `/brands/brand-1` above. Without this, every refresh silently falls
+  // through to setupApiMocks' generic empty-collection fallback, so a saved
+  // agentConfig change never reaches the UI.
+  await routeApiPattern(page, '/brands/slug**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          attributes: brand,
+          id: brand.id,
+          type: 'brand',
         },
       }),
       contentType: 'application/json',
@@ -3466,23 +3540,71 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
     });
   });
 
+  const avatarIngredientsListBody = JSON.stringify(
+    buildAvatarIngredientCollection([avatars.source, avatars.video]),
+  );
+
   await routeApiPattern(
     page,
     '/organizations/**/ingredients**',
     async (route) => {
       await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            buildAvatarIngredientDocument(avatars.source),
-            buildAvatarIngredientDocument(avatars.video),
-          ],
-          meta: { page: 1, pageSize: 2, totalCount: 2 },
-        }),
+        body: avatarIngredientsListBody,
         contentType: 'application/json',
         status: 200,
       });
     },
   );
+
+  // The Library's own asset list (LibraryAssetsPage, PageScope.BRAND) does not
+  // go through OrganizationsService at all — useIngredientsList's non-org
+  // branch calls IngredientsService (`/ingredients`, brand-scoped by auth
+  // context, not a path segment). The org-scoped mock above never matches
+  // that request. Only the list pathname is answered here; sub-resources such
+  // as `/ingredients/summary` get their own contract below.
+  await routeApiPattern(page, '/ingredients**', async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (
+      route.request().method() !== 'GET' ||
+      !/\/ingredients$/.test(pathname)
+    ) {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: avatarIngredientsListBody,
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // LibrarySidebarNav's counters (useLibrarySummary): plain ILibrarySummary,
+  // not JSON:API. Both seeded avatars are GENERATED, unfoldered and PENDING
+  // review, so each counts on Unsorted and on Needs review.
+  const avatarLibrarySummary: ILibrarySummary = {
+    byCategory: { [IngredientCategory.AVATAR]: 2 },
+    byShelf: {
+      [LibraryShelf.APPROVED]: 0,
+      [LibraryShelf.ARCHIVED]: 0,
+      [LibraryShelf.FAILED]: 0,
+      [LibraryShelf.GENERATING]: 0,
+      [LibraryShelf.NEEDS_REVIEW]: 2,
+      [LibraryShelf.UNSORTED]: 2,
+    },
+    starredCount: 0,
+    storageBytes: 0,
+    total: 2,
+    trashedCount: 0,
+  };
+
+  await routeApiPattern(page, '/ingredients/summary**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(avatarLibrarySummary),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   const avatarPatchHandler = async (route: Route) => {
     const isVideo = route.request().url().includes(avatars.video.id);
@@ -3491,12 +3613,16 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
       extractRequestPayload(route).category ?? 'avatar',
     );
 
+    const updated = {
+      ...current,
+      extension:
+        nextCategory === 'image' ? ('jpg' as const) : current.extension,
+    };
+
     await route.fulfill({
       body: JSON.stringify({
-        data: buildAvatarIngredientDocument({
-          ...current,
-          extension: nextCategory === 'image' ? 'jpg' : current.extension,
-        }),
+        data: buildAvatarIngredientDocument(updated),
+        included: [buildAvatarMetadataResource(updated)],
       }),
       contentType: 'application/json',
       status: 200,

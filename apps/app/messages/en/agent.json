@@ -30,6 +30,9 @@
     "empty": "No active or recently failed runs.",
     "stale": "Run status may be stale until the connection recovers."
   },
+  "brandVoiceProfileCard": {
+    "awaitingResult": "Still saving. This card updates when the save finishes."
+  },
   "brandIdentityConfirmation": {
     "awaitingConfirmation": "Awaiting confirmation",
     "confirmCreateTitle": "Confirm create brand",
@@ -221,6 +224,7 @@
     "scheduledTime": "Scheduled time"
   },
   "publishPostCard": {
+    "awaitingResult": "Still publishing. This card updates when it finishes.",
     "cannotPublish": "Cannot confirm this channel",
     "caption": "Caption",
     "captionPlaceholder": "Optional caption override",
@@ -245,6 +249,7 @@
     "visibilityUnlisted": "Unlisted"
   },
   "schedulePostCard": {
+    "awaitingResult": "Still scheduling. This card updates when it finishes.",
     "cannotSchedule": "Cannot confirm this channel",
     "channels": "Channels",
     "confirmSchedule": "Schedule",

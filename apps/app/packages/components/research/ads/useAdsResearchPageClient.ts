@@ -922,6 +922,7 @@ export function useAdsResearchPageClient() {
     runAction,
     search,
     selectedAd,
+    selectedAdOrigin: surface?.authorizedFindingOrigin ?? 'automatic',
     selectedKey,
     setAdAccountId,
     setChannel,

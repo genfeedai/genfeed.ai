@@ -108,7 +108,7 @@ export class BrandsPage {
       'button:has-text("Delete"),' + ' [data-testid="delete-brand"]',
     );
     this.brandIdentityCard = page.locator(
-      '[data-testid="brand-default-avatar-trigger"]',
+      '[data-testid="brand-identity-card"]',
     );
     this.brandDefaultAvatarTrigger = page.locator(
       '[data-testid="brand-default-avatar-trigger"]',

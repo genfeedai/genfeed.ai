@@ -1,8 +1,10 @@
+import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const BASE_TASK = {
   assigneeAgentId: 'agent-qa-1',
@@ -14,7 +16,7 @@ const BASE_TASK = {
   description:
     'The task center needs stronger route-level coverage around empty and fallback states.',
   goalId: 'goal-content-os',
-  id: 'task-201',
+  id: 'rawtaskid201e2e',
   identifier: 'GEN-201',
   isDeleted: false,
   organization: 'mock-org-id-e2e-test',
@@ -36,7 +38,7 @@ const COMMENT_FIXTURE = [
     id: 'comment-201-1',
     isDeleted: false,
     organization: 'mock-org-id-e2e-test',
-    task: 'task-201',
+    task: 'rawtaskid201e2e',
     updatedAt: '2026-03-31T08:10:00.000Z',
   },
   {
@@ -47,7 +49,7 @@ const COMMENT_FIXTURE = [
     id: 'comment-201-2',
     isDeleted: false,
     organization: 'mock-org-id-e2e-test',
-    task: 'task-201',
+    task: 'rawtaskid201e2e',
     updatedAt: '2026-03-31T08:35:00.000Z',
   },
   {
@@ -58,7 +60,7 @@ const COMMENT_FIXTURE = [
     id: 'comment-201-3',
     isDeleted: false,
     organization: 'mock-org-id-e2e-test',
-    task: 'task-201',
+    task: 'rawtaskid201e2e',
     updatedAt: '2026-03-31T09:05:00.000Z',
   },
   {
@@ -69,7 +71,7 @@ const COMMENT_FIXTURE = [
     id: 'comment-201-4',
     isDeleted: false,
     organization: 'mock-org-id-e2e-test',
-    task: 'task-201',
+    task: 'rawtaskid201e2e',
     updatedAt: '2026-03-31T09:30:00.000Z',
   },
 ] as const;
@@ -163,7 +165,7 @@ async function mockTaskEdgeStates(
     await route.continue();
   });
 
-  await routeTaskApi(page, '/tasks/task-201', async (route) => {
+  await routeTaskApi(page, '/tasks/rawtaskid201e2e', async (route) => {
     if (!taskExists) {
       await route.fulfill({
         body: JSON.stringify({
@@ -188,21 +190,29 @@ async function mockTaskEdgeStates(
     });
   });
 
-  await routeTaskApi(page, '/tasks/task-201/children*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(buildTaskCollection([])),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+  await routeTaskApi(
+    page,
+    '/tasks/rawtaskid201e2e/children*',
+    async (route) => {
+      await route.fulfill({
+        body: JSON.stringify(buildTaskCollection([])),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
 
-  await routeTaskApi(page, '/tasks/task-201/comments*', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify(buildCommentCollection([...COMMENT_FIXTURE])),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+  await routeTaskApi(
+    page,
+    '/tasks/rawtaskid201e2e/comments*',
+    async (route) => {
+      await route.fulfill({
+        body: JSON.stringify(buildCommentCollection([...COMMENT_FIXTURE])),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
 }
 
 test.describe('Tasks Edge States', () => {
@@ -220,13 +230,19 @@ test.describe('Tasks Edge States', () => {
       includeTask: false,
     });
 
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
+    // Org-scoped: a bare protected path now redirects to its scoped
+    // canonical route (#5414), so visit the canonical destination directly.
+    const tasksRoute = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await authenticatedPage.goto(tasksRoute, {
       waitUntil: 'domcontentloaded',
     });
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksRoute);
 
-    await expect(authenticatedPage.getByText('No tasks found')).toBeVisible();
+    await expect(authenticatedPage.getByText('No tasks yet')).toBeVisible();
     await expect(
-      authenticatedPage.getByText('Tasks will appear here once created'),
+      authenticatedPage.getByText(
+        'Create a task to start tracking work in this workspace.',
+      ),
     ).toBeVisible();
   });
 
@@ -235,13 +251,13 @@ test.describe('Tasks Edge States', () => {
   }) => {
     await mockTaskEdgeStates(authenticatedPage);
 
-    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/task-201`, {
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`);
+    await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
+    await assertNoErrorBoundaryFallback(authenticatedPage, taskRoute);
 
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
-    );
+    expect(new URL(authenticatedPage.url()).pathname).toBe(taskRoute);
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Expand task center coverage',
@@ -261,13 +277,22 @@ test.describe('Tasks Edge States', () => {
       taskExists: false,
     });
 
-    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/task-201`, {
+    // Org-scoped (#5397): the "Back to issues" link is built from
+    // `useOrgUrl()`'s `href()`, which resolves the org (and brand, if any)
+    // scope from the route itself; bare paths redirect to this canonical
+    // scoped route (#5414).
+    const taskRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/rawtaskid201e2e`);
+    await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
+    // The route itself renders fine (200) — `taskExists: false` only 404s
+    // the specific task fetch, which the component catches and renders as
+    // its own "Issue not found" fallback card, not a framework error page.
+    await assertNoErrorBoundaryFallback(authenticatedPage, taskRoute);
 
-    await expect(authenticatedPage.getByText('Task not found')).toBeVisible();
+    await expect(authenticatedPage.getByText('Issue not found')).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Back to tasks' }),
-    ).toHaveAttribute('href', APP_ROUTES.WORKSPACE.TASKS);
+      authenticatedPage.getByRole('link', { name: 'Back to issues' }),
+    ).toHaveAttribute('href', orgPath(APP_ROUTES.WORKSPACE.TASKS));
   });
 });

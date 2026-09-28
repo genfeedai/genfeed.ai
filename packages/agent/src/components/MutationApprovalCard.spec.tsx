@@ -82,6 +82,23 @@ describe('MutationApprovalCard', () => {
     },
   );
 
+  it('stays locked without an error when the decision is accepted but unconfirmed', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+    render(
+      <MutationApprovalCard action={approval()} onUiAction={onUiAction} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await act(async () => {
+      await onUiAction.mock.results[0]?.value;
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    const decline = screen.getByRole('button', { name: 'Decline' });
+    expect(decline).toBeDisabled();
+    fireEvent.click(decline);
+    expect(onUiAction).toHaveBeenCalledTimes(1);
+  });
+
   it('shows a retryable error when the callback rejects', async () => {
     render(
       <MutationApprovalCard

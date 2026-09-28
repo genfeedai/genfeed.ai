@@ -401,22 +401,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/agent/src/hooks/agent-chat-container.ui-actions.spec.ts",
-      "fingerprint": "ca0a2d4f29135fc3c54b",
-      "message": "Conversion of type '{ brandId: string; contextVersion: number; creditsRemaining: number; message: { content: string; metadata: {}; }; threadId: string; toolCalls: never[]; }' to type 'AgentChatResponse' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'creditsUsed' is missing in type '{ brandId: string; contextVersion: number; creditsRemaining: number; message: { content: string; metadata: {}; }; threadId: string; toolCalls: never[]; }' but required in type 'AgentChatResponse'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/agent/src/hooks/agent-chat-container.ui-actions.spec.ts",
-      "fingerprint": "cad0eaca905d077abe4a",
-      "message": "Property 'title' is missing in type '{ id: string; type: \"mutation_approval_card\"; data: { approvalId: string; sourceActionId: string; status: string; summary: string; items: never[]; }; }' but required in type 'AgentUiAction'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "packages/agent/src/hooks/agent-chat-stream.multistream.browser.test.tsx",
@@ -10526,14 +10510,6 @@
       "file": "packages/hooks/data/organization/use-organization/use-organization.ts",
       "fingerprint": "a705fbdf4b4c9a74a29a",
       "message": "Cannot find module '@genfeedai/services/organization/organizations.service' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/hooks/data/organization/use-organization/use-organization.ts",
-      "fingerprint": "bf96d5e94a420537c95b",
-      "message": "Cannot find module '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {

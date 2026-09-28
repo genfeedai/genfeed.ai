@@ -274,7 +274,7 @@ export class SocialInboxController {
     const data = await this.socialInboxService.markConversationRead(
       scope,
       conversationId,
-      body.unreadCountSeen,
+      body.seenInboundSequence,
     );
     return serializeSingle(request, SocialConversationSerializer, data);
   }

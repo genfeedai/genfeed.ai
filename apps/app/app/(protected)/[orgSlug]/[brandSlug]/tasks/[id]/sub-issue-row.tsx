@@ -1,11 +1,13 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { SubIssueRowProps } from '@props/tasks/sub-issue-row.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 
 export function SubIssueRow({ issue, statusLabels }: SubIssueRowProps) {
+  const { href } = useOrgUrl();
   return (
     <Button
       asChild
@@ -13,7 +15,7 @@ export function SubIssueRow({ issue, statusLabels }: SubIssueRowProps) {
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
     >
-      <Link href={`${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`}>
+      <Link href={href(`${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`)}>
         <span className="text-xs font-mono text-gray-800">
           {issue.identifier}
         </span>

@@ -251,7 +251,7 @@ export function WorkspaceOverviewSidebar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
             >
-              <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>
+              <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
                 {translate('openInbox')}
               </Link>
             </Button>

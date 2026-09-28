@@ -5,6 +5,7 @@
 
 import type {
   FixtureRow,
+  JudgeVote,
   PairwiseChoice,
   PairwiseResult,
   ReportAnalyzerInput,
@@ -170,6 +171,27 @@ export function isSplitPair(pair: PairwiseResult): boolean {
   return splitPairReason(pair) !== null;
 }
 
+/**
+ * Choice-bearing votes grouped by the single match each `choice` decided,
+ * keeping matches with no id (pointwise judging never sets `choice`, so this
+ * is defensive) apart from one another rather than pooling them. A row's
+ * votes can span several matches against different opponents (a round
+ * robin), so this is the unit a "did the judges disagree" check must use —
+ * pooling every match's choices first would read unanimous wins against one
+ * opponent and unanimous losses against another as judges splitting.
+ */
+function choicesByMatch(votes: readonly JudgeVote[]): Set<PairwiseChoice>[] {
+  const byMatch = new Map<string, Set<PairwiseChoice>>();
+  votes.forEach((vote, index) => {
+    if (vote.choice === null) return;
+    const key = vote.matchId ?? `unmatched-${index}`;
+    const choices = byMatch.get(key) ?? new Set<PairwiseChoice>();
+    choices.add(vote.choice);
+    byMatch.set(key, choices);
+  });
+  return [...byMatch.values()];
+}
+
 function detectJudgeDisagreement(
   row: ScoredRow,
   splitPairs: PairwiseResult[],
@@ -178,11 +200,11 @@ function detectJudgeDisagreement(
   const scores = judgeScores(row);
   const spread =
     scores.length < 2 ? 0 : Math.max(...scores) - Math.min(...scores);
-  const voteChoices = new Set(
-    row.votes.flatMap((vote) => (vote.choice === null ? [] : [vote.choice])),
+  const splitMatchChoices = choicesByMatch(row.votes).filter(
+    (choices) => choices.size > 1,
   );
   const isWideSpread = spread > thresholds.judgeSpreadMax;
-  const isSplitVote = voteChoices.size > 1;
+  const isSplitVote = splitMatchChoices.length > 0;
   if (!isWideSpread && !isSplitVote && splitPairs.length === 0) {
     return null;
   }
@@ -193,9 +215,9 @@ function detectJudgeDisagreement(
           `judge spread ${formatScore(spread)} > ${formatScore(thresholds.judgeSpreadMax)}`,
         ]
       : []),
-    ...(isSplitVote
-      ? [`split verdict (${[...voteChoices].sort().join(' / ')})`]
-      : []),
+    ...splitMatchChoices.map(
+      (choices) => `split verdict (${[...choices].sort().join(' / ')})`,
+    ),
     ...splitPairs.flatMap((pair) => {
       const reason = splitPairReason(pair);
       return reason === null ? [] : [reason];

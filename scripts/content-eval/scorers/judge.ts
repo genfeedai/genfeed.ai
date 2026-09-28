@@ -94,6 +94,9 @@ function vote(
     callId: provenance?.callId ?? null,
     family: requireModelFamily(judgeRegistryKey),
     judgeRegistryKey,
+    // Neither battle nor pointwise text judging tracks a formal match id;
+    // battle pairs are identified by `PairwiseResult`, not by vote.
+    matchId: null,
     model: judgeRegistryKey,
     modelVersion: provenance?.modelVersion ?? null,
     provider: provenance?.provider ?? null,

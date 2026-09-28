@@ -11,8 +11,10 @@ describe('unmocked untrusted content activation boundary', () => {
       const gate = new AgentUntrustedContentGateService(
         { decide } as never,
         {
-          get: (key: string) =>
-            key === 'UNTRUSTED_CONTENT_DECISION_MODE' ? mode : 0.95,
+          getFeatureSettings: async () => ({
+            untrustedContentDecisionMode: mode,
+            untrustedContentMinConfidence: 0.95,
+          }),
         } as never,
         { warn: vi.fn() } as never,
         { publishWorkEvent } as never,
@@ -42,8 +44,10 @@ describe('unmocked untrusted content activation boundary', () => {
     const gate = new AgentUntrustedContentGateService(
       { decide } as never,
       {
-        get: (key: string) =>
-          key === 'UNTRUSTED_CONTENT_DECISION_MODE' ? 'shadow' : 0.95,
+        getFeatureSettings: async () => ({
+          untrustedContentDecisionMode: 'shadow',
+          untrustedContentMinConfidence: 0.95,
+        }),
       } as never,
       { warn: vi.fn() } as never,
       { publishWorkEvent } as never,

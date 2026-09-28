@@ -54,16 +54,9 @@ describe('resolveWorkspaceInspectorBodyKind', () => {
     hasEffectiveSurfaceAdapter: false,
     hasPresentationAdapter: false,
     hasWorkspaceAdapter: false,
-    isWorkflowInspectorSurface: false,
   };
 
   it('walks the registered inspector adapters in precedence order', () => {
-    expect(
-      resolveWorkspaceInspectorBodyKind({
-        ...none,
-        isWorkflowInspectorSurface: true,
-      }),
-    ).toBe('workflow');
     expect(
       resolveWorkspaceInspectorBodyKind({
         ...none,

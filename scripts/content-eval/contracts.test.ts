@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { matchSchema } from './bench/schema';
-import { fixtureRowSchema, scoreBandSchema } from './contracts';
+import {
+  fixtureRowSchema,
+  judgeVoteSchema,
+  scoreBandSchema,
+} from './contracts';
 
 const BENCH_MATCH = {
   a: {
@@ -83,5 +87,25 @@ describe('fixture rows', () => {
     expect(scoreBandSchema.safeParse({ max: 0.2, min: 0.8 }).success).toBe(
       false,
     );
+  });
+});
+
+describe('judge votes', () => {
+  it('defaults matchId to null, so a calibration report written before matchId existed still parses', () => {
+    const legacyVote = {
+      callId: 'call-1',
+      choice: 'a' as const,
+      family: 'anthropic',
+      judgeRegistryKey: 'anthropic/claude-sonnet-5',
+      model: 'anthropic/claude-sonnet-5',
+      modelVersion: null,
+      provider: 'anthropic',
+      rationale: 'ok',
+      score: 0.8,
+      // No `matchId` key: exactly the shape a pre-existing linked
+      // `--calibration-report` (suite.ts) was written with.
+    };
+    expect(judgeVoteSchema.safeParse(legacyVote).success).toBe(true);
+    expect(judgeVoteSchema.parse(legacyVote).matchId).toBeNull();
   });
 });

@@ -45,7 +45,6 @@ interface ApiEnvConfig extends IEnvConfig {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_URL?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
-  BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: 'true' | 'false';
   BETTER_AUTH_COOKIE_DOMAIN?: string;
   BETTER_AUTH_EXPERIMENTAL_JOINS?: string;
   BETTER_AUTH_IP_HEADERS?: string;

@@ -18,7 +18,8 @@ import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { setSelectedAsset } = vi.hoisted(() => ({
+const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
+  assetSelection: { published: null as { id: string } | null },
   setSelectedAsset: vi.fn(),
 }));
 
@@ -31,7 +32,10 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
-  useAssetSelection: () => ({ setSelectedAsset }),
+  useAssetSelection: () => ({
+    selectedIngredient: assetSelection.published,
+    setSelectedAsset,
+  }),
 }));
 
 vi.mock('next/image', () => ({
@@ -103,7 +107,7 @@ function renderContent(
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
-  const { unmount } = render(
+  const renderElement = () => (
     <IngredientsListContent
       type="avatars"
       scope={PageScope.ORGANIZATION}
@@ -139,10 +143,18 @@ function renderContent(
       onCopyPrompt={vi.fn()}
       onReprompt={vi.fn()}
       {...overrides}
-    />,
+    />
   );
+  const { rerender, unmount } = render(renderElement());
+  // A fresh element each time: React bails out of re-rendering an identical one.
+  const rerenderContent = (
+    nextOverrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
+  ) => {
+    Object.assign(overrides, nextOverrides);
+    rerender(renderElement());
+  };
 
-  return { onOpenIngredientModal, onOpenLightbox, unmount };
+  return { onOpenIngredientModal, onOpenLightbox, rerenderContent, unmount };
 }
 
 const videoIngredient = {
@@ -521,6 +533,58 @@ describe('IngredientsListContent audio playback', () => {
 describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
     setSelectedAsset.mockClear();
+    assetSelection.published = null;
+  });
+
+  it('clears its own selection when the sidebar close clears the shared one', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    // Before the publish lands, the empty shared selection is not a close.
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = null;
+    rerenderContent();
+    expect(onSelectionChange).toHaveBeenCalledWith([]);
+  });
+
+  it('keeps a reselected asset selected while its new publish lands', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    // Deselect in the grid, then select the same asset again.
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the remaining asset when a second one is added and removed', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
   it('publishes a single selection for the workspace rail', () => {

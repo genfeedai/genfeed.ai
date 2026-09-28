@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { resolveVisionGateMode } from '@api/services/media-assessment/media-gate.settings';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
@@ -15,7 +16,6 @@ import type {
   IMediaPerceptionCandidate,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -59,7 +59,7 @@ export function pickEvenly<T>(items: readonly T[], max: number): T[] {
  * `Evaluation` record, which the perception row links to. Identical bytes in
  * the same organization share one evaluation.
  *
- * `MEDIA_GATE_VISION_MODE=off` skips entirely; `shadow` and `live` both
+ * The vision gate mode (an operator platform setting) `off` skips entirely; `shadow` and `live` both
  * evaluate — only the assessment decides whether flags gate a publish.
  */
 @Injectable()
@@ -70,18 +70,22 @@ export class MediaVisionEvaluationService {
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
     private readonly scorer: ContentQualityScorerService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  get isActive(): boolean {
-    return resolveVisionGateMode(this.configService) !== 'off';
+  async isActive(): Promise<boolean> {
+    return (
+      resolveVisionGateMode(
+        await this.platformSettingsService.getFeatureSettings(),
+      ) !== 'off'
+    );
   }
 
   async evaluate(
     job: IMediaPerceptionCandidate,
   ): Promise<MediaVisionEvaluationOutcome> {
-    if (!this.isActive) {
+    if (!(await this.isActive())) {
       return 'skipped';
     }
     const perception = await this.mediaPerceptionService.getForAsset(
@@ -212,7 +216,7 @@ export class MediaVisionEvaluationService {
     since: Date,
     limit: number,
   ): Promise<IMediaPerceptionCandidate[]> {
-    if (!this.isActive) {
+    if (!(await this.isActive())) {
       return [];
     }
     // Queried from the ingredient side so deleted assets are excluded.

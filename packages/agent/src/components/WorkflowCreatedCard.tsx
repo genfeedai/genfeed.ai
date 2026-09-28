@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -6,7 +7,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback } from 'react';
 
 interface WorkflowCreatedCardProps {
   action: AgentUiAction;
@@ -17,27 +18,25 @@ export function WorkflowCreatedCard({
   action,
   onUiAction,
 }: WorkflowCreatedCardProps): ReactElement {
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [completedAction, setCompletedAction] = useState<string | null>(null);
+  const request = useAgentUiActionRequest(onUiAction);
+  const isAnyInFlight = (action.ctas ?? []).some((cta) => {
+    if (!cta.action) return false;
+    const phase = request.getPhase(cta.action, cta.payload);
+    return phase === 'running' || phase === 'awaiting';
+  });
 
   const handleActionClick = useCallback(
     async (actionName: string, payload?: Record<string, unknown>) => {
-      if (!onUiAction || pendingAction || completedAction === actionName) {
+      if (
+        !onUiAction ||
+        isAnyInFlight ||
+        request.getPhase(actionName, payload) === 'completed'
+      ) {
         return;
       }
-
-      setPendingAction(actionName);
-
-      try {
-        await onUiAction(actionName, payload);
-        setCompletedAction(actionName);
-      } catch {
-        // The chat container already surfaces action failures.
-      } finally {
-        setPendingAction(null);
-      }
+      await request.submit(actionName, payload);
     },
-    [completedAction, onUiAction, pendingAction],
+    [isAnyInFlight, onUiAction, request],
   );
 
   return (
@@ -98,8 +97,9 @@ export function WorkflowCreatedCard({
               }
 
               const actionName = cta.action;
-              const isPending = pendingAction === actionName;
-              const isCompleted = completedAction === actionName;
+              const phase = request.getPhase(cta.action, cta.payload);
+              const isPending = phase === 'running' || phase === 'awaiting';
+              const isCompleted = phase === 'completed';
               const isInstallAction =
                 actionName === 'confirm_install_official_workflow';
               const buttonLabel = isPending

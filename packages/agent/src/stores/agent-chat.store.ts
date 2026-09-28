@@ -7,6 +7,7 @@ import type {
   AgentToolCall,
   AgentTurnAcceptedPayload,
   AgentUiAction,
+  AgentUiActionRun,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
@@ -265,6 +266,8 @@ interface AgentChatState {
   stream: AgentStreamState;
   composerSeed: AgentComposerSeed | null;
   threadUiBusyById: Record<string, boolean>;
+  /** Acknowledged ui-action runs by `getUiActionRunKey`, across threads. */
+  uiActionRuns: Record<string, AgentUiActionRun>;
   /** Per-thread terminal sessions. Key = threadId | "global". */
   terminalSessionsByThread: TerminalSessionsByThread;
   /** Per-thread active session id. Key = threadId | "global". */
@@ -366,6 +369,7 @@ interface AgentChatActions {
   setDraftRuntimeKey: (runtimeKey: string | null) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
   setThreadUiBusy: (threadId: string, busy: boolean) => void;
+  setUiActionRun: (run: AgentUiActionRun) => void;
   // ---------------------------------------------------------------------------
   // Terminal session management (T1-T2 / T6)
   // ---------------------------------------------------------------------------
@@ -1194,12 +1198,17 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           threadUiBusyById: remaining,
         };
       }),
+    setUiActionRun: (run) =>
+      set((state) => ({
+        uiActionRuns: { ...state.uiActionRuns, [run.key]: run },
+      })),
     setWorkEvents: (events) => set({ workEvents: events }),
     socketConnectionState: 'connecting',
     stream: { ...DEFAULT_STREAM_STATE },
     threadPrompts: {},
     threads: [],
     threadUiBusyById: {},
+    uiActionRuns: {},
     terminalSessionsByThread: options.ephemeral
       ? new Map()
       : loadPersistedSessionsByThread(),

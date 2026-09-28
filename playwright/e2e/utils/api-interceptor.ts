@@ -348,7 +348,7 @@ export function buildEmptyElementsAggregatePayload() {
   };
 }
 
-function buildProtectedAppBootstrapPayload() {
+export function buildProtectedAppBootstrapPayload() {
   return {
     access: {
       brandId: 'brand-1',

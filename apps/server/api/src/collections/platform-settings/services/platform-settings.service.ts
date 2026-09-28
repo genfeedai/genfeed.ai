@@ -1,13 +1,17 @@
 import { CreatePlatformSettingDto } from '@api/collections/platform-settings/dto/create-platform-setting.dto';
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
+import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/collections/platform-settings/platform-settings.constants';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
 import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/typed-decision-provider.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
   PLATFORM_SETTING_KEY,
+  parsePlatformFeatureSettings,
   TYPED_DECISION_PROVIDER_LABELS,
 } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import {
   DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
@@ -30,6 +34,42 @@ type InternalCreatePlatformSettingPayload = CreatePlatformSettingDto & {
   key: typeof PLATFORM_SETTING_KEY;
 };
 
+/**
+ * Feature switches the operator may patch, each copied verbatim from the DTO
+ * (the DTO has already validated it). The nullable and JSON columns need a
+ * storage conversion and are handled apart.
+ */
+const PATCHABLE_FEATURE_KEYS = [
+  'agentAutoRoutingDecisionMode',
+  'isAgentContextCompressionEnabled',
+  'isAgentTokenStreamingEnabled',
+  'isEmailVerificationRequired',
+  'isMediaPerceptionEnabled',
+  'mediaGateVisionMode',
+  'mediaPerceptionFrameCount',
+  'mediaPerceptionLookbackHours',
+  'mediaTextGateDecisionMode',
+  'mediaTextGateMinConfidence',
+  'modelDiscoveryDecisionMode',
+  'modelDiscoveryMinConfidence',
+  'moderationMode',
+  'moderationProvider',
+  'patternAnalyzerDecisionMode',
+  'patternAnalyzerMinConfidence',
+  'replyBotIntentDecisionMode',
+  'replyBotIntentMinConfidence',
+  'taskRoutingDecisionMode',
+  'taskRoutingMinConfidence',
+  'untrustedContentDecisionMode',
+  'untrustedContentMinConfidence',
+] as const satisfies readonly (keyof IPlatformFeatureSettings &
+  keyof UpdatePlatformSettingDto)[];
+
+type FeatureSettingsCacheEntry = {
+  expiresAtMs: number;
+  value: IPlatformFeatureSettings;
+};
+
 @Injectable()
 export class PlatformSettingsService
   extends BaseService<
@@ -39,6 +79,11 @@ export class PlatformSettingsService
   >
   implements OnModuleInit
 {
+  private featureSettingsCache: FeatureSettingsCacheEntry | undefined;
+  private pendingFeatureSettings: Promise<IPlatformFeatureSettings> | undefined;
+  /** Bumped on every write so a read already in flight cannot cache a stale row. */
+  private featureSettingsGeneration = 0;
+
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
@@ -59,6 +104,7 @@ export class PlatformSettingsService
       const settings = await this.getSingleton();
       setRuntimeMarginMultiplier(settings.marginMultiplierGeneration);
       setRuntimeAgentChatMarginMultiplier(settings.marginMultiplierAgentChat);
+      this.cacheFeatureSettings(parsePlatformFeatureSettings(settings));
     } catch (error) {
       this.logger?.warn(
         `Failed to hydrate margin multipliers on boot; using defaults ${DEFAULT_GENERATION_MARGIN_MULTIPLIER} (generation) / ${DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER} (agent chat)`,
@@ -109,6 +155,66 @@ export class PlatformSettingsService
   }
 
   /**
+   * The product feature switches (#5407), read through a short per-process
+   * cache so hot paths (every agent tool result, every publish assessment)
+   * cost one query per TTL rather than one per call.
+   *
+   * A write in this process replaces the cache at once; every other process
+   * picks the change up within {@link PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS}
+   * — no restart, no deploy. Workers sweeps call this on every tick, and the
+   * TTL is shorter than any sweep interval.
+   *
+   * A failed read never fails the caller: it keeps the last value this
+   * process read (or the defaults before any read) for one TTL, so a
+   * database blip neither flips a switch nor becomes a query per call.
+   */
+  async getFeatureSettings(): Promise<IPlatformFeatureSettings> {
+    const cached = this.featureSettingsCache;
+    if (cached && Date.now() < cached.expiresAtMs) {
+      return cached.value;
+    }
+
+    this.pendingFeatureSettings ??= this.loadFeatureSettings().finally(() => {
+      this.pendingFeatureSettings = undefined;
+    });
+
+    return this.pendingFeatureSettings;
+  }
+
+  private async loadFeatureSettings(): Promise<IPlatformFeatureSettings> {
+    const generation = this.featureSettingsGeneration;
+    let value: IPlatformFeatureSettings;
+    try {
+      value = parsePlatformFeatureSettings(await this.getSingleton());
+    } catch (error: unknown) {
+      const lastKnown = this.featureSettingsCache?.value;
+      this.logger?.warn(
+        'Failed to read platform feature settings; keeping the last known values',
+        { error, hasLastKnownValues: Boolean(lastKnown) },
+      );
+      if (!lastKnown) {
+        // Never cache a guess: the defaults are permissive for some switches
+        // (email verification off), so the next call must retry the read
+        // rather than serve them for a whole TTL after the database recovers.
+        return DEFAULT_PLATFORM_FEATURE_SETTINGS;
+      }
+      value = lastKnown;
+    }
+
+    if (generation === this.featureSettingsGeneration) {
+      this.cacheFeatureSettings(value);
+    }
+    return value;
+  }
+
+  private cacheFeatureSettings(value: IPlatformFeatureSettings): void {
+    this.featureSettingsCache = {
+      expiresAtMs: Date.now() + PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS,
+      value,
+    };
+  }
+
+  /**
    * Apply an operator update to the singleton row and re-hydrate both
    * process-scoped pricing runtimes so the new margins take effect
    * immediately in this process. Only whitelisted fields are patched — the
@@ -118,9 +224,10 @@ export class PlatformSettingsService
     dto: UpdatePlatformSettingDto,
   ): Promise<PlatformSettingDocument> {
     this.assertTypedDecisionProviderAvailable(dto);
+    this.assertModerationProviderAvailable(dto);
 
     const current = await this.getSingleton();
-    const patchData = {
+    const patchData: Prisma.PlatformSettingUpdateInput = {
       ...(dto.marginMultiplierGeneration === undefined
         ? {}
         : { marginMultiplierGeneration: dto.marginMultiplierGeneration }),
@@ -133,6 +240,7 @@ export class PlatformSettingsService
       ...(dto.typedDecisionProvider === undefined
         ? {}
         : { typedDecisionProvider: dto.typedDecisionProvider }),
+      ...this.toFeaturePatch(dto),
     };
     if (Object.keys(patchData).length === 0) {
       setRuntimeMarginMultiplier(current.marginMultiplierGeneration);
@@ -141,9 +249,57 @@ export class PlatformSettingsService
     }
 
     const updated = await this.patch(current.id, patchData);
+    // Any read that started before the write finished may hold the old row.
+    this.featureSettingsGeneration += 1;
+    this.cacheFeatureSettings(parsePlatformFeatureSettings(updated));
     setRuntimeMarginMultiplier(updated.marginMultiplierGeneration);
     setRuntimeAgentChatMarginMultiplier(updated.marginMultiplierAgentChat);
     return updated;
+  }
+
+  private toFeaturePatch(
+    dto: UpdatePlatformSettingDto,
+  ): Prisma.PlatformSettingUpdateInput {
+    const patch: Prisma.PlatformSettingUpdateInput = {};
+    for (const key of PATCHABLE_FEATURE_KEYS) {
+      // `@IsOptional` lets `null` through; these columns are NOT NULL.
+      if (dto[key] !== undefined && dto[key] !== null) {
+        Object.assign(patch, { [key]: dto[key] });
+      }
+    }
+    if (dto.mediaPerceptionVisionModel !== undefined) {
+      patch.mediaPerceptionVisionModel =
+        dto.mediaPerceptionVisionModel?.trim() || null;
+    }
+    if (dto.moderationThresholds) {
+      patch.moderationThresholds = dto.moderationThresholds;
+    }
+    if (dto.systemEventsEnabledAt !== undefined) {
+      patch.systemEventsEnabledAt =
+        dto.systemEventsEnabledAt === null
+          ? null
+          : new Date(dto.systemEventsEnabledAt);
+    }
+    return patch;
+  }
+
+  /**
+   * Refuse a moderation classifier this deployment has no credential for,
+   * for the same reason as the typed-decision provider below.
+   */
+  private assertModerationProviderAvailable(
+    dto: UpdatePlatformSettingDto,
+  ): void {
+    if (
+      dto.moderationProvider !== 'openai' ||
+      String(this.configService.get('OPENAI_API_KEY') ?? '').trim()
+    ) {
+      return;
+    }
+
+    throw new BadRequestException(
+      'OpenAI moderation needs OPENAI_API_KEY to be configured on the server',
+    );
   }
 
   /**

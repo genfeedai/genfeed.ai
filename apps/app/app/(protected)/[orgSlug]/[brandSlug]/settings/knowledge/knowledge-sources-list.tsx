@@ -1,5 +1,6 @@
 'use client';
 
+import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import type { KnowledgeSource } from '@genfeedai/client/models';
 import {
   AlertCategory,
@@ -34,7 +35,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
-import KnowledgeSourceDetailSheet from './knowledge-source-detail-sheet';
+import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';
 
 const PURPOSE_KEY: Record<string, string> = {
@@ -55,6 +56,7 @@ export default function KnowledgeSourcesList({
   const translatePurpose = useTranslations('pages.library.knowledge.purpose');
   const translateSeed = useTranslations('pages.library.knowledge');
   const notifications = NotificationsService.getInstance();
+  const revealDetails = useContextSidebar()?.reveal;
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
   const { error, isLoading, refresh, rows, spaces } = useKnowledgeLibrary({
@@ -180,7 +182,10 @@ export default function KnowledgeSourcesList({
         const service = await getSourcesService();
         await service.archive(source.id, brandId);
         notifications.success(translate('archiveSuccess'));
-        setSelectedSourceId(null);
+        // The row may have changed while the archive was in flight.
+        setSelectedSourceId((current) =>
+          current === source.id ? null : current,
+        );
         await refresh();
       } catch (archiveError) {
         logger.error('Failed to archive knowledge source', archiveError);
@@ -188,6 +193,18 @@ export default function KnowledgeSourcesList({
       }
     },
     [brandId, getSourcesService, notifications, refresh, translate],
+  );
+
+  // Re-clicking the selected source reopens details the user collapsed.
+  const selectSource = useCallback(
+    (sourceId: string) => {
+      if (sourceId === selectedSourceId) {
+        revealDetails?.();
+        return;
+      }
+      setSelectedSourceId(sourceId);
+    },
+    [revealDetails, selectedSourceId],
   );
 
   const moveToSpace = useCallback(
@@ -325,7 +342,7 @@ export default function KnowledgeSourcesList({
           getRowKey={(row) => row.source.id}
           isLoading={isLoading}
           items={visibleRows}
-          onRowClick={(row) => setSelectedSourceId(row.source.id)}
+          onRowClick={(row) => selectSource(row.source.id)}
         />
       )}
 
@@ -335,9 +352,8 @@ export default function KnowledgeSourcesList({
         onClose={onAddClose}
         onSubmit={capture}
       />
-      <KnowledgeSourceDetailSheet
+      <KnowledgeSourceDetailPanel
         brandId={brandId}
-        isOpen={selectedRow !== null}
         onArchive={archive}
         onClose={() => setSelectedSourceId(null)}
         onMoveToSpace={moveToSpace}

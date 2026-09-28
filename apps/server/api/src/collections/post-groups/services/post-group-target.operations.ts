@@ -8,6 +8,7 @@ import type { PostGroupContractService } from '@api/collections/post-groups/serv
 import type { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
+  categoryAfterMediaRewrite,
   InvalidChannelTargetScheduleException,
   toChannelTargetError,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
@@ -581,17 +582,28 @@ export async function applyReleaseTargetUpdates(
   // copy before anything re-validates against it: each target's
   // `ingredients` relation mirrors `PostGroup.media` (set at
   // target-creation time) and otherwise drifts silently the first time the
-  // caller edits media without also touching status.
+  // caller edits media without also touching status. The category follows
+  // the new media in the same write, or publishers would read the old kind
+  // (e.g. an IMAGE target with its media removed).
   if (context.input.media !== undefined) {
     const newIngredientIds = context.input.media.map((item) => ({
       id: item.assetId,
     }));
+    const derivedCategory =
+      await dependencies.persistenceService.resolveTargetCategory(
+        tx,
+        context.organizationId,
+        context.input.media,
+      );
     for (const target of context.currentTargets) {
       if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
         continue;
       }
       await tx.post.update({
-        data: { ingredients: { set: newIngredientIds } },
+        data: {
+          category: categoryAfterMediaRewrite(target.category, derivedCategory),
+          ingredients: { set: newIngredientIds },
+        },
         where: scopedWhere(context.organizationId, { id: target.id }),
       });
     }

@@ -97,14 +97,14 @@ export class SocialConversationUpdateDto {
 }
 
 /**
- * The client sends what it actually saw as unread when it decided to mark
- * the thread read — never re-derived from a fresh server read, which would
- * still race a reply landing between the client's render and this request.
+ * The client names the conversation's `inboundSequence` it rendered when it
+ * decided to mark the thread read. Replies ingested after that view stay
+ * unread, however late or stale the receipt is.
  */
 export class SocialConversationReadDto {
   @ApiProperty({ minimum: 0, required: false })
   @IsOptional()
   @IsInt()
   @Min(0)
-  unreadCountSeen?: number;
+  seenInboundSequence?: number;
 }

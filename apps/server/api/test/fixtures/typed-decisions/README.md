@@ -23,7 +23,7 @@ number before its decision point goes live.
 measures the live call site rather than a paraphrase of it. The labels are
 hand-assigned against the tier rubric in `AgentChatRoutingTier`, not drawn from
 production traffic, and **no accuracy number has been reported for it yet** —
-`AGENT_AUTO_ROUTING_DECISION_MODE` stays `off` until a benchmark run and a week
+the agent auto-routing mode (Admin platform settings) stays `off` until a benchmark run and a week
 of shadow telemetry say otherwise.
 
 `task-routing-output-type.jsonl` is the labelled set for `task_routing.output_type`

@@ -1,6 +1,7 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -41,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   href: vi.fn((path: string) => `/acme/demo${path}`),
   listMessagesPage: vi.fn(),
   markRead: vi.fn(),
+  realtimeRefresh: null as (() => Promise<void>) | null,
   refreshInboxIndicators: vi.fn(),
   searchParams: new URLSearchParams(),
   listPage: vi.fn(),
@@ -275,7 +277,10 @@ vi.mock('./messages-surface-adapter', () => ({
 }));
 
 vi.mock('./use-messages-realtime', () => ({
-  useMessagesRealtime: () => 'connected',
+  useMessagesRealtime: ({ onRefresh }: { onRefresh: () => Promise<void> }) => {
+    mocks.realtimeRefresh = onRefresh;
+    return 'connected';
+  },
 }));
 
 const conversation = {
@@ -291,6 +296,7 @@ const conversation = {
   credentialId: 'credential-1',
   externalConversationId: 'thread-1',
   id: 'conversation-1',
+  inboundSequence: 1,
   latestMessageAt: '2026-07-02T08:00:00.000Z',
   latestMessageText: 'Need pricing help',
   needsReview: true,
@@ -522,6 +528,7 @@ describe('SocialMessagesPage', () => {
     const linked = {
       ...conversation,
       id: 'conversation-linked',
+      inboundSequence: 5,
       participantName: 'Jordan',
       unreadCount: 2,
     };
@@ -553,12 +560,87 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.markRead).toHaveBeenCalledWith(
         'conversation-linked',
-        2,
+        5,
         expect.any(AbortSignal),
       ),
     );
     await waitFor(() =>
       expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+  });
+
+  it('never acknowledges a reply that a receipt response reports before the transcript shows it', async () => {
+    const displayed = { ...conversation, inboundSequence: 10, unreadCount: 1 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [displayed],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    // Reply 11 lands while markRead(10) is in flight: it stays unread.
+    mocks.markRead.mockResolvedValue({
+      ...displayed,
+      inboundSequence: 11,
+      unreadCount: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        10,
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mocks.markRead).not.toHaveBeenCalledWith(
+      'conversation-1',
+      11,
+      expect.anything(),
+    );
+    expect(mocks.markRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('acknowledges a reply that a realtime refresh fetched into the open thread', async () => {
+    const read = { ...conversation, inboundSequence: 10, unreadCount: 0 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [read],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    const withReply = { ...read, inboundSequence: 11, unreadCount: 1 };
+    mocks.getConversation.mockResolvedValue(withReply);
+    mocks.markRead.mockResolvedValue({ ...withReply, unreadCount: 0 });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(mocks.markRead).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await mocks.realtimeRefresh?.();
+    });
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        11,
+        expect.any(AbortSignal),
+      ),
     );
   });
 

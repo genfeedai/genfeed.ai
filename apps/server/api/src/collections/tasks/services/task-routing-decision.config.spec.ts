@@ -1,73 +1,31 @@
+import { resolveTaskRoutingDecisionRollout } from '@api/collections/tasks/services/task-routing-decision.config';
 import {
-  resolveTaskRoutingDecisionRollout,
-  TASK_ROUTING_DEFAULT_MIN_CONFIDENCE,
-} from '@api/collections/tasks/services/task-routing-decision.config';
-import type { ConfigService } from '@libs/config/config.service';
-
-type ConfigValues = Record<string, unknown>;
-
-const configServiceWith = (values: ConfigValues): ConfigService =>
-  ({ get: (key: string) => values[key] }) as unknown as ConfigService;
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  parsePlatformFeatureSettings,
+} from '@genfeedai/contracts/constants';
 
 describe('resolveTaskRoutingDecisionRollout', () => {
-  it('reads the configured threshold and caps the mode at shadow', () => {
+  it('defaults to shadow at the conservative threshold', () => {
     expect(
-      resolveTaskRoutingDecisionRollout(
-        configServiceWith({
-          TASK_ROUTING_DECISION_MODE: 'live',
-          TASK_ROUTING_MIN_CONFIDENCE: 0.7,
-        }),
-      ),
-    ).toEqual({ minConfidence: 0.7, mode: 'shadow' });
+      resolveTaskRoutingDecisionRollout(DEFAULT_PLATFORM_FEATURE_SETTINGS),
+    ).toEqual({ minConfidence: 0.85, mode: 'shadow' });
   });
 
-  it('honours an explicit off', () => {
+  it('reads the threshold and honours an explicit off', () => {
+    expect(
+      resolveTaskRoutingDecisionRollout({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        taskRoutingDecisionMode: 'off',
+        taskRoutingMinConfidence: 0.6,
+      }),
+    ).toEqual({ minConfidence: 0.6, mode: 'off' });
+  });
+
+  it('never resolves live, even from a hand-edited row', () => {
     expect(
       resolveTaskRoutingDecisionRollout(
-        configServiceWith({ TASK_ROUTING_DECISION_MODE: 'off' }),
+        parsePlatformFeatureSettings({ taskRoutingDecisionMode: 'live' }),
       ).mode,
-    ).toBe('off');
-  });
-
-  it('defaults to shadow and the conservative threshold', () => {
-    expect(resolveTaskRoutingDecisionRollout(configServiceWith({}))).toEqual({
-      minConfidence: TASK_ROUTING_DEFAULT_MIN_CONFIDENCE,
-      mode: 'shadow',
-    });
-  });
-
-  it.each(['', 'shadow-mode', 'LIVE', 42])(
-    'falls back to shadow for the unvalidated mode %p — never live',
-    (mode) => {
-      expect(
-        resolveTaskRoutingDecisionRollout(
-          configServiceWith({ TASK_ROUTING_DECISION_MODE: mode }),
-        ).mode,
-      ).toBe('shadow');
-    },
-  );
-
-  it.each([-0.1, 1.1, Number.NaN, 'high'])(
-    'falls back to the default threshold for %p',
-    (minConfidence) => {
-      expect(
-        resolveTaskRoutingDecisionRollout(
-          configServiceWith({ TASK_ROUTING_MIN_CONFIDENCE: minConfidence }),
-        ).minConfidence,
-      ).toBe(TASK_ROUTING_DEFAULT_MIN_CONFIDENCE);
-    },
-  );
-
-  it('accepts the boundary thresholds', () => {
-    expect(
-      resolveTaskRoutingDecisionRollout(
-        configServiceWith({ TASK_ROUTING_MIN_CONFIDENCE: 0 }),
-      ).minConfidence,
-    ).toBe(0);
-    expect(
-      resolveTaskRoutingDecisionRollout(
-        configServiceWith({ TASK_ROUTING_MIN_CONFIDENCE: 1 }),
-      ).minConfidence,
-    ).toBe(1);
+    ).toBe('shadow');
   });
 });

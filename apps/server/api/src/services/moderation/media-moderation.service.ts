@@ -1,4 +1,6 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { hasPendingArtefacts } from '@api/services/media-perception/media-perception.record';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MEDIA_MODERATION_SELECT,
@@ -9,7 +11,10 @@ import {
   type ModerationSettings,
   resolveModerationSettings,
 } from '@api/services/moderation/moderation.settings';
-import { MODERATION_PROVIDER } from '@api/services/moderation/moderation.tokens';
+import {
+  MODERATION_PROVIDERS,
+  type ModerationProviders,
+} from '@api/services/moderation/moderation.tokens';
 import {
   applyModerationMode,
   evaluateModerationVerdict,
@@ -36,7 +41,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { MediaModerationJobData } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -64,20 +68,44 @@ export function withVisualMinorSafety(
   };
 }
 
-function toJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
+/**
+ * Fails closed: only a settled description that affirmatively found no
+ * minors relaxes the visual threshold. A description that could not be
+ * produced leaves minors unruled-out.
+ */
+function isMinorSuspected(perception: IMediaPerception): boolean {
+  return perception.description?.hasSuspectedMinors !== false;
 }
 
 /**
- * Perception artefacts moderation reads. Classifying while any of them is
- * still `pending` would produce a verdict over partial evidence.
+ * Applies the perception's current minors evidence to visual inputs. Text
+ * inputs are scored by the vendor as text and never change.
  */
-function isReadyForModeration(perception: IMediaPerception): boolean {
-  return (
-    perception.framesStatus !== 'pending' &&
-    perception.ocrStatus !== 'pending' &&
-    perception.transcriptStatus !== 'pending'
+function withCurrentMinorEvidence(
+  inputs: readonly ModerationInputResult[],
+  perception: IMediaPerception,
+): ModerationInputResult[] {
+  const isSuspected = isMinorSuspected(perception);
+  return inputs.map((input) =>
+    input.source === 'frame' || input.source === 'image'
+      ? { ...input, scores: withVisualMinorSafety(input.scores, isSuspected) }
+      : input,
   );
+}
+
+function hasSameMinorScores(
+  stored: readonly ModerationInputResult[],
+  current: readonly ModerationInputResult[],
+): boolean {
+  return stored.every(
+    (input, index) =>
+      input.scores[ModerationCategory.SEXUAL_MINORS] ===
+      current[index]?.scores[ModerationCategory.SEXUAL_MINORS],
+  );
+}
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
 }
 
 /**
@@ -88,16 +116,20 @@ function isReadyForModeration(perception: IMediaPerception): boolean {
  * text. The verdict is the maximum over inputs against per-category
  * thresholds; per-input scores are kept for the review UI.
  *
- * - `MODERATION_PROVIDER=none` (or no provider key): nothing is classified and
- *   no verdict is persisted, so every reader sees "no moderation" rather than
- *   an error.
+ * The provider, mode and thresholds are operator platform settings (#5407),
+ * read per job so a change needs no restart.
+ *
+ * - provider `none` (or no provider key): nothing is classified and no
+ *   verdict is persisted, so every reader sees "no moderation" rather than an
+ *   error.
  * - `shadow`: the result is persisted with `isFlagged=false`; what would have
  *   flagged is kept in `candidateVerdict` and logged.
  * - `live`: flagged results persist `isFlagged=true` and emit a
  *   `media-moderation-flagged` activity for the review inbox.
  *
  * Identical bytes are classified once per organization and provider; a second
- * asset re-evaluates the stored scores under the current thresholds and mode.
+ * asset re-evaluates the stored scores under the current thresholds, mode and
+ * minors evidence.
  */
 @Injectable()
 export class MediaModerationService {
@@ -106,33 +138,41 @@ export class MediaModerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
-    @Inject(MODERATION_PROVIDER)
-    private readonly provider: IModerationProvider,
+    @Inject(MODERATION_PROVIDERS)
+    private readonly providers: ModerationProviders,
     private readonly activityRecorder: ActivityRecorderService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  get settings(): ModerationSettings {
-    return resolveModerationSettings(this.configService);
+  async getSettings(): Promise<ModerationSettings> {
+    return resolveModerationSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
   }
 
-  /** Whether moderation runs at all on this deployment. */
-  get isActive(): boolean {
-    return this.provider.isEnabled && this.settings.mode !== 'off';
+  /** The bound classifier, or `null` when moderation does not run at all. */
+  private activeProvider(
+    settings: ModerationSettings,
+  ): IModerationProvider | null {
+    const provider = this.providers[settings.provider];
+    return provider.isEnabled && settings.mode !== 'off' ? provider : null;
   }
 
   async moderate(job: MediaModerationJobData): Promise<MediaModerationOutcome> {
-    if (!this.isActive) {
+    const settings = await this.getSettings();
+    const provider = this.activeProvider(settings);
+    if (!provider) {
       return 'skipped';
     }
-    const settings = this.settings;
 
     const perception = await this.mediaPerceptionService.getForAsset(
       job.organizationId,
       job.ingredientId,
     );
-    if (!perception || !isReadyForModeration(perception)) {
+    // Every artefact must settle, the scene description included: its minors
+    // evidence decides which threshold a visual sexual score is held to.
+    if (!perception || hasPendingArtefacts(perception)) {
       return 'skipped';
     }
 
@@ -154,15 +194,18 @@ export class MediaModerationService {
     const existing = existingRow ? toMediaModeration(existingRow) : null;
     if (
       existing?.assetHash === perception.assetHash &&
-      existing.provider === this.provider.name
+      existing.provider === provider.name
     ) {
-      // Same bytes, same vendor: never classify again, but a mode or
-      // threshold change re-evaluates the stored scores.
-      return this.isCurrent(existing, settings)
+      // Same bytes, same vendor: never classify again, but a mode, threshold
+      // or minors-evidence change re-evaluates the stored scores.
+      const inputs = withCurrentMinorEvidence(existing.inputs, perception);
+      return this.isCurrent(existing, settings) &&
+        hasSameMinorScores(existing.inputs, inputs)
         ? 'skipped'
         : this.persistEvaluation(job, perception.assetHash, {
-            inputs: existing.inputs,
+            inputs,
             outcome: 'reevaluated',
+            provider,
             reusedFromId: existing.reusedFromId,
             settings,
           });
@@ -174,14 +217,18 @@ export class MediaModerationService {
       where: scopedWhere(job.organizationId, {
         assetHash: perception.assetHash,
         ingredientId: { not: job.ingredientId },
-        provider: this.provider.name,
+        provider: provider.name,
       }),
     });
     const reused = reusable ? toMediaModeration(reusable) : null;
 
     return this.persistEvaluation(job, perception.assetHash, {
-      inputs: reused ? reused.inputs : await this.classify(perception),
+      inputs: withCurrentMinorEvidence(
+        reused ? reused.inputs : await this.classify(provider, perception),
+        perception,
+      ),
       outcome: reused ? 'reused' : 'classified',
+      provider,
       reusedFromId: reused?.id ?? null,
       settings,
     });
@@ -207,6 +254,7 @@ export class MediaModerationService {
     input: {
       inputs: ModerationInputResult[];
       outcome: MediaModerationOutcome;
+      provider: IModerationProvider;
       reusedFromId: string | null;
       settings: ModerationSettings;
     },
@@ -220,6 +268,7 @@ export class MediaModerationService {
     await this.persist(job, assetHash, {
       candidateVerdict,
       inputs: input.inputs,
+      provider: input.provider,
       reusedFromId: input.reusedFromId,
       settings: input.settings,
       verdict,
@@ -278,7 +327,7 @@ export class MediaModerationService {
     since: Date,
     limit: number,
   ): Promise<IMediaPerceptionCandidate[]> {
-    if (!this.isActive) {
+    if (!this.activeProvider(await this.getSettings())) {
       return [];
     }
     // Queried from the ingredient side: deleted assets are excluded, and an
@@ -294,6 +343,7 @@ export class MediaModerationService {
         mediaModerations: { none: { isDeleted: false } },
         mediaPerceptions: {
           some: {
+            descriptionStatus: { not: 'pending' },
             framesStatus: { not: 'pending' },
             isDeleted: false,
             ocrStatus: { not: 'pending' },
@@ -312,32 +362,25 @@ export class MediaModerationService {
   }
 
   private async classify(
+    provider: IModerationProvider,
     perception: IMediaPerception,
   ): Promise<ModerationInputResult[]> {
     const inputs: ModerationInputResult[] = [];
 
-    const isMinorSuspected =
-      perception.description?.hasSuspectedMinors === true;
     if (perception.kind === 'image' && perception.frames[0]) {
       inputs.push({
         frameIndex: null,
-        scores: withVisualMinorSafety(
-          await this.provider.classifyImage(perception.frames[0].url),
-          isMinorSuspected,
-        ),
+        scores: await provider.classifyImage(perception.frames[0].url),
         source: 'image',
       });
     } else if (perception.kind === 'video' && perception.frames.length > 0) {
-      const frameScores = await this.provider.classifyFrames(
+      const frameScores = await provider.classifyFrames(
         perception.frames.map((frame) => frame.url),
       );
       perception.frames.forEach((frame, position) => {
         inputs.push({
           frameIndex: frame.index,
-          scores: withVisualMinorSafety(
-            frameScores[position] ?? {},
-            isMinorSuspected,
-          ),
+          scores: frameScores[position] ?? {},
           source: 'frame',
         });
       });
@@ -347,7 +390,7 @@ export class MediaModerationService {
     if (perception.transcriptStatus === 'ready' && transcript) {
       inputs.push({
         frameIndex: null,
-        scores: await this.provider.classifyText(transcript),
+        scores: await provider.classifyText(transcript),
         source: 'transcript',
       });
     }
@@ -359,7 +402,7 @@ export class MediaModerationService {
     if (onScreenText) {
       inputs.push({
         frameIndex: null,
-        scores: await this.provider.classifyText(onScreenText),
+        scores: await provider.classifyText(onScreenText),
         source: 'ocr',
       });
     }
@@ -373,6 +416,7 @@ export class MediaModerationService {
     result: {
       candidateVerdict: ModerationVerdict;
       inputs: ModerationInputResult[];
+      provider: IModerationProvider;
       reusedFromId: string | null;
       settings: ModerationSettings;
       verdict: ModerationVerdict;
@@ -387,7 +431,7 @@ export class MediaModerationService {
       isFlagged: result.verdict.isFlagged,
       maxConfidence: result.verdict.maxConfidence,
       mode: result.settings.mode,
-      provider: this.provider.name,
+      provider: result.provider.name,
       reusedFromId: result.reusedFromId,
       thresholds: toJson(result.settings.thresholds),
       verdict: toJson(result.verdict),

@@ -1676,6 +1676,39 @@ model PlatformSetting {
   // than a Prisma enum so adding a provider is a contract change, not a
   // migration on the operator's critical path.
   typedDecisionProvider String @default("none")
+
+  // Product feature switches (#5407). Operator decisions live here, not in
+  // env, so changing one is an admin click rather than a deploy. Defaults
+  // equal the retired env defaults. Mode columns are plain strings for the
+  // same reason as typedDecisionProvider; contracts parse them fail-closed.
+  isMediaPerceptionEnabled         Boolean   @default(true)
+  mediaPerceptionFrameCount        Int       @default(6)
+  mediaPerceptionLookbackHours     Int       @default(24)
+  mediaPerceptionVisionModel       String?
+  mediaGateVisionMode              String    @default("off")
+  mediaTextGateDecisionMode        String    @default("off")
+  mediaTextGateMinConfidence       Float     @default(0.85)
+  moderationMode                   String    @default("shadow")
+  moderationProvider               String    @default("none")
+  // Per-category overrides of DEFAULT_MODERATION_THRESHOLDS, e.g. {"sexual":0.5}.
+  moderationThresholds             Json      @default("{}")
+  agentAutoRoutingDecisionMode     String    @default("off")
+  modelDiscoveryDecisionMode       String    @default("off")
+  modelDiscoveryMinConfidence      Float     @default(0.85)
+  patternAnalyzerDecisionMode      String    @default("shadow")
+  patternAnalyzerMinConfidence     Float     @default(0.85)
+  replyBotIntentDecisionMode       String    @default("off")
+  replyBotIntentMinConfidence      Float     @default(0.85)
+  taskRoutingDecisionMode          String    @default("shadow")
+  taskRoutingMinConfidence         Float     @default(0.85)
+  untrustedContentDecisionMode     String    @default("off")
+  untrustedContentMinConfidence    Float     @default(0.95)
+  isAgentContextCompressionEnabled Boolean   @default(true)
+  isAgentTokenStreamingEnabled     Boolean   @default(false)
+  // Signup and billing system-event recording starts here; null = disabled.
+  systemEventsEnabledAt            DateTime?
+  isEmailVerificationRequired      Boolean   @default(false)
+
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -4249,6 +4282,10 @@ model SocialConversation {
   status                 String       @default("open")
   priority               String       @default("normal")
   unreadCount            Int          @default(0)
+  /// Monotonic count of inbound messages ingested into this thread. A read
+  /// receipt names the value it rendered, so replies ingested after that
+  /// view stay unread no matter how stale the receipt is.
+  inboundSequence        Int          @default(0)
   needsReview            Boolean      @default(false)
   automationState        String       @default("manual")
   assignedOwnerId        String?
@@ -4920,6 +4957,9 @@ model WorkflowNodeContinuation {
   ingredient            Ingredient                     @relation(fields: [ingredientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   provider              String
   externalId            String?
+  /// The provider call used the organization's own key (BYOK). Polling must
+  /// re-resolve that key; the platform key cannot read the customer's job.
+  isByok                Boolean                        @default(false)
   status                WorkflowNodeContinuationStatus @default(PENDING_SUBMISSION)
   initialOutput         Json?
   providerResult        Json?

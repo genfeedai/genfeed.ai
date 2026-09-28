@@ -120,7 +120,7 @@ describe('PlatformScheduleRegistryService', () => {
       });
     }
 
-    it('cancels the execution before removing a waiting platform-sweep job (#5252 blocker)', async () => {
+    it('removes a waiting platform-sweep job before cancelling its execution (release review finding)', async () => {
       const staleJob = platformJob(
         'system-workflow-old-sweep',
         'PlatformWorkflowSchedulesService',
@@ -140,11 +140,39 @@ describe('PlatformScheduleRegistryService', () => {
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-old-sweep',
       );
+      const removeOrder = staleJob.remove.mock.invocationCallOrder[0];
       const cancelOrder =
         workflowExecutions.cancelExecution.mock.invocationCallOrder[0];
-      const removeOrder = staleJob.remove.mock.invocationCallOrder[0];
-      expect(cancelOrder).toBeLessThan(removeOrder);
+      expect(removeOrder).toBeLessThan(cancelOrder);
       expect(staleJob.remove).toHaveBeenCalledOnce();
+    });
+
+    it('never cancels the execution when a worker has already claimed (locked) the job (release review finding)', async () => {
+      const staleJob = platformJob(
+        'system-workflow-claimed-by-worker',
+        'PlatformWorkflowSchedulesService',
+        'execution-claimed-by-worker',
+      );
+      // Mirrors BullMQ's real Job.remove() behaviour: it throws when the job
+      // is locked by an active worker instead of returning false silently.
+      staleJob.remove.mockRejectedValue(
+        new Error(
+          `Job ${staleJob.id} could not be removed because it is locked by another worker`,
+        ),
+      );
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([staleJob])
+        .mockResolvedValue([]);
+
+      await service.drainStalePlatformSourcedJobs();
+
+      // The job became active (a worker claimed it and started running the
+      // execution) after getJobs() paged it in as "waiting" but before this
+      // drain reached it. cancelExecution must never run in that case — it
+      // would CAS the now-RUNNING execution straight to CANCELLED.
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledOnce();
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('cancels and removes a waiting proactive-turn job', async () => {
@@ -191,7 +219,7 @@ describe('PlatformScheduleRegistryService', () => {
       expect(triggerJob.remove).not.toHaveBeenCalled();
     });
 
-    it('leaves the job queued (does not remove it) when cancelExecution fails', async () => {
+    it('logs an error but does not fail the sweep when cancelExecution keeps failing after removal', async () => {
       const staleJob = platformJob(
         'system-workflow-cancel-fails',
         'PlatformWorkflowSchedulesService',
@@ -205,11 +233,44 @@ describe('PlatformScheduleRegistryService', () => {
 
       await service.drainStalePlatformSourcedJobs();
 
-      expect(staleJob.remove).not.toHaveBeenCalled();
+      // The job is already gone by the time cancellation is attempted — it
+      // cannot be "un-removed", so after every bounded retry is exhausted the
+      // row is left PENDING for PendingWorkflowExecutionReconcileService's
+      // own sweep to close.
+      expect(staleJob.remove).toHaveBeenCalledOnce();
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(3);
       expect(logger.error).toHaveBeenCalledWith(
-        expect.stringContaining('failed to cancel the execution'),
+        expect.stringContaining(
+          'failed to cancel its execution after 3 attempts',
+        ),
         expect.objectContaining({ jobId: staleJob.id }),
       );
+    });
+
+    it('retries a transient cancelExecution failure and still cancels (release review finding)', async () => {
+      const staleJob = platformJob(
+        'system-workflow-cancel-transient-failure',
+        'PlatformWorkflowSchedulesService',
+        'execution-transient-failure',
+      );
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([staleJob])
+        .mockResolvedValue([]);
+      workflowExecutions.cancelExecution
+        .mockRejectedValueOnce(new Error('connection reset'))
+        .mockResolvedValueOnce({ status: 'CANCELLED' });
+
+      await service.drainStalePlatformSourcedJobs();
+
+      // A single transient DB blip right after removal must not turn a
+      // routine migration cleanup into a row the reconciler later fails
+      // loudly (customer notification/webhook plus consecutiveFailures
+      // accounting it never earned).
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(2);
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-transient-failure',
+      );
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('leaves the row alone when the job has no priorExecution.executionId to cancel', async () => {
@@ -240,7 +301,7 @@ describe('PlatformScheduleRegistryService', () => {
       await expect(
         service.drainStalePlatformSourcedJobs(),
       ).resolves.toBeUndefined();
-      expect(workflowExecutions.cancelExecution).toHaveBeenCalledOnce();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledOnce();
       expect(logger.error).not.toHaveBeenCalled();
     });

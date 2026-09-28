@@ -12,6 +12,15 @@ export const GENFEED_MCP_TOKEN_ENV_VAR = 'GENFEED_API_KEY';
 /** First tool the agent must call in a new thread (curated MCP action). */
 export const GENFEED_BRAND_CONTEXT_TOOL = 'get_brand_context';
 
+/**
+ * `codex exec` flag that keeps the user's own Codex config (MCP servers,
+ * plugins, hooks) out of Genfeed turns. Codex CLIs without it cannot run a
+ * turn, so readiness probes for it.
+ */
+export const CODEX_IGNORE_USER_CONFIG_FLAG = '--ignore-user-config';
+
+export const CODEX_UPGRADE_COMMAND = 'npm install -g @openai/codex@latest';
+
 export const DESKTOP_CLI_AGENT_TURN_TIMEOUT_MS = 15 * 60_000;
 export const DESKTOP_CLI_AGENT_IDLE_TIMEOUT_MS = 5 * 60_000;
 export const DESKTOP_CLI_AGENT_KILL_GRACE_MS = 3_000;

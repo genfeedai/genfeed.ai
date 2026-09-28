@@ -24,7 +24,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
-  WorkspaceShellSurfaceKey,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -146,15 +145,6 @@ const INSPECTOR_COLLAPSED_WIDTH = 0;
 const INSPECTOR_TRANSITION_DURATION_MS = 300;
 const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
-
-// The workflow inspector belongs to the Automation module's workflow family: the
-// graph canvas (`workflows/new`, `workflows/:id`) plus the list, templates and
-// executions routes that share the module surface key. Both keys are checked
-// because the canvas routes are registered as their own surface; the pathname
-// still has to carry a `workflows` segment so sibling Automation routes (runs,
-// agents, programs) keep the generic inspector.
-const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<WorkspaceShellSurfaceKey> =
-  new Set(['automation', 'automation-workflows-editor']);
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -490,9 +480,6 @@ function UniversalWorkspaceShellContent({
       ),
     [rawPathname, searchParamsString],
   );
-  const isWorkflowInspectorSurface =
-    WORKFLOW_INSPECTOR_SURFACE_KEYS.has(surfaceKey) &&
-    workflowSurfaceRoute.workflowBaseHref !== null;
   // The composer follows the conversation surface. `/agent/*` owns the canvas,
   // so its composer stays there. Every product route keeps its canvas clear and
   // hosts the composer with the conversation in the inspector. Registered
@@ -1055,14 +1042,9 @@ function UniversalWorkspaceShellContent({
       inspectorScope: conversationScope.inspectorScope,
     },
     route: {
-      activeThreadContextVersion: activeThread?.contextVersion,
-      effectiveThreadId,
       fullConversationHref,
       isAgentRoute,
       isOverlayState: state === 'overlay',
-      isWorkflowInspectorSurface,
-      rawPathname,
-      searchParamsString,
     },
   };
 

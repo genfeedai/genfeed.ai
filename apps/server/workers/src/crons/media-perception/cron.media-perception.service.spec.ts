@@ -20,7 +20,7 @@ function makeHarness(isEnabled = true) {
       .mockResolvedValue([
         { ingredientId: 'asset-1', organizationId: 'org-1' },
       ]),
-    settings: { isEnabled, lookbackHours: 24 },
+    getSettings: vi.fn().mockResolvedValue({ isEnabled, lookbackHours: 24 }),
   };
   const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
   const moderation = {
@@ -111,6 +111,32 @@ describe('CronMediaPerceptionService', () => {
     });
     expect(perception.findUnperceivedAssets).not.toHaveBeenCalled();
     expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('reads the perception switch on every tick, not just at startup (#5407)', async () => {
+    const { perception, queue, service } = makeHarness();
+    perception.getSettings
+      .mockResolvedValueOnce({ isEnabled: false, lookbackHours: 24 })
+      .mockResolvedValueOnce({ isEnabled: true, lookbackHours: 24 });
+
+    await expect(service.queueDuePerceptions()).resolves.toEqual({
+      queuedModerations: 0,
+      queuedPerceptions: 0,
+      queuedRetries: 0,
+    });
+    expect(perception.findUnperceivedAssets).not.toHaveBeenCalled();
+
+    await expect(service.queueDuePerceptions()).resolves.toEqual({
+      queuedModerations: 3,
+      queuedPerceptions: 1,
+      queuedRetries: 1,
+    });
+    expect(perception.findUnperceivedAssets).toHaveBeenCalledTimes(1);
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      { ingredientId: 'asset-1', organizationId: 'org-1' },
+      'perceive',
+    );
+    expect(perception.getSettings).toHaveBeenCalledTimes(2);
   });
 
   it('keeps sweeping when one enqueue fails', async () => {

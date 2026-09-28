@@ -1,35 +1,45 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import { ConfigService } from '@libs/config/config.service';
+import { parsePlatformFeatureSettings } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 
-type ConfigValues = {
-  TASK_ROUTING_DECISION_MODE?: string;
-  TASK_ROUTING_MIN_CONFIDENCE?: number;
-};
+type RawFeatureOverrides = Partial<
+  Record<keyof IPlatformFeatureSettings, unknown>
+>;
 
 describe('TaskRoutingService', () => {
   let service: TaskRoutingService;
   let skillsService: { resolveBrandSkills: ReturnType<typeof vi.fn> };
   let typedDecisionService: { choose: ReturnType<typeof vi.fn> };
-  let configValues: ConfigValues;
 
   /**
    * The Jev provider is mocked everywhere: no spec may depend on a live
    * decision provider, and the service contract is that a `null` answer is
    * indistinguishable from a sub-threshold one.
+   *
+   * Overrides go through `parsePlatformFeatureSettings`, exactly like a
+   * persisted row: `taskRoutingDecisionMode` is shadow-capped, so a
+   * hand-edited `live` here resolves to `shadow`, the same as production.
    */
-  const buildService = (overrides: ConfigValues = {}): TaskRoutingService => {
-    configValues = { TASK_ROUTING_DECISION_MODE: 'off', ...overrides };
-    const configService = {
-      get: (key: keyof ConfigValues) => configValues[key],
+  const buildService = (
+    overrides: RawFeatureOverrides = {},
+  ): TaskRoutingService => {
+    const platformSettingsService = {
+      getFeatureSettings: vi.fn(async () =>
+        parsePlatformFeatureSettings({
+          taskRoutingDecisionMode: 'off',
+          ...overrides,
+        }),
+      ),
     };
 
     return new TaskRoutingService(
       skillsService as unknown as SkillsService,
       typedDecisionService as unknown as TypedDecisionService,
-      configService as unknown as ConfigService,
+      platformSettingsService as unknown as PlatformSettingsService,
     );
   };
 
@@ -202,7 +212,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('sends the request text and the structured hints as decision state', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'shadow' });
+      service = buildService({ taskRoutingDecisionMode: 'shadow' });
 
       await service.buildRoutingDecision(
         decisionDto('make something for the drop'),
@@ -231,7 +241,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('acts on the keyword answer in shadow mode even when the provider is confident', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'shadow' });
+      service = buildService({ taskRoutingDecisionMode: 'shadow' });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.99,
         value: 'newsletter',
@@ -249,8 +259,8 @@ describe('TaskRoutingService', () => {
 
     it('caps a configured live mode at shadow — the provider never overrides the keyword answer', async () => {
       service = buildService({
-        TASK_ROUTING_DECISION_MODE: 'live',
-        TASK_ROUTING_MIN_CONFIDENCE: 0.85,
+        taskRoutingDecisionMode: 'live',
+        taskRoutingMinConfidence: 0.85,
       });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.99,
@@ -275,7 +285,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('treats a null answer exactly like the shadow-mode fallback', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      service = buildService({ taskRoutingDecisionMode: 'live' });
       typedDecisionService.choose.mockResolvedValue(null);
 
       const decision = await service.buildRoutingDecision(
@@ -288,7 +298,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('does not decide an explicitly requested output type', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      service = buildService({ taskRoutingDecisionMode: 'live' });
 
       const decision = await service.buildRoutingDecision(
         dto({ outputType: 'image', request: 'write a video script' }),
@@ -301,7 +311,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('does not call the provider for an empty request', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      service = buildService({ taskRoutingDecisionMode: 'live' });
 
       const decision = await service.buildRoutingDecision(
         dto({ request: '   ' }),
@@ -313,7 +323,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('keeps the facet filter authoritative on the keyword modality, not the shadowed provider answer', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      service = buildService({ taskRoutingDecisionMode: 'live' });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.97,
         value: 'image',
@@ -338,7 +348,7 @@ describe('TaskRoutingService', () => {
     });
 
     it('carries no decision provenance onto a skill-driven decision — the answer is shadowed only', async () => {
-      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      service = buildService({ taskRoutingDecisionMode: 'live' });
       typedDecisionService.choose.mockResolvedValue({
         confidence: 0.93,
         value: 'post',

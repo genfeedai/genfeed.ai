@@ -9,6 +9,7 @@ import {
   type RateLimit,
 } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { createAuthMiddleware } from 'better-auth/api';
 import {
   type AdminOptions,
   admin,
@@ -647,6 +648,44 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
 }
 
 /**
+ * Point Better Auth's email-verification options at the operator's current
+ * platform setting (#5407).
+ *
+ * Better Auth reads these options from its auth context on every request
+ * (sign-up, sign-in, the username plugin), never caching them at boot. The
+ * setting is platform-wide, so writing it onto the shared options is the
+ * intended semantics rather than a per-request override.
+ */
+export function applyEmailVerificationPolicy(
+  options: BetterAuthOptions,
+  isRequired: boolean,
+): void {
+  if (options.emailAndPassword) {
+    options.emailAndPassword.requireEmailVerification = isRequired;
+  }
+  if (options.emailVerification) {
+    options.emailVerification.sendOnSignIn = isRequired;
+    options.emailVerification.sendOnSignUp = isRequired;
+  }
+}
+
+/**
+ * A global `hooks.before` middleware that applies the email-verification
+ * policy ahead of every auth endpoint. The resolver is the platform-settings
+ * cache, so this costs no query on the hot path.
+ */
+export function buildEmailVerificationPolicyHook(
+  resolveIsEmailVerificationRequired: () => Promise<boolean>,
+) {
+  return createAuthMiddleware(async (ctx) => {
+    applyEmailVerificationPolicy(
+      ctx.context.options,
+      await resolveIsEmailVerificationRequired(),
+    );
+  });
+}
+
+/**
  * Build the in-process Better Auth instance (epic #735, Phase 1 — #736).
  *
  * Runs against the existing Postgres via the Prisma adapter. Better Auth's `user`
@@ -669,7 +708,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     trustedOrigins,
     google,
     github,
-    requireEmailVerification = false,
+    resolveIsEmailVerificationRequired,
     cookieDomain,
     errorURL,
     ipAddressHeaders,
@@ -717,9 +756,11 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
       },
       ...(skipStateCookieCheck ? { skipStateCookieCheck: true } : {}),
     },
+    // The email-verification policy is applied per request by the hook below;
+    // these boot values only hold until the first request.
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification,
+      requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ token, url, user }) => {
         await sendResetPassword({
@@ -731,14 +772,14 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     },
     emailVerification: {
       autoSignInAfterVerification: true,
-      sendOnSignIn: requireEmailVerification,
-      sendOnSignUp: requireEmailVerification,
+      sendOnSignIn: false,
+      sendOnSignUp: false,
       sendVerificationEmail: async ({ token, url, user }) => {
         // Guard: this callback should only be invoked when email verification is
         // required (SMTP is configured). If it fires without that flag, the
         // deployment is misconfigured — throw so the error surfaces rather than
         // silently swallowing a verification that was never sent.
-        if (!requireEmailVerification) {
+        if (!(await resolveIsEmailVerificationRequired())) {
           throw new Error(
             'sendVerificationEmail called but requireEmailVerification is false. ' +
               'Configure SMTP and enable requireEmailVerification before sending verification emails.',
@@ -756,6 +797,11 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           socialProviders,
         }
       : {}),
+    hooks: {
+      before: buildEmailVerificationPolicyHook(
+        resolveIsEmailVerificationRequired,
+      ),
+    },
     // Share rate-limit counters across stateless API instances via Redis;
     // `customStorage` scopes Redis to rate limiting only (sessions stay in
     // Postgres). Omitted when no store is wired so the in-memory default holds.

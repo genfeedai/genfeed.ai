@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -138,6 +139,28 @@ describe('PublishingContentLibrary', () => {
       'href',
       `/acme/main${route}`,
     );
+  });
+
+  it('opens a release title through the release query param, not the post editor route', () => {
+    mocks.queryData = {
+      ...collections,
+      releases: [
+        {
+          baseContent: 'Cross-posted launch update',
+          createdAt: '2026-08-09T10:00:00.000Z',
+          id: 'release-1',
+          status: 'scheduled',
+          targets: [{ id: 'release-post-1', platform: Platform.INSTAGRAM }],
+          title: 'Launch update release',
+        } as unknown as IReleaseGroup,
+      ],
+    };
+
+    render(<PublishingContentLibrary />);
+
+    expect(
+      screen.getByRole('link', { name: 'Open Launch update release' }),
+    ).toHaveAttribute('href', '/acme/main/publishing/posts?release=release-1');
   });
 
   it('links to the approval queue and carries the selected batch and item', async () => {

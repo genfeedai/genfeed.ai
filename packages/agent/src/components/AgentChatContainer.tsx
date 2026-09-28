@@ -75,7 +75,9 @@ export function AgentChatContainer({
     isActive: getGenfeedDesktopBridge() !== null,
   });
   const desktopRuntimeBar =
-    runtimeSelection.hasDesktopCliRuntimes && !isReadOnly ? (
+    (runtimeSelection.hasDesktopCliRuntimes ||
+      runtimeSelection.runtimeNotice) &&
+    !isReadOnly ? (
       <AgentDesktopRuntimeBar selection={runtimeSelection} />
     ) : null;
 
@@ -299,6 +301,7 @@ export function AgentChatContainer({
             isAtBottom={container.isAtBottom}
             isBusy={container.isBusy}
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
+            isPlanReviewPending={container.isPlanReviewPending}
             isGenerating={container.isGenerating}
             isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}

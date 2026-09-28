@@ -253,11 +253,11 @@ export class SocialInboxIngestionService {
       return winner;
     }
 
-    // Platform APIs return batches reverse-chronological, so an older message
-    // can be ingested after a newer one. Only advance the preview fields when
-    // this message is the newest seen; the unread counter always increments.
+    // Batches are reverse-chronological: only the newest message advances the
+    // preview; unreadCount and inboundSequence (read cursor) always increment.
     const previewAdvanced = await this.prisma.socialConversation.updateMany({
       data: {
+        inboundSequence: { increment: 1 },
         latestMessageAt: messageCreatedAt,
         latestMessageText: clamp(body, 500),
         lastInboundAt: messageCreatedAt,
@@ -276,12 +276,11 @@ export class SocialInboxIngestionService {
     if (previewAdvanced.count === 0) {
       await this.prisma.socialConversation.updateMany({
         data: {
+          inboundSequence: { increment: 1 },
           unreadCount: { increment: 1 },
           updatedAt: new Date(),
         },
-        where: scopedWhere(input.organizationId, {
-          id: conversation.id,
-        }),
+        where: scopedWhere(input.organizationId, { id: conversation.id }),
       });
     }
 

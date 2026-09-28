@@ -1,6 +1,77 @@
+import type { ModerationCategory } from '../../enums/moderation-category.enum';
 import type { MarginInputMode } from '../../enums/platform-setting.enum';
-import type { TypedDecisionProviderName } from '../ai/typed-decision.interface';
+import type {
+  TypedDecisionMode,
+  TypedDecisionProviderName,
+} from '../ai/typed-decision.interface';
 import type { IBaseEntity } from '../core/base.interface';
+import type { ModerationProviderName } from '../ingredients/media-moderation.interface';
+
+/**
+ * Rollout mode of a decision point whose `live` activation is closed
+ * (release-blocker follow-up, epic #4863): the provider answer is recorded but
+ * never acted on.
+ */
+export type ShadowCappedDecisionMode = Exclude<TypedDecisionMode, 'live'>;
+
+/**
+ * Product feature switches (#5407).
+ *
+ * Operator decisions about product behaviour, kept on the platform-settings
+ * singleton rather than in env so changing one takes an admin click instead
+ * of a deploy. Every default equals the retired env variable's default; see
+ * `DEFAULT_PLATFORM_FEATURE_SETTINGS`. Secrets, keys, URLs and true
+ * infrastructure (`BETTER_AUTH_ENABLED`, `SENTRY_ENABLED`) stay in env.
+ */
+export interface IPlatformFeatureSettings {
+  /** Media perception sweep (#4879). `false` stops the workers enqueuing assets. */
+  isMediaPerceptionEnabled: boolean;
+  /** Evenly spaced stills sampled per video, 1..24. */
+  mediaPerceptionFrameCount: number;
+  /** How far back the sweep looks for unperceived assets, 1..720 hours. */
+  mediaPerceptionLookbackHours: number;
+  /** Scene-description vision model; `null` uses `LLM_DEFAULTS.fastText`. */
+  mediaPerceptionVisionModel: string | null;
+  /** Vision-evaluation flags (#4881). */
+  mediaGateVisionMode: TypedDecisionMode;
+  /** Text decisions on perception output (#4882). */
+  mediaTextGateDecisionMode: TypedDecisionMode;
+  mediaTextGateMinConfidence: number;
+  /** Moderation gate (#4880). */
+  moderationMode: TypedDecisionMode;
+  moderationProvider: ModerationProviderName;
+  /** Per-category overrides of `DEFAULT_MODERATION_THRESHOLDS`; lower is stricter. */
+  moderationThresholds: Partial<Record<ModerationCategory, number>>;
+  /** Agent auto-routing (#4865). No confidence: the candidate is a registry read. */
+  agentAutoRoutingDecisionMode: TypedDecisionMode;
+  /** Model-discovery category decision (#4869). */
+  modelDiscoveryDecisionMode: TypedDecisionMode;
+  modelDiscoveryMinConfidence: number;
+  /** Pattern-analyzer labels (#4868). */
+  patternAnalyzerDecisionMode: ShadowCappedDecisionMode;
+  patternAnalyzerMinConfidence: number;
+  /** Reply-bot intent (#4866). */
+  replyBotIntentDecisionMode: TypedDecisionMode;
+  replyBotIntentMinConfidence: number;
+  /** Task-routing output type (#4867). */
+  taskRoutingDecisionMode: ShadowCappedDecisionMode;
+  taskRoutingMinConfidence: number;
+  /** Untrusted-content gate (#4870, live closed pending #4944). */
+  untrustedContentDecisionMode: ShadowCappedDecisionMode;
+  untrustedContentMinConfidence: number;
+  /** Summarise older agent-thread turns to fit the context window. */
+  isAgentContextCompressionEnabled: boolean;
+  /** Real token-by-token agent streaming instead of simulated word splits. */
+  isAgentTokenStreamingEnabled: boolean;
+  /**
+   * ISO timestamp from which signup and billing system events are recorded;
+   * `null` disables recording. Events that occurred earlier are never
+   * recorded, so enabling never replays historical signups.
+   */
+  systemEventsEnabledAt: string | null;
+  /** Better Auth: email/password accounts must verify their email to sign in. */
+  isEmailVerificationRequired: boolean;
+}
 
 /**
  * Platform-wide operator settings (singleton).
@@ -9,7 +80,9 @@ import type { IBaseEntity } from '../core/base.interface';
  * operator area — distinct from per-user `Setting` and per-org
  * `OrganizationSetting`. Access is restricted to platform superadmins.
  */
-export interface IPlatformSetting extends IBaseEntity {
+export interface IPlatformSetting
+  extends IBaseEntity,
+    IPlatformFeatureSettings {
   /**
    * Sell/cost ratio applied to provider USD for **generation** billing. 1.0 =
    * provider cost, 3.33 = 70% margin on sell price. See `applyMargin` in
@@ -48,7 +121,8 @@ export interface IPlatformSetting extends IBaseEntity {
 }
 
 /** Fields a platform operator may update via `/admin`. */
-export interface IUpdatePlatformSettingPayload {
+export interface IUpdatePlatformSettingPayload
+  extends Partial<IPlatformFeatureSettings> {
   marginMultiplierGeneration?: number;
   marginMultiplierAgentChat?: number;
   marginInputMode?: MarginInputMode;

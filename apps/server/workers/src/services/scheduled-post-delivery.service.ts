@@ -31,7 +31,6 @@ import {
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
@@ -54,6 +53,7 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   collectMediaGateAssetIds,
@@ -130,7 +130,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (claim.isAlreadyPublished === true) {
       return this.readPublishResult(claim.publishedResult);
     }
-    const post = await this.loadActionPost(request);
+    const post = await loadScheduledActionPost(this.prisma, request);
     if (!post) {
       throw new Error(
         `Scheduled post ${request.postId} is no longer publishable`,
@@ -185,32 +185,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (error: unknown) {
       return await this.handlePublishError(post, error);
     }
-  }
-
-  private async loadActionPost(
-    input: ScheduledPostWorkflowInput,
-  ): Promise<PostEntity | null> {
-    const post = await this.prisma.post.findFirst({
-      include: {
-        children: {
-          include: { credential: true, ingredients: true },
-          where: {
-            isDeleted: false,
-            ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
-          },
-        },
-        ingredients: true,
-      },
-      where: scopedWhere(input.organizationId, {
-        id: input.postId,
-        parentId: null,
-        ...postExecutionStateReadFilter([
-          TargetExecutionState.SCHEDULED,
-          TargetExecutionState.PUBLISHING,
-        ]),
-      }),
-    });
-    return post as unknown as PostEntity | null;
   }
 
   async failTerminalValidation(

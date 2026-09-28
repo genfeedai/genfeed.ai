@@ -35,9 +35,8 @@ export interface KnowledgeAddSourceSheetProps {
   onSubmit: (request: KnowledgeSourceCaptureRequest) => Promise<void>;
 }
 
-export interface KnowledgeSourceDetailSheetProps {
+export interface KnowledgeSourceDetailPanelProps {
   brandId: string;
-  isOpen: boolean;
   onArchive: (source: KnowledgeSource) => Promise<void>;
   onClose: () => void;
   onMoveToSpace: (source: KnowledgeSource, spaceId: string) => Promise<void>;

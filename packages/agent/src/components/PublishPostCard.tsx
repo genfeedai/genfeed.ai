@@ -1,3 +1,4 @@
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
 import type {
   AgentPublishSettingField,
   AgentPublishTargetProposal,
@@ -259,8 +260,13 @@ export function PublishPostCard({
     }
     return initial;
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const request = useAgentUiActionRequest(onUiAction);
+  // The run is keyed by this card, so the phase is known before the payload.
+  const phase = request.getPhase('confirm_publish_post', {
+    sourceActionId: action.id,
+  });
+  const isSubmitting = phase === 'running' || phase === 'awaiting';
+  const isSubmitted = phase === 'completed';
   const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
   const [signatureIdsByTarget, setSignatureIdsByTarget] = useState<
     Record<string, string[]>
@@ -422,9 +428,7 @@ export function PublishPostCard({
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
+    {
       const scheduleInput = scheduledAt.trim();
       const scheduleDate = scheduleInput ? new Date(scheduleInput) : undefined;
       const normalizedScheduledAt = scheduleDate
@@ -432,7 +436,7 @@ export function PublishPostCard({
           ? scheduleInput
           : scheduleDate.toISOString()
         : undefined;
-      await onUiAction('confirm_publish_post', {
+      await request.submit('confirm_publish_post', {
         caption: caption.trim() || undefined,
         contentId: action.contentId,
         platforms,
@@ -464,11 +468,6 @@ export function PublishPostCard({
           : {}),
         visibility,
       });
-      setIsSubmitted(true);
-    } catch {
-      // The chat container surfaces action failures.
-    } finally {
-      setIsSubmitting(false);
     }
   }, [
     action.contentId,
@@ -479,6 +478,7 @@ export function PublishPostCard({
     isSubmitted,
     isSubmitting,
     onUiAction,
+    request,
     scheduledAt,
     selectedPlatforms,
     selectedSetId,
@@ -831,6 +831,11 @@ export function PublishPostCard({
             ? translate('confirmSchedule')
             : translate('confirmPublish')}
       </Button>
+      {phase === 'awaiting' ? (
+        <p className="mt-2 text-xs text-muted-foreground" role="status">
+          {translate('awaitingResult')}
+        </p>
+      ) : null}
     </div>
   );
 }

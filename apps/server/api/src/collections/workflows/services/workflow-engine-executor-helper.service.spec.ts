@@ -190,4 +190,60 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
       organizationId: 'org-1',
     });
   });
+  it('records the BYOK credential reference on the provider continuation', async () => {
+    const createBeforeProviderSubmission = vi
+      .fn()
+      .mockResolvedValue({ continuationId: 'continuation-1' });
+    const service = new WorkflowEngineExecutorHelperService(
+      {} as ConfigService,
+      {
+        createMediaDocumentsInternal: vi.fn().mockResolvedValue({
+          ingredientData: { id: 'ingredient-1' },
+          metadataData: { id: 'metadata-1' },
+        }),
+      } as never,
+      { patch: vi.fn().mockResolvedValue(undefined) } as never,
+      { patch: vi.fn().mockResolvedValue(undefined) } as never,
+      {
+        createBeforeProviderSubmission,
+        markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
+      } as never,
+    );
+
+    await service.createAndLinkProcessingOutput({
+      continuation: {
+        actionId: 'videoGen',
+        context: {
+          executionId: 'execution-1',
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+        isByok: true,
+        node: {
+          config: {},
+          id: 'generate',
+          inputs: [],
+          label: 'Generate',
+          type: 'videoGen',
+        },
+        provider: 'replicate',
+      },
+      output: {
+        brandId: 'brand-1',
+        category: IngredientCategory.VIDEO,
+        extension: MetadataExtension.MP4,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      resultUrl: (ingredientId) => `/videos/${ingredientId}`,
+      runProvider: vi.fn().mockResolvedValue('prediction-1'),
+    });
+
+    expect(createBeforeProviderSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ isByok: true }),
+    );
+  });
 });
