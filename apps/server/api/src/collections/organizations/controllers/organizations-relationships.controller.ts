@@ -207,7 +207,7 @@ export class OrganizationsRelationshipsController {
     );
 
     const totalCredentialsConnected =
-      await this.credentialsService.countConnected(organizationId);
+      await this.credentialsService.countConnected(organizationId, brandId);
 
     return serializeSingle(request, AnalyticSerializer, {
       ...metrics,

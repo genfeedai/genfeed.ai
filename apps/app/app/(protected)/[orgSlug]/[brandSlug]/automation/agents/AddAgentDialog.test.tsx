@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   onCreated: vi.fn(),
   onOpenChange: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
 }));
 
 vi.mock('@ui/primitives/dialog', () => ({
@@ -61,7 +63,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ success: vi.fn(), error: vi.fn() }),
+    getInstance: () => ({ success: mocks.success, error: mocks.error }),
   },
 }));
 
@@ -114,6 +116,52 @@ describe('AddAgentDialog', () => {
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Custom' }));
     expect(screen.getByRole('button', { name: 'Create agent' })).toBeVisible();
   });
+
+  it.each(['refresh', 'create'])(
+    'distinguishes a %s failure from a successful creation',
+    async (failure) => {
+      mocks.create.mockResolvedValue({ id: 'agent-1' });
+      if (failure === 'refresh')
+        mocks.onCreated.mockRejectedValue(new Error('refresh failed'));
+      else mocks.create.mockRejectedValue(new Error('creation failed'));
+      render(
+        <AddAgentDialog
+          initialMode="custom"
+          isOpen
+          onCreated={mocks.onCreated}
+          onOpenChange={mocks.onOpenChange}
+        />,
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: 'LinkedIn' }));
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Topics (comma-separated)' }),
+        { target: { value: 'AI' } },
+      );
+      fireEvent.change(screen.getByRole('textbox', { name: 'Voice' }), {
+        target: { value: 'Direct' },
+      });
+      const submit = screen.getByRole('button', { name: 'Create agent' });
+      fireEvent.click(submit);
+      await waitFor(() =>
+        expect(
+          failure === 'refresh' ? mocks.success : mocks.error,
+        ).toHaveBeenCalledOnce(),
+      );
+      if (failure === 'refresh') {
+        expect(mocks.error).not.toHaveBeenCalled();
+        expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
+        expect(submit).toBeDisabled();
+        fireEvent.click(submit);
+        expect(mocks.create).toHaveBeenCalledOnce();
+      } else {
+        expect(mocks.success).not.toHaveBeenCalled();
+        expect(mocks.onCreated).not.toHaveBeenCalled();
+        expect(mocks.onOpenChange).not.toHaveBeenCalled();
+        await waitFor(() => expect(submit).not.toBeDisabled());
+      }
+      mocks.create.mockReset();
+    },
+  );
 
   it('creates a custom strategy, refreshes the roster, and closes', async () => {
     render(

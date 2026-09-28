@@ -368,12 +368,19 @@ export class WorkflowExecutionQueueService {
   async queueDelayedResume(
     data: DelayResumeJobData,
     delayMs: number,
+    queueName: string = WORKFLOW_EXECUTION_QUEUE,
   ): Promise<string> {
     const identity = createHash('sha256')
       .update(`${data.executionId}:${data.delayNodeId}`)
       .digest('hex')
       .slice(0, 32);
-    const job = await this.executionQueue.add(
+    const queue =
+      queueName === PLATFORM_SYSTEM_WORKFLOW_QUEUE
+        ? this.platformSystemWorkflowQueue
+        : queueName === WORKFLOW_BACKGROUND_QUEUE
+          ? this.backgroundQueue
+          : this.executionQueue;
+    const job = await queue.add(
       'delay-resume',
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),

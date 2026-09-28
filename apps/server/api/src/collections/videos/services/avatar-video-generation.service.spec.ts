@@ -2,7 +2,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { VoiceProvider } from '@genfeedai/contracts';
+import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -126,6 +126,7 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     return {
+      byokService,
       brandsService,
       creditsUtilsService,
       elevenlabsService,
@@ -161,6 +162,78 @@ describe('AvatarVideoGenerationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  it.each([false, true])(
+    'charges platform credits only without HeyGen BYOK (BYOK: %s)',
+    async (isByok) => {
+      const {
+        service,
+        brandsService,
+        byokService,
+        creditsUtilsService,
+        heygenService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      byokService.resolveApiKey.mockResolvedValue(
+        isByok ? { apiKey: 'byok-test-key' } : null,
+      );
+      await service.generateAvatarVideo(
+        {
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          audioUrl: 'https://cdn.example.com/audio.mp3',
+          text: 'Founder update',
+        },
+        context,
+      );
+      expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+        'avatar-ingredient-1',
+        expect.any(String),
+        expect.any(Object),
+        context.organizationId,
+        context.userId,
+        isByok ? 'byok-test-key' : undefined,
+        '9:16',
+      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(isByok ? 0 : 1);
+    },
+  );
+
+  it.each([
+    [false, 1],
+    [true, 0],
+  ])(
+    'with HeyGen BYOK, charges for ElevenLabs speech unless that is BYOK too (ElevenLabs BYOK: %s)',
+    async (isElevenLabsByok, expectedDeductions) => {
+      const { service, brandsService, byokService, creditsUtilsService } =
+        createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      byokService.resolveApiKey.mockImplementation(
+        async (_organizationId: string, provider: ByokProvider) =>
+          provider === ByokProvider.HEYGEN || isElevenLabsByok
+            ? { apiKey: `${provider}-byok-test-key` }
+            : null,
+      );
+      await service.generateAvatarVideo(
+        {
+          elevenlabsVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Founder update',
+        },
+        context,
+      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(expectedDeductions);
+    },
+  );
 
   it('publishes initial progress on the ingredient video path for its user', async () => {
     const { service, brandsService, websocketService } = createService();
@@ -209,6 +282,54 @@ describe('AvatarVideoGenerationService', () => {
       error: 'HeyGen rejected the job',
       ingredientId: 'avatar-ingredient-1',
     });
+  });
+
+  it('with HeyGen BYOK, still charges for speech from a saved Genfeed voice', async () => {
+    const {
+      brandsService,
+      byokService,
+      creditsUtilsService,
+      managedInferenceRuntimeService,
+      service,
+      voicesService,
+    } = createService();
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    voicesService.findOne.mockResolvedValue({
+      externalVoiceId: null,
+      id: 'voice-fleet-1',
+      isCloned: true,
+      organizationId: context.organizationId,
+      provider: VoiceProvider.GENFEED_AI,
+      sampleAudioUrl: 'https://cdn.example.com/reference.wav',
+    });
+    byokService.resolveApiKey.mockImplementation(
+      async (_organizationId: string, provider: ByokProvider) =>
+        provider === ByokProvider.HEYGEN
+          ? { apiKey: 'heygen-byok-test-key' }
+          : null,
+    );
+    managedInferenceRuntimeService.generateVoice.mockResolvedValue({
+      jobId: 'voice-job-1',
+    });
+    managedInferenceRuntimeService.pollJob.mockResolvedValue({
+      audioUrl: 'https://cdn.example.com/fleet.mp3',
+    });
+
+    await service.generateAvatarVideo(
+      {
+        clonedVoiceId: 'voice-fleet-1',
+        photoIngredientId: 'avatar-1',
+        text: 'Create the founder update',
+      },
+      context,
+    );
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {

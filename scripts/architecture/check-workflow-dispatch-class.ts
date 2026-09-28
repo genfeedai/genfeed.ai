@@ -48,14 +48,11 @@ const ROUTED_QUEUE_TOKEN_NAMES = new Set([
 ]);
 
 /**
- * The only files allowed to inject one of the routed queues directly.
- * `WorkflowExecutionQueueService` owns routing; `PlatformScheduleRegistryService`
- * carries the one-time #5162 boot-drain migration for jobs that predate the
- * queue split and is documented there.
+ * The routing service may inject all routed queues. The registry exception
+ * is checked separately and permits only the execution queue for its boot drain.
  */
 const ALLOWED_INJECT_QUEUE_FILES = new Set([
   'apps/server/api/src/collections/workflows/services/workflow-execution-queue.service.ts',
-  'apps/server/workers/src/scheduling/platform-schedule-registry.service.ts',
 ]);
 
 /**
@@ -103,6 +100,11 @@ function collectRoutedQueueTokenImports(
       continue;
     }
     const namedBindings = statement.importClause?.namedBindings;
+    if (namedBindings && ts.isNamespaceImport(namedBindings)) {
+      for (const token of ROUTED_QUEUE_TOKEN_NAMES) {
+        imported.set(`${namedBindings.name.text}.${token}`, token);
+      }
+    }
     if (!namedBindings || !ts.isNamedImports(namedBindings)) {
       continue;
     }
@@ -135,16 +137,24 @@ function findInjectQueueViolations(
         ts.isIdentifier(call.expression) &&
         call.expression.text === 'InjectQueue';
       const [firstArgument] = call.arguments;
-      if (
-        isInjectQueue &&
+      const tokenExpression =
         firstArgument &&
-        ts.isIdentifier(firstArgument) &&
-        routedTokens.has(firstArgument.text)
-      ) {
+        (ts.isIdentifier(firstArgument) ||
+          ts.isPropertyAccessExpression(firstArgument))
+          ? firstArgument.getText(sourceFile)
+          : undefined;
+      const token = tokenExpression
+        ? routedTokens.get(tokenExpression)
+        : undefined;
+      const isBootDrain =
+        relativeFile ===
+          'apps/server/workers/src/scheduling/platform-schedule-registry.service.ts' &&
+        token === 'WORKFLOW_EXECUTION_QUEUE';
+      if (isInjectQueue && token && !isBootDrain) {
         violations.push({
           file: relativeFile,
           line: getLine(sourceFile, node),
-          message: `@InjectQueue(${firstArgument.text}) is only allowed in WorkflowExecutionQueueService (or the documented #5162 boot drain) — a producer must route through queueSystemWorkflow's required dispatchClass instead of injecting this queue directly.`,
+          message: `@InjectQueue(${tokenExpression}) is only allowed in WorkflowExecutionQueueService (or the documented #5162 boot drain) — a producer must route through queueSystemWorkflow's required dispatchClass instead of injecting this queue directly.`,
         });
       }
     }

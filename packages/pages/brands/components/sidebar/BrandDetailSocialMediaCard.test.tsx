@@ -5,6 +5,7 @@ import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const warmupConnection = vi.hoisted(() => ({ isConnected: true }));
 const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
 const refreshBrands = vi.hoisted(() => vi.fn(async () => undefined));
 
@@ -151,7 +152,7 @@ vi.mock(
         currentPhaseId: 'profile-and-topic-consumption',
         hasPartialScopes: false,
         id: 'enrollment-1',
-        isCredentialConnected: true,
+        isCredentialConnected: warmupConnection.isConnected,
         signals: [],
         startedAt: '2026-08-08T10:00:00.000Z',
       },
@@ -233,6 +234,7 @@ class MockResizeObserver {
 
 describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
+    warmupConnection.isConnected = true;
     vi.clearAllMocks();
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
@@ -491,6 +493,37 @@ describe('BrandDetailSocialMediaCard', () => {
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Reconnect' }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('twitter');
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      });
+    });
+  });
+
+  it('targets the selected credential from the warm-up reconnect action', async () => {
+    warmupConnection.isConnected = false;
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            isConnected: false,
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="compact"
+      />,
+    );
+
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: 'Reconnect' }))[0],
+    );
 
     await waitFor(() => {
       expect(servicesPlatform).toHaveBeenCalledWith('twitter');

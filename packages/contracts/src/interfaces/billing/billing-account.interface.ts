@@ -60,6 +60,7 @@ export interface IBillingAccount extends IBaseEntity {
  * wallet internals.
  */
 export interface IBillingAccountOwnOrganizationView {
+  id: string;
   kind: 'organization';
   organizationId: string;
   isLinked: boolean;

@@ -31,11 +31,8 @@ import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/
  * Extends `WorkflowExecutionProcessor` to reuse its `system-run` handling
  * (retry, failure-workflow compensation, delay-resume scheduling) verbatim
  * instead of forking it — only the bound queue name and its concurrency/
- * limiter differ here. `queueDelayedResume` is still resolved from the
- * shared `WorkflowExecutionQueueService`, which schedules any delay-resume
- * back onto `WORKFLOW_EXECUTION_QUEUE`; none of the three platform-sweep
- * canonical workflows use a delay node today, so that path is dormant here,
- * not a starvation leak. Revisit if a future platform-swept workflow adds one.
+ * limiter differ here. Delayed resumes retain the originating queue so
+ * every subsequent delay keeps the same worker isolation.
  */
 @Injectable()
 @Processor(

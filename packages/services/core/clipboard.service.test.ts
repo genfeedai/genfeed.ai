@@ -58,7 +58,7 @@ describe('ClipboardService', () => {
         writable: true,
       });
 
-      await clipboardService.copyToClipboard('test text');
+      expect(await clipboardService.copyToClipboard('test text')).toBe(true);
 
       expect(mockWriteText).toHaveBeenCalledWith('test text');
       expect(notificationsService.success).toHaveBeenCalledWith(
@@ -95,7 +95,9 @@ describe('ClipboardService', () => {
       });
       const execSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
 
-      await clipboardService.copyToClipboard('fallback text');
+      expect(await clipboardService.copyToClipboard('fallback text')).toBe(
+        true,
+      );
 
       expect(execSpy).toHaveBeenCalledWith('copy');
       expect(notificationsService.success).toHaveBeenCalledWith(
@@ -114,7 +116,7 @@ describe('ClipboardService', () => {
       });
       vi.spyOn(document, 'execCommand').mockReturnValue(false);
 
-      await clipboardService.copyToClipboard('test text');
+      expect(await clipboardService.copyToClipboard('test text')).toBe(false);
 
       expect(deferredLogger.error).toHaveBeenCalledWith(
         'Copy to clipboard failed',

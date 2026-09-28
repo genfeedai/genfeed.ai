@@ -2,6 +2,37 @@ import { describe, expect, it } from 'vitest';
 import { analyzeWorkflowDispatchClassSource } from './check-workflow-dispatch-class';
 
 describe('check-workflow-dispatch-class', () => {
+  it.each([
+    'WORKFLOW_EXECUTION_QUEUE',
+    'WORKFLOW_BACKGROUND_QUEUE',
+    'PLATFORM_SYSTEM_WORKFLOW_QUEUE',
+  ])('rejects a namespace-qualified %s injection', (token) => {
+    expect(
+      analyzeWorkflowDispatchClassSource(
+        `
+        import * as Queues from '@genfeedai/contracts/queue';
+        class Rogue { constructor(@InjectQueue(Queues.${token}) queue: Queue) {} }
+      `,
+        'apps/server/api/src/services/example/example.service.ts',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it.each(['WORKFLOW_BACKGROUND_QUEUE', 'PLATFORM_SYSTEM_WORKFLOW_QUEUE'])(
+    'rejects %s in the registry boot-drain exception',
+    (token) => {
+      expect(
+        analyzeWorkflowDispatchClassSource(
+          `
+        import { ${token} as QueueToken } from '@genfeedai/contracts/queue';
+        class Registry { constructor(@InjectQueue(QueueToken) queue: Queue) {} }
+      `,
+          'apps/server/workers/src/scheduling/platform-schedule-registry.service.ts',
+        ),
+      ).toHaveLength(1);
+    },
+  );
+
   it('accepts a queueSystemWorkflow call that declares dispatchClass', () => {
     const source = `
       class Producer {

@@ -317,6 +317,44 @@ describe('Autonomous review transaction boundary', () => {
     );
   });
 
+  it('rejects a rewrite when rejection skips the item before the apply lock', async () => {
+    const f = fixture();
+    const versions = new Map([['post-1', f.current().post.updatedAt]]);
+    f.current().item.status = BatchItemStatus.SKIPPED;
+    f.current().item.reviewDecision = ReviewDecision.REJECTED;
+    await expect(
+      f.service.applyRewrites(
+        'batch-1',
+        'org-1',
+        'user-1',
+        new Map([['item-1', 'New']]),
+        versions,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(f.current().item.caption).toBe('Caption');
+    expect(f.lifecycle.transition).not.toHaveBeenCalled();
+    expect(f.tx.batch.updateMany).not.toHaveBeenCalled();
+    expect(f.approvals.invalidatePost).not.toHaveBeenCalled();
+  });
+
+  it('allows an intentional rewrite of an approved completed item', async () => {
+    const f = fixture();
+    f.current().item.reviewDecision = ReviewDecision.APPROVED;
+    vi.spyOn(f.service, 'getBatch').mockResolvedValue({
+      id: 'batch-1',
+      items: [],
+    } as unknown as IBatchSummary);
+    await f.service.applyRewrites(
+      'batch-1',
+      'org-1',
+      'user-1',
+      new Map([['item-1', 'New']]),
+      new Map([['post-1', f.current().post.updatedAt]]),
+    );
+    expect(f.current().item.caption).toBe('New');
+    expect(f.current().item.reviewDecision).toBe(ReviewDecision.UNSET);
+  });
+
   it('returns 409 when a selected post changes after the snapshot', async () => {
     const f = fixture();
     const versions = new Map([['post-1', f.current().post.updatedAt]]);

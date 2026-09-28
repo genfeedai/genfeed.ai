@@ -6,6 +6,7 @@ import {
   BillingAccountOrganizationStatus,
   BillingAccountStatus,
 } from '@genfeedai/contracts';
+import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
@@ -508,10 +509,17 @@ describe('BillingAccountsService', () => {
           canOpenPortal: false,
         },
         isLinked: true,
+        id: 'ba_1',
         kind: 'organization',
         monthlyBudgetCredits: 500,
         organizationId: 'org_1',
         usage: 12,
+      });
+
+      expect(BillingAccountSerializer.serialize(snapshot).data).toMatchObject({
+        id: 'ba_1',
+        type: 'billing-account',
+        attributes: { kind: 'organization', organizationId: 'org_1' },
       });
 
       // No cross-organization or wallet/subscription reads at all — this is

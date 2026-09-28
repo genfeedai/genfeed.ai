@@ -460,6 +460,34 @@ describe('StudioGenerateInspector', () => {
     ).toBeVisible();
   });
 
+  it.each([
+    IngredientStatus.DRAFT,
+    IngredientStatus.PROCESSING,
+    IngredientStatus.FAILED,
+  ])('hides previews and ready actions for %s even with a URL', (status) => {
+    render(
+      <StudioGenerateInspector
+        job={{
+          ...recipeJob,
+          status,
+          url: 'https://cdn.example.com/pending.png',
+        }}
+        onRemix={vi.fn()}
+        onUseInPost={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[]}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Vary' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Download' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('varies from the selected recipe', () => {
     const onVary = vi.fn();
 

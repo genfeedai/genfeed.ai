@@ -1,6 +1,11 @@
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { getActionOriginContext } from '@api/index';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  WORKFLOW_BACKGROUND_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -95,6 +100,7 @@ function createMockJob(
     data,
     id: 'job-1',
     name: data.type,
+    queueName: WORKFLOW_EXECUTION_QUEUE,
     opts: { attempts: 1 },
     updateData: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -132,6 +138,67 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('process - system workflow jobs', () => {
+    it.each([
+      WORKFLOW_EXECUTION_QUEUE,
+      WORKFLOW_BACKGROUND_QUEUE,
+      PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+    ])('schedules the first system-workflow delay on %s', async (queueName) => {
+      const delayData = {
+        delayNodeId: 'delay-1',
+        executionId: 'exec-system',
+        workflowId: 'wf-system',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        remainingNodeIds: ['next'],
+        triggerEvent: {
+          type: 'manual',
+          platform: 'manual',
+          data: {},
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        nodeOutputCache: { 'delay-1': { delayMs: 5000 } },
+      };
+      mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+        execution: {
+          _delayJobData: delayData,
+          executionId: 'exec-system',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.RUNNING,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-system',
+        },
+        provenance: {
+          executionId: 'exec-system',
+          workflowId: 'wf-system',
+          workflowLabel: 'System workflow',
+        },
+        userId: 'user-1',
+      });
+      await processor.process(
+        createMockJob(
+          {
+            type: 'system-run',
+            systemRun: {
+              input: {
+                actionType: 'clip.factory',
+                canonicalId: 'clip.factory',
+                organizationId: 'org-1',
+                source: 'clip-analysis-completion',
+              },
+            },
+          },
+          { queueName },
+        ) as never,
+      );
+      expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
+        delayData,
+        5000,
+        queueName,
+      );
+    });
+
     it('resolves the queued canonical identity through the system workflow runner', async () => {
       const input = {
         actionType: 'clip-continuity',
@@ -540,6 +607,7 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         delayJobData,
         expect.any(Number),
+        WORKFLOW_EXECUTION_QUEUE,
       );
       expect(mockExecutor.handleTriggerEvent).not.toHaveBeenCalled();
     });
@@ -592,12 +660,17 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         delayJobData,
         60000,
+        WORKFLOW_EXECUTION_QUEUE,
       );
     });
   });
 
   describe('process - delay resume jobs', () => {
-    it('schedules the next durable delay when a resumed graph pauses again', async () => {
+    it.each([
+      WORKFLOW_EXECUTION_QUEUE,
+      WORKFLOW_BACKGROUND_QUEUE,
+      PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+    ])('keeps successive delays on %s', async (queueName) => {
       const nextDelay = {
         delayNodeId: 'delay-2',
         executionId: 'exec-1',
@@ -627,18 +700,22 @@ describe('WorkflowExecutionProcessor', () => {
       });
 
       await processor.process(
-        createMockJob({
-          delayResumeData: {
-            ...nextDelay,
-            delayNodeId: 'delay-1',
+        createMockJob(
+          {
+            delayResumeData: {
+              ...nextDelay,
+              delayNodeId: 'delay-1',
+            },
+            type: 'delay-resume',
           },
-          type: 'delay-resume',
-        }) as never,
+          { queueName },
+        ) as never,
       );
 
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         nextDelay,
         45_000,
+        queueName,
       );
     });
   });
@@ -781,6 +858,7 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         delayJobData,
         300000,
+        WORKFLOW_EXECUTION_QUEUE,
       );
     });
   });

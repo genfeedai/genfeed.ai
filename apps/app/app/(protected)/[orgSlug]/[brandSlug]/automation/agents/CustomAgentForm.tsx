@@ -52,6 +52,7 @@ export default function CustomAgentForm({
   );
   const [budget, setBudget] = useState('100');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
   const topicList = topics
     .split(',')
     .map((value) => value.trim())
@@ -71,6 +72,7 @@ export default function CustomAgentForm({
   async function createAgent() {
     if (
       isSubmitting ||
+      isCreated ||
       !isValid ||
       !scope.brandId ||
       !isBrandResourceReady(scope)
@@ -101,8 +103,13 @@ export default function CustomAgentForm({
     try {
       const service = await getService();
       await service.create(input);
+      setIsCreated(true);
       NotificationsService.getInstance().success(translate('created'));
-      await onCreated?.();
+      try {
+        await onCreated?.();
+      } catch (error) {
+        logger.error('Agent created, but roster refresh failed', error);
+      }
     } catch (error) {
       logger.error('Failed to create custom agent', error);
       NotificationsService.getInstance().error(translate('createError'));
@@ -214,7 +221,7 @@ export default function CustomAgentForm({
       </FormControl>
       <Button
         type="submit"
-        isDisabled={!isValid || isSubmitting}
+        isDisabled={!isValid || isSubmitting || isCreated}
         isLoading={isSubmitting}
       >
         {translate('customAction')}
