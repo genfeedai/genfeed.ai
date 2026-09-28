@@ -278,7 +278,6 @@ export class BrandRelocationService {
     'isActive',
     'isHighlighted',
     'isFleetEnabled',
-    'isSocialHistoryImportEnabled',
     'defaultVideoModel',
     'defaultImageModel',
     'defaultImageToVideoModel',

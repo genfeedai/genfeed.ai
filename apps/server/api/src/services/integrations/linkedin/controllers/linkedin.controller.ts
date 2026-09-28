@@ -85,6 +85,8 @@ export class LinkedInController {
         CredentialPlatform.LINKEDIN,
         {
           isConnected: false,
+          isHistoryImportRequested:
+            createCredentialDto.isHistoryImportRequested,
         },
         createCredentialDto.credentialId,
       );

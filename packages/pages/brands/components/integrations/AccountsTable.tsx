@@ -50,7 +50,7 @@ export default function AccountsTable({
   connections,
   onConnectAccount,
   onDisconnect,
-  onPostingTimes,
+  onOpenSettings,
   onReconnect,
   reconnectingCredentialId,
   unavailablePlatforms,
@@ -109,7 +109,7 @@ export default function AccountsTable({
               reconnectingCredentialId === connection.credentialId
             }
             onDisconnect={onDisconnect}
-            onPostingTimes={onPostingTimes}
+            onOpenSettings={onOpenSettings}
             onReconnect={onReconnect}
           />
         ),
@@ -118,7 +118,7 @@ export default function AccountsTable({
     [
       healthByCredentialId,
       onDisconnect,
-      onPostingTimes,
+      onOpenSettings,
       onReconnect,
       reconnectingCredentialId,
       translate,

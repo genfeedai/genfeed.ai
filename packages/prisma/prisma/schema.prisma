@@ -953,8 +953,6 @@ model Brand {
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
   watermarkPosition        String       @default("bottom-right")
-  /// Import the account's existing posts when a social credential is connected.
-  isSocialHistoryImportEnabled Boolean  @default(true)
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())
@@ -1762,6 +1760,8 @@ model Credential {
   warmupOverrideUntil             DateTime?
   warmupOverrideConfirmedAt       DateTime?
   warmupOverrideConfirmedByUserId String?
+  /// Import the account's existing posts after it connects. Chosen at connect.
+  isHistoryImportRequested        Boolean            @default(true)
   isConnected                     Boolean            @default(false)
   isDeleted                       Boolean            @default(false)
   createdAt                       DateTime           @default(now())

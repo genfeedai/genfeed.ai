@@ -371,9 +371,3 @@ export interface BrandWatermarkSettingsProps {
   brandId: string;
   onRefreshBrand: () => Promise<void>;
 }
-
-export interface BrandSocialHistoryImportCardProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void> | void;
-}

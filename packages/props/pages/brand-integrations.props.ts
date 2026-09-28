@@ -2,6 +2,7 @@ import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import type { SocialWarmupOverrideRequest } from '@genfeedai/props/social/social-warmup-program.props';
 
 export type AccountConnectionStatus = 'connected' | 'needsReconnect';
 
@@ -31,8 +32,30 @@ export interface AccountRowActionsMenuProps {
   connection: BrandDetailSocialConnection;
   isReconnectDisabled: boolean;
   onDisconnect: (connection: BrandDetailSocialConnection) => void;
-  onPostingTimes: (connection: BrandDetailSocialConnection) => void;
+  onOpenSettings: (connection: BrandDetailSocialConnection) => void;
   onReconnect: (connection: BrandDetailSocialConnection) => void;
+}
+
+export type AccountSettingsSection = 'health' | 'import' | 'postingTimes';
+
+export interface AccountSettingsSectionsProps {
+  brandId: string;
+  connection: BrandDetailSocialConnection;
+  health?: AccountHealthSummary;
+  onOverrideRequest: (request: SocialWarmupOverrideRequest) => void;
+  onReconnect: (connection: BrandDetailSocialConnection) => void;
+}
+
+export interface AccountSettingsDialogProps
+  extends Omit<AccountSettingsSectionsProps, 'connection'> {
+  /** The account whose settings are open; `null` closes the dialog. */
+  connection: BrandDetailSocialConnection | null;
+  onOpenChange: (isOpen: boolean) => void;
+}
+
+export interface AccountHistoryImportPanelProps {
+  brandId: string;
+  connection: BrandDetailSocialConnection;
 }
 
 export interface AccountsTableProps {
@@ -41,7 +64,7 @@ export interface AccountsTableProps {
   connections: BrandDetailSocialConnection[];
   onConnectAccount: () => void;
   onDisconnect: (connection: BrandDetailSocialConnection) => void;
-  onPostingTimes: (connection: BrandDetailSocialConnection) => void;
+  onOpenSettings: (connection: BrandDetailSocialConnection) => void;
   onReconnect: (connection: BrandDetailSocialConnection) => void;
   /** Which specific credential's Reconnect flow is in flight — disables only that row, not every account on the same platform. */
   reconnectingCredentialId: string | null;

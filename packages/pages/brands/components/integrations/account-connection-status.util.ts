@@ -1,3 +1,4 @@
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
@@ -25,6 +26,17 @@ export const STATE_MESSAGE_KEYS = {
   risky: 'state.risky',
   warming: 'state.warming',
 } as const satisfies Record<AccountHealthSummary['state'], string>;
+
+const HISTORY_IMPORT_PLATFORMS = new Set<string>(
+  Object.values(SocialSourcePlatform),
+);
+
+/** Platforms whose existing posts can be imported after they connect. */
+export function hasHistoryImport(
+  platform: BrandDetailSocialConnection['platform'],
+): boolean {
+  return HISTORY_IMPORT_PLATFORMS.has(platform);
+}
 
 export function hasWarmupBlueprint(
   platform: BrandDetailSocialConnection['platform'],
