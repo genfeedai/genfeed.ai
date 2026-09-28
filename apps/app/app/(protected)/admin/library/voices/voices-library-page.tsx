@@ -1,7 +1,13 @@
 'use client';
 
-import type { VoiceProvider } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ButtonVariant,
+  ViewType,
+  type VoiceProvider,
+} from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import type {
   VoicesLibraryAction,
@@ -10,23 +16,18 @@ import type {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
+import CollectionView from '@ui/collection/CollectionView';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import { Volume2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 
 import VoiceCatalogCard from './voice-catalog-card';
 import VoicesCatalogControls from './voices-catalog-controls';
-
-const VOICE_SKELETON_KEYS = [
-  'voice-skeleton-1',
-  'voice-skeleton-2',
-  'voice-skeleton-3',
-  'voice-skeleton-4',
-  'voice-skeleton-5',
-  'voice-skeleton-6',
-] as const;
 
 const initialState: VoicesLibraryState = {
   voices: [],
@@ -76,6 +77,12 @@ function voicesLibraryReducer(
 }
 
 export default function VoicesLibraryPage() {
+  const t = useTranslations('pages.adminVoices');
+  const { view, setView } = useCollectionViewPreference({
+    surface: 'admin.library.voices',
+    defaultView: ViewType.LIST,
+  });
+  const [hasError, setHasError] = useState(false);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getVoicesService = useAuthedService((token: string) =>
     VoicesService.getInstance(token),
@@ -94,6 +101,7 @@ export default function VoicesLibraryPage() {
 
   const loadVoices = useCallback(async () => {
     dispatch({ type: 'LOAD_START' });
+    setHasError(false);
 
     try {
       const service = await getVoicesService();
@@ -105,6 +113,7 @@ export default function VoicesLibraryPage() {
     } catch (error) {
       logger.error('GET /voices/catalog failed', error);
       notifications.error('Failed to load voice catalog');
+      setHasError(true);
       dispatch({ type: 'LOAD_ERROR' });
     }
   }, [getVoicesService, notifications, providerFilter, search]);
@@ -169,6 +178,8 @@ export default function VoicesLibraryPage() {
       label="Voice Library"
     >
       <VoicesCatalogControls
+        view={view}
+        onViewChange={setView}
         isSyncingAll={isSyncingAll}
         providerFilter={providerFilter}
         search={search}
@@ -186,20 +197,43 @@ export default function VoicesLibraryPage() {
         tone="muted"
         data-testid="voices-library-results-surface"
       >
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {isLoading
-            ? VOICE_SKELETON_KEYS.map((key) => (
-                <Card key={key} className="min-h-[260px]" />
-              ))
-            : voices.map((voice) => (
-                <VoiceCatalogCard
-                  key={voice.id}
-                  togglingKey={togglingKey}
-                  voice={voice}
-                  onToggle={handleToggle}
-                />
-              ))}
-        </div>
+        {hasError ? (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>{t('loadError')}</span>
+              <Button
+                label={t('retry')}
+                onClick={loadVoices}
+                variant={ButtonVariant.SECONDARY}
+              />
+            </div>
+          </Alert>
+        ) : (
+          <CollectionView
+            data-testid={view === ViewType.LIST ? 'voices-list' : 'voices-grid'}
+            view={view}
+            items={voices}
+            isLoading={isLoading}
+            maxColumns={3}
+            getItemKey={(voice) => voice.id}
+            emptyState={<CardEmptyContent label={t('empty')} />}
+            renderListItem={(voice) => (
+              <VoiceCatalogCard
+                isList
+                togglingKey={togglingKey}
+                voice={voice}
+                onToggle={handleToggle}
+              />
+            )}
+            renderGridItem={(voice) => (
+              <VoiceCatalogCard
+                togglingKey={togglingKey}
+                voice={voice}
+                onToggle={handleToggle}
+              />
+            )}
+          />
+        )}
       </WorkspaceSurface>
     </Container>
   );

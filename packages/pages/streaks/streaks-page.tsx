@@ -7,6 +7,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import { Button } from '@ui/primitives/button';
@@ -88,7 +89,7 @@ export default function StreaksPage() {
           </Button>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
+        <MetricCardGrid className="mt-6" columns={4}>
           <MetricCard
             isLoading={isLoading}
             label="Current streak"
@@ -118,10 +119,10 @@ export default function StreaksPage() {
             size="md"
             value={nextMilestone ? `${nextMilestone.days}` : 'Done'}
           />
-        </div>
+        </MetricCardGrid>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
         <div className="rounded-3xl bg-secondary p-5 shadow-border">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>

@@ -426,7 +426,7 @@ describe('ModalGalleryContent', () => {
       expect(screen.getByTestId('image-item-img-1')).toBeInTheDocument();
     });
 
-    it('renders masonry component for video items', () => {
+    it('renders container-width columns for video items', () => {
       const items: GalleryItem[] = [
         { id: 'vid-1' },
         { id: 'vid-2' },
@@ -439,7 +439,9 @@ describe('ModalGalleryContent', () => {
           items={items as (IImage | IVideo | IMusic)[]}
         />,
       );
-      expect(screen.getByTestId('masonry')).toBeInTheDocument();
+      const grid = screen.getByTestId('video-item-vid-1').parentElement;
+      expect(grid).toHaveClass('grid', 'gap-4', '@[40rem]:grid-cols-2');
+      expect(grid?.parentElement).toHaveClass('@container');
       expect(screen.getByTestId('video-item-vid-1')).toBeInTheDocument();
       expect(screen.getByTestId('video-item-vid-2')).toBeInTheDocument();
       expect(screen.getByTestId('video-item-vid-3')).toBeInTheDocument();

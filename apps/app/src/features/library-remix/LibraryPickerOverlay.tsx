@@ -7,6 +7,7 @@ import type {
   IIngredient,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import Tabs from '@ui/navigation/tabs/Tabs';
@@ -29,16 +30,14 @@ type LibraryPickerOverlayProps = {
 
 function LibraryPickerSkeleton() {
   return (
-    <div
-      aria-label="Loading Library sources"
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-      role="status"
-    >
-      {Array.from({ length: 12 }, (_, index) => `source-${index + 1}`).map(
-        (key) => (
-          <Skeleton key={key} className="aspect-[4/3] w-full" />
-        ),
-      )}
+    <div aria-label="Loading Library sources" role="status">
+      <CollectionGrid maxColumns={3}>
+        {Array.from({ length: 12 }, (_, index) => `source-${index + 1}`).map(
+          (key) => (
+            <Skeleton key={key} className="aspect-[4/3] w-full" />
+          ),
+        )}
+      </CollectionGrid>
     </div>
   );
 }
@@ -177,7 +176,7 @@ export default function LibraryPickerOverlay({
             <p className="sr-only" role="status">
               {state.total} Library sources available
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <CollectionGrid maxColumns={3}>
               {state.items.map((ingredient) => (
                 <LibrarySourceButton
                   ingredient={ingredient}
@@ -186,7 +185,7 @@ export default function LibraryPickerOverlay({
                   onSelect={() => void select(ingredient)}
                 />
               ))}
-            </div>
+            </CollectionGrid>
             {state.hasMore ? (
               <div className="flex justify-center pt-5">
                 <Button

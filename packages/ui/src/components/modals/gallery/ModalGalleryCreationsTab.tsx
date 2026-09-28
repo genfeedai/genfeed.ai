@@ -1,8 +1,8 @@
 'use client';
 
-import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
-import Masonry from '@ui/display/masonry/Masonry';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
 import { Image } from 'lucide-react';
@@ -36,29 +36,8 @@ export default function ModalGalleryCreationsTab({
     );
   }
 
-  // Use 3 columns for landscape format, otherwise use default responsive columns
-  const columns =
-    localFormat === IngredientFormat.LANDSCAPE
-      ? {
-          default: 3,
-          lg: 3,
-          md: 3,
-          sm: 3,
-        }
-      : {
-          default: 3,
-          lg: 6,
-          md: 5,
-          sm: 4,
-        };
-
   return (
-    <Masonry
-      key={`creations-${creations.length}`}
-      gap={4}
-      className="w-full"
-      columns={columns}
-    >
+    <CollectionGrid maxColumns={3}>
       {creations.map((creation) => (
         <ModalGalleryItemImage
           key={creation.id}
@@ -70,6 +49,6 @@ export default function ModalGalleryCreationsTab({
           getImageFormat={getImageFormat}
         />
       ))}
-    </Masonry>
+    </CollectionGrid>
   );
 }

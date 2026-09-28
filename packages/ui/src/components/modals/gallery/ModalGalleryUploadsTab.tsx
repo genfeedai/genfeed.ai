@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant, IngredientFormat } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalGalleryUploadsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
-import Masonry from '@ui/display/masonry/Masonry';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
 import { Button } from '@ui/primitives/button';
@@ -22,22 +22,6 @@ export default function ModalGalleryUploadsTab({
     return <SkeletonList count={12} />;
   }
 
-  // Use 3 columns for landscape format, otherwise use default responsive columns
-  const columns =
-    localFormat === IngredientFormat.LANDSCAPE
-      ? {
-          default: 3,
-          lg: 3,
-          md: 3,
-          sm: 3,
-        }
-      : {
-          default: 3,
-          lg: 6,
-          md: 5,
-          sm: 4,
-        };
-
   const uploadCard = (
     <Button
       type="button"
@@ -54,12 +38,7 @@ export default function ModalGalleryUploadsTab({
   );
 
   return (
-    <Masonry
-      key={`uploads-${uploads.length}`}
-      gap={4}
-      className="w-full"
-      columns={columns}
-    >
+    <CollectionGrid maxColumns={3}>
       {uploadCard}
       {uploads.map((upload) => (
         <ModalGalleryItemImage
@@ -72,6 +51,6 @@ export default function ModalGalleryUploadsTab({
           getImageFormat={getImageFormat}
         />
       ))}
-    </Masonry>
+    </CollectionGrid>
   );
 }

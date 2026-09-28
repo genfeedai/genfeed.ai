@@ -1,122 +1,105 @@
-import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
-import type { ExternalVoice } from '@models/elements/external-voice.model';
+import { VoiceProvider } from '@genfeedai/contracts';
 import type { VoiceCatalogCardProps as Props } from '@props/admin/voices.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Badge from '@ui/display/badge/Badge';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Button } from '@ui/primitives/button';
-import { Sparkles, Star } from 'lucide-react';
-
-function getVoiceName(voice: ExternalVoice): string {
-  return voice.name || voice.externalVoiceId || voice.id;
-}
-
-function getProviderLabel(provider?: string): string {
-  switch (provider) {
-    case VoiceProvider.ELEVENLABS:
-      return 'ElevenLabs';
-    case VoiceProvider.HEYGEN:
-      return 'HeyGen';
-    default:
-      return provider ?? 'Unknown';
-  }
-}
+import { ListRow } from '@ui/lists/list-row/ListRow';
+import { Volume2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function VoiceCatalogCard({
   togglingKey,
   voice,
   onToggle,
+  isList = false,
 }: Props) {
-  const activeKey = `${voice.id}:isActive`;
-  const defaultKey = `${voice.id}:isDefaultSelectable`;
-  const featuredKey = `${voice.id}:isFeatured`;
-
+  const t = useTranslations('pages.adminVoices');
+  const name = voice.name || voice.externalVoiceId || voice.id;
+  const provider =
+    voice.provider === VoiceProvider.ELEVENLABS
+      ? 'ElevenLabs'
+      : voice.provider === VoiceProvider.HEYGEN
+        ? 'HeyGen'
+        : (voice.provider ?? t('unknown'));
+  const facts = (
+    <>
+      <Badge variant="outline">{provider}</Badge>
+      {voice.isFeatured && <Badge variant="warning">{t('featured')}</Badge>}
+      {voice.isDefaultSelectable === false && (
+        <Badge variant="secondary">{t('notDefault')}</Badge>
+      )}
+      {voice.isActive === false && (
+        <Badge variant="destructive">{t('inactive')}</Badge>
+      )}
+    </>
+  );
+  const preview = (
+    <AudioPreviewPlayer audioUrl={voice.sampleAudioUrl ?? null} label={name} />
+  );
+  const actions = (
+    <CollectionItemActions
+      overflowLabel={t('actions', { name })}
+      overflow={[
+        {
+          id: 'active',
+          label: t(voice.isActive === false ? 'activate' : 'deactivate'),
+          isDisabled: togglingKey !== null,
+          onSelect: () => onToggle(voice, 'isActive', !voice.isActive),
+        },
+        {
+          id: 'default',
+          label: t(
+            voice.isDefaultSelectable === false
+              ? 'enableDefault'
+              : 'disableDefault',
+          ),
+          isDisabled: togglingKey !== null,
+          onSelect: () =>
+            onToggle(
+              voice,
+              'isDefaultSelectable',
+              voice.isDefaultSelectable === false,
+            ),
+        },
+        {
+          id: 'featured',
+          label: t(voice.isFeatured ? 'unfeature' : 'feature'),
+          isDisabled: togglingKey !== null,
+          onSelect: () => onToggle(voice, 'isFeatured', !voice.isFeatured),
+        },
+      ]}
+    />
+  );
+  if (isList)
+    return (
+      <ListRow
+        density="compact"
+        leading={<Volume2 className="size-4 shrink-0 text-muted-foreground" />}
+        title={name}
+        description={voice.externalVoiceId ?? voice.id}
+        meta={
+          <>
+            <span className="flex flex-wrap gap-2">{facts}</span>
+            <div className="w-full max-w-sm">{preview}</div>
+          </>
+        }
+        trailing={actions}
+      />
+    );
   return (
-    <Card key={voice.id}>
-      <div className="space-y-4 p-5">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{getProviderLabel(voice.provider)}</Badge>
-            {voice.isFeatured ? (
-              <Badge variant="warning">Featured</Badge>
-            ) : null}
-            {voice.isDefaultSelectable === false ? (
-              <Badge variant="secondary">Not default selectable</Badge>
-            ) : null}
-            {voice.isActive === false ? (
-              <Badge variant="destructive">Inactive</Badge>
-            ) : null}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">
-              {getVoiceName(voice)}
-            </h3>
-            <p className="truncate text-xs text-foreground/50">
-              {voice.externalVoiceId ?? voice.id}
-            </p>
-          </div>
+    <Card bodyClassName="flex flex-col gap-3 p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">{name}</h3>
+          <p className="truncate text-xs text-muted-foreground">
+            {voice.externalVoiceId ?? voice.id}
+          </p>
         </div>
-
-        <InsetSurface density="compact" tone="contrast">
-          <AudioPreviewPlayer
-            audioUrl={voice.sampleAudioUrl ?? null}
-            label={getVoiceName(voice)}
-          />
-        </InsetSurface>
-
-        <div className="grid gap-2">
-          <Button
-            isDisabled={togglingKey === activeKey}
-            onClick={() => onToggle(voice, 'isActive', !voice.isActive)}
-            size={ButtonSize.SM}
-            variant={
-              voice.isActive === false
-                ? ButtonVariant.SECONDARY
-                : ButtonVariant.DEFAULT
-            }
-            withWrapper={false}
-          >
-            <Sparkles className="mr-2 size-4" />
-            {voice.isActive === false ? 'Activate' : 'Active'}
-          </Button>
-
-          <Button
-            isDisabled={togglingKey === defaultKey}
-            onClick={() =>
-              onToggle(
-                voice,
-                'isDefaultSelectable',
-                voice.isDefaultSelectable === false,
-              )
-            }
-            size={ButtonSize.SM}
-            variant={
-              voice.isDefaultSelectable === false
-                ? ButtonVariant.SECONDARY
-                : ButtonVariant.SECONDARY
-            }
-            withWrapper={false}
-          >
-            {voice.isDefaultSelectable === false
-              ? 'Enable default selection'
-              : 'Default selectable'}
-          </Button>
-
-          <Button
-            isDisabled={togglingKey === featuredKey}
-            onClick={() => onToggle(voice, 'isFeatured', !voice.isFeatured)}
-            size={ButtonSize.SM}
-            variant={
-              voice.isFeatured ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
-            }
-            withWrapper={false}
-          >
-            <Star className="mr-2 size-4" />
-            {voice.isFeatured ? 'Featured' : 'Mark featured'}
-          </Button>
-        </div>
+        {actions}
       </div>
+      <div className="flex flex-wrap gap-2">{facts}</div>
+      {preview}
     </Card>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
 import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { IImage, IMusic, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';
-import Masonry from '@ui/display/masonry/Masonry';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
 import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
@@ -136,17 +136,7 @@ export default function ModalGalleryContent({
 
   if (category === IngredientCategory.VIDEO) {
     return (
-      <Masonry
-        key={localFormat}
-        gap={4}
-        className="w-full"
-        columns={{
-          default: 3,
-          lg: 6,
-          md: 5,
-          sm: 4,
-        }}
-      >
+      <CollectionGrid maxColumns={3}>
         {items.map((item) => (
           <ModalGalleryItemVideo
             key={item.id}
@@ -154,13 +144,13 @@ export default function ModalGalleryContent({
             onSelect={onSelectItem}
           />
         ))}
-      </Masonry>
+      </CollectionGrid>
     );
   }
 
   if (category === IngredientCategory.MUSIC) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <CollectionGrid maxColumns={3}>
         {items.map((item) => (
           <ModalGalleryItemMusic
             key={item.id}
@@ -169,29 +159,12 @@ export default function ModalGalleryContent({
             onSelect={onSelectItem}
           />
         ))}
-      </div>
+      </CollectionGrid>
     );
   }
 
-  // Images
-  // Use 3 columns for landscape format, otherwise use default responsive columns
-  const columns =
-    localFormat === IngredientFormat.LANDSCAPE
-      ? {
-          default: 3,
-          lg: 3,
-          md: 3,
-          sm: 3,
-        }
-      : {
-          default: 3,
-          lg: 6,
-          md: 5,
-          sm: 4,
-        };
-
   return (
-    <Masonry key={localFormat} gap={4} className="w-full" columns={columns}>
+    <CollectionGrid maxColumns={3}>
       {items.map((item) => (
         <ModalGalleryItemImage
           key={item.id}
@@ -203,6 +176,6 @@ export default function ModalGalleryContent({
           getImageFormat={getImageFormat}
         />
       ))}
-    </Masonry>
+    </CollectionGrid>
   );
 }

@@ -8,7 +8,7 @@ import type {
   VoicesCatalogControlsProps as Props,
   ProviderFilter,
 } from '@props/admin/voices.props';
-import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -27,6 +27,8 @@ const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
 ];
 
 export default function VoicesCatalogControls({
+  view,
+  onViewChange,
   isSyncingAll,
   providerFilter,
   search,
@@ -36,80 +38,68 @@ export default function VoicesCatalogControls({
   onSync,
 }: Props) {
   return (
-    <WorkspaceSurface
-      title="Catalog Controls"
-      tone="muted"
-      data-testid="voices-library-controls-surface"
-    >
-      <div className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-foreground/70">
-              Search
-            </span>
-            <FormSearchbar
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search by name or external ID"
-              size={ComponentSize.MD}
-              value={search}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-foreground/70">
-              Provider
-            </span>
-            <Select
-              onValueChange={(value) =>
-                onProviderFilterChange(value as ProviderFilter)
-              }
-              value={providerFilter}
+    <CollectionToolbar
+      view={view}
+      onViewChange={onViewChange}
+      search={
+        <FormSearchbar
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Search by name or external ID"
+          size={ComponentSize.MD}
+          value={search}
+        />
+      }
+      filters={
+        <>
+          <Select
+            onValueChange={(value) =>
+              onProviderFilterChange(value as ProviderFilter)
+            }
+            value={providerFilter}
+          >
+            <SelectTrigger aria-label="Provider" className="w-auto min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROVIDER_FILTERS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              isDisabled={isSyncingAll || syncingProvider !== null}
+              onClick={() => onSync()}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROVIDER_FILTERS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <RefreshCw className="mr-2 size-4" />
+              Sync All
+            </Button>
+            <Button
+              isDisabled={isSyncingAll || syncingProvider !== null}
+              onClick={() => onSync([VoiceProvider.ELEVENLABS])}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              Sync ElevenLabs
+            </Button>
+            <Button
+              isDisabled={isSyncingAll || syncingProvider !== null}
+              onClick={() => onSync([VoiceProvider.HEYGEN])}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              Sync HeyGen
+            </Button>
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            isDisabled={isSyncingAll || syncingProvider !== null}
-            onClick={() => onSync()}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <RefreshCw className="mr-2 size-4" />
-            Sync All
-          </Button>
-          <Button
-            isDisabled={isSyncingAll || syncingProvider !== null}
-            onClick={() => onSync([VoiceProvider.ELEVENLABS])}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            Sync ElevenLabs
-          </Button>
-          <Button
-            isDisabled={isSyncingAll || syncingProvider !== null}
-            onClick={() => onSync([VoiceProvider.HEYGEN])}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            Sync HeyGen
-          </Button>
-        </div>
-      </div>
-    </WorkspaceSurface>
+        </>
+      }
+    />
   );
 }

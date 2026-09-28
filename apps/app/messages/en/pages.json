@@ -3373,5 +3373,36 @@
     "addDescription": "Add a description",
     "copyPublicProfileLink": "Copy public profile link",
     "profile": "Profile"
+  },
+  "adminTemplates": {
+    "title": "Templates",
+    "description": "Create and manage reusable content templates",
+    "catalog": "Content Templates",
+    "loadError": "Failed to load templates",
+    "retry": "Retry",
+    "empty": "No templates yet",
+    "active": "Active",
+    "inactive": "Inactive",
+    "uncategorized": "Uncategorized",
+    "uses": "{count} uses",
+    "variables": "Variables:",
+    "open": "Open template {name}",
+    "details": "View details"
+  },
+  "adminVoices": {
+    "unknown": "Unknown",
+    "featured": "Featured",
+    "notDefault": "Not default selectable",
+    "inactive": "Inactive",
+    "actions": "Actions for {name}",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "enableDefault": "Enable default selection",
+    "disableDefault": "Disable default selection",
+    "feature": "Mark featured",
+    "unfeature": "Remove featured",
+    "loadError": "Failed to load voice catalog",
+    "retry": "Retry",
+    "empty": "No voices found"
   }
 }

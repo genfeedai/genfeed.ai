@@ -58,3 +58,24 @@ describe('KPISection', () => {
     ).toHaveClass('flex-col', 'sm:flex-row');
   });
 });
+
+it('uses the same container-width tile ladder while loading and isolates section failures', () => {
+  const items = [{ label: 'Views', value: 12 }];
+  const { rerender } = render(
+    <KPISection items={items} gridCols={{ desktop: 6 }} isLoading />,
+  );
+  expect(screen.getByTestId('metric-card-grid')).toHaveClass('@container');
+  expect(screen.getByTestId('metric-card-grid').firstElementChild).toHaveClass(
+    'gap-3',
+    '@[72rem]:grid-cols-6',
+  );
+  rerender(
+    <>
+      <KPISection title="Failed" items={items} error="Unavailable" />
+      <KPISection title="Working" items={items} />
+    </>,
+  );
+  expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Working' })).toBeInTheDocument();
+  expect(screen.getAllByTestId('metric-card-grid')).toHaveLength(1);
+});
