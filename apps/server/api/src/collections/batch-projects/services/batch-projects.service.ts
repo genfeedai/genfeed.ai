@@ -29,6 +29,7 @@ import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { scopedWhere } from '@api/index';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   BatchProjectItemStatus,
   BatchProjectKind,
@@ -86,7 +87,10 @@ export class BatchProjectsService {
     private readonly batchGenerationService: BatchGenerationService,
   ) {}
 
-  async list(scope: IBatchProjectScope, query: BaseQueryDto) {
+  async list(
+    scope: IBatchProjectScope,
+    query: BaseQueryDto,
+  ): Promise<AggregatePaginateResult<IBatchProject>> {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const where = scopedWhere(scope.organizationId, {
@@ -129,15 +133,21 @@ export class BatchProjectsService {
       [rows, total] = await readPage();
     }
 
+    const hasNextPage = page * limit < total;
     return {
       docs: rows.map((row) => ({
         ...toBatchProjectBase(row),
         itemCounts: countBatchProjectItems(row.items),
       })),
+      hasNextPage,
+      hasPrevPage: page > 1,
       limit,
+      nextPage: hasNextPage ? page + 1 : null,
       page,
-      pages: Math.max(1, Math.ceil(total / limit)),
-      total,
+      pagingCounter: (page - 1) * limit + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs: total,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

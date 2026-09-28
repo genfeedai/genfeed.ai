@@ -328,6 +328,26 @@ describe('BatchProjectsService', () => {
   });
 
   describe('list', () => {
+    it('returns the pagination fields the collection serializer reads', async () => {
+      prisma.batchProject.findMany.mockResolvedValue([
+        { ...makeProject(), items: [] },
+      ]);
+      prisma.batchProject.count.mockResolvedValue(45);
+
+      const result = await service.list(scope, { limit: 20, page: 2 } as never);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          hasNextPage: true,
+          hasPrevPage: true,
+          limit: 20,
+          page: 2,
+          totalDocs: 45,
+          totalPages: 3,
+        }),
+      );
+    });
+
     it('refreshes review decisions of projects in review before counting', async () => {
       prisma.batchProject.findMany.mockResolvedValue([
         { ...makeProject({ status: BatchProjectStatus.REVIEWING }), items: [] },
