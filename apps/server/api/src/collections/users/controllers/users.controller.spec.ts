@@ -65,14 +65,9 @@ describe('UsersController', () => {
       recordSignupAttribution: vi.fn().mockResolvedValue(true),
     };
     settingsService = {
-      assertFavoriteWorkflowIds: vi.fn().mockResolvedValue(undefined),
       findOne: vi.fn(),
-      mergeFavoriteWorkflowIds: vi
-        .fn()
-        .mockImplementation(
-          async (_settingsId: string, submittedIds: string[]) => submittedIds,
-        ),
       patch: vi.fn(),
+      patchWithFavoriteWorkflowIds: vi.fn(),
       withLiveFavoriteWorkflowIds: vi
         .fn()
         .mockImplementation(async (settings: unknown) => settings),
@@ -528,7 +523,9 @@ describe('UsersController', () => {
         id: 'prisma-user-id',
         settings: { id: settingsId },
       });
-      settingsService.patch.mockResolvedValue({ id: settingsId });
+      settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue({
+        id: settingsId,
+      });
 
       await relationshipsController.updateSettings(
         mockRequest,
@@ -537,19 +534,12 @@ describe('UsersController', () => {
         mockUser,
       );
 
-      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
-        ['workflow-1'],
+      expect(settingsService.patchWithFavoriteWorkflowIds).toHaveBeenCalledWith(
+        settingsId,
+        { favoriteWorkflowIds: ['workflow-1'] },
         orgId,
       );
-      expect(settingsService.mergeFavoriteWorkflowIds).toHaveBeenCalledWith(
-        settingsId,
-        ['workflow-1'],
-        orgId,
-      );
-      expect(settingsService.patch).toHaveBeenCalledWith(
-        settingsId,
-        expect.objectContaining({ favoriteWorkflowIds: ['workflow-1'] }),
-      );
+      expect(settingsService.patch).not.toHaveBeenCalled();
     });
   });
 
@@ -559,7 +549,7 @@ describe('UsersController', () => {
         id: userId,
         settings: { id: settingsId },
       });
-      settingsService.assertFavoriteWorkflowIds.mockRejectedValue(
+      settingsService.patchWithFavoriteWorkflowIds.mockRejectedValue(
         new BadRequestException('not available in this organization'),
       );
 
@@ -569,11 +559,11 @@ describe('UsersController', () => {
         } as never),
       ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
-        ['foreign-workflow'],
+      expect(settingsService.patchWithFavoriteWorkflowIds).toHaveBeenCalledWith(
+        settingsId,
+        { favoriteWorkflowIds: ['foreign-workflow'] },
         orgId,
       );
-      expect(settingsService.mergeFavoriteWorkflowIds).not.toHaveBeenCalled();
       expect(settingsService.patch).not.toHaveBeenCalled();
     });
 
@@ -582,7 +572,7 @@ describe('UsersController', () => {
         id: userId,
         settings: { id: settingsId },
       });
-      settingsService.assertFavoriteWorkflowIds.mockRejectedValue(
+      settingsService.patchWithFavoriteWorkflowIds.mockRejectedValue(
         new BadRequestException('favoriteWorkflowIds must be an array'),
       );
 
@@ -592,14 +582,15 @@ describe('UsersController', () => {
         } as never),
       ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
-        null,
+      expect(settingsService.patchWithFavoriteWorkflowIds).toHaveBeenCalledWith(
+        settingsId,
+        { favoriteWorkflowIds: null },
         orgId,
       );
       expect(settingsService.patch).not.toHaveBeenCalled();
     });
 
-    it('skips favorites validation when the patch does not touch favorites', async () => {
+    it('uses the plain patch when the patch does not touch favorites', async () => {
       usersService.findOne.mockResolvedValue({
         id: userId,
         settings: { id: settingsId },
@@ -610,20 +601,38 @@ describe('UsersController', () => {
         theme: 'dark',
       } as never);
 
-      expect(settingsService.assertFavoriteWorkflowIds).not.toHaveBeenCalled();
+      expect(
+        settingsService.patchWithFavoriteWorkflowIds,
+      ).not.toHaveBeenCalled();
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        settingsId,
+        expect.objectContaining({ theme: 'dark' }),
+      );
     });
 
-    it('persists the merged favorites and returns only live ones', async () => {
+    it('returns not found when the settings record vanished before the locked write', async () => {
       usersService.findOne.mockResolvedValue({
         id: userId,
         settings: { id: settingsId },
       });
-      settingsService.mergeFavoriteWorkflowIds.mockResolvedValue([
-        'other-org-workflow',
-        'workflow-1',
-        'workflow-2',
-      ]);
-      settingsService.patch.mockResolvedValue({
+      settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue(null);
+
+      await expect(
+        relationshipsController.updateMeSettings(mockRequest, mockUser, {
+          favoriteWorkflowIds: ['workflow-1'],
+        } as never),
+      ).rejects.toThrow();
+      expect(
+        settingsService.withLiveFavoriteWorkflowIds,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('returns only the live favorites of the locked write', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue({
         favoriteWorkflowIds: ['other-org-workflow', 'workflow-1', 'workflow-2'],
         id: settingsId,
       });
@@ -640,21 +649,6 @@ describe('UsersController', () => {
         { favoriteWorkflowIds: ['workflow-1', 'workflow-2'] } as never,
       );
 
-      expect(settingsService.mergeFavoriteWorkflowIds).toHaveBeenCalledWith(
-        settingsId,
-        ['workflow-1', 'workflow-2'],
-        orgId,
-      );
-      expect(settingsService.patch).toHaveBeenCalledWith(
-        settingsId,
-        expect.objectContaining({
-          favoriteWorkflowIds: [
-            'other-org-workflow',
-            'workflow-1',
-            'workflow-2',
-          ],
-        }),
-      );
       expect(settingsService.withLiveFavoriteWorkflowIds).toHaveBeenCalledWith(
         expect.objectContaining({ id: settingsId }),
         orgId,
@@ -664,28 +658,26 @@ describe('UsersController', () => {
       });
     });
 
-    it('keeps other settings fields when merging favorites', async () => {
+    it('sends other settings fields through the same locked write', async () => {
       usersService.findOne.mockResolvedValue({
         id: userId,
         settings: { id: settingsId },
       });
-      settingsService.mergeFavoriteWorkflowIds.mockResolvedValue([
-        'workflow-1',
-      ]);
-      settingsService.patch.mockResolvedValue({ id: settingsId });
+      settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue({
+        id: settingsId,
+      });
 
       await relationshipsController.updateMeSettings(mockRequest, mockUser, {
         favoriteWorkflowIds: ['workflow-1'],
         theme: 'dark',
       } as never);
 
-      expect(settingsService.patch).toHaveBeenCalledWith(
+      expect(settingsService.patchWithFavoriteWorkflowIds).toHaveBeenCalledWith(
         settingsId,
-        expect.objectContaining({
-          favoriteWorkflowIds: ['workflow-1'],
-          theme: 'dark',
-        }),
+        { favoriteWorkflowIds: ['workflow-1'], theme: 'dark' },
+        orgId,
       );
+      expect(settingsService.patch).not.toHaveBeenCalled();
     });
 
     it('drops deleted favorites when settings are read', async () => {

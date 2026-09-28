@@ -403,7 +403,8 @@ export class UsersRelationshipsController {
   /**
    * Favorite workflow ids are validated against the caller's organization
    * before anything is written and replace only that organization's subset of
-   * the stored list. The response carries only the caller org's live favorites.
+   * the stored list, under a settings-row lock. The response carries only the
+   * caller org's live favorites.
    */
   private async patchSettingsForCaller(
     request: Request,
@@ -412,28 +413,18 @@ export class UsersRelationshipsController {
     caller: User,
     notFoundId: string,
   ) {
-    let settingsPatch: UpdateSettingDto = updateSettingDto;
     // `null` passes the optional DTO validator; the service rejects it.
-    if (updateSettingDto.favoriteWorkflowIds !== undefined) {
-      await this.settingsService.assertFavoriteWorkflowIds(
-        updateSettingDto.favoriteWorkflowIds,
-        caller.organizationId,
-      );
-      settingsPatch = {
-        ...updateSettingDto,
-        favoriteWorkflowIds:
-          await this.settingsService.mergeFavoriteWorkflowIds(
+    const data =
+      updateSettingDto.favoriteWorkflowIds === undefined
+        ? await this.settingsService.patch(
             settingsId,
-            updateSettingDto.favoriteWorkflowIds,
+            new SettingEntity({ ...updateSettingDto }),
+          )
+        : await this.settingsService.patchWithFavoriteWorkflowIds(
+            settingsId,
+            updateSettingDto,
             caller.organizationId,
-          ),
-      };
-    }
-
-    const data = await this.settingsService.patch(
-      settingsId,
-      new SettingEntity({ ...settingsPatch }),
-    );
+          );
 
     return data
       ? serializeSingle(

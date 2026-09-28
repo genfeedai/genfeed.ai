@@ -4,10 +4,12 @@ import {
 } from '@api/collections/settings/constants/favorite-workflows.constant';
 import { CreateSettingDto } from '@api/collections/settings/dto/create-setting.dto';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
+import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -38,13 +40,13 @@ export class SettingsService extends BaseService<
 
   /**
    * Rejects a favorites write unless every id is a non-deleted workflow of
-   * the caller's organization. Runs before the settings patch, so an invalid
-   * list is never partially stored.
+   * the caller's organization, and returns the validated list. Runs before
+   * the settings write, so an invalid list is never partially stored.
    */
   async assertFavoriteWorkflowIds(
     favoriteWorkflowIds: readonly string[] | null,
     organizationId: string,
-  ): Promise<void> {
+  ): Promise<readonly string[]> {
     // Optional DTO fields admit null; the column is a list, so clearing
     // favorites must be an explicit empty array.
     if (!Array.isArray(favoriteWorkflowIds)) {
@@ -63,7 +65,7 @@ export class SettingsService extends BaseService<
       );
     }
     if (favoriteWorkflowIds.length === 0) {
-      return;
+      return favoriteWorkflowIds;
     }
     if (!organizationId) {
       throw new BadRequestException(
@@ -81,6 +83,7 @@ export class SettingsService extends BaseService<
         `favoriteWorkflowIds contains workflows that are not available in this organization: ${unavailableIds.join(', ')}`,
       );
     }
+    return favoriteWorkflowIds;
   }
 
   /**
@@ -109,36 +112,79 @@ export class SettingsService extends BaseService<
   }
 
   /**
-   * Builds the list to persist for a favorites write that already passed
-   * `assertFavoriteWorkflowIds`. The stored list spans every organization the
-   * user belongs to, so a write replaces only the caller organization's subset:
+   * Applies a settings patch that carries `favoriteWorkflowIds`. The submitted
+   * ids are validated against the caller's organization first; nothing is
+   * written when they are rejected.
+   *
+   * The stored list spans every organization the user belongs to, so the
+   * write replaces only the caller organization's subset. The settings row is
+   * locked (`FOR UPDATE`) and the stored list is read, merged and written in
+   * one transaction, so concurrent saves from different organizations
+   * serialize instead of overwriting each other. Without an active
+   * organization there is no subset to replace, and the favorites column is
+   * left out of the write.
+   *
+   * Returns `null` when the settings record does not exist.
+   */
+  async patchWithFavoriteWorkflowIds(
+    settingsId: string,
+    settingsPatch: UpdateSettingDto,
+    organizationId: string,
+  ): Promise<SettingDocument | null> {
+    const { favoriteWorkflowIds, ...otherFields } = settingsPatch;
+    const submittedIds = await this.assertFavoriteWorkflowIds(
+      favoriteWorkflowIds ?? null,
+      organizationId,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "settings" WHERE "id" = ${settingsId} AND "isDeleted" = false FOR UPDATE`,
+      );
+      const setting = await tx.setting.findFirst({
+        select: { favoriteWorkflowIds: true },
+        where: { id: settingsId, isDeleted: false },
+      });
+      if (!setting) {
+        return null;
+      }
+
+      const data = organizationId
+        ? {
+            ...otherFields,
+            favoriteWorkflowIds: await this.mergeFavoriteWorkflowIds(
+              tx,
+              setting.favoriteWorkflowIds,
+              submittedIds,
+              organizationId,
+            ),
+          }
+        : otherFields;
+      const updated = await tx.setting.update({
+        data: this.normalizeData(new SettingEntity(data)),
+        where: { id: settingsId },
+      });
+      return this.normalizeDocument(updated);
+    });
+  }
+
+  /**
    * `(stored ids not in the caller org) ∪ submittedIds`. Caller-org ids whose
    * workflow was since deleted are dropped with the rest of that subset.
    *
    * Other-org ids stay first and the submitted ids are appended, so the front
    * of the list holds the least recently written organizations. Beyond
    * `MAX_STORED_FAVORITE_WORKFLOW_IDS`, those oldest other-org ids are pruned.
-   * Without an active organization there is no subset to replace, so the
-   * stored list is kept.
    */
-  async mergeFavoriteWorkflowIds(
-    settingsId: string,
+  private async mergeFavoriteWorkflowIds(
+    tx: Prisma.TransactionClient,
+    storedIds: readonly string[],
     submittedIds: readonly string[],
     organizationId: string,
   ): Promise<string[]> {
-    const setting = await this.prisma.setting.findFirst({
-      select: { favoriteWorkflowIds: true },
-      where: { id: settingsId, isDeleted: false },
-    });
-    const storedIds = setting?.favoriteWorkflowIds ?? [];
-
-    if (!organizationId) {
-      return storedIds;
-    }
-
     const organizationIds =
       storedIds.length > 0
-        ? await this.findOrganizationWorkflowIds(storedIds, organizationId)
+        ? await this.findOrganizationWorkflowIds(tx, storedIds, organizationId)
         : new Set<string>();
     const submitted = new Set(submittedIds);
     const otherOrganizationIds = storedIds.filter(
@@ -160,8 +206,9 @@ export class SettingsService extends BaseService<
   private async findLiveWorkflowIds(
     workflowIds: readonly string[],
     organizationId: string,
+    tx: Prisma.TransactionClient = this.prisma,
   ): Promise<Set<string>> {
-    const rows = await this.prisma.workflow.findMany({
+    const rows = await tx.workflow.findMany({
       select: { id: true },
       where: scopedWhere(organizationId, { id: { in: [...workflowIds] } }),
     });
@@ -170,19 +217,22 @@ export class SettingsService extends BaseService<
 
   /** Ids among `workflowIds` owned by the organization, deleted or not. */
   private async findOrganizationWorkflowIds(
+    tx: Prisma.TransactionClient,
     workflowIds: readonly string[],
     organizationId: string,
   ): Promise<Set<string>> {
-    const [liveIds, deletedRows] = await Promise.all([
-      this.findLiveWorkflowIds(workflowIds, organizationId),
-      this.prisma.workflow.findMany({
-        select: { id: true },
-        where: scopedWhere(organizationId, {
-          id: { in: [...workflowIds] },
-          isDeleted: true,
-        }),
+    const liveIds = await this.findLiveWorkflowIds(
+      workflowIds,
+      organizationId,
+      tx,
+    );
+    const deletedRows = await tx.workflow.findMany({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        id: { in: [...workflowIds] },
+        isDeleted: true,
       }),
-    ]);
+    });
     for (const row of deletedRows) {
       liveIds.add(row.id);
     }
