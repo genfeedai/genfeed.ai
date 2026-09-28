@@ -57,6 +57,7 @@ vi.mock('next-intl', () => ({
       counts: `${values?.generated} generated · ${values?.published} published · ${values?.credits} credits`,
       engagement: `${values?.impressions} impressions · ${values?.clicks} clicks · ${values?.visits} visits`,
       executionsError: 'Could not load agent executions.',
+      partialSample: `Partial sample: ${values?.postsSampled} of ${values?.matchedPosts} posts`,
       performanceError: 'Could not load agent performance.',
       platformNotSet: 'Platform not set',
       postMeta: `${values?.platform} · ${values?.state}`,
@@ -217,6 +218,32 @@ describe('AgentActivitySection', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading activity…');
     expect(screen.queryByText('No activity yet')).not.toBeInTheDocument();
+  });
+
+  it('warns when the performance metrics are a truncated sample', () => {
+    mocks.performance = {
+      ...mocks.performance,
+      snapshot: {
+        clicks: 0,
+        creditsSpent: 1,
+        generatedCount: 300,
+        impressions: 0,
+        publishedCount: 280,
+        sampling: {
+          matchedMeasurements: 900,
+          matchedPosts: 300,
+          measurementsSampled: 250,
+          postsSampled: 250,
+          truncated: true,
+        },
+      },
+    };
+
+    render(<AgentActivitySection {...baseProps} />);
+
+    expect(
+      screen.getByText('Partial sample: 250 of 300 posts'),
+    ).toBeInTheDocument();
   });
 
   it('keeps each source error visible inside the merged view', () => {

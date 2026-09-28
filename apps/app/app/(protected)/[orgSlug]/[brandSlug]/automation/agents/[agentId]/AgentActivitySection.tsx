@@ -157,6 +157,16 @@ export default function AgentActivitySection({
                 visits: snapshot.visits ?? detail('unavailable'),
               })}
             </p>
+            {snapshot.sampling?.truncated ? (
+              <p className="text-xs">
+                {detail('partialSample', {
+                  matchedMeasurements: snapshot.sampling.matchedMeasurements,
+                  matchedPosts: snapshot.sampling.matchedPosts,
+                  measurementsSampled: snapshot.sampling.measurementsSampled,
+                  postsSampled: snapshot.sampling.postsSampled,
+                })}
+              </p>
+            ) : null}
           </div>
         ) : null}
         {showReportState && isSnapshotError ? (

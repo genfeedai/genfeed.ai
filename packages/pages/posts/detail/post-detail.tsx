@@ -354,7 +354,7 @@ export default function PostDetail({
               onRepurpose={handleRepurpose}
               onPublishNow={handlePublishNow}
               onScheduleSave={handleScheduleSave}
-              isScheduleDirty={isScheduleDirty}
+              isScheduleDirty={isScheduleDirty && scheduleDraft !== ''}
               isSavingSchedule={isSavingSchedule}
             />
 
