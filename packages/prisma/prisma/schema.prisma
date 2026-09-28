@@ -1666,6 +1666,11 @@ model OrganizationSetting {
 // purely how an operator types and reads those two numbers in /admin (markup%
 // on cost vs margin% on sell price); it never changes what is stored or
 // billed.
+// The #5407 switch columns on "platform_settings" are retired (#5468: product
+// switches are PostHog feature flags). They are deliberately absent here so no
+// running code selects them, but still exist in the database until a later
+// release drops them — dropping in the same release would break instances
+// that are still rolling out. Do not let `migrate dev` generate that drop.
 model PlatformSetting {
   id                         String          @id @default(cuid())
   key                        String          @unique @default("platform")

@@ -38,6 +38,9 @@ export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG = 'desktop_local_workspace';
  */
 export const LIBRARY_CANVAS_FEATURE_FLAG = 'moodboard';
 
+/** Low-credits banner in the protected shell. Evaluated in PostHog (#5468). */
+export const LOW_CREDITS_BANNER_FEATURE_FLAG = 'low_credits_banner';
+
 export type AppRailFeatureFlagApp = keyof typeof APP_RAIL_FEATURE_FLAGS;
 
 export type AppRailFeatureFlagKey =

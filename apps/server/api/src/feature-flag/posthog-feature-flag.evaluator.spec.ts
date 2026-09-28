@@ -220,6 +220,18 @@ describe('PostHogFeatureFlagEvaluator', () => {
       });
     });
 
+    it.each([
+      { errorsWhileComputingFlags: true, flags: {} },
+      { flags: {}, quotaLimited: ['feature_flags'] },
+      { flags: { moderation: { enabled: false, failed: true } } },
+    ])('treats a failed evaluation as no answer: %o', async (body) => {
+      mocks.safeFetch.mockResolvedValue(jsonResponse(body));
+
+      await expect(
+        evaluator().evaluatePlatformFlags(),
+      ).resolves.toBeUndefined();
+    });
+
     it('returns undefined without PostHog or when it fails', async () => {
       mocks.isSaaS.mockReturnValue(false);
       await expect(

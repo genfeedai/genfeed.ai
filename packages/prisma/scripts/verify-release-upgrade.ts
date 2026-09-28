@@ -143,7 +143,7 @@ try {
     INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
     VALUES ('upgrade-member-no-brand', 'upgrade-org-no-brand', 'upgrade-user', 'upgrade-role', NOW());
     -- #5407/#5468 fixtures: the running deployment's platform-settings
-    -- singleton, carried across the switch-column add and drop.
+    -- singleton, carried across the switch-column add.
     INSERT INTO platform_settings (id, key, "updatedAt")
     VALUES ('upgrade-platform-settings', 'platform', NOW())`);
   await assert.rejects(
@@ -193,16 +193,8 @@ try {
     'upgrade-org',
   );
   // #5468: product switches are PostHog flags. The singleton survives the
-  // upgrade with its margins; the #5407 switch columns are gone.
-  assert.equal(
-    (
-      await db.query(
-        `SELECT count(*)::int AS columns FROM information_schema.columns
-         WHERE table_name = 'platform_settings' AND column_name = 'isMediaPerceptionEnabled'`,
-      )
-    ).rows[0].columns,
-    0,
-  );
+  // upgrade; the retired #5407 switch columns stay in the database for this
+  // release (unmapped in the Prisma schema) so rolling instances never break.
   assert.equal(
     (
       await db.query(

@@ -7,7 +7,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 type FeatureSettingsCacheEntry = {
   expiresAtMs: number;
@@ -22,7 +22,8 @@ type FeatureSettingsCacheEntry = {
  * (every agent tool result, every auth request, every publish assessment) cost
  * no network call, and a flag edit reaches every API and workers process
  * within {@link PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS}. Workers sweeps call
- * this on every tick.
+ * this on every tick. The first read happens on first use, never during boot,
+ * so PostHog latency cannot delay readiness.
  *
  * - No PostHog (Community, Desktop, self-hosted): the code defaults, with no
  *   network call.
@@ -31,7 +32,7 @@ type FeatureSettingsCacheEntry = {
  *   again rather than serving a guess for a whole TTL.
  */
 @Injectable()
-export class PlatformFeatureSettingsService implements OnModuleInit {
+export class PlatformFeatureSettingsService {
   private cache: FeatureSettingsCacheEntry | undefined;
   private pending: Promise<IPlatformFeatureSettings> | undefined;
 
@@ -39,10 +40,6 @@ export class PlatformFeatureSettingsService implements OnModuleInit {
     private readonly evaluator: PostHogFeatureFlagEvaluator,
     private readonly logger: LoggerService,
   ) {}
-
-  async onModuleInit(): Promise<void> {
-    await this.getFeatureSettings();
-  }
 
   async getFeatureSettings(): Promise<IPlatformFeatureSettings> {
     const cached = this.cache;

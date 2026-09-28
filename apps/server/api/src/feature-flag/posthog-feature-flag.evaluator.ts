@@ -13,14 +13,17 @@ const EVALUATE_TIMEOUT_MS = 800;
 
 interface PostHogFlagDetail {
   enabled?: unknown;
+  failed?: unknown;
   metadata?: { payload?: unknown };
   variant?: unknown;
 }
 
 interface PostHogFlagsResponse {
+  errorsWhileComputingFlags?: unknown;
   featureFlagPayloads?: Record<string, unknown>;
   featureFlags?: Record<string, unknown>;
   flags?: Record<string, PostHogFlagDetail | undefined>;
+  quotaLimited?: unknown;
 }
 
 type PostHogFlagResults = Record<string, IPlatformFeatureFlagResult>;
@@ -107,7 +110,15 @@ export class PostHogFeatureFlagEvaluator {
         return undefined;
       }
 
-      return readFlagResults((await response.json()) as PostHogFlagsResponse);
+      const payload = (await response.json()) as PostHogFlagsResponse;
+      if (isFailedEvaluation(payload)) {
+        this.loggerService.warn('PostHog could not compute feature flags', {
+          flagKey: context,
+        });
+        return undefined;
+      }
+
+      return readFlagResults(payload);
     } catch (error) {
       this.loggerService.warn('PostHog feature flag evaluation failed', {
         error,
@@ -141,6 +152,26 @@ function readDistinctId(
 ): string | undefined {
   const id = attributes?.id;
   return typeof id === 'string' && id.trim() !== '' ? id : undefined;
+}
+
+/**
+ * A 200 that is not an answer: PostHog hit an error computing some flags, is
+ * quota-limiting flag evaluation, or marks a flag as failed. Treating it as an
+ * empty answer would silently reset every missing flag to its default.
+ */
+function isFailedEvaluation(payload: PostHogFlagsResponse): boolean {
+  if (payload.errorsWhileComputingFlags === true) {
+    return true;
+  }
+  if (
+    Array.isArray(payload.quotaLimited) &&
+    payload.quotaLimited.includes('feature_flags')
+  ) {
+    return true;
+  }
+  return Object.values(payload.flags ?? {}).some(
+    (detail) => detail?.failed === true,
+  );
 }
 
 /**

@@ -125,14 +125,4 @@ describe('PlatformFeatureSettingsService (#5468)', () => {
     });
     expect(evaluate).toHaveBeenCalledTimes(2);
   });
-
-  it('warms the cache on boot', async () => {
-    const evaluate = vi.fn().mockResolvedValue(PERCEPTION_OFF);
-    const { service } = build(evaluate);
-
-    await service.onModuleInit();
-    await service.getFeatureSettings();
-
-    expect(evaluate).toHaveBeenCalledTimes(1);
-  });
 });

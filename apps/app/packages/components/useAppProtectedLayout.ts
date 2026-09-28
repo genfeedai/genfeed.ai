@@ -23,7 +23,11 @@ import {
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  LOW_CREDITS_BANNER_FEATURE_FLAG,
+} from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -415,7 +419,9 @@ export function useAppProtectedLayout(
 
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
-  const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
+  const isLowCreditsBannerEnabled = useFeatureFlag(
+    LOW_CREDITS_BANNER_FEATURE_FLAG,
+  );
   const isDesktopShell = isDesktopClient();
 
   return {

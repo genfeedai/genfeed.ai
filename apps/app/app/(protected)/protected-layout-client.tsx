@@ -6,6 +6,8 @@ import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organizatio
 import {
   APP_RAIL_FEATURE_FLAG_KEYS,
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  LOW_CREDITS_BANNER_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/contracts/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
@@ -23,9 +25,13 @@ import ApiAuthBridge from './api-auth-bridge';
 import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
+// Every flag a client surface reads comes from PostHog (#5468); there is no env
+// JSON of flag values to fall back on.
 const REMOTE_FEATURE_FLAG_KEYS = [
   ...APP_RAIL_FEATURE_FLAG_KEYS,
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  LOW_CREDITS_BANNER_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 ] as const;
 
