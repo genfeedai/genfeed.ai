@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
@@ -11,10 +10,8 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import { Button } from '@ui/primitives';
-import { Calendar, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -41,7 +38,6 @@ interface SiteFooterProps {
   sections: FooterSection[];
   socialLinks?: SocialLink[];
   showNewsletter?: boolean;
-  showBookCall?: boolean;
   brandTagline?: string;
   /** Footer background variant */
   variant?: FooterVariant;
@@ -84,7 +80,6 @@ export default function SiteFooter({
   sections,
   socialLinks = DEFAULT_SOCIAL_LINKS,
   showNewsletter = false,
-  showBookCall = false,
   brandTagline = 'Genfeed drafts the posts, makes the images and video, and publishes on your schedule.',
   variant = 'default',
   sitemapLabel = 'Sitemap',
@@ -184,43 +179,6 @@ export default function SiteFooter({
             )}
           </div>
         </div>
-
-        {/* Book a Call CTA */}
-        {showBookCall && (
-          <Card className="mb-24" bodyClassName="p-12">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
-              <div className="flex items-center gap-6">
-                <div className="flex size-16 items-center justify-center border border-border">
-                  <Calendar className="size-7 text-foreground" />
-                </div>
-
-                <div>
-                  <h3 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
-                    Want to chat?
-                  </h3>
-
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Schedule a 30-minute call to discuss your content needs.
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.DEFAULT}
-                asChild
-              >
-                <Link
-                  href={EnvironmentService.calendly}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Book a Call
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        )}
 
         {/* Bottom Bar — on phones the legal links stack above the copyright */}
         <div className="flex flex-col-reverse items-start gap-4 border-t border-border py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">

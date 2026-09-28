@@ -27,6 +27,19 @@ describe('deriveWebsiteEventsFromCta', () => {
     ]);
   });
 
+  it('maps agent actions to cta_click + connect_agent', () => {
+    expect(deriveWebsiteEventsFromCta({ action: 'connect_agent' })).toEqual([
+      WEBSITE_ANALYTICS_EVENTS.CTA_CLICK,
+      WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT,
+    ]);
+    expect(
+      deriveWebsiteEventsFromCta({ action: 'connect_agent_topbar' }),
+    ).toEqual([
+      WEBSITE_ANALYTICS_EVENTS.CTA_CLICK,
+      WEBSITE_ANALYTICS_EVENTS.CONNECT_AGENT,
+    ]);
+  });
+
   it('maps signup actions to cta_click + start_signup', () => {
     expect(deriveWebsiteEventsFromCta({ action: 'start_free_hero' })).toEqual([
       WEBSITE_ANALYTICS_EVENTS.CTA_CLICK,

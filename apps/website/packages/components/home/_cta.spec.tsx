@@ -7,13 +7,11 @@ vi.mock('@services/core/environment.service', () => ({
     apps: {
       app: 'https://app.genfeed.ai',
     },
-    calendly: 'https://calendly.com/genfeed/demo',
-    mcpConnectHref: 'https://app.genfeed.ai/connect',
   },
 }));
 
 describe('HomeCTA', () => {
-  it('closes on the sign-up primary and the demo secondary', () => {
+  it('closes on the agent action first, then the sign-up', () => {
     render(<HomeCTA />);
 
     expect(
@@ -24,13 +22,13 @@ describe('HomeCTA', () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Start creating', 'Book a demo']);
+    ).toEqual(['Connect your agent', 'Start for $0']);
     expect(
-      screen.getByRole('link', { name: /start creating/i }),
+      screen.getByRole('link', { name: /connect your agent/i }),
+    ).toHaveAttribute('href', '/agent#connect');
+    expect(
+      screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
-    expect(screen.getByRole('link', { name: /book a demo/i })).toHaveAttribute(
-      'href',
-      'https://calendly.com/genfeed/demo',
-    );
+    expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
   });
 });

@@ -7,19 +7,16 @@ import Link from 'next/link';
 
 const PILLAR_COLUMNS = [
   {
-    href: '/pricing',
     label: 'BYOK + Credit Packs',
     price: 'Free / PAYG',
     subtitle: 'Self-Serve',
   },
   {
-    href: '/pricing?tab=services',
     label: 'Done-For-You',
     price: 'Monthly Retainer',
     subtitle: 'Full Service',
   },
   {
-    href: '/pricing?tab=training',
     label: 'Setup & Training',
     price: 'One-Time',
     subtitle: 'Onboarding',

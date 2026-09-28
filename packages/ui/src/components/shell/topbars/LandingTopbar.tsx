@@ -10,7 +10,8 @@ export interface LandingTopbarProps {
   ctaLabel: string;
   logoHref?: string;
   /**
-   * Optional second action, rendered before the primary CTA from 360px up:
+   * Optional second action, opened in the same tab and rendered before the
+   * primary CTA from 360px up:
    * most paid traffic lands on a phone, and hiding the sales path below `sm`
    * left those visitors a single choice. Only a 320px screen is too narrow
    * for both buttons, and the primary one wins there.
@@ -39,13 +40,7 @@ export default function LandingTopbar({
               asChild
               className="h-11 px-3 text-sm tracking-[0.08em] max-[359px]:hidden sm:px-5 sm:tracking-[0.18em]"
             >
-              <Link
-                href={secondaryCtaHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {secondaryCtaLabel}
-              </Link>
+              <Link href={secondaryCtaHref}>{secondaryCtaLabel}</Link>
             </Button>
           ) : null}
 

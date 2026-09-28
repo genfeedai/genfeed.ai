@@ -1,6 +1,5 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
-import { Button } from '@ui/primitives/button';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   CtaSection,
   NeuralGrid,
@@ -169,26 +168,12 @@ export default function CloudContent() {
         {/* Pricing CTA */}
         <CtaSection
           title="Bring your team into the studio."
-          description="Book a demo when collaboration, multi-brand rollout, or enterprise terms need design first."
+          description="Every teammate connects their own agent to the same workspace, brand library, and approvals."
         >
-          <Button size={ButtonSize.PUBLIC} asChild>
-            <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-              Create now
-            </a>
-          </Button>
-          <Button
-            size={ButtonSize.PUBLIC}
-            variant={ButtonVariant.SECONDARY}
-            asChild
-          >
-            <a
-              href={EnvironmentService.calendly}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Book a Demo
-            </a>
-          </Button>
+          <AgentFirstActions
+            signUpHref={signUpHref}
+            trackingName="cloud_cta_click"
+          />
         </CtaSection>
       </PageLayout>
     </MarketingEntrance>
