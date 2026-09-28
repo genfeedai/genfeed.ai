@@ -4,83 +4,162 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ViewType } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Brand } from '@models/organization/brand.model';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type {
+  OrgLandingBrandFact,
+  OrgLandingBrandFactsProps,
+  OrgLandingBrandItemProps,
+  OrgLandingBrandLogoProps,
+} from '@props/pages/org-landing.props';
+import Card from '@ui/card/Card';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
+import CollectionView from '@ui/collection/CollectionView';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
-import { Building2, Globe, Plus } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { Fragment, useEffect } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
-function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
-  const cardHref = createBrandAppRoute(orgSlug, brand.slug, '/workspace');
+/** Up to this many brands the picker leads with logo cards; above it, a list. */
+const ORG_LANDING_GRID_BRAND_LIMIT = 6;
+
+const ORG_LANDING_VIEW_SURFACE = 'org.brands';
+
+function BrandLogo({ brand, className }: OrgLandingBrandLogoProps) {
+  if (brand.logoUrl) {
+    return (
+      <Image
+        alt={brand.label}
+        className={cn(
+          'shrink-0 rounded-lg object-cover outline-media',
+          className,
+        )}
+        height={40}
+        sizes="40px"
+        src={brand.logoUrl}
+        unoptimized={!canOptimizeImageSource(brand.logoUrl)}
+        width={40}
+      />
+    );
+  }
 
   return (
-    <Link
-      href={cardHref}
-      className="group flex flex-col gap-4 rounded-card bg-card p-5 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.04]"
+    <div
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-lg border border-border',
+        className,
+      )}
     >
-      <div className="flex items-center gap-3">
-        {brand.logoUrl ? (
-          <Image
-            alt={brand.label}
-            className="size-10 rounded-lg object-cover outline-media"
-            height={40}
-            sizes="40px"
-            src={brand.logoUrl}
-            unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-            width={40}
-          />
-        ) : (
-          <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-foreground/[0.04]">
-            <Building2 className="size-5 text-muted-foreground" />
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-medium text-foreground">
-            {brand.label}
-          </h3>
-          {brand.slug ? (
-            <p className="truncate text-xs text-muted-foreground">
-              @{brand.slug}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      <Building2 className="size-5 text-muted-foreground" />
+    </div>
+  );
+}
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        {brand.totalCredentials > 0 ? (
-          <span className="flex items-center gap-1">
-            <Globe className="size-3.5" />
-            {brand.totalCredentials} platform
-            {brand.totalCredentials === 1 ? '' : 's'}
-          </span>
-        ) : null}
-        {brand.createdAt ? (
-          <ClientFormattedDate format="date" value={brand.createdAt} />
-        ) : null}
-      </div>
+/** One line of known facts; empty fields are left out, never placeholders. */
+function BrandFacts({ brand, className }: OrgLandingBrandFactsProps) {
+  const translate = useTranslations('pages.organizationLanding');
+  const facts: OrgLandingBrandFact[] = [];
+
+  if (brand.slug) {
+    facts.push({ id: 'slug', node: `@${brand.slug}` });
+  }
+
+  if (brand.totalCredentials > 0) {
+    facts.push({
+      id: 'platforms',
+      node: translate('platformCount', { count: brand.totalCredentials }),
+    });
+  }
+
+  if (brand.createdAt) {
+    facts.push({
+      id: 'created',
+      node: <ClientFormattedDate format="date" value={brand.createdAt} />,
+    });
+  }
+
+  if (facts.length === 0) {
+    return null;
+  }
+
+  return (
+    <p
+      className={cn(
+        'min-w-0 truncate text-xs text-muted-foreground',
+        className,
+      )}
+      data-testid="org-brand-facts"
+    >
+      {facts.map((fact, index) => (
+        <Fragment key={fact.id}>
+          {index > 0 ? <span aria-hidden="true"> · </span> : null}
+          {fact.node}
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
+function BrandCard({ brand, href }: OrgLandingBrandItemProps) {
+  return (
+    <Link className="block h-full" data-testid="org-brand-card" href={href}>
+      <Card className="h-full hover:shadow-border-strong">
+        <div className="flex items-center gap-3">
+          <BrandLogo brand={brand} className="size-10" />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {brand.label}
+            </h3>
+            <BrandFacts brand={brand} className="mt-0.5" />
+          </div>
+        </div>
+      </Card>
     </Link>
   );
 }
 
+function BrandRow({ brand, href }: OrgLandingBrandItemProps) {
+  return (
+    <ListRow
+      data-testid="org-brand-row"
+      density="compact"
+      href={href}
+      leading={<BrandLogo brand={brand} className="size-8" />}
+      meta={<BrandFacts brand={brand} />}
+      title={brand.label}
+    />
+  );
+}
+
 export default function OrgLandingContent() {
+  const translate = useTranslations('pages.organizationLanding');
   const { brands, isReady } = useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { orgSlug, orgHref } = useOrgUrl();
   const { replace } = useRouter();
   const primaryBrandSlug = brands[0]?.slug ?? '';
   const accountType = getBrandOrganizationAccountType(brands[0]);
+  const { view, setView } = useCollectionViewPreference({
+    defaultView:
+      brands.length > ORG_LANDING_GRID_BRAND_LIMIT
+        ? ViewType.LIST
+        : ViewType.GRID,
+    surface: ORG_LANDING_VIEW_SURFACE,
+  });
 
   useEffect(() => {
     if (!isReady || isCurrentUserLoading || !currentUser) {
@@ -135,13 +214,14 @@ export default function OrgLandingContent() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground">Projects</h2>
+          <h2 className="text-2xl font-semibold text-foreground">
+            {translate('title')}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {brands.length} brand{brands.length === 1 ? '' : 's'} in this
-            workspace
+            {translate('brandCount', { count: brands.length })}
           </p>
         </div>
         <Button
@@ -152,16 +232,32 @@ export default function OrgLandingContent() {
         >
           <Link href={orgHref('/settings/brands')}>
             <Plus className="size-4" />
-            New Brand
+            {translate('newBrand')}
           </Link>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {brands.map((brand) => (
-          <BrandCard key={brand.id} brand={brand} orgSlug={orgSlug} />
-        ))}
-      </div>
+      <CollectionToolbar onViewChange={setView} view={view} />
+
+      <CollectionView
+        data-testid="org-brands"
+        getItemKey={(brand) => brand.id}
+        items={brands}
+        maxColumns={3}
+        renderGridItem={(brand) => (
+          <BrandCard
+            brand={brand}
+            href={createBrandAppRoute(orgSlug, brand.slug, '/workspace')}
+          />
+        )}
+        renderListItem={(brand) => (
+          <BrandRow
+            brand={brand}
+            href={createBrandAppRoute(orgSlug, brand.slug, '/workspace')}
+          />
+        )}
+        view={view}
+      />
     </div>
   );
 }

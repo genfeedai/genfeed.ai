@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { OverviewContentProps } from '@genfeedai/props/layout/overview.props';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -31,18 +32,12 @@ export function OverviewContent({
               {actionsTitle}
             </h2>
           </div>
-          <div
-            data-testid="overview-quick-actions"
-            className={cn(
-              'grid grid-cols-1 gap-3 md:grid-cols-2',
-              '2xl:grid-cols-4',
-            )}
-          >
+          <CollectionGrid data-testid="overview-quick-actions" maxColumns={4}>
             {cards.map((card) => (
               <Card
                 key={card.id}
                 className="h-full"
-                bodyClassName="flex h-full min-h-[220px] flex-col justify-between gap-6 p-5"
+                bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
@@ -65,7 +60,7 @@ export function OverviewContent({
                   </div>
                 </div>
 
-                <div className="mt-auto border-t border-white/[0.06] pt-4">
+                <div className="mt-auto border-t border-border pt-4">
                   {card.onClick ? (
                     <Button
                       onClick={card.onClick}
@@ -87,7 +82,7 @@ export function OverviewContent({
                 </div>
               </Card>
             ))}
-          </div>
+          </CollectionGrid>
         </section>
       ) : null}
 

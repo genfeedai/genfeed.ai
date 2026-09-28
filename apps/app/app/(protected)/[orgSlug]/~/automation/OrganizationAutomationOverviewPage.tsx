@@ -8,18 +8,21 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   OrganizationAutomationBrand,
   OrganizationAutomationBrandCardProps,
 } from '@props/automation/organization-automation-overview-page.props';
 import Card from '@ui/card/Card';
-import CardIcon from '@ui/card/icon/CardIcon';
+import CollectionGrid from '@ui/collection/CollectionGrid';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionSection from '@ui/collection/CollectionSection';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 /**
@@ -29,18 +32,18 @@ import { useMemo } from 'react';
 const AUTOMATION_SURFACES = [
   {
     icon: Workflow,
-    label: 'Workflows',
+    id: 'workflows',
     path: APP_ROUTES.AUTOMATION.WORKFLOWS,
   },
-  { icon: Cpu, label: 'Runs', path: APP_ROUTES.AUTOMATION.RUNS },
+  { icon: Cpu, id: 'runs', path: APP_ROUTES.AUTOMATION.RUNS },
   {
     icon: MessageSquare,
-    label: 'Agents',
+    id: 'agents',
     path: APP_ROUTES.AUTOMATION.AGENTS,
   },
   {
     icon: ChartLine,
-    label: 'Analytics',
+    id: 'analytics',
     path: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
 ] as const;
@@ -52,6 +55,7 @@ const AUTOMATION_SURFACES = [
  * global view: every brand's automation entry points in one place.
  */
 export default function OrganizationAutomationOverviewPage() {
+  const translate = useTranslations('common.automation.organizationOverview');
   const { brands, isReady } = useBrand();
   const { orgSlug } = useOrgUrl();
 
@@ -74,57 +78,58 @@ export default function OrganizationAutomationOverviewPage() {
             ),
             id,
             label: brand.label || slug,
+            slug,
             surfaces: AUTOMATION_SURFACES.map((surface) => ({
               href: createBrandAppRoute(orgSlug, slug, surface.path),
               icon: surface.icon,
-              label: surface.label,
+              id: surface.id,
+              label: translate(`surfaces.${surface.id}`),
             })),
+            totalCredentials: brand.totalCredentials,
           },
         ];
       }),
-    [brands, orgSlug],
+    [brands, orgSlug, translate],
   );
 
   return (
     <OverviewLayout
       label={APP_DISPLAY_LABELS.automation}
-      description="Workflows, agents, and run history across every brand in this organization"
+      description={translate('description')}
       icon={Workflow}
     >
       {isReady && brandCards.length === 0 ? (
         <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
           <Workflow className="size-10 text-foreground/20" />
           <h2 className="text-lg font-semibold text-foreground">
-            Automation needs a brand
+            {translate('emptyTitle')}
           </h2>
           <p className="max-w-md text-sm text-foreground/55">
-            Automation runs against a brand. Create your first brand, then open
-            Automation to build workflows and autopilot policies for it.
+            {translate('emptyDescription')}
           </p>
           <Button
             asChild
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
           >
-            <Link href={`/${orgSlug}/~/settings/brands`}>Go to brands</Link>
+            <Link href={`/${orgSlug}/~/settings/brands`}>
+              {translate('emptyAction')}
+            </Link>
           </Button>
         </div>
       ) : null}
 
-      {isReady && brandCards.length > 0 ? (
-        <section>
-          <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
-            Brands
-          </h2>
-          <div
-            data-testid="organization-automation-brands"
-            className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
-          >
+      {isReady ? (
+        <CollectionSection
+          itemCount={brandCards.length}
+          title={translate('brandsTitle')}
+        >
+          <CollectionGrid data-testid="organization-automation-brands">
             {brandCards.map((brand) => (
               <OrganizationAutomationBrandCard key={brand.id} brand={brand} />
             ))}
-          </div>
-        </section>
+          </CollectionGrid>
+        </CollectionSection>
       ) : null}
     </OverviewLayout>
   );
@@ -133,60 +138,51 @@ export default function OrganizationAutomationOverviewPage() {
 function OrganizationAutomationBrandCard({
   brand,
 }: OrganizationAutomationBrandCardProps) {
+  const translate = useTranslations('common.automation.organizationOverview');
+  const { push } = useRouter();
+  const facts = [
+    `@${brand.slug}`,
+    brand.totalCredentials > 0
+      ? translate('platformCount', { count: brand.totalCredentials })
+      : null,
+  ].filter((fact): fact is string => Boolean(fact));
+
   return (
     <Card
-      className="h-full shadow-none"
-      bodyClassName="flex h-full flex-col justify-between gap-5 p-4"
+      bodyClassName="flex h-full flex-col justify-between gap-4"
+      className="h-full"
+      data-testid="organization-automation-brand-card"
     >
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <CardIcon
-            icon={Workflow}
-            className={cn(
-              'flex h-10 w-10 items-center justify-center border border-border',
-              'bg-indigo-500/12 text-indigo-300',
-            )}
-            iconClassName="h-5 w-5"
-          />
-          <div className="min-w-0">
-            <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
-              Brand
-            </p>
-            <h3 className="mt-1 truncate text-base font-semibold tracking-[-0.02em] text-foreground">
-              {brand.label}
-            </h3>
-          </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <Workflow aria-hidden="true" className="size-4 shrink-0 text-primary" />
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold text-foreground">
+            {brand.label}
+          </h3>
+          <p className="truncate text-xs text-muted-foreground">
+            {facts.join(' · ')}
+          </p>
         </div>
-
-        <ul className="grid grid-cols-2 gap-2">
-          {brand.surfaces.map((surface) => (
-            <li key={surface.label}>
-              <Button
-                asChild
-                withWrapper={false}
-                variant={ButtonVariant.GHOST}
-                className="w-full justify-start"
-              >
-                <Link href={surface.href}>
-                  <surface.icon className="size-4" />
-                  {surface.label}
-                </Link>
-              </Button>
-            </li>
-          ))}
-        </ul>
       </div>
 
-      <div className="border-t border-border pt-4">
-        <Button
-          asChild
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-          className="text-xs tracking-[0.12em]"
-        >
-          <Link href={brand.href}>Open Automation</Link>
-        </Button>
-      </div>
+      <CollectionItemActions
+        overflow={brand.surfaces.map((surface) => ({
+          icon: <surface.icon className="size-4" />,
+          id: surface.id,
+          label: surface.label,
+          onSelect: () => push(surface.href),
+        }))}
+        overflowLabel={translate('moreActions', { brand: brand.label })}
+        primary={
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={brand.href}>{translate('openAutomation')}</Link>
+          </Button>
+        }
+      />
     </Card>
   );
 }

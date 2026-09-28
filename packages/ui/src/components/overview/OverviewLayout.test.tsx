@@ -12,6 +12,7 @@ describe('OverviewLayout', () => {
       description: 'Start something new',
       href: '#',
       icon: Sparkles,
+      id: 'create',
       label: 'Create',
     },
   ];
@@ -54,5 +55,20 @@ describe('OverviewLayout', () => {
     expect(quickActionCard).toHaveClass('rounded-card');
     expect(quickActionCard).toHaveClass('shadow-border');
     expect(quickActionCard).toHaveClass('bg-card');
+  });
+
+  it('lays quick actions on the container ladder without a fixed tile height', () => {
+    const { container } = render(
+      <OverviewLayout label="Overview" cards={cards} />,
+    );
+
+    const grid = screen.getByTestId('overview-quick-actions')
+      .firstElementChild as HTMLElement;
+    expect(screen.getByTestId('overview-quick-actions')).toHaveClass(
+      '@container',
+    );
+    expect(grid).toHaveClass('@[80rem]:grid-cols-4', 'gap-4');
+    expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
+    expect(container.innerHTML).not.toContain('min-h-[220px]');
   });
 });
