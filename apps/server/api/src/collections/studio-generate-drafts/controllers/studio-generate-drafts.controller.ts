@@ -36,10 +36,14 @@ export class StudioGenerateDraftsController {
   async findCurrent(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query('brand') brandId?: string,
+    @Query('brand') brand?: unknown,
   ): Promise<JsonApiSingleResponse> {
+    // `?brand=a&brand=b` arrives as an array: one brand, or a 400.
+    if (brand !== undefined && typeof brand !== 'string') {
+      throw new BadRequestException('Query param `brand` must be one brand id');
+    }
     const draft = await this.studioGenerateDraftsService.findCurrent(
-      this.getScope(user, brandId),
+      this.getScope(user, brand),
     );
 
     // No draft yet is the normal first-visit state, not a failed request.

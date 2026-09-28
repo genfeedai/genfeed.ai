@@ -9,8 +9,9 @@ import type { UpsertStudioGenerateDraftDto } from '@api/collections/studio-gener
 import { StudioGenerateDraftsService } from '@api/collections/studio-generate-drafts/services/studio-generate-drafts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { MemberRole } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const scope = {
@@ -58,6 +59,7 @@ function buildRow(overrides: Record<string, unknown> = {}) {
 
 describe('StudioGenerateDraftsService', () => {
   const brand = { findFirst: vi.fn() };
+  const member = { findFirst: vi.fn() };
   const ingredient = { findMany: vi.fn() };
   const studioGenerateDraft = {
     create: vi.fn(),
@@ -70,9 +72,18 @@ describe('StudioGenerateDraftsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+    member.findFirst.mockResolvedValue({
+      brands: [],
+      role: { key: MemberRole.USER },
+    });
     studioGenerateDraft.updateMany.mockResolvedValue({ count: 1 });
     service = new StudioGenerateDraftsService(
-      { brand, ingredient, studioGenerateDraft } as unknown as PrismaService,
+      {
+        brand,
+        ingredient,
+        member,
+        studioGenerateDraft,
+      } as unknown as PrismaService,
       logger as unknown as LoggerService,
     );
   });
@@ -104,6 +115,64 @@ describe('StudioGenerateDraftsService', () => {
       where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(studioGenerateDraft.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('checks the caller membership in the draft organization', async () => {
+    studioGenerateDraft.findFirst.mockResolvedValueOnce(null);
+
+    await service.findCurrent(scope);
+
+    expect(member.findFirst).toHaveBeenCalledWith({
+      select: {
+        brands: { select: { id: true } },
+        role: { select: { key: true } },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'opaque-user-id',
+      },
+    });
+  });
+
+  it('refuses a brand outside the member assigned brands', async () => {
+    member.findFirst.mockResolvedValue({
+      brands: [{ id: 'brand-other' }],
+      role: { key: MemberRole.USER },
+    });
+
+    await expect(service.findCurrent(scope)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.upsertCurrent(dto, scope)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(studioGenerateDraft.findFirst).not.toHaveBeenCalled();
+    expect(studioGenerateDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('lets an assigned member and an admin reach the brand', async () => {
+    studioGenerateDraft.findFirst.mockResolvedValue(null);
+    member.findFirst.mockResolvedValueOnce({
+      brands: [{ id: 'brand-1' }],
+      role: { key: MemberRole.USER },
+    });
+    await expect(service.findCurrent(scope)).resolves.toBeNull();
+
+    member.findFirst.mockResolvedValueOnce({
+      brands: [{ id: 'brand-other' }],
+      role: { key: MemberRole.ADMIN },
+    });
+    await expect(service.findCurrent(scope)).resolves.toBeNull();
+  });
+
+  it('refuses a caller without an active membership', async () => {
+    member.findFirst.mockResolvedValue(null);
+
+    await expect(service.findCurrent(scope)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('drops references whose ingredient is deleted or outside the brand on read', async () => {

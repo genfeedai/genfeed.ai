@@ -8,6 +8,7 @@ import type { StudioGenerateDraftDocument } from '@api/collections/studio-genera
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { MemberRole } from '@genfeedai/contracts';
 import type {
   IStudioGenerateDraft,
   KnowledgeSelection,
@@ -17,7 +18,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 
 export interface StudioGenerateDraftRequestScope {
   brandId: string;
@@ -146,7 +151,7 @@ export class StudioGenerateDraftsService {
   async findCurrent(
     scope: StudioGenerateDraftRequestScope,
   ): Promise<IStudioGenerateDraft | null> {
-    await this.assertBrandInOrganization(scope);
+    await this.assertBrandAccessible(scope);
     const draft = await this.prisma.studioGenerateDraft.findFirst({
       where: scopedWhere(scope.organizationId, {
         brandId: scope.brandId,
@@ -177,7 +182,7 @@ export class StudioGenerateDraftsService {
     ) {
       throw new BadRequestException('Composer settings are too large');
     }
-    await this.assertBrandInOrganization(scope);
+    await this.assertBrandAccessible(scope);
 
     const references = dedupeReferences(dto.references);
     const attachments = dedupeReferences(dto.attachments);
@@ -270,15 +275,48 @@ export class StudioGenerateDraftsService {
     return draft;
   }
 
-  private async assertBrandInOrganization(
+  /**
+   * The brand must belong to the caller's organization and be open to the
+   * caller's membership: owners and admins reach every brand, other members
+   * only their assigned brands when they have assignments. Same rule as the
+   * Remotion compositions and the notification inbox.
+   */
+  private async assertBrandAccessible(
     scope: StudioGenerateDraftRequestScope,
   ): Promise<void> {
-    const brand = await this.prisma.brand.findFirst({
-      select: { id: true },
-      where: scopedWhere(scope.organizationId, { id: scope.brandId }),
-    });
+    const [brand, member] = await Promise.all([
+      this.prisma.brand.findFirst({
+        select: { id: true },
+        where: scopedWhere(scope.organizationId, { id: scope.brandId }),
+      }),
+      this.prisma.member.findFirst({
+        select: {
+          brands: { select: { id: true } },
+          role: { select: { key: true } },
+        },
+        where: scopedWhere(scope.organizationId, {
+          isActive: true,
+          userId: scope.userId,
+        }),
+      }),
+    ]);
     if (!brand) {
       throw new NotFoundException('Brand', scope.brandId);
+    }
+    if (!member) {
+      throw new ForbiddenException('An active membership is required');
+    }
+    const isAdmin =
+      member.role.key === MemberRole.OWNER ||
+      member.role.key === MemberRole.ADMIN;
+    if (
+      !isAdmin &&
+      member.brands.length > 0 &&
+      !member.brands.some((assigned) => assigned.id === scope.brandId)
+    ) {
+      throw new ForbiddenException(
+        'This brand is not assigned to your membership',
+      );
     }
   }
 

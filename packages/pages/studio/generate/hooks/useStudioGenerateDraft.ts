@@ -1,18 +1,21 @@
 'use client';
 
 import type { IStudioGenerateDraft } from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   StudioGenerateDraftPayload,
   StudioGenerateDraftSaveStatus,
 } from '@pages/studio/generate/types';
 import {
+  StudioGenerateDraftRejectedError,
   type StudioGenerateDraftWrite,
   studioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
 import { StudioGenerateDraftsService } from '@services/content/studio-generate-drafts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isServiceOperationError } from '@services/core/operation-error';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -59,6 +62,20 @@ function serializeDraftContent(payload: StudioGenerateDraftPayload): string {
   ]);
 }
 
+/**
+ * Client errors the same request will always get again. 408 and 429 are
+ * worth retrying; so is anything without a status (network, 5xx).
+ */
+const PERMANENT_DRAFT_WRITE_STATUSES = new Set([400, 403, 404, 409, 410, 422]);
+
+function isPermanentWriteFailure(error: unknown): boolean {
+  return (
+    isServiceOperationError(error) &&
+    error.status !== undefined &&
+    PERMANENT_DRAFT_WRITE_STATUSES.has(error.status)
+  );
+}
+
 function hasDraftContent(payload: StudioGenerateDraftPayload): boolean {
   return (
     payload.prompt.trim().length > 0 ||
@@ -92,6 +109,11 @@ export function useStudioGenerateDraft({
   const getDraftsService = useAuthedService((token: string) =>
     StudioGenerateDraftsService.getInstance(token),
   );
+  // Tags unsent drafts kept in browser storage, so a shared browser never
+  // replays one user's draft under another.
+  const { userId } = useAuthIdentity();
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
   const [loadedBrandId, setLoadedBrandId] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveStatus, setSaveStatus] =
@@ -128,13 +150,40 @@ export function useStudioGenerateDraft({
   const loadRetryAttemptRef = useRef(0);
   const isArmed = loadedBrandId !== null && loadedBrandId === brandId;
 
+  // A queued write is bound to the user who typed it: the token is resolved
+  // when the write runs, so a write whose owner is no longer signed in here
+  // is dropped rather than sent under someone else's session.
   const write = useCallback<StudioGenerateDraftWrite>(
-    async (targetBrandId, nextPayload, options) => {
+    async (targetBrandId, nextPayload, { isKeepalive, ownerId }) => {
+      if (ownerId !== userIdRef.current) {
+        throw new StudioGenerateDraftRejectedError(
+          'The draft belongs to a user who is no longer signed in',
+        );
+      }
       const service = await getDraftsServiceRef.current();
-      return await service.saveCurrent(targetBrandId, nextPayload, options);
+      try {
+        return await service.saveCurrent(targetBrandId, nextPayload, {
+          isKeepalive,
+        });
+      } catch (error) {
+        if (isPermanentWriteFailure(error)) {
+          throw new StudioGenerateDraftRejectedError(
+            'The server rejected the draft',
+          );
+        }
+        throw error;
+      }
     },
     [],
   );
+
+  // A different user signed in on this tab: whatever the previous user
+  // queued is dropped, never sent under the new session.
+  useEffect(() => {
+    if (userId) {
+      studioGenerateDraftOutbox.discardForeign(userId);
+    }
+  }, [userId]);
 
   // Stable on purpose: it reads everything through refs, so the brand-change
   // cleanup below never fires for an identity change alone.
@@ -146,6 +195,7 @@ export function useStudioGenerateDraft({
       }
       studioGenerateDraftOutbox.enqueue(targetBrandId, payloadRef.current, {
         isKeepalive: options.isKeepalive,
+        ownerId: userIdRef.current,
         write,
       });
     },
@@ -173,8 +223,19 @@ export function useStudioGenerateDraft({
 
     void (async () => {
       try {
-        // A write queued as this brand was last left must land before its
-        // draft is read back, or the read would restore the older content.
+        // A write the last page never got to send is replayed first, and any
+        // queued or retrying write must land before the draft is read back,
+        // or the read would restore the older content over it.
+        const ownerId = userIdRef.current;
+        const unsent = ownerId
+          ? studioGenerateDraftOutbox.readUnsent(brandId, ownerId)
+          : null;
+        if (unsent) {
+          studioGenerateDraftOutbox.enqueue(brandId, unsent, {
+            ownerId,
+            write,
+          });
+        }
         await studioGenerateDraftOutbox.whenIdle(brandId);
         const service = await getDraftsServiceRef.current();
         const draft = await service.getCurrent(brandId, controller.signal);
@@ -244,7 +305,14 @@ export function useStudioGenerateDraft({
         window.clearTimeout(retryTimer);
       }
     };
-  }, [brandId, canRestore, loadAttempt, loadedBrandId, notificationsService]);
+  }, [
+    brandId,
+    canRestore,
+    loadAttempt,
+    loadedBrandId,
+    notificationsService,
+    write,
+  ]);
 
   useEffect(() => {
     if (!isArmed) {

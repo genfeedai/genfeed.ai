@@ -80,6 +80,13 @@ describe('StudioGenerateDraftsController', () => {
     expect(service.upsertCurrent).not.toHaveBeenCalled();
   });
 
+  it('rejects a repeated brand query with a 400 instead of a crash', async () => {
+    await expect(
+      controller.findCurrent(request, user, ['brand-a', 'brand-b']),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(service.findCurrent).not.toHaveBeenCalled();
+  });
+
   it('requires an authenticated organization', async () => {
     await expect(
       controller.upsertCurrent(request, { ...user, organizationId: '' }, dto),

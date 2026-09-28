@@ -355,6 +355,10 @@ vi.mock(
   },
 );
 
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ userId: 'user-1' }),
+}));
+
 vi.mock('@services/content/studio-generate-drafts.service', () => ({
   StudioGenerateDraftsService: {
     getInstance: () => ({
@@ -469,6 +473,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
     mocks.findByIds.mockResolvedValue([]);
+    window.localStorage.clear();
     mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getDraft.mockResolvedValue(null);
     mocks.saveDraft.mockResolvedValue({});
@@ -1692,6 +1697,46 @@ describe('StudioGenerateWorkspace', () => {
           'brand-1',
           expect.any(AbortSignal),
         ),
+      );
+    });
+
+    it('leaves the composer untouched when the reference lookup fails, then restores it whole', async () => {
+      mocks.getDraft.mockResolvedValue(savedDraft);
+      mocks.findByIds
+        .mockRejectedValueOnce(new Error('lookup failed'))
+        .mockResolvedValueOnce([
+          {
+            category: 'image',
+            cdnUrl: 'https://cdn.example/library.png',
+            id: 'library-1',
+          },
+        ]);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+      expect(lastComposerProps().prompt).toBe('');
+      expect(mocks.restoreSettings).not.toHaveBeenCalled();
+
+      // The load retries; the prompt it did not apply is not an edit.
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(2), {
+        timeout: 4000,
+      });
+      await waitFor(() =>
+        expect(lastComposerProps().prompt).toBe(savedDraft.prompt),
+      );
+      expect(lastComposerProps().attachedAssets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'library-1', source: 'library' }),
+        ]),
+      );
+      expect(mocks.saveDraft).not.toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          prompt: savedDraft.prompt,
+          references: [],
+        }),
+        expect.anything(),
       );
     });
 

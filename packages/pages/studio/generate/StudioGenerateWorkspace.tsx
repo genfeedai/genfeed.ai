@@ -1205,8 +1205,39 @@ export default function StudioGenerateWorkspace(): ReactElement {
     ],
   );
 
+  // Everything that can fail (the asset lookup) runs first; the composer
+  // is only touched once the whole restoration is known and still wanted,
+  // so a failed lookup leaves it untouched for the load retry.
   const restoreDraft = useCallback(
     async (draft: IStudioGenerateDraft, signal: AbortSignal) => {
+      const referenceIds = [...draft.references, ...draft.attachments].map(
+        (reference) => reference.id,
+      );
+      let assetsById = new Map<string, IIngredient>();
+      if (referenceIds.length > 0) {
+        const service = await getIngredientsService();
+        const assets = await service.findByIds(referenceIds);
+        assetsById = new Map(assets.map((asset) => [asset.id, asset]));
+      }
+      if (signal.aborted) {
+        return 0;
+      }
+
+      const references = draft.references.flatMap((reference) => {
+        const asset = assetsById.get(reference.id);
+        return (asset && toContentReference(asset, reference.role)) ?? [];
+      });
+      const restoredRoles = new Map<string, StudioGenerateReferenceRole>();
+      const restoredUploads = draft.attachments.flatMap((reference) => {
+        const asset = assetsById.get(reference.id);
+        const attachment = asset ? toRestoredAttachment(asset) : null;
+        if (!attachment) {
+          return [];
+        }
+        restoredRoles.set(attachment.id, reference.role);
+        return [attachment];
+      });
+
       restoreSettings(
         sanitizeStudioGenerateState({
           settingsByType: draft.settingsByType,
@@ -1218,35 +1249,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         brandId,
         value: draft.knowledgeSelection,
       });
-
-      const referenceIds = [...draft.references, ...draft.attachments].map(
-        (reference) => reference.id,
-      );
-      if (referenceIds.length === 0) {
-        return 0;
-      }
-
-      const service = await getIngredientsService();
-      const assets = await service.findByIds(referenceIds);
-      if (signal.aborted) {
-        return 0;
-      }
-      const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
-      const references = draft.references.flatMap((reference) => {
-        const asset = assetsById.get(reference.id);
-        return (asset && toContentReference(asset, reference.role)) ?? [];
-      });
-      restoredRolesRef.current.clear();
-      const restoredUploads = draft.attachments.flatMap((reference) => {
-        const asset = assetsById.get(reference.id);
-        const attachment = asset ? toRestoredAttachment(asset) : null;
-        if (!attachment) {
-          return [];
-        }
-        restoredRolesRef.current.set(attachment.id, reference.role);
-        return [attachment];
-      });
-
+      restoredRolesRef.current = restoredRoles;
       setPendingRestoredUploadIds(
         restoredUploads.length > 0
           ? restoredUploads.map((attachment) => attachment.id)
@@ -1434,7 +1437,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 <p
                   aria-live="polite"
                   className={`mb-1 text-right text-2xs ${
-                    draftSaveStatus === 'error'
+                    draftSaveStatus === 'error' || draftSaveStatus === 'failed'
                       ? 'text-destructive'
                       : 'text-muted-foreground'
                   }`}
@@ -1446,7 +1449,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
                     ? translate('draft.saving')
                     : draftSaveStatus === 'error'
                       ? translate('draft.saveFailed')
-                      : translate('draft.saved')}
+                      : draftSaveStatus === 'failed'
+                        ? translate('draft.saveRejected')
+                        : translate('draft.saved')}
                 </p>
               )}
               <StudioRemixRunScope

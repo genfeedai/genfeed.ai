@@ -589,6 +589,7 @@
     "draft": {
       "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",
       "saveFailed": "Draft not saved. Retrying…",
+      "saveRejected": "Draft could not be saved.",
       "saved": "Draft saved",
       "saving": "Saving draft…"
     },

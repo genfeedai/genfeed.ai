@@ -324,4 +324,7 @@ export type StudioGenerateDraftSaveStatus =
   | 'idle'
   | 'saving'
   | 'saved'
-  | 'error';
+  /** A save failed and is being retried. */
+  | 'error'
+  /** The server rejected the draft; it will not be retried. */
+  | 'failed';

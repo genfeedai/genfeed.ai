@@ -2,6 +2,7 @@ import type { IStudioGenerateDraft } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateDraftPayload } from '@pages/studio/generate/types';
 import {
   createStudioGenerateDraftOutbox,
+  STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX,
   type StudioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   getCurrent: vi.fn(),
   outbox: { current: null as StudioGenerateDraftOutbox | null },
   saveCurrent: vi.fn(),
+  userId: { current: 'user-1' as string | null },
   warning: vi.fn(),
 }));
 
@@ -46,6 +48,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
       }),
       [],
     ),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ userId: mocks.userId.current }),
 }));
 
 vi.mock('@services/content/studio-generate-drafts.service', () => ({
@@ -129,6 +135,8 @@ function savedPrompts(): string[] {
 describe('useStudioGenerateDraft', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
+    mocks.userId.current = 'user-1';
     mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getCurrent.mockResolvedValue(null);
     mocks.saveCurrent.mockResolvedValue({});
@@ -279,6 +287,95 @@ describe('useStudioGenerateDraft', () => {
     });
     await waitFor(() => expect(savedPrompts()).toEqual(['typed']));
     expect(view.onRestore).not.toHaveBeenCalled();
+  });
+
+  it('replays a draft the previous page never got to send before loading', async () => {
+    window.localStorage.setItem(
+      `${STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX}:brand-1`,
+      JSON.stringify({ ownerId: 'user-1', payload: buildPayload('unsent B') }),
+    );
+    mocks.getCurrent.mockResolvedValueOnce(buildDraft('unsent B'));
+    const view = renderDraft();
+
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    expect(savedPrompts()).toEqual(['unsent B']);
+    expect(mocks.saveCurrent.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.getCurrent.mock.invocationCallOrder[0] ?? 0,
+    );
+    await waitFor(() => expect(view.onRestore).toHaveBeenCalled());
+  });
+
+  it("never replays another user's unsent draft", async () => {
+    window.localStorage.setItem(
+      `${STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX}:brand-1`,
+      JSON.stringify({ ownerId: 'user-2', payload: buildPayload('not mine') }),
+    );
+    renderDraft();
+
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    expect(mocks.saveCurrent).not.toHaveBeenCalled();
+  });
+
+  it('waits for a write still retrying before reading the draft back', async () => {
+    // No storage: this isolates the wait on a retrying in-memory write.
+    mocks.outbox.current = createStudioGenerateDraftOutbox({
+      getStorage: () => null,
+      retryBaseMs: 300,
+    });
+    const failingThenOk = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({});
+    mocks.outbox.current.enqueue('brand-1', buildPayload('pending B'), {
+      ownerId: 'user-1',
+      write: failingThenOk,
+    });
+    await waitFor(() => expect(failingThenOk).toHaveBeenCalledTimes(1));
+
+    renderDraft();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    // B is waiting on its retry: reading now would restore the older draft.
+    expect(mocks.getCurrent).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(failingThenOk).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalledTimes(1));
+  });
+
+  it('never sends a queued draft under another user after an in-tab switch', async () => {
+    const view = renderDraft();
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    mocks.saveCurrent.mockRejectedValueOnce(new Error('offline'));
+    view.rerender({ ...baseProps(view), payload: buildPayload('user-1 text') });
+    await waitFor(() => expect(savedPrompts()).toEqual(['user-1 text']));
+
+    // user-2 signs in on this tab while user-1's write waits on its retry.
+    mocks.userId.current = 'user-2';
+    view.rerender({ ...baseProps(view), payload: buildPayload('user-1 text') });
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    expect(savedPrompts()).toEqual(['user-1 text']);
+  });
+
+  it('stops on a rejected draft and says it could not be saved', async () => {
+    const rejection = Object.assign(new Error('Bad Request'), {
+      name: 'ServiceOperationError',
+      status: 400,
+    });
+    mocks.saveCurrent.mockRejectedValue(rejection);
+    const view = renderDraft();
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    view.rerender({ ...baseProps(view), payload: buildPayload('rejected') });
+
+    await waitFor(() => expect(view.result.current.saveStatus).toBe('failed'));
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    expect(mocks.saveCurrent).toHaveBeenCalledTimes(1);
   });
 
   it('saves pending edits to the brand being left, not the next one', async () => {
