@@ -23,6 +23,7 @@ export interface StitchFixtureRow {
   category: string;
   generationError: string | null;
   generationSource: string | null;
+  generationStage?: string | null;
   id: string;
   isDeleted: boolean;
   mergeSettings: unknown;
@@ -35,6 +36,7 @@ export interface StitchFixtureRow {
   sources: string[];
   status: string;
   transformations: string[];
+  updatedAt?: Date;
   userId: string | null;
   workflowExecutionId?: string | null;
 }
@@ -53,6 +55,14 @@ function matchesCondition(value: unknown, condition: unknown): boolean {
     !Array.isArray(condition)
   ) {
     const record = condition as Record<string, unknown>;
+    if ('startsWith' in record) {
+      return (
+        typeof value === 'string' && value.startsWith(String(record.startsWith))
+      );
+    }
+    if ('lt' in record) {
+      return value instanceof Date && value < (record.lt as Date);
+    }
     if ('in' in record) {
       return (record.in as unknown[]).includes(value);
     }
@@ -100,6 +110,8 @@ export class VideoStitchFixture {
   readonly service: VideoStitchService;
   /** Makes caption transcription fail, as Whisper does on silent input. */
   isTranscriptionFailing = false;
+  /** Makes the completion socket event throw, as a flaky publisher can. */
+  isCompletionEventFailing = false;
   private sequence = 0;
 
   constructor() {
@@ -231,7 +243,8 @@ export class VideoStitchFixture {
           const hits = [...this.rows.values()].filter((candidate) =>
             matches(candidate, where),
           );
-          for (const hit of hits) Object.assign(hit, data);
+          for (const hit of hits)
+            Object.assign(hit, data, { updatedAt: new Date() });
           return { count: hits.length };
         },
       },
@@ -272,6 +285,7 @@ export class VideoStitchFixture {
           category: String(input.category),
           generationError: null,
           generationSource: input.generationSource ?? null,
+          generationStage: null,
           id,
           isDeleted: false,
           mergeSettings: input.mergeSettings ?? null,
@@ -284,6 +298,7 @@ export class VideoStitchFixture {
           sources: [...new Set(input.sourceIds ?? [])],
           status: String(input.status),
           transformations: (input.transformations ?? []).map(String),
+          updatedAt: new Date(),
           userId: input.userId,
           workflowExecutionId: input.workflowExecutionId ?? null,
         });
@@ -351,8 +366,12 @@ export class VideoStitchFixture {
         this.record('background', payload),
       publishMediaFailed: async (...args: unknown[]) =>
         this.record('media.failed', ...args),
-      publishVideoComplete: async (...args: unknown[]) =>
-        this.record('video.complete', ...args),
+      publishVideoComplete: async (...args: unknown[]) => {
+        this.record('video.complete', ...args);
+        if (this.isCompletionEventFailing) {
+          throw new Error('Redis publish failed');
+        }
+      },
     };
   }
 
@@ -371,6 +390,8 @@ export class VideoStitchFixture {
     return {
       generateCaptions: async (id: string) => {
         this.record('whisper', id);
+        // Transcription takes long enough for a concurrent completer to race.
+        await new Promise((resolve) => setTimeout(resolve, 5));
         if (this.isTranscriptionFailing) {
           throw new Error('No speech detected');
         }

@@ -374,6 +374,20 @@ describe('VideoStitchService', () => {
       expect(fixture.mergeJobs()).toHaveLength(1);
     });
 
+    it('never returns a non-stitch asset that reuses the key', async () => {
+      fixture.addClip({
+        generationSource: 'image-retry',
+        id: 'unrelated-video',
+        sourceActionId: 'key-1',
+      });
+
+      const handle = await fixture.service.stitch(request());
+
+      expect(handle.isExisting).toBe(false);
+      expect(handle.outputId).not.toBe('unrelated-video');
+      expect(fixture.mergeJobs()).toHaveLength(1);
+    });
+
     it('scopes keys to the organization', async () => {
       fixture.addClip({ id: 'clip-3', organizationId: 'org-2' });
       fixture.addClip({ id: 'clip-4', organizationId: 'org-2' });
@@ -396,16 +410,22 @@ describe('VideoStitchService', () => {
         `ingredients/videos/${handle.outputId}`,
       );
 
-      const [waited, settled] = await Promise.all([
+      const outcomes = await Promise.all([
         fixture.service.waitForCompletion(handle),
         fixture.service.settle(handle),
       ]);
 
-      expect(waited).toMatchObject({
+      // One completer settles it; the other defers to it without repeating
+      // any work.
+      expect(outcomes).toContainEqual({
+        jobId: handle.jobId,
+        outputId: handle.outputId,
         s3Key: `ingredients/videos/${handle.outputId}`,
         state: 'generated',
       });
-      expect(settled.state).toBe('generated');
+      await expect(fixture.service.settle(handle)).resolves.toMatchObject({
+        state: 'generated',
+      });
       expect(fixture.row(handle.outputId)).toMatchObject({
         s3Key: `ingredients/videos/${handle.outputId}`,
         status: IngredientStatus.GENERATED,
@@ -528,6 +548,71 @@ describe('VideoStitchService', () => {
       expect(fixture.eventNames().indexOf('asset-gate')).toBeLessThan(
         fixture.eventNames().indexOf('video.complete'),
       );
+    });
+
+    it('reports a generated output as generated even if a completion event fails', async () => {
+      fixture.isCompletionEventFailing = true;
+      const handle = await fixture.service.stitch(request());
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await expect(
+        fixture.service.waitForCompletion(handle),
+      ).resolves.toMatchObject({
+        s3Key: `ingredients/videos/${handle.outputId}`,
+        state: 'generated',
+      });
+      expect(fixture.row(handle.outputId).status).toBe(
+        IngredientStatus.GENERATED,
+      );
+      expect(fixture.eventsNamed('media.failed')).toEqual([]);
+    });
+
+    it('runs captions once when two completers settle the same output', async () => {
+      const handle = await fixture.service.stitch(
+        request({ settings: { isCaptionsEnabled: true } }),
+      );
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      const outcomes = await Promise.all([
+        fixture.service.waitForCompletion(handle),
+        fixture.service.settle(handle),
+      ]);
+
+      expect(fixture.eventsNamed('whisper')).toHaveLength(1);
+      expect(fixture.eventsNamed('caption.create')).toHaveLength(1);
+      expect(
+        fixture.queued.filter((job) => job.type === 'add-captions'),
+      ).toHaveLength(1);
+      expect(outcomes.map((outcome) => outcome.state).sort()).toEqual([
+        'generated',
+        'processing',
+      ]);
+      expect(fixture.row(handle.outputId)).toMatchObject({
+        generationStage: null,
+        status: IngredientStatus.GENERATED,
+      });
+    });
+
+    it('lets a later completer take over a stale completion claim', async () => {
+      const handle = await fixture.service.stitch(request());
+      Object.assign(fixture.row(handle.outputId), {
+        generationStage: 'completing',
+        updatedAt: new Date(Date.now() - 60 * 60 * 1000),
+      });
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await expect(fixture.service.settle(handle)).resolves.toMatchObject({
+        state: 'generated',
+      });
     });
 
     it('marks the output failed with the error and emits the failure events', async () => {
