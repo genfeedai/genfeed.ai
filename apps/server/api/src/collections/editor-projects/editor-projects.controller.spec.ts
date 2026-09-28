@@ -1,6 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
+import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -8,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -69,6 +71,7 @@ describe('EditorProjectsController', () => {
   let editorRenderService: vi.Mocked<EditorRenderService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
+  let compositionsService: vi.Mocked<RemotionCompositionsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -97,6 +100,12 @@ describe('EditorProjectsController', () => {
           useValue: {
             cancel: vi.fn(),
             render: vi.fn(),
+          },
+        },
+        {
+          provide: RemotionCompositionsService,
+          useValue: {
+            authorizeBrand: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -134,6 +143,7 @@ describe('EditorProjectsController', () => {
     editorRenderService = module.get(EditorRenderService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
+    compositionsService = module.get(RemotionCompositionsService);
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -519,6 +529,44 @@ describe('EditorProjectsController', () => {
       await controller.duplicate(makeRequest(), makeUser(), 'source');
 
       expect(ingredientsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('authorizes the source brand before copying', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(compositionsService.authorizeBrand).toHaveBeenCalledWith(
+        makeUser(),
+        testId('brand', 7),
+      );
+      expect(
+        compositionsService.authorizeBrand.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        editorProjectsService.create.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('refuses to copy a brand the member is not assigned to', async () => {
+      // Codex P1: an org member assigned only to brand A must not create an
+      // editable draft under brand B from a brand B project id.
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      compositionsService.authorizeBrand.mockRejectedValue(
+        new ForbiddenException(
+          'This brand is not assigned to your membership.',
+        ),
+      );
+
+      await expect(
+        controller.duplicate(makeRequest(), makeUser(), 'brand-b-project'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+      expect(editorProjectsService.create).not.toHaveBeenCalled();
     });
 
     it('returns not found for a project outside the organization', async () => {

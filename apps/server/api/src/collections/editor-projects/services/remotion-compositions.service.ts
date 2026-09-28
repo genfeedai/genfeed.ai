@@ -145,7 +145,12 @@ export class RemotionCompositionsService implements OnModuleInit {
     return input;
   }
 
-  private async authorize(
+  /**
+   * Active membership, a brand in the organization, and — for non-admins with
+   * assigned brands — that assignment. Shared with editor routes that create
+   * work under a brand (e.g. duplicating a project).
+   */
+  async authorizeBrand(
     user: AuthenticatedUser,
     brandId: string,
   ): Promise<void> {
@@ -222,7 +227,7 @@ export class RemotionCompositionsService implements OnModuleInit {
     raw: unknown,
   ): Promise<IRemotionCompositionJob> {
     const input = await this.validateInput(raw);
-    await this.authorize(user, input.brandId);
+    await this.authorizeBrand(user, input.brandId);
     await this.validateSources(user, input);
     const id = `c${hash([user.organizationId, user.userId, input.brandId, input.requestId]).slice(0, 24)}`;
     const inputHash = hash(input);
@@ -276,7 +281,7 @@ export class RemotionCompositionsService implements OnModuleInit {
     const project = await this.projects.findForRender(id, user.organizationId);
     if (!project.brandId || !project.config?.composition)
       throw new NotFoundException('Composition render not found.');
-    await this.authorize(user, project.brandId);
+    await this.authorizeBrand(user, project.brandId);
     return project;
   }
 

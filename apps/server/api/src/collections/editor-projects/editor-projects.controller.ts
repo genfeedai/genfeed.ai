@@ -4,6 +4,7 @@ import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/upd
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
+import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -67,6 +68,7 @@ export class EditorProjectsController {
     private readonly editorRenderService: EditorRenderService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
+    private readonly compositionsService: RemotionCompositionsService,
   ) {}
 
   @Post()
@@ -295,6 +297,12 @@ export class EditorProjectsController {
 
     if (!source) {
       return returnNotFound('Editor project', id);
+    }
+
+    // The copy lands under the source brand, so the member must be allowed to
+    // create work there, not merely belong to the organization.
+    if (source.brandId) {
+      await this.compositionsService.authorizeBrand(user, source.brandId);
     }
 
     const sourceName =
