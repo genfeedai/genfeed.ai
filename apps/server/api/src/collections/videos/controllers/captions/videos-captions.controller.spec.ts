@@ -13,6 +13,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -120,6 +121,35 @@ describe('VideosCaptionsController', () => {
     vi.clearAllMocks();
   });
 
+  const deletedVideoId = testId('video', 2);
+  const foreignVideoId = testId('video', 3);
+  const videoRows = [
+    { ...mockVideo, isDeleted: false },
+    { ...mockVideo, id: deletedVideoId, isDeleted: true },
+    {
+      ...mockVideo,
+      id: foreignVideoId,
+      isDeleted: false,
+      organizationId: testId('org', 2),
+    },
+  ];
+
+  type VideoRow = (typeof videoRows)[number];
+  type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+
+  const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+    Object.entries(where).every(([key, value]) =>
+      key === 'OR'
+        ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
+        : row[key as keyof VideoRow] === value,
+    );
+
+  const useVideoRows = () =>
+    mockServices.videosService.findOne.mockImplementation(
+      async (where: VideoWhere) =>
+        videoRows.find((row) => matchesWhere(row, where)) ?? null,
+    );
+
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
@@ -135,15 +165,13 @@ describe('VideosCaptionsController', () => {
         mockReq,
         mockUser,
         videoId,
-        {},
+        new BaseQueryDto(),
       );
 
       expect(videosService.findOne).toHaveBeenCalledWith({
-        OR: [
-          { userId: mockUser.userId },
-          { organizationId: mockUser.organizationId },
-        ],
         id: videoId,
+        isDeleted: false,
+        organizationId: mockUser.organizationId,
       });
       expect(captionsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -165,10 +193,38 @@ describe('VideosCaptionsController', () => {
         mockReq,
         mockUser,
         videoId,
-        {},
+        new BaseQueryDto(),
       );
 
       expect(result).toHaveProperty('statusCode', 404);
+    });
+
+    it('returns not found for a soft-deleted video', async () => {
+      useVideoRows();
+
+      const result = await controller.getCaptions(
+        mockReq,
+        mockUser,
+        deletedVideoId,
+        new BaseQueryDto(),
+      );
+
+      expect(result).toHaveProperty('statusCode', 404);
+      expect(captionsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('returns not found for a video owned by the user in another organization', async () => {
+      useVideoRows();
+
+      const result = await controller.getCaptions(
+        mockReq,
+        mockUser,
+        foreignVideoId,
+        new BaseQueryDto(),
+      );
+
+      expect(result).toHaveProperty('statusCode', 404);
+      expect(captionsService.findAll).not.toHaveBeenCalled();
     });
   });
 
@@ -200,8 +256,49 @@ describe('VideosCaptionsController', () => {
         createDto,
       );
 
-      expect(videosService.findOne).toHaveBeenCalled();
+      expect(videosService.findOne).toHaveBeenCalledWith(
+        {
+          id: videoId,
+          isDeleted: false,
+          organizationId: mockUser.organizationId,
+        },
+        [{ path: 'captions' }],
+      );
       expect(result).toBeDefined();
+    });
+
+    it('returns not found for a soft-deleted video', async () => {
+      useVideoRows();
+
+      const result = await controller.createVideoWithCaptions(
+        mockReq,
+        mockUser,
+        deletedVideoId,
+        { caption: captionId },
+      );
+
+      expect(result).toHaveProperty('statusCode', 404);
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    it('returns not found for a video owned by the user in another organization', async () => {
+      useVideoRows();
+
+      const result = await controller.createVideoWithCaptions(
+        mockReq,
+        mockUser,
+        foreignVideoId,
+        { caption: captionId },
+      );
+
+      expect(result).toHaveProperty('statusCode', 404);
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
     });
 
     it('should return not found when video does not exist', async () => {

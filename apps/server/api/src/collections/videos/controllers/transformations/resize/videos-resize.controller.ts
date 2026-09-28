@@ -148,10 +148,9 @@ export class VideosResizeController {
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const video = await this.videosService.findOne({
-      id: videoId,
-      userId: user.userId ?? user.id,
-    });
+    const video = await this.videosService.findOne(
+      scopedWhere(user.organizationId, { id: videoId }),
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);

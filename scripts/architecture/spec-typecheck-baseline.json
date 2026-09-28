@@ -2345,14 +2345,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/captions/videos-captions.controller.spec.ts",
-      "fingerprint": "dcef470ce1d089d47638",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 2,
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
