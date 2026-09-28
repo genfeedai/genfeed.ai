@@ -56,9 +56,12 @@ const mockCampaigns = [
 
 const mockUseAgentCampaigns = vi.fn(() => ({
   campaigns: mockCampaigns,
+  error: null as Error | null,
   isLoading: false,
   refresh: vi.fn(),
 }));
+
+const HOUR_MS = 60 * 60 * 1000;
 
 vi.mock('@hooks/data/agent-campaigns/use-agent-campaigns', () => ({
   useAgentCampaigns: () => mockUseAgentCampaigns(),
@@ -133,6 +136,7 @@ describe('AgentCampaignsPage', () => {
     window.localStorage.clear();
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
+      error: null,
       isLoading: false,
       refresh: vi.fn(),
     });
@@ -181,6 +185,7 @@ describe('AgentCampaignsPage', () => {
   it('hides Needs you when no program needs attention', () => {
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: mockCampaigns.slice(0, 2),
+      error: null,
       isLoading: false,
       refresh: vi.fn(),
     });
@@ -275,9 +280,142 @@ describe('AgentCampaignsPage', () => {
     expect(card.querySelector('[class~="rounded"]')).toBeNull();
   });
 
+  it('shows relative run times from the message catalog', () => {
+    const now = Date.now();
+    mockUseAgentCampaigns.mockReturnValue({
+      campaigns: mockCampaigns.map((campaign) =>
+        campaign.id === 'campaign-1'
+          ? {
+              ...campaign,
+              lastOrchestratedAt: new Date(now - 2 * HOUR_MS).toISOString(),
+              nextOrchestratedAt: new Date(
+                now + 3 * HOUR_MS + 5 * 60_000,
+              ).toISOString(),
+            }
+          : campaign,
+      ),
+      error: null,
+      isLoading: false,
+      refresh: vi.fn(),
+    });
+
+    render(<AgentCampaignsPage />);
+
+    const springRow = within(screen.getByTestId('campaign-all'))
+      .getAllByTestId('campaign-row')
+      .find((row) => row.textContent?.includes('Spring Launch'));
+    expect(springRow).toHaveTextContent(
+      '320 / 1,000 credits · 2 agents · Last run 2h ago',
+    );
+    expect(
+      within(screen.getByTestId('campaign-stats-strip')).getByText('in 3h'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a load error with Retry instead of the empty state', () => {
+    const refresh = vi.fn();
+    mockUseAgentCampaigns.mockReturnValue({
+      campaigns: [],
+      error: new Error('Network down'),
+      isLoading: false,
+      refresh,
+    });
+
+    render(<AgentCampaignsPage />);
+
+    expect(screen.queryByText('No programs yet')).toBeNull();
+    expect(screen.queryByTestId('campaign-needs-you')).toBeNull();
+    expect(screen.queryByTestId('campaign-stats-strip')).toBeNull();
+
+    const all = screen.getByTestId('campaign-all');
+    expect(within(all).getByRole('alert')).toHaveTextContent(
+      "Programs couldn't load.",
+    );
+    expect(within(all).queryByRole('radio', { name: 'Grid' })).toBeNull();
+
+    fireEvent.click(within(all).getByRole('button', { name: 'Retry' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers the collection after a successful retry', () => {
+    const refresh = vi.fn<() => Promise<void>>();
+    refresh.mockImplementation(() => {
+      mockUseAgentCampaigns.mockReturnValue({
+        campaigns: mockCampaigns,
+        error: null,
+        isLoading: false,
+        refresh,
+      });
+      return Promise.resolve();
+    });
+    mockUseAgentCampaigns.mockReturnValue({
+      campaigns: [],
+      error: new Error('Network down'),
+      isLoading: false,
+      refresh,
+    });
+
+    const { rerender } = render(<AgentCampaignsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    rerender(<AgentCampaignsPage />);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(getRowLabels(screen.getByTestId('campaign-all'))).toEqual([
+      'Spring Launch',
+      'Summer Draft',
+      'Autumn Pause',
+      'Winter Spend',
+    ]);
+    expect(screen.getByTestId('campaign-needs-you')).toBeInTheDocument();
+  });
+
+  it('restores the saved grid view after a remount', () => {
+    const { unmount } = render(<AgentCampaignsPage />);
+    fireEvent.click(
+      within(screen.getByTestId('campaign-all')).getByRole('radio', {
+        name: 'Grid',
+      }),
+    );
+    unmount();
+
+    render(<AgentCampaignsPage />);
+
+    const all = screen.getByTestId('campaign-all');
+    expect(within(all).getByRole('radio', { name: 'Grid' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(within(all).getAllByTestId('campaign-card')).toHaveLength(4);
+    expect(within(all).queryAllByTestId('campaign-row')).toHaveLength(0);
+  });
+
+  it('shows a grid skeleton while loading with the grid view saved', () => {
+    window.localStorage.setItem(
+      'genfeed:collection-view:automation.campaigns',
+      'grid',
+    );
+    mockUseAgentCampaigns.mockReturnValue({
+      campaigns: [],
+      error: null,
+      isLoading: true,
+      refresh: vi.fn(),
+    });
+
+    render(<AgentCampaignsPage />);
+
+    const all = screen.getByTestId('campaign-all');
+    expect(all).toHaveAttribute('aria-busy', 'true');
+    expect(within(all).getAllByTestId('skeleton-card').length).toBeGreaterThan(
+      0,
+    );
+    expect(within(all).queryByTestId('list-rows-skeleton')).toBeNull();
+    expect(screen.queryByText('No programs yet')).toBeNull();
+  });
+
   it('shows empty state when no campaigns', () => {
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: [],
+      error: null,
       isLoading: false,
       refresh: vi.fn(),
     });
@@ -299,6 +437,7 @@ describe('AgentCampaignsPage', () => {
   it('shows a list skeleton while loading', () => {
     mockUseAgentCampaigns.mockReturnValue({
       campaigns: [],
+      error: null,
       isLoading: true,
       refresh: vi.fn(),
     });

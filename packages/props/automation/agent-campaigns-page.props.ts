@@ -6,6 +6,13 @@ export interface AgentCampaignItemProps {
   isNeedsYou?: boolean;
 }
 
+/** A `common.agentCampaign.relativeTime`-scoped translate, passed to plain
+ * formatting helpers that cannot call hooks themselves. */
+export type AgentCampaignRelativeTimeTranslate = (
+  key: string,
+  values?: Record<string, number>,
+) => string;
+
 export interface AgentCampaignProgressProps {
   allocated: number;
   used: number;

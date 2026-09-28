@@ -51,9 +51,22 @@ function formatOptionalRelativeTime(date?: string | null): string {
   return date ? formatRelativeTime(date) : 'unknown';
 }
 
-function formatStatusLabel(status: WorkflowExecutionStatus): string {
-  const normalized = status.toLowerCase();
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+/** Key under `pages.workspaceOverview.runCards.status` for a run's badge. */
+function getRunStatusKey(
+  status: WorkflowExecutionStatus,
+): 'cancelled' | 'completed' | 'failed' | 'live' | 'queued' {
+  switch (status) {
+    case WorkflowExecutionStatus.RUNNING:
+      return 'live';
+    case WorkflowExecutionStatus.PENDING:
+      return 'queued';
+    case WorkflowExecutionStatus.COMPLETED:
+      return 'completed';
+    case WorkflowExecutionStatus.FAILED:
+      return 'failed';
+    case WorkflowExecutionStatus.CANCELLED:
+      return 'cancelled';
+  }
 }
 
 /** Pass a `pages.workspaceOverview.relativeTime`-scoped translate. */
@@ -75,11 +88,7 @@ function WorkflowExecutionCard({
   const translate = useTranslations('pages.workspaceOverview.runCards');
   const translateTime = useTranslations('pages.workspaceOverview.relativeTime');
   const isRunning = execution.status === WorkflowExecutionStatus.RUNNING;
-  const statusLabel = isRunning
-    ? translate('status.live')
-    : execution.status === WorkflowExecutionStatus.PENDING
-      ? translate('status.queued')
-      : formatStatusLabel(execution.status);
+  const statusLabel = translate(`status.${getRunStatusKey(execution.status)}`);
 
   const label = getWorkflowExecutionLabel(execution);
   const failureMessage =

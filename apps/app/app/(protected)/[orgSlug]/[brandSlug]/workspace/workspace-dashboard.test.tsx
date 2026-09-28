@@ -246,6 +246,33 @@ describe('workspace dashboard sections', () => {
     expect(container.innerHTML).not.toMatch(/\b(?:sm|md|lg|xl):grid-cols-/);
   });
 
+  it('labels terminal run statuses from the message catalog', () => {
+    render(
+      <DashboardAgentCards
+        activeExecutions={[]}
+        executions={[
+          makeExecution({
+            id: 'run-1',
+            status: WorkflowExecutionStatus.COMPLETED,
+          }),
+          makeExecution({
+            id: 'run-2',
+            status: WorkflowExecutionStatus.FAILED,
+          }),
+          makeExecution({
+            id: 'run-3',
+            status: WorkflowExecutionStatus.CANCELLED,
+          }),
+        ]}
+      />,
+    );
+
+    const cards = screen.getAllByTestId('workflow-execution-card');
+    expect(within(cards[0]).getByText('Completed')).toBeVisible();
+    expect(within(cards[1]).getByText('Failed')).toBeVisible();
+    expect(within(cards[2]).getByText('Cancelled')).toBeVisible();
+  });
+
   it('returns no agent cards when there are no executions', () => {
     const { container } = render(
       <DashboardAgentCards activeExecutions={[]} executions={[]} />,

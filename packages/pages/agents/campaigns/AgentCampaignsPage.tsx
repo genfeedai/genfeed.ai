@@ -16,6 +16,7 @@ import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-pr
 import type {
   AgentCampaignItemProps,
   AgentCampaignProgressProps,
+  AgentCampaignRelativeTimeTranslate,
 } from '@props/automation/agent-campaigns-page.props';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -30,7 +31,7 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import {
   CirclePlay,
   Clock,
@@ -55,13 +56,38 @@ function formatDate(dateStr: string | undefined): string {
   }
 }
 
-function formatRelativeTime(dateStr: string | undefined): string {
-  if (!dateStr) return '—';
-  try {
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-  } catch {
+/** Past times read "3h ago", scheduled ones "in 3h". Pass a
+ * `common.agentCampaign.relativeTime`-scoped translate. */
+function formatRelativeTime(
+  dateStr: string,
+  translate: AgentCampaignRelativeTimeTranslate,
+): string {
+  const time = new Date(dateStr).getTime();
+  if (Number.isNaN(time)) {
+    logger.warn('Invalid date in AgentCampaignsPage', { date: dateStr });
     return '—';
   }
+
+  const deltaMinutes = Math.floor(Math.abs(Date.now() - time) / 60_000);
+  const isFuture = time > Date.now();
+
+  if (deltaMinutes < 1) {
+    return translate(isFuture ? 'dueNow' : 'justNow');
+  }
+  if (deltaMinutes < 60) {
+    return translate(isFuture ? 'inMinutes' : 'minutesAgo', {
+      minutes: deltaMinutes,
+    });
+  }
+
+  const hours = Math.floor(deltaMinutes / 60);
+  if (hours < 24) {
+    return translate(isFuture ? 'inHours' : 'hoursAgo', { hours });
+  }
+
+  return translate(isFuture ? 'inDays' : 'daysAgo', {
+    days: Math.floor(hours / 24),
+  });
 }
 
 function getCreditsPercent(allocated: number, used: number): number {
@@ -92,6 +118,7 @@ function isCampaignNeedingAttention(campaign: AgentCampaign): boolean {
 /* ------------------------------------------------------------------ */
 
 function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
+  const translateTime = useTranslations('common.agentCampaign.relativeTime');
   const items: SurfaceSummaryItem[] = useMemo(() => {
     const activeCampaigns = campaigns.filter((c) => c.status === 'active');
     const totalCreditsUsed = campaigns.reduce(
@@ -129,14 +156,14 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
       },
       {
         accent: nextOrchestration
-          ? formatRelativeTime(nextOrchestration)
+          ? formatRelativeTime(nextOrchestration, translateTime)
           : 'no scheduled runs',
         icon: <Clock className="size-4 text-muted-foreground" />,
         label: 'Next Orchestration',
         value: nextOrchestration ? formatDate(nextOrchestration) : '—',
       },
     ];
-  }, [campaigns]);
+  }, [campaigns, translateTime]);
 
   return <SurfaceSummaryStrip items={items} testId="campaign-stats-strip" />;
 }
@@ -177,6 +204,7 @@ function CampaignProgress({
 
 function useCampaignFacts(campaign: AgentCampaign): string {
   const translate = useTranslations('common.agentCampaign.collection');
+  const translateTime = useTranslations('common.agentCampaign.relativeTime');
   const facts = [
     translate('credits', {
       allocated: campaign.creditsAllocated.toLocaleString(),
@@ -185,7 +213,7 @@ function useCampaignFacts(campaign: AgentCampaign): string {
     translate('agents', { count: campaign.agents.length }),
     campaign.lastOrchestratedAt
       ? translate('lastRun', {
-          time: formatRelativeTime(campaign.lastOrchestratedAt),
+          time: formatRelativeTime(campaign.lastOrchestratedAt, translateTime),
         })
       : null,
   ];
@@ -309,7 +337,7 @@ function getCampaignKey(campaign: AgentCampaign): string {
 
 export default function AgentCampaignsPage() {
   const translate = useTranslations('common.agentCampaign.collection');
-  const { campaigns, isLoading } = useAgentCampaigns();
+  const { campaigns, error, isLoading, refresh } = useAgentCampaigns();
   const { href } = useOrgUrl();
   const { view, setView } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
@@ -322,7 +350,10 @@ export default function AgentCampaignsPage() {
   );
 
   const hasCampaigns = campaigns.length > 0;
-  const isEmpty = !isLoading && !hasCampaigns;
+  // A failed refetch keeps showing the Programs already loaded; only a
+  // failure with nothing to show replaces the collection with the error.
+  const hasLoadError = error !== null && !isLoading && !hasCampaigns;
+  const isEmpty = !isLoading && !hasLoadError && !hasCampaigns;
 
   return (
     <Container
@@ -361,7 +392,9 @@ export default function AgentCampaignsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-8">
-          {isLoading ? null : <CampaignStatsStrip campaigns={campaigns} />}
+          {isLoading || hasLoadError ? null : (
+            <CampaignStatsStrip campaigns={campaigns} />
+          )}
 
           <CollectionSection
             data-testid="campaign-needs-you"
@@ -378,8 +411,26 @@ export default function AgentCampaignsPage() {
           </CollectionSection>
 
           <CollectionSection
-            actions={<CollectionToolbar onViewChange={setView} view={view} />}
+            actions={
+              hasLoadError ? undefined : (
+                <CollectionToolbar onViewChange={setView} view={view} />
+              )
+            }
             data-testid="campaign-all"
+            error={
+              hasLoadError ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>{translate('loadError')}</span>
+                  <Button
+                    onClick={() => void refresh()}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    {translate('retry')}
+                  </Button>
+                </div>
+              ) : undefined
+            }
             isCountVisible
             isLoading={isLoading}
             itemCount={campaigns.length}
