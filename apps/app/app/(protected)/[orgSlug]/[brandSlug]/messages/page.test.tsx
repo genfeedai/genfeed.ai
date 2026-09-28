@@ -17,6 +17,7 @@ assertSourceHasExport(
 );
 
 const mocks = vi.hoisted(() => ({
+  agentDock: null as null | { isAvailable: boolean; open: () => void },
   brandContext: {
     brands: [
       {
@@ -67,6 +68,10 @@ vi.mock('next-intl', async () => {
 
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@contexts/ui/agent-dock-context', () => ({
+  useAgentDock: () => mocks.agentDock,
+}));
 
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
@@ -963,6 +968,45 @@ describe('SocialMessagesPage', () => {
     ).not.toBeInTheDocument();
     for (const name of ['Draft reply', 'Save Draft', 'Reply', 'DM']) {
       expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+  });
+
+  it('offers no agent hand-off where no dock hosts the conversation', async () => {
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Ask Agent about this' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ask Agent' })).toBeNull();
+  });
+
+  it('attaches the conversation or a message to the agent dock and opens it', async () => {
+    const open = vi.fn();
+    mocks.agentDock = { isAvailable: true, open };
+
+    try {
+      render(<SocialMessagesPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Ask Agent about this' }),
+      );
+      expect(open).toHaveBeenCalledTimes(1);
+
+      const [askMessage] = await screen.findAllByRole('button', {
+        name: 'Attach message to the agent',
+      });
+      fireEvent.click(askMessage);
+      expect(open).toHaveBeenCalledTimes(2);
+      expect(
+        await screen.findAllByRole('button', {
+          name: 'Remove message from the agent',
+        }),
+      ).not.toHaveLength(0);
+    } finally {
+      mocks.agentDock = null;
     }
   });
 });

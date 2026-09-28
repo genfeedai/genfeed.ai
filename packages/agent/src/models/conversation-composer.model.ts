@@ -112,6 +112,8 @@ export interface PersistedConversationComposerContentReference {
   contentTitle: string;
   contentType: string;
   id: string;
+  /** Missing on a legacy record (written before this field existed) means `post`. */
+  kind?: 'ingredient' | 'post';
   thumbnailUrl?: string;
 }
 

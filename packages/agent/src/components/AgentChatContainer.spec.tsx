@@ -1172,7 +1172,7 @@ describe('AgentChatContainer', () => {
       <ConversationComposerShellProvider
         contextLabel="Workspace"
         draftScopeKey="acme:thread-1:3"
-        placement="inspector"
+        placement="dock"
         portalTarget={portalTarget}
         shellState="canvas"
       >
@@ -1187,7 +1187,7 @@ describe('AgentChatContainer', () => {
     expect(portaled?.getAttribute('data-show-top-fade')).toBe('true');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
-      'inspector',
+      'dock',
     );
     portalTarget.remove();
   });
@@ -2715,7 +2715,7 @@ describe('AgentChatContainer', () => {
       <ConversationComposerShellProvider
         contextLabel="Workspace"
         draftScopeKey="acme:thread-1:3"
-        placement="inspector"
+        placement="dock"
         portalTarget={portalTarget}
         shellState="canvas"
       >

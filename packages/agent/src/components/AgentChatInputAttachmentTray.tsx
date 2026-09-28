@@ -168,16 +168,39 @@ export function AgentChatInputAttachmentTray({
           </div>
         ))}
 
-        {chipReferences.map((reference) => (
-          <span
-            className="inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-background-secondary px-2.5 py-1.5 text-xs text-foreground/78"
-            key={`${reference.type}:${reference.id}`}
-            title={reference.label}
-          >
-            <Link className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate">{reference.label}</span>
-          </span>
-        ))}
+        {chipReferences.map((reference) => {
+          // Only surface artifact ('asset') chips are dismissible. Mention
+          // and research-context chips stay non-removable — they are sent
+          // via mentions/page context, not this composer's artifact list.
+          const isRemovableAsset =
+            reference.type === 'asset' && Boolean(onRemoveReference);
+
+          return (
+            <span
+              className={cn(
+                'inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-background-secondary px-2.5 py-1.5 text-xs text-foreground/78',
+                isRemovableAsset && 'pr-1.5',
+              )}
+              key={`${reference.type}:${reference.id}`}
+              title={reference.label}
+            >
+              <Link className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate">{reference.label}</span>
+              {isRemovableAsset ? (
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  onClick={() => onRemoveReference?.(reference)}
+                  isDisabled={isDisabled}
+                  ariaLabel={`Remove reference ${reference.label}`}
+                  className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded text-foreground/60 hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </Button>
+              ) : null}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

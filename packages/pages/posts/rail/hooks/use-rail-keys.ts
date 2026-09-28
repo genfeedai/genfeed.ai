@@ -50,7 +50,13 @@ export function useRailKeys({
   useEffect(() => {
     if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {
-      if (isTypingTarget(event.target)) {
+      // Modified keys belong to app shortcuts (⌘R reload, ⌘J the agent dock).
+      if (
+        isTypingTarget(event.target) ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
         return;
       }
 

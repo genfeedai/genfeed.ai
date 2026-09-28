@@ -3,7 +3,10 @@ import {
   areAgentChatMentionReferencesEqual,
   useAgentChatInput,
 } from '@genfeedai/agent/components/useAgentChatInput';
-import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import {
+  attachContentToConversationDraft,
+  writeConversationComposerDocument,
+} from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { TextSelection } from '@tiptap/pm/state';
@@ -45,6 +48,7 @@ vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
 }));
 
 const brandSettings = {
+  organizationId: 'org-1',
   settings: { isVoiceControlEnabled: false },
 };
 
@@ -409,12 +413,25 @@ describe('useAgentChatInput references', () => {
       await result.current.handleSend();
     });
 
+    // A content reference is now also sent as an artifact reference (#5458
+    // bug fix): post-1 collides with an existing workspace selection, so the
+    // richer, brand-scoped workspace reference wins; post-2 has no workspace
+    // counterpart and is added from the content reference (no brandId, since
+    // this composer's shell does not set one).
     expect(onSend).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Array),
       undefined,
       expect.objectContaining({
-        artifactReferences: workspaceReferences,
+        artifactReferences: [
+          ...workspaceReferences,
+          {
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-2',
+            serializer: 'post',
+          },
+        ],
       }),
     );
   });
@@ -774,5 +791,197 @@ describe('useAgentChatInput follow-up queue submit', () => {
     expect(handled).toBe(true);
     expect(onSend).not.toHaveBeenCalled();
     expect(onPromoteQueuedFollowUp).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAgentChatInput live content attach', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    microphoneState.isListening = false;
+    brandSettings.settings.isVoiceControlEnabled = false;
+  });
+
+  it('shows a chip for a record attached to this scope while mounted, and focuses the editor at the end', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    expect(result.current.references).toEqual([
+      { id: 'post-1', label: '^post:post-1', type: 'asset' },
+      { id: 'post-3', label: '^post:post-3', type: 'asset' },
+    ]);
+
+    const editor = result.current.editor;
+    expect(editor).not.toBeNull();
+    if (!editor) {
+      return;
+    }
+
+    // Move the caret away from the end so a subsequent end-focus is observable.
+    act(() => {
+      editor.commands.setContent('Half-written question');
+      editor.commands.setTextSelection(0);
+    });
+    expect(editor.state.selection.from).toBe(0);
+
+    act(() => {
+      attachContentToConversationDraft(draftScopeKey, {
+        contentTitle: 'Hero shot',
+        contentType: 'image',
+        id: 'ingredient-1',
+        kind: 'ingredient',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.references).toEqual(
+        expect.arrayContaining([
+          {
+            contentType: 'image',
+            id: 'ingredient-1',
+            label: 'Hero shot',
+            thumbnailUrl: undefined,
+            type: 'content',
+          },
+        ]),
+      );
+    });
+    expect(editor.state.selection.from).toBe(
+      TextSelection.atEnd(editor.state.doc).to,
+    );
+  });
+
+  it('sends a live-attached record as an artifact reference with its kind and the organization id', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    act(() => {
+      attachContentToConversationDraft(draftScopeKey, {
+        contentTitle: 'Hero shot',
+        contentType: 'image',
+        id: 'ingredient-1',
+        kind: 'ingredient',
+      });
+    });
+    await waitFor(() => {
+      expect(
+        result.current.references.some((item) => item.id === 'ingredient-1'),
+      ).toBe(true);
+    });
+
+    act(() => {
+      result.current.editor?.commands.setContent('Use this shot');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Use this shot',
+      undefined,
+      undefined,
+      expect.objectContaining({
+        artifactReferences: expect.arrayContaining([
+          {
+            kind: 'ingredient',
+            organizationId: 'org-1',
+            recordId: 'ingredient-1',
+            serializer: 'ingredient',
+          },
+        ]),
+      }),
+    );
+  });
+
+  it('ignores a draft-updated event for a different scope', async () => {
+    const { result } = renderHook(
+      () => useAgentChatInput({ onSend: vi.fn() }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    act(() => {
+      attachContentToConversationDraft('other-scope', {
+        contentTitle: 'Unrelated',
+        contentType: 'post',
+        id: 'post-unrelated',
+      });
+    });
+
+    expect(
+      result.current.references.some((item) => item.id === 'post-unrelated'),
+    ).toBe(false);
+  });
+});
+
+describe('useAgentChatInput surface artifact chip dismissal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    microphoneState.isListening = false;
+    brandSettings.settings.isVoiceControlEnabled = false;
+  });
+
+  it('hides a dismissed surface chip, excludes it from send, and restores it after a successful send', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    expect(result.current.references).toEqual([
+      { id: 'post-1', label: '^post:post-1', type: 'asset' },
+      { id: 'post-3', label: '^post:post-3', type: 'asset' },
+    ]);
+
+    act(() => {
+      result.current.handleRemoveReference({
+        id: 'post-1',
+        label: '^post:post-1',
+        type: 'asset',
+      });
+    });
+
+    expect(result.current.references).toEqual([
+      { id: 'post-3', label: '^post:post-3', type: 'asset' },
+    ]);
+
+    act(() => {
+      result.current.editor?.commands.setContent('Discuss the remaining asset');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Discuss the remaining asset',
+      undefined,
+      undefined,
+      expect.objectContaining({
+        artifactReferences: [workspaceReferences[1]],
+      }),
+    );
+
+    // A successful send resets dismissals for the next turn.
+    expect(result.current.references).toEqual([
+      { id: 'post-1', label: '^post:post-1', type: 'asset' },
+      { id: 'post-3', label: '^post:post-3', type: 'asset' },
+    ]);
   });
 });

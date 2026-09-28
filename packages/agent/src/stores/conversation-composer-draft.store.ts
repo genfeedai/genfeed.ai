@@ -7,6 +7,15 @@ import type { JSONContent } from '@tiptap/core';
 
 const STORAGE_PREFIX = 'genfeed:conversation-composer:v1';
 
+/**
+ * Dispatched on `window` whenever a scope's draft content references change
+ * outside the composer that owns it (e.g. a Library "Add to conversation"
+ * action while the dock composer is mounted). `detail.scopeKey` identifies
+ * which draft changed so a listener can ignore updates to other scopes.
+ */
+export const CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT =
+  'genfeed:conversation-composer:draft-updated';
+
 const EMPTY_DRAFT: PersistedConversationComposerDraft = {
   attachments: [],
   contentReferences: [],
@@ -51,6 +60,10 @@ function normalizeContentReference(
     contentTitle: record.contentTitle,
     contentType: record.contentType,
     id: record.id,
+    // Missing on a legacy record (written before `kind` existed) means `post`.
+    ...(record.kind === 'ingredient' || record.kind === 'post'
+      ? { kind: record.kind }
+      : {}),
     ...(typeof record.thumbnailUrl === 'string'
       ? { thumbnailUrl: record.thumbnailUrl }
       : {}),
@@ -204,15 +217,16 @@ export function buildConversationComposerDraftScopeKey(
 }
 
 /**
- * Puts a Library item on the attachment tray of the organization's next new
- * conversation, so a page can hand an asset to the Agent without sending a
- * message on the user's behalf.
+ * Appends a content reference to a scope's draft (deduped by id) and notifies
+ * any composer currently mounted on that scope via
+ * `CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT`, so a record attached from
+ * elsewhere in the app (e.g. Library) shows up in a live composer without a
+ * remount.
  */
-export function attachContentToNewConversationDraft(
-  orgSlug: string,
+export function attachContentToConversationDraft(
+  scopeKey: string | null,
   reference: PersistedConversationComposerContentReference,
 ): void {
-  const scopeKey = buildConversationComposerDraftScopeKey(orgSlug, null);
   const { contentReferences } = readConversationComposerDraft(scopeKey);
   if (contentReferences.some((item) => item.id === reference.id)) {
     return;
@@ -222,4 +236,27 @@ export function attachContentToNewConversationDraft(
     ...contentReferences,
     reference,
   ]);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT, {
+        detail: { scopeKey },
+      }),
+    );
+  }
+}
+
+/**
+ * Puts a Library item on the attachment tray of the organization's next new
+ * conversation, so a page can hand an asset to the Agent without sending a
+ * message on the user's behalf.
+ */
+export function attachContentToNewConversationDraft(
+  orgSlug: string,
+  reference: PersistedConversationComposerContentReference,
+): void {
+  attachContentToConversationDraft(
+    buildConversationComposerDraftScopeKey(orgSlug, null),
+    reference,
+  );
 }

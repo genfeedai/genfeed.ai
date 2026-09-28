@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -12,11 +13,15 @@ import {
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
+  ConversationDockPanel,
   getConversationComposerAction,
   resolveConversationComposerDestinationHref,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import { buildConversationComposerDraftScopeKey } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import {
+  attachContentToConversationDraft,
+  buildConversationComposerDraftScopeKey,
+} from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -89,6 +94,8 @@ import {
   shouldRestorePrimaryFocus,
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import AgentDock from './AgentDock';
+import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import {
   WorkspaceContextSidebarDrawerBody,
@@ -174,6 +181,8 @@ function UniversalWorkspaceShellContent({
       ? contextSidebar
       : null;
   const isInspectorOpen = activeContextSidebar?.isOpen ?? false;
+  const agentDock = useAgentDock();
+  const isCompactViewport = useIsCompactViewport();
   // `null` keeps the inspector sized to its own content (clamped by the CSS
   // min/max below); a number means the operator has resized it explicitly.
   const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
@@ -561,6 +570,65 @@ function UniversalWorkspaceShellContent({
     hasOverlayReturnFocusRef.current = false;
   }, [normalizedPathname, overlayRegistration, state]);
 
+  // Brand-scoped full agent surface — keeps the selected brand in the URL so
+  // the expanded conversation does not lose topbar/brand context.
+  const fullConversationHref = useMemo(() => {
+    const destinationThreadId = effectiveThreadId ?? activeThreadId;
+    return activeHref(
+      destinationThreadId
+        ? `${APP_ROUTES.AGENT.ROOT}/${destinationThreadId}`
+        : APP_ROUTES.AGENT.NEW,
+    );
+  }, [activeHref, activeThreadId, effectiveThreadId]);
+
+  const handleOpenFullConversation = useCallback(() => {
+    pendingTransitionRef.current = 'conversation_return';
+    push(fullConversationHref);
+  }, [fullConversationHref, push]);
+
+  // The dock is the conversation on product routes. `/agent/*` is the
+  // conversation itself, so arriving there closes the dock; it stays closed
+  // on the way back until the operator reopens it.
+  const isAgentDockHost =
+    Boolean(agentDock) && !isAgentRoute && !isFocusedOnboardingRoute;
+  const setIsAgentDockAvailable = agentDock?.setIsAvailable;
+  const closeAgentDock = agentDock?.close;
+  const openAgentDock = agentDock?.open;
+  const isAgentDockOpen = agentDock?.isOpen ?? false;
+  const registerAgentDockAttachHandler = agentDock?.registerAttachHandler;
+  const [hasOpenedAgentDock, setHasOpenedAgentDock] = useState(false);
+
+  useEffect(() => {
+    if (!setIsAgentDockAvailable) {
+      return;
+    }
+
+    setIsAgentDockAvailable(isAgentDockHost);
+    return () => setIsAgentDockAvailable(false);
+  }, [isAgentDockHost, setIsAgentDockAvailable]);
+
+  useEffect(() => {
+    if (isAgentRoute && isAgentDockOpen) {
+      closeAgentDock?.();
+    }
+  }, [closeAgentDock, isAgentDockOpen, isAgentRoute]);
+
+  useEffect(() => {
+    if (isAgentDockHost && isAgentDockOpen) {
+      setHasOpenedAgentDock(true);
+    }
+  }, [isAgentDockHost, isAgentDockOpen]);
+
+  useEffect(() => {
+    if (!isAgentDockHost || !registerAgentDockAttachHandler) {
+      return;
+    }
+
+    return registerAgentDockAttachHandler((reference) => {
+      attachContentToConversationDraft(draftScopeKey, reference);
+    });
+  }, [draftScopeKey, isAgentDockHost, registerAgentDockAttachHandler]);
+
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
       const launch = resolveWorkspaceOverlayLaunch({
@@ -852,8 +920,10 @@ function UniversalWorkspaceShellContent({
       draftScopeKey={draftScopeKey}
       isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
       isComposerVisible
+      // A message sent from an overlay opens the dock so the reply shows.
+      onSendMessage={isAgentDockHost ? openAgentDock : undefined}
       placement={
-        state === 'overlay' ? 'overlay' : isAgentRoute ? 'surface' : 'inspector'
+        state === 'overlay' ? 'overlay' : isAgentRoute ? 'surface' : 'dock'
       }
       portalTarget={composerPortalTarget}
       references={activeResearchSurfaceAdapter?.references}
@@ -955,6 +1025,29 @@ function UniversalWorkspaceShellContent({
                   ref={setComposerPortalTarget}
                 />
               </div>
+            ) : null}
+
+            {isAgentDockHost && agentDock ? (
+              <AgentDock
+                composerSlotRef={
+                  state === 'overlay' ? undefined : setComposerPortalTarget
+                }
+                dock={agentDock}
+                isCompact={isCompactViewport}
+                onOpenFullPage={handleOpenFullConversation}
+                scopeControls={
+                  <>
+                    {conversationScope.scopeControls}
+                    {composerScopeControls}
+                    {effectiveSurfaceAdapter?.composerContext}
+                  </>
+                }
+                threadTitle={activeThread?.title}
+              >
+                {hasOpenedAgentDock ? (
+                  <ConversationDockPanel apiService={agentApiService} />
+                ) : null}
+              </AgentDock>
             ) : null}
           </div>
 

@@ -189,7 +189,7 @@ export function AgentChatContainer({
     (composerShell?.isComposerVisible ?? true) &&
     (onboardingMode ||
       !container.isEmpty ||
-      composerShell?.placement === 'inspector');
+      composerShell?.placement === 'dock');
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
@@ -264,20 +264,18 @@ export function AgentChatContainer({
             getCompletedAttachments={container.getCompletedAttachments}
             isAttachmentUploading={container.isAttachmentUploading}
             isBusy={container.isBusy}
-            // Inspector docks the composer in the shell slot; full-page empty
+            // The dock docks the composer in the shell slot; full-page empty
             // keeps it inline and centered under the hero. Archived threads
             // use the docked restore bar instead of a dead input.
             isComposerVisible={
               !onboardingMode &&
               !isArchivedThread &&
-              composerShell?.placement !== 'inspector'
+              composerShell?.placement !== 'dock'
             }
             isReadOnly={isReadOnly}
             isRunActive={container.isRunActive}
             isWideLayout={isWideLayout}
-            variant={
-              composerShell?.placement === 'inspector' ? 'inspector' : 'default'
-            }
+            variant={composerShell?.placement === 'dock' ? 'dock' : 'default'}
             onMoveFollowUp={container.followUpQueue.move}
             onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
             onRemoveFollowUp={container.followUpQueue.remove}

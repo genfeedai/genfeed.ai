@@ -292,16 +292,16 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses the inspector rail treatment without duplicating shell context', () => {
+  it('uses the dock rail treatment without duplicating shell context', () => {
     render(
       <ConversationComposerShellProvider
         contextLabel="Default Workspace · Default Brand"
         draftScopeKey="acme:thread-1:3"
-        placement="inspector"
+        placement="dock"
         portalTarget={null}
         shellState="canvas"
       >
-        <AgentChatInput density="inspector" onSend={vi.fn()} />
+        <AgentChatInput density="dock" onSend={vi.fn()} />
       </ConversationComposerShellProvider>,
     );
 
@@ -311,7 +311,7 @@ describe('AgentChatInput', () => {
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
     ).not.toBeInTheDocument();
-    // Inspector density is compact: actions control is icon-only (no "Actions" label).
+    // Dock density is compact: actions control is icon-only (no "Actions" label).
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
     expect(
       screen.queryByLabelText('Open workspace shortcuts'),

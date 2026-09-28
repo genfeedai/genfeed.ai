@@ -3,6 +3,7 @@ import {
   ContextSidebarProvider,
 } from '@contexts/ui/context-sidebar-context';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -18,6 +19,11 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import {
+  AGENT_DOCK_STORAGE_KEY,
+  AgentDockProvider,
+  useAgentDock,
+} from '@contexts/ui/agent-dock-context';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 vi.mock('next-intl', async () => {
@@ -208,6 +214,7 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
+  ConversationDockPanel: () => <div data-testid="dock-conversation" />,
   resolveConversationComposerDestinationHref: ({
     activeHref,
     orgHref,
@@ -1296,5 +1303,120 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.replace).toHaveBeenCalledWith(
       '/acme/moonrise/publishing/review?taskId=task-1',
     );
+  });
+
+  describe('agent dock', () => {
+    let dock: ReturnType<typeof useAgentDock> = null;
+
+    function DockProbe() {
+      dock = useAgentDock();
+      return null;
+    }
+
+    function renderWithDock(children: ReactNode = <DockProbe />) {
+      return render(
+        <AgentDockProvider>
+          <UniversalWorkspaceShell agentApiService={agentApiService}>
+            {children}
+          </UniversalWorkspaceShell>
+        </AgentDockProvider>,
+      );
+    }
+
+    beforeEach(() => {
+      dock = null;
+      window.localStorage.removeItem(AGENT_DOCK_STORAGE_KEY);
+    });
+
+    it('hosts a closed dock on product routes and mounts the conversation on first open', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(screen.queryByTestId('dock-conversation')).toBeNull();
+
+      act(() => dock?.open());
+
+      const region = screen.getByRole('region', { name: 'Agent' });
+      expect(within(region).getByTestId('dock-conversation')).toBeVisible();
+      expect(
+        screen.getByTestId('agent-dock-composer-slot').closest('section'),
+      ).toBe(region);
+      expect(
+        document.querySelector('[data-composer-placement]'),
+      ).toHaveAttribute('data-composer-placement', 'dock');
+
+      // Closing keeps the conversation mounted so drafts and runs survive.
+      act(() => dock?.close());
+      expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+      expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+    });
+
+    it('renders the conversation scope controls in the dock', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+
+      act(() => dock?.open());
+
+      expect(screen.getByTestId('agent-dock-scope')).toHaveTextContent(
+        'Thread scope',
+      );
+    });
+
+    it('never hosts the dock on the conversation route and closes it there', async () => {
+      window.localStorage.setItem(
+        AGENT_DOCK_STORAGE_KEY,
+        JSON.stringify({ height: 320, isOpen: true }),
+      );
+      navigation.pathname = '/acme/~/agent/thread-1';
+      renderWithDock();
+
+      await waitFor(() => expect(dock?.isOpen).toBe(false));
+      expect(dock?.isAvailable).toBe(false);
+      expect(screen.queryByTestId('agent-dock')).toBeNull();
+    });
+
+    it('opens the full conversation from the dock header', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+      act(() => dock?.open());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
+
+      expect(router.push).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/acme\/moonrise\/agent\//),
+      );
+    });
+
+    it('attaches a record to the dock draft and opens the dock', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+
+      let isAttached = false;
+      act(() => {
+        isAttached =
+          dock?.attachContent({
+            contentTitle: 'Spring launch still',
+            contentType: 'image',
+            id: 'ingredient-1',
+            kind: 'ingredient',
+          }) ?? false;
+      });
+
+      expect(isAttached).toBe(true);
+      expect(dock?.isOpen).toBe(true);
+      const draftScope = document
+        .querySelector('[data-draft-scope]')
+        ?.getAttribute('data-draft-scope');
+      expect(
+        window.sessionStorage.getItem(
+          `genfeed:conversation-composer:v1:${draftScope}`,
+        ),
+      ).toContain('ingredient-1');
+    });
   });
 });
