@@ -55,21 +55,34 @@ import WorkflowCardPreview from '../library/WorkflowCardPreview';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
-/** Category ids with a catalog label, mapped to their `categories.*` key. */
+/**
+ * Category ids with a catalog label, mapped to their `categories.*` key.
+ * Covers every `category` the API's workflow templates and system catalog
+ * ship (`apps/server/api/src/collections/workflows/templates/`), plus the
+ * page's own `all` and `system` fallbacks.
+ */
 const CATEGORY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   'ad-automation': 'adAutomation',
+  ads: 'ads',
+  agents: 'agents',
   all: 'all',
+  analytics: 'analytics',
+  automation: 'automation',
   batch: 'batch',
+  campaigns: 'campaigns',
   content: 'content',
   editing: 'editing',
+  entertainment: 'entertainment',
   generation: 'generation',
   integration: 'integration',
+  launch: 'launch',
   library: 'library',
   product: 'product',
   'real-estate': 'realEstate',
   routines: 'routines',
   social: 'social',
   system: 'system',
+  trends: 'trends',
   video: 'video',
 };
 
@@ -107,6 +120,17 @@ type ActionError = {
 };
 
 type Translate = (key: string) => string;
+
+/**
+ * One `?template=` creation attempt. A creation runs once per template, auth
+ * scope and explicit "Try again"; data reloads never start another one.
+ */
+type BootstrapAttempt = {
+  request: number;
+  /** The auth-scoped service getter; a new identity means a new scope. */
+  scope: unknown;
+  templateId: string;
+};
 
 /** View preference key — one list/grid choice per collection surface. */
 const TEMPLATES_COLLECTION_SURFACE = 'automation.templates';
@@ -162,6 +186,7 @@ type PageAction =
   | { type: 'SET_SEARCH'; searchQuery: string }
   | { type: 'CLEAR_FILTERS' }
   | { type: 'BOOTSTRAP_START' }
+  | { type: 'BOOTSTRAP_CANCEL' }
   | { type: 'BOOTSTRAP_ERROR'; error: ActionError }
   | { type: 'INSTALL_START'; canonicalId: string }
   | {
@@ -235,6 +260,13 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       };
     case 'BOOTSTRAP_START':
       return { ...state, isBootstrapping: true, actionError: null };
+    case 'BOOTSTRAP_CANCEL':
+      return {
+        ...state,
+        actionError:
+          state.actionError?.key === 'bootstrap' ? null : state.actionError,
+        isBootstrapping: false,
+      };
     case 'BOOTSTRAP_ERROR':
       return { ...state, isBootstrapping: false, actionError: action.error };
     case 'INSTALL_START':
@@ -451,12 +483,32 @@ function WorkflowTemplatesPageContent() {
   });
 
   /**
+   * Per-request generation for each data source. Only the latest request
+   * for a source, made in the current auth scope, may write its state.
+   */
+  const requestGenerationRef = useRef<Record<DataSource, number>>({
+    systemCatalog: 0,
+    templates: 0,
+  });
+  const scopeRef = useRef(getService);
+  scopeRef.current = getService;
+
+  /**
    * Loads the given requests side by side. Each one settles independently,
    * so a failed request only takes out the sections that depend on it.
    */
   const loadSources = useCallback(
     async (sources: readonly DataSource[], signal?: AbortSignal) => {
-      const isStale = () => signal?.aborted === true || !mountedRef.current;
+      const scope = getService;
+      const generations = sources.map((source) => {
+        requestGenerationRef.current[source] += 1;
+        return requestGenerationRef.current[source];
+      });
+      const isCurrent = (index: number) =>
+        signal?.aborted !== true &&
+        mountedRef.current &&
+        scopeRef.current === scope &&
+        requestGenerationRef.current[sources[index]] === generations[index];
 
       dispatch({ type: 'LOAD_START', sources });
 
@@ -465,11 +517,11 @@ function WorkflowTemplatesPageContent() {
         service = await getService();
       } catch (err) {
         logger.error('Failed to load workflow templates', { error: err });
-        if (!isStale()) {
-          for (const source of sources) {
+        sources.forEach((source, index) => {
+          if (isCurrent(index)) {
             dispatch({ type: 'LOAD_FAILED', source });
           }
-        }
+        });
         return;
       }
 
@@ -477,11 +529,10 @@ function WorkflowTemplatesPageContent() {
         sources.map((source) => fetchDataSource(service, source)),
       );
 
-      if (isStale()) {
-        return;
-      }
-
       results.forEach((result, index) => {
+        if (!isCurrent(index)) {
+          return;
+        }
         const source = sources[index];
         if (result.status === 'fulfilled') {
           dispatch(result.value);
@@ -500,12 +551,18 @@ function WorkflowTemplatesPageContent() {
   useEffect(() => {
     mountedRef.current = true;
     const controller = new AbortController();
+    const generations = requestGenerationRef.current;
 
     void loadSources(DATA_SOURCES, controller.signal);
 
     return () => {
       mountedRef.current = false;
       controller.abort();
+      // An auth scope change or unmount retires every outstanding request,
+      // Retry clicks included.
+      for (const source of DATA_SOURCES) {
+        generations[source] += 1;
+      }
     };
   }, [loadSources]);
 
@@ -515,13 +572,45 @@ function WorkflowTemplatesPageContent() {
   const isAnySourceLoading = DATA_SOURCES.some(
     (source) => sourceStatus[source] === 'loading',
   );
+  // The catalog decides between installing an official workflow and
+  // creating from a starter template, so creation waits for it.
+  const isSystemCatalogReady = sourceStatus.systemCatalog === 'ready';
+
+  const [bootstrapRequest, setBootstrapRequest] = useState(0);
+  const bootstrapAttemptRef = useRef<BootstrapAttempt | null>(null);
 
   useEffect(() => {
-    if (!templateId || isAnySourceLoading) {
+    if (!templateId) {
+      if (bootstrapAttemptRef.current) {
+        bootstrapAttemptRef.current = null;
+        dispatch({ type: 'BOOTSTRAP_CANCEL' });
+      }
       return;
     }
 
-    let isCancelled = false;
+    if (!isSystemCatalogReady) {
+      return;
+    }
+
+    const previous = bootstrapAttemptRef.current;
+    if (
+      previous &&
+      previous.templateId === templateId &&
+      previous.scope === getService &&
+      previous.request === bootstrapRequest
+    ) {
+      // Already attempted: a data reload must not create the workflow again.
+      return;
+    }
+
+    const attempt: BootstrapAttempt = {
+      request: bootstrapRequest,
+      scope: getService,
+      templateId,
+    };
+    bootstrapAttemptRef.current = attempt;
+    const isCurrentAttempt = () =>
+      mountedRef.current && bootstrapAttemptRef.current === attempt;
 
     const bootstrapTemplate = async () => {
       dispatch({ type: 'BOOTSTRAP_START' });
@@ -532,31 +621,21 @@ function WorkflowTemplatesPageContent() {
           (entry) => entry.canonicalId === templateId,
         );
 
-        if (isSystemCatalogId) {
-          const workflow = await service.installSystemCatalog(templateId);
-          if (!isCancelled) {
-            replace(
-              hrefRef.current(
-                `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
-              ),
-            );
-          }
-          return;
-        }
+        const workflow = isSystemCatalogId
+          ? await service.installSystemCatalog(templateId)
+          : await service.create({
+              edges: [],
+              metadata: {
+                createdFrom: 'templates',
+                sourceTemplateId: templateId,
+                sourceType: 'seeded-template',
+              },
+              label: 'Untitled Workflow',
+              nodes: [],
+              templateId,
+            });
 
-        const workflow = await service.create({
-          edges: [],
-          metadata: {
-            createdFrom: 'templates',
-            sourceTemplateId: templateId,
-            sourceType: 'seeded-template',
-          },
-          label: 'Untitled Workflow',
-          nodes: [],
-          templateId,
-        });
-
-        if (!isCancelled) {
+        if (isCurrentAttempt()) {
           replace(
             hrefRef.current(
               `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
@@ -566,7 +645,7 @@ function WorkflowTemplatesPageContent() {
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
 
-        if (!isCancelled) {
+        if (isCurrentAttempt()) {
           dispatch({
             type: 'BOOTSTRAP_ERROR',
             error: {
@@ -579,11 +658,14 @@ function WorkflowTemplatesPageContent() {
     };
 
     void bootstrapTemplate();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [getService, isAnySourceLoading, replace, systemCatalog, templateId]);
+  }, [
+    bootstrapRequest,
+    getService,
+    isSystemCatalogReady,
+    replace,
+    systemCatalog,
+    templateId,
+  ]);
 
   /**
    * Installs an app-owned catalog workflow. "Use template" installs and opens
@@ -865,9 +947,20 @@ function WorkflowTemplatesPageContent() {
   return (
     <Container {...catalogChrome}>
       {!isBootstrapping && actionError ? (
-        <p className="mb-4 text-sm text-destructive" role="alert">
-          {actionError.detail ?? translate(`errors.${actionError.key}`)}
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <p className="text-sm text-destructive" role="alert">
+            {actionError.detail ?? translate(`errors.${actionError.key}`)}
+          </p>
+          {actionError.key === 'bootstrap' && templateId ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={() => setBootstrapRequest((request) => request + 1)}
+            >
+              {translate('actions.tryAgain')}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex flex-col gap-8" data-testid="templates-content">
@@ -875,7 +968,7 @@ function WorkflowTemplatesPageContent() {
           title={translate('sections.featured')}
           itemCount={isFeaturedLoading ? 0 : featuredItems.length}
           error={
-            // Held while a template bootstraps: a retry would restart it.
+            // Held while a template bootstraps; the page is about to leave.
             !isBootstrapping && sourceStatus.systemCatalog === 'error'
               ? renderLoadError(['systemCatalog'])
               : undefined

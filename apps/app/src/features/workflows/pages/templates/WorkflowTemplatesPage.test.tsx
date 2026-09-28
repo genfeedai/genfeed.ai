@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,7 @@ type Translator = (
 ) => string;
 
 const mocks = vi.hoisted(() => ({
+  create: vi.fn(),
   getService: vi.fn(),
   href: vi.fn((path: string) => `/demo/FUDNEWS${path}`),
   installSystemCatalog: vi.fn(),
@@ -23,6 +24,9 @@ const mocks = vi.hoisted(() => ({
   listSystemCatalog: vi.fn(),
   listTemplates: vi.fn(),
   replace: vi.fn(),
+  /** Replaces `getService` to model an auth scope change. */
+  scopedGetService: null as null | ReturnType<typeof vi.fn>,
+  searchParams: new URLSearchParams(),
   useTranslations: vi.fn(),
 }));
 
@@ -86,7 +90,7 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getService,
+  useAuthedService: () => mocks.scopedGetService ?? mocks.getService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -209,7 +213,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 const DAILY_DIGEST_ENTRY = {
@@ -225,6 +229,27 @@ const DAILY_DIGEST_ENTRY = {
 };
 
 const VIEW_STORAGE_KEY = 'genfeed:collection-view:automation.templates';
+
+/** Every `category` the API's workflow templates ship. */
+const CATALOG_CATEGORIES = [
+  'ads',
+  'agents',
+  'analytics',
+  'automation',
+  'batch',
+  'campaigns',
+  'content',
+  'editing',
+  'entertainment',
+  'generation',
+  'integration',
+  'launch',
+  'real-estate',
+  'routines',
+  'social',
+  'trends',
+  'video',
+];
 
 function allSection() {
   return screen.getByRole('region', { name: 'All templates' });
@@ -275,13 +300,16 @@ describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    mocks.scopedGetService = null;
+    mocks.searchParams = new URLSearchParams();
     mocks.useTranslations.mockImplementation(translateFromCatalog);
     mocks.listTemplates.mockResolvedValue([POST_HARD_CUT_TEMPLATE]);
     mocks.list.mockResolvedValue([]);
     mocks.listSystemCatalog.mockResolvedValue([DAILY_DIGEST_ENTRY]);
     mocks.installSystemCatalog.mockResolvedValue({ id: 'wf-installed' });
+    mocks.create.mockResolvedValue({ id: 'wf-created' });
     mocks.getService.mockResolvedValue({
-      create: vi.fn(),
+      create: mocks.create,
       installSystemCatalog: mocks.installSystemCatalog,
       list: mocks.list,
       listSystemCatalog: mocks.listSystemCatalog,
@@ -824,5 +852,178 @@ describe('WorkflowTemplatesPage', () => {
     expect(cadenceLabel('*/15 * * * *', translate)).toBe('Scheduled');
     expect(cadenceLabel(undefined, translate)).toBeNull();
     expect(cadenceLabel('  ', translate)).toBeNull();
+  });
+
+  it('maps every catalog category to its own message', () => {
+    const keyOnly: Translator = (key) => key;
+
+    for (const category of CATALOG_CATEGORIES) {
+      expect(categoryLabel(category, keyOnly)).toMatch(/^categories\.\w+$/);
+    }
+    expect(categoryLabel('real-estate', keyOnly)).toBe('categories.realEstate');
+    expect(categoryLabel('podcast', keyOnly)).toBe('Podcast');
+  });
+
+  it('translates the ads, agents, analytics and campaigns type tiles', async () => {
+    mocks.listSystemCatalog.mockResolvedValue([]);
+    mocks.listTemplates.mockResolvedValue(
+      ['ads', 'agents', 'analytics', 'campaigns'].map((category) => ({
+        ...POST_HARD_CUT_TEMPLATE,
+        category,
+        id: `tpl-${category}`,
+        name: `Template ${category}`,
+      })),
+    );
+    mocks.useTranslations.mockImplementation(
+      translateWithOverrides({
+        'pages.workflows.templates.categories.ads': 'Publicités',
+        'pages.workflows.templates.categories.agents': 'Agents IA',
+        'pages.workflows.templates.categories.analytics': 'Analytique',
+        'pages.workflows.templates.categories.campaigns': 'Opérations',
+      }),
+    );
+    render(<WorkflowTemplatesPage />);
+
+    const browse = await screen.findByRole('region', {
+      name: 'Browse by type',
+    });
+    expect(
+      within(browse)
+        .getAllByTestId('workflow-template-type-tile')
+        .map((tile) => tile.getAttribute('aria-label')),
+    ).toEqual(['Agents IA', 'Analytique', 'Opérations', 'Publicités']);
+  });
+
+  it('ignores a late Retry response once the auth scope has changed', async () => {
+    const user = userEvent.setup();
+    mocks.listTemplates.mockRejectedValueOnce(new Error('templates down'));
+    const { rerender } = render(<WorkflowTemplatesPage />);
+
+    const allAlert = await within(allSection()).findByRole('alert');
+    let resolveStaleRetry: (value: WorkflowTemplate[]) => void = () => {};
+    mocks.listTemplates.mockReturnValueOnce(
+      new Promise<WorkflowTemplate[]>((resolve) => {
+        resolveStaleRetry = resolve;
+      }),
+    );
+    await user.click(within(allAlert).getByRole('button', { name: 'Retry' }));
+    expect(mocks.listTemplates).toHaveBeenCalledTimes(2);
+
+    const nextScopeTemplates = vi
+      .fn()
+      .mockResolvedValue([
+        { ...POST_HARD_CUT_TEMPLATE, id: 'tpl-next', name: 'Next scope blast' },
+      ]);
+    mocks.scopedGetService = vi.fn().mockResolvedValue({
+      create: mocks.create,
+      installSystemCatalog: mocks.installSystemCatalog,
+      list: mocks.list,
+      listSystemCatalog: vi.fn().mockResolvedValue([DAILY_DIGEST_ENTRY]),
+      listTemplates: nextScopeTemplates,
+    });
+    rerender(<WorkflowTemplatesPage />);
+
+    await waitFor(() => {
+      expect(
+        within(allSection()).getByText('Next scope blast'),
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveStaleRetry([
+        {
+          ...POST_HARD_CUT_TEMPLATE,
+          id: 'tpl-stale',
+          name: 'Stale scope blast',
+        },
+      ]);
+    });
+
+    expect(screen.queryByText('Stale scope blast')).not.toBeInTheDocument();
+    expect(
+      within(allSection()).getByText('Next scope blast'),
+    ).toBeInTheDocument();
+    expect(nextScopeTemplates).toHaveBeenCalledTimes(1);
+  });
+
+  describe('with a ?template= query', () => {
+    beforeEach(() => {
+      mocks.searchParams = new URLSearchParams('template=tpl-1');
+    });
+
+    it('creates the starter template once and opens it', async () => {
+      render(<WorkflowTemplatesPage />);
+
+      await waitFor(() => {
+        expect(mocks.replace).toHaveBeenCalledWith(
+          '/demo/FUDNEWS/automation/workflows/wf-created',
+        );
+      });
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+      expect(mocks.create).toHaveBeenCalledWith(
+        expect.objectContaining({ templateId: 'tpl-1' }),
+      );
+      expect(mocks.installSystemCatalog).not.toHaveBeenCalled();
+      expect(mocks.replace).toHaveBeenCalledTimes(1);
+    });
+
+    it('never repeats a failed creation on a data retry; Try again runs it once more', async () => {
+      const user = userEvent.setup();
+      mocks.listTemplates.mockRejectedValueOnce(new Error('templates down'));
+      mocks.create.mockRejectedValueOnce(new Error('Workflow create failed'));
+      render(<WorkflowTemplatesPage />);
+
+      expect(
+        await screen.findByText('Workflow create failed'),
+      ).toBeInTheDocument();
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+
+      const allAlert = await within(allSection()).findByRole('alert');
+      await user.click(within(allAlert).getByRole('button', { name: 'Retry' }));
+
+      await waitFor(() => {
+        expect(
+          within(allSection()).getByText('Social blast'),
+        ).toBeInTheDocument();
+      });
+      expect(mocks.listTemplates).toHaveBeenCalledTimes(2);
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+      expect(mocks.replace).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+      await waitFor(() => {
+        expect(mocks.replace).toHaveBeenCalledWith(
+          '/demo/FUDNEWS/automation/workflows/wf-created',
+        );
+      });
+      expect(mocks.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('waits for the official catalog, and a catalog retry creates only once', async () => {
+      const user = userEvent.setup();
+      mocks.listSystemCatalog.mockRejectedValueOnce(new Error('catalog down'));
+      mocks.create.mockRejectedValueOnce(new Error('Workflow create failed'));
+      const { rerender } = render(<WorkflowTemplatesPage />);
+
+      const featuredAlert = await within(featuredSection()).findByRole('alert');
+      expect(mocks.create).not.toHaveBeenCalled();
+
+      await user.click(
+        within(featuredAlert).getByRole('button', { name: 'Retry' }),
+      );
+
+      expect(
+        await screen.findByText('Workflow create failed'),
+      ).toBeInTheDocument();
+      expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(2);
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+
+      rerender(<WorkflowTemplatesPage />);
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByRole('button', { name: 'Try again' }),
+      ).toBeInTheDocument();
+    });
   });
 });
