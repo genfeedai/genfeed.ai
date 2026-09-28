@@ -284,7 +284,12 @@ describe('AvatarVideoGenerationService', () => {
       },
       context,
       undefined,
-      { isByokBypass: true, settleCreditsExternally: true },
+      {
+        groupId: 'run-1',
+        groupIndex: 0,
+        isByokBypass: true,
+        settleCreditsExternally: true,
+      },
       reserve,
     );
     expect(reserve).toHaveBeenCalledWith({ billingMode: 'byok', credits: 0 });
@@ -316,7 +321,12 @@ describe('AvatarVideoGenerationService', () => {
         },
         context,
         undefined,
-        { isByokBypass: true, settleCreditsExternally: true },
+        {
+          groupId: 'run-1',
+          groupIndex: 0,
+          isByokBypass: true,
+          settleCreditsExternally: true,
+        },
         reserve,
       ),
     ).rejects.toThrow('Funding changed');

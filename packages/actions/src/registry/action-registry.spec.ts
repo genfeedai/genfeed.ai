@@ -345,6 +345,24 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
   });
 
+  it('owns the batch project idea dispatch actions with closed job contracts', () => {
+    for (const actionId of [
+      'batch-project.idea.dispatch-item',
+      'batch-project.idea.fail-item',
+    ]) {
+      const definition = getActionDefinition(actionId);
+      expect(definition).toMatchObject({
+        authorization: 'system',
+        id: actionId,
+        visibility: 'internal',
+      });
+      expect(definition?.inputSchema).toMatchObject({
+        additionalProperties: false,
+        required: ['job'],
+      });
+    }
+  });
+
   it('publishes exact public YouTube clip session boundaries', () => {
     expect(
       getActionDefinition('youtube.clip.create-session')?.inputSchema,

@@ -1,6 +1,15 @@
 import '@testing-library/jest-dom/vitest';
+import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import * as React from 'react';
 import { afterAll, beforeAll, vi } from 'vitest';
+
+// Tests mount components without the app's root `TooltipProvider`, so a
+// tooltip `Button` would defer its hint and remount its DOM node when the hint
+// loads, mid-test. Loading it first gives the app's single render; as a hook
+// rather than an import, a test's own `vi.mock` of the tooltip still applies.
+beforeAll(async () => {
+  await preloadButtonTooltip();
+});
 
 // Ensure DOM environment is available
 if (typeof global.document === 'undefined') {

@@ -1,7 +1,19 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
+import { afterEach, beforeAll } from 'vitest';
 import './tests/server-only.stub';
+
+// The app renders every `Button` under the root `TooltipProvider`, where a
+// tooltip button renders its final node at once. Tests mount components
+// without that provider, so `Button` defers its tooltip and remounts the
+// button's DOM node when the hint loads, mid-test: focus drops to <body> and
+// queried nodes go stale. Loading it first gives the app's single render.
+// It runs as a hook, not an import, so a test's own `vi.mock` of the tooltip
+// module still applies.
+beforeAll(async () => {
+  await preloadButtonTooltip();
+});
 
 // jsdom ships no IntersectionObserver, so anything rendering `LazyLoad` (via
 // `useIntersectionObserver`) throws on mount. Mirrors the stub in

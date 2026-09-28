@@ -2429,6 +2429,16 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes credits and durable state for one batch generation run.',
   ),
   internalAction(
+    'batch-project.idea.dispatch-item',
+    'Dispatch Batch Project Idea',
+    'Reserves one accepted quote line and starts generation of one batch idea.',
+  ),
+  internalAction(
+    'batch-project.idea.fail-item',
+    'Fail Batch Project Idea',
+    'Fails one batch idea whose generation could not start and releases its hold.',
+  ),
+  internalAction(
     'insight.load-generation-context',
     'Load Insight Generation Context',
     'Loads the tenant context required to generate insights.',

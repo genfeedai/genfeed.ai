@@ -53,8 +53,16 @@ test.describe('Core Automation Loop', () => {
     await expect(
       automationPage.getByTestId('workspace-canvas-layout'),
     ).toBeVisible();
+    // The page title is an sr-only h1 owned by SectionTopbar; the library's
+    // "All workflows" section heading also contains "Workflows", so scope the
+    // title assertion to the topbar and match it exactly.
     await expect(
-      automationPage.getByRole('heading', { name: 'Workflows' }),
+      automationPage
+        .getByTestId('section-topbar')
+        .getByRole('heading', { name: 'Workflows', exact: true }),
+    ).toBeVisible();
+    await expect(
+      automationPage.getByRole('heading', { name: 'All workflows' }),
     ).toBeVisible();
     await expect(
       automationPage.getByRole('link', { name: 'New Workflow' }).first(),

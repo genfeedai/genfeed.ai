@@ -372,14 +372,18 @@ test.describe('Clip Factory', () => {
     });
 
     await authenticatedPage.goto(CLIPS_URL);
-    await expect(
-      authenticatedPage.getByRole('link', { name: /podcast ep 12/i }),
-    ).toBeVisible();
-    await expect(authenticatedPage.getByText(/8 clips/i)).toBeVisible();
 
-    await authenticatedPage
-      .getByRole('link', { name: /podcast ep 12/i })
-      .click();
+    // The list renders each project in both the Recent and All projects
+    // sections; the row title is plain text and "Open" is the row's primary
+    // link, so scope to the row inside All projects.
+    const projectRow = authenticatedPage
+      .getByTestId('clips-projects-all')
+      .getByTestId(`clips-project-row-${MOCK_PROJECT_ID}`);
+    await expect(projectRow).toBeVisible();
+    await expect(projectRow).toContainText(/podcast ep 12/i);
+    await expect(projectRow.getByText(/8 clips/i)).toBeVisible();
+
+    await projectRow.getByRole('link', { exact: true, name: 'Open' }).click();
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`),
