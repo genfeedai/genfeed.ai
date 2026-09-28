@@ -220,6 +220,7 @@ export function useMessagesConversations({
     [conversations, selectedId],
   );
   const selectedUnreadCount = selectedConversation?.unreadCount ?? 0;
+  const selectedInboundSequence = selectedConversation?.inboundSequence;
 
   // Opening a thread reads it: zero its counter and let the bell and the
   // Messages badge catch up.
@@ -231,7 +232,11 @@ export function useMessagesConversations({
     const controller = new AbortController();
     getMessagesService()
       .then((service) =>
-        service.markRead(selectedId, selectedUnreadCount, controller.signal),
+        service.markRead(
+          selectedId,
+          selectedInboundSequence,
+          controller.signal,
+        ),
       )
       .then((readConversation) => {
         if (controller.signal.aborted) {
@@ -256,6 +261,7 @@ export function useMessagesConversations({
     getMessagesService,
     onUnreadStateChange,
     selectedId,
+    selectedInboundSequence,
     selectedUnreadCount,
   ]);
 

@@ -1,4 +1,7 @@
-import { assertValidChannelTargetSchedule } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  assertValidChannelTargetSchedule,
+  toValidationMediaFromIngredients,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   SERVER_TOKENS,
   type ServerLogger,
@@ -380,7 +383,7 @@ export class PostLifecycleService {
     }
 
     const ingredientRow = await transaction.post.findFirst({
-      select: { ingredients: { select: { id: true } } },
+      select: { ingredients: { select: { category: true, id: true } } },
       where: scopedWhere(input.organizationId, { id: target.id }),
     });
 
@@ -391,7 +394,10 @@ export class PostLifecycleService {
         mutation.credentialId,
         target.credentialId,
       ),
-      ingredients: ingredientRow?.ingredients ?? [],
+      media: toValidationMediaFromIngredients(
+        ingredientRow?.ingredients ?? [],
+        target.category,
+      ),
       platform,
       publishMode: 'scheduled',
       settings: this.mergedRecord(

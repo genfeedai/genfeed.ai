@@ -173,11 +173,14 @@ export class ReplicateImageGenerationProviderAdapter
         // webhook (finishGeneration polls the DB). Local SaaS
         // (GENFEED_CLOUD=true with api.genfeed.localhost) and self-hosted
         // never receive provider webhooks, so poll Replicate and return
-        // output URLs for immediate finalize/upload.
-        const shouldPollForOutput = shouldPollReplicatePrediction(
-          isCloudDeployment(),
-          canReceiveProviderWebhooks(),
-        );
+        // output URLs for immediate finalize/upload. BYOK predictions never
+        // register the platform webhook, so they always poll with the org key.
+        const shouldPollForOutput =
+          Boolean(request.apiKeyOverride) ||
+          shouldPollReplicatePrediction(
+            isCloudDeployment(),
+            canReceiveProviderWebhooks(),
+          );
         const outputUrls = shouldPollForOutput
           ? await this.waitForLocalPrediction(
               generationId,

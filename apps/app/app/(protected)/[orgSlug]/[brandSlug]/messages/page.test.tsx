@@ -291,6 +291,7 @@ const conversation = {
   credentialId: 'credential-1',
   externalConversationId: 'thread-1',
   id: 'conversation-1',
+  inboundSequence: 1,
   latestMessageAt: '2026-07-02T08:00:00.000Z',
   latestMessageText: 'Need pricing help',
   needsReview: true,
@@ -522,6 +523,7 @@ describe('SocialMessagesPage', () => {
     const linked = {
       ...conversation,
       id: 'conversation-linked',
+      inboundSequence: 5,
       participantName: 'Jordan',
       unreadCount: 2,
     };
@@ -553,7 +555,7 @@ describe('SocialMessagesPage', () => {
     await waitFor(() =>
       expect(mocks.markRead).toHaveBeenCalledWith(
         'conversation-linked',
-        2,
+        5,
         expect.any(AbortSignal),
       ),
     );

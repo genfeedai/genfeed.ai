@@ -89,6 +89,51 @@ describe('ReplicateImageGenerationProviderAdapter BYOK dispatch key (#5294)', ()
     );
   });
 
+  it('polls a BYOK prediction with the org key on cloud, where no platform webhook is registered', async () => {
+    configState.canReceiveWebhooks = true;
+    configState.isCloud = true;
+    const replicateService = {
+      generateTextToImage: vi.fn().mockResolvedValue('pred_byok_cloud'),
+      getPrediction: vi.fn().mockResolvedValue({
+        output: ['https://cdn.test/out.png'],
+        status: 'succeeded',
+      }),
+    };
+    const adapter = new ReplicateImageGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+
+    const prepared = await adapter.prepare(
+      buildRequest({ apiKeyOverride: 'org-replicate-key' }),
+    );
+    const result = await prepared.generate();
+
+    expect(replicateService.getPrediction).toHaveBeenCalledWith(
+      'pred_byok_cloud',
+      'org-replicate-key',
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ outputUrls: ['https://cdn.test/out.png'] }),
+    );
+  });
+
+  it('leaves a platform prediction to the webhook on cloud', async () => {
+    configState.canReceiveWebhooks = true;
+    configState.isCloud = true;
+    const replicateService = {
+      generateTextToImage: vi.fn().mockResolvedValue('pred_platform_cloud'),
+      getPrediction: vi.fn(),
+    };
+    const adapter = new ReplicateImageGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+
+    const prepared = await adapter.prepare(buildRequest());
+    await prepared.generate();
+
+    expect(replicateService.getPrediction).not.toHaveBeenCalled();
+  });
+
   it('cancels an aborted BYOK prediction with the same org key', async () => {
     const abortController = new AbortController();
     const replicateService = {

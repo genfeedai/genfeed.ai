@@ -1,7 +1,7 @@
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
-import { AgentFailureReason } from '@genfeedai/contracts';
+import { AgentFailureReason, IngredientCategory } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 function buildContext(
@@ -59,7 +59,7 @@ describe('VideoGenerationExecutionService', () => {
       websocketService as never,
     );
 
-    return { providerDispatchService, service };
+    return { providerDispatchService, replicatePollQueueService, service };
   }
 
   it('maps a Replicate 402 insufficient-credit failure to a 4xx/502 HttpException, never a raw 500', async () => {
@@ -121,8 +121,41 @@ describe('VideoGenerationExecutionService', () => {
     );
   });
 
+  it('marks the polling fallback as BYOK so completion reads the prediction with the org key', async () => {
+    const { providerDispatchService, replicatePollQueueService, service } =
+      createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'ext-byok-1',
+      provider: 'replicate',
+    });
+    const context = buildContext({
+      request: {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-replicate-key',
+          isByokBypass: true,
+          provider: 'replicate',
+        },
+      } as never,
+    });
+
+    await service.execute(context);
+
+    expect(replicatePollQueueService.schedule).toHaveBeenCalledWith({
+      category: IngredientCategory.VIDEO,
+      externalId: 'ext-byok-1',
+      ingredientId: 'ingredient-1',
+      isByok: true,
+      organizationId: 'org-1',
+    });
+    expect(
+      JSON.stringify(replicatePollQueueService.schedule.mock.calls),
+    ).not.toContain('org-replicate-key');
+  });
+
   it('dispatches with no apiKeyOverride when the request carries no BYOK bypass', async () => {
-    const { providerDispatchService, service } = createHarness();
+    const { providerDispatchService, replicatePollQueueService, service } =
+      createHarness();
     providerDispatchService.dispatch.mockResolvedValue({
       completion: 'polling',
       externalId: 'ext-platform-1',
@@ -133,6 +166,9 @@ describe('VideoGenerationExecutionService', () => {
 
     expect(providerDispatchService.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({ apiKeyOverride: undefined }),
+    );
+    expect(replicatePollQueueService.schedule).toHaveBeenCalledWith(
+      expect.not.objectContaining({ isByok: true }),
     );
   });
 });

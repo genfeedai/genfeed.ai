@@ -12,6 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
   CredentialPlatform,
+  IngredientCategory,
   PostCategory,
   PostVisibility,
   PublishApprovalStatus,
@@ -138,6 +139,7 @@ describe('PostGroupsService', () => {
     brand: { findFirst: ReturnType<typeof vi.fn> };
     campaign: { findFirst: ReturnType<typeof vi.fn> };
     credential: { findMany: ReturnType<typeof vi.fn> };
+    ingredient: { findMany: ReturnType<typeof vi.fn> };
     post: {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
@@ -175,6 +177,9 @@ describe('PostGroupsService', () => {
       },
       credential: {
         findMany: vi.fn().mockResolvedValue([makeCredential()]),
+      },
+      ingredient: {
+        findMany: vi.fn().mockResolvedValue([]),
       },
       post: {
         create: vi
@@ -550,6 +555,66 @@ describe('PostGroupsService', () => {
       scheduled: 1,
       total: 1,
     });
+  });
+
+  it('sets each channel target category from the linked release media', async () => {
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: IngredientCategory.VIDEO },
+    ]);
+
+    await service.create('org-1', 'user-1', {
+      baseContent: 'Launch video',
+      brandId: 'brand-1',
+      media: [{ assetId: 'video-1', kind: 'video' }],
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+          settings: { replyPolicy: 'everyone' },
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch video',
+    });
+
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith({
+      select: { category: true },
+      where: {
+        id: { in: ['video-1'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ category: PostCategory.VIDEO }),
+      }),
+    );
+  });
+
+  it('creates a media-less channel target as TEXT without reading ingredients', async () => {
+    await service.create('org-1', 'user-1', {
+      baseContent: 'Launch note',
+      brandId: 'brand-1',
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+          settings: { replyPolicy: 'everyone' },
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch note',
+    });
+
+    expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ category: PostCategory.TEXT }),
+      }),
+    );
   });
 
   it('persists a per-target caption override as the channel description', async () => {
