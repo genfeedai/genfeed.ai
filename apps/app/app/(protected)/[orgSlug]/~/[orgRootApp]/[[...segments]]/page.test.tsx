@@ -198,18 +198,6 @@ vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
   default: () => <div data-testid="publishing-review-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/publishing/calendar/page', () => ({
-  // Mirrors the real page: a redirect into the posts list in calendar view.
-  default: async ({
-    params,
-  }: {
-    params: Promise<{ brandSlug: string; orgSlug: string }>;
-  }) => {
-    const { brandSlug, orgSlug } = await params;
-    redirectMock(`/${orgSlug}/${brandSlug}/publishing/posts?view=calendar`);
-  },
-}));
-
 vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
   default: async ({ params }: { params: Promise<{ id: string }> }) => {
     const { id } = await params;
@@ -536,10 +524,22 @@ describe('OrgRootAppPage', () => {
     });
   });
 
-  it.each([
-    ['content', '/acme/~/publishing/posts?'],
-    ['calendar', '/acme/~/publishing/posts?view=calendar'],
-  ])(
+  it('returns not found for the retired org publishing calendar route', async () => {
+    // The calendar is the Posts desk's calendar view
+    // (`/publishing/posts?view=calendar`); the old route is hard-cut.
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['calendar'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it.each([['content', '/acme/~/publishing/posts?']])(
     'redirects the org publishing %s route into the posts list',
     async (segment, destination) => {
       await expect(
@@ -681,7 +681,6 @@ describe('OrgRootAppPage', () => {
     ['posts', 'content-1', 'extra'],
     ['content', 'extra'],
     ['review', 'extra'],
-    ['calendar', 'extra'],
     ['campaigns', 'compare', 'extra'],
     ['campaigns', 'new', 'extra'],
     ['campaigns', 'cmp-1', 'content', 'extra'],

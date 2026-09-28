@@ -725,8 +725,8 @@ describe('proxy', () => {
       ['/', ''],
       ['/workspace', ''],
       ['/workspace/tasks', ''],
-      ['/publishing/calendar', ''],
-      ['/publishing/calendar', '?view=week'],
+      ['/publishing/posts', ''],
+      ['/publishing/posts', '?view=calendar'],
       ['/analytics', ''],
       ['/settings', ''],
       [APP_ROUTES.SETTINGS.GENERAL, ''],
@@ -760,14 +760,14 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
 
       const response = await proxy(
-        makePlaywrightBypassRequest('/publishing/calendar', {
+        makePlaywrightBypassRequest('/publishing/posts', {
           workspace: '/test-org/brand-1',
         }),
       );
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/test-org/brand-1/publishing/calendar',
+        'http://localhost:3000/test-org/brand-1/publishing/posts',
       );
       expect(fetchMock).not.toHaveBeenCalled();
     });
@@ -791,7 +791,7 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
 
       const response = await proxy(
-        makePlaywrightBypassRequest('/test-org/brand-1/publishing/calendar', {
+        makePlaywrightBypassRequest('/test-org/brand-1/publishing/posts', {
           workspace: '/test-org/brand-1',
         }),
       );
@@ -810,7 +810,7 @@ describe('proxy', () => {
         const { default: proxy } = await import('./proxy');
 
         const response = await proxy(
-          makePlaywrightBypassRequest('/publishing/calendar', { workspace }),
+          makePlaywrightBypassRequest('/publishing/posts', { workspace }),
         );
 
         expect(response.status).toBe(200);
@@ -825,14 +825,14 @@ describe('proxy', () => {
       const { default: proxy } = await import('./proxy');
 
       const response = await proxy(
-        makePlaywrightBypassRequest('/publishing/calendar', {
+        makePlaywrightBypassRequest('/publishing/posts', {
           workspace: '/test-org/brand-1',
         }),
       );
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/login?callbackUrl=%2Fpublishing%2Fcalendar',
+        'http://localhost:3000/login?callbackUrl=%2Fpublishing%2Fposts',
       );
     });
   });

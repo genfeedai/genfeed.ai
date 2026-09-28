@@ -98,12 +98,21 @@ function useSurfaceProgress(
     const header = headerRef.current;
     if (!header) return;
 
+    let lastProgress: string | null = null;
+
     const apply = () => {
       const progress = isForcedOpaque
         ? 1
         : Math.min(window.scrollY / SURFACE_RAMP_PX, 1);
 
-      header.style.setProperty('--topbar-surface', progress.toFixed(3));
+      // Past the ramp every scroll event lands on the same value. Re-writing
+      // it still invalidates style and re-rasterizes the backdrop blur, which
+      // is the most expensive paint on the page on a phone.
+      const nextProgress = progress.toFixed(3);
+      if (nextProgress === lastProgress) return;
+      lastProgress = nextProgress;
+
+      header.style.setProperty('--topbar-surface', nextProgress);
       // The tint reads this custom property straight from CSS, but
       // `backdrop-filter` will not take a calc() over one — the declaration
       // resolves to the fallback and the blur never arrives. Setting the blur

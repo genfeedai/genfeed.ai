@@ -29,7 +29,7 @@ Approach 1 is selected.
 ## Classification Decisions
 
 - Research, Ads, Trends, and analytics boards are `visual-data`.
-- Library, approvals, publishing/calendar, workflows, settings, billing, API
+- Library, approvals, the publishing posts calendar view, workflows, settings, billing, API
   keys, activity/audit, workspace, and administration are `control-plane`.
 - Studio, compose/editor, agent creation, post composer, and Remix are
   `contextual-action`.

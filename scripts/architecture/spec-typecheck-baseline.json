@@ -5347,14 +5347,6 @@
     {
       "code": 2307,
       "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/page.test.tsx",
-      "fingerprint": "c727f143bed6237c8ad0",
-      "message": "Cannot find module '@shared/pages/sourceContractTestUtils' or its corresponding type declarations.",
-      "workspace": "app"
-    },
-    {
-      "code": 2307,
-      "count": 1,
       "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/[id]/ads/page.test.tsx",
       "fingerprint": "5ce8390f023c9aae00f5",
       "message": "Cannot find module '@shared/pages/sourceContractTestUtils' or its corresponding type declarations.",

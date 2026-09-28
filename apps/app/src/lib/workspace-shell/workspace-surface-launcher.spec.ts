@@ -20,7 +20,7 @@ describe('workspace surface launcher', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref:
-          '/acme/moonrise/publishing/calendar?filter=scheduled&thread=thread-1',
+          '/acme/moonrise/publishing/posts?view=calendar&thread=thread-1',
         destinationHref: '/acme/moonrise/agent',
       }),
     ).toMatchObject({

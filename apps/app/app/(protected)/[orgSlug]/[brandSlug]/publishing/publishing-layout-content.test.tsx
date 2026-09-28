@@ -105,22 +105,6 @@ describe('PublishingLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('lets Calendar own its controls without an extra publishing toolbar', () => {
-    usePathnameMock.mockReturnValue('/demo/FUDNEWS/publishing/calendar');
-
-    render(
-      <PublishingLayoutContent>
-        <div>calendar grid</div>
-      </PublishingLayoutContent>,
-    );
-
-    expect(screen.getByText('calendar grid')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /new post/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('container')).not.toBeInTheDocument();
-  });
-
   it('renders the New post menu and leaves filters to the posts list', () => {
     render(
       <PublishingLayoutContent>

@@ -103,3 +103,31 @@ describe('TopbarPublic mobile menu', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+describe('TopbarPublic scroll surface', () => {
+  function scrollTo(y: number) {
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: y });
+    fireEvent.scroll(window);
+  }
+
+  it('ramps the glass in, then stops restyling once it is fully in', () => {
+    renderTopbar();
+    const header = screen.getByRole('banner');
+
+    scrollTo(80);
+    expect(header.style.getPropertyValue('--topbar-surface')).toBe('0.500');
+    expect(header.style.backdropFilter).toBe('blur(12.0px)');
+
+    scrollTo(400);
+    expect(header.style.getPropertyValue('--topbar-surface')).toBe('1.000');
+
+    const setProperty = vi.spyOn(header.style, 'setProperty');
+    scrollTo(800);
+    scrollTo(1200);
+    expect(setProperty).not.toHaveBeenCalled();
+
+    scrollTo(0);
+    expect(header.style.getPropertyValue('--topbar-surface')).toBe('0.000');
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+  });
+});

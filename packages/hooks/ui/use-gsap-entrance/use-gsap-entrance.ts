@@ -265,8 +265,17 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
               };
             }
 
+            // The same rule as the batch path. GSAP resolves after first
+            // paint, so tweening an element that is already on screen from
+            // `opacity: 0` blanks painted content and fades it back in — a
+            // flash on every load, and a later LCP for the hero it hides.
+            const offscreen = elements.filter(
+              (element) => !isInViewport(element),
+            );
+            if (offscreen.length === 0) continue;
+
             runMountedInsertion(() => {
-              gsap.fromTo(elements, fromVars, toVars);
+              gsap.fromTo(offscreen, fromVars, toVars);
             });
           }
         }, container);

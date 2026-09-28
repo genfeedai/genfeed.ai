@@ -216,7 +216,6 @@ describe('operator-shell helpers', () => {
       '/analytics',
       '/automation',
       '/automation/workflows',
-      '/publishing/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }

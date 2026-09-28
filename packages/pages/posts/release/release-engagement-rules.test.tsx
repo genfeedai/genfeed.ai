@@ -207,7 +207,7 @@ describe('ReleaseEngagementRules', () => {
     expect(screen.getByText(/120 likes/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'release-2' })).toHaveAttribute(
       'href',
-      '/acme/publishing/calendar?release=release-2',
+      '/acme/publishing/posts?view=calendar&release=release-2',
     );
   });
 

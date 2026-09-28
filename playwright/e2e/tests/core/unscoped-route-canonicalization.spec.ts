@@ -47,8 +47,8 @@ const CANONICALIZED_ROUTES = [
     canonical: brandPath(APP_ROUTES.WORKSPACE.TASKS),
   },
   {
-    bare: `${APP_ROUTES.PUBLISHING.CALENDAR}?view=week`,
-    canonical: `${brandPath(APP_ROUTES.PUBLISHING.CALENDAR)}?view=week`,
+    bare: APP_ROUTES.PUBLISHING.CALENDAR,
+    canonical: brandPath(APP_ROUTES.PUBLISHING.CALENDAR),
   },
 ];
 

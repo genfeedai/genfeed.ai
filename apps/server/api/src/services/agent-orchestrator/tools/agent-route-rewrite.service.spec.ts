@@ -208,6 +208,7 @@ describe('AgentRouteRewriteService', () => {
             ctas: [
               { href: '/review', label: 'Review Queue' },
               { href: '/calendar/posts', label: 'View Calendar' },
+              { href: '/calendar?release=r-1', label: 'Open release' },
             ],
             id: 'action-calendar',
             title: 'Content calendar',
@@ -226,8 +227,12 @@ describe('AgentRouteRewriteService', () => {
         label: 'Review Queue',
       },
       {
-        href: '/genfeed-ai/launch-brand/publishing/calendar',
+        href: '/genfeed-ai/launch-brand/publishing/posts?view=calendar',
         label: 'View Calendar',
+      },
+      {
+        href: '/genfeed-ai/launch-brand/publishing/posts?view=calendar&release=r-1',
+        label: 'Open release',
       },
     ]);
   });

@@ -10,20 +10,24 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pathnameRef = { current: '/' };
+const searchParamsRef = { current: new URLSearchParams() };
 const brandRef: { current: { agentConfig?: unknown } | null } = {
   current: null,
 };
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathnameRef.current,
+  useSearchParams: () => searchParamsRef.current,
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: brandRef.current }),
 }));
 
-function renderAt(pathname: string, role?: MemberRole) {
+function renderAt(href: string, role?: MemberRole) {
+  const [pathname = '/', query = ''] = href.split('?');
   pathnameRef.current = pathname;
+  searchParamsRef.current = new URLSearchParams(query);
   return renderHook(() => useAgentPageContext(role));
 }
 
@@ -163,6 +167,12 @@ describe('useAgentPageContext', () => {
     const labels = result.current.suggestedActions.map((a) => a.label);
 
     expect(labels).toContain('Compare');
+  });
+
+  it('keeps the plain Posts desk off the calendar context', () => {
+    const { result } = renderAt(`/acme/main${APP_ROUTES.PUBLISHING.POSTS}`);
+
+    expect(result.current.placeholder).not.toBe('Ask about your calendar...');
   });
 
   it('resolves the publishing calendar route to the calendar context', () => {

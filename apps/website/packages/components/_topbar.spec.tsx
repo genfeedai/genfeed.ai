@@ -4,9 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
 
-vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ isSignedIn: false }),
-}));
+vi.mock(
+  '@genfeedai/hooks/auth/use-deferred-is-signed-in/use-deferred-is-signed-in',
+  () => ({ useDeferredIsSignedIn: () => false }),
+);
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
