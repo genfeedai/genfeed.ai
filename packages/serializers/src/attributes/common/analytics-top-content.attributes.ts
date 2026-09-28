@@ -10,6 +10,8 @@ export const analyticsTopContentAttributes = createEntityAttributes([
   'likes',
   'comments',
   'shares',
+  'saves',
+  'totalEngagement',
   'engagementRate',
   'publishDate',
   'url',

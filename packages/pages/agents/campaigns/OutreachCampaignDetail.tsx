@@ -2,6 +2,7 @@
 
 import {
   ButtonVariant,
+  CampaignPlatform,
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/contracts';
@@ -9,17 +10,29 @@ import {
   evaluateOutreachCapability,
   isOutreachPairExecutable,
 } from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, Check, Pause, Play, Rocket } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
+import { useMemo } from 'react';
+import CampaignNeedsYou from './CampaignNeedsYou';
+import { getCampaignPrimaryActionKind } from './campaign-primary-action.helper';
 import OutreachCampaignAddTargets from './OutreachCampaignAddTargets';
 import OutreachCampaignDetailHeader from './OutreachCampaignDetailHeader';
 import OutreachCampaignTargetsTable from './OutreachCampaignTargetsTable';
+import { buildOutreachCampaignFacts } from './outreach-campaign-detail-facts.helper';
 import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
+
+const OUTREACH_PLATFORM_LABELS: Record<CampaignPlatform, string> = {
+  [CampaignPlatform.TWITTER]: 'Twitter / X',
+  [CampaignPlatform.REDDIT]: 'Reddit',
+  [CampaignPlatform.INSTAGRAM]: 'Instagram',
+};
 
 const CAMPAIGN_KPI_PLACEHOLDERS = [
   { description: 'All targets', label: 'Total', value: '-' },
@@ -43,12 +56,88 @@ export default function OutreachCampaignDetail() {
     isAddingUrls,
     isLoading,
     isRefreshing,
+    isStartingCampaign,
     loadCampaign,
     setUrlInput,
     targetStats,
     targets,
     urlInput,
   } = useOutreachCampaignDetail();
+
+  const pairEvaluation = campaign
+    ? evaluateOutreachCapability({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      })
+    : null;
+  const isPairExecutable = pairEvaluation
+    ? isOutreachPairExecutable(pairEvaluation)
+    : false;
+  const unavailableReasonId = 'outreach-campaign-unavailable-reason';
+
+  // Resume when paused, Pause when running, Start for a never-run draft.
+  // Complete moves into the overflow menu alongside every other action.
+  const primaryActionKind = campaign
+    ? getCampaignPrimaryActionKind(campaign.status)
+    : null;
+  const primary = useMemo(() => {
+    switch (primaryActionKind) {
+      case 'pause':
+        return (
+          <Button
+            icon={<Pause className="size-4" />}
+            label={translate('pause')}
+            onClick={handlePauseCampaign}
+            variant={ButtonVariant.DEFAULT}
+          />
+        );
+      case 'resume':
+      case 'start':
+        return (
+          <Button
+            aria-describedby={
+              isPairExecutable ? undefined : unavailableReasonId
+            }
+            aria-disabled={isPairExecutable ? undefined : true}
+            icon={<Play className="size-4" />}
+            isDisabled={isStartingCampaign}
+            label={translate(
+              primaryActionKind === 'resume' ? 'resume' : 'start',
+            )}
+            onClick={() => {
+              if (!isPairExecutable) {
+                return;
+              }
+              handleStartCampaign();
+            }}
+            variant={ButtonVariant.DEFAULT}
+          />
+        );
+      default:
+        return undefined;
+    }
+  }, [
+    handlePauseCampaign,
+    handleStartCampaign,
+    isPairExecutable,
+    isStartingCampaign,
+    primaryActionKind,
+    translate,
+  ]);
+
+  const overflow = useMemo<CollectionOverflowAction[]>(() => {
+    if (!campaign || campaign.status === CampaignStatus.COMPLETED) {
+      return [];
+    }
+    return [
+      {
+        icon: <Check className="size-4" />,
+        id: 'complete',
+        label: translate('complete'),
+        onSelect: handleCompleteCampaign,
+      },
+    ];
+  }, [campaign, handleCompleteCampaign, translate]);
 
   if (!isLoading && !campaign) {
     return (
@@ -69,17 +158,6 @@ export default function OutreachCampaignDetail() {
       </Container>
     );
   }
-
-  const pairEvaluation = campaign
-    ? evaluateOutreachCapability({
-        campaignType: campaign.campaignType,
-        platform: campaign.platform,
-      })
-    : null;
-  const isPairExecutable = pairEvaluation
-    ? isOutreachPairExecutable(pairEvaluation)
-    : false;
-  const unavailableReasonId = 'outreach-campaign-unavailable-reason';
 
   const kpiItems = campaign
     ? [
@@ -141,48 +219,7 @@ export default function OutreachCampaignDetail() {
             isRefreshing={isRefreshing}
           />
 
-          {campaign?.status === CampaignStatus.ACTIVE ? (
-            <Button
-              label={
-                <>
-                  <Pause /> Pause
-                </>
-              }
-              variant={ButtonVariant.DESTRUCTIVE}
-              onClick={handlePauseCampaign}
-            />
-          ) : campaign && campaign.status !== CampaignStatus.COMPLETED ? (
-            <Button
-              aria-describedby={
-                isPairExecutable ? undefined : unavailableReasonId
-              }
-              aria-disabled={isPairExecutable ? undefined : true}
-              label={
-                <>
-                  <Play /> Start
-                </>
-              }
-              variant={ButtonVariant.DEFAULT}
-              onClick={() => {
-                if (!isPairExecutable) {
-                  return;
-                }
-                handleStartCampaign();
-              }}
-            />
-          ) : null}
-
-          {campaign && campaign.status !== CampaignStatus.COMPLETED && (
-            <Button
-              label={
-                <>
-                  <Check /> Complete
-                </>
-              }
-              variant={ButtonVariant.SECONDARY}
-              onClick={handleCompleteCampaign}
-            />
-          )}
+          <CollectionItemActions overflow={overflow} primary={primary} />
         </>
       }
     >
@@ -199,11 +236,35 @@ export default function OutreachCampaignDetail() {
         ) : null}
 
         {campaign ? (
-          <OutreachCampaignDetailHeader
-            platform={campaign.platform}
-            status={campaign.status}
-            onBack={handleBack}
-          />
+          <>
+            <OutreachCampaignDetailHeader
+              platform={campaign.platform}
+              status={campaign.status}
+              onBack={handleBack}
+            />
+
+            <RecordFactLine
+              facts={buildOutreachCampaignFacts(
+                campaign,
+                OUTREACH_PLATFORM_LABELS[campaign.platform],
+                translate(`statusOptions.${campaign.status}`),
+              )}
+            />
+
+            <CampaignNeedsYou
+              isExecuting={isStartingCampaign}
+              isPaused={campaign.status === CampaignStatus.PAUSED}
+              onResume={() => {
+                if (!isPairExecutable) {
+                  return;
+                }
+                handleStartCampaign();
+              }}
+              pausedDescription={translate('needsYou.pausedDescription')}
+              resumeLabel={translate('needsYou.resume')}
+              title={translate('needsYou.title')}
+            />
+          </>
         ) : null}
 
         <KPISection

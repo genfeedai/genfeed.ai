@@ -369,37 +369,37 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const where = this.buildPostAnalyticsWhere({
-      brandId,
-      endDate,
-      organizationId,
-      startDate,
-    });
-
     const safeLimit = Math.min(Math.max(1, limit), 100);
-    const candidateLimit =
+    // Engagement is ranked in SQL so a save-heavy post is not dropped by a
+    // likes-only candidate cut before it is scored (genfeedai/genfeed.ai#5449).
+    const orderBy =
       metric === AnalyticsMetric.ENGAGEMENT
-        ? Math.min(safeLimit * 5, 250)
-        : safeLimit;
-    const rows = await this.prisma.postAnalytics.groupBy({
-      _avg: { engagementRate: true },
-      _max: {
-        totalComments: true,
-        totalLikes: true,
-        totalShares: true,
-        totalViews: true,
-      },
-      by: ['postId', 'platform'],
-      orderBy:
-        metric === AnalyticsMetric.ENGAGEMENT
-          ? { _max: { totalLikes: 'desc' } }
-          : { _max: { totalViews: 'desc' } },
-      take: candidateLimit,
-      where: scopedWhere(organizationId, where),
-    });
+        ? Prisma.sql`(MAX("totalLikes") + MAX("totalComments") + MAX("totalShares") + MAX("totalSaves")) DESC, "postId" ASC`
+        : Prisma.sql`MAX("totalViews") DESC, "postId" ASC`;
+    const rows = await this.prisma.$queryRaw<TopContentAnalyticsRow[]>(
+      Prisma.sql`
+        SELECT
+          "postId" AS post_id,
+          "platform"::text AS platform,
+          AVG("engagementRate") AS avg_engagement_rate,
+          MAX("totalComments") AS max_comments,
+          MAX("totalLikes") AS max_likes,
+          MAX("totalSaves") AS max_saves,
+          MAX("totalShares") AS max_shares,
+          MAX("totalViews") AS max_views
+        FROM "post_analytics"
+        WHERE "isDeleted" = false AND "organizationId" = ${organizationId}
+          AND "date" >= ${startDate}
+          AND "date" <= ${endDate}
+          ${this.buildBrandSqlPredicate(brandId)}
+        GROUP BY "postId", "platform"
+        ORDER BY ${orderBy}
+        LIMIT ${safeLimit}
+      `,
+    );
 
     const topScored = postAnalyticsProjection.scoreTopContent(
-      rows as TopContentAnalyticsRow[],
+      rows,
       metric,
       safeLimit,
     );

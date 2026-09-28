@@ -26,6 +26,8 @@ describe('PlatformScheduleRegistryService', () => {
   };
   const workflowExecutions = {
     cancelExecution: vi.fn().mockResolvedValue({ status: 'CANCELLED' }),
+    clearCancellationRequest: vi.fn().mockResolvedValue(undefined),
+    requestCancellation: vi.fn().mockResolvedValue(true),
   };
   const configService = { isDevSchedulersEnabled: true };
   const logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn() };
@@ -43,6 +45,8 @@ describe('PlatformScheduleRegistryService', () => {
     workflowExecutions.cancelExecution.mockResolvedValue({
       status: 'CANCELLED',
     });
+    workflowExecutions.requestCancellation.mockResolvedValue(true);
+    workflowExecutions.clearCancellationRequest.mockResolvedValue(undefined);
     configService.isDevSchedulersEnabled = true;
     service = new PlatformScheduleRegistryService(
       queue as never,
@@ -145,6 +149,111 @@ describe('PlatformScheduleRegistryService', () => {
         workflowExecutions.cancelExecution.mock.invocationCallOrder[0];
       expect(removeOrder).toBeLessThan(cancelOrder);
       expect(staleJob.remove).toHaveBeenCalledOnce();
+    });
+
+    describe('durable cancellation intent (#5450)', () => {
+      it('persists the cancellation intent before removing the queued job', async () => {
+        const staleJob = platformJob(
+          'system-workflow-intent-first',
+          'PlatformWorkflowSchedulesService',
+          'execution-intent-first',
+        );
+        workflowExecutionQueue.getJobs
+          .mockResolvedValueOnce([staleJob])
+          .mockResolvedValue([]);
+
+        await service.drainStalePlatformSourcedJobs();
+
+        expect(workflowExecutions.requestCancellation).toHaveBeenCalledWith(
+          'execution-intent-first',
+        );
+        expect(
+          workflowExecutions.requestCancellation.mock.invocationCallOrder[0],
+        ).toBeLessThan(staleJob.remove.mock.invocationCallOrder[0]);
+        expect(
+          workflowExecutions.clearCancellationRequest,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('leaves the job queued when the intent cannot be persisted, so no execution is ever orphaned', async () => {
+        const staleJob = platformJob(
+          'system-workflow-intent-db-down',
+          'PlatformWorkflowSchedulesService',
+        );
+        workflowExecutionQueue.getJobs
+          .mockResolvedValueOnce([staleJob])
+          .mockResolvedValue([]);
+        workflowExecutions.requestCancellation.mockRejectedValue(
+          new Error('db unavailable'),
+        );
+
+        await service.drainStalePlatformSourcedJobs();
+
+        expect(staleJob.remove).not.toHaveBeenCalled();
+        expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
+
+      it('keeps the persisted intent for the reconciler when every cancel retry fails after removal', async () => {
+        const staleJob = platformJob(
+          'system-workflow-intent-kept',
+          'PlatformWorkflowSchedulesService',
+        );
+        workflowExecutionQueue.getJobs
+          .mockResolvedValueOnce([staleJob])
+          .mockResolvedValue([]);
+        workflowExecutions.cancelExecution.mockRejectedValue(
+          new Error('db unavailable'),
+        );
+
+        await service.drainStalePlatformSourcedJobs();
+
+        expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(3);
+        expect(
+          workflowExecutions.clearCancellationRequest,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('clears the intent when a worker claimed the job so the run is never cancelled later', async () => {
+        const staleJob = platformJob(
+          'system-workflow-intent-cleared',
+          'PlatformWorkflowSchedulesService',
+          'execution-intent-cleared',
+        );
+        staleJob.remove.mockRejectedValue(
+          new Error('locked by another worker'),
+        );
+        workflowExecutionQueue.getJobs
+          .mockResolvedValueOnce([staleJob])
+          .mockResolvedValue([]);
+
+        await service.drainStalePlatformSourcedJobs();
+
+        expect(
+          workflowExecutions.clearCancellationRequest,
+        ).toHaveBeenCalledWith('execution-intent-cleared');
+        expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
+
+      it('still reports the drain as failed-soft when clearing the intent itself fails', async () => {
+        const staleJob = platformJob(
+          'system-workflow-intent-clear-fails',
+          'PlatformWorkflowSchedulesService',
+        );
+        staleJob.remove.mockRejectedValue(
+          new Error('locked by another worker'),
+        );
+        workflowExecutions.clearCancellationRequest.mockRejectedValue(
+          new Error('db unavailable'),
+        );
+        workflowExecutionQueue.getJobs
+          .mockResolvedValueOnce([staleJob])
+          .mockResolvedValue([]);
+
+        await expect(
+          service.drainStalePlatformSourcedJobs(),
+        ).resolves.toBeUndefined();
+        expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+      });
     });
 
     it('never cancels the execution when a worker has already claimed (locked) the job (release review finding)', async () => {

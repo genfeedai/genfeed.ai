@@ -4,6 +4,13 @@ import { preloadButtonTooltip } from '@ui/primitives/button-tooltip';
 import { afterEach, beforeAll } from 'vitest';
 import './tests/server-only.stub';
 
+// The preload is a cold dynamic import of Radix Tooltip through Vite's
+// transform pipeline, once per test file in a fresh module graph. On a loaded CI
+// runner (hundreds of jsdom files contending for one Vite server) a single
+// import has taken longer than Vitest's 10s default hook timeout and failed the
+// whole file (#5571), so give this hook a budget that matches its cost.
+const TOOLTIP_PRELOAD_TIMEOUT_MS = 60_000;
+
 // The app renders every `Button` under the root `TooltipProvider`, where a
 // tooltip button renders its final node at once. Tests mount components
 // without that provider, so `Button` defers its tooltip and remounts the
@@ -13,7 +20,7 @@ import './tests/server-only.stub';
 // module still applies.
 beforeAll(async () => {
   await preloadButtonTooltip();
-});
+}, TOOLTIP_PRELOAD_TIMEOUT_MS);
 
 // jsdom ships no IntersectionObserver, so anything rendering `LazyLoad` (via
 // `useIntersectionObserver`) throws on mount. Mirrors the stub in

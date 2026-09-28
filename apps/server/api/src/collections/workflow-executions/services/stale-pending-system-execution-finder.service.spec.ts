@@ -149,7 +149,7 @@ describe('StalePendingSystemExecutionFinderService', () => {
       );
     });
 
-    it('selects createdAt so the caller can build the next cursor', async () => {
+    it('selects createdAt and cancelRequestedAt so the caller can build the next cursor and honour a drain cancellation intent (#5450)', async () => {
       const findMany = vi.fn().mockResolvedValue([]);
       const prisma = { workflowExecution: { findMany } };
       const service = new StalePendingSystemExecutionFinderService(
@@ -160,7 +160,12 @@ describe('StalePendingSystemExecutionFinderService', () => {
 
       expect(findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          select: { createdAt: true, id: true, organizationId: true },
+          select: {
+            cancelRequestedAt: true,
+            createdAt: true,
+            id: true,
+            organizationId: true,
+          },
         }),
       );
     });

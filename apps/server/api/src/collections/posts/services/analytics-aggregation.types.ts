@@ -59,6 +59,8 @@ export interface TopContent {
   shares: number;
   engagementRate: number;
   publishDate: Date;
+  saves: number;
+  totalEngagement: number;
   url?: string;
 }
 
@@ -131,12 +133,17 @@ export interface AnalyticsPlatformDateRow extends AnalyticsDateRow {
   platform: string;
 }
 
-export interface TopContentAnalyticsRow {
-  _avg?: { engagementRate?: unknown };
-  _max?: Record<string, unknown>;
+/** Lifetime counters are cumulative snapshots, so a post's score is the max. */
+export type TopContentAnalyticsRow = {
+  avg_engagement_rate: NumericSqlValue;
+  max_comments: NumericSqlValue;
+  max_likes: NumericSqlValue;
+  max_saves: NumericSqlValue;
+  max_shares: NumericSqlValue;
+  max_views: NumericSqlValue;
   platform: string;
-  postId: string;
-}
+  post_id: string;
+};
 
 export interface TopContentPostRow {
   description?: string;
@@ -152,6 +159,7 @@ export interface TopContentScore {
   likes: number;
   platform: string;
   postId: string;
+  saves: number;
   shares: number;
   totalEngagement: number;
   views: number;

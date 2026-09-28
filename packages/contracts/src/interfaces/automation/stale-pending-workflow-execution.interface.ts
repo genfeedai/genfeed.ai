@@ -8,6 +8,12 @@ export interface StalePendingSystemExecutionCandidate {
   id: string;
   organizationId: string;
   createdAt: Date;
+  /**
+   * Set when the deploy drain durably recorded its intent to cancel this run
+   * before removing its queued job (#5450). The reconciler closes such a row
+   * with a silent cancel regardless of age, never a loud failure.
+   */
+  cancelRequestedAt: Date | null;
 }
 
 /**

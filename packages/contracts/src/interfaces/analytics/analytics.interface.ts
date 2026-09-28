@@ -182,6 +182,9 @@ export interface ITopContent {
   likes: number;
   comments: number;
   shares: number;
+  /** Absent on account top posts, which do not carry saves. */
+  saves?: number;
+  totalEngagement?: number;
   engagementRate: number;
   publishDate: Date | string;
   url?: string;

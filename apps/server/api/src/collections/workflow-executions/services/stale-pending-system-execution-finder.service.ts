@@ -159,7 +159,12 @@ export class StalePendingSystemExecutionFinderService {
 
     // tenant-scope-ignore: this reconcile runs once per platform sweep tick across every organization, mirroring the other global reconcile jobs in apps/server/workers/src/scheduling
     return this.prisma.workflowExecution.findMany({
-      select: { createdAt: true, id: true, organizationId: true },
+      select: {
+        cancelRequestedAt: true,
+        createdAt: true,
+        id: true,
+        organizationId: true,
+      },
       take: limit,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       where: conditions.length === 1 ? conditions[0] : { AND: conditions },

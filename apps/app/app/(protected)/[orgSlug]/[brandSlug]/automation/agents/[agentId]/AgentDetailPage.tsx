@@ -1,12 +1,13 @@
 'use client';
 
-import { AgentActivityFeed } from '@genfeedai/agent/components/AgentActivityFeed';
 import {
   AgentAutonomyMode,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
@@ -29,10 +30,12 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, CirclePlay, Clock, Cpu, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -42,11 +45,12 @@ import AgentStrategyDialog from '../../autopilot/AgentStrategyDialog';
 import { buildPayload } from '../../autopilot/build-agent-strategy-payload';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
+import AgentActivitySection from './AgentActivitySection';
+import AgentDetailNeedsYou from './AgentDetailNeedsYou';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
-import AgentPerformanceSection from './AgentPerformanceSection';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
-import AgentWorkSection from './AgentWorkSection';
-import WorkflowExecutionHistorySection from './WorkflowExecutionHistorySection';
+import { buildAgentDetailFacts } from './agent-detail-facts.helper';
+import { useAgentDetailPosts } from './use-agent-detail-posts';
 
 const AGENT_EXECUTION_PAGE_SIZE = 20;
 
@@ -74,6 +78,15 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       strategyId: agentId,
     },
     { enabled: isReady, organizationId: collectionScope.organizationId },
+  );
+
+  // Same query key as `AgentWorkSection`'s Content filter, so react-query
+  // serves the pending-review count from the same cache entry instead of a
+  // second request (#5483).
+  const { posts: agentPosts } = useAgentDetailPosts(agentId);
+  const pendingReviewCount = useMemo(
+    () => agentPosts.filter(isPostAwaitingReview).length,
+    [agentPosts],
   );
 
   const getService = useAuthedService((token: string) =>
@@ -222,10 +235,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     [agentId, getService, href, notificationsService, refresh, router],
   );
 
-  const [expandedExecutionId, setExpandedExecutionId] = useState<string | null>(
-    null,
-  );
-
   const selectedOpportunity = useMemo(
     () =>
       requestedOpportunityId
@@ -236,14 +245,40 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     [opportunities, requestedOpportunityId],
   );
 
-  const handleToggleExpand = useCallback((executionId: string) => {
-    setExpandedExecutionId((previous) =>
-      previous === executionId ? null : executionId,
-    );
-  }, []);
-
   const Icon = getAgentTypeIcon(strategy?.agentType);
   const typeLabel = getAgentTypeLabel(strategy?.agentType);
+  const autonomyLabel =
+    strategy?.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
+      ? 'Auto-Publish'
+      : 'Supervised';
+
+  // Run now is the one action every agent record supports regardless of
+  // state; everything else — status toggle, schedule, manual workflow run —
+  // moves into the overflow menu.
+  const overflow = useMemo<CollectionOverflowAction[]>(() => {
+    if (!strategy) {
+      return [];
+    }
+    return [
+      {
+        icon: <Workflow className="size-4" />,
+        id: 'run-workflow',
+        label: detail('runWorkflow'),
+        onSelect: handleOpenWorkflow,
+      },
+      {
+        icon: <Clock className="size-4" />,
+        id: 'schedule',
+        label: translate('schedule'),
+        onSelect: () => setIsPolicyOpen(true),
+      },
+      {
+        id: 'toggle-active',
+        label: strategy.isActive ? detail('deactivate') : detail('activate'),
+        onSelect: handleToggle,
+      },
+    ];
+  }, [detail, handleOpenWorkflow, handleToggle, strategy, translate]);
 
   if (!isReady || isStrategyLoading) {
     return (
@@ -299,32 +334,17 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           <Badge variant={strategy.isActive ? 'success' : 'secondary'}>
             {strategy.isActive ? 'Active' : 'Inactive'}
           </Badge>
-          <Button
-            label={strategy.isActive ? 'Deactivate' : 'Activate'}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            onClick={handleToggle}
-          />
-          <Button
-            label={translate('schedule')}
-            icon={<Clock />}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => setIsPolicyOpen(true)}
-          />
-          <Button
-            label={detail('runWorkflow')}
-            icon={<Workflow />}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleOpenWorkflow}
-          />
-          <Button
-            label={translate('runNow')}
-            icon={<CirclePlay />}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-            onClick={handleRunNow}
+          <CollectionItemActions
+            overflow={overflow}
+            primary={
+              <Button
+                icon={<CirclePlay />}
+                label={translate('runNow')}
+                onClick={handleRunNow}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              />
+            }
           />
         </div>
       }
@@ -341,12 +361,37 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
               {typeLabel}
               {strategy.brand ? ` · ${strategy.brand.label}` : ''}
               {' · '}
-              {strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
-                ? 'Auto-Publish'
-                : 'Supervised'}
+              {autonomyLabel}
             </p>
           </div>
         </div>
+
+        <RecordFactLine
+          facts={buildAgentDetailFacts(strategy, typeLabel, autonomyLabel, {
+            autonomy: detail('factAutonomy'),
+            brand: detail('factBrand'),
+            creditsToday: detail('factCreditsToday'),
+            lastRun: detail('factLastRun'),
+            nextRun: detail('factNextRun'),
+            type: detail('factType'),
+          })}
+        />
+
+        <AgentDetailNeedsYou
+          failureCount={strategy.consecutiveFailures}
+          failuresDescription={detail('needsYouFailures', {
+            count: strategy.consecutiveFailures,
+          })}
+          pendingReviewCount={pendingReviewCount}
+          pendingReviewDescription={detail('needsYouPendingReview', {
+            count: pendingReviewCount,
+          })}
+          reviewHref={href(APP_ROUTES.PUBLISHING.REVIEW)}
+          reviewLabel={detail('reviewContent')}
+          runsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
+          title={detail('needsYouTitle')}
+          viewRunsLabel={detail('viewRuns')}
+        />
 
         <AgentWorkflowBindCard
           agentId={agentId}
@@ -415,36 +460,14 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           />
         )}
 
-        <AgentWorkSection
-          key={`posts-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+        <AgentActivitySection
           agentId={agentId}
-        />
-        <AgentPerformanceSection
-          key={`performance-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
-          agentId={agentId}
-        />
-        <AgentActivityFeed
+          executions={executions}
+          isExecutionsError={isExecutionsError}
+          isExecutionsLoading={areExecutionsLoading}
+          key={`activity-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
           runHistory={strategy.runHistory ?? []}
-          getThreadHref={(threadId) =>
-            href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
-          }
-          getExecutionHref={(executionId) =>
-            href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)
-          }
         />
-
-        {isExecutionsError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {detail('executionsError')}
-          </p>
-        ) : (
-          <WorkflowExecutionHistorySection
-            executions={executions}
-            expandedExecutionId={expandedExecutionId}
-            isLoading={areExecutionsLoading}
-            onToggleExpand={handleToggleExpand}
-          />
-        )}
       </div>
     </Container>
   );
