@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { EllipsisVertical } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * One visible primary action and an overflow menu for everything else.
@@ -21,9 +22,11 @@ import { EllipsisVertical } from 'lucide-react';
 export default function CollectionItemActions({
   primary,
   overflow = [],
-  overflowLabel = 'More actions',
+  overflowLabel,
   className,
 }: CollectionItemActionsProps) {
+  const translate = useTranslations('ui.collection');
+  const triggerLabel = overflowLabel ?? translate('moreActions');
   const regularActions = overflow.filter((action) => !action.isDestructive);
   const destructiveActions = overflow.filter((action) => action.isDestructive);
 
@@ -43,10 +46,10 @@ export default function CollectionItemActions({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              ariaLabel={overflowLabel}
+              ariaLabel={triggerLabel}
               icon={<EllipsisVertical className="size-4" />}
               size={ButtonSize.ICON}
-              tooltip={overflowLabel}
+              tooltip={triggerLabel}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />

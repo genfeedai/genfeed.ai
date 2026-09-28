@@ -11,19 +11,8 @@ import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { LayoutGrid, Rows3, X } from 'lucide-react';
-
-const COLLECTION_VIEW_OPTIONS: ViewOption<CollectionViewType>[] = [
-  {
-    icon: <Rows3 className={SHELL_ICON_CLASS} />,
-    label: 'List',
-    type: ViewType.LIST,
-  },
-  {
-    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
-    label: 'Grid',
-    type: ViewType.GRID,
-  },
-];
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 /**
  * The one toolbar row a collection gets: search, Type/Category dropdowns,
@@ -40,7 +29,23 @@ export default function CollectionToolbar({
   onClearChips,
   className,
 }: CollectionToolbarProps) {
+  const translate = useTranslations('ui.collection');
   const hasViewToggle = view !== undefined && onViewChange !== undefined;
+  const viewOptions = useMemo<ViewOption<CollectionViewType>[]>(
+    () => [
+      {
+        icon: <Rows3 className={SHELL_ICON_CLASS} />,
+        label: translate('list'),
+        type: ViewType.LIST,
+      },
+      {
+        icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
+        label: translate('grid'),
+        type: ViewType.GRID,
+      },
+    ],
+    [translate],
+  );
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -56,7 +61,7 @@ export default function CollectionToolbar({
               <ViewToggle
                 activeView={view}
                 onChange={onViewChange}
-                options={COLLECTION_VIEW_OPTIONS}
+                options={viewOptions}
               />
             ) : null}
           </div>
@@ -69,8 +74,8 @@ export default function CollectionToolbar({
             <Button
               ariaLabel={
                 typeof chip.label === 'string'
-                  ? `Remove filter ${chip.label}`
-                  : 'Remove filter'
+                  ? translate('removeFilter', { label: chip.label })
+                  : translate('removeFilterFallback')
               }
               icon={<X className="size-3.5" />}
               key={chip.id}
@@ -83,7 +88,7 @@ export default function CollectionToolbar({
           ))}
           {onClearChips && chips.length > 1 ? (
             <Button
-              label="Clear all"
+              label={translate('clearAll')}
               onClick={onClearChips}
               size={ButtonSize.XS}
               variant={ButtonVariant.GHOST}

@@ -3,6 +3,18 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, string>) =>
+    ({
+      clearAll: 'Clear all',
+      grid: 'Grid',
+      list: 'List',
+      moreActions: 'More actions',
+      removeFilter: `Remove filter ${values?.label}`,
+      removeFilterFallback: 'Remove filter',
+    })[key] ?? key,
+}));
+
 describe('CollectionToolbar', () => {
   it('omits the view toggle when the collection has a single view', () => {
     render(<CollectionToolbar search={<span>search</span>} />);

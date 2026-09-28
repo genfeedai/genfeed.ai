@@ -101,7 +101,7 @@ export interface CollectionItemActionsProps {
   primary?: ReactNode;
   /** Every other action, destructive ones included. */
   overflow?: CollectionOverflowAction[];
-  /** Accessible name of the overflow trigger. */
+  /** Accessible name of the overflow trigger. Defaults to the localized "More actions". */
   overflowLabel?: string;
   className?: string;
 }

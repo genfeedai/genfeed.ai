@@ -29,6 +29,18 @@ vi.mock('@ui/primitives/dropdown-menu', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, string>) =>
+    ({
+      clearAll: 'Clear all',
+      grid: 'Grid',
+      list: 'List',
+      moreActions: 'More actions',
+      removeFilter: `Remove filter ${values?.label}`,
+      removeFilterFallback: 'Remove filter',
+    })[key] ?? key,
+}));
+
 describe('CollectionItemActions', () => {
   it('renders nothing without a primary action or overflow', () => {
     const { container } = render(<CollectionItemActions />);
