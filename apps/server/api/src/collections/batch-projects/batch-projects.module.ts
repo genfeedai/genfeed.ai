@@ -1,5 +1,6 @@
 import { BatchProjectsController } from '@api/collections/batch-projects/controllers/batch-projects.controller';
 import { BatchProjectReconcileService } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
+import { BatchProjectSchedulingService } from '@api/collections/batch-projects/services/batch-project-scheduling.service';
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -18,6 +19,10 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
     WorkflowsModule,
   ],
-  providers: [BatchProjectReconcileService, BatchProjectsService],
+  providers: [
+    BatchProjectReconcileService,
+    BatchProjectSchedulingService,
+    BatchProjectsService,
+  ],
 })
 export class BatchProjectsModule {}

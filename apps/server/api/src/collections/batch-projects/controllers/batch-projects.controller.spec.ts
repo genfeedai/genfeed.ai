@@ -20,7 +20,10 @@ describe('BatchProjectsController publishing scopes', () => {
     review: vi.fn().mockResolvedValue({ id: 'project-1' }),
     schedule: vi.fn().mockResolvedValue({ failedCount: 0, scheduledCount: 1 }),
   };
-  const controller = new BatchProjectsController(service as never);
+  const controller = new BatchProjectsController(
+    service as never,
+    service as never,
+  );
   const request = {} as Request;
 
   beforeEach(() => vi.clearAllMocks());

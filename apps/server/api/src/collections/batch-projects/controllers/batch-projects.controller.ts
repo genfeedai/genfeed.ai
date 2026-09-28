@@ -6,6 +6,7 @@ import { ReviewBatchProjectItemsDto } from '@api/collections/batch-projects/dto/
 import { ScheduleBatchProjectDto } from '@api/collections/batch-projects/dto/schedule-batch-project.dto';
 import { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/update-batch-project.dto';
 import { UpdateBatchProjectItemDto } from '@api/collections/batch-projects/dto/update-batch-project-item.dto';
+import { BatchProjectSchedulingService } from '@api/collections/batch-projects/services/batch-project-scheduling.service';
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -44,7 +45,10 @@ import type { Request } from 'express';
 @Controller('batch-projects')
 @UseGuards(RolesGuard, SubscriptionGuard)
 export class BatchProjectsController {
-  constructor(private readonly batchProjectsService: BatchProjectsService) {}
+  constructor(
+    private readonly batchProjectsService: BatchProjectsService,
+    private readonly batchProjectSchedulingService: BatchProjectSchedulingService,
+  ) {}
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -249,7 +253,7 @@ export class BatchProjectsController {
     if (body.targets.some((target) => isDueNow(target.scheduledDate))) {
       assertApiKeyPublishingScope(user, 'publish');
     }
-    return this.batchProjectsService.schedule(
+    return this.batchProjectSchedulingService.schedule(
       id,
       body,
       this.requireScope(user),

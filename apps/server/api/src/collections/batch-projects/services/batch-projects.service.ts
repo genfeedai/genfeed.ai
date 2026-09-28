@@ -5,10 +5,13 @@ import {
 import type { CreateBatchProjectDto } from '@api/collections/batch-projects/dto/create-batch-project.dto';
 import type { DispatchBatchProjectItemDto } from '@api/collections/batch-projects/dto/dispatch-batch-project-item.dto';
 import type { ReviewBatchProjectItemsDto } from '@api/collections/batch-projects/dto/review-batch-project-items.dto';
-import type { ScheduleBatchProjectDto } from '@api/collections/batch-projects/dto/schedule-batch-project.dto';
 import type { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/update-batch-project.dto';
 import type { UpdateBatchProjectItemDto } from '@api/collections/batch-projects/dto/update-batch-project-item.dto';
-import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
+import {
+  type BatchProjectWithItems,
+  toBatchProject,
+  toBatchProjectBase,
+} from '@api/collections/batch-projects/services/batch-project.mapper';
 import {
   BatchProjectReconcileService,
   batchProjectItemSourceKey,
@@ -16,12 +19,8 @@ import {
 import {
   DEFAULT_IDEA_SETTINGS,
   mergeBatchProjectSettings,
-  parseBatchProjectSettings,
-  parseScheduledTargets,
 } from '@api/collections/batch-projects/services/batch-project-settings.util';
 import { countBatchProjectItems } from '@api/collections/batch-projects/services/batch-project-status.util';
-import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -34,18 +33,12 @@ import {
   BatchProjectKind,
   BatchProjectStatus,
   BatchProjectStep,
-  fromPrismaCredentialPlatform,
   IngredientCategory,
-  PostCategory,
-  PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
   IBatchProject,
-  IBatchProjectItem,
-  IBatchProjectScheduledTarget,
   IBatchProjectScope,
-  IScheduleBatchProjectResult,
 } from '@genfeedai/contracts/interfaces';
 import type { BatchProject, BatchProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
@@ -67,22 +60,11 @@ const RECONCILED_STATUSES = new Set<string>([
   BatchProjectStatus.REVIEWING,
   BatchProjectStatus.SCHEDULED,
 ]);
-const SCHEDULED_EXECUTION_STATES = new Set<string>([
-  TargetExecutionState.PUBLISHED,
-  TargetExecutionState.PUBLISHING,
-  TargetExecutionState.SCHEDULED,
-]);
 const REVIEWABLE_STATUSES = new Set<string>([
   BatchProjectItemStatus.APPROVED,
   BatchProjectItemStatus.READY,
   BatchProjectItemStatus.REJECTED,
 ]);
-
-type ProjectWithItems = BatchProject & { items: BatchProjectItem[] };
-
-function toIsoString(value: Date | null | undefined): string | null {
-  return value ? value.toISOString() : null;
-}
 
 /**
  * Studio Batch projects (#5463): one persisted surface for idea batches and
@@ -101,7 +83,6 @@ export class BatchProjectsService {
     private readonly batchWorkflowExecutionService: BatchWorkflowExecutionService,
     private readonly workflowsService: WorkflowsService,
     private readonly batchGenerationService: BatchGenerationService,
-    private readonly postsService: PostsService,
   ) {}
 
   async list(scope: IBatchProjectScope, query: BaseQueryDto) {
@@ -149,7 +130,7 @@ export class BatchProjectsService {
 
     return {
       docs: rows.map((row) => ({
-        ...this.toProjectBase(row),
+        ...toBatchProjectBase(row),
         itemCounts: countBatchProjectItems(row.items),
       })),
       limit,
@@ -192,7 +173,7 @@ export class BatchProjectsService {
       kind: row.kind,
       organizationId: scope.organizationId,
     });
-    return this.toProject({ ...row, items: [] });
+    return toBatchProject({ ...row, items: [] });
   }
 
   async findOne(id: string, scope: IBatchProjectScope): Promise<IBatchProject> {
@@ -665,348 +646,6 @@ export class BatchProjectsService {
     return this.loadProject(id, scope);
   }
 
-  /**
-   * Schedule every approved item through the shared post scheduling path,
-   * once per destination, holding the project lock so concurrent requests
-   * cannot double-schedule. An item's review draft goes to its first
-   * scheduled destination; every further destination uses one draft per
-   * item and account (`targetIdempotencyKey`), so a repeat reuses it and each
-   * destination keeps its own time. Outcomes are recorded per destination, so
-   * only destinations that have not scheduled yet are retried. A destination
-   * without a date publishes now.
-   */
-  schedule(
-    id: string,
-    dto: ScheduleBatchProjectDto,
-    scope: IBatchProjectScope,
-  ): Promise<IScheduleBatchProjectResult> {
-    return this.reconcileService.runExclusive(id, () =>
-      this.scheduleLocked(id, dto, scope),
-    );
-  }
-
-  private async scheduleLocked(
-    id: string,
-    dto: ScheduleBatchProjectDto,
-    scope: IBatchProjectScope,
-  ): Promise<IScheduleBatchProjectResult> {
-    const project = await this.requireProjectWithItems(id, scope);
-    const approved = project.items.filter(
-      (item) =>
-        item.status === BatchProjectItemStatus.APPROVED &&
-        item.postId &&
-        item.outputIngredientId,
-    );
-    if (approved.length === 0) {
-      throw new BadRequestException(
-        'Approve at least one item before scheduling',
-      );
-    }
-
-    const credentialIds = [
-      ...new Set(dto.targets.map((target) => target.credentialId)),
-    ];
-    const credentials = await this.prisma.credential.findMany({
-      select: { id: true, platform: true },
-      where: scopedWhere(scope.organizationId, {
-        brandId: project.brandId,
-        id: { in: credentialIds },
-      }),
-    });
-    const credentialsById = new Map(
-      credentials.map((credential) => [credential.id, credential]),
-    );
-    if (
-      !credentialIds.every((credentialId) => credentialsById.has(credentialId))
-    ) {
-      throw new BadRequestException(
-        'One or more accounts are not connected to this brand',
-      );
-    }
-
-    const now = new Date();
-    const reviewPostIds = approved.flatMap((item) =>
-      item.postId ? [item.postId] : [],
-    );
-    const reviewPosts = await this.prisma.post.findMany({
-      select: { description: true, id: true },
-      where: scopedWhere(scope.organizationId, { id: { in: reviewPostIds } }),
-    });
-    const reviewedCaptionByPostId = new Map(
-      reviewPosts.map((post) => [post.id, post.description]),
-    );
-    const bindingsByItem = new Map<string, IBatchProjectScheduledTarget[]>(
-      approved.map((item) => [
-        item.id,
-        parseScheduledTargets(item.scheduledTargets),
-      ]),
-    );
-    const writeBindings = async (
-      item: BatchProjectItem,
-      bindings: IBatchProjectScheduledTarget[],
-    ) => {
-      bindingsByItem.set(item.id, bindings);
-      const hasScheduled = bindings.some(
-        (binding) => binding.status === 'scheduled',
-      );
-      await this.prisma.batchProjectItem.updateMany({
-        data: {
-          scheduledAt: item.scheduledAt ?? (hasScheduled ? now : null),
-          scheduledTargets: toPrismaJson(bindings),
-        },
-        where: scopedWhere(scope.organizationId, { id: item.id }),
-      });
-    };
-    let scheduledCount = 0;
-    let failedCount = 0;
-
-    for (const target of dto.targets) {
-      const credential = credentialsById.get(target.credentialId);
-      const platform = fromPrismaCredentialPlatform(credential?.platform);
-      const due = approved.filter(
-        (item) =>
-          bindingsByItem
-            .get(item.id)
-            ?.find((binding) => binding.credentialId === target.credentialId)
-            ?.status !== 'scheduled',
-      );
-      if (due.length === 0) {
-        continue;
-      }
-      if (!credential || !platform) {
-        failedCount += due.length;
-        continue;
-      }
-
-      const entries: Array<{
-        caption: string;
-        item: BatchProjectItem;
-        postId: string;
-      }> = [];
-      for (const item of due) {
-        const caption = this.resolveCaption(
-          item,
-          dto.captions,
-          reviewedCaptionByPostId,
-        );
-        const bindings = bindingsByItem.get(item.id) ?? [];
-        const bound = bindings.find(
-          (binding) => binding.credentialId === credential.id,
-        );
-        const isReviewPostBound = bindings.some(
-          (binding) => binding.postId === item.postId,
-        );
-        const postId =
-          bound?.postId ??
-          (item.postId && !isReviewPostBound
-            ? item.postId
-            : await this.resolveDestinationDraft(
-                project,
-                item,
-                credential.id,
-                caption,
-                scope,
-              ));
-        // Bind the post to this destination before scheduling it, so even a
-        // partially failed call can never hand it to another destination.
-        await writeBindings(item, [
-          ...bindings.filter(
-            (binding) => binding.credentialId !== credential.id,
-          ),
-          { credentialId: credential.id, postId, status: 'pending' },
-        ]);
-        entries.push({ caption, item, postId });
-      }
-
-      let scheduledPostIds: Set<string>;
-      try {
-        const result = await this.postsService.batchSchedule(
-          entries.map((entry) => ({
-            ingredientIds: entry.item.outputIngredientId
-              ? [entry.item.outputIngredientId]
-              : [],
-            postId: entry.postId,
-            scheduledDate: target.scheduledDate ?? now.toISOString(),
-            text: entry.caption,
-          })),
-          scope.organizationId,
-          { credentialId: credential.id, platform },
-          scope.userId,
-        );
-        scheduledPostIds = new Set(result.posts.map((post) => String(post.id)));
-      } catch (error: unknown) {
-        this.logger.error(
-          'Batch project destination failed to schedule',
-          error,
-          {
-            batchProjectId: id,
-            context: this.context,
-            credentialId: credential.id,
-            organizationId: scope.organizationId,
-          },
-        );
-        // Part of the call may have committed; read what actually scheduled.
-        scheduledPostIds = await this.readScheduledPostIds(
-          entries.map((entry) => entry.postId),
-          credential.id,
-          scope,
-        );
-      }
-
-      for (const entry of entries) {
-        const isScheduled = scheduledPostIds.has(entry.postId);
-        if (isScheduled) {
-          scheduledCount += 1;
-        } else {
-          failedCount += 1;
-        }
-        const bindings = bindingsByItem.get(entry.item.id) ?? [];
-        await writeBindings(
-          entry.item,
-          bindings.map(
-            (binding): IBatchProjectScheduledTarget =>
-              binding.credentialId === credential.id
-                ? {
-                    credentialId: binding.credentialId,
-                    postId: binding.postId,
-                    status: isScheduled ? 'scheduled' : 'failed',
-                    ...(isScheduled ? { scheduledAt: now.toISOString() } : {}),
-                  }
-                : binding,
-          ),
-        );
-      }
-    }
-
-    await this.prisma.batchProject.updateMany({
-      data: {
-        settings: toPrismaJson(
-          mergeBatchProjectSettings(project.settings, {
-            schedule: {
-              targets: dto.targets.map((target) => ({
-                ...target,
-                isSelected: true,
-              })),
-              ...(dto.timezone ? { timezone: dto.timezone } : {}),
-            },
-          }),
-        ),
-        step: BatchProjectStep.SCHEDULE,
-      },
-      where: scopedWhere(scope.organizationId, { id }),
-    });
-    await this.reconcileService.refreshProjectStatus(id, scope.organizationId);
-
-    this.logger.log('Batch project scheduled', {
-      batchProjectId: id,
-      context: this.context,
-      failedCount,
-      organizationId: scope.organizationId,
-      scheduledCount,
-    });
-    return { failedCount, scheduledCount };
-  }
-
-  /**
-   * An explicit override wins; otherwise the review draft's current caption
-   * (what the review inbox approved, including rewrites made there).
-   */
-  private resolveCaption(
-    item: BatchProjectItem,
-    captions: Record<string, string> | undefined,
-    reviewedCaptionByPostId: ReadonlyMap<string, string>,
-  ): string {
-    const override = captions?.[item.id];
-    const reviewed = item.postId
-      ? reviewedCaptionByPostId.get(item.postId)
-      : undefined;
-    const caption =
-      typeof override === 'string'
-        ? override
-        : (reviewed ??
-          item.caption ??
-          readBatchProjectIdea(item.idea)?.caption ??
-          '');
-    return caption.trim();
-  }
-
-  /** Posts that really are scheduled on the destination, approval bound. */
-  private async readScheduledPostIds(
-    postIds: string[],
-    credentialId: string,
-    scope: IBatchProjectScope,
-  ): Promise<Set<string>> {
-    const posts = await this.prisma.post.findMany({
-      select: {
-        credentialId: true,
-        id: true,
-        publishApprovalId: true,
-        targetExecutionState: true,
-      },
-      where: scopedWhere(scope.organizationId, { id: { in: postIds } }),
-    });
-    return new Set(
-      posts
-        .filter(
-          (post) =>
-            post.credentialId === credentialId &&
-            Boolean(post.publishApprovalId) &&
-            SCHEDULED_EXECUTION_STATES.has(String(post.targetExecutionState)),
-        )
-        .map((post) => post.id),
-    );
-  }
-
-  /** The one draft an item uses for one extra destination account. */
-  private async resolveDestinationDraft(
-    project: BatchProject,
-    item: BatchProjectItem,
-    credentialId: string,
-    caption: string,
-    scope: IBatchProjectScope,
-  ): Promise<string> {
-    const targetIdempotencyKey = `${batchProjectItemSourceKey(item.id)}:${credentialId}`;
-    // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so the unique key can restore a tombstone
-    const existing = await this.prisma.post.findFirst({
-      select: { id: true, isDeleted: true },
-      where: { organizationId: scope.organizationId, targetIdempotencyKey },
-    });
-    if (existing) {
-      if (existing.isDeleted) {
-        await this.prisma.post.updateMany({
-          data: { isDeleted: false },
-          where: {
-            id: existing.id,
-            isDeleted: true,
-            organizationId: scope.organizationId,
-          },
-        });
-      }
-      return existing.id;
-    }
-
-    const idea = readBatchProjectIdea(item.idea);
-    const draft = {
-      brandId: project.brandId,
-      category:
-        item.outputCategory === IngredientCategory.VIDEO
-          ? PostCategory.VIDEO
-          : PostCategory.IMAGE,
-      description: caption,
-      ingredients: item.outputIngredientId ? [item.outputIngredientId] : [],
-      label:
-        idea?.hook?.slice(0, 100) || `${project.name} #${item.position + 1}`,
-      organizationId: scope.organizationId,
-      sourceActionId: batchProjectItemSourceKey(item.id),
-      targetExecutionState: TargetExecutionState.DRAFT,
-      targetIdempotencyKey,
-      userId: scope.userId,
-      visibility: PostVisibility.PUBLIC,
-    } satisfies PostCreateInput;
-    const post = await this.postsService.create(draft);
-    return String(post.id);
-  }
-
   private async replaceIdeas(
     project: BatchProject,
     ideas: NonNullable<AddBatchProjectItemsDto['ideas']>,
@@ -1165,7 +804,7 @@ export class BatchProjectsService {
   private async requireProjectWithItems(
     id: string,
     scope: IBatchProjectScope,
-  ): Promise<ProjectWithItems> {
+  ): Promise<BatchProjectWithItems> {
     const project = await this.prisma.batchProject.findFirst({
       include: {
         items: {
@@ -1199,62 +838,6 @@ export class BatchProjectsService {
     id: string,
     scope: IBatchProjectScope,
   ): Promise<IBatchProject> {
-    return this.toProject(await this.requireProjectWithItems(id, scope));
-  }
-
-  private toProjectBase(
-    row: BatchProject,
-  ): Omit<IBatchProject, 'itemCounts' | 'items'> {
-    return {
-      brandId: row.brandId,
-      createdAt: row.createdAt.toISOString(),
-      id: row.id,
-      isDeleted: row.isDeleted,
-      kind: row.kind as BatchProjectKind,
-      name: row.name,
-      organizationId: row.organizationId,
-      reviewBatchId: row.reviewBatchId,
-      settings: parseBatchProjectSettings(row.settings),
-      status: row.status as BatchProjectStatus,
-      step: row.step as BatchProjectStep,
-      updatedAt: row.updatedAt.toISOString(),
-      userId: row.userId,
-      workflowId: row.workflowId,
-    };
-  }
-
-  private toProject(row: ProjectWithItems): IBatchProject {
-    return {
-      ...this.toProjectBase(row),
-      itemCounts: countBatchProjectItems(row.items),
-      items: row.items.map((item) => this.toItem(item)),
-    };
-  }
-
-  private toItem(item: BatchProjectItem): IBatchProjectItem {
-    return {
-      caption: item.caption,
-      createdAt: item.createdAt.toISOString(),
-      dispatchedAt: toIsoString(item.dispatchedAt),
-      error: item.error,
-      id: item.id,
-      idea: readBatchProjectIdea(item.idea),
-      inputCategory: item.inputCategory,
-      inputIngredientId: item.inputIngredientId,
-      outputCategory: item.outputCategory,
-      outputIngredientId: item.outputIngredientId,
-      position: item.position,
-      postId: item.postId,
-      projectId: item.projectId,
-      reviewBatchId: item.reviewBatchId,
-      retryCount: item.retryCount,
-      reviewItemId: item.reviewItemId,
-      scheduledAt: toIsoString(item.scheduledAt),
-      scheduledTargets: parseScheduledTargets(item.scheduledTargets),
-      status: item.status as BatchProjectItemStatus,
-      updatedAt: item.updatedAt.toISOString(),
-      workflowExecutionId: item.workflowExecutionId,
-      workflowItemIndex: item.workflowItemIndex,
-    };
+    return toBatchProject(await this.requireProjectWithItems(id, scope));
   }
 }

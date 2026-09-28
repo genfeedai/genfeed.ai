@@ -1,3 +1,4 @@
+import { BatchProjectsModule } from '@api/collections/batch-projects/batch-projects.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -7,6 +8,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
 @Module({
   exports: [CronBatchGenerationReconcileService],
   imports: [
+    BatchProjectsModule,
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => WorkersQueuesModule),
     LoggerModule,
