@@ -166,10 +166,9 @@ export function normalizeProtectedPathname(
  *
  * Covers the five product sections plus their canonical route aliases: Workspace
  * (`/workspace`, `/overview`), Library, Analytics, Automation
- * (`/automation`, including merged workflows), and the Calendar
- * (`/publishing/calendar`). The agent, settings, studio, discovery,
- * messages, and admin surfaces are intentionally NOT gated — nor is the rest of
- * Publishing outside its Calendar.
+ * (`/automation`, including merged workflows). The agent, settings, studio,
+ * discovery, messages, publishing, and admin surfaces are intentionally NOT
+ * gated.
  */
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
@@ -177,7 +176,6 @@ const ASSET_GATE_SECTION_PREFIXES = [
   '/library',
   '/analytics',
   '/automation',
-  '/publishing/calendar',
 ] as const;
 
 export function isAssetGateSectionPath(normalizedPathname: string): boolean {

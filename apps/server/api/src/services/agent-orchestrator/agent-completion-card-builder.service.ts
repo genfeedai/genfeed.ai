@@ -235,7 +235,9 @@ export class AgentCompletionCardBuilderService {
     }
 
     if (path === '/calendar' || path === '/calendar/posts') {
-      return `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
+      return suffix.startsWith('?')
+        ? `${APP_ROUTES.PUBLISHING.CALENDAR}&${suffix.slice(1)}`
+        : `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
     }
 
     if (path === '/drafts') {

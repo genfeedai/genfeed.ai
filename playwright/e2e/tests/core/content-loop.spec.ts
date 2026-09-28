@@ -12,6 +12,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
+import { CalendarPage } from '../../pages/calendar.page';
 import { OverviewPage } from '../../pages/overview.page';
 import { PostsPage } from '../../pages/posts.page';
 import { StudioPage } from '../../pages/studio.page';
@@ -139,6 +140,7 @@ test.describe('Core Content Loop', () => {
     authenticatedPage,
   }) => {
     const postsPage = new PostsPage(authenticatedPage);
+    const calendarPage = new CalendarPage(authenticatedPage);
     const analyticsPage = new AnalyticsPage(authenticatedPage);
 
     await mockReviewQueue(authenticatedPage, {
@@ -153,14 +155,15 @@ test.describe('Core Content Loop', () => {
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);
     await postsPage.gotoCalendar();
-    // Calendar's <h1> is deliberately sr-only under
-    // ADR-CONVERSATION-SHELL-CONTRACTS v3.2 — the topbar breadcrumb owns
-    // visible page identity. Assert the breadcrumb, matching the Overview
-    // check earlier in this file (nightly full tier, #2982).
-    const calendarBreadcrumb = authenticatedPage.getByRole('navigation', {
-      name: 'Breadcrumb',
-    });
-    await expect(calendarBreadcrumb).toContainText('Calendar');
+    // The calendar is the Posts desk's calendar view
+    // (`/publishing/posts?view=calendar`). The topbar breadcrumb owns visible
+    // page identity under ADR-CONVERSATION-SHELL-CONTRACTS v3.2, so assert the
+    // desk's breadcrumb alongside the canonical URL and the calendar grid.
+    await calendarPage.assertPostsTabActive();
+    await expect(
+      authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toContainText('Posts');
+    await calendarPage.assertCalendarVisible();
 
     await analyticsPage.goto();
     await expect(analyticsPage.mainContent).toBeVisible();

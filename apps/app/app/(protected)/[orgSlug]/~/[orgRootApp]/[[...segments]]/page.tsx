@@ -37,7 +37,6 @@ import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page'
 import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
 import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
-import PostsCalendarPage from '../../../[brandSlug]/publishing/calendar/page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
 import PublishingContentPage from '../../../[brandSlug]/publishing/content/page';
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
@@ -397,15 +396,6 @@ export default async function OrgRootAppPage({
           <PostsReviewPage />
         </PublishingLayoutContent>
       );
-    }
-
-    if (publishingSegments.length === 1 && section === 'calendar') {
-      // The calendar route redirects to the posts list in calendar view.
-      await PostsCalendarPage({
-        params: Promise.resolve({ brandSlug: '~', orgSlug }),
-        searchParams: searchParams ?? Promise.resolve({}),
-      });
-      return null;
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

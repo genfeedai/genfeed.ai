@@ -234,7 +234,8 @@ export const APP_ROUTES = {
     ACTIVITIES: '/overview/activities',
   },
   PUBLISHING: {
-    CALENDAR: '/publishing/calendar',
+    /** The calendar is the Posts desk's calendar view; there is no separate route. */
+    CALENDAR: '/publishing/posts?view=calendar',
     /**
      * Publish content Campaigns — named, dated, cross-platform programs.
      * Distinct from Automate Programs (`APP_ROUTES.AUTOMATION.CAMPAIGNS`).

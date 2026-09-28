@@ -125,7 +125,7 @@ describe('buildPageContextPrompt', () => {
 
   it('renders the current local time for a valid viewer timezone', () => {
     const prompt = buildPageContextPrompt(
-      { route: '/acme/brand/publishing/calendar', timezone: 'Europe/Paris' },
+      { route: '/acme/brand/publishing/posts', timezone: 'Europe/Paris' },
       undefined,
       new Date('2026-09-25T12:34:56Z'),
     );
