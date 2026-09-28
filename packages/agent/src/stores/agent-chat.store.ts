@@ -14,6 +14,10 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
+import {
+  deriveLatestProposedPlan,
+  resolveLatestProposedPlan,
+} from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import {
@@ -478,14 +482,9 @@ function withUiActionRuns(
 function deriveLatestProposedPlanFromMessages(
   messages: AgentChatMessage[],
 ): AgentProposedPlan | null {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const candidate = messages[index]?.metadata?.proposedPlan;
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  return null;
+  return deriveLatestProposedPlan(
+    messages.map((message) => message.metadata?.proposedPlan),
+  );
 }
 
 // A `requestAnimationFrame` per streamed token forces every historical
@@ -619,8 +618,10 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       set((state) => ({ memoryEntries: [entry, ...state.memoryEntries] })),
     addMessage: (message) =>
       set((state) => ({
-        latestProposedPlan:
-          message.metadata?.proposedPlan ?? state.latestProposedPlan,
+        latestProposedPlan: resolveLatestProposedPlan(
+          state.latestProposedPlan,
+          message.metadata?.proposedPlan,
+        ),
         messages: [...state.messages, message],
       })),
     setUiActionStatus: (actionId, status, update) =>
@@ -963,8 +964,10 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         return {
           activeRunId: null,
           activeRunStatus: 'completed',
-          latestProposedPlan:
-            message.metadata?.proposedPlan ?? state.latestProposedPlan,
+          latestProposedPlan: resolveLatestProposedPlan(
+            state.latestProposedPlan,
+            message.metadata?.proposedPlan,
+          ),
           messages: [
             ...state.messages,
             {
