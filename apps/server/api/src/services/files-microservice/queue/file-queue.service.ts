@@ -201,6 +201,22 @@ export class FileQueueService {
     }
   }
 
+  /** Job status, or null when the files service no longer holds the job. */
+  async findJobStatus(jobId: string): Promise<IJobStatusResponse | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(`${this.filesServiceUrl}/v1/files/job/${jobId}`),
+      );
+      return response.data;
+    } catch (error: unknown) {
+      if ((error as UpstreamHttpError).response?.status === 404) {
+        return null;
+      }
+      this.loggerService.error(`Failed to get job status for ${jobId}`, error);
+      throw error;
+    }
+  }
+
   async cancelEditorRender(jobId: string): Promise<IJobCancellationResponse> {
     try {
       const response = await firstValueFrom(

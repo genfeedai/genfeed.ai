@@ -2098,6 +2098,8 @@ model Ingredient {
   groupIndex            Int?
   isMergeEnabled        Boolean?
   // Stitch options captured when a merge-enabled batch starts (#5460).
+  // Active stitch outputs are unique on (organizationId, sourceActionId) via
+  // the partial index `ingredients_org_stitch_source_action_uidx`.
   mergeSettings         Json?
   promptTemplate        String?
   templateVersion       Int?

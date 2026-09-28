@@ -90,6 +90,15 @@ const captionsResult = z.object({
 
 type PersistedStitchResult = z.infer<typeof persistedStitchResult>;
 
+/** Postgres reports a unique-index collision as Prisma error P2002. */
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
 function toState(status: string): VideoStitchState {
   if (status === IngredientStatus.FAILED) return 'failed';
   if (
@@ -152,36 +161,42 @@ export class VideoStitchService {
     }
 
     const plan = await this.plan(request);
-    const { ingredientData } =
-      await this.sharedService.createMediaDocumentsInternal({
-        brandId: request.brandId,
-        category: IngredientCategory.VIDEO,
-        extension: MetadataExtension.MP4,
-        generationSource: videoStitchGenerationSource(request.callerKind),
-        mergeSettings: plan.settings,
-        order: 1,
-        organizationId: request.organizationId,
-        ...(request.parentId ? { parentId: request.parentId } : {}),
-        ...(request.providerData ? { providerData: request.providerData } : {}),
-        sourceActionId: request.idempotencyKey,
-        sourceIds: plan.clipIds,
-        status: IngredientStatus.PROCESSING,
-        transformations: [TransformationCategory.MERGED],
-        userId: request.userId,
-      });
-    const outputId = String(ingredientData.id);
-
-    // Two concurrent requests with one key both miss the lookup; the oldest
-    // output wins and the other is withdrawn before anything is queued.
-    const winner = await this.findByKey(
-      request.organizationId,
-      request.idempotencyKey,
-    );
-    if (winner && winner.id !== outputId) {
-      await this.prisma.ingredient.updateMany({
-        data: { isDeleted: true },
-        where: scopedWhere(request.organizationId, { id: outputId }),
-      });
+    let outputId: string;
+    try {
+      const { ingredientData } =
+        await this.sharedService.createMediaDocumentsInternal({
+          brandId: request.brandId,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          generationSource: videoStitchGenerationSource(request.callerKind),
+          mergeSettings: plan.settings,
+          order: 1,
+          organizationId: request.organizationId,
+          ...(request.parentId ? { parentId: request.parentId } : {}),
+          ...(request.providerData
+            ? { providerData: request.providerData }
+            : {}),
+          sourceActionId: request.idempotencyKey,
+          sourceIds: plan.clipIds,
+          status: IngredientStatus.PROCESSING,
+          transformations: [TransformationCategory.MERGED],
+          userId: request.userId,
+        });
+      outputId = String(ingredientData.id);
+    } catch (error: unknown) {
+      // The partial unique index on active stitch outputs'
+      // (organizationId, sourceActionId) is the atomic claim: a concurrent
+      // request with the same key lost, so return the winner's output.
+      if (!isUniqueConstraintViolation(error)) {
+        throw error;
+      }
+      const winner = await this.findByKey(
+        request.organizationId,
+        request.idempotencyKey,
+      );
+      if (!winner) {
+        throw error;
+      }
       return this.toHandle(request.organizationId, winner, true);
     }
 
@@ -199,8 +214,9 @@ export class VideoStitchService {
   }
 
   /**
-   * The caller's decision to retry a failed output: revalidates the same
-   * request and requeues its job under the same id.
+   * The caller's decision to retry: revalidates the same request, requeues a
+   * failed output under the same job id, and re-enqueues a processing output
+   * whose job the queue no longer holds.
    */
   async retry(
     request: VideoStitchRequest,
@@ -220,12 +236,23 @@ export class VideoStitchService {
       handle.outputId,
     );
     if (reopened.count !== 1) {
-      // Nothing to retry: keep the job the caller is already tracking.
-      return {
+      const current = {
         ...this.toHandle(handle.organizationId, output, true),
-        jobId: handle.jobId,
         ...(handle.roomUserId ? { roomUserId: handle.roomUserId } : {}),
       };
+      if (current.state !== 'processing') {
+        return { ...current, jobId: handle.jobId };
+      }
+      // A processing output must have a job to settle from. When the queue
+      // lost it (the API stopped before enqueueing, or the job was evicted),
+      // enqueue it again under the output's stitch id, which the files queue
+      // deduplicates.
+      if (await this.fileQueueService.findJobStatus(handle.jobId)) {
+        return { ...current, jobId: handle.jobId };
+      }
+      const context = this.contextFromRequest(request, handle.outputId, plan);
+      await this.enqueue(request, plan, context);
+      return { ...current, jobId: context.jobId };
     }
     const context = this.contextFromRequest(request, handle.outputId, plan);
     await this.recordProcessing(context, true);

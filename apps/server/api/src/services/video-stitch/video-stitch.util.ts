@@ -61,11 +61,16 @@ export function validateVideoStitchRequest(request: VideoStitchRequest): void {
     }
   }
 
-  const { clipIds, output, settings } = request;
-  // A per-clip normalized output re-encodes even a single clip to its
-  // dimensions; every other stitch joins at least two.
+  const { clipIds, mode, output, settings } = request;
+  if (mode !== undefined && mode !== 'join' && mode !== 'finalize') {
+    throw stitchRequestError('mode', 'Unsupported stitch mode');
+  }
+  // Finalizing a sequence or normalizing per clip still produces a
+  // deliverable from a single clip; joining needs at least two.
   const minClips =
-    output?.resize === 'per_clip' ? 1 : VIDEO_STITCH_LIMITS.MIN_CLIPS;
+    mode === 'finalize' || output?.resize === 'per_clip'
+      ? 1
+      : VIDEO_STITCH_LIMITS.MIN_CLIPS;
   if (
     !Array.isArray(clipIds) ||
     clipIds.length < minClips ||

@@ -33,6 +33,7 @@ export function toAutoMergeStitchRequest(
     callerKind: 'auto_merge',
     clipIds,
     idempotencyKey: autoMergeIdempotencyKey(groupId),
+    mode: 'finalize',
     organizationId: ingredient.organizationId,
     settings: readVideoMergeSettings(ingredient.mergeSettings),
     userId: ingredient.userId,

@@ -29,7 +29,7 @@ export class FFmpegMergeService {
     height: number,
   ): Promise<void> {
     if (
-      inputPaths.length < 2 ||
+      inputPaths.length < 1 ||
       inputPaths.length > 6 ||
       !Number.isInteger(width) ||
       !Number.isInteger(height) ||
@@ -220,7 +220,7 @@ export class FFmpegMergeService {
   async mergeVideos(
     videoPaths: string[],
     outputPath: string,
-    _options?: { transition?: string },
+    options?: { muteVideoAudio?: boolean },
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
     const listFile = path.join(
@@ -241,6 +241,7 @@ export class FFmpegMergeService {
         listFile,
         '-c',
         'copy',
+        ...(options?.muteVideoAudio ? ['-an'] : []),
         '-y',
         outputPath,
       ];
@@ -258,16 +259,26 @@ export class FFmpegMergeService {
     videoPaths: string[],
     outputPath: string,
     options: {
+      muteVideoAudio?: boolean;
       transition?: string;
       transitionDuration?: number;
       transitionEaseCurve?: VideoEaseCurve;
     } = {},
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {
-    const { transition = 'dissolve', transitionDuration = 0.5 } = options;
+    const {
+      muteVideoAudio = false,
+      transition = 'dissolve',
+      transitionDuration = 0.5,
+    } = options;
 
     if (videoPaths.length < 2 || transition === 'none') {
-      return this.mergeVideos(videoPaths, outputPath, undefined, onProgress);
+      return this.mergeVideos(
+        videoPaths,
+        outputPath,
+        muteVideoAudio ? { muteVideoAudio } : undefined,
+        onProgress,
+      );
     }
 
     const durations: number[] = [];
@@ -304,7 +315,8 @@ export class FFmpegMergeService {
       }
     }
 
-    const hasAnyAudio = audioStreams.some((has) => has);
+    // Muting drops every clip's audio instead of crossfading it.
+    const hasAnyAudio = !muteVideoAudio && audioStreams.some((has) => has);
     const targetWidth = resolutions[0]?.width || 1080;
     const targetHeight = resolutions[0]?.height || 1920;
 
@@ -390,6 +402,8 @@ export class FFmpegMergeService {
 
     if (hasAnyAudio && audioFilter) {
       args.push('-map', '[aout]', '-c:a', 'aac', '-b:a', '192k');
+    } else if (muteVideoAudio) {
+      args.push('-an');
     }
 
     args.push('-y', outputPath);

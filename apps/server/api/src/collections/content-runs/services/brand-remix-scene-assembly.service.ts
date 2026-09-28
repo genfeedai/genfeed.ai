@@ -59,6 +59,7 @@ export function toStoryboardRunStitchRequest(
     callerKind: 'storyboard_run',
     clipIds: orderedAssetIds,
     idempotencyKey: `storyboard-run:${runId}:${operationId}`,
+    mode: 'finalize',
     organizationId,
     output: { height, resize: 'per_clip', width },
     settings: {},

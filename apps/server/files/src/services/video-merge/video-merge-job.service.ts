@@ -239,6 +239,7 @@ export class VideoMergeJobService {
         inputPaths,
         outputPath,
         {
+          ...(params.isMuteVideoAudio ? { muteVideoAudio: true } : {}),
           transition: params.transition,
           transitionDuration: params.transitionDuration || 0.5,
           transitionEaseCurve: params.transitionEaseCurve,
@@ -257,7 +258,7 @@ export class VideoMergeJobService {
       await this.ffmpegService.mergeVideos(
         inputPaths,
         outputPath,
-        undefined,
+        params.isMuteVideoAudio ? { muteVideoAudio: true } : undefined,
         this.createProgressCallback(
           job,
           'merging',

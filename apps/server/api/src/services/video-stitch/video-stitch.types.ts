@@ -9,6 +9,13 @@ import type {
  */
 export type VideoStitchResizeMode = 'after_merge' | 'per_clip';
 
+/**
+ * `join` stitches two or more clips. `finalize` turns a finished sequence
+ * (an interpolation batch, a storyboard run) into its deliverable, which may
+ * be a single clip.
+ */
+export type VideoStitchMode = 'join' | 'finalize';
+
 export interface VideoStitchOutput {
   height: number;
   resize: VideoStitchResizeMode;
@@ -22,6 +29,8 @@ export interface VideoStitchRequest {
   clipIds: string[];
   /** A repeated key returns the existing output instead of a second job. */
   idempotencyKey: string;
+  /** Defaults to `join`. */
+  mode?: VideoStitchMode;
   organizationId: string;
   output?: VideoStitchOutput;
   /** Lineage the caller owns, such as the video a workflow extends. */
