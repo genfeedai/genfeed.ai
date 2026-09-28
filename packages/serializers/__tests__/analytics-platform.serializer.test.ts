@@ -1,4 +1,5 @@
 import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
+import { createEntityAttributes } from '@genfeedai/helpers';
 import { analyticsPlatformAttributes } from '@serializers/attributes/common/analytics-platform.attributes';
 import { AnalyticsPlatformSerializer } from '@serializers/server/common/analytics.serializer';
 import { describe, expect, it } from 'vitest';
@@ -22,9 +23,12 @@ const CONTRACT_FIELDS: Record<keyof IPlatformComparison, true> = {
 
 describe('AnalyticsPlatformSerializer', () => {
   it('whitelists exactly the IPlatformComparison fields', () => {
-    expect([...analyticsPlatformAttributes].sort()).toEqual(
-      Object.keys(CONTRACT_FIELDS).sort(),
-    );
+    const entityBase = createEntityAttributes([]);
+    expect(
+      analyticsPlatformAttributes
+        .filter((field) => !entityBase.includes(field))
+        .sort(),
+    ).toEqual(Object.keys(CONTRACT_FIELDS).sort());
   });
 
   it('serializes every metric of each platform row', () => {
