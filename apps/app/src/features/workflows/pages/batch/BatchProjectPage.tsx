@@ -20,7 +20,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import BatchIdeasEditor from './BatchIdeasEditor';
 import BatchProjectItemCard from './BatchProjectItemCard';
@@ -32,6 +32,7 @@ import { useBatchProject } from './useBatchProject';
 
 export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
   const t = useTranslations('pages.batchProjects');
+  const locale = useLocale();
   const { brandId, selectedBrand, credentials } = useBrand();
   const { href } = useOrgUrl();
   const flag = useFastlaneEnabled();
@@ -265,7 +266,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
             </ul>
             <p className="text-xs text-muted-foreground">
               {t('quoteExpiry', {
-                date: new Date(quote.expiresAt).toLocaleString(),
+                date: new Date(quote.expiresAt).toLocaleString(locale),
               })}
             </p>
             <Button
@@ -361,7 +362,8 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
                     }));
                   const result = await api.schedule(projectId, {
                     targets,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    timezone:
+                      Intl.DateTimeFormat(locale).resolvedOptions().timeZone,
                   });
                   setNotice(
                     t('scheduleResult', {

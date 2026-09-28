@@ -16,12 +16,13 @@ import Container from '@ui/layout/container/Container';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { createBatchProjectsApi } from './batch-projects-api';
 
 export default function BatchProjectsPage() {
   const t = useTranslations('pages.batchProjects');
+  const locale = useLocale();
   const { brandId } = useBrand();
   const { href } = useOrgUrl();
   const service = useAuthedService(createBatchProjectsApi);
@@ -112,7 +113,7 @@ export default function BatchProjectsPage() {
         <span>{t('itemCount', { count: project.itemCounts.total })}</span>
         <span>
           {project.updatedAt
-            ? new Date(project.updatedAt).toLocaleString()
+            ? new Date(project.updatedAt).toLocaleString(locale)
             : ''}
         </span>
       </>
