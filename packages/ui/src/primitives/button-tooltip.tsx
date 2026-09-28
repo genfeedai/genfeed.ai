@@ -13,16 +13,15 @@ export interface ButtonTooltipProps {
 }
 
 let loadedTooltip: SimpleTooltipComponent | null = null;
-let isTooltipLoading = false;
+let pendingTooltipLoad: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
-function loadTooltip(): void {
-  if (loadedTooltip || isTooltipLoading) {
-    return;
+function loadTooltip(): Promise<void> {
+  if (loadedTooltip) {
+    return Promise.resolve();
   }
 
-  isTooltipLoading = true;
-  void import('./tooltip')
+  pendingTooltipLoad ??= import('./tooltip')
     .then((module) => {
       loadedTooltip = module.SimpleTooltip;
       for (const listener of listeners) {
@@ -34,13 +33,29 @@ function loadTooltip(): void {
       // next tooltip button to mount tries again.
     })
     .finally(() => {
-      isTooltipLoading = false;
+      pendingTooltipLoad = null;
     });
+
+  return pendingTooltipLoad;
+}
+
+/**
+ * Loads the deferred tooltip ahead of the first provider-less tooltip button.
+ *
+ * Swapping the hint in wraps the button in Radix Tooltip, which remounts its
+ * DOM node: focus on it is lost and any reference to the old node goes stale.
+ * A host without a `TooltipProvider` that renders tooltip buttons straight
+ * away (the unit-test harnesses that mount app components without the app's
+ * root providers) awaits this first so every button renders its final node.
+ * Resolves even when the load fails, since the button works without a hint.
+ */
+export function preloadButtonTooltip(): Promise<void> {
+  return loadTooltip();
 }
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  loadTooltip();
+  void loadTooltip();
   return () => {
     listeners.delete(listener);
   };
