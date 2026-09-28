@@ -973,6 +973,23 @@
       "untitledPost": "Untitled post",
       "usage": "Usage"
     },
+    "organizationOverview": {
+      "brandsTitle": "Brands",
+      "description": "Workflows, agents, and run history across every brand in this organization",
+      "emptyAction": "Go to brands",
+      "emptyDescription": "Automation runs against a brand. Create your first brand, then open Automation to build workflows and autopilot policies for it.",
+      "emptyTitle": "Automation needs a brand",
+      "loadingBrand": "Loading brand",
+      "moreActions": "More automation for {brand}",
+      "openAutomation": "Open Automation",
+      "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+      "surfaces": {
+        "agents": "Agents",
+        "analytics": "Analytics",
+        "runs": "Runs",
+        "workflows": "Workflows"
+      }
+    },
     "brandEmpty": {
       "action": "Manage brands",
       "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
