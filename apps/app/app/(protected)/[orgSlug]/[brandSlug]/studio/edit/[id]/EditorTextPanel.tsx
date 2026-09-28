@@ -27,6 +27,7 @@ function EditorTextPanel({
   tracks,
   fps,
   totalFrames,
+  isReadOnly = false,
   selectedTrackId,
   selectedClipId,
   onAddTextTrack,
@@ -123,6 +124,7 @@ function EditorTextPanel({
         isExpanded={isExpanded}
         onToggleExpanded={() => setIsExpanded(!isExpanded)}
         onAddText={handleAddTextTrack}
+        isReadOnly={isReadOnly}
       />
 
       {isExpanded && (
@@ -133,12 +135,14 @@ function EditorTextPanel({
             selectedClipId={selectedClipId}
             onClipSelect={onClipSelect}
             onDeleteTrack={handleDeleteTextTrack}
+            isReadOnly={isReadOnly}
           />
 
           {selectedTextClip?.textOverlay && (
             <EditorTextProperties
               selectedTextClip={selectedTextClip}
               onUpdateTextOverlay={handleUpdateTextOverlay}
+              isReadOnly={isReadOnly}
             />
           )}
         </div>

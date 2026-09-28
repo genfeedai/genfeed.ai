@@ -11,6 +11,7 @@ export default function EditorPageContent({
 }: EditorPageContentProps) {
   const {
     state,
+    isReadOnly,
     previewRef,
     handlePlayPause,
     handleSeek,
@@ -29,6 +30,7 @@ export default function EditorPageContent({
     handleClipSelect,
     handleSave,
     handleRender,
+    handleDuplicate,
     handleBack,
     handleFrameChange,
     handlePlayingChange,
@@ -51,6 +53,9 @@ export default function EditorPageContent({
       zoom={state.zoom}
       isDirty={state.isDirty}
       isRendering={state.isRendering}
+      isReadOnly={isReadOnly}
+      hasSaveConflict={state.hasSaveConflict}
+      isDuplicating={state.isDuplicating}
       selectedTrackId={state.selectedTrackId}
       selectedClipId={state.selectedClipId}
       onPlayPause={handlePlayPause}
@@ -66,6 +71,7 @@ export default function EditorPageContent({
       onSave={handleSave}
       onRender={handleRender}
       onBack={handleBack}
+      onDuplicate={handleDuplicate}
       onAddTextTrack={handleAddTextTrack}
       onTrackUpdate={handleTrackUpdate}
       onClipMove={handleClipMove}

@@ -263,6 +263,51 @@ export class EditorProjectsController {
     return serializeSingle(request, EditorProjectSerializer, data);
   }
 
+  /**
+   * Copy a project into a new, editable draft. Composition-backed projects are
+   * immutable, so this is how a user edits one: the copy keeps the tracks and
+   * settings but never the composition provenance or render output.
+   */
+  @Post(':id/duplicate')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async duplicate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const source = await this.editorProjectsService.findOne({
+      id,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
+
+    if (!source) {
+      return returnNotFound('Editor project', id);
+    }
+
+    const sourceName =
+      typeof source.name === 'string' && source.name.trim()
+        ? source.name.trim()
+        : 'Untitled Project';
+
+    const data: EditorProjectDocument = await this.editorProjectsService.create(
+      {
+        ...(source.brandId ? { brandId: source.brandId } : {}),
+        config: {
+          name: `${sourceName} (copy)`,
+          settings: source.settings,
+          status: EditorProjectStatus.DRAFT,
+          totalDurationFrames: source.totalDurationFrames,
+        },
+        organizationId: user.organizationId,
+        tracks: source.tracks,
+        userId: user.userId ?? user.id,
+      } as CreateEditorProjectDto,
+    );
+
+    return serializeSingle(request, EditorProjectSerializer, data);
+  }
+
   @Delete(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(

@@ -10,6 +10,7 @@ export interface EditorToolbarProps {
   zoom: number;
   isDirty: boolean;
   isRendering: boolean;
+  isReadOnly?: boolean;
   onPlayPause: () => void;
   onSeekStart: () => void;
   onSeekEnd: () => void;

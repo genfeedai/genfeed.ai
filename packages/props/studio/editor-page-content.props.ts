@@ -12,6 +12,8 @@ export interface EditorState {
   currentFrame: number;
   isPlaying: boolean;
   isRendering: boolean;
+  isDuplicating: boolean;
+  hasSaveConflict: boolean;
   zoom: number;
   selectedTrackId: string | null;
   selectedClipId: string | null;

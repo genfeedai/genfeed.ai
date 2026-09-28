@@ -100,6 +100,10 @@ export interface IEditorProject extends IBaseEntity {
   status: EditorProjectStatus;
   renderedVideo?: IIngredient | string;
 
+  // Generated from an approved composition template: the server refuses
+  // updates, so the Editor opens it read-only.
+  isLocked: boolean;
+
   // Thumbnails
   thumbnailUrl?: string;
 }

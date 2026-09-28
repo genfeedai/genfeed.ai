@@ -6,4 +6,5 @@ import type {
 export interface EditorTextPropertiesProps {
   selectedTextClip: IEditorClip;
   onUpdateTextOverlay: (updates: Partial<IEditorTextOverlay>) => void;
+  isReadOnly?: boolean;
 }
