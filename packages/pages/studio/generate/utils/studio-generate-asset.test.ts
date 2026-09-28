@@ -135,6 +135,25 @@ describe('toStudioGenerateJob', () => {
     ).toBe(IngredientStatus.FAILED);
   });
 
+  it('links a transformation to the ingredient it was produced from', () => {
+    expect(
+      toStudioGenerateJob(
+        buildIngredient({
+          category: IngredientCategory.VIDEO,
+          parentId: 'source-1',
+        }),
+      )?.parentId,
+    ).toBe('source-1');
+    expect(toStudioGenerateJob(buildIngredient())?.parentId).toBeUndefined();
+  });
+
+  it('renders a GIF made from a Generate video as an image card', () => {
+    expect(
+      toStudioGenerateJob(buildIngredient({ category: IngredientCategory.GIF }))
+        ?.type,
+    ).toBe('image');
+  });
+
   it('uses persisted dimensions instead of model getter defaults', () => {
     const ingredient = buildIngredient({ height: 720, width: 1280 });
     Object.defineProperties(ingredient, {

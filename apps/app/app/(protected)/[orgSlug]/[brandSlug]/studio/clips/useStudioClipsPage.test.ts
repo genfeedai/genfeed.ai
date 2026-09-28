@@ -11,6 +11,7 @@ const mockGetHookApproval = vi.fn();
 const mockGetProject = vi.fn();
 const mockGetToken = vi.fn();
 const mockPush = vi.fn();
+const mockSaveDraft = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: { id: 'brand-1' }, settings: null }),
@@ -48,10 +49,12 @@ vi.mock('./services/clips-api.service', () => ({
     getHighlights = mockGetHighlights;
     getHookApproval = mockGetHookApproval;
     getProject = mockGetProject;
+    saveDraft = mockSaveDraft;
   },
 }));
 
 import {
+  CLIP_DRAFT_AUTOSAVE_DELAY_MS,
   resolveAvatarProviderSelection,
   resolveClipsStepFromStatus,
   resolveQuickAvatarIdentity,
@@ -61,6 +64,7 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockSaveDraft.mockResolvedValue(undefined);
   mockAnalyzeVideo.mockResolvedValue({
     identity: {
       avatarProvider: 'heygen',
@@ -166,6 +170,188 @@ describe('review route transition', () => {
   });
 });
 
+describe('draft projects', () => {
+  const draftProject = {
+    draft: {
+      sourceKind: 'youtube',
+      updatedAt: '2026-09-28T12:00:00.000Z',
+      youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    },
+    settings: { maxClips: 7, minViralityScore: 64, mode: 'raw-cut' },
+    status: 'draft',
+  };
+
+  beforeEach(() => {
+    mockGetHookApproval.mockResolvedValue(null);
+  });
+
+  it('restores the saved source and settings on reload without re-saving them', async () => {
+    mockGetProject.mockResolvedValue(draftProject);
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isHydrating).toBe(false);
+      expect(result.current.step).toBe('input');
+    });
+    expect(result.current.youtubeUrl).toBe(
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    );
+    expect(result.current.sourceKind).toBe('youtube');
+    expect(result.current.maxClips).toBe(7);
+    expect(result.current.minViralityScore).toBe(64);
+    expect(result.current.generationMode).toBe('raw-cut');
+    expect(result.current.project).toMatchObject({
+      projectId: 'draft-1',
+      status: 'draft',
+    });
+    expect(mockGetHighlights).not.toHaveBeenCalled();
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, CLIP_DRAFT_AUTOSAVE_DELAY_MS + 200),
+    );
+    expect(mockSaveDraft).not.toHaveBeenCalled();
+  });
+
+  it('restores an upload draft by filename and waits for the file again', async () => {
+    mockGetProject.mockResolvedValue({
+      ...draftProject,
+      draft: {
+        filename: 'podcast.mp4',
+        sourceKind: 'upload',
+        updatedAt: '2026-09-28T12:00:00.000Z',
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.sourceKind).toBe('upload');
+    });
+    expect(result.current.draftFilename).toBe('podcast.mp4');
+    expect(result.current.sourceFile).toBeNull();
+  });
+
+  it('autosaves form changes within two seconds', async () => {
+    mockGetProject.mockResolvedValue(draftProject);
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+    await waitFor(() => {
+      expect(result.current.step).toBe('input');
+    });
+
+    const changedAt = Date.now();
+    act(() => {
+      result.current.setYoutubeUrl('https://youtu.be/aaaaaaaaaaa');
+      result.current.setMaxClips(12);
+    });
+
+    await waitFor(
+      () => {
+        expect(mockSaveDraft).toHaveBeenCalledWith('draft-1', {
+          filename: undefined,
+          maxClips: 12,
+          minViralityScore: 64,
+          mode: 'raw-cut',
+          sourceKind: 'youtube',
+          youtubeUrl: 'https://youtu.be/aaaaaaaaaaa',
+        });
+      },
+      { timeout: 2_000 },
+    );
+    expect(Date.now() - changedAt).toBeLessThan(2_000);
+    expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(result.current.draftSaveState).toBe('saved');
+    });
+  });
+
+  it('saves a revert made while the previous autosave was in flight', async () => {
+    mockGetProject.mockResolvedValue(draftProject);
+    let finishFirstSave: (() => void) | undefined;
+    mockSaveDraft.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishFirstSave = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+    await waitFor(() => {
+      expect(result.current.step).toBe('input');
+    });
+
+    act(() => {
+      result.current.setMaxClips(12);
+    });
+    await waitFor(
+      () => {
+        expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 2_000 },
+    );
+    expect(mockSaveDraft.mock.calls[0]?.[1]).toMatchObject({ maxClips: 12 });
+
+    // Back to the saved value while the save of 12 is still running.
+    act(() => {
+      result.current.setMaxClips(7);
+    });
+    await act(async () => {
+      finishFirstSave?.();
+    });
+
+    await waitFor(
+      () => {
+        expect(mockSaveDraft).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 2_000 },
+    );
+    expect(mockSaveDraft.mock.calls[1]?.[1]).toMatchObject({ maxClips: 7 });
+    await waitFor(() => {
+      expect(result.current.draftSaveState).toBe('saved');
+    });
+  });
+
+  it('starts analysis on the draft in place', async () => {
+    mockGetProject.mockResolvedValue(draftProject);
+    mockAnalyzeVideo.mockResolvedValue({ projectId: 'draft-1' });
+    mockGetHighlights.mockReturnValue(new Promise(() => undefined));
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+    await waitFor(() => {
+      expect(result.current.step).toBe('input');
+    });
+
+    await act(async () => {
+      await result.current.handleAnalyze();
+    });
+
+    expect(mockAnalyzeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftProjectId: 'draft-1',
+        maxClips: 7,
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      }),
+    );
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(result.current.step).toBe('review');
+    expect(result.current.project).toMatchObject({
+      projectId: 'draft-1',
+      status: 'analyzing',
+    });
+  });
+});
+
 const identityDefaults = {
   avatarId: 'saved-heygen-avatar',
   avatarProvider: 'heygen' as const,
@@ -180,6 +366,10 @@ describe('resolveClipsStepFromStatus', () => {
     expect(resolveClipsStepFromStatus('completed')).toBe('progress');
     expect(resolveClipsStepFromStatus('generating')).toBe('progress');
     expect(resolveClipsStepFromStatus('failed')).toBe('progress');
+  });
+
+  it('opens a draft on the setup form', () => {
+    expect(resolveClipsStepFromStatus('draft')).toBe('input');
   });
 
   it('opens analyzed and in-flight analysis on review', () => {

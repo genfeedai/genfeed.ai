@@ -96,6 +96,7 @@ import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-en
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { SpeechModule } from '@api/collections/speech/speech.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
+import { StudioGenerateDraftsModule } from '@api/collections/studio-generate-drafts/studio-generate-drafts.module';
 import { StudioLooksModule } from '@api/collections/studio-looks/studio-looks.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
@@ -223,6 +224,7 @@ import { Module } from '@nestjs/common';
     SocialWarmupEnrollmentsModule,
     SourcePostsModule,
     StreaksModule,
+    StudioGenerateDraftsModule,
     StudioLooksModule,
     SubscriptionAttributionsModule,
     SubscriptionsModule,

@@ -1,8 +1,24 @@
 export const CLIP_SOURCE_SCHEMA_VERSION = 1 as const;
 
-export const CLIP_SOURCE_KINDS = ['youtube', 'upload'] as const;
+export const CLIP_SOURCE_KINDS = ['youtube', 'upload', 'library'] as const;
 
 export type ClipSourceKind = (typeof CLIP_SOURCE_KINDS)[number];
+
+/** Source kinds a creator picks in the new-project form; Library sources start from their asset. */
+export const CLIP_DRAFT_SOURCE_KINDS = ['youtube', 'upload'] as const;
+
+export type ClipDraftSourceKind = (typeof CLIP_DRAFT_SOURCE_KINDS)[number];
+
+/**
+ * Unsubmitted new-project form state kept on a `draft` clip project.
+ * An upload draft keeps only the filename; the file itself is re-picked.
+ */
+export interface ClipProjectDraft {
+  filename?: string;
+  sourceKind: ClipDraftSourceKind;
+  updatedAt: string;
+  youtubeUrl?: string;
+}
 
 export const CLIP_SOURCE_STATUSES = [
   'validating',

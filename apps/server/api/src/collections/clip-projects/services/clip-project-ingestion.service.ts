@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import {
+  type ClipProjectCreateInput,
+  ClipProjectsService,
+} from '@api/collections/clip-projects/clip-projects.service';
 import type { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
+import type { CreateClipProjectDraftDto } from '@api/collections/clip-projects/dto/create-clip-project-draft.dto';
 import type { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   MAX_CLIP_SOURCE_SIZE_BYTES,
@@ -26,9 +30,14 @@ import {
   type ClipSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/contracts/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
+const DRAFT_CLAIM_ATTEMPTS = 3;
 
 export interface ClipProjectAnalysisResult {
   identity: AgentClipRunIdentity;
@@ -65,6 +74,34 @@ export class ClipProjectIngestionService {
     private readonly presignedUploadService: PresignedUploadService,
   ) {}
 
+  async createDraft(
+    user: User,
+    dto: CreateClipProjectDraftDto,
+  ): Promise<ClipProjectDocument> {
+    if (dto.brandId) {
+      await this.clipIdentityResolutionService.resolve({
+        brandId: dto.brandId,
+        organizationId: user.organizationId,
+      });
+    }
+
+    const now = new Date().toISOString();
+    return await this.clipProjectsService.create({
+      brandId: dto.brandId,
+      draft: { sourceKind: 'youtube', updatedAt: now },
+      language: 'en',
+      name: `Clip draft — ${now.slice(0, 10)}`,
+      organizationId: user.organizationId,
+      settings: {
+        maxClips: 10,
+        minViralityScore: 50,
+        mode: DEFAULT_CLIP_RESULT_MODE,
+      },
+      status: 'draft',
+      userId: user.userId ?? user.id,
+    });
+  }
+
   async createFromYoutube(
     user: User,
     dto: CreateClipProjectFromYoutubeDto,
@@ -74,18 +111,23 @@ export class ClipProjectIngestionService {
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const provider = dto.avatarProvider ?? 'heygen';
+    const brandId = await this.resolveStartBrandId(
+      orgId,
+      dto.draftProjectId,
+      dto.brandId,
+    );
     const identity = await this.resolveBrandAndIdentity({
       avatarId: dto.avatarId,
       avatarProvider: dto.avatarProvider,
-      brandId: dto.brandId,
+      brandId,
       mode,
       organizationId: orgId,
       provider,
       voiceId: dto.voiceId,
     });
-    const runReferences = dto.brandId
+    const runReferences = brandId
       ? await this.clipGenerationRequestService.resolveRunReferences(
-          dto.brandId,
+          brandId,
           orgId,
         )
       : [];
@@ -109,8 +151,8 @@ export class ClipProjectIngestionService {
     }
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'quick');
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brandId: dto.brandId,
+    const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
+      brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ??
@@ -138,27 +180,33 @@ export class ClipProjectIngestionService {
 
     const projectId = String(project.id);
     const queuedSource = this.withJobId(source, `clip-factory-${projectId}`);
-    await this.clipProjectsService.patch(
-      projectId,
-      { source: queuedSource },
-      [],
+    const batchJobId = await this.dispatchOrReleaseDraft(
+      dto.draftProjectId,
       orgId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source: queuedSource },
+          [],
+          orgId,
+        );
+        return await this.clipFactoryWorkflowQueue.enqueue({
+          avatarId: identity?.avatarId,
+          avatarProvider: provider,
+          language: dto.language ?? 'en',
+          maxClips: estimatedClips,
+          minViralityScore: dto.minViralityScore ?? 50,
+          mode,
+          orgId,
+          projectId,
+          runReferences,
+          userId,
+          voiceId: identity?.voiceId,
+          youtubeUrl: dto.youtubeUrl,
+          source: queuedSource,
+        });
+      },
     );
-    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
-      avatarId: identity?.avatarId,
-      avatarProvider: provider,
-      language: dto.language ?? 'en',
-      maxClips: estimatedClips,
-      minViralityScore: dto.minViralityScore ?? 50,
-      mode,
-      orgId,
-      projectId,
-      runReferences,
-      userId,
-      voiceId: identity?.voiceId,
-      youtubeUrl: dto.youtubeUrl,
-      source: queuedSource,
-    });
 
     return {
       batchJobId,
@@ -175,14 +223,19 @@ export class ClipProjectIngestionService {
   ): Promise<ClipProjectAnalysisResult> {
     const orgId = user.organizationId;
     const userId = user.userId ?? user.id;
+    const brandId = await this.resolveStartBrandId(
+      orgId,
+      dto.draftProjectId,
+      dto.brandId,
+    );
     const identity = await this.clipIdentityResolutionService.resolve({
-      brandId: dto.brandId,
+      brandId,
       organizationId: orgId,
     });
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'review');
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brandId: dto.brandId,
+    const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
+      brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
@@ -207,22 +260,23 @@ export class ClipProjectIngestionService {
 
     const projectId = String(project.id);
     const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
-    await this.clipProjectsService.patch(
-      projectId,
-      { source: queuedSource },
-      [],
-      orgId,
-    );
-
-    await this.clipAnalysisWorkflowQueue.enqueue({
-      language: dto.language ?? 'en',
-      maxClips: dto.maxClips ?? 10,
-      minViralityScore: dto.minViralityScore ?? 50,
-      orgId,
-      projectId,
-      userId,
-      youtubeUrl: dto.youtubeUrl,
-      source: queuedSource,
+    await this.dispatchOrReleaseDraft(dto.draftProjectId, orgId, async () => {
+      await this.clipProjectsService.patch(
+        projectId,
+        { source: queuedSource },
+        [],
+        orgId,
+      );
+      return await this.clipAnalysisWorkflowQueue.enqueue({
+        language: dto.language ?? 'en',
+        maxClips: dto.maxClips ?? 10,
+        minViralityScore: dto.minViralityScore ?? 50,
+        orgId,
+        projectId,
+        userId,
+        youtubeUrl: dto.youtubeUrl,
+        source: queuedSource,
+      });
     });
 
     return { identity, projectId, status: 'analyzing' };
@@ -240,6 +294,10 @@ export class ClipProjectIngestionService {
       throw new BadRequestException(
         'Audio sources require avatar mode because raw-cut clips need source video.',
       );
+    }
+    if (dto.draftProjectId) {
+      // Refuse before creating an upload record for a draft that cannot take it.
+      await this.assertDraftStartable(user.organizationId, dto.draftProjectId);
     }
 
     const upload = await this.presignedUploadService.getPresignedUploadUrl(
@@ -275,7 +333,7 @@ export class ClipProjectIngestionService {
       updatedAt: now,
     };
 
-    const project = await this.clipProjectsService.create({
+    const projectInput: ClipProjectCreateInput = {
       brandId: dto.brandId,
       language: dto.language ?? 'en',
       name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
@@ -300,7 +358,16 @@ export class ClipProjectIngestionService {
       sourceVideoUrl: upload.publicUrl,
       status: 'pending',
       userId,
-    });
+    };
+    // A draft stays a draft until finalize, so a failed transfer can be
+    // prepared again against the same draft.
+    const project = dto.draftProjectId
+      ? await this.clipProjectsService.patchDraft(
+          dto.draftProjectId,
+          user.organizationId,
+          { ...projectInput },
+        )
+      : await this.clipProjectsService.create(projectInput);
 
     return {
       expiresIn: upload.expiresIn,
@@ -314,6 +381,7 @@ export class ClipProjectIngestionService {
   async finalizeUpload(
     user: User,
     projectId: string,
+    preparedIngredientId: string,
   ): Promise<ClipProjectIngestionResult> {
     const project = await this.findAuthorizedProject(user, projectId);
     const source = project.source;
@@ -321,6 +389,14 @@ export class ClipProjectIngestionService {
     if (source?.kind !== 'upload' || !source.ingredientId) {
       throw new BadRequestException(
         'This clip project does not have a pending uploaded source.',
+      );
+    }
+    // Another tab may have prepared a newer upload on the same draft; only the
+    // request that prepared the current source may finalize it. The claim
+    // below re-checks this against the version it validates.
+    if (source.ingredientId !== preparedIngredientId) {
+      throw new ConflictException(
+        'This upload was replaced by a newer one on this project.',
       );
     }
 
@@ -417,7 +493,13 @@ export class ClipProjectIngestionService {
       status: 'queued',
       updatedAt: new Date().toISOString(),
     };
-    return await this.enqueueUploadedProject(user, project, queuedSource);
+    // A draft is claimed only after its prerequisites pass, inside dispatch.
+    return await this.enqueueUploadedProject(
+      user,
+      project,
+      queuedSource,
+      project.status === 'draft',
+    );
   }
 
   async retrySource(
@@ -486,6 +568,7 @@ export class ClipProjectIngestionService {
     user: User,
     project: ClipProjectDocument,
     source: ClipSourceContract,
+    isDraftStart = false,
   ): Promise<ClipProjectIngestionResult> {
     const projectId = String(project.id);
     const settings = project.settings ?? {};
@@ -498,23 +581,36 @@ export class ClipProjectIngestionService {
       throw new BadRequestException('The clip source URL is unavailable.');
     }
 
+    const draftProjectId = isDraftStart ? projectId : undefined;
+
     if (flow === 'review') {
-      await this.clipProjectsService.patch(
-        projectId,
-        { source },
-        [],
+      await this.claimDraftIfStarting(
+        draftProjectId,
         user.organizationId,
+        project,
       );
-      const batchJobId = await this.clipAnalysisWorkflowQueue.enqueue({
-        language: settings.language ?? project.language ?? 'en',
-        maxClips: estimatedClips,
-        minViralityScore: settings.minViralityScore ?? 50,
-        orgId: user.organizationId,
-        projectId,
-        source,
-        userId,
-        youtubeUrl: sourceUrl,
-      });
+      const batchJobId = await this.dispatchOrReleaseDraft(
+        draftProjectId,
+        user.organizationId,
+        async () => {
+          await this.clipProjectsService.patch(
+            projectId,
+            { source },
+            [],
+            user.organizationId,
+          );
+          return await this.clipAnalysisWorkflowQueue.enqueue({
+            language: settings.language ?? project.language ?? 'en',
+            maxClips: estimatedClips,
+            minViralityScore: settings.minViralityScore ?? 50,
+            orgId: user.organizationId,
+            projectId,
+            source,
+            userId,
+            youtubeUrl: sourceUrl,
+          });
+        },
+      );
       return {
         batchJobId,
         estimatedClips,
@@ -567,29 +663,39 @@ export class ClipProjectIngestionService {
       throw new InsufficientCreditsException(estimatedClips, currentBalance);
     }
 
-    await this.clipProjectsService.patch(
-      projectId,
-      { source },
-      [],
+    await this.claimDraftIfStarting(
+      draftProjectId,
       user.organizationId,
+      project,
     );
-
-    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
-      avatarId: identity?.avatarId,
-      avatarProvider: provider,
-      language: settings.language ?? project.language ?? 'en',
-      maxClips: estimatedClips,
-      minViralityScore: settings.minViralityScore ?? 50,
-      mode,
-      orgId: user.organizationId,
-      projectId,
-      referenceImageUrl: reference.referenceImageUrl,
-      runReferences,
-      source,
-      userId,
-      voiceId: identity?.voiceId,
-      youtubeUrl: sourceUrl,
-    });
+    const batchJobId = await this.dispatchOrReleaseDraft(
+      draftProjectId,
+      user.organizationId,
+      async () => {
+        await this.clipProjectsService.patch(
+          projectId,
+          { source },
+          [],
+          user.organizationId,
+        );
+        return await this.clipFactoryWorkflowQueue.enqueue({
+          avatarId: identity?.avatarId,
+          avatarProvider: provider,
+          language: settings.language ?? project.language ?? 'en',
+          maxClips: estimatedClips,
+          minViralityScore: settings.minViralityScore ?? 50,
+          mode,
+          orgId: user.organizationId,
+          projectId,
+          referenceImageUrl: reference.referenceImageUrl,
+          runReferences,
+          source,
+          userId,
+          voiceId: identity?.voiceId,
+          youtubeUrl: sourceUrl,
+        });
+      },
+    );
 
     return {
       batchJobId,
@@ -598,6 +704,163 @@ export class ClipProjectIngestionService {
       projectId,
       status: 'processing',
     };
+  }
+
+  /**
+   * Starts the caller's draft in place when one is given — claimed atomically
+   * so a double-submitted start runs once — and otherwise creates a project.
+   */
+  private async createOrStartDraft(
+    organizationId: string,
+    draftProjectId: string | undefined,
+    input: ClipProjectCreateInput,
+  ): Promise<ClipProjectDocument> {
+    if (!draftProjectId) {
+      return await this.clipProjectsService.create(input);
+    }
+
+    await this.claimDraftIfStarting(draftProjectId, organizationId);
+    return await this.dispatchOrReleaseDraft(
+      draftProjectId,
+      organizationId,
+      () =>
+        this.clipProjectsService.patch(
+          draftProjectId,
+          // Omitted fields keep the draft's saved values (brand included).
+          Object.fromEntries(
+            Object.entries(input).filter(([, value]) => value !== undefined),
+          ),
+          [],
+          organizationId,
+        ),
+    );
+  }
+
+  /**
+   * Claims a draft for a start. With `validated`, the claim is a
+   * compare-and-set on that read, so a source attached after validation
+   * (another tab preparing a different upload) is refused rather than run
+   * with the wrong media; other edits, such as an autosave, are re-read and
+   * the claim is retried.
+   */
+  private async claimDraftIfStarting(
+    draftProjectId: string | undefined,
+    organizationId: string,
+    validated?: ClipProjectDocument,
+  ): Promise<void> {
+    if (!draftProjectId) {
+      return;
+    }
+
+    let expected = validated;
+    for (let attempt = 0; attempt < DRAFT_CLAIM_ATTEMPTS; attempt += 1) {
+      const isClaimed = await this.clipProjectsService.claimDraft(
+        draftProjectId,
+        organizationId,
+        expected?.updatedAt,
+      );
+      if (isClaimed) {
+        return;
+      }
+      if (!expected) {
+        break;
+      }
+
+      const current = await this.clipProjectsService.findOne({
+        id: draftProjectId,
+        isDeleted: false,
+        organizationId,
+      });
+      if (current?.status !== 'draft') {
+        break;
+      }
+      // Retry only an edit that leaves what was validated intact; a changed
+      // source or settings would dispatch unvalidated inputs.
+      if (!this.hasSameStartInputs(current, expected)) {
+        throw new ConflictException(
+          "This draft's source or settings changed while it was starting. Start it again.",
+        );
+      }
+      expected = current;
+    }
+
+    throw new ConflictException(
+      'This clip project draft was already started or no longer exists.',
+    );
+  }
+
+  private hasSameStartInputs(
+    current: ClipProjectDocument,
+    validated: ClipProjectDocument,
+  ): boolean {
+    return (
+      JSON.stringify(current.settings ?? {}) ===
+        JSON.stringify(validated.settings ?? {}) &&
+      current.source?.fingerprint === validated.source?.fingerprint &&
+      current.source?.ingredientId === validated.source?.ingredientId &&
+      current.sourceVideoS3Key === validated.sourceVideoS3Key &&
+      current.sourceVideoUrl === validated.sourceVideoUrl
+    );
+  }
+
+  private async assertDraftStartable(
+    organizationId: string,
+    draftProjectId: string,
+  ): Promise<void> {
+    const draft = await this.clipProjectsService.findOne({
+      id: draftProjectId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!draft) {
+      throw new NotFoundException('ClipProject', draftProjectId);
+    }
+    if (draft.status !== 'draft') {
+      throw new ConflictException(
+        'This clip project draft was already started or no longer exists.',
+      );
+    }
+  }
+
+  /** A draft start without a brand keeps the brand the draft was saved with. */
+  private async resolveStartBrandId(
+    organizationId: string,
+    draftProjectId: string | undefined,
+    brandId: string | undefined,
+  ): Promise<string | undefined> {
+    if (brandId || !draftProjectId) {
+      return brandId;
+    }
+
+    const draft = await this.clipProjectsService.findOne({
+      id: draftProjectId,
+      isDeleted: false,
+      organizationId,
+    });
+    return draft?.brandId ?? undefined;
+  }
+
+  /**
+   * Runs the persist-and-queue step of a start. When a claimed draft cannot be
+   * dispatched it goes back to `draft` (its form state is kept), so the
+   * creator can fix the cause and start it again instead of hitting a 409.
+   */
+  private async dispatchOrReleaseDraft<T>(
+    draftProjectId: string | undefined,
+    organizationId: string,
+    dispatch: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await dispatch();
+    } catch (error: unknown) {
+      if (draftProjectId) {
+        await this.clipProjectsService.releaseDraft(
+          draftProjectId,
+          organizationId,
+        );
+      }
+      throw error;
+    }
   }
 
   private async findAuthorizedProject(

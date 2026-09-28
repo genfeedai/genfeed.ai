@@ -38,6 +38,7 @@ function buildFixtureOutput(actionId: string): unknown {
       };
     case 'videoStitch':
       return {
+        ingredientId: 'stitched',
         video: 'stitched.mp4',
         videoUrl: 'https://cdn.example.com/stitched.mp4',
       };

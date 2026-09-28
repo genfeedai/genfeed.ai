@@ -7,6 +7,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import {
   BatchInterpolationDto,
+  type InterpolationMergeSettingsDto,
   InterpolationPairDto,
 } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
@@ -44,6 +45,7 @@ import {
   PromptStatus,
 } from '@genfeedai/contracts';
 import { hasInterpolation } from '@genfeedai/contracts/constants';
+import type { IVideoMergeSettings } from '@genfeedai/contracts/interfaces';
 import { BatchInterpolationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -59,6 +61,31 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+/** Plain JSON copy of the settings captured when the batch starts. */
+function toVideoMergeSettings(
+  settings: InterpolationMergeSettingsDto,
+): IVideoMergeSettings {
+  return {
+    ...(settings.isCaptionsEnabled !== undefined
+      ? { isCaptionsEnabled: settings.isCaptionsEnabled }
+      : {}),
+    ...(settings.isMuteVideoAudio !== undefined
+      ? { isMuteVideoAudio: settings.isMuteVideoAudio }
+      : {}),
+    ...(settings.music ? { music: settings.music } : {}),
+    ...(settings.musicVolume !== undefined
+      ? { musicVolume: settings.musicVolume }
+      : {}),
+    ...(settings.transition ? { transition: settings.transition } : {}),
+    ...(settings.transitionDuration !== undefined
+      ? { transitionDuration: settings.transitionDuration }
+      : {}),
+    ...(settings.transitionEaseCurve
+      ? { transitionEaseCurve: settings.transitionEaseCurve }
+      : {}),
+  };
+}
 
 type InterpolationJobResult = {
   id: string;
@@ -340,6 +367,9 @@ export class BatchInterpolationController {
           groupIndex: pairIndex,
           height: context.height,
           isMergeEnabled: context.dto.isMergeEnabled || false,
+          ...(context.dto.isMergeEnabled && context.dto.mergeSettings
+            ? { mergeSettings: toVideoMergeSettings(context.dto.mergeSettings) }
+            : {}),
           model: context.dto.modelKey,
           organizationId: context.brand.organizationId,
           promptId: promptData.id,

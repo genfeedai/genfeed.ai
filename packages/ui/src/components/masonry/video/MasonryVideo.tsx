@@ -87,6 +87,8 @@ function MasonryVideoTile({
   onMediaError,
   onScopeChange,
   onRefresh,
+  onOpenInEditor,
+  onResize,
   isDragEnabled = true,
   onHoverChange,
 }: MasonryVideoTileProps): React.ReactElement {
@@ -208,6 +210,8 @@ function MasonryVideoTile({
           onRefresh={onRefresh}
           onReverse={onReverse}
           onMirror={onMirror}
+          onOpenInEditor={onOpenInEditor}
+          onResize={onResize}
         />
       ) : null}
     </div>

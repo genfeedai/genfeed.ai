@@ -15,8 +15,9 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import { Film } from 'lucide-react';
+import { Film, Scissors } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode, RefObject } from 'react';
 
 type VideoDetailFirstColumnProps = {
@@ -93,6 +94,7 @@ export default function VideoDetailFirstColumn({
   isAddingTextOverlay,
 }: VideoDetailFirstColumnProps) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.library.videoDetail');
 
   return (
     <div className="min-w-0 space-y-4">
@@ -118,7 +120,7 @@ export default function VideoDetailFirstColumn({
       {childIngredients && childIngredients.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-foreground/80">
-            Available Versions:
+            {translate('availableVersions')}
           </h4>
 
           <div className="flex flex-wrap gap-2">
@@ -179,10 +181,12 @@ export default function VideoDetailFirstColumn({
                 onClick={onShowChildren}
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
-                ariaLabel="View more versions"
+                ariaLabel={translate('viewMoreVersions')}
               >
                 <span className="text-xs">
-                  +{childIngredients.length - 4} more
+                  {translate('moreVersions', {
+                    count: childIngredients.length - 4,
+                  })}
                 </span>
               </Button>
             )}
@@ -190,15 +194,25 @@ export default function VideoDetailFirstColumn({
         </div>
       )}
 
-      {/* Artifact-first entry into Studio's Edit timeline. The link must stay
-          org/brand-scoped — an unscoped `/studio/edit/new` 404s outside the shell. */}
-      <Link
-        href={href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${currentVideo.id}`)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-      >
-        <Film className="size-4" />
-        Edit in Studio
-      </Link>
+      {/* Artifact-first entries into Studio's Edit timeline and Clips. The
+          links must stay org/brand-scoped — unscoped Studio routes 404 outside
+          the shell. */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${currentVideo.id}`)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+        >
+          <Film className="size-4" />
+          {translate('editInStudio')}
+        </Link>
+        <Link
+          href={href(`${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${currentVideo.id}`)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+        >
+          <Scissors className="size-4" />
+          {translate('makeClips')}
+        </Link>
+      </div>
 
       {/* Quick Actions */}
       <IngredientQuickActions

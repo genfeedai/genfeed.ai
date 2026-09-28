@@ -1,7 +1,8 @@
-import type { ViewType } from '@genfeedai/contracts';
+import type { IngredientFormat, ViewType } from '@genfeedai/contracts';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateJob,
+  StudioGenerateReferenceRole,
   StudioGenerateSettings,
   StudioGenerateType,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
@@ -10,12 +11,6 @@ import type { AnyExtension, JSONContent } from '@tiptap/core';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioGenerateFilter = StudioGenerateType | 'all';
-
-export type StudioGenerateReferenceRole =
-  | 'reference'
-  | 'startFrame'
-  | 'endFrame'
-  | 'videoReference';
 
 export interface StudioGenerateSettingsPopoverProps {
   isDisabled?: boolean;
@@ -75,9 +70,14 @@ export interface StudioGenerateAssetActions {
   onMarkArchived: (ingredient: IIngredient) => void | Promise<void>;
   onMarkRejected: (ingredient: IIngredient) => void | Promise<void>;
   onMarkValidated: (ingredient: IIngredient) => void | Promise<void>;
+  onOpenInEditor: (ingredient: IIngredient) => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onRefresh: () => void;
   onRemoveGeneration: (job: StudioGenerateJob) => void;
+  onResize: (
+    ingredient: IIngredient,
+    format: IngredientFormat,
+  ) => void | Promise<void>;
   onSeeDetails: (ingredient: IIngredient) => void;
   onToggleFavorite: (ingredient: IIngredient) => void | Promise<void>;
   onUseAsVideoReference: (ingredient: IIngredient) => void;
@@ -97,6 +97,8 @@ export interface StudioGenerateCardProps {
   assetActions: StudioGenerateAssetActions;
   isSelected?: boolean;
   job: StudioGenerateJob;
+  /** The job this one was transformed from, when it is in the gallery. */
+  parentJob?: StudioGenerateJob | null;
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
   view: ViewType.GRID | ViewType.LIST;

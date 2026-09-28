@@ -1,6 +1,10 @@
 'use client';
 
 import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  VIDEO_FORMAT_DIMENSIONS,
+} from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -16,9 +20,10 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { VideosService } from '@services/ingredients/videos.service';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 export interface UseStudioGenerateAssetActionsParams {
   onAttachReference: (ingredient: IIngredient, type: 'image' | 'video') => void;
@@ -49,6 +54,9 @@ export function useStudioGenerateAssetActions({
   const { openPostBatchModal } = usePostModal({ onRefresh });
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
+  );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
   );
 
   const patchIngredient = useCallback(
@@ -186,6 +194,48 @@ export function useStudioGenerateAssetActions({
     ],
   );
 
+  // Hands the video to the Studio editor timeline through the route constant,
+  // so a rename of the editor route carries through here.
+  const onOpenInEditor = useCallback(
+    (ingredient: IIngredient) => {
+      router.push(href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${ingredient.id}`));
+    },
+    [href, router],
+  );
+
+  // The resize endpoint answers with the new PROCESSING child at once; the
+  // refresh puts it in the gallery, where the socket queue settles it. A
+  // second click while that request is open would start a second resize.
+  const pendingResizesRef = useRef(new Set<string>());
+  const onResize = useCallback(
+    async (ingredient: IIngredient, format: IngredientFormat) => {
+      const resizeKey = `${ingredient.id}:${format}`;
+      if (pendingResizesRef.current.has(resizeKey)) {
+        return;
+      }
+      pendingResizesRef.current.add(resizeKey);
+      try {
+        const service = await getVideosService();
+        await service.postResize(
+          ingredient.id,
+          VIDEO_FORMAT_DIMENSIONS[format],
+        );
+        notificationsService.success(
+          translate('resizeStarted', {
+            format: translate(`resizeFormats.${format}`),
+          }),
+        );
+        onRefresh();
+      } catch (error) {
+        logger.error('Failed to resize Studio video', error);
+        notificationsService.error(translate('resizeFailed'));
+      } finally {
+        pendingResizesRef.current.delete(resizeKey);
+      }
+    },
+    [getVideosService, notificationsService, onRefresh, translate],
+  );
+
   const onSeeDetails = useCallback(
     (ingredient: IIngredient) => {
       openIngredientOverlay(ingredient, onRefresh);
@@ -208,9 +258,11 @@ export function useStudioGenerateAssetActions({
         changeStatus(ingredient, IngredientStatus.REJECTED, 'reject'),
       onMarkValidated: (ingredient: IIngredient) =>
         changeStatus(ingredient, IngredientStatus.VALIDATED, 'validate'),
+      onOpenInEditor,
       onPublishIngredient: openPostBatchModal,
       onRefresh,
       onRemoveGeneration,
+      onResize,
       onSeeDetails,
       onToggleFavorite,
       onUseAsVideoReference: (ingredient: IIngredient) =>
@@ -225,8 +277,10 @@ export function useStudioGenerateAssetActions({
       onAttachReference,
       onCopyPrompt,
       onDeleteIngredient,
+      onOpenInEditor,
       onRefresh,
       onRemoveGeneration,
+      onResize,
       onSeeDetails,
       onToggleFavorite,
       openPostBatchModal,

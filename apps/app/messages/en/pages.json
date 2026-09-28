@@ -481,13 +481,21 @@
     "allProjects": "All projects",
     "approveHook": "Approve hook",
     "audioOrVideoFile": "Audio or video file",
+    "backToClips": "Back to Clips",
+    "backToLibrary": "Back to Library",
     "backToProjects": "Back to projects",
     "cancel": "Cancel",
     "clipGenerationFailed": "Clip generation failed",
     "clipsReady": "Clips ready",
+    "creatingProject": "Creating project…",
     "cuttingSelectedHighlights": "Cutting {count} selected highlights...",
     "description": "Split long-form videos into clips. Open a source to review every generated clip.",
     "doneClipCount": "{count, plural, one {Done — # clip generated} other {Done — # clips generated}}",
+    "draftBadge": "Draft",
+    "draftRepickFile": "Choose {name} again to continue. Drafts keep the filename, not the file.",
+    "draftSaveFailed": "Draft not saved. Your changes are still on this page.",
+    "draftSaved": "Draft saved",
+    "draftSaving": "Saving draft…",
     "edit": "Edit",
     "fileSizeMegabytes": "{name} · {size} MB",
     "generatingAvatarClips": "Generating {count} avatar clips...",
@@ -507,11 +515,16 @@
     "maxClips": "Max Clips",
     "mediaReadinessFailed": "This clip did not pass media readiness checks.",
     "minViralityScore": "Min Virality Score",
+    "newProject": "New project",
+    "noProjectsDescription": "Start from a YouTube link, an uploaded file, or a video in Library.",
+    "noProjectsYet": "No clip projects yet",
     "pipelineFailed": "Pipeline failed. Check logs for details.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
     "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
     "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
     "processingRawCuts": "Processing source video and creating raw cuts...",
+    "projectCreateFailed": "The clip project could not be created.",
+    "projectNotStarted": "Clips could not start",
     "publish": "Publish",
     "regeneratingHookClip": "Regenerating hook clip",
     "rejectRun": "Reject run",
@@ -546,6 +559,12 @@
     "recentExecutions": "Recent executions",
     "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
     "title": "Batch Workflow Runner"
+  },
+  "studioStoryboard": {
+    "autoMerge": {
+      "description": "The finished transitions are merged into one video with these settings.",
+      "label": "Auto-merge"
+    }
   },
   "studioEditorLock": {
     "conflictDescription": "It was generated from an approved composition template, so your recent changes were not saved. Duplicate it to edit a copy.",
@@ -593,6 +612,13 @@
       "outputPreview": "Completed original captioned ad"
     },
     "description": "One prompt bar for every asset type, enriched with your brand.",
+    "draft": {
+      "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",
+      "saveFailed": "Draft not saved. Retrying…",
+      "saveRejected": "Draft could not be saved.",
+      "saved": "Draft saved",
+      "saving": "Saving draft…"
+    },
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
@@ -654,6 +680,13 @@
     "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
+    "resizeFailed": "Failed to resize video",
+    "resizeFormats": {
+      "landscape": "landscape",
+      "portrait": "portrait",
+      "square": "square"
+    },
+    "resizeStarted": "Resizing to {format}. The result appears here when it is ready.",
     "runOutputs": "{count} outputs",
     "savedLooks": {
       "description": "Shared with everyone working in this brand.",
@@ -663,6 +696,8 @@
     },
     "seedanceReferenceConflict": "Seedance uses frames or a video reference, not both",
     "selectGenerationAria": "Inspect {type} generation: {prompt}",
+    "sourceAsset": "Source",
+    "sourceAssetAria": "Show the source of this {type}",
     "startFrame": "Start Frame",
     "startFrameRequired": "Start Frame required",
     "undo": "Undo",
@@ -699,7 +734,8 @@
     },
     "title": "Generate",
     "viewGrid": "Grid",
-    "viewList": "List"
+    "viewList": "List",
+    "makeClips": "Make clips"
   },
   "warmupAccounts": {
     "invitation": {
@@ -1663,6 +1699,13 @@
     "assetDeepLink": {
       "opening": "Opening your asset…",
       "unavailable": "This asset is unavailable in this brand, or you no longer have access to it."
+    },
+    "videoDetail": {
+      "availableVersions": "Available Versions:",
+      "editInStudio": "Edit in Studio",
+      "makeClips": "Make clips",
+      "moreVersions": "+{count} more",
+      "viewMoreVersions": "View more versions"
     }
   },
   "onboarding": {

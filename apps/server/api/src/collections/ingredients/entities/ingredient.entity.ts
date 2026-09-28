@@ -19,6 +19,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly groupId: Ingredient['groupId'];
   declare readonly groupIndex: Ingredient['groupIndex'];
   declare readonly isMergeEnabled: Ingredient['isMergeEnabled'];
+  declare readonly mergeSettings: Ingredient['mergeSettings'];
   declare readonly promptTemplate: Ingredient['promptTemplate'];
   declare readonly templateVersion: Ingredient['templateVersion'];
   declare readonly s3Key: Ingredient['s3Key'];

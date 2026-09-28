@@ -212,6 +212,41 @@ describe('FFmpegEffectsService', () => {
       const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
       expect(args).toContain('/tmp/captions.srt');
       expect(args).toContain('mov_text');
+      expect(args).not.toContain('-an');
+    });
+
+    it('replaces the audio copy with -an when muting', async () => {
+      await service.addCaptions(
+        '/tmp/input.mp4',
+        '/tmp/output.mp4',
+        '/tmp/captions.srt',
+        undefined,
+        { muteVideoAudio: true },
+      );
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toContain('-an');
+      expect(args.join(' ')).not.toContain('-c:a copy');
+      expect(args).toContain('mov_text');
+    });
+
+    it('strips audio without a subtitle stream when there are no captions', async () => {
+      await service.addCaptions(
+        '/tmp/input.mp4',
+        '/tmp/output.mp4',
+        undefined,
+        undefined,
+        { muteVideoAudio: true },
+      );
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toEqual([
+        '-i',
+        '/tmp/input.mp4',
+        '-c:v',
+        'copy',
+        '-an',
+        '-y',
+        '/tmp/output.mp4',
+      ]);
     });
   });
 

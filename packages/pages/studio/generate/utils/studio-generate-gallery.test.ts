@@ -13,6 +13,7 @@ describe('resolveStudioGalleryCategories', () => {
       IngredientCategory.VIDEO,
       IngredientCategory.MUSIC,
       IngredientCategory.VOICE,
+      IngredientCategory.GIF,
     ]);
   });
 
@@ -44,8 +45,9 @@ describe('buildStudioGalleryQuery', () => {
         IngredientCategory.VIDEO,
         IngredientCategory.MUSIC,
         IngredientCategory.VOICE,
+        IngredientCategory.GIF,
       ],
-      limit: STUDIO_GALLERY_PAGE_SIZE * 4,
+      limit: STUDIO_GALLERY_PAGE_SIZE * 5,
       sort: 'createdAt: -1',
     });
   });

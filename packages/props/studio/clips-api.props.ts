@@ -1,5 +1,6 @@
 import type {
   AgentClipRunIdentity,
+  ClipDraftSourceKind,
   ClipLibraryLinkStatus,
   ClipProcessingFlow,
   HookClipApprovalAction,
@@ -37,6 +38,7 @@ export interface ClipsApiClient {
 
 export interface AnalyzeVideoPayload {
   brandId?: string;
+  draftProjectId?: string;
   youtubeUrl: string;
   maxClips: number;
   minViralityScore: number;
@@ -75,6 +77,7 @@ export interface CreateFromYoutubePayload {
   avatarId?: string;
   avatarProvider?: string;
   brandId?: string;
+  draftProjectId?: string;
   language: string;
   maxClips: number;
   minViralityScore: number;
@@ -96,6 +99,7 @@ export interface PrepareUploadPayload {
   avatarProvider?: string;
   brandId?: string;
   contentType: string;
+  draftProjectId?: string;
   filename: string;
   flow: ClipProcessingFlow;
   language: string;
@@ -104,6 +108,27 @@ export interface PrepareUploadPayload {
   mode: ClipResultMode;
   sizeBytes: number;
   voiceId?: string;
+}
+
+export interface SaveClipDraftPayload {
+  filename?: string;
+  maxClips: number;
+  minViralityScore: number;
+  mode: ClipResultMode;
+  sourceKind: ClipDraftSourceKind;
+  youtubeUrl: string;
+}
+
+/** The latest form state waiting to be autosaved onto a draft. */
+export interface QueuedClipDraftSave {
+  payload: SaveClipDraftPayload;
+  projectId: string;
+  snapshot: string;
+}
+
+export interface CreateFromIngredientPayload {
+  brandId?: string;
+  ingredientId: string;
 }
 
 export interface PrepareUploadResponse {

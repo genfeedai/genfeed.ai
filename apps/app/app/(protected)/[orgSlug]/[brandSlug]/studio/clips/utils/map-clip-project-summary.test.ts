@@ -22,6 +22,7 @@ describe('mapClipProjectSummary', () => {
       createdAt: '2026-08-20T10:00:00.000Z',
       failedClipCount: 0,
       id: 'project-1',
+      isDraft: false,
       mode: 'raw-cut',
       name: 'Podcast ep 12',
       pendingClipCount: 0,
@@ -43,6 +44,28 @@ describe('mapClipProjectSummary', () => {
       id: 'project-2',
       name: 'YouTube · dQw4w9WgXcQ',
       status: 'analyzing',
+    });
+  });
+
+  it('marks drafts and previews the YouTube link saved in the draft', () => {
+    expect(
+      mapClipProjectSummary({
+        attributes: {
+          draft: {
+            sourceKind: 'youtube',
+            youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+          },
+          name: 'Clip draft — 2026-09-28',
+          status: 'draft',
+        },
+        id: 'draft-1',
+      }),
+    ).toMatchObject({
+      id: 'draft-1',
+      isDraft: true,
+      name: 'Clip draft — 2026-09-28',
+      sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      status: 'draft',
     });
   });
 });

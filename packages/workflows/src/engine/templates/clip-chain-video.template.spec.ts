@@ -531,6 +531,7 @@ describe('ClipChainVideoTemplate', () => {
         };
       });
       engine.registerExecutor('videoStitch', async () => ({
+        ingredientId: 'clip-chain-output',
         video: 'https://cdn.example/clip-chain.mp4',
         videoUrl: 'https://cdn.example/clip-chain.mp4',
       }));
@@ -646,6 +647,7 @@ describe('ClipChainVideoTemplate', () => {
 
       const stitchProcessor = vi.fn().mockResolvedValue({
         jobId: 'j-concat',
+        outputId: 'clip-chain-output',
         outputVideoUrl: 'https://cdn.example/clip-chain.mp4',
       });
       const stitchExecutor = createVideoStitchExecutor(stitchProcessor);
@@ -683,6 +685,7 @@ describe('ClipChainVideoTemplate', () => {
         }),
       );
       expect(result.nodeResults.get('video-stitch-1')?.output).toMatchObject({
+        ingredientId: 'clip-chain-output',
         video: 'https://cdn.example/clip-chain.mp4',
       });
     });
@@ -871,6 +874,7 @@ describe('ClipChainVideoTemplate', () => {
         };
       });
       engine.registerExecutor('videoStitch', async () => ({
+        ingredientId: 'clip-chain-output',
         video: 'https://cdn.example/clip-chain.mp4',
         videoUrl: 'https://cdn.example/clip-chain.mp4',
       }));

@@ -2,6 +2,7 @@ import type { SupportedAvatarVideoProviderName } from '@genfeedai/contracts/inte
 import {
   CLIP_PROJECT_STATUSES,
   type ClipProcessingFlow,
+  type ClipProjectDraft,
   type ClipReadinessContract,
   type ClipReferenceFrameSet,
   type ClipResultMode,
@@ -65,6 +66,7 @@ type ClipProjectRecord = Omit<
 export interface ClipProjectDocument extends ClipProjectRecord {
   continuityQaStatus: string;
   continuityWorkflowExecutionId?: string | null;
+  draft?: ClipProjectDraft | null;
   error?: string | null;
   failedClipCount: number;
   highlights?: ClipProjectHighlight[];

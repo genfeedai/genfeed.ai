@@ -108,6 +108,7 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PaidCreativeResearchModule } from '@api/services/paid-creative-research/paid-creative-research.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
+import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { HEYGEN_POLL_QUEUE } from '@genfeedai/contracts/queue';
@@ -201,6 +202,7 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
     VideoGenerationModule,
     VideosModule,
+    VideoStitchModule,
     WhisperModule,
     WorkflowExecutionsModule,
     PaidCreativeResearchModule,

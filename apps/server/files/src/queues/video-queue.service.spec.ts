@@ -250,4 +250,63 @@ describe('VideoQueueService', () => {
     );
     expect(mockQueue.add).not.toHaveBeenCalled();
   });
+
+  describe('stitch merge jobs', () => {
+    const mergeData = (overrides: Partial<VideoJobData> = {}) =>
+      ({
+        createdAt: new Date(),
+        id: 'stitch-output-1',
+        ingredientId: 'output-1',
+        metadata: { websocketUrl: '/videos/output-1' },
+        organizationId: 'org-1',
+        params: { sourceIds: ['clip-1', 'clip-2'] },
+        type: JOB_TYPES.MERGE_VIDEOS,
+        userId: 'user-1',
+        ...overrides,
+      }) as VideoJobData;
+
+    it('enqueues a stitch under its deterministic output job id', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+      const data = mergeData();
+      await service.addMergeJob(data);
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        JOB_TYPES.MERGE_VIDEOS,
+        data,
+        expect.objectContaining({ jobId: 'stitch-output-1' }),
+      );
+    });
+
+    it('returns the existing stitch job instead of adding a second one', async () => {
+      const original = {
+        getState: vi.fn().mockResolvedValue('active'),
+        retry: vi.fn(),
+      };
+      mockQueue.getJob.mockResolvedValue(original);
+      expect(await service.addMergeJob(mergeData())).toBe(original);
+      expect(original.retry).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('requeues a failed stitch job under the same id', async () => {
+      const original = {
+        getState: vi.fn().mockResolvedValue('failed'),
+        retry: vi.fn().mockResolvedValue(undefined),
+      };
+      mockQueue.getJob.mockResolvedValue(original);
+      expect(await service.addMergeJob(mergeData())).toBe(original);
+      expect(original.retry).toHaveBeenCalledWith('failed');
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('does not deduplicate a merge whose id is not its output stitch id', async () => {
+      const data = mergeData({ id: 'remix-merge-output-1' });
+      await service.addMergeJob(data);
+      expect(mockQueue.getJob).not.toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        JOB_TYPES.MERGE_VIDEOS,
+        data,
+        expect.not.objectContaining({ jobId: expect.anything() }),
+      );
+    });
+  });
 });

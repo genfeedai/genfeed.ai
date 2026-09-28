@@ -4,6 +4,7 @@ import Card from '@ui/card/Card';
 import { Film } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { youtubeThumbnailUrl } from '../utils/youtube-thumbnail';
 
@@ -19,6 +20,7 @@ export default function ClipsProjectCard({
   href,
   project,
 }: ClipsProjectCardProps) {
+  const t = useTranslations('pages.studioClips');
   const thumbnailUrl = youtubeThumbnailUrl(project.sourceVideoUrl);
 
   return (
@@ -45,9 +47,17 @@ export default function ClipsProjectCard({
             {project.name}
           </h3>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {clipCountLabel(project.readyClipCount)}
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            {statusLabel(project.status)}
+            {project.isDraft ? (
+              <span className="font-medium text-foreground">
+                {t('draftBadge')}
+              </span>
+            ) : (
+              <>
+                {clipCountLabel(project.readyClipCount)}
+                <span className="mx-1.5 text-muted-foreground/50">·</span>
+                {statusLabel(project.status)}
+              </>
+            )}
             {project.createdAt ? (
               <>
                 <span className="mx-1.5 text-muted-foreground/50">·</span>

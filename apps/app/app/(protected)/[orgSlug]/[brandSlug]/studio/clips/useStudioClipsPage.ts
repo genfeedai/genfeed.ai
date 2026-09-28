@@ -2,9 +2,9 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { GenerationType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
+  type ClipDraftSourceKind,
   type ClipProcessingFlow,
   type ClipProjectReadResponse,
-  type ClipSourceKind,
   type IBrand,
   type IOrganizationSetting,
   isClipResultMode,
@@ -15,11 +15,16 @@ import type {
   StudioClipIdentityDefaults,
   StudioClipIdentityField,
 } from '@genfeedai/props/studio/clips.props';
+import type {
+  QueuedClipDraftSave,
+  SaveClipDraftPayload,
+} from '@genfeedai/props/studio/clips-api.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
   AvatarProvider,
+  ClipDraftSaveState,
   ClipResultMode,
   ClipsStep,
   IHighlight,
@@ -30,6 +35,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ClipsApiService } from './services/clips-api.service';
+
+/** Debounce for new-project form autosave; a save lands well inside 2 s. */
+export const CLIP_DRAFT_AUTOSAVE_DELAY_MS = 800;
 
 const TERMINAL_PROJECT_STATUSES = new Set([
   'completed',
@@ -175,6 +183,10 @@ const PROGRESS_STATUSES = new Set([
 ]);
 
 export function resolveClipsStepFromStatus(status?: string): ClipsStep {
+  if (status === 'draft') {
+    return 'input';
+  }
+
   if (status && PROGRESS_STATUSES.has(status)) {
     return 'progress';
   }
@@ -212,8 +224,15 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
 
   // Form state
   const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [sourceKind, setSourceKind] = useState<ClipSourceKind>('youtube');
+  const [sourceKind, setSourceKind] = useState<ClipDraftSourceKind>('youtube');
   const [sourceFile, setSourceFileState] = useState<File | null>(null);
+  // An upload draft restores only the filename; the file must be re-picked.
+  const [draftFilename, setDraftFilename] = useState<string | undefined>();
+  const [draftSaveState, setDraftSaveState] =
+    useState<ClipDraftSaveState>('idle');
+  const lastSavedDraftRef = useRef<string | null>(null);
+  const queuedDraftSaveRef = useRef<QueuedClipDraftSave | null>(null);
+  const draftSaveInFlightRef = useRef<Promise<void> | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarId, setAvatarId] = useState('');
   const [voiceId, setVoiceId] = useState('');
@@ -341,6 +360,35 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           : 'avatar';
         const highlights = highlightsResponse?.highlights ?? [];
 
+        if (status === 'draft') {
+          const restored: SaveClipDraftPayload = {
+            filename: data.draft?.filename,
+            maxClips: data.settings?.maxClips ?? 10,
+            minViralityScore: data.settings?.minViralityScore ?? 50,
+            mode,
+            sourceKind:
+              data.draft?.sourceKind === 'upload' ? 'upload' : 'youtube',
+            youtubeUrl: data.draft?.youtubeUrl ?? '',
+          };
+          lastSavedDraftRef.current = JSON.stringify(restored);
+          setDraftFilename(restored.filename);
+          setGenerationMode(restored.mode);
+          setMaxClips(restored.maxClips);
+          setMinViralityScore(restored.minViralityScore);
+          setSourceKind(restored.sourceKind);
+          setYoutubeUrl(restored.youtubeUrl);
+          setProject({
+            clips: [],
+            highlights: [],
+            mode,
+            projectId: projectIdFromRoute,
+            status,
+          });
+          setStep('input');
+          setError(null);
+          return;
+        }
+
         setProject({
           clips: [],
           highlights,
@@ -385,10 +433,107 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   const setSourceFile = useCallback((file: File | null) => {
     setSourceFileState(file);
     setUploadProgress(0);
+    if (file) {
+      setDraftFilename(file.name);
+    }
     if (file?.type.startsWith('audio/')) {
       setGenerationMode('avatar');
     }
   }, []);
+
+  const draftProjectId =
+    project?.status === 'draft' ? project.projectId : undefined;
+
+  const draftPayload = useMemo<SaveClipDraftPayload>(
+    () => ({
+      filename: draftFilename,
+      maxClips,
+      minViralityScore,
+      mode: generationMode,
+      sourceKind,
+      youtubeUrl,
+    }),
+    [
+      draftFilename,
+      generationMode,
+      maxClips,
+      minViralityScore,
+      sourceKind,
+      youtubeUrl,
+    ],
+  );
+
+  // ─── Draft autosave ───────────────────────────────────────────
+  // Saves run one at a time and are never aborted: an aborted request can
+  // still land on the server. After each save the latest form state is
+  // compared with what was confirmed saved, so a change made while a save
+  // was in flight (including reverting to an earlier value) is saved next.
+  const flushDraftSaves = useCallback(() => {
+    if (draftSaveInFlightRef.current) {
+      return;
+    }
+
+    draftSaveInFlightRef.current = (async () => {
+      let queued = queuedDraftSaveRef.current;
+      while (queued && queued.snapshot !== lastSavedDraftRef.current) {
+        setDraftSaveState('saving');
+        try {
+          await clipsService.saveDraft(queued.projectId, queued.payload);
+          lastSavedDraftRef.current = queued.snapshot;
+        } catch {
+          setDraftSaveState('error');
+          return;
+        }
+        queued = queuedDraftSaveRef.current;
+      }
+      if (queued) {
+        setDraftSaveState('saved');
+      }
+    })().finally(() => {
+      draftSaveInFlightRef.current = null;
+    });
+  }, [clipsService]);
+
+  useEffect(() => {
+    if (!draftProjectId || step !== 'input' || isSubmitting) {
+      queuedDraftSaveRef.current = null;
+      return;
+    }
+
+    const snapshot = JSON.stringify(draftPayload);
+    queuedDraftSaveRef.current = {
+      payload: draftPayload,
+      projectId: draftProjectId,
+      snapshot,
+    };
+    if (snapshot === lastSavedDraftRef.current) {
+      return;
+    }
+
+    const timeout = setTimeout(flushDraftSaves, CLIP_DRAFT_AUTOSAVE_DELAY_MS);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [draftPayload, draftProjectId, flushDraftSaves, isSubmitting, step]);
+
+  /**
+   * A started draft keeps its id, so the page shows the run in place; a
+   * project with a new id opens on its own route, which hydrates it.
+   */
+  const showStartedProject = useCallback(
+    (started: ProjectState, nextStep: ClipsStep) => {
+      if (started.projectId !== projectIdFromRoute) {
+        goToProject(started.projectId);
+        return;
+      }
+
+      setProject(started);
+      setSelectedIds(new Set());
+      setEditedHighlights([]);
+      setStep(nextStep);
+    },
+    [goToProject, projectIdFromRoute],
+  );
 
   const startUploadedSource = useCallback(
     async (flow: ClipProcessingFlow) => {
@@ -424,6 +569,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           : {}),
         brandId: selectedBrand?.id,
         contentType: sourceFile.type || 'video/mp4',
+        draftProjectId,
         filename: sourceFile.name,
         flow,
         language: 'en',
@@ -438,10 +584,22 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         sourceFile,
         setUploadProgress,
       );
-      const started = await clipsService.finalizeUpload(prepared.projectId);
+      const started = await clipsService.finalizeUpload(
+        prepared.projectId,
+        prepared.ingredientId,
+      );
 
       if (flow === 'review') {
-        goToProject(prepared.projectId);
+        showStartedProject(
+          {
+            clips: [],
+            highlights: [],
+            mode: generationMode,
+            projectId: prepared.projectId,
+            status: started.status,
+          },
+          'review',
+        );
         return;
       }
 
@@ -461,18 +619,23 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       setSelectedIds(new Set());
       setEditedHighlights([]);
       setStep('progress');
-      goToProject(prepared.projectId);
+      if (prepared.projectId !== projectIdFromRoute) {
+        goToProject(prepared.projectId);
+      }
     },
     [
       avatarId,
       avatarProvider,
       clipsService,
+      draftProjectId,
       generationMode,
       goToProject,
       identityDefaults,
       maxClips,
       minViralityScore,
+      projectIdFromRoute,
       selectedBrand?.id,
+      showStartedProject,
       sourceFile,
       voiceId,
     ],
@@ -499,13 +662,23 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       }
       const data = await clipsService.analyzeVideo({
         brandId: selectedBrand?.id,
+        draftProjectId,
         language: 'en',
         maxClips,
         minViralityScore,
         youtubeUrl,
       });
 
-      goToProject(data.projectId);
+      showStartedProject(
+        {
+          clips: [],
+          highlights: [],
+          mode: generationMode,
+          projectId: data.projectId,
+          status: 'analyzing',
+        },
+        'review',
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -519,7 +692,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     maxClips,
     minViralityScore,
     clipsService,
-    goToProject,
+    draftProjectId,
+    generationMode,
+    showStartedProject,
     startUploadedSource,
   ]);
 
@@ -573,6 +748,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
             }
           : {}),
         brandId: selectedBrand?.id,
+        draftProjectId,
         language: 'en',
         maxClips,
         minViralityScore,
@@ -595,7 +771,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       setSelectedIds(new Set());
       setEditedHighlights([]);
       setStep('progress');
-      goToProject(data.projectId);
+      if (data.projectId !== projectIdFromRoute) {
+        goToProject(data.projectId);
+      }
     } catch (err: unknown) {
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
         clipFlow: 'quick',
@@ -621,7 +799,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     maxClips,
     minViralityScore,
     clipsService,
+    draftProjectId,
     goToProject,
+    projectIdFromRoute,
     startUploadedSource,
   ]);
 
@@ -1092,6 +1272,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     avatarId,
     avatarProvider,
     clipsService,
+    draftFilename,
+    draftSaveState,
     editedHighlights,
     error,
     generationMode,

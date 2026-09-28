@@ -60,6 +60,13 @@ export interface ClipReferenceFrameSet {
 export interface ClipReferenceFrameExtractionInput {
   organizationId: string;
   projectId: string;
+  /**
+   * Stored source object (upload, Library asset, or materialized YouTube
+   * download). Read from the project's own source record, which the API only
+   * sets from an org- and brand-authorized source; takes precedence over
+   * `sourceUrl`.
+   */
+  sourceStorageKey?: string;
   sourceUrl: string;
   timestamps: number[];
 }
@@ -71,6 +78,7 @@ export interface ClipReferenceFrameExtractionInput {
 export interface ClipProjectReadResponse {
   brandId?: string;
   createdAt?: string;
+  draft?: import('./clip-source.interface').ClipProjectDraft | null;
   error?: string | null;
   failedClipCount?: number;
   name?: string;
@@ -81,6 +89,7 @@ export interface ClipProjectReadResponse {
   source?: import('./clip-source.interface').ClipSourceContract;
   settings?: {
     maxClips?: number;
+    minViralityScore?: number;
     mode?: string;
   };
   sourceVideoUrl?: string;

@@ -333,6 +333,14 @@ export class S3Service {
     }
   }
 
+  /**
+   * Key outside the `ingredients/` namespace for an object one job run owns
+   * outright, so its cleanup can never reach a user's own asset.
+   */
+  generateRunScopedKey(scope: string, path: string): string {
+    return resolveContainedObjectKey(scope, path, createBadRequest);
+  }
+
   generateS3Key(type: string, id: string): string {
     return resolveContainedObjectKey(
       'ingredients',

@@ -54,6 +54,7 @@ import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { RouterModule } from '@api/services/router/router.module';
+import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
 
@@ -71,6 +72,7 @@ import { Module } from '@nestjs/common';
     RouterModule,
     OpenRouterModule,
     WhisperModule,
+    VideoStitchModule,
     AdsResearchModule,
     AdCreativeMappingsModule,
     BatchGenerationModule,

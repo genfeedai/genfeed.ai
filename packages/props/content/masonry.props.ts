@@ -1,4 +1,4 @@
-import type { AssetScope } from '@genfeedai/contracts';
+import type { AssetScope, IngredientFormat } from '@genfeedai/contracts';
 import type {
   IImage,
   IIngredient,
@@ -67,6 +67,10 @@ export interface MasonryVideoProps extends BaseMasonryProps<IVideo> {
   onMarkArchived?: (ingredient: IVideo) => void | Promise<void>;
   onPortraitVideo?: (ingredient: IVideo) => void;
   onGenerateCaptions?: (ingredient: IVideo) => void;
+  /** Opt-in: hand the video to the Studio editor timeline. */
+  onOpenInEditor?: (ingredient: IVideo) => void;
+  /** Opt-in: rescale the video to another format's dimensions (no AI reframe). */
+  onResize?: (ingredient: IVideo, format: IngredientFormat) => void;
 }
 
 export interface MasonryProps {

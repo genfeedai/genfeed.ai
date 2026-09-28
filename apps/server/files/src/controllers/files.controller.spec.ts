@@ -1011,9 +1011,21 @@ describe('FilesController', () => {
       mockFileQueueService.getJob.mockResolvedValueOnce(null);
       mockYoutubeQueueService.getJob.mockResolvedValueOnce(null);
 
-      await expect(controller.getJobStatus('job_123')).rejects.toThrow(
-        'Job not found',
+      await expect(controller.getJobStatus('job_123')).rejects.toMatchObject({
+        message: 'Job not found',
+        status: 404,
+      });
+    });
+
+    it('keeps an unexpected queue failure a 500', async () => {
+      mockVideoQueueService.getJob.mockRejectedValueOnce(
+        new Error('Redis unavailable'),
       );
+
+      await expect(controller.getJobStatus('job_123')).rejects.toMatchObject({
+        message: 'Redis unavailable',
+        status: 500,
+      });
     });
 
     it('should include failed reason for failed jobs', async () => {

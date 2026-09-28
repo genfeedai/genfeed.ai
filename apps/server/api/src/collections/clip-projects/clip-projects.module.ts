@@ -8,6 +8,7 @@ import { ClipProjectsController } from '@api/collections/clip-projects/clip-proj
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ClipHandoffWorkflowService } from '@api/collections/clip-projects/services/clip-handoff-workflow.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import { ClipProjectLibrarySourceService } from '@api/collections/clip-projects/services/clip-project-library-source.service';
 import { PublicYoutubeClipClaimService } from '@api/collections/clip-projects/services/public-youtube-clip-claim.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     ClipProjectIngestionService,
+    ClipProjectLibrarySourceService,
     ClipHandoffWorkflowService,
     PublicYoutubeClipClaimService,
   ],

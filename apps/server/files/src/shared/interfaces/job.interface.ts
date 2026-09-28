@@ -78,6 +78,12 @@ export interface VideoProcessingParams {
   inputPath?: string;
   outputPath?: string;
   s3Key?: string;
+  /**
+   * video-to-audio: also store a remote non-YouTube source (for example a
+   * provider-hosted Library video) and return its key, so later steps read
+   * it from storage. YouTube sources are always stored.
+   */
+  materializeSource?: boolean;
   assetManifest?: IEditorRenderJobParams['assetManifest'];
   rendererVersion?: IEditorRenderJobParams['rendererVersion'];
   snapshot?: IEditorRenderJobParams['snapshot'];

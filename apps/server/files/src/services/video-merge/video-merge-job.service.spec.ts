@@ -243,6 +243,36 @@ describe('VideoMergeJobService', () => {
     );
   });
 
+  it('mutes clip audio in a plain merge without music', async () => {
+    const data = createJobData();
+    data.params.isMuteVideoAudio = true;
+
+    await service.process(createJob(data));
+
+    expect(ffmpegService.mergeVideos).toHaveBeenCalledWith(
+      expect.any(Array),
+      '/tmp/merge-ingredient-123/merged.mp4',
+      { muteVideoAudio: true },
+      expect.any(Function),
+    );
+  });
+
+  it('mutes clip audio in a transition merge without music', async () => {
+    const data = createJobData();
+    data.params.isMuteVideoAudio = true;
+    data.params.transition = VideoTransition.FADE;
+    data.params.transitionDuration = 0.5;
+
+    await service.process(createJob(data));
+
+    expect(ffmpegService.mergeVideosWithTransitions).toHaveBeenCalledWith(
+      expect.any(Array),
+      '/tmp/merge-ingredient-123/merged.mp4',
+      expect.objectContaining({ muteVideoAudio: true, transition: 'fade' }),
+      expect.any(Function),
+    );
+  });
+
   it('preserves failure notification and propagation', async () => {
     const data = createJobData();
     ffmpegService.mergeVideos.mockRejectedValueOnce(new Error('Merge failed'));

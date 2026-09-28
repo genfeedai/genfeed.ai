@@ -454,45 +454,58 @@ describe('AgentSourceDownloadService', () => {
     },
   );
 
-  it.each([404, 500])(
-    're-enqueues the same durable identity when observation explicitly reports missing (%s)',
-    async (status) => {
-      http.get
-        .mockReturnValueOnce(
-          throwError(() => ({
-            response: { status, data: { message: 'Job not found' } },
-          })),
-        )
-        .mockReturnValueOnce(
-          of({
-            data: {
-              state: 'completed',
-              data: { id: 'agent-source-source-1' },
-              result: {
-                sourceUrl: 'https://cdn.example/video',
-                sourceS3Key: 'videos/source',
-              },
+  it('re-enqueues the same durable identity when observation reports the job missing (404)', async () => {
+    http.get
+      .mockReturnValueOnce(
+        throwError(() => ({
+          response: { status: 404, data: { message: 'Job not found' } },
+        })),
+      )
+      .mockReturnValueOnce(
+        of({
+          data: {
+            state: 'completed',
+            data: { id: 'agent-source-source-1' },
+            result: {
+              sourceUrl: 'https://cdn.example/video',
+              sourceS3Key: 'videos/source',
             },
-          }),
-        );
-      http.post.mockReturnValue(
-        of({ data: { jobId: 'agent-source-source-1' } }),
+          },
+        }),
       );
-      await service.download(
+    http.post.mockReturnValue(of({ data: { jobId: 'agent-source-source-1' } }));
+    await service.download(
+      'https://www.youtube.com/watch?v=abcdefghijk',
+      'source-1',
+      'video',
+      context,
+      'agent-source-source-1',
+    );
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.post).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ id: 'agent-source-source-1' }),
+      expect.any(Object),
+    );
+  });
+
+  it('treats a 500 as an ambiguous failure even when it says the job is missing', async () => {
+    http.get.mockReturnValue(
+      throwError(() => ({
+        response: { status: 500, data: { message: 'Job not found' } },
+      })),
+    );
+    await expect(
+      service.download(
         'https://www.youtube.com/watch?v=abcdefghijk',
         'source-1',
         'video',
         context,
         'agent-source-source-1',
-      );
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ id: 'agent-source-source-1' }),
-        expect.any(Object),
-      );
-    },
-  );
+      ),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(http.post).not.toHaveBeenCalled();
+  });
 
   it('does not retry enqueue repeatedly or on an ambiguous internal failure', async () => {
     http.get.mockReturnValue(

@@ -17,6 +17,15 @@ export class AnalyzeYoutubeDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({
+    description:
+      'Draft project to start in place instead of creating a new one',
+    required: false,
+  })
+  readonly draftProjectId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
     description: 'Selected brand used to resolve saved clip identity defaults',
     required: false,
   })

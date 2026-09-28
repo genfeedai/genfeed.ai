@@ -411,20 +411,20 @@ export class FFmpegEffectsService {
   async addCaptions(
     inputPath: string,
     outputPath: string,
-    captionsPath: string,
+    captionsPath: string | undefined,
     onProgress?: (progress: FFmpegProgress) => void,
+    options?: { muteVideoAudio?: boolean },
   ): Promise<void> {
+    // Without a captions file this only strips the audio (a muted stitch
+    // whose transcription failed).
     const args = [
       '-i',
       inputPath,
-      '-i',
-      captionsPath,
+      ...(captionsPath ? ['-i', captionsPath] : []),
       '-c:v',
       'copy',
-      '-c:a',
-      'copy',
-      '-c:s',
-      'mov_text',
+      ...(options?.muteVideoAudio ? ['-an'] : ['-c:a', 'copy']),
+      ...(captionsPath ? ['-c:s', 'mov_text'] : []),
       '-y',
       outputPath,
     ];

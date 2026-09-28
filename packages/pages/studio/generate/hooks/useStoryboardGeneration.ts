@@ -40,6 +40,7 @@ export function useStoryboardGeneration({
   brandId,
   currentModels,
   findAllAssets,
+  mergeSettings,
   promptConfig,
   promptText,
   setGeneratedAssetId,
@@ -142,6 +143,7 @@ export function useStoryboardGeneration({
         duration,
         format,
         isMergeEnabled: true,
+        ...(mergeSettings ? { mergeSettings } : {}),
         modelKey,
         pairs,
         promptTemplate:
@@ -275,6 +277,7 @@ export function useStoryboardGeneration({
     findAllAssets,
     frames,
     getVideosService,
+    mergeSettings,
     notificationsService,
     promptConfig.duration,
     promptConfig.format,

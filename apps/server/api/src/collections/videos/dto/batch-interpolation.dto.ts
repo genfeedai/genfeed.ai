@@ -1,5 +1,10 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { IngredientFormat } from '@genfeedai/contracts';
+import {
+  IngredientFormat,
+  VideoEaseCurve,
+  VideoTransition,
+} from '@genfeedai/contracts';
+import { VIDEO_STITCH_LIMITS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -11,6 +16,8 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -37,6 +44,66 @@ export class InterpolationPairDto {
   @IsString()
   @IsOptional()
   prompt?: string;
+}
+
+/** Stitch options the auto-merge applies once every clip has finished. */
+export class InterpolationMergeSettingsDto {
+  @ApiProperty({ default: false, required: false })
+  @IsBoolean()
+  @IsOptional()
+  isCaptionsEnabled?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsBoolean()
+  @IsOptional()
+  isMuteVideoAudio?: boolean;
+
+  @ApiProperty({ description: 'Music ingredient id', required: false })
+  @IsEntityId()
+  @IsOptional()
+  music?: string;
+
+  @ApiProperty({
+    description: 'Background music volume (0-100)',
+    maximum: VIDEO_STITCH_LIMITS.MAX_MUSIC_VOLUME,
+    minimum: VIDEO_STITCH_LIMITS.MIN_MUSIC_VOLUME,
+    required: false,
+  })
+  @IsNumber()
+  @Min(VIDEO_STITCH_LIMITS.MIN_MUSIC_VOLUME)
+  @Max(VIDEO_STITCH_LIMITS.MAX_MUSIC_VOLUME)
+  @IsOptional()
+  musicVolume?: number;
+
+  @ApiProperty({
+    enum: VideoTransition,
+    enumName: 'VideoTransition',
+    required: false,
+  })
+  @IsEnum(VideoTransition)
+  @IsOptional()
+  transition?: VideoTransition;
+
+  @ApiProperty({
+    description: 'Transition duration in seconds',
+    maximum: VIDEO_STITCH_LIMITS.MAX_TRANSITION_DURATION,
+    minimum: VIDEO_STITCH_LIMITS.MIN_TRANSITION_DURATION,
+    required: false,
+  })
+  @IsNumber()
+  @Min(VIDEO_STITCH_LIMITS.MIN_TRANSITION_DURATION)
+  @Max(VIDEO_STITCH_LIMITS.MAX_TRANSITION_DURATION)
+  @IsOptional()
+  transitionDuration?: number;
+
+  @ApiProperty({
+    enum: VideoEaseCurve,
+    enumName: 'VideoEaseCurve',
+    required: false,
+  })
+  @IsEnum(VideoEaseCurve)
+  @IsOptional()
+  transitionEaseCurve?: VideoEaseCurve;
 }
 
 export class BatchInterpolationDto {
@@ -89,6 +156,17 @@ export class BatchInterpolationDto {
   @IsBoolean()
   @IsOptional()
   isMergeEnabled?: boolean;
+
+  @ApiProperty({
+    description:
+      'Transition, caption and music settings the auto-merge applies (with isMergeEnabled)',
+    required: false,
+    type: InterpolationMergeSettingsDto,
+  })
+  @ValidateNested()
+  @Type(() => InterpolationMergeSettingsDto)
+  @IsOptional()
+  mergeSettings?: InterpolationMergeSettingsDto;
 
   @ApiProperty({
     description: 'Camera movement prompt to apply to all pairs',

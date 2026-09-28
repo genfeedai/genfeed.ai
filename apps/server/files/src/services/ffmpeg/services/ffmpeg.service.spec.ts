@@ -288,7 +288,7 @@ describe('FFmpegService', () => {
     });
 
     it('mergeVideos delegates to merge', async () => {
-      const options = { transition: 'fade' };
+      const options = { muteVideoAudio: true };
       const onProgress = vi.fn();
       await service.mergeVideos(
         ['/a.mp4', '/b.mp4'],
@@ -437,12 +437,14 @@ describe('FFmpegService', () => {
         '/out.mp4',
         '/captions.srt',
         onProgress,
+        { muteVideoAudio: true },
       );
       expect(effects.addCaptions).toHaveBeenCalledWith(
         '/in.mp4',
         '/out.mp4',
         '/captions.srt',
         onProgress,
+        { muteVideoAudio: true },
       );
     });
 

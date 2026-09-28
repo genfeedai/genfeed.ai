@@ -348,6 +348,7 @@ export const APP_ROUTES = {
     BATCH_HISTORY: '/studio/batch/history',
     BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',
+    CLIPS_NEW: '/studio/clips/new',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',

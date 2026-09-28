@@ -3,6 +3,7 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientCategory,
+  IngredientFormat,
 } from '@genfeedai/contracts';
 import type {
   IElementBlacklist,
@@ -109,6 +110,8 @@ export interface StudioQuickActionsProps {
   onSetAsLogo?: (ingredient: IIngredient) => void;
   onSetAsBanner?: (ingredient: IIngredient) => void;
   onScopeChange?: (scope: AssetScope, updatedItem?: IIngredient) => void;
+  onOpenInEditor?: (ingredient: IIngredient) => void;
+  onResize?: (ingredient: IIngredient, format: IngredientFormat) => void;
   isPublishing?: boolean;
   isUpscaling?: boolean;
   isExtending?: boolean;
@@ -134,6 +137,7 @@ export interface StudioQuickActionsProps {
   isMarkingRejected?: boolean;
   isSettingAsLogo?: boolean;
   isSettingAsBanner?: boolean;
+  isResizing?: boolean;
   size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
   align?: 'start' | 'end';
   isSelected?: boolean;

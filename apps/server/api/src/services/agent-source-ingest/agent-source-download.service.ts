@@ -348,12 +348,8 @@ export class AgentSourceDownloadService {
     }
   }
 
+  /** The files service answers 404 for a job it no longer holds. */
   private isMissingJob(error: unknown): boolean {
-    const response = record(record(error).response);
-    if (response.status === 404) return true;
-    return (
-      response.status === 500 &&
-      record(response.data).message === 'Job not found'
-    );
+    return record(record(error).response).status === 404;
   }
 }

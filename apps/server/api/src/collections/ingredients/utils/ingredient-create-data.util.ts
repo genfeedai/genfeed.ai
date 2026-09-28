@@ -41,6 +41,7 @@ const INGREDIENT_SCALAR_FIELDS = [
   'isVoiceActive',
   'language',
   'loraUsed',
+  'mergeSettings',
   'metadataId',
   'mimeType',
   'modelUsed',

@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { fillField } from '../../utils/interaction-helpers';
 import {
@@ -22,6 +23,58 @@ import {
 
 const BATCH_ROUTE = '/test-org/brand-1/studio/batch';
 const CLIPS_ROUTE = '/test-org/brand-1/studio/clips';
+const CLIPS_DRAFT_ID = '000000000000000000009876';
+
+/**
+ * The clip factory form lives on a draft project (#5466): mock the draft that
+ * "New project" creates, its autosave, and its reads.
+ */
+async function mockClipDraft(page: Page): Promise<void> {
+  const draftProject = {
+    data: {
+      attributes: {
+        draft: { sourceKind: 'youtube', youtubeUrl: '' },
+        settings: { maxClips: 10, minViralityScore: 50, mode: 'avatar' },
+        status: 'draft',
+      },
+      id: CLIPS_DRAFT_ID,
+      type: 'clip-projects',
+    },
+  };
+  const fulfillDraft = async (
+    route: Parameters<Parameters<Page['route']>[1]>[0],
+  ) => {
+    await route.fulfill({
+      body: JSON.stringify(draftProject),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+
+  await page.route('**/clip-projects/drafts', fulfillDraft);
+  await page.route(`**/clip-projects/${CLIPS_DRAFT_ID}`, fulfillDraft);
+  await page.route(`**/clip-projects/${CLIPS_DRAFT_ID}/draft`, fulfillDraft);
+  await page.route(
+    `**/clip-projects/${CLIPS_DRAFT_ID}/hook-approval`,
+    async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          attempt: 0,
+          remainingClipCount: 0,
+          state: 'not_required',
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
+}
+
+async function openClipDraft(page: Page): Promise<void> {
+  await mockClipDraft(page);
+  await assertRouteRenders(page, `${CLIPS_ROUTE}/new`);
+  await page.waitForURL(new RegExp(`${CLIPS_ROUTE}/${CLIPS_DRAFT_ID}`));
+}
 
 test.describe('Studio batch workflow runner — deep interactions', () => {
   test.setTimeout(90_000);
@@ -76,7 +129,7 @@ test.describe('Studio clip factory — deep interactions', () => {
   test.setTimeout(90_000);
 
   test('renders the clip factory input form', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, CLIPS_ROUTE);
+    await openClipDraft(authenticatedPage);
 
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
     await expect(
@@ -88,7 +141,7 @@ test.describe('Studio clip factory — deep interactions', () => {
   test('fills the YouTube URL and adjusts the clip controls', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, CLIPS_ROUTE);
+    await openClipDraft(authenticatedPage);
 
     await fillField(
       authenticatedPage,
@@ -105,7 +158,7 @@ test.describe('Studio clip factory — deep interactions', () => {
   test('submits the analyze request (mocked)', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, CLIPS_ROUTE);
+    await openClipDraft(authenticatedPage);
 
     await fillField(
       authenticatedPage,

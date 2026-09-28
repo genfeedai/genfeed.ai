@@ -22,6 +22,14 @@ const API_FINALIZE_UPLOAD = '**/clip-projects/*/source/finalize';
 const API_RETRY_FAILED = '**/clip-projects/*/retry-failed';
 const API_REWRITE = '**/clip-projects/*/highlights/*/rewrite';
 const API_CLIP_RESULTS = '**/clip-results**';
+const API_CREATE_DRAFT = '**/clip-projects/drafts';
+const API_SAVE_DRAFT = '**/clip-projects/*/draft';
+const API_FROM_INGREDIENT = '**/clip-projects/from-ingredient';
+const API_START_PATHS = [
+  API_ANALYZE,
+  API_CREATE_FROM_YOUTUBE,
+  API_PREPARE_UPLOAD,
+];
 
 function isClipProjectCollectionUrl(url: string): boolean {
   try {
@@ -33,6 +41,7 @@ function isClipProjectCollectionUrl(url: string): boolean {
 }
 
 const MOCK_PROJECT_ID = '000000000000000000001234';
+const MOCK_VIDEO_ID = '000000000000000000005678';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
 function jsonApiProject(
@@ -207,6 +216,98 @@ async function mockHookApproval(page: Page) {
   });
 }
 
+interface DraftSession {
+  isOpen: boolean;
+  saved: Record<string, unknown>;
+}
+
+function jsonApiDraft(saved: Record<string, unknown>) {
+  const { maxClips, minViralityScore, mode, ...draft } = saved;
+  return jsonApiProject('draft', {
+    draft: { ...draft, updatedAt: '2026-09-28T12:00:00.000Z' },
+    name: 'Clip draft — 2026-09-28',
+    settings: {
+      maxClips: maxClips ?? 10,
+      minViralityScore: minViralityScore ?? 50,
+      mode: mode ?? 'avatar',
+    },
+  });
+}
+
+/**
+ * Serves the draft project behind "New project". Register it after a test's
+ * own project mocks: while the draft is open it answers project reads with the
+ * autosaved draft; once a start request goes out, reads fall back to them.
+ */
+async function mockDraftProject(page: Page): Promise<DraftSession> {
+  const session: DraftSession = {
+    isOpen: true,
+    saved: { sourceKind: 'youtube', youtubeUrl: '' },
+  };
+
+  await page.route(API_CREATE_DRAFT, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(jsonApiDraft(session.saved)),
+      contentType: 'application/json',
+      status: 201,
+    });
+  });
+  await page.route(API_SAVE_DRAFT, async (route) => {
+    session.saved = {
+      ...session.saved,
+      ...(JSON.parse(route.request().postData() ?? '{}') as Record<
+        string,
+        unknown
+      >),
+    };
+    await route.fulfill({
+      body: JSON.stringify(jsonApiDraft(session.saved)),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+  for (const startPath of API_START_PATHS) {
+    await page.route(startPath, async (route) => {
+      session.isOpen = false;
+      await route.fallback();
+    });
+  }
+  await page.route(API_PROJECT, async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (
+      !session.isOpen ||
+      route.request().method() !== 'GET' ||
+      !pathname.endsWith(`/clip-projects/${MOCK_PROJECT_ID}`)
+    ) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(jsonApiDraft(session.saved)),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  return session;
+}
+
+/** Starts a Clips project the way a creator does: New project → draft form. */
+async function openNewProject(page: Page): Promise<DraftSession> {
+  const session = await mockDraftProject(page);
+
+  await page.goto(CLIPS_URL);
+  await page.getByRole('link', { name: /new project/i }).click();
+  await expect(page).toHaveURL(new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`));
+  await expect(page.getByLabel(/youtube url/i)).toBeVisible();
+
+  return session;
+}
+
 test.describe('Clip Factory', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockProjectList(authenticatedPage);
@@ -215,7 +316,7 @@ test.describe('Clip Factory', () => {
   });
 
   test('should load the clip factory page', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.waitForLoadState('networkidle');
 
     await expect(authenticatedPage).toHaveURL(new RegExp(CLIPS_URL));
@@ -288,13 +389,101 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
   });
 
+  test('restores a pasted YouTube URL after reload', async ({
+    authenticatedPage,
+  }) => {
+    const session = await openNewProject(authenticatedPage);
+
+    await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
+    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
+
+    await expect.poll(() => session.saved.youtubeUrl).toBe(MOCK_YOUTUBE_URL);
+    await expect.poll(() => session.saved.mode).toBe('raw-cut');
+    await expect(
+      authenticatedPage.getByTestId('clips-draft-save-state'),
+    ).toHaveText(/draft saved/i);
+
+    await authenticatedPage.reload();
+
+    await expect(authenticatedPage.getByLabel(/youtube url/i)).toHaveValue(
+      MOCK_YOUTUBE_URL,
+    );
+    await expect(
+      authenticatedPage.getByRole('button', { name: /raw cut/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('opens the analysis step for a Library video from Make clips', async ({
+    authenticatedPage,
+  }) => {
+    let fromIngredientBody: Record<string, unknown> | null = null;
+    await authenticatedPage.route(API_FROM_INGREDIENT, async (route) => {
+      fromIngredientBody = JSON.parse(
+        route.request().postData() ?? '{}',
+      ) as Record<string, unknown>;
+      await route.fulfill({
+        body: JSON.stringify({
+          projectId: MOCK_PROJECT_ID,
+          status: 'analyzing',
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    });
+    await mockHighlightsPolling(authenticatedPage, { status: 'analyzing' });
+
+    // The Library "Make clips" link targets this route (asserted in the
+    // IngredientDetailVideo unit test).
+    await authenticatedPage.goto(
+      brandPath(`${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${MOCK_VIDEO_ID}`),
+    );
+
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`),
+    );
+    expect(fromIngredientBody).toMatchObject({ ingredientId: MOCK_VIDEO_ID });
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /review highlights/i }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/transcribing and analyzing video/i),
+    ).toBeVisible();
+  });
+
+  test('states the source limit when a Library video is refused', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.route(API_FROM_INGREDIENT, async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          message: 'Clip sources must be at least 15 seconds long.',
+        }),
+        contentType: 'application/json',
+        status: 400,
+      });
+    });
+
+    await authenticatedPage.goto(
+      brandPath(`${APP_ROUTES.STUDIO.CLIPS_NEW}?video=${MOCK_VIDEO_ID}`),
+    );
+
+    await expect(
+      authenticatedPage.getByText(
+        'Clip sources must be at least 15 seconds long.',
+      ),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('link', { name: /back to library/i }),
+    ).toBeVisible();
+  });
+
   test('should move into review mode and render analyzed highlights', async ({
     authenticatedPage,
   }) => {
     await mockAnalyzeRequest(authenticatedPage);
     await mockHighlightsPolling(authenticatedPage);
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
       .getByRole('button', { name: /review highlights first/i })
@@ -346,6 +535,9 @@ test.describe('Clip Factory', () => {
     );
     await authenticatedPage.route(API_FINALIZE_UPLOAD, async (route) => {
       expect(uploadCompleted).toBe(true);
+      expect(JSON.parse(route.request().postData() ?? '{}')).toEqual({
+        ingredientId: 'ingredient-upload-1',
+      });
       await route.fulfill({
         body: JSON.stringify({
           batchJobId: 'clip-analysis-upload-1',
@@ -393,7 +585,7 @@ test.describe('Clip Factory', () => {
     });
     await mockHighlightsPolling(authenticatedPage);
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage
       .getByRole('button', { name: /upload audio or video/i })
       .click();
@@ -577,7 +769,7 @@ test.describe('Clip Factory', () => {
       });
     });
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
       .getByRole('button', { name: /review highlights first/i })
@@ -718,7 +910,7 @@ test.describe('Clip Factory', () => {
       });
     });
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
       .getByRole('button', { name: /review highlights first/i })
@@ -782,7 +974,7 @@ test.describe('Clip Factory', () => {
       });
     });
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
       .getByRole('button', { name: /review highlights first/i })
@@ -809,7 +1001,7 @@ test.describe('Clip Factory', () => {
       });
     });
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
       .getByRole('button', { name: /review highlights first/i })
@@ -891,7 +1083,7 @@ test.describe('Clip Factory', () => {
       },
     );
 
-    await authenticatedPage.goto(CLIPS_URL);
+    await openNewProject(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage

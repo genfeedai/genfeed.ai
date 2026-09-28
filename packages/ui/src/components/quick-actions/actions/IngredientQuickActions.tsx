@@ -5,6 +5,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ComponentSize,
   IngredientCategory,
+  IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
@@ -23,6 +24,7 @@ import {
   QUICK_ACTION_TRIGGER_CLASS,
   QUICK_ACTION_TRIGGER_SIZE_CLASS,
 } from '@ui/quick-actions/quick-actions.constants';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import IngredientContextActions from './IngredientContextActions';
 import IngredientDownloadButton from './IngredientDownloadButton';
@@ -107,8 +109,10 @@ function IngredientQuickActionsContent(
     onMarkValidated,
     onMirror,
     onMoreOptions,
+    onOpenInEditor,
     onPortrait,
     onPublish,
+    onResize,
     onReverse,
     onSeeDetails,
     onSetAsBanner,
@@ -137,6 +141,7 @@ function IngredientQuickActionsContent(
     isMirroring,
     isPortraiting,
     isPublishing,
+    isResizing,
     isSettingAsBanner,
     isSettingAsLogo,
     isSquaring,
@@ -168,8 +173,10 @@ function IngredientQuickActionsContent(
       onMarkValidated,
       onMirror,
       onMoreOptions,
+      onOpenInEditor,
       onPortrait,
       onPublish,
+      onResize,
       onReverse,
       onSeeDetails,
       onSetAsBanner,
@@ -204,8 +211,10 @@ function IngredientQuickActionsContent(
       onMarkValidated,
       onMirror,
       onMoreOptions,
+      onOpenInEditor,
       onPortrait,
       onPublish,
+      onResize,
       onReverse,
       onSeeDetails,
       onSetAsBanner,
@@ -240,6 +249,7 @@ function IngredientQuickActionsContent(
       isMirroring: isMirroring ?? false,
       isPortraiting: isPortraiting ?? false,
       isPublishing: isPublishing ?? false,
+      isResizing: isResizing ?? false,
       isSettingAsBanner: isSettingAsBanner ?? false,
       isSettingAsLogo: isSettingAsLogo ?? false,
       isSquaring: isSquaring ?? false,
@@ -265,6 +275,7 @@ function IngredientQuickActionsContent(
       isMirroring,
       isPortraiting,
       isPublishing,
+      isResizing,
       isSettingAsBanner,
       isSettingAsLogo,
       isSquaring,
@@ -276,8 +287,26 @@ function IngredientQuickActionsContent(
     ],
   );
 
+  const translate = useTranslations('ui.quickActions');
+  const copy = useMemo(() => {
+    const resizeTo = (format: IngredientFormat) =>
+      translate('resizeTo', { format: translate(`resizeFormats.${format}`) });
+    return {
+      openInEditor: {
+        label: translate('openInEditor'),
+        tooltip: translate('openInEditorTooltip'),
+      },
+      resize: {
+        [IngredientFormat.LANDSCAPE]: resizeTo(IngredientFormat.LANDSCAPE),
+        [IngredientFormat.PORTRAIT]: resizeTo(IngredientFormat.PORTRAIT),
+        [IngredientFormat.SQUARE]: resizeTo(IngredientFormat.SQUARE),
+      },
+    };
+  }, [translate]);
+
   const { actions, contextActions, menuActions, primaryActions } =
     useQuickActions({
+      copy,
       handlers,
       hasPromptControl: Boolean(
         !isMasonryCompact && selectedIngredient?.promptText && onCopy,

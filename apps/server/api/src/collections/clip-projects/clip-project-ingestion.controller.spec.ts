@@ -1,11 +1,17 @@
 import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
+import { CreateClipProjectFromIngredientDto } from '@api/collections/clip-projects/dto/create-clip-project-from-ingredient.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import { PrepareClipUploadDto } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
+import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
+import { UpdateClipProjectDraftDto } from '@api/collections/clip-projects/dto/update-clip-project-draft.dto';
 import type { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import type { ClipProjectLibrarySourceService } from '@api/collections/clip-projects/services/clip-project-library-source.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
+import type { Request } from 'express';
 
 describe('ClipProjectIngestionController', () => {
   const currentUser = {
@@ -13,8 +19,11 @@ describe('ClipProjectIngestionController', () => {
     userId: 'user-1',
   };
   let controller: ClipProjectIngestionController;
+  let clipProjectsService: { saveDraft: ReturnType<typeof vi.fn> };
+  let librarySourceService: { createFromIngredient: ReturnType<typeof vi.fn> };
   let ingestionService: {
     analyzeYoutube: ReturnType<typeof vi.fn>;
+    createDraft: ReturnType<typeof vi.fn>;
     createFromYoutube: ReturnType<typeof vi.fn>;
     finalizeUpload: ReturnType<typeof vi.fn>;
     prepareUpload: ReturnType<typeof vi.fn>;
@@ -22,11 +31,30 @@ describe('ClipProjectIngestionController', () => {
   };
 
   beforeEach(() => {
+    clipProjectsService = {
+      saveDraft: vi.fn().mockResolvedValue({
+        draft: { sourceKind: 'youtube', youtubeUrl: 'https://youtu.be/x' },
+        id: 'draft-1',
+        status: 'draft',
+      }),
+    };
+    librarySourceService = {
+      createFromIngredient: vi.fn().mockResolvedValue({
+        identity: { source: 'missing' },
+        projectId: 'project-2',
+        status: 'analyzing',
+      }),
+    };
     ingestionService = {
       analyzeYoutube: vi.fn().mockResolvedValue({
         identity: { source: 'missing' },
         projectId: 'project-1',
         status: 'analyzing',
+      }),
+      createDraft: vi.fn().mockResolvedValue({
+        draft: { sourceKind: 'youtube' },
+        id: 'draft-1',
+        status: 'draft',
       }),
       createFromYoutube: vi.fn().mockResolvedValue({
         batchJobId: 'clip-factory-project-1',
@@ -57,7 +85,113 @@ describe('ClipProjectIngestionController', () => {
     controller = new ClipProjectIngestionController(
       {} as LoggerService,
       ingestionService as unknown as ClipProjectIngestionService,
+      clipProjectsService as unknown as ClipProjectsService,
+      librarySourceService as unknown as ClipProjectLibrarySourceService,
     );
+  });
+
+  const request = { originalUrl: '/clip-projects/drafts' } as Request;
+
+  it('creates a draft for the authenticated user and serializes it', async () => {
+    const response = await controller.createDraft(
+      request,
+      currentUser as never,
+      { brandId: 'brand-1' },
+    );
+
+    expect(ingestionService.createDraft).toHaveBeenCalledWith(currentUser, {
+      brandId: 'brand-1',
+    });
+    expect(response).toMatchObject({
+      data: {
+        attributes: expect.objectContaining({
+          draft: { sourceKind: 'youtube' },
+          status: 'draft',
+        }),
+        id: 'draft-1',
+      },
+    });
+  });
+
+  it('autosaves a draft within the caller organization', async () => {
+    const dto: UpdateClipProjectDraftDto = {
+      youtubeUrl: 'https://youtu.be/x',
+    };
+
+    const response = await controller.saveDraft(
+      request,
+      currentUser as never,
+      'draft-1',
+      dto,
+    );
+
+    expect(clipProjectsService.saveDraft).toHaveBeenCalledWith(
+      'draft-1',
+      'org-1',
+      dto,
+    );
+    expect(response).toMatchObject({ data: { id: 'draft-1' } });
+  });
+
+  it('delegates Library-sourced creation with the authenticated user', async () => {
+    const dto: CreateClipProjectFromIngredientDto = {
+      ingredientId: 'video-1',
+    };
+
+    await expect(
+      controller.createFromIngredient(currentUser as never, dto),
+    ).resolves.toMatchObject({ projectId: 'project-2', status: 'analyzing' });
+    expect(librarySourceService.createFromIngredient).toHaveBeenCalledWith(
+      currentUser,
+      dto,
+    );
+  });
+
+  describe('draft DTO validation', () => {
+    it('accepts partial form autosaves and rejects out-of-range settings', () => {
+      const valid = plainToInstance(UpdateClipProjectDraftDto, {
+        filename: 'podcast.mp4',
+        sourceKind: 'upload',
+      });
+      const invalid = plainToInstance(UpdateClipProjectDraftDto, {
+        maxClips: 31,
+        minViralityScore: -1,
+        mode: 'unknown',
+        sourceKind: 'library',
+      });
+
+      expect(validateSync(valid)).toEqual([]);
+      expect(validateSync(invalid).map((error) => error.property)).toEqual(
+        expect.arrayContaining([
+          'maxClips',
+          'minViralityScore',
+          'mode',
+          'sourceKind',
+        ]),
+      );
+    });
+
+    it('does not let the generic project update move a project back to draft', () => {
+      const toDraft = plainToInstance(UpdateClipProjectDto, {
+        status: 'draft',
+      });
+      const toFailed = plainToInstance(UpdateClipProjectDto, {
+        status: 'failed',
+      });
+
+      expect(validateSync(toDraft).map((error) => error.property)).toContain(
+        'status',
+      );
+      expect(validateSync(toFailed)).toEqual([]);
+    });
+
+    it('requires the Library asset id', () => {
+      const dto = plainToInstance(CreateClipProjectFromIngredientDto, {});
+
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'ingredientId',
+      );
+    });
   });
 
   it('delegates YouTube factory ingestion with the authenticated user and DTO', async () => {
@@ -120,7 +254,9 @@ describe('ClipProjectIngestionController', () => {
     };
 
     await controller.prepareUpload(currentUser as never, dto);
-    await controller.finalizeUpload(currentUser as never, 'project-1');
+    await controller.finalizeUpload(currentUser as never, 'project-1', {
+      ingredientId: 'ingredient-1',
+    });
 
     expect(ingestionService.prepareUpload).toHaveBeenCalledWith(
       currentUser,
@@ -129,6 +265,7 @@ describe('ClipProjectIngestionController', () => {
     expect(ingestionService.finalizeUpload).toHaveBeenCalledWith(
       currentUser,
       'project-1',
+      'ingredient-1',
     );
   });
 
