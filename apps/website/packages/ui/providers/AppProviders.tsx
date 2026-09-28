@@ -1,29 +1,27 @@
 'use client';
 
-import { BetterAuthProvider } from '@genfeedai/auth-client/react';
-import { dark } from '@genfeedai/auth-client/themes';
 import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
 import type { ReactNode } from 'react';
-import { Toaster } from 'sonner';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
   { ssr: false },
 );
 
-interface BetterAuthProviderProps {
-  appearance?: {
-    theme?: unknown;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
+/**
+ * Toasts only follow a click (copy, share), so the toaster loads after
+ * hydration rather than in every page's first bundle. sonner replays toasts
+ * raised before the Toaster subscribes, so none are lost while it loads.
+ */
+const LazyToaster = dynamic(
+  () => import('sonner').then((module) => module.Toaster),
+  { ssr: false },
+);
 
 export interface AppProvidersProps {
   children: ReactNode;
-  authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
   includeLazyModalErrorDebug?: boolean;
   includeToaster?: boolean;
@@ -31,13 +29,10 @@ export interface AppProvidersProps {
 
 export default function AppProviders({
   children,
-  authProps,
   disableTransitionOnChange = true,
   includeLazyModalErrorDebug = true,
   includeToaster = true,
 }: AppProvidersProps) {
-  const appearance = authProps?.appearance;
-
   return (
     <ThemeProvider
       attribute="data-theme"
@@ -47,20 +42,14 @@ export default function AppProviders({
       forcedTheme="dark"
       storageKey="genfeed-website-theme"
     >
-      <BetterAuthProvider
-        {...authProps}
-        appearance={{
-          ...(appearance ?? {}),
-          theme: dark,
-        }}
-      >
-        <WebMcpProvider />
-        {children}
-        {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" theme="dark" />
-        ) : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-      </BetterAuthProvider>
+      {/* No auth provider: marketing pages must not ship the Better Auth
+          client. Pages that need a session call the auth hooks directly. */}
+      <WebMcpProvider />
+      {children}
+      {includeToaster ? (
+        <LazyToaster richColors closeButton position="top-right" theme="dark" />
+      ) : null}
+      {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
     </ThemeProvider>
   );
 }

@@ -273,6 +273,25 @@
   animation: gen-rise 0.9s cubic-bezier(0.32, 0.72, 0, 1) both;
   animation-delay: var(--gen-stagger-delay, 0s);
 }
+/*
+ * The stagger without the fade, for a page's largest text. Chrome does not
+ * count an element toward Largest Contentful Paint while it is at opacity 0,
+ * so fading the hero headline in delays the metric by the animation's delay
+ * plus its first frames. Moving it in keeps the entrance and paints the words
+ * on the first frame.
+ */
+@keyframes gen-stagger-rise {
+  from {
+    transform: translateY(12px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-gen-stagger-rise {
+  animation: gen-stagger-rise 0.5s ease-out both;
+  animation-delay: var(--gen-stagger-delay, 0s);
+}
 .animate-gen-flicker {
   animation: gen-flicker 4s ease-in-out infinite;
 }

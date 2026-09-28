@@ -1,19 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AppProviders from './AppProviders';
 
 const themeProviderMock = vi.fn();
-
-vi.mock('@genfeedai/auth-client/react', () => ({
-  BetterAuthProvider: ({ children }: { children: ReactNode }) => (
-    <>{children}</>
-  ),
-}));
-
-vi.mock('@genfeedai/auth-client/themes', () => ({
-  dark: {},
-}));
 
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children, ...props }: { children: ReactNode }) => {
@@ -51,13 +43,23 @@ describe('website AppProviders', () => {
     );
   });
 
-  it('keeps notifications on the dark studio canvas', () => {
+  it('keeps notifications on the dark studio canvas', async () => {
     render(
       <AppProviders includeLazyModalErrorDebug={false}>
         <div>Notifications</div>
       </AppProviders>,
     );
 
-    expect(screen.getByTestId('toaster')).toHaveAttribute('data-theme', 'dark');
+    // The toaster is lazy: it mounts after hydration, off the first bundle.
+    expect(await screen.findByTestId('toaster')).toHaveAttribute(
+      'data-theme',
+      'dark',
+    );
+  });
+
+  it('keeps the Better Auth client out of every marketing page bundle', () => {
+    const source = readFileSync(join(__dirname, 'AppProviders.tsx'), 'utf8');
+
+    expect(source).not.toMatch(/from ['"]@genfeedai\/auth-client/);
   });
 });
