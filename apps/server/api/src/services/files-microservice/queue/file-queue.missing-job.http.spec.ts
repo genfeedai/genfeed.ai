@@ -59,6 +59,8 @@ describe('files job status over HTTP', () => {
     app.setGlobalPrefix('v1');
     await app.listen(0, '127.0.0.1');
     const { port } = app.getHttpServer().address() as AddressInfo;
+    const { default: realAxios } =
+      await vi.importActual<typeof import('axios')>('axios');
 
     client = new ApiFileQueueService(
       {
@@ -67,9 +69,9 @@ describe('files job status over HTTP', () => {
             ? `http://127.0.0.1:${port}`
             : undefined,
       } as unknown as ConfigService,
-      // The default instance: the suite-wide axios mock blocks outbound
-      // calls, and this client only ever reaches the loopback server above.
-      new HttpService(),
+      // Real axios: the suite-wide mock blocks outbound calls, and this client
+      // only ever reaches the loopback server above.
+      new HttpService(realAxios.create()),
       {
         error: vi.fn(),
         log: vi.fn(),
