@@ -6,12 +6,13 @@ import {
 import {
   attachContentToConversationDraft,
   writeConversationComposerDocument,
+  writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { TextSelection } from '@tiptap/pm/state';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
   activeThreadId: null,
@@ -974,5 +975,113 @@ describe('useAgentChatInput surface artifact chip dismissal', () => {
       { id: 'post-1', label: '^post:post-1', type: 'asset' },
       { id: 'post-3', label: '^post:post-3', type: 'asset' },
     ]);
+  });
+
+  it('keeps a dismissal when the composer remounts before sending', async () => {
+    const first = renderHook(() => useAgentChatInput({ onSend: vi.fn() }), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => {
+      expect(first.result.current.editor).not.toBeNull();
+    });
+    act(() => {
+      first.result.current.handleRemoveReference({
+        id: 'post-1',
+        label: '^post:post-1',
+        type: 'asset',
+      });
+    });
+    // An overlay taking the prompt bar remounts the composer.
+    first.unmount();
+
+    const second = renderHook(() => useAgentChatInput({ onSend: vi.fn() }), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => {
+      expect(second.result.current.editor).not.toBeNull();
+    });
+
+    expect(second.result.current.references).toEqual([
+      { id: 'post-3', label: '^post:post-3', type: 'asset' },
+    ]);
+    writeDismissedSurfaceReferenceKeys(draftScopeKey, new Set());
+  });
+});
+
+describe('useAgentChatInput attached record brand scope', () => {
+  function BrandWrapper({ children }: { children: ReactNode }) {
+    return (
+      <ConversationComposerShellProvider
+        brandId="brand-1"
+        contextLabel="Studio"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        {children}
+      </ConversationComposerShellProvider>
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  async function sendWithAttached(brandId: string) {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: BrandWrapper,
+    });
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    act(() => {
+      attachContentToConversationDraft(draftScopeKey, {
+        brandId,
+        contentTitle: 'Hero shot',
+        contentType: 'image',
+        id: 'ingredient-1',
+        kind: 'ingredient',
+      });
+    });
+    await waitFor(() => {
+      expect(
+        result.current.references.some((item) => item.id === 'ingredient-1'),
+      ).toBe(true);
+    });
+    act(() => {
+      result.current.editor?.commands.setContent('Use this shot');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+    return onSend.mock.calls[0]?.[3] as
+      | { artifactReferences?: AgentArtifactReference[] }
+      | undefined;
+  }
+
+  it('sends a same-brand record with the brand it was attached from', async () => {
+    const options = await sendWithAttached('brand-1');
+
+    expect(options?.artifactReferences).toEqual([
+      {
+        brandId: 'brand-1',
+        kind: 'ingredient',
+        organizationId: 'org-1',
+        recordId: 'ingredient-1',
+        serializer: 'ingredient',
+      },
+    ]);
+  });
+
+  it('leaves out a record from another brand instead of relabelling it', async () => {
+    const options = await sendWithAttached('brand-2');
+
+    expect(options?.artifactReferences ?? []).toEqual([]);
   });
 });

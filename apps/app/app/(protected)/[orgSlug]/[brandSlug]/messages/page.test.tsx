@@ -18,7 +18,12 @@ assertSourceHasExport(
 
 const mocks = vi.hoisted(() => ({
   agentDock: null as null | { isAvailable: boolean; open: () => void },
+  agentThread: {
+    activeThreadId: 'agent-thread-1' as string | null,
+    threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+  },
   brandContext: {
+    brandId: 'brand-1',
     brands: [
       {
         credentials: [
@@ -75,10 +80,7 @@ vi.mock('@contexts/ui/agent-dock-context', () => ({
 
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      activeThreadId: 'agent-thread-1',
-      threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
-    }),
+    selector(mocks.agentThread),
 }));
 
 vi.mock('@genfeedai/agent/components/AgentOAuthConnectMenu', () => ({
@@ -1009,4 +1011,36 @@ describe('SocialMessagesPage', () => {
       mocks.agentDock = null;
     }
   });
+
+  it.each([
+    ['the selected brand', 'brand-1', true],
+    ['another brand', 'brand-2', false],
+  ])(
+    'lets a new dock conversation take references for %s only',
+    async (_label, selectedBrandId, isAllowed) => {
+      mocks.agentDock = { isAvailable: true, open: vi.fn() };
+      mocks.agentThread = { activeThreadId: null, threads: [] };
+      mocks.brandContext.brandId = selectedBrandId;
+
+      try {
+        render(<SocialMessagesPage />);
+
+        const askConversation = await screen.findByRole('button', {
+          name: 'Ask Agent about this',
+        });
+        if (isAllowed) {
+          expect(askConversation).toBeEnabled();
+        } else {
+          expect(askConversation).toBeDisabled();
+        }
+      } finally {
+        mocks.agentDock = null;
+        mocks.agentThread = {
+          activeThreadId: 'agent-thread-1',
+          threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+        };
+        mocks.brandContext.brandId = 'brand-1';
+      }
+    },
+  );
 });

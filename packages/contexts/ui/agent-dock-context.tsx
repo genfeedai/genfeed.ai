@@ -4,6 +4,7 @@ import type {
   AgentDockAttachHandler,
   AgentDockContentReference,
   AgentDockContextValue,
+  AgentDockPersistedState,
   AgentDockProviderProps,
 } from '@props/ui/agent-dock.props';
 import {
@@ -21,11 +22,6 @@ export const AGENT_DOCK_DEFAULT_HEIGHT = 320;
 export const AGENT_DOCK_MIN_HEIGHT = 200;
 export const AGENT_DOCK_MAX_HEIGHT = 640;
 
-type PersistedAgentDockState = {
-  readonly height: number;
-  readonly isOpen: boolean;
-};
-
 const AgentDockContext = createContext<AgentDockContextValue | null>(null);
 
 export function clampAgentDockHeight(height: number): number {
@@ -35,7 +31,7 @@ export function clampAgentDockHeight(height: number): number {
   );
 }
 
-function readPersistedAgentDockState(): PersistedAgentDockState | null {
+function readAgentDockPersistedState(): AgentDockPersistedState | null {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -64,7 +60,7 @@ function readPersistedAgentDockState(): PersistedAgentDockState | null {
   }
 }
 
-function persistAgentDockState(state: PersistedAgentDockState): void {
+function persistAgentDockState(state: AgentDockPersistedState): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -100,7 +96,7 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
 
   // Restore after mount so the server render and first paint agree.
   useEffect(() => {
-    const persisted = readPersistedAgentDockState();
+    const persisted = readAgentDockPersistedState();
     if (persisted) {
       setIsOpen(persisted.isOpen);
       setHeightState(persisted.height);

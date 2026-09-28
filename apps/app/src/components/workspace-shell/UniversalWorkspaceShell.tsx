@@ -613,11 +613,13 @@ function UniversalWorkspaceShellContent({
     }
   }, [closeAgentDock, isAgentDockOpen, isAgentRoute]);
 
+  // Mount the conversation on first open, or when a registered overlay needs
+  // its composer before the dock was ever opened.
   useEffect(() => {
-    if (isAgentDockHost && isAgentDockOpen) {
+    if (isAgentDockHost && (isAgentDockOpen || state === 'overlay')) {
       setHasOpenedAgentDock(true);
     }
-  }, [isAgentDockHost, isAgentDockOpen]);
+  }, [isAgentDockHost, isAgentDockOpen, state]);
 
   useEffect(() => {
     if (!isAgentDockHost || !registerAgentDockAttachHandler) {
@@ -625,9 +627,18 @@ function UniversalWorkspaceShellContent({
     }
 
     return registerAgentDockAttachHandler((reference) => {
-      attachContentToConversationDraft(draftScopeKey, reference);
+      const referenceBrandId = reference.brandId ?? bindingBrandId;
+      attachContentToConversationDraft(draftScopeKey, {
+        ...reference,
+        ...(referenceBrandId ? { brandId: referenceBrandId } : {}),
+      });
     });
-  }, [draftScopeKey, isAgentDockHost, registerAgentDockAttachHandler]);
+  }, [
+    bindingBrandId,
+    draftScopeKey,
+    isAgentDockHost,
+    registerAgentDockAttachHandler,
+  ]);
 
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {

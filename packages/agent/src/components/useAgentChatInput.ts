@@ -33,8 +33,10 @@ import {
   CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
   readConversationComposerDraft,
+  readDismissedSurfaceReferenceKeys,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
+  writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
@@ -189,12 +191,23 @@ function buildContentReferenceArtifact(
     return null;
   }
 
+  // A record keeps the brand it was attached from. One from another brand
+  // than the composer is bound to is left out rather than relabelled.
+  const recordBrandId = contentReference.brandId ?? brandId;
+  if (
+    contentReference.brandId &&
+    brandId &&
+    contentReference.brandId !== brandId
+  ) {
+    return null;
+  }
+
   return {
     kind: 'ingredient',
     organizationId,
     recordId: contentReference.id,
     serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
-    ...(brandId ? { brandId } : {}),
+    ...(recordBrandId ? { brandId: recordBrandId } : {}),
   };
 }
 
@@ -276,9 +289,12 @@ export function useAgentChatInput({
   );
   // Dismissed surface chips (research/asset context handed in by the host
   // surface) are hidden from the tray and left out of the next send, until
-  // the next successful send resets them.
+  // the next successful send resets them. They live per draft scope, so a
+  // remounted composer keeps them.
   const [dismissedSurfaceArtifactKeys, setDismissedSurfaceArtifactKeys] =
-    useState<ReadonlySet<string>>(() => new Set());
+    useState<ReadonlySet<string>>(() =>
+      readDismissedSurfaceReferenceKeys(composerShell?.draftScopeKey ?? null),
+    );
   const visibleSurfaceArtifactReferences = useMemo(
     () =>
       normalizedSurfaceArtifactReferences.filter(
@@ -655,6 +671,12 @@ export function useAgentChatInput({
     editorRef.current = editor ?? null;
   }, [editor]);
 
+  useEffect(() => {
+    setDismissedSurfaceArtifactKeys(
+      readDismissedSurfaceReferenceKeys(draftScopeKey),
+    );
+  }, [draftScopeKey]);
+
   // A record attached to this scope's draft from elsewhere in the app (e.g.
   // Library "Add to conversation") while this composer is mounted — merge it
   // in live instead of waiting for a remount to re-read the draft.
@@ -858,6 +880,7 @@ export function useAgentChatInput({
     }
     editor.commands.clearContent();
     setContentReferences([]);
+    writeDismissedSurfaceReferenceKeys(draftScopeKey, new Set());
     setDismissedSurfaceArtifactKeys(new Set());
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
@@ -1012,12 +1035,17 @@ export function useAgentChatInput({
           return;
         }
         const key = `${kind}:${reference.id}`;
-        setDismissedSurfaceArtifactKeys((current) =>
-          current.has(key) ? current : new Set([...current, key]),
-        );
+        const current = readDismissedSurfaceReferenceKeys(draftScopeKey);
+        const next = current.has(key) ? current : new Set([...current, key]);
+        writeDismissedSurfaceReferenceKeys(draftScopeKey, next);
+        setDismissedSurfaceArtifactKeys(next);
       }
     },
-    [handleRemoveContentReference, surfaceArtifactKindByRecordId],
+    [
+      draftScopeKey,
+      handleRemoveContentReference,
+      surfaceArtifactKindByRecordId,
+    ],
   );
 
   const selectedContentIds = useMemo(

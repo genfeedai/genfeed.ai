@@ -5,6 +5,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Film, ImageIcon, Link, Volume2, X } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 export interface AgentChatReferenceItem {
@@ -47,6 +48,7 @@ export function AgentChatInputAttachmentTray({
   onRemoveReference,
   references = [],
 }: AgentChatInputAttachmentTrayProps): ReactElement {
+  const translate = useTranslations('common.agent.composer');
   const contentReferences = references.filter(isVisualContentReference);
   const chipReferences = references.filter(
     (reference) => !isVisualContentReference(reference),
@@ -101,7 +103,7 @@ export function AgentChatInputAttachmentTray({
                 withWrapper={false}
                 onClick={() => onRemoveAttachedAsset(asset.id)}
                 isDisabled={isDisabled}
-                ariaLabel={`Remove ${assetName}`}
+                ariaLabel={translate('removeAttachment', { name: assetName })}
                 className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
               >
                 <X className="size-3.5" />
@@ -124,7 +126,9 @@ export function AgentChatInputAttachmentTray({
 
         {contentReferences.map((reference) => (
           <div
-            aria-label={`Referenced content: ${reference.label}`}
+            aria-label={translate('referencedContent', {
+              label: reference.label,
+            })}
             key={`content:${reference.id}`}
             className={cn(
               'group relative size-16 overflow-hidden rounded-md border border-border bg-background-secondary',
@@ -156,7 +160,9 @@ export function AgentChatInputAttachmentTray({
                 withWrapper={false}
                 onClick={() => onRemoveReference(reference)}
                 isDisabled={isDisabled}
-                ariaLabel={`Remove reference ${reference.label}`}
+                ariaLabel={translate('removeReference', {
+                  label: reference.label,
+                })}
                 className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
               >
                 <X className="size-3.5" />
@@ -192,7 +198,9 @@ export function AgentChatInputAttachmentTray({
                   withWrapper={false}
                   onClick={() => onRemoveReference?.(reference)}
                   isDisabled={isDisabled}
-                  ariaLabel={`Remove reference ${reference.label}`}
+                  ariaLabel={translate('removeReference', {
+                    label: reference.label,
+                  })}
                   className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded text-foreground/60 hover:text-foreground"
                 >
                   <X className="size-3" />

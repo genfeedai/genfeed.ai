@@ -1391,7 +1391,7 @@ describe('UniversalWorkspaceShell', () => {
       );
     });
 
-    it('attaches a record to the dock draft and opens the dock', async () => {
+    it('attaches a record to the dock draft with its brand and opens the dock', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       renderWithDock();
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
@@ -1417,6 +1417,12 @@ describe('UniversalWorkspaceShell', () => {
           `genfeed:conversation-composer:v1:${draftScope}`,
         ),
       ).toContain('ingredient-1');
+      // The record carries the brand the shell was bound to when attached.
+      expect(
+        window.sessionStorage.getItem(
+          `genfeed:conversation-composer:v1:${draftScope}`,
+        ),
+      ).toContain('"brandId":"brand-1"');
     });
   });
 });

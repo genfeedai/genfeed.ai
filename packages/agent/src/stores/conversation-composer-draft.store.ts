@@ -57,6 +57,9 @@ function normalizeContentReference(
   }
 
   return {
+    ...(typeof record.brandId === 'string' && record.brandId
+      ? { brandId: record.brandId }
+      : {}),
     contentTitle: record.contentTitle,
     contentType: record.contentType,
     id: record.id,
@@ -259,4 +262,37 @@ export function attachContentToNewConversationDraft(
     buildConversationComposerDraftScopeKey(orgSlug, null),
     reference,
   );
+}
+
+// Chips a composer dismissed for the next message. Held per scope in memory so
+// they survive the composer remounting (an overlay taking the prompt bar, the
+// dock sheet closing) until the next send in that scope.
+const dismissedSurfaceReferenceKeysByScope = new Map<
+  string,
+  ReadonlySet<string>
+>();
+const EMPTY_DISMISSED_KEYS: ReadonlySet<string> = new Set();
+
+export function readDismissedSurfaceReferenceKeys(
+  scopeKey: string | null,
+): ReadonlySet<string> {
+  return scopeKey
+    ? (dismissedSurfaceReferenceKeysByScope.get(scopeKey) ??
+        EMPTY_DISMISSED_KEYS)
+    : EMPTY_DISMISSED_KEYS;
+}
+
+export function writeDismissedSurfaceReferenceKeys(
+  scopeKey: string | null,
+  keys: ReadonlySet<string>,
+): void {
+  if (!scopeKey) {
+    return;
+  }
+
+  if (keys.size === 0) {
+    dismissedSurfaceReferenceKeysByScope.delete(scopeKey);
+  } else {
+    dismissedSurfaceReferenceKeysByScope.set(scopeKey, keys);
+  }
 }

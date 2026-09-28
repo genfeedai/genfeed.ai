@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 
 /** What a page can hand the agent dock's composer: one canonical record. */
 export interface AgentDockContentReference {
+  /** The brand the record belongs to; the shell stamps its binding if absent. */
+  readonly brandId?: string;
   readonly contentTitle: string;
   readonly contentType: string;
   readonly id: string;
@@ -36,6 +38,24 @@ export interface AgentDockContextValue {
   readonly setHeight: (height: number) => void;
   readonly setIsAvailable: (isAvailable: boolean) => void;
   readonly toggle: () => void;
+}
+
+/** What the dock remembers per viewer: whether it is open, and its height. */
+export interface AgentDockPersistedState {
+  readonly height: number;
+  readonly isOpen: boolean;
+}
+
+export interface AgentDockHeaderProps {
+  readonly onClose: () => void;
+  readonly onOpenFullPage: () => void;
+  readonly threadTitle?: string | null;
+  readonly title: ReactNode;
+}
+
+export interface AgentDockBodyOutletProps {
+  /** The dock's single body node; the conversation stays rendered into it. */
+  readonly body: HTMLElement;
 }
 
 export interface AgentDockProviderProps {

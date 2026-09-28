@@ -3,7 +3,8 @@ import {
   AGENT_DOCK_MIN_HEIGHT,
 } from '@contexts/ui/agent-dock-context';
 import type { AgentDockContextValue } from '@genfeedai/props/ui/agent-dock.props';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentDock from './AgentDock';
 
@@ -54,6 +55,35 @@ function renderDock(
   );
 
   return { ...view, composerSlotRef, onOpenFullPage };
+}
+
+const lifecycle = { mounts: 0, unmounts: 0 };
+
+// Stands in for the conversation: counts mounts and keeps local state, like an
+// upload or a streaming run would.
+function StatefulConversation() {
+  const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    lifecycle.mounts += 1;
+    return () => {
+      lifecycle.unmounts += 1;
+    };
+  }, []);
+
+  return (
+    <button type="button" onClick={() => setDraft('half-written')}>
+      Draft: {draft || 'empty'}
+    </button>
+  );
+}
+
+function renderStateful(dock: AgentDockContextValue, isCompact: boolean) {
+  return (
+    <AgentDock dock={dock} isCompact={isCompact} onOpenFullPage={vi.fn()}>
+      <StatefulConversation />
+    </AgentDock>
+  );
 }
 
 describe('AgentDock', () => {
@@ -112,13 +142,25 @@ describe('AgentDock', () => {
     document.body.append(opener);
     opener.focus();
     const dock = buildDock();
-    renderDock(dock);
+    const view = renderDock(dock);
 
     const composer = screen.getByText('composer');
     composer.focus();
     fireEvent.keyDown(composer, { key: 'Escape' });
-
     expect(dock.close).toHaveBeenCalledTimes(1);
+
+    // The provider applies the close; focus follows it back out.
+    view.rerender(
+      <AgentDock
+        dock={{ ...dock, isOpen: false }}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <div contentEditable suppressContentEditableWarning>
+          composer
+        </div>
+      </AgentDock>,
+    );
     expect(document.activeElement).toBe(opener);
     opener.remove();
   });
@@ -165,5 +207,45 @@ describe('AgentDock', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
     expect(dock.close).toHaveBeenCalled();
+  });
+
+  it('keeps the conversation mounted across sheet close and the breakpoint', () => {
+    lifecycle.mounts = 0;
+    lifecycle.unmounts = 0;
+    const dock = buildDock({ isOpen: true });
+    const view = render(renderStateful(dock, true));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
+    expect(
+      screen.getByRole('button', { name: 'Draft: half-written' }),
+    ).toBeInTheDocument();
+
+    // Close the sheet, then cross into the desktop layout and open there.
+    view.rerender(renderStateful({ ...dock, isOpen: false }, true));
+    view.rerender(renderStateful({ ...dock, isOpen: true }, false));
+
+    expect(lifecycle.mounts).toBe(1);
+    expect(lifecycle.unmounts).toBe(0);
+    expect(
+      within(screen.getByRole('region', { name: 'Agent' })).getByRole(
+        'button',
+        { name: 'Draft: half-written' },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('returns focus when something outside the dock closes it', () => {
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    const dock = buildDock({ isOpen: true });
+    const view = render(renderStateful(dock, false));
+
+    screen.getByRole('button', { name: 'Draft: empty' }).focus();
+    // ⌘J and the topbar close through the provider, not the dock's controls.
+    view.rerender(renderStateful({ ...dock, isOpen: false }, false));
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
   });
 });
