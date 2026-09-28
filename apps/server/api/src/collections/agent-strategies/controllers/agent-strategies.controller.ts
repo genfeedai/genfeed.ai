@@ -40,7 +40,7 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Strategies')
 @AutoSwagger()
-@FeatureFlag('agent')
+@FeatureFlag('automation')
 @Controller('agent-strategies')
 export class AgentStrategiesController extends BaseCRUDController<
   AgentStrategyDocument,
