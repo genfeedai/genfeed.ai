@@ -62,6 +62,24 @@ describe('Button tooltip', () => {
     );
   });
 
+  it('renders the final button node at once after a preload without a provider', async () => {
+    const { Button } = await loadPrimitives();
+    const { preloadButtonTooltip } = await import('./button-tooltip');
+
+    await preloadButtonTooltip();
+
+    render(
+      <Button withWrapper={false} tooltip="Save draft">
+        Save
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Save' });
+    expect(button).toHaveAttribute('data-state', 'closed');
+    await expect(preloadButtonTooltip()).resolves.toBeUndefined();
+    expect(screen.getByRole('button', { name: 'Save' })).toBe(button);
+  });
+
   it('renders a button without a tooltip prop untouched', async () => {
     const { Button } = await loadPrimitives();
 
