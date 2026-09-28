@@ -140,6 +140,28 @@ describe('persisted Batch project writes', () => {
       expect(result.current.project?.name).toBe('Valid after rejected upload');
     },
   );
+  it.each([413, 422])(
+    'normalizes raw upload API %s errors before deciding whether to retry',
+    async (status) => {
+      const { result } = renderHook(() => useBatchProject('a', 'brand-1'));
+      await waitFor(() => expect(result.current.project).not.toBeNull());
+      const upload = vi.fn().mockRejectedValue({
+        errors: [
+          { status: String(status), detail: 'Upload rejected permanently' },
+        ],
+      });
+      await act(async () => {
+        expect(await result.current.write(upload, undefined, true)).toBe(false);
+      });
+      expect(result.current.hasUnsavedChanges).toBe(false);
+      expect(result.current.error).toBe('Upload rejected permanently');
+      await act(async () => {
+        expect(
+          await result.current.update({ name: 'Saved after rejected upload' }),
+        ).toBe(true);
+      });
+    },
+  );
   it('retains a transient service failure until explicit retry', async () => {
     const { result } = renderHook(() => useBatchProject('a', 'brand-1'));
     await waitFor(() => expect(result.current.project).not.toBeNull());

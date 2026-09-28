@@ -4,7 +4,10 @@ import type {
   IUpdateBatchProjectInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { isServiceOperationError } from '@services/core/operation-error';
+import {
+  isServiceOperationError,
+  normalizeOperationError,
+} from '@services/core/operation-error';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type BatchProjectsApi,
@@ -100,19 +103,16 @@ export function useBatchProject(id: string, brandId: string) {
             setError(null);
           }
         } catch (reason) {
+          const failure = isServiceOperationError(reason)
+            ? reason
+            : normalizeOperationError('save Batch project', reason);
           const permanent =
-            isServiceOperationError(reason) &&
-            reason.status !== undefined &&
-            PERMANENT_WRITE_STATUSES.has(reason.status);
+            failure.status !== undefined &&
+            PERMANENT_WRITE_STATUSES.has(failure.status);
           scope.failed = next.retryOnFailure && !permanent;
           if (!scope.failed) scope.pending.shift();
           next.complete(false);
-          if (scope.alive)
-            setError(
-              reason instanceof Error
-                ? reason.message
-                : 'Could not save batch.',
-            );
+          if (scope.alive) setError(failure.message);
           if (scope.failed) break;
         }
       }
