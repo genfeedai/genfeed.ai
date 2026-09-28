@@ -6,6 +6,10 @@ import {
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
+  createStudioGenerateDraftOutbox,
+  type StudioGenerateDraftOutbox,
+} from '@pages/studio/generate/utils/studio-generate-draft-outbox';
+import {
   act,
   fireEvent,
   render,
@@ -66,6 +70,7 @@ const mocks = vi.hoisted(() => ({
   attachments: vi.fn(),
   clearAttachments: vi.fn(),
   getDraft: vi.fn(),
+  outbox: { current: null as StudioGenerateDraftOutbox | null },
   restoreSettings: vi.fn(),
   saveDraft: vi.fn(),
   applyTypeSettings: vi.fn(),
@@ -333,6 +338,23 @@ vi.mock('@services/content/ingredients.service', () => ({
   },
 }));
 
+// The draft outbox is module state; every test gets its own.
+vi.mock(
+  '@pages/studio/generate/utils/studio-generate-draft-outbox',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@pages/studio/generate/utils/studio-generate-draft-outbox')
+      >();
+    return {
+      ...actual,
+      get studioGenerateDraftOutbox() {
+        return mocks.outbox.current;
+      },
+    };
+  },
+);
+
 vi.mock('@services/content/studio-generate-drafts.service', () => ({
   StudioGenerateDraftsService: {
     getInstance: () => ({
@@ -447,6 +469,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
     mocks.findByIds.mockResolvedValue([]);
+    mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getDraft.mockResolvedValue(null);
     mocks.saveDraft.mockResolvedValue({});
     mocks.submit.mockResolvedValue(false);

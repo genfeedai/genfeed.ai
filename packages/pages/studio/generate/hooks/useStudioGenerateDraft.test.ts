@@ -1,5 +1,9 @@
 import type { IStudioGenerateDraft } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateDraftPayload } from '@pages/studio/generate/types';
+import {
+  createStudioGenerateDraftOutbox,
+  type StudioGenerateDraftOutbox,
+} from '@pages/studio/generate/utils/studio-generate-draft-outbox';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCallback } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,9 +15,27 @@ import {
 
 const mocks = vi.hoisted(() => ({
   getCurrent: vi.fn(),
+  outbox: { current: null as StudioGenerateDraftOutbox | null },
   saveCurrent: vi.fn(),
   warning: vi.fn(),
 }));
+
+// The outbox is module state; every test gets its own so none leaks.
+vi.mock(
+  '@pages/studio/generate/utils/studio-generate-draft-outbox',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@pages/studio/generate/utils/studio-generate-draft-outbox')
+      >();
+    return {
+      ...actual,
+      get studioGenerateDraftOutbox() {
+        return mocks.outbox.current;
+      },
+    };
+  },
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () =>
@@ -107,6 +129,7 @@ function savedPrompts(): string[] {
 describe('useStudioGenerateDraft', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.outbox.current = createStudioGenerateDraftOutbox();
     mocks.getCurrent.mockResolvedValue(null);
     mocks.saveCurrent.mockResolvedValue({});
   });
@@ -212,6 +235,50 @@ describe('useStudioGenerateDraft', () => {
         { isKeepalive: true },
       ),
     );
+  });
+
+  it('saves edits typed during an in-flight save when the workspace unmounts', async () => {
+    const view = renderDraft();
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const saveA = deferred<unknown>();
+    mocks.saveCurrent.mockReturnValueOnce(saveA.promise);
+    view.rerender({ ...baseProps(view), payload: buildPayload('A') });
+    await waitFor(() => expect(savedPrompts()).toEqual(['A']));
+
+    // B is typed while A is still in flight, then the creator navigates away.
+    view.rerender({ ...baseProps(view), payload: buildPayload('B') });
+    view.unmount();
+    await act(async () => {
+      saveA.resolve({});
+    });
+
+    await waitFor(() => expect(savedPrompts()).toEqual(['A', 'B']));
+    expect(mocks.saveCurrent).toHaveBeenLastCalledWith(
+      'brand-1',
+      expect.objectContaining({ prompt: 'B' }),
+      { isKeepalive: true },
+    );
+  });
+
+  it('keeps typing done during a draft load retry over the older draft', async () => {
+    mocks.getCurrent
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(buildDraft('older draft'));
+    const view = renderDraft();
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalledTimes(1));
+
+    // Typed during the retry backoff, before the second attempt starts.
+    view.rerender({ ...baseProps(view), payload: buildPayload('typed') });
+
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalledTimes(2), {
+      timeout: 4000,
+    });
+    await waitFor(() => expect(savedPrompts()).toEqual(['typed']));
+    expect(view.onRestore).not.toHaveBeenCalled();
   });
 
   it('saves pending edits to the brand being left, not the next one', async () => {

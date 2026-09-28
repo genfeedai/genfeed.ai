@@ -142,4 +142,27 @@ describe('useStudioGenerateSettings', () => {
     expect(imageSetup?.sources.aspectRatio).toBe('user');
     expect(imageSetup?.sources.outputs).toBeUndefined();
   });
+
+  it('clears optional settings the restored draft left empty', async () => {
+    const { result } = renderHook(() => useStudioGenerateSettings());
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    act(() =>
+      result.current.updateSettings({
+        folder: 'folder-1',
+        style: 'noir',
+        voiceId: 'voice-1',
+      }),
+    );
+    expect(result.current.settings).toMatchObject({
+      folder: 'folder-1',
+      style: 'noir',
+    });
+
+    // A sanitized draft with no style, folder or voice.
+    act(() => result.current.restoreSettings(getDefaultStudioGenerateState()));
+
+    expect(result.current.settings.style).toBeUndefined();
+    expect(result.current.settings.folder).toBeUndefined();
+    expect(result.current.settings.voiceId).toBeUndefined();
+  });
 });

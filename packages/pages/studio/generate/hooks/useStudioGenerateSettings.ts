@@ -18,6 +18,8 @@ import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-gener
 import {
   generationSetupValuesToStudioSettingsPatch,
   getDefaultGenerationSetupValues,
+  STUDIO_CLEARABLE_SETUP_KEYS,
+  STUDIO_RESIDUAL_SETTINGS_KEYS,
   seedGenerationSetupFromLegacyStudioSettings,
   splitStudioSettingsPatch,
   studioSettingsFieldsToGenerationSetupPatch,
@@ -176,6 +178,9 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
     [],
   );
 
+  // The saved draft is the whole setup: a field it leaves empty is cleared,
+  // not merged over, so a stale local style, folder or identity never leaks
+  // into the restored composer.
   const restoreSettings = useCallback((state: StudioGeneratePersistedState) => {
     const { setupByScope: currentSetups } = useGenerationSetupStore.getState();
 
@@ -197,15 +202,24 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
       if (Object.keys(changed).length > 0) {
         applyBridgedPatch(typeScope, changed, typeDefaults);
       }
+      for (const key of STUDIO_CLEARABLE_SETUP_KEYS) {
+        if (restored[key] === undefined && current[key] !== undefined) {
+          setGenerationSetupField(typeScope, key, undefined, typeDefaults);
+        }
+      }
     }
 
     setResidualByType((previous) =>
       STUDIO_GENERATE_TYPES.reduce(
         (accumulator, settingsType) => {
+          const residual: Partial<StudioGenerateSettings> = {};
+          for (const key of STUDIO_RESIDUAL_SETTINGS_KEYS) {
+            (residual as Record<string, unknown>)[key] =
+              state.settingsByType[settingsType][key];
+          }
           accumulator[settingsType] = {
             ...previous[settingsType],
-            ...splitStudioSettingsPatch(state.settingsByType[settingsType])
-              .residual,
+            ...residual,
           };
           return accumulator;
         },
