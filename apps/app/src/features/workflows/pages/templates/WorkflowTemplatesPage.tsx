@@ -357,6 +357,11 @@ function WorkflowTemplatesPageContent() {
     surface: TEMPLATES_COLLECTION_SURFACE,
   });
 
+  // Async handlers read copy through a ref so a new translator identity
+  // never re-triggers the load or bootstrap effects.
+  const translateRef = useRef(translate);
+  translateRef.current = translate;
+
   const loadTemplates = useCallback(async () => {
     dispatch({ type: 'LOAD_START' });
 
@@ -382,10 +387,13 @@ function WorkflowTemplatesPageContent() {
       logger.error('Failed to load workflow templates', { error: err });
 
       if (mountedRef.current) {
-        dispatch({ type: 'LOAD_ERROR', error: translate('errors.load') });
+        dispatch({
+          type: 'LOAD_ERROR',
+          error: translateRef.current('errors.load'),
+        });
       }
     }
-  }, [getService, translate]);
+  }, [getService]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -458,7 +466,7 @@ function WorkflowTemplatesPageContent() {
             error:
               err instanceof Error
                 ? err.message
-                : translate('errors.bootstrap'),
+                : translateRef.current('errors.bootstrap'),
           });
         }
       }
@@ -469,7 +477,7 @@ function WorkflowTemplatesPageContent() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, isLoading, replace, systemCatalog, templateId, translate]);
+  }, [getService, isLoading, replace, systemCatalog, templateId]);
 
   /**
    * Installs an app-owned catalog workflow. "Use template" installs and opens
@@ -513,11 +521,13 @@ function WorkflowTemplatesPageContent() {
         dispatch({
           type: 'INSTALL_ERROR',
           error:
-            err instanceof Error ? err.message : translate('errors.install'),
+            err instanceof Error
+              ? err.message
+              : translateRef.current('errors.install'),
         });
       }
     },
-    [getService, href, replace, translate],
+    [getService, href, replace],
   );
 
   const catalogItems = useMemo(
