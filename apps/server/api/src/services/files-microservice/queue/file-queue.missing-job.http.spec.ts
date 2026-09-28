@@ -13,7 +13,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import axios from 'axios';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -68,7 +67,9 @@ describe('files job status over HTTP', () => {
             ? `http://127.0.0.1:${port}`
             : undefined,
       } as unknown as ConfigService,
-      new HttpService(axios.create()),
+      // The default instance: the suite-wide axios mock blocks outbound
+      // calls, and this client only ever reaches the loopback server above.
+      new HttpService(),
       {
         error: vi.fn(),
         log: vi.fn(),
@@ -83,12 +84,13 @@ describe('files job status over HTTP', () => {
   });
 
   it('answers a missing job with a 404 that the queue client reads as gone', async () => {
-    const response = await axios.get(
+    const response = await fetch(
       `${await app.getUrl()}/v1/files/job/stitch-lost`,
-      { validateStatus: () => true },
     );
     expect(response.status).toBe(404);
-    expect(response.data).toMatchObject({ message: 'Job not found' });
+    await expect(response.json()).resolves.toMatchObject({
+      message: 'Job not found',
+    });
 
     await expect(client.findJobStatus('stitch-lost')).resolves.toBeNull();
   });
