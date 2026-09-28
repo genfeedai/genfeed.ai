@@ -1017,7 +1017,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'name',
       'organization',
       'organizationId',
+      'quote',
       'reviewBatchId',
+      'revision',
       'settings',
       'status',
       'step',
@@ -1038,6 +1040,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'caption',
       'createdAt',
+      'dispatch',
       'dispatchedAt',
       'error',
       'id',

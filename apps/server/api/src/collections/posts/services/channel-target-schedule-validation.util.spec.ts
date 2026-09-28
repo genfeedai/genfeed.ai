@@ -1,4 +1,8 @@
-import { correctedCategoryForLinkedMedia } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import {
+  correctedCategoryForLinkedMedia,
+  mediaKindForIngredientCategory,
+  postCategoryForIngredientCategories,
+} from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { IngredientCategory, PostCategory } from '@genfeedai/contracts';
 
 describe('correctedCategoryForLinkedMedia', () => {
@@ -53,5 +57,16 @@ describe('correctedCategoryForLinkedMedia', () => {
     expect(correctedCategoryForLinkedMedia(PostCategory.IMAGE, [])).toBe(
       undefined,
     );
+  });
+});
+
+describe('mediaKindForIngredientCategory', () => {
+  it('treats an avatar render as video', () => {
+    expect(mediaKindForIngredientCategory(IngredientCategory.AVATAR)).toBe(
+      'video',
+    );
+    expect(
+      postCategoryForIngredientCategories([IngredientCategory.AVATAR]),
+    ).toBe(PostCategory.VIDEO);
   });
 });

@@ -83,6 +83,7 @@ describe('BatchProjectsService', () => {
       updateMany: vi.fn(),
     },
     batchProjectItem: {
+      count: vi.fn(),
       createMany: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -110,6 +111,7 @@ describe('BatchProjectsService', () => {
     approveItems: vi.fn(),
     rejectItems: vi.fn(),
   };
+  const ideaGeneration = { quote: vi.fn(), retry: vi.fn(), start: vi.fn() };
   const service = new BatchProjectsService(
     prisma as never,
     logger as never,
@@ -117,6 +119,7 @@ describe('BatchProjectsService', () => {
     batchWorkflowExecutionService as never,
     workflowsService as never,
     batchGenerationService as never,
+    ideaGeneration as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -651,39 +654,84 @@ describe('BatchProjectsService', () => {
     });
   });
 
-  describe('dispatchItem', () => {
-    it('records the pending ingredient of an idea item', async () => {
+  describe('ideas', () => {
+    it('starts an idea batch through its accepted quote', async () => {
+      useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
+
+      await service.start('project-1', scope, 'quote-1');
+
+      expect(ideaGeneration.start).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'project-1' }),
+        [expect.objectContaining({ id: 'item-1' })],
+        'quote-1',
+        scope,
+      );
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+    });
+
+    it('retries a failed idea through a fresh quote', async () => {
       useProject(
         makeProject({
           kind: BatchProjectKind.IDEAS,
-          status: BatchProjectStatus.GENERATING,
+          status: BatchProjectStatus.PARTIAL_FAILURE,
         }),
       );
       prisma.batchProjectItem.findFirst.mockResolvedValue(
-        makeItem({ status: BatchProjectItemStatus.GENERATING }),
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
       );
-      prisma.ingredient.findFirst.mockResolvedValue({
-        category: IngredientCategory.VIDEO,
-        id: 'pending-1',
-      });
 
-      await service.dispatchItem(
+      await service.retryItem('project-1', 'item-1', scope, 'quote-2');
+
+      expect(ideaGeneration.retry).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'project-1' }),
+        expect.objectContaining({ id: 'item-1' }),
+        'quote-2',
+        scope,
+      );
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('quotes only idea batches', async () => {
+      useProject(makeProject());
+
+      await expect(service.quote('project-1', {}, scope)).rejects.toThrow(
+        'Only idea batches are quoted',
+      );
+    });
+
+    it('keeps a batch with generation in flight from being deleted', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.GENERATING }));
+      prisma.batchProjectItem.count.mockResolvedValue(2);
+
+      await expect(service.remove('project-1', scope)).rejects.toThrow(
+        'Wait for generation to finish',
+      );
+      expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('moves the project revision when its inputs change', async () => {
+      useProject(makeProject());
+      prisma.ingredient.findMany.mockResolvedValue([
+        { category: IngredientCategory.IMAGE, id: 'input-9' },
+      ]);
+
+      await service.addItems(
         'project-1',
-        'item-1',
-        { ingredientId: 'pending-1' },
+        { inputs: [{ ingredientId: 'input-9' }] },
         scope,
       );
 
-      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
-        data: {
-          outputCategory: IngredientCategory.VIDEO,
-          outputIngredientId: 'pending-1',
-        },
-        where: expect.objectContaining({
-          id: 'item-1',
-          organizationId: 'org-1',
-          outputIngredientId: null,
-        }),
+      expect(prisma.batchProject.updateMany).toHaveBeenCalledWith({
+        data: { revision: { increment: 1 }, updatedAt: expect.any(Date) },
+        where: expect.objectContaining({ id: 'project-1' }),
       });
     });
   });

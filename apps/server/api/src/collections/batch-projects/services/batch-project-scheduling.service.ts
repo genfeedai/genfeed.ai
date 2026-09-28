@@ -647,7 +647,8 @@ export class BatchProjectSchedulingService {
     const draft = {
       brandId: project.brandId,
       category:
-        item.outputCategory === IngredientCategory.VIDEO
+        item.outputCategory === IngredientCategory.VIDEO ||
+        item.outputCategory === IngredientCategory.AVATAR
           ? PostCategory.VIDEO
           : PostCategory.IMAGE,
       description: caption,

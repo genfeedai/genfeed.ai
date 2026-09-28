@@ -27,6 +27,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     BrandAssetAutofillService,
+    BrandKitAssetsService,
     BrandScraperModule,
     BrandsService,
     DefaultRecurringContentService,
