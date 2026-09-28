@@ -57,6 +57,10 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 const STITCH_JOB_TIMEOUT_MS = 300_000;
+/** `generationStage` a completer claims before captioning and persisting. */
+const STITCH_COMPLETION_STAGE = 'stitch-completing';
+/** A claim older than this belongs to a completer that died mid-way. */
+const STITCH_COMPLETION_CLAIM_TTL_MS = 10 * 60_000;
 const CAPTIONS_JOB_TIMEOUT_MS = 180_000;
 const OUTPUT_SELECT = {
   _count: { select: { sources: true } },
@@ -231,7 +235,11 @@ export class VideoStitchService {
     validateVideoStitchRequest(request);
     const plan = await this.plan(request);
     const reopened = await this.prisma.ingredient.updateMany({
-      data: { generationError: null, status: IngredientStatus.PROCESSING },
+      data: {
+        generationError: null,
+        generationStage: null,
+        status: IngredientStatus.PROCESSING,
+      },
       where: scopedWhere(handle.organizationId, {
         id: handle.outputId,
         status: IngredientStatus.FAILED,
@@ -442,12 +450,41 @@ export class VideoStitchService {
     }
     const result = parsed.data;
     assertSafeObjectKey(result.s3Key, (message) => new Error(message));
+
+    // Concurrent completers (a background waiter and a polling step) must not
+    // both caption and persist the output: the first to claim it does the
+    // work, the others report its current state.
+    const claimed = await this.prisma.ingredient.updateMany({
+      data: { generationStage: STITCH_COMPLETION_STAGE },
+      where: scopedWhere(context.organizationId, {
+        id: context.outputId,
+        OR: [
+          { generationStage: null },
+          { generationStage: { not: STITCH_COMPLETION_STAGE } },
+          {
+            updatedAt: {
+              lt: new Date(Date.now() - STITCH_COMPLETION_CLAIM_TTL_MS),
+            },
+          },
+        ],
+        status: IngredientStatus.PROCESSING,
+      }),
+    });
+    if (claimed.count !== 1) {
+      const output = await this.requireOutput(
+        context.organizationId,
+        context.outputId,
+      );
+      return this.toOutcome(context.jobId, output);
+    }
+
     const s3Key = await this.addCaptionsIfEnabled(context, result.s3Key);
 
     await this.patchMetadata(context, result, s3Key);
     const completed = await this.prisma.ingredient.updateMany({
       data: {
         generationError: null,
+        generationStage: null,
         s3Key,
         status: IngredientStatus.GENERATED,
         transformations: [TransformationCategory.MERGED],
@@ -469,44 +506,58 @@ export class VideoStitchService {
     // organization's first-asset gate here, before the client hears of it.
     await this.assetGateService.markFirstAssetGenerated(context.organizationId);
 
-    const room = getUserRoomName(context.roomUserId);
-    const label = `Merged ${context.clipCount} videos`;
-    await this.websocketService.publishVideoComplete(
-      WebSocketPaths.video(context.outputId),
-      {
-        eventType: WebSocketEventType.VIDEO_MERGED,
-        id: context.outputId,
-        status: WebSocketEventStatus.COMPLETED,
-        transformation: TransformationCategory.MERGED,
-      },
-      context.roomUserId,
-      room,
-    );
-    await this.activityRecorder.update(
-      {
-        id: this.activityId(context.outputId),
-        organizationId: context.organizationId,
-      },
-      {
-        key: ActivityKey.VIDEO_COMPLETED,
-        value: this.activityValue(context, label, {
-          progress: 100,
-          resultId: context.outputId,
-          resultType: 'VIDEO',
-        }),
-      },
-    );
-    await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: this.activityId(context.outputId),
-      label,
-      progress: 100,
-      resultId: context.outputId,
-      resultType: 'VIDEO',
-      room,
-      status: 'completed',
-      taskId: context.outputId,
-      userId: context.roomUserId,
-    });
+    // The output is GENERATED from here on: a failed notification must not
+    // report the stitch as failed to its caller.
+    try {
+      const room = getUserRoomName(context.roomUserId);
+      const label = `Merged ${context.clipCount} videos`;
+      await this.websocketService.publishVideoComplete(
+        WebSocketPaths.video(context.outputId),
+        {
+          eventType: WebSocketEventType.VIDEO_MERGED,
+          id: context.outputId,
+          status: WebSocketEventStatus.COMPLETED,
+          transformation: TransformationCategory.MERGED,
+        },
+        context.roomUserId,
+        room,
+      );
+      await this.activityRecorder.update(
+        {
+          id: this.activityId(context.outputId),
+          organizationId: context.organizationId,
+        },
+        {
+          key: ActivityKey.VIDEO_COMPLETED,
+          value: this.activityValue(context, label, {
+            progress: 100,
+            resultId: context.outputId,
+            resultType: 'VIDEO',
+          }),
+        },
+      );
+      await this.websocketService.publishBackgroundTaskUpdate({
+        activityId: this.activityId(context.outputId),
+        label,
+        progress: 100,
+        resultId: context.outputId,
+        resultType: 'VIDEO',
+        room,
+        status: 'completed',
+        taskId: context.outputId,
+        userId: context.roomUserId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} completion notification failed`,
+        {
+          error: getErrorMessage(error),
+          jobId: context.jobId,
+          organizationId: context.organizationId,
+          outputId: context.outputId,
+        },
+      );
+    }
     this.loggerService.log(`${this.logContext} stitch completed`, {
       callerKind: context.callerKind,
       jobId: context.jobId,
@@ -534,7 +585,11 @@ export class VideoStitchService {
       outputId: context.outputId,
     });
     const failed = await this.prisma.ingredient.updateMany({
-      data: { generationError: message, status: IngredientStatus.FAILED },
+      data: {
+        generationError: message,
+        generationStage: null,
+        status: IngredientStatus.FAILED,
+      },
       where: scopedWhere(context.organizationId, {
         id: context.outputId,
         status: IngredientStatus.PROCESSING,
@@ -738,6 +793,8 @@ export class VideoStitchService {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
+        // Same scope as the unique index: only stitch outputs own a key.
+        generationSource: { startsWith: VIDEO_STITCH_GENERATION_SOURCE_PREFIX },
         sourceActionId: idempotencyKey,
       }),
     });
