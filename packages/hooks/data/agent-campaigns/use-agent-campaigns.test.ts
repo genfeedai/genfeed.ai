@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetToken = vi.fn().mockResolvedValue('test-token');
@@ -135,6 +135,71 @@ describe('useAgentCampaigns', () => {
 
     expect(result.current.campaigns).toEqual([]);
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('exposes a rejected list request as an error, not as an empty list', async () => {
+    mockList.mockRejectedValueOnce(new Error('Network down'));
+
+    const { useAgentCampaigns } = await import('./use-agent-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    const { result } = renderHook(() => useAgentCampaigns(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    expect(result.current.error?.message).toBe('Network down');
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.campaigns).toEqual([]);
+  });
+
+  it('clears the error when refresh succeeds', async () => {
+    const mockCampaigns = [
+      { brandId: 'brand-1', id: 'campaign-1', name: 'Campaign 1' },
+    ];
+    mockList
+      .mockRejectedValueOnce(new Error('Network down'))
+      .mockResolvedValueOnce(mockCampaigns);
+
+    const { useAgentCampaigns } = await import('./use-agent-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    const { result } = renderHook(() => useAgentCampaigns(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
+    expect(result.current.campaigns).toEqual(mockCampaigns);
+    expect(mockList).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports no error for a successful empty list', async () => {
+    const { useAgentCampaigns } = await import('./use-agent-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    const { result } = renderHook(() => useAgentCampaigns(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.campaigns).toEqual([]);
   });
 
   it('provides refresh function', async () => {

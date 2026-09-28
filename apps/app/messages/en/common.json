@@ -269,8 +269,35 @@
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
+      "completed": "Completed",
       "draft": "Draft",
-      "label": "Status"
+      "label": "Status",
+      "paused": "Paused"
+    },
+    "collection": {
+      "agents": "{count, plural, one {# agent} other {# agents}}",
+      "all": "All programs",
+      "credits": "{used} / {allocated} credits",
+      "creditsProgress": "{percent}% of credits used",
+      "lastRun": "Last run {time}",
+      "loadError": "Programs couldn't load.",
+      "needsYou": "Needs you",
+      "needsYouDescription": "Paused, or out of allocated credits.",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "retry": "Retry",
+      "review": "Review",
+      "reviewLabel": "Review {label}"
+    },
+    "relativeTime": {
+      "daysAgo": "{days}d ago",
+      "dueNow": "due now",
+      "hoursAgo": "{hours}h ago",
+      "inDays": "in {days}d",
+      "inHours": "in {hours}h",
+      "inMinutes": "in {minutes}m",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago"
     },
     "template": {
       "blankDescription": "Coordinate only the existing agents you select below.",

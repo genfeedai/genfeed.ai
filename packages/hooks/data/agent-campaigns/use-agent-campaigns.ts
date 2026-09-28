@@ -19,6 +19,8 @@ export interface UseAgentCampaignsOptions {
 
 export interface UseAgentCampaignsReturn {
   campaigns: AgentCampaign[];
+  /** The last list request's failure; `null` once a request succeeds. */
+  error: Error | null;
   isLoading: boolean;
   refresh: () => Promise<void>;
 }
@@ -37,6 +39,7 @@ export function useAgentCampaigns(
 
   const {
     data: campaigns = [] as AgentCampaign[],
+    error,
     isLoading,
     refetch,
   } = useQuery({
@@ -56,6 +59,7 @@ export function useAgentCampaigns(
 
   return {
     campaigns,
+    error: isEnabled ? error : null,
     isLoading: !isEnabled || isLoading,
     refresh: async () => {
       if (!isEnabled) {
