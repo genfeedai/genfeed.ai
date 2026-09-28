@@ -90,20 +90,23 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
 
     await waitFor(() => expect(result.current.campaign).not.toBeNull());
 
-    // Two calls in the same tick, before the first `await` inside
-    // `handleStartCampaign` can flip `isStartingCampaign` via a render — the
-    // reentrancy guard must be the ref, not the state, to catch this.
-    act(() => {
-      result.current.handleStartCampaign();
-      result.current.handleStartCampaign();
-    });
+    try {
+      // Two calls in the same tick, before the first `await` inside
+      // `handleStartCampaign` can flip `isStartingCampaign` via a render —
+      // the reentrancy guard must be the ref, not the state, to catch this.
+      act(() => {
+        result.current.handleStartCampaign();
+        result.current.handleStartCampaign();
+      });
 
-    expect(mocks.start).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      resolveStart?.();
-      await Promise.resolve();
-    });
+      await waitFor(() => expect(mocks.start).toHaveBeenCalled());
+      expect(mocks.start).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => {
+        resolveStart?.();
+        await Promise.resolve();
+      });
+    }
   });
 
   it('reports isStartingCampaign true only while the call is in flight', async () => {
@@ -125,16 +128,18 @@ describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => 
 
     expect(result.current.isStartingCampaign).toBe(false);
 
-    act(() => {
-      result.current.handleStartCampaign();
-    });
+    try {
+      act(() => {
+        result.current.handleStartCampaign();
+      });
 
-    await waitFor(() => expect(result.current.isStartingCampaign).toBe(true));
-
-    await act(async () => {
-      resolveStart?.();
-      await Promise.resolve();
-    });
+      await waitFor(() => expect(result.current.isStartingCampaign).toBe(true));
+    } finally {
+      await act(async () => {
+        resolveStart?.();
+        await Promise.resolve();
+      });
+    }
 
     await waitFor(() => expect(result.current.isStartingCampaign).toBe(false));
   });

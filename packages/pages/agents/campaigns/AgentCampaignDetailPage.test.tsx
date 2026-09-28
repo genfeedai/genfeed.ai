@@ -296,15 +296,22 @@ describe('AgentCampaignDetailPage', () => {
     const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
     const needsYouResume = resumeButtons[resumeButtons.length - 1];
 
-    // Two clicks in the same tick, before any re-render can disable the
-    // button — the reentrancy guard, not the disabled attribute, must stop
-    // the second call.
-    fireEvent.click(needsYouResume);
-    fireEvent.click(needsYouResume);
+    try {
+      // Two clicks in the same tick, before any re-render can disable the
+      // button — the reentrancy guard, not the disabled attribute, must
+      // stop the second call.
+      fireEvent.click(needsYouResume);
+      fireEvent.click(needsYouResume);
 
-    expect(executeMock).toHaveBeenCalledTimes(1);
-    resolveExecute?.();
-    executeMock.mockImplementation(() => Promise.resolve());
+      await waitFor(() => expect(executeMock).toHaveBeenCalled());
+      expect(executeMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => {
+        resolveExecute?.();
+        await Promise.resolve();
+      });
+      executeMock.mockImplementation(() => Promise.resolve());
+    }
   });
 
   it('disables Resume in Needs you while an execution is already running', async () => {
@@ -333,17 +340,24 @@ describe('AgentCampaignDetailPage', () => {
     });
 
     const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
-    fireEvent.click(resumeButtons[resumeButtons.length - 1]);
 
-    await waitFor(() => {
-      expect(
-        screen.getAllByRole('button', { name: 'Resume' })[
-          resumeButtons.length - 1
-        ],
-      ).toBeDisabled();
-    });
-    resolveExecute?.();
-    executeMock.mockImplementation(() => Promise.resolve());
+    try {
+      fireEvent.click(resumeButtons[resumeButtons.length - 1]);
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByRole('button', { name: 'Resume' })[
+            resumeButtons.length - 1
+          ],
+        ).toBeDisabled();
+      });
+    } finally {
+      await act(async () => {
+        resolveExecute?.();
+        await Promise.resolve();
+      });
+      executeMock.mockImplementation(() => Promise.resolve());
+    }
   });
 
   it('hides Needs you and shows no primary action once the program is completed', async () => {
