@@ -5660,7 +5660,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'user',
       'userId',
     ],
-    listFields: ['contentPreferences', 'favoriteModelKeys'],
+    listFields: [
+      'contentPreferences',
+      'favoriteModelKeys',
+      'favoriteWorkflowIds',
+    ],
     enumFields: {
       generationPriority: { enumType: 'GenerationPriority', isRequired: true },
       trendNotificationsFrequency: {

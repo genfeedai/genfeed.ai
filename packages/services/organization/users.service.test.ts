@@ -115,6 +115,48 @@ describe('UsersService', () => {
     expect(result).toMatchObject({ theme: 'system' });
   });
 
+  it('findMeSettings GETs the current user settings with favorites', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { favoriteWorkflowIds: ['workflow_1'] },
+          { id: 'setting_1' },
+        ),
+      ),
+    );
+    const controller = new AbortController();
+
+    const result = await service.findMeSettings(controller.signal);
+
+    expect(http.get).toHaveBeenCalledWith('me/settings', {
+      signal: controller.signal,
+    });
+    expect(result).toMatchObject({ favoriteWorkflowIds: ['workflow_1'] });
+  });
+
+  it('patchMeFavoriteWorkflowIds replaces favorites through me/settings', async () => {
+    http.patch.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          { favoriteWorkflowIds: ['workflow_1', 'workflow_2'] },
+          { id: 'setting_1' },
+        ),
+      ),
+    );
+
+    const result = await service.patchMeFavoriteWorkflowIds([
+      'workflow_1',
+      'workflow_2',
+    ]);
+
+    expect(http.patch).toHaveBeenCalledWith('me/settings', {
+      favoriteWorkflowIds: ['workflow_1', 'workflow_2'],
+    });
+    expect(result).toMatchObject({
+      favoriteWorkflowIds: ['workflow_1', 'workflow_2'],
+    });
+  });
+
   it('findMe GETs the current user', async () => {
     http.get.mockResolvedValue(
       axiosResponse(resourceDocument({ email: 'a@b.c' }, { id: 'user_1' })),

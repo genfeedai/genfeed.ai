@@ -28,6 +28,7 @@ import type {
   WorkflowScheduleInput,
   WorkflowSummary,
   WorkflowTemplate,
+  WorkflowUsageSummary,
 } from './workflow-api.types';
 import {
   isWorkflowGraphEdge,
@@ -131,6 +132,23 @@ export class WorkflowApiService extends HTTPBaseService {
   async list(params?: Record<string, unknown>): Promise<WorkflowSummary[]> {
     const page = await this.listPage(params);
     return page.items;
+  }
+
+  /**
+   * The active organization's most-run workflows, ordered by execution count
+   * then most recent run (GET /workflows/most-used, limit 1–12).
+   */
+  async listMostUsed(limit?: number): Promise<WorkflowUsageSummary[]> {
+    try {
+      const response = await this.instance.get<JsonApiResponseDocument>(
+        '/most-used',
+        { params: limit === undefined ? undefined : { limit } },
+      );
+      return deserializeCollection<WorkflowUsageSummary>(response.data);
+    } catch (error) {
+      logger.error('Failed to list most used workflows', { error, limit });
+      throw error;
+    }
   }
 
   /** Get a single workflow by ID */

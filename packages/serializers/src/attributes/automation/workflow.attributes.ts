@@ -14,6 +14,7 @@ export const workflowAttributes = createEntityAttributes([
   'schedule',
   'timezone',
   'isScheduleEnabled',
+  'executionCount',
   'lastExecutedAt',
   'nextRunAt',
   'nodes',

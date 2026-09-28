@@ -2196,9 +2196,73 @@
       }
     },
     "templates": {
+      "actions": {
+        "install": "Install",
+        "installing": "Installing…",
+        "tryAgain": "Try again",
+        "useTemplate": "Use template",
+        "viewDetails": "View details"
+      },
+      "cadences": {
+        "dailyEvening": "Every day at 6:00 PM",
+        "dailyMorning": "Every day at 9:00 AM",
+        "dailyNoon": "Every day at noon",
+        "mondaysMorning": "Mondays at 9:00 AM",
+        "monthlyFirst": "Monthly on the 1st at 9:00 AM",
+        "twiceDaily": "Twice daily (9:00 AM and 6:00 PM)",
+        "weekdaysMorning": "Weekdays at 9:00 AM"
+      },
+      "categories": {
+        "adAutomation": "Ads",
+        "ads": "Ads",
+        "agents": "Agents",
+        "all": "All categories",
+        "analytics": "Analytics",
+        "automation": "Automation",
+        "batch": "Batch",
+        "campaigns": "Campaigns",
+        "content": "Content",
+        "editing": "Editing",
+        "entertainment": "Entertainment",
+        "generation": "Generation",
+        "integration": "Integration",
+        "launch": "Launch",
+        "library": "Library",
+        "product": "Product",
+        "realEstate": "Real Estate",
+        "routines": "Routines",
+        "social": "Social Media",
+        "system": "System",
+        "trends": "Trends",
+        "video": "Video"
+      },
       "category": "Category",
+      "clearFilters": "Clear filters",
+      "emptyCatalog": "No workflow templates are available yet.",
+      "errors": {
+        "bootstrap": "Failed to install workflow template",
+        "install": "Failed to install system workflow",
+        "load": "Templates could not be loaded.",
+        "loadCatalog": "Official workflows could not be loaded.",
+        "loadTemplates": "Starter templates could not be loaded."
+      },
+      "noMatches": "No workflows match these filters.",
+      "retry": "Retry",
       "schedule": "Schedule",
-      "source": "Source"
+      "scheduled": "Scheduled",
+      "searchPlaceholder": "Search templates...",
+      "sections": {
+        "all": "All templates",
+        "browseByType": "Browse by type",
+        "featured": "Featured"
+      },
+      "source": "Source",
+      "sources": {
+        "all": "All sources",
+        "available": "Available",
+        "installed": "Installed"
+      },
+      "templateCount": "{count, plural, one {# template} other {# templates}}"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",

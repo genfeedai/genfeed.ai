@@ -12,6 +12,7 @@ export const settingAttributes = createEntityAttributes([
   'isAdvancedMode',
   'contentPreferences',
   'favoriteModelKeys',
+  'favoriteWorkflowIds',
   'isAgentAssetsPanelOpen',
   'dashboardPreferences',
   'generationPriority',

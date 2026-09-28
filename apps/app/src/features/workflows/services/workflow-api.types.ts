@@ -79,6 +79,12 @@ export interface WorkflowSummary {
   nextRunAt?: string | null;
 }
 
+/** Workflow summary with usage returned from GET /workflows/most-used */
+export interface WorkflowUsageSummary extends WorkflowSummary {
+  executionCount: number;
+  lastExecutedAt?: string | null;
+}
+
 /** Payload for PATCH /workflows/:id (schedule fields) */
 export interface WorkflowScheduleInput {
   isScheduleEnabled: boolean;
@@ -283,6 +289,8 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   changeSummary?: string;
+  /** Featured-row position (1 = first); present only on showcase templates. */
+  featuredRank?: number;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: WorkflowInputVariable[];

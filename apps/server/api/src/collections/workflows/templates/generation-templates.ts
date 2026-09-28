@@ -1080,7 +1080,7 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
     {
       id: 'edge-founder-illustration-output',
       source: 'ai-generate-founder-illustration',
-      sourceHandle: 'image',
+      sourceHandle: 'imageUrl',
       target: 'workflow-output-founder-illustration',
       targetHandle: 'value',
     },
@@ -1283,21 +1283,21 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
     {
       id: 'edge-youtube-thumbnail-v1-output',
       source: 'ai-generate-youtube-thumbnail-v1',
-      sourceHandle: 'image',
+      sourceHandle: 'imageUrl',
       target: 'workflow-output-youtube-thumbnail-v1',
       targetHandle: 'value',
     },
     {
       id: 'edge-youtube-thumbnail-v2-output',
       source: 'ai-generate-youtube-thumbnail-v2',
-      sourceHandle: 'image',
+      sourceHandle: 'imageUrl',
       target: 'workflow-output-youtube-thumbnail-v2',
       targetHandle: 'value',
     },
     {
       id: 'edge-youtube-thumbnail-v3-output',
       source: 'ai-generate-youtube-thumbnail-v3',
-      sourceHandle: 'image',
+      sourceHandle: 'imageUrl',
       target: 'workflow-output-youtube-thumbnail-v3',
       targetHandle: 'value',
     },

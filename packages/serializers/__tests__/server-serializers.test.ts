@@ -124,6 +124,22 @@ describe('Server Serializers', () => {
         ]),
       );
     });
+
+    it('serializes workflow usage for the most-used list', () => {
+      const lastExecutedAt = new Date('2026-09-20T10:00:00.000Z');
+      const document = WorkflowSerializer.serialize({
+        executionCount: 42,
+        id: 'workflow-1',
+        label: 'Weekly recap',
+        lastExecutedAt,
+      }) as { data: { attributes: Record<string, unknown> } };
+
+      expect(document.data.attributes).toMatchObject({
+        executionCount: 42,
+        label: 'Weekly recap',
+        lastExecutedAt,
+      });
+    });
   });
 
   describe('BotSerializer', () => {
@@ -532,6 +548,19 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof SettingSerializer.serialize).toBe('function');
+    });
+
+    it('serializes the favorite workflow ids', () => {
+      const document = SettingSerializer.serialize({
+        favoriteWorkflowIds: ['workflow-1', 'workflow-2'],
+        id: 'setting-1',
+        theme: 'dark',
+      }) as { data: { attributes: Record<string, unknown> } };
+
+      expect(document.data.attributes.favoriteWorkflowIds).toEqual([
+        'workflow-1',
+        'workflow-2',
+      ]);
     });
   });
 

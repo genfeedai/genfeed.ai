@@ -877,6 +877,7 @@ describe('Serializer Attributes', () => {
       expect(settingAttributes).toContain('isSidebarProgressVisible');
       expect(settingAttributes).toContain('isSidebarProgressCollapsed');
       expect(settingAttributes).toContain('favoriteModelKeys');
+      expect(settingAttributes).toContain('favoriteWorkflowIds');
       expect(settingAttributes).toContain('isVideoNotificationsEmail');
     });
   });
