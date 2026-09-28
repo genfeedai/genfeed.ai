@@ -3,7 +3,7 @@ import ToolsContent from '@public/tools/tools-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Free AI Content Tools',
-  'Turn long-form content into social posts, short clips, articles, and newsletters with free Genfeed AI tools. Preview the output before you publish.',
+  'Use free Genfeed tools to turn a public YouTube video into a timestamped transcript, clip recommendations, an article, or a newsletter.',
   '/tools',
 );
 

@@ -37,6 +37,7 @@ const USER_AGENT =
   'Mozilla/5.0 (compatible; GenfeedSEOwatchdog/1.0; +https://genfeed.ai)';
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const RETIRED_ROUTE_PREFIXES = new Map([
+  ['https://genfeed.ai', ['/demo']],
   ['https://marketplace.genfeed.ai', ['/blog', '/free', '/featured']],
 ]);
 const RESOURCE_EXTENSION =
@@ -702,6 +703,86 @@ async function loadPriorSnapshot() {
   }
 }
 
+export function extractLlmsPageLinks(text, origin) {
+  const destinations = [
+    ...Array.from(
+      text.matchAll(/\[[^\]]*\]\(<?([^\s)>]+)>?(?:\s+[^)]*)?\)/g),
+      (match) => match[1],
+    ),
+    ...Array.from(text.matchAll(/https?:\/\/[^\s<>"'`]+/g), (match) =>
+      match[0].replace(/[.,;:!?)\]}]+$/, ''),
+    ),
+  ];
+  return [
+    ...new Set(
+      destinations
+        .map((value) => intendedCrawlUrl(value, origin))
+        .filter(Boolean),
+    ),
+  ];
+}
+
+export async function auditLlmsResources(
+  origin,
+  checkFailures,
+  fetchResource = fetchWithRedirects,
+) {
+  const resources = [];
+  for (const path of ['/llms.txt', '/llms-full.txt']) {
+    const url = `${origin}${path}`;
+    try {
+      const response = await fetchResource(url);
+      const available = response.status >= 200 && response.status < 300;
+      if (!available && ![404, 410].includes(response.status)) {
+        checkFailures.push({
+          check: 'llms_fetch',
+          url,
+          reason: `HTTP ${response.status}: llms resource unavailable.`,
+        });
+      }
+      resources.push({
+        url,
+        status: response.status,
+        final_url: response.finalUrl,
+        redirect_hops: response.redirectHops,
+        page_links: available
+          ? extractLlmsPageLinks(response.text, origin)
+          : [],
+      });
+    } catch (error) {
+      checkFailures.push({
+        check: 'llms_fetch',
+        url,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      resources.push({
+        url,
+        status: null,
+        final_url: null,
+        redirect_hops: [],
+        page_links: [],
+      });
+    }
+  }
+  return resources;
+}
+
+export function addLlmsDiscovery(queue, entries, originState) {
+  for (const resource of originState.llms ?? []) {
+    for (const url of resource.page_links) {
+      addQueueEntry(
+        queue,
+        entries,
+        url,
+        originState.origin,
+        0,
+        'llms.txt',
+        resource.url,
+      );
+    }
+  }
+}
+
 async function auditOriginInfrastructure(origin, checkFailures) {
   const robotsUrl = `${origin}/robots.txt`;
   const requestedSitemap = `${origin}/sitemap.xml`;
@@ -800,6 +881,7 @@ async function auditOriginInfrastructure(origin, checkFailures) {
       files: sitemapFiles,
       page_entries: uniqueEntries,
     },
+    llms: await auditLlmsResources(origin, checkFailures),
     selected_pagespeed_targets: [],
     url_count: 0,
     rendered_count: 0,
@@ -1050,6 +1132,8 @@ async function crawlOrigin({
     );
   }
 
+  addLlmsDiscovery(queue, entries, originState);
+
   const browserContext = await browser.newContext({
     userAgent: USER_AGENT,
     ignoreHTTPSErrors: false,
@@ -1180,7 +1264,12 @@ async function auditBreadcrumbs(records, checkFailures) {
   }
 }
 
-function makeIssues({ records, originStates, priorSnapshot, completedAt }) {
+export function makeIssues({
+  records,
+  originStates,
+  priorSnapshot,
+  completedAt,
+}) {
   const priorIssueMap = new Map(
     (priorSnapshot?.issues ?? []).map((issue) => [issue.fingerprint, issue]),
   );
@@ -1285,19 +1374,6 @@ function makeIssues({ records, originStates, priorSnapshot, completedAt }) {
       );
       continue;
     }
-    if (record.http_status >= 400) {
-      issue(
-        {
-          severity: 'error',
-          rule: 'http_error',
-          url: record.url,
-          observed: `HTTP ${record.http_status}`,
-          expected: 'HTTP 2xx or valid redirect destination',
-        },
-        record,
-      );
-      continue;
-    }
     const retiredPrefix = retiredRoutePrefix(record);
     if (
       retiredPrefix &&
@@ -1318,6 +1394,19 @@ function makeIssues({ records, originStates, priorSnapshot, completedAt }) {
         },
         record,
       );
+    }
+    if (record.http_status >= 400) {
+      issue(
+        {
+          severity: 'error',
+          rule: 'http_error',
+          url: record.url,
+          observed: `HTTP ${record.http_status}`,
+          expected: 'HTTP 2xx or valid redirect destination',
+        },
+        record,
+      );
+      continue;
     }
     if (record.redirect_hops.length - 1 > 1) {
       issue(
@@ -2045,30 +2134,35 @@ async function main() {
   );
 }
 
-main().catch(async (error) => {
-  const reason = error instanceof Error ? error.message : String(error);
-  if (
-    !checkFailures.some(
-      (failure) => failure.check === activeCheck && failure.reason === reason,
-    )
-  ) {
-    checkFailures.push({ check: activeCheck, url: activeUrl, reason });
-  }
-  try {
-    await persistSnapshot(REPORT_DIR, {
-      schema_version: 1,
-      snapshot_id: id,
-      status: 'partial',
-      started_at: started.toISOString(),
-      completed_at: new Date().toISOString(),
-      prior_successful_snapshot_id: priorSnapshot?.snapshot_id ?? null,
-      origins: originStates,
-      urls: records,
-      check_failures: checkFailures,
-    });
-  } catch (writeError) {
-    console.error('Unable to save partial snapshot:', writeError);
-  }
-  console.error(error instanceof Error ? error.stack : String(error));
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  main().catch(async (error) => {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (
+      !checkFailures.some(
+        (failure) => failure.check === activeCheck && failure.reason === reason,
+      )
+    ) {
+      checkFailures.push({ check: activeCheck, url: activeUrl, reason });
+    }
+    try {
+      await persistSnapshot(REPORT_DIR, {
+        schema_version: 1,
+        snapshot_id: id,
+        status: 'partial',
+        started_at: started.toISOString(),
+        completed_at: new Date().toISOString(),
+        prior_successful_snapshot_id: priorSnapshot?.snapshot_id ?? null,
+        origins: originStates,
+        urls: records,
+        check_failures: checkFailures,
+      });
+    } catch (writeError) {
+      console.error('Unable to save partial snapshot:', writeError);
+    }
+    console.error(error instanceof Error ? error.stack : String(error));
+    process.exitCode = 1;
+  });
+}

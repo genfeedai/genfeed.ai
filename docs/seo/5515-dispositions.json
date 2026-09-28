@@ -493,7 +493,7 @@
       "observed": "21 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Prompts is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "reason": "The prompts category currently displays an explicit Coming Soon notice. Accept the short availability message as an intentional placeholder; do not fabricate listing inventory, previews, or setup instructions to meet a word count.",
       "source": "Marketplace frontend: public route metadata and page content"
     },
     {
@@ -515,7 +515,7 @@
       "observed": "24 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Skills is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "reason": "The skills category currently displays an explicit Coming Soon notice. Accept the short availability message as an intentional placeholder; do not fabricate listing inventory, previews, or setup instructions to meet a word count.",
       "source": "Marketplace frontend: public route metadata and page content"
     },
     {
@@ -537,7 +537,7 @@
       "observed": "22 words",
       "status": "accepted",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "Workflows is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "reason": "The workflows category currently displays an explicit Coming Soon notice. Accept the short availability message as an intentional placeholder; do not fabricate listing inventory, previews, or setup instructions to meet a word count.",
       "source": "Marketplace frontend: public route metadata and page content"
     },
     {
@@ -1078,10 +1078,10 @@
       "rule": "thin_content",
       "severity": "warning",
       "observed": "110 words",
-      "status": "deployment_pending",
+      "status": "source_correction",
       "owner": "Vincent Tellier (@decod3rs)",
-      "reason": "The demo route is absent from the current website source and sitemap. Verify a direct 404/410 and no current discovery references on deployment; do not add content or a redirect.",
-      "source": "apps/website/app/sitemap.ts"
+      "reason": "The demo route is absent from current website source and sitemap; remove its remaining generated llms.txt link. Verify a direct 404/410 and no current discovery references on deployment; do not add content or a redirect.",
+      "source": "apps/website/scripts/generate-llms-txt.ts"
     },
     {
       "fingerprint": "b6a07d34e9b2f5f88531ac93cd1737cc69363febe66ac512ffa894e6319812cd",

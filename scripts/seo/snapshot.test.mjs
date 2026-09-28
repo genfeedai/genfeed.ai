@@ -10,6 +10,12 @@ import {
   isPriorOnlyHardCut,
   persistSnapshot,
 } from './snapshot.mjs';
+import {
+  addLlmsDiscovery,
+  auditLlmsResources,
+  extractLlmsPageLinks,
+  makeIssues,
+} from './watchdog.mjs';
 
 for (const check of [
   'page_fetch',
@@ -225,4 +231,123 @@ test('redirected prior-only 404 remains active and violates the direct hard-cut 
     isDirectHardCut({ ...record, redirect_hops: [{ status: 404 }] }),
     true,
   );
+});
+
+test('redirected retired 404 keeps the retired fingerprint and HTTP error in generated issues', () => {
+  const url = 'https://marketplace.genfeed.ai/blog/old';
+  const record = {
+    url,
+    normalized_url: url,
+    origin: 'https://marketplace.genfeed.ai',
+    discovery_sources: ['prior_successful_snapshot'],
+    http_status: 404,
+    redirect_hops: [{ status: 301 }, { status: 404 }],
+    final_url: 'https://marketplace.genfeed.ai/missing',
+    robots: { indexable: false },
+  };
+  const input = {
+    records: [record],
+    originStates: {},
+    priorSnapshot: null,
+    completedAt: '2026-09-28T12:00:00Z',
+  };
+  const { issues, recordByUrl } = makeIssues(input);
+  assert.deepEqual(issues.map((issue) => issue.rule).sort(), [
+    'http_error',
+    'retired_route_not_hard_cut',
+  ]);
+  const retired = issues.find(
+    (issue) => issue.rule === 'retired_route_not_hard_cut',
+  );
+  const diff = buildDiff({
+    issues,
+    recordByUrl,
+    priorSnapshot: { issues: [retired] },
+    completedAt: input.completedAt,
+  });
+  assert.deepEqual(diff.resolved, []);
+  assert.equal(
+    makeIssues({
+      ...input,
+      records: [{ ...record, redirect_hops: [{ status: 404 }] }],
+    }).issues.length,
+    0,
+  );
+});
+
+test('llms links enter current discovery and keep retired routes actionable', () => {
+  const origin = 'https://genfeed.ai';
+  const links = extractLlmsPageLinks(
+    '[Demo](/demo) https://genfeed.ai/demo. [External](https://other.example/page) https://genfeed.ai/image.png',
+    origin,
+  );
+  assert.deepEqual(links, [`${origin}/demo`]);
+  const queue = [];
+  const entries = new Map();
+  addLlmsDiscovery(queue, entries, {
+    origin,
+    llms: [{ url: `${origin}/llms.txt`, page_links: links }],
+  });
+  assert.deepEqual([...entries.get(`${origin}/demo`).sources], ['llms.txt']);
+  assert.deepEqual([...queue[0].sourceUrls], [`${origin}/llms.txt`]);
+  const record = {
+    url: `${origin}/demo`,
+    normalized_url: `${origin}/demo`,
+    origin,
+    discovery_sources: [...queue[0].sources],
+    http_status: 404,
+    redirect_hops: [{ status: 404 }],
+    robots: { indexable: false },
+  };
+  assert.equal(isPriorOnlyHardCut(record), false);
+  const input = {
+    records: [record],
+    originStates: {},
+    priorSnapshot: null,
+    completedAt: '2026-09-28T12:00:00Z',
+  };
+  assert.deepEqual(
+    makeIssues(input).issues.map((issue) => issue.rule),
+    ['http_error'],
+  );
+  assert.deepEqual(
+    makeIssues({
+      ...input,
+      records: [
+        { ...record, redirect_hops: [{ status: 301 }, { status: 404 }] },
+      ],
+    })
+      .issues.map((issue) => issue.rule)
+      .sort(),
+    ['http_error', 'retired_route_not_hard_cut'],
+  );
+});
+
+test('optional llms absence succeeds while unavailable responses retain exact failures', async () => {
+  const failures = [];
+  const origin = 'https://genfeed.ai';
+  const absent = await auditLlmsResources(origin, failures, async (url) => ({
+    status: url.endsWith('/llms.txt') ? 404 : 410,
+    finalUrl: url,
+    redirectHops: [],
+    text: '',
+  }));
+  assert.equal(absent.length, 2);
+  assert.deepEqual(failures, []);
+  await auditLlmsResources(origin, failures, async (url) => {
+    if (url.endsWith('/llms.txt')) throw new Error('connection timed out');
+    return { status: 503, finalUrl: url, redirectHops: [], text: '' };
+  });
+  assert.deepEqual(failures, [
+    {
+      check: 'llms_fetch',
+      url: `${origin}/llms.txt`,
+      reason: 'connection timed out',
+    },
+    {
+      check: 'llms_fetch',
+      url: `${origin}/llms-full.txt`,
+      reason: 'HTTP 503: llms resource unavailable.',
+    },
+  ]);
 });
