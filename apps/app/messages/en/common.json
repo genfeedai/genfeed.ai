@@ -1235,7 +1235,6 @@
       },
       "library": {
         "autopilot": "Agent",
-        "created": "Created",
         "description": "Use workflows for fixed, reusable automation graphs and scheduled pipelines.",
         "info": "are explicit automation graphs. Schedule a workflow when the steps should be predictable and repeatable. For adaptive agent behavior, use",
         "infoSuffix": ".",
@@ -1261,7 +1260,20 @@
         "updated": "Updated",
         "next": "Next",
         "pageStatus": "Page {page} of {pages}",
-        "previous": "Previous"
+        "previous": "Previous",
+        "disableScheduleFor": "Disable schedule for {name}",
+        "enableScheduleFor": "Enable schedule for {name}",
+        "openWorkflow": "Open {name}",
+        "sectionAll": "All workflows",
+        "sectionRecent": "Recent",
+        "sectionFavorites": "Favorites",
+        "sectionMostUsed": "Most used by your team",
+        "runsCount": "{count, plural, one {# run} other {# runs}}",
+        "addFavorite": "Add to favorites",
+        "removeFavorite": "Remove from favorites",
+        "favoriteLimit": "You can save up to 50 favorite workflows.",
+        "favoriteSaveError": "Could not update favorites. Try again.",
+        "sectionError": "Could not load this section. Try again."
       },
       "schedule": {
         "actions": {
