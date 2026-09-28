@@ -4,6 +4,7 @@ import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendingHashtagsProps } from '@genfeedai/props/analytics/trends.props';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -37,14 +38,18 @@ export function TrendingHashtags({
           <div className="animate-pulse h-6 bg-background w-40" />
           <div className="animate-pulse h-8 bg-background w-48" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((placeholderId) => (
+        <CollectionGrid
+          data-testid="trending-hashtags-skeleton"
+          density="tile"
+          maxColumns={3}
+        >
+          {[1, 2, 3, 4, 5, 6].map((placeholderId) => (
             <div
               key={placeholderId}
               className="animate-pulse h-24 bg-background"
             />
           ))}
-        </div>
+        </CollectionGrid>
       </div>
     );
   }
@@ -113,7 +118,11 @@ export function TrendingHashtags({
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <CollectionGrid
+        data-testid="trending-hashtags-grid"
+        density="tile"
+        maxColumns={3}
+      >
         {sortedHashtags.slice(0, 12).map((hashtag) => {
           const config = PLATFORM_CONFIGS[hashtag.platform];
           const Icon = config?.icon;
@@ -192,7 +201,7 @@ export function TrendingHashtags({
             </Card>
           );
         })}
-      </div>
+      </CollectionGrid>
 
       {sortedHashtags.length > 12 && (
         <p className="text-center text-sm text-foreground/60">

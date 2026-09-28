@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -16,7 +17,12 @@ vi.mock('next-intl', () => ({
       'actions.openSource': 'Open source',
       'actions.remix': 'Remix',
       'actions.remixUnavailable': 'Remix unavailable',
+      'actions.saveBrief': 'Save brief',
+      'actions.savingBrief': 'Saving brief…',
+      'actions.selectedAsContext': 'Selected for context',
       'actions.sendToAgent': 'Send to agent',
+      'actions.useAsContext': 'Use as context',
+      moreActions: 'More actions',
     };
     return messages[key] ?? key;
   },
@@ -47,6 +53,14 @@ vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
 }));
 
 import TrendContentCard from './trend-content-card';
+
+// Radix opens the dropdown on pointerdown, which jsdom does not synthesize
+// from a click — fire both, as the other overflow-menu specs do.
+function openOverflow() {
+  const trigger = screen.getByRole('button', { name: 'More actions' });
+  fireEvent.pointerDown(trigger);
+  fireEvent.click(trigger);
+}
 
 describe('TrendContentCard', () => {
   const item: TrendContentItem = {
@@ -193,9 +207,126 @@ describe('TrendContentCard', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+    // Use as context lives in the overflow menu, never beside Remix.
+    expect(screen.queryByRole('button', { name: 'Use as context' })).toBeNull();
+  });
+
+  it('shows Remix as the only visible action and moves the rest to overflow', async () => {
+    const onSelectAction = vi.fn();
+    const finding = {
+      metadata: [],
+      reference: { id: 'content-1', kind: 'research-trend-content' as const },
+      title: 'X context',
+    };
+    render(
+      <TrendContentCard
+        finding={finding}
+        item={item}
+        onSelectAction={onSelectAction}
+      />,
+    );
+
     expect(
-      screen.getByRole('button', { name: 'Use as context' }),
-    ).toBeVisible();
+      screen
+        .getAllByRole('button')
+        .map(
+          (button) => button.getAttribute('aria-label') ?? button.textContent,
+        ),
+    ).toEqual(['Remix', 'More actions']);
+
+    openOverflow();
+
+    expect(
+      (await screen.findAllByRole('menuitem')).map((menuItem) =>
+        menuItem.textContent?.trim(),
+      ),
+    ).toEqual([
+      'Use as context',
+      'Save brief',
+      'Copy prompt',
+      'Open source',
+      'Send to agent',
+    ]);
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Use as context' }));
+    expect(onSelectAction).toHaveBeenCalledWith(finding);
+  });
+
+  it('renders Open source and Send to agent as real links in the keyboard-opened menu', async () => {
+    const user = userEvent.setup();
+    render(<TrendContentCard item={item} />);
+
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+
+    const source = screen.getByRole('menuitem', { name: 'Open source' });
+    expect(source.tagName).toBe('A');
+    expect(source).toHaveAttribute('href', 'https://x.com/source/status/1');
+    expect(source).toHaveAttribute('target', '_blank');
+    expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const agent = screen.getByRole('menuitem', { name: 'Send to agent' });
+    expect(agent.tagName).toBe('A');
+    expect(agent.getAttribute('href')).toContain('prompt=');
+    expect(agent).not.toHaveAttribute('target');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('omits Open source when the source URL is not a safe http(s) link', async () => {
+    render(
+      <TrendContentCard item={{ ...item, sourceUrl: 'javascript:alert(1)' }} />,
+    );
+
+    openOverflow();
+    await screen.findByRole('menu');
+
+    expect(
+      screen.queryByRole('menuitem', { name: 'Open source' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Send to agent' }),
+    ).toBeInTheDocument();
+  });
+
+  it('marks the selected finding and disables re-selecting it', async () => {
+    const { container } = render(
+      <TrendContentCard
+        finding={{
+          metadata: [],
+          reference: { id: 'content-1', kind: 'research-trend-content' },
+          title: 'X context',
+        }}
+        isSelected
+        item={item}
+        onSelectAction={vi.fn()}
+      />,
+    );
+
+    expect(container.firstElementChild).toHaveClass('ring-primary/50');
+
+    openOverflow();
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Selected for context' }),
+    ).toHaveAttribute('data-disabled');
+  });
+
+  it('renders on the shared card surface without glass or lift classes', () => {
+    const { container } = render(<TrendContentCard item={item} />);
+    const card = container.firstElementChild as HTMLElement;
+
+    expect(card).toHaveClass('rounded-card', 'shadow-border');
+    expect(card.className).not.toMatch(/gen-glass|gen-hover-lift|rounded-lg/);
   });
 
   it.each(['instagram', 'youtube'] as const)(

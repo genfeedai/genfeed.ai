@@ -1560,6 +1560,9 @@
         "openSource": "Open source",
         "remix": "Remix",
         "remixUnavailable": "Remix unavailable",
+        "saveBrief": "Save brief",
+        "savingBrief": "Saving brief…",
+        "selectedAsContext": "Selected for context",
         "sendToAgent": "Send to agent",
         "useAsContext": "Use as context"
       },

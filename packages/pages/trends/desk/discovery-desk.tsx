@@ -49,6 +49,7 @@ import type {
 import type { ViewOption } from '@props/ui/navigation/view-toggle.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import CollectionView from '@ui/collection/CollectionView';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
@@ -425,7 +426,19 @@ export default function DiscoveryDesk() {
           </Alert>
         ) : null}
 
-        {isLoading ? (
+        {isLoading && !isFollowingView && view === ViewType.GRID ? (
+          // The light-table skeleton mirrors the grid it is waiting for.
+          <CollectionView
+            data-testid="desk-light-table-skeleton"
+            getItemKey={(item) => item.key}
+            isLoading
+            items={items}
+            maxColumns={4}
+            renderGridItem={() => null}
+            renderListItem={() => null}
+            view={ViewType.GRID}
+          />
+        ) : isLoading ? (
           <div className="py-8 text-sm text-foreground/40">
             {translateDesk('loading')}
           </div>

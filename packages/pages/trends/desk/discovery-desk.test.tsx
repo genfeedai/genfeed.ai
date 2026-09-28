@@ -276,6 +276,40 @@ describe('DiscoveryDesk', () => {
     expect(screen.queryByTestId('desk-table-view')).not.toBeInTheDocument();
   });
 
+  it('mirrors the light-table grid with skeleton cards while it loads', () => {
+    mocks.paramState.view = 'grid';
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      isLoading: true,
+      items: [],
+    });
+
+    render(<DiscoveryDesk />);
+
+    const skeleton = screen.getByTestId('desk-light-table-skeleton');
+    expect(skeleton).toHaveClass('@container');
+    expect(skeleton.querySelectorAll('[role="status"]').length).toBeGreaterThan(
+      0,
+    );
+    expect(
+      screen.queryByTestId('desk-light-table-view'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the text loading state for the table view', () => {
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      isLoading: true,
+      items: [],
+    });
+
+    render(<DiscoveryDesk />);
+
+    expect(
+      screen.queryByTestId('desk-light-table-skeleton'),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the Following deck with one column per platform when ?source=following', () => {
     const trendsItem = buildItem({
       key: 'trend:public',
