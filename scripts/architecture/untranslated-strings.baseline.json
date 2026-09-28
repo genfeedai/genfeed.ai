@@ -32,7 +32,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendsPageHeader.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentOpportunityPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentWorkflowBindCard.tsx": 5,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/AgentHubPage.tsx": 7,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/AgentHubPage.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/AgentWorkflowRunDialog.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/new/AgentWizardHelpers.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/new/AgentWizardPage.tsx": 2,

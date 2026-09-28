@@ -1,20 +1,19 @@
 import { AgentType, Platform } from '@genfeedai/contracts';
 import { PUBLISH_PLATFORMS } from '@genfeedai/contracts/constants';
-import {
-  LinkedinIcon,
-  XTwitterIcon,
-  YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
 import type { AgentTypeIcon } from '@genfeedai/props/automation/agent-type-display.props';
 import {
-  Cpu,
+  Clapperboard,
   FileText,
   Image as ImageIcon,
+  Layers,
   Megaphone,
-  Sparkles,
-  User,
+  MessageSquareText,
+  Mic,
+  MousePointerClick,
+  Newspaper,
+  ScrollText,
+  SquareUser,
   Video,
-  Zap,
 } from 'lucide-react';
 
 export type { AgentTypeIcon };
@@ -34,19 +33,23 @@ export const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.BRAND_INTERVIEW]: 'Brand Interview',
 };
 
+/**
+ * Each icon depicts what the agent produces — a post, an image, a video, a
+ * script — never the platform it publishes to or a generic avatar.
+ */
 export const AGENT_TYPE_ICON_COMPONENTS: Record<AgentType, AgentTypeIcon> = {
-  [AgentType.GENERAL]: Cpu,
-  [AgentType.X_CONTENT]: XTwitterIcon,
+  [AgentType.GENERAL]: Layers,
+  [AgentType.X_CONTENT]: MessageSquareText,
   [AgentType.IMAGE_CREATOR]: ImageIcon,
   [AgentType.VIDEO_CREATOR]: Video,
-  [AgentType.AI_AVATAR]: User,
+  [AgentType.AI_AVATAR]: SquareUser,
   [AgentType.ARTICLE_WRITER]: FileText,
-  [AgentType.LINKEDIN_CONTENT]: LinkedinIcon,
+  [AgentType.LINKEDIN_CONTENT]: Newspaper,
   [AgentType.ADS_SCRIPT_WRITER]: Megaphone,
-  [AgentType.SHORT_FORM_WRITER]: Zap,
-  [AgentType.CTA_CONTENT]: Sparkles,
-  [AgentType.YOUTUBE_SCRIPT]: YoutubeIcon,
-  [AgentType.BRAND_INTERVIEW]: Sparkles,
+  [AgentType.SHORT_FORM_WRITER]: Clapperboard,
+  [AgentType.CTA_CONTENT]: MousePointerClick,
+  [AgentType.YOUTUBE_SCRIPT]: ScrollText,
+  [AgentType.BRAND_INTERVIEW]: Mic,
 };
 
 export const AGENT_TYPE_DEFAULTS: Record<
@@ -132,11 +135,16 @@ export const AGENT_TYPE_OPTIONS = (Object.values(AgentType) as AgentType[]).map(
   }),
 );
 
+const FALLBACK_AGENT_TYPE_ICON = AGENT_TYPE_ICON_COMPONENTS[AgentType.GENERAL];
+
 export function getAgentTypeIcon(agentType: string | undefined): AgentTypeIcon {
   if (!agentType) {
-    return Cpu;
+    return FALLBACK_AGENT_TYPE_ICON;
   }
-  return AGENT_TYPE_ICON_COMPONENTS[agentType as AgentType] ?? Cpu;
+  return (
+    AGENT_TYPE_ICON_COMPONENTS[agentType as AgentType] ??
+    FALLBACK_AGENT_TYPE_ICON
+  );
 }
 
 export function getAgentTypeLabel(agentType: string | undefined): string {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -12,6 +12,14 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type {
+  AgentHubActionsProps,
+  AgentHubCardProps,
+  AgentHubFactsProps,
+  AgentHubRowProps,
+} from '@props/automation/agent-hub.props';
+import type { CollectionOverflowAction } from '@props/ui/collection/collection.props';
 import {
   AgentStrategiesService,
   type AgentStrategy,
@@ -20,142 +28,279 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Badge from '@ui/display/badge/Badge';
+import Card from '@ui/card/Card';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionList from '@ui/collection/CollectionList';
+import CollectionSection from '@ui/collection/CollectionSection';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
+import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import { CirclePlay, UserPlus, Users, Workflow } from 'lucide-react';
+import {
+  CirclePause,
+  CirclePlay,
+  Play,
+  UserPlus,
+  Users,
+  Workflow,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AddAgentDialog, { type AddAgentMode } from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 
-function AgentCard({
-  strategy,
-  onToggle,
-  onRunNow,
-  onRunWorkflow,
-}: {
-  strategy: AgentStrategy;
-  onToggle: (id: string, isActive: boolean) => Promise<void>;
-  onRunNow: (id: string) => Promise<void>;
-  onRunWorkflow: (strategy: AgentStrategy) => void;
-}) {
-  const translate = useTranslations('common.automation.agentHub');
-  const Icon = getAgentTypeIcon(strategy.agentType);
-  const typeLabel = getAgentTypeLabel(strategy.agentType);
-
-  const lastRunLabel = strategy.lastRunAt
-    ? formatDistanceToNow(new Date(strategy.lastRunAt), { addSuffix: true })
-    : 'Never';
-
-  const hasWorkflowBinding = Boolean(
-    strategy.preferredWorkflowId || strategy.preferredWorkflowTemplateId,
-  );
-
-  return (
-    <div className="rounded bg-secondary p-4 shadow-border flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded bg-foreground/5 text-foreground/70">
-            <Icon className="size-5" />
-          </span>
-          <div>
-            <p className="font-medium text-sm">{strategy.label}</p>
-            <p className="text-xs text-foreground/50 uppercase tracking-wide">
-              {typeLabel}
-            </p>
-          </div>
-        </div>
-        <Badge status={strategy.isActive ? 'active' : 'planned'}>
-          {strategy.isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      </div>
-
-      {strategy.brand && (
-        <p className="text-xs text-foreground/50">
-          {translate('card.brand', { brand: strategy.brand.label })}
-        </p>
-      )}
-
-      <div className="grid grid-cols-2 gap-2 text-xs text-foreground/60">
-        <div>
-          <span className="block text-foreground/40">
-            {translate('card.lastRun')}
-          </span>
-          <span>{lastRunLabel}</span>
-        </div>
-        <div>
-          <span className="block text-foreground/40">
-            {translate('card.creditsToday')}
-          </span>
-          <span>
-            {strategy.creditsUsedToday} / {strategy.dailyCreditBudget}
-          </span>
-        </div>
-      </div>
-
-      {hasWorkflowBinding ? (
-        <p className="text-xs text-foreground/40">
-          {translate('card.workflow', {
-            workflow:
-              strategy.preferredWorkflowTemplateId ||
-              strategy.preferredWorkflowId ||
-              '',
-          })}
-        </p>
-      ) : (
-        <p className="text-xs text-foreground/40">
-          {translate('card.workflowDefault')}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <Button
-          label="Run workflow"
-          icon={<Workflow className="size-4" />}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.DEFAULT}
-          onClick={() => onRunWorkflow(strategy)}
-          tooltip="Fill topic/prompt/assets and run the bound workflow"
-        />
-        <Button
-          label={translate('runNow')}
-          icon={<CirclePlay className="size-4" />}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          onClick={() => onRunNow(strategy.id)}
-          tooltip="Queue a run with this agent's current schedule and skills"
-        />
-        <Button
-          label={strategy.isActive ? 'Pause' : 'Activate'}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          onClick={() => onToggle(strategy.id, !strategy.isActive)}
-        />
-        <Link
-          href={`${APP_ROUTES.AUTOMATION.AGENTS}/${strategy.id}`}
-          className="ml-auto text-xs text-foreground/50 hover:text-foreground underline underline-offset-2"
-        >
-          {translate('card.viewDetail')}
-        </Link>
-      </div>
-    </div>
-  );
-}
+/** Per-viewer list/grid preference key for this collection. */
+const AGENT_HUB_SURFACE = 'automation.agents';
 
 /** Cadence for refreshing agent run state while the tab is in front. */
 const AGENT_HUB_POLL_INTERVAL_MS = 30_000;
+
+/** Your agents lists the most recently run healthy agents, not the whole team. */
+const YOUR_AGENTS_LIMIT = 5;
+
+const AGENT_HUB_SKELETON_COUNT = 3;
+
+const FACT_SEPARATOR = ' · ';
+
+/**
+ * `consecutiveFailures` resets to 0 on every successful run, so any positive
+ * count means the most recent run failed.
+ */
+function hasFailedLastRun(strategy: AgentStrategy): boolean {
+  return strategy.consecutiveFailures > 0;
+}
+
+function isNeedingAttention(strategy: AgentStrategy): boolean {
+  return !strategy.isActive || hasFailedLastRun(strategy);
+}
+
+function compareLastRunDescending(
+  left: AgentStrategy,
+  right: AgentStrategy,
+): number {
+  return (
+    new Date(right.lastRunAt ?? 0).getTime() -
+    new Date(left.lastRunAt ?? 0).getTime()
+  );
+}
+
+function AgentHubFacts({ section, strategy }: AgentHubFactsProps) {
+  const translate = useTranslations('common.automation.agentHub');
+  const facts: string[] = [];
+
+  if (section === 'all') {
+    const typeLabel = getAgentTypeLabel(strategy.agentType);
+    if (typeLabel) {
+      facts.push(typeLabel);
+    }
+  }
+
+  if (section !== 'yours' && isNeedingAttention(strategy)) {
+    if (!strategy.isActive && hasFailedLastRun(strategy)) {
+      facts.push(
+        translate('status.pausedAfterFailures', {
+          count: strategy.consecutiveFailures,
+        }),
+      );
+    } else if (!strategy.isActive) {
+      facts.push(translate('status.paused'));
+    } else {
+      facts.push(translate('status.lastRunFailed'));
+    }
+  }
+
+  if (section === 'all' && strategy.brand) {
+    facts.push(translate('card.brand', { brand: strategy.brand.label }));
+  }
+
+  if (strategy.lastRunAt) {
+    facts.push(
+      translate('card.lastRun', {
+        time: formatDistanceToNow(new Date(strategy.lastRunAt), {
+          addSuffix: true,
+        }),
+      }),
+    );
+  }
+
+  if (section === 'all') {
+    facts.push(
+      translate('card.creditsToday', {
+        budget: strategy.dailyCreditBudget,
+        used: strategy.creditsUsedToday,
+      }),
+    );
+
+    const workflow =
+      strategy.preferredWorkflowTemplateId || strategy.preferredWorkflowId;
+    if (workflow) {
+      facts.push(translate('card.workflow', { workflow }));
+    }
+  }
+
+  return <span className="min-w-0 truncate">{facts.join(FACT_SEPARATOR)}</span>;
+}
+
+function AgentHubActions({
+  onRunNow,
+  onRunWorkflow,
+  onToggle,
+  primaryAction,
+  strategy,
+}: AgentHubActionsProps) {
+  const translate = useTranslations('common.automation.agentHub');
+
+  const runNowAction: CollectionOverflowAction = {
+    icon: <CirclePlay className="size-4" />,
+    id: 'run-now',
+    label: translate('runNow'),
+    onSelect: () => {
+      void onRunNow(strategy.id);
+    },
+  };
+  const runWorkflowAction: CollectionOverflowAction = {
+    icon: <Workflow className="size-4" />,
+    id: 'run-workflow',
+    label: translate('runWorkflow'),
+    onSelect: () => onRunWorkflow(strategy),
+  };
+  const toggleAction: CollectionOverflowAction = {
+    icon: strategy.isActive ? (
+      <CirclePause className="size-4" />
+    ) : (
+      <Play className="size-4" />
+    ),
+    id: 'toggle-active',
+    label: strategy.isActive ? translate('pause') : translate('activate'),
+    onSelect: () => {
+      void onToggle(strategy.id, !strategy.isActive);
+    },
+  };
+
+  const isActivatePrimary = primaryAction === 'activate';
+
+  return (
+    <CollectionItemActions
+      overflow={
+        isActivatePrimary
+          ? [runNowAction, runWorkflowAction]
+          : [runWorkflowAction, toggleAction]
+      }
+      primary={
+        isActivatePrimary ? (
+          <Button
+            icon={<Play className="size-4" />}
+            label={translate('activate')}
+            onClick={() => onToggle(strategy.id, true)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : (
+          <Button
+            icon={<CirclePlay className="size-4" />}
+            label={translate('runNow')}
+            onClick={() => onRunNow(strategy.id)}
+            size={ButtonSize.SM}
+            tooltip={translate('runNowTooltip')}
+            variant={ButtonVariant.SECONDARY}
+          />
+        )
+      }
+    />
+  );
+}
+
+function AgentHubRow({
+  onRunNow,
+  onRunWorkflow,
+  onToggle,
+  section,
+  strategy,
+}: AgentHubRowProps) {
+  const { href } = useOrgUrl();
+  const Icon = getAgentTypeIcon(strategy.agentType);
+
+  return (
+    <ListRow
+      data-testid={`agent-row-${section}-${strategy.id}`}
+      density={section === 'all' ? 'comfortable' : 'compact'}
+      leading={
+        <span className="flex size-8 shrink-0 items-center justify-center text-foreground/70">
+          <Icon className="size-4" />
+        </span>
+      }
+      meta={<AgentHubFacts section={section} strategy={strategy} />}
+      title={
+        <Link
+          className="hover:underline"
+          href={href(`${APP_ROUTES.AUTOMATION.AGENTS}/${strategy.id}`)}
+        >
+          {strategy.label}
+        </Link>
+      }
+      trailing={
+        <AgentHubActions
+          onRunNow={onRunNow}
+          onRunWorkflow={onRunWorkflow}
+          onToggle={onToggle}
+          primaryAction={
+            section === 'needsYou' && !strategy.isActive ? 'activate' : 'runNow'
+          }
+          strategy={strategy}
+        />
+      }
+    />
+  );
+}
+
+function AgentHubCard({
+  onRunNow,
+  onRunWorkflow,
+  onToggle,
+  strategy,
+}: AgentHubCardProps) {
+  const { href } = useOrgUrl();
+
+  return (
+    <Card
+      actions={
+        <AgentHubActions
+          onRunNow={onRunNow}
+          onRunWorkflow={onRunWorkflow}
+          onToggle={onToggle}
+          primaryAction="runNow"
+          strategy={strategy}
+        />
+      }
+      data-testid={`agent-card-${strategy.id}`}
+      icon={getAgentTypeIcon(strategy.agentType)}
+      label={
+        <Link
+          className="hover:underline"
+          href={href(`${APP_ROUTES.AUTOMATION.AGENTS}/${strategy.id}`)}
+        >
+          {strategy.label}
+        </Link>
+      }
+    >
+      <p className="flex min-w-0 text-xs text-muted-foreground">
+        <AgentHubFacts section="all" strategy={strategy} />
+      </p>
+    </Card>
+  );
+}
 
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
   const collectionScope = useCollectionScope();
   const { brandId, isReady, organizationId, pageScope } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
-  const { strategies, isLoading, refresh } = useAgentStrategies({
+  const { error, strategies, isLoading, refresh } = useAgentStrategies({
     ...toBrandListParams({ brandId }),
     enabled: isCollectionFetchReady({
       brandId,
@@ -163,6 +308,10 @@ export default function AgentHubPage() {
       organizationId,
       pageScope,
     }),
+  });
+  const { setView, view } = useCollectionViewPreference({
+    defaultView: ViewType.LIST,
+    surface: AGENT_HUB_SURFACE,
   });
   const notificationsService = NotificationsService.getInstance();
   const pathname = usePathname();
@@ -197,6 +346,23 @@ export default function AgentHubPage() {
   }, [addIntent]);
 
   useVisiblePolling(refresh, { intervalMs: AGENT_HUB_POLL_INTERVAL_MS });
+
+  const needsYouAgents = useMemo(
+    () => strategies.filter(isNeedingAttention),
+    [strategies],
+  );
+
+  const yourAgents = useMemo(
+    () =>
+      strategies
+        .filter(
+          (strategy) =>
+            !isNeedingAttention(strategy) && Boolean(strategy.lastRunAt),
+        )
+        .sort(compareLastRunDescending)
+        .slice(0, YOUR_AGENTS_LIMIT),
+    [strategies],
+  );
 
   const handleToggle = useCallback(
     async (id: string, isActive: boolean) => {
@@ -296,7 +462,17 @@ export default function AgentHubPage() {
     [addIntent, pathname, router],
   );
 
-  const isEmpty = !isLoading && strategies.length === 0;
+  const hasStrategies = strategies.length > 0;
+  // A failed poll keeps showing the agents already loaded; only a failure
+  // with nothing to show replaces the collection with the error.
+  const hasLoadError = error !== null && !isLoading && !hasStrategies;
+  const isEmpty = !isLoading && !hasLoadError && !hasStrategies;
+
+  const actionHandlers = {
+    onRunNow: handleRunNow,
+    onRunWorkflow: handleOpenWorkflow,
+    onToggle: handleToggle,
+  };
 
   return (
     <Container
@@ -315,20 +491,7 @@ export default function AgentHubPage() {
         )
       }
     >
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            'agent-hub-skeleton-1',
-            'agent-hub-skeleton-2',
-            'agent-hub-skeleton-3',
-          ].map((skeletonId) => (
-            <div
-              key={skeletonId}
-              className="h-44 animate-pulse rounded border border-foreground/10 bg-foreground/5"
-            />
-          ))}
-        </div>
-      ) : strategies.length === 0 ? (
+      {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
           <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
             <Users className="size-8" />
@@ -348,16 +511,87 @@ export default function AgentHubPage() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {strategies.map((strategy) => (
-            <AgentCard
-              key={strategy.id}
-              strategy={strategy}
-              onToggle={handleToggle}
-              onRunNow={handleRunNow}
-              onRunWorkflow={handleOpenWorkflow}
+        <div className="flex flex-col gap-8">
+          <CollectionSection
+            data-testid="agent-hub-section-needs-you"
+            isCountVisible
+            itemCount={needsYouAgents.length}
+            title={translate('sections.needsYou')}
+          >
+            <CollectionList>
+              {needsYouAgents.map((strategy) => (
+                <AgentHubRow
+                  key={strategy.id}
+                  section="needsYou"
+                  strategy={strategy}
+                  {...actionHandlers}
+                />
+              ))}
+            </CollectionList>
+          </CollectionSection>
+
+          <CollectionSection
+            data-testid="agent-hub-section-yours"
+            itemCount={yourAgents.length}
+            title={translate('sections.yours')}
+          >
+            <CollectionList>
+              {yourAgents.map((strategy) => (
+                <AgentHubRow
+                  key={strategy.id}
+                  section="yours"
+                  strategy={strategy}
+                  {...actionHandlers}
+                />
+              ))}
+            </CollectionList>
+          </CollectionSection>
+
+          <CollectionSection
+            actions={
+              hasLoadError ? undefined : (
+                <CollectionToolbar onViewChange={setView} view={view} />
+              )
+            }
+            data-testid="agent-hub-section-all"
+            error={
+              hasLoadError ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>{translate('loadError')}</span>
+                  <Button
+                    label={translate('retry')}
+                    onClick={() => void refresh()}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  />
+                </div>
+              ) : undefined
+            }
+            isCountVisible
+            isLoading={isLoading}
+            itemCount={strategies.length}
+            title={translate('sections.all')}
+          >
+            <CollectionView
+              data-testid="agent-hub-collection"
+              getItemKey={(strategy) => strategy.id}
+              isLoading={isLoading}
+              items={strategies}
+              maxColumns={3}
+              renderGridItem={(strategy) => (
+                <AgentHubCard strategy={strategy} {...actionHandlers} />
+              )}
+              renderListItem={(strategy) => (
+                <AgentHubRow
+                  section="all"
+                  strategy={strategy}
+                  {...actionHandlers}
+                />
+              )}
+              skeletonCount={AGENT_HUB_SKELETON_COUNT}
+              view={view}
             />
-          ))}
+          </CollectionSection>
         </div>
       )}
 

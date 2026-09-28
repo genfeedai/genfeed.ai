@@ -106,6 +106,63 @@ describe('useAgentStrategies', () => {
 
     expect(mockList).toHaveBeenCalled();
   });
+
+  it('exposes a rejected list request as an error, not as an empty list', async () => {
+    mockList.mockRejectedValueOnce(new Error('Network down'));
+
+    const { result } = renderHook(() => useAgentStrategies(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    expect(result.current.error?.message).toBe('Network down');
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.strategies).toEqual([]);
+  });
+
+  it('clears the error when refresh succeeds', async () => {
+    mockList
+      .mockRejectedValueOnce(new Error('Network down'))
+      .mockResolvedValueOnce([STRATEGY]);
+
+    const { result } = renderHook(() => useAgentStrategies(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error);
+    });
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
+    expect(result.current.strategies).toEqual([STRATEGY]);
+    expect(mockList).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports no error for a successful list or an idle scope', async () => {
+    const { result } = renderHook(() => useAgentStrategies(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.strategies).toEqual([STRATEGY]);
+    });
+    expect(result.current.error).toBeNull();
+
+    const { result: idle } = renderHook(
+      () => useAgentStrategies({ enabled: false }),
+      { wrapper: createQueryWrapper() },
+    );
+    expect(idle.current.error).toBeNull();
+  });
 });
 
 describe('useAgentStrategy', () => {
