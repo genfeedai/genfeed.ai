@@ -12708,8 +12708,8 @@
       "code": 2307,
       "count": 1,
       "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "aa3d5927ca412821be5e",
-      "message": "Cannot find module '@genfeedai/props/studio/studio-generate.props' or its corresponding type declarations.",
+      "fingerprint": "3b6f384ae8504d2e3a5a",
+      "message": "Cannot find module '@genfeedai/props/ui/attachments.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -12729,19 +12729,11 @@
       "workspace": "pages"
     },
     {
-      "code": 7006,
+      "code": 2307,
       "count": 1,
       "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "260a55df8f564f351f71",
-      "message": "Parameter 'attachment' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 5,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "468446bbe5188203cb6e",
-      "message": "Parameter 'attachment' implicitly has an 'any' type.",
+      "fingerprint": "df4e9523bb9207154e90",
+      "message": "Cannot find module '@genfeedai/props/studio/studio-generate.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -12750,22 +12742,6 @@
       "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
       "fingerprint": "497cf2c5fc8d984d5480",
       "message": "Parameter 'completed' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "4bb60db2db77df30da96",
-      "message": "Parameter 'attachment' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "58301ce221abeef36c7c",
-      "message": "Parameter 'attachment' implicitly has an 'any' type.",
       "workspace": "pages"
     },
     {
@@ -12790,14 +12766,6 @@
       "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
       "fingerprint": "aa83fae17557d3a11c6b",
       "message": "Parameter 'document' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.tsx",
-      "fingerprint": "b7a3ee89b690e6d1d71a",
-      "message": "Parameter 'files' implicitly has an 'any' type.",
       "workspace": "pages"
     },
     {
@@ -13157,14 +13125,6 @@
       "count": 1,
       "file": "packages/pages/studio/generate/utils/studio-generate-gallery.ts",
       "fingerprint": "66308c3455799d324057",
-      "message": "Cannot find module '@genfeedai/props/studio/studio-generate.props' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/pages/studio/generate/utils/studio-generate-handoff.ts",
-      "fingerprint": "aaa59ec4e0ff816afa2e",
       "message": "Cannot find module '@genfeedai/props/studio/studio-generate.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
@@ -13710,6 +13670,14 @@
       "file": "packages/services/content/prompts.service.ts",
       "fingerprint": "51f5136a00a9cfb11eeb",
       "message": "Cannot find module '@genfeedai/models/content/prompt.model' or its corresponding type declarations.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2307,
+      "count": 1,
+      "file": "packages/services/content/studio-generate-drafts.service.ts",
+      "fingerprint": "a767891fd9825a5ab5e4",
+      "message": "Cannot find module '@genfeedai/models/content/studio-generate-draft.model' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {

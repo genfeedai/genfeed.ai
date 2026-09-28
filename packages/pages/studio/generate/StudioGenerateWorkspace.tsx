@@ -945,7 +945,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
 
   const handleAddFiles = useCallback<StudioGenerateComposerProps['onAddFiles']>(
-    (files, role: StudioGenerateReferenceRole = 'reference') => {
+    (files: File[], role: StudioGenerateReferenceRole = 'reference') => {
       const supportsInterpolation = hasInterpolation(settings.modelKey);
       const hasStartFrame =
         contentReferences.some(
