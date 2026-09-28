@@ -1,6 +1,7 @@
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
+  useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
@@ -959,37 +960,60 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
-  function renderInShell() {
-    return render(
-      <ContextSidebarProvider>
-        <ContextSidebarOutlet testId="context-sidebar-outlet" />
-        <AgentFullPage apiService={createApiService() as never} />
-      </ContextSidebarProvider>,
+  function outputMessage(threadId: string) {
+    return {
+      content: 'Generated something useful',
+      createdAt: '2026-03-10T10:00:00.000Z',
+      id: `msg-output-${threadId}`,
+      metadata: {
+        uiActions: [
+          {
+            id: `action-output-${threadId}`,
+            images: ['https://cdn.test/output.png'],
+            title: 'Generated outputs',
+            type: 'content_preview_card',
+          },
+        ],
+      },
+      role: 'assistant',
+      threadId,
+    };
+  }
+
+  function SelectionProbe() {
+    const contextSidebar = useContextSidebar();
+    return (
+      <p data-testid="context-sidebar-selection">
+        {contextSidebar?.selection
+          ? `${contextSidebar.selection.kind}:${contextSidebar.selection.id}`
+          : 'none'}
+      </p>
     );
   }
 
-  it('shows thread outputs in the context sidebar once the thread has any', async () => {
-    storeState.messages = [
-      {
-        content: 'Generated something useful',
-        createdAt: '2026-03-10T10:00:00.000Z',
-        id: 'msg-output',
-        metadata: {
-          uiActions: [
-            {
-              id: 'action-output',
-              images: ['https://cdn.test/output.png'],
-              title: 'Generated outputs',
-              type: 'content_preview_card',
-            },
-          ],
-        },
-        role: 'assistant',
-        threadId: 'thread-1',
-      },
-    ];
+  function shellTree(
+    page: { onboardingMode?: boolean; threadId?: string } | null,
+  ) {
+    return (
+      <ContextSidebarProvider>
+        <SelectionProbe />
+        <ContextSidebarOutlet testId="context-sidebar-outlet" />
+        {page ? (
+          <AgentFullPage
+            apiService={createApiService() as never}
+            onboardingMode={page.onboardingMode}
+            threadId={page.threadId}
+          />
+        ) : null}
+      </ContextSidebarProvider>
+    );
+  }
 
-    renderInShell();
+  it('shows the thread outputs in the context sidebar once it has any', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [outputMessage('thread-1')] as never;
+
+    render(shellTree({ threadId: 'thread-1' }));
 
     await waitFor(() => {
       expect(
@@ -998,13 +1022,75 @@ describe('AgentFullPage', () => {
         ),
       ).toBeInTheDocument();
     });
+    expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+      'thread:thread-outputs:thread-1',
+    );
+  });
+
+  it('follows thread switches and clears for a thread without outputs', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [outputMessage('thread-1')] as never;
+    const view = render(shellTree({ threadId: 'thread-1' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'thread:thread-outputs:thread-1',
+      );
+    });
+
+    storeState.activeThreadId = 'thread-2';
+    storeState.messages = [outputMessage('thread-2')] as never;
+    view.rerender(shellTree({ threadId: 'thread-2' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'thread:thread-outputs:thread-2',
+      );
+    });
+
+    storeState.activeThreadId = 'thread-3';
+    storeState.messages = [];
+    view.rerender(shellTree({ threadId: 'thread-3' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'none',
+      );
+    });
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+  });
+
+  it('releases the sidebar when the conversation unmounts', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [outputMessage('thread-1')] as never;
+    const view = render(shellTree({ threadId: 'thread-1' }));
+    await waitFor(() => {
+      expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+        'thread:thread-outputs:thread-1',
+      );
+    });
+
+    view.rerender(shellTree(null));
+
+    expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+      'none',
+    );
+  });
+
+  it('keeps onboarding out of the context sidebar even with outputs', () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [outputMessage('thread-1')] as never;
+
+    render(shellTree({ onboardingMode: true, threadId: 'thread-1' }));
+
+    expect(screen.getByTestId('context-sidebar-selection')).toHaveTextContent(
+      'none',
+    );
   });
 
   it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {
     setupStatusState.showSetupPanel = true;
+    storeState.activeThreadId = 'thread-1';
     storeState.messages = [];
 
-    renderInShell();
+    render(shellTree({ threadId: 'thread-1' }));
 
     expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
   });

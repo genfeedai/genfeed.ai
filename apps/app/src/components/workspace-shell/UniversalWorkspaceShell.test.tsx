@@ -27,6 +27,11 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+// The composer renders scope controls itself; the mocked provider only
+// records what the shell hands it.
+const composerShell = vi.hoisted(() => ({
+  scopeControls: null as unknown,
+}));
 const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
   searchParams: new URLSearchParams(),
@@ -99,6 +104,9 @@ vi.mock('@genfeedai/agent', () => ({
     scopeControls?: ReactNode;
   }) => (
     <div
+      ref={() => {
+        composerShell.scopeControls = scopeControls;
+      }}
       data-composer-brand={brandId}
       data-composer-references={artifactReferences
         ?.map((item) => item.reference.recordId)
@@ -112,7 +120,6 @@ vi.mock('@genfeedai/agent', () => ({
       }
       data-draft-scope={draftScopeKey}
     >
-      {scopeControls}
       {children}
       <button
         aria-label="Dispatch publish action"
@@ -840,9 +847,16 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(screen.getByText('Post analytics canvas')).toBeInTheDocument();
-    expect(
-      await screen.findByText('Visible analytics query'),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      const controls = render(
+        <div>{composerShell.scopeControls as ReactNode}</div>,
+      );
+      try {
+        expect(controls.container).toHaveTextContent('Visible analytics query');
+      } finally {
+        controls.unmount();
+      }
+    });
     // Never developer copy: no raw `route:/…` breadcrumb and no `Registered
     // … adapter slot` fallback.
     expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
@@ -1126,7 +1140,7 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('renders composer scope controls once', () => {
+  it('hands the composer each scope control once', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 
     render(
@@ -1138,8 +1152,10 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.getAllByText('Scoped controls')).toHaveLength(1);
-    expect(screen.getAllByText('Thread scope')).toHaveLength(1);
+    const { container } = render(
+      <div>{composerShell.scopeControls as ReactNode}</div>,
+    );
+    expect(container).toHaveTextContent(/^Thread scopeScoped controls$/);
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {
