@@ -18,7 +18,11 @@ describe('homepage metadata', () => {
     expect(result.title).toBe(
       'Genfeed.ai | Ask for content. Get it published.',
     );
-    expect(result.description).toMatch(/tell the genfeed agent what you want/i);
+    expect(result.description).toBe(
+      'Create on-brand videos, images, ads, and posts with Genfeed, review every draft, and schedule approved content across more than 20 channels.',
+    );
+    expect(result.openGraph?.description).toBe(result.description);
+    expect(result.twitter?.description).toBe(result.description);
     expect(result.openGraph?.title).toBe(result.title);
     expect(result.twitter?.title).toBe(result.title);
     expect(result.openGraph?.images).toEqual([

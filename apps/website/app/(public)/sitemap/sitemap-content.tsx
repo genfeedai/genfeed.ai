@@ -44,6 +44,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
   {
     links: [
       { href: '/agent', label: 'Genfeed Agent' },
+      { href: '/developers', label: 'Developers' },
       { href: '/mcp', label: 'MCP server' },
       { href: '/skills', label: 'Agent skills' },
       { href: '/claude', label: 'Claude' },
