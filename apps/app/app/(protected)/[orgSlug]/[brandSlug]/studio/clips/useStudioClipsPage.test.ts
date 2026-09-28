@@ -254,23 +254,67 @@ describe('draft projects', () => {
 
     await waitFor(
       () => {
-        expect(mockSaveDraft).toHaveBeenCalledWith(
-          'draft-1',
-          {
-            filename: undefined,
-            maxClips: 12,
-            minViralityScore: 64,
-            mode: 'raw-cut',
-            sourceKind: 'youtube',
-            youtubeUrl: 'https://youtu.be/aaaaaaaaaaa',
-          },
-          expect.any(AbortSignal),
-        );
+        expect(mockSaveDraft).toHaveBeenCalledWith('draft-1', {
+          filename: undefined,
+          maxClips: 12,
+          minViralityScore: 64,
+          mode: 'raw-cut',
+          sourceKind: 'youtube',
+          youtubeUrl: 'https://youtu.be/aaaaaaaaaaa',
+        });
       },
       { timeout: 2_000 },
     );
     expect(Date.now() - changedAt).toBeLessThan(2_000);
     expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(result.current.draftSaveState).toBe('saved');
+    });
+  });
+
+  it('saves a revert made while the previous autosave was in flight', async () => {
+    mockGetProject.mockResolvedValue(draftProject);
+    let finishFirstSave: (() => void) | undefined;
+    mockSaveDraft.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishFirstSave = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'draft-1' }),
+    );
+    await waitFor(() => {
+      expect(result.current.step).toBe('input');
+    });
+
+    act(() => {
+      result.current.setMaxClips(12);
+    });
+    await waitFor(
+      () => {
+        expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 2_000 },
+    );
+    expect(mockSaveDraft.mock.calls[0]?.[1]).toMatchObject({ maxClips: 12 });
+
+    // Back to the saved value while the save of 12 is still running.
+    act(() => {
+      result.current.setMaxClips(7);
+    });
+    await act(async () => {
+      finishFirstSave?.();
+    });
+
+    await waitFor(
+      () => {
+        expect(mockSaveDraft).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 2_000 },
+    );
+    expect(mockSaveDraft.mock.calls[1]?.[1]).toMatchObject({ maxClips: 7 });
     await waitFor(() => {
       expect(result.current.draftSaveState).toBe('saved');
     });

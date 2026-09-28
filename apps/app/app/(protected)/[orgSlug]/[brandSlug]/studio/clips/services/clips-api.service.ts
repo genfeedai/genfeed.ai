@@ -267,10 +267,16 @@ export class ClipsApiService implements ClipsApiClient {
     });
   }
 
-  async finalizeUpload(projectId: string): Promise<CreateFromYoutubeResponse> {
+  async finalizeUpload(
+    projectId: string,
+    ingredientId: string,
+  ): Promise<CreateFromYoutubeResponse> {
     return this.fetchJson<CreateFromYoutubeResponse>(
       `${this.apiEndpoint}/clip-projects/${projectId}/source/finalize`,
-      { method: 'POST' },
+      {
+        body: JSON.stringify({ ingredientId }),
+        method: 'POST',
+      },
     );
   }
 

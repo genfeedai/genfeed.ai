@@ -377,6 +377,7 @@ export class ClipProjectIngestionService {
   async finalizeUpload(
     user: User,
     projectId: string,
+    preparedIngredientId: string,
   ): Promise<ClipProjectIngestionResult> {
     const project = await this.findAuthorizedProject(user, projectId);
     const source = project.source;
@@ -384,6 +385,14 @@ export class ClipProjectIngestionService {
     if (source?.kind !== 'upload' || !source.ingredientId) {
       throw new BadRequestException(
         'This clip project does not have a pending uploaded source.',
+      );
+    }
+    // Another tab may have prepared a newer upload on the same draft; only the
+    // request that prepared the current source may finalize it. The claim
+    // below re-checks this against the version it validates.
+    if (source.ingredientId !== preparedIngredientId) {
+      throw new ConflictException(
+        'This upload was replaced by a newer one on this project.',
       );
     }
 

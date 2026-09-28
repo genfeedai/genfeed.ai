@@ -183,7 +183,11 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
             data.orgId,
             data.userId,
             data.projectId,
-            data.source?.ingredientId,
+            // A Library asset is shared across projects, so its audio and any
+            // stored copy of its source are keyed by this project instead.
+            data.source?.kind === 'library'
+              ? undefined
+              : data.source?.ingredientId,
             sourceArtifact?.storageKey,
           );
     const resolvedArtifact = extraction.sourceArtifact ?? sourceArtifact;

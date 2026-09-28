@@ -4,6 +4,7 @@ import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-yo
 import { CreateClipProjectDraftDto } from '@api/collections/clip-projects/dto/create-clip-project-draft.dto';
 import { CreateClipProjectFromIngredientDto } from '@api/collections/clip-projects/dto/create-clip-project-from-ingredient.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
+import { FinalizeClipUploadDto } from '@api/collections/clip-projects/dto/finalize-clip-upload.dto';
 import { PrepareClipUploadDto } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
 import { UpdateClipProjectDraftDto } from '@api/collections/clip-projects/dto/update-clip-project-draft.dto';
 import {
@@ -148,8 +149,13 @@ export class ClipProjectIngestionController {
   finalizeUpload(
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
+    @Body() dto: FinalizeClipUploadDto,
   ): Promise<ClipProjectIngestionResult> {
-    return this.clipProjectIngestionService.finalizeUpload(user, projectId);
+    return this.clipProjectIngestionService.finalizeUpload(
+      user,
+      projectId,
+      dto.ingredientId,
+    );
   }
 
   @Post(':projectId/source/retry')

@@ -535,6 +535,9 @@ test.describe('Clip Factory', () => {
     );
     await authenticatedPage.route(API_FINALIZE_UPLOAD, async (route) => {
       expect(uploadCompleted).toBe(true);
+      expect(JSON.parse(route.request().postData() ?? '{}')).toEqual({
+        ingredientId: 'ingredient-upload-1',
+      });
       await route.fulfill({
         body: JSON.stringify({
           batchJobId: 'clip-analysis-upload-1',

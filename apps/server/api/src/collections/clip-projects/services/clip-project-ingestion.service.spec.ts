@@ -649,7 +649,7 @@ describe('ClipProjectIngestionService', () => {
       });
 
     await expect(
-      service.finalizeUpload(currentUser as never, 'project-1'),
+      service.finalizeUpload(currentUser as never, 'project-1', 'ingredient-1'),
     ).resolves.toMatchObject({
       batchJobId: 'clip-analysis-project-1',
       estimatedClips: 6,
@@ -699,7 +699,7 @@ describe('ClipProjectIngestionService', () => {
     });
 
     await expect(
-      service.finalizeUpload(currentUser as never, 'project-1'),
+      service.finalizeUpload(currentUser as never, 'project-1', 'ingredient-1'),
     ).rejects.toThrow('Clip sources may be up to 10 GB.');
     expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
@@ -730,7 +730,7 @@ describe('ClipProjectIngestionService', () => {
     });
 
     await expect(
-      service.finalizeUpload(currentUser as never, 'project-1'),
+      service.finalizeUpload(currentUser as never, 'project-1', 'ingredient-1'),
     ).rejects.toThrow('uploaded clip source size is unavailable');
     expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
@@ -761,7 +761,7 @@ describe('ClipProjectIngestionService', () => {
     });
 
     await expect(
-      service.finalizeUpload(currentUser as never, 'project-1'),
+      service.finalizeUpload(currentUser as never, 'project-1', 'ingredient-1'),
     ).rejects.toThrow('uploaded clip source duration is unavailable');
     expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
@@ -812,7 +812,11 @@ describe('ClipProjectIngestionService', () => {
       status: 'UPLOADED',
     });
 
-    await service.finalizeUpload(currentUser as never, 'project-1');
+    await service.finalizeUpload(
+      currentUser as never,
+      'project-1',
+      'ingredient-1',
+    );
 
     expect(
       clipGenerationRequestService.resolveProjectReference,
@@ -1050,7 +1054,7 @@ describe('ClipProjectIngestionService', () => {
       });
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).resolves.toMatchObject({ status: 'analyzing' });
 
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
@@ -1111,7 +1115,7 @@ describe('ClipProjectIngestionService', () => {
       clipProjectsService.claimDraft.mockResolvedValue(false);
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).rejects.toThrow("This draft's source changed");
 
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
@@ -1140,7 +1144,7 @@ describe('ClipProjectIngestionService', () => {
         .mockResolvedValueOnce(true);
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).resolves.toMatchObject({ status: 'processing' });
 
       expect(clipProjectsService.claimDraft).toHaveBeenLastCalledWith(
@@ -1183,6 +1187,21 @@ describe('ClipProjectIngestionService', () => {
       ).not.toContain(undefined);
     });
 
+    it('refuses a finalize for an upload another tab has since replaced', async () => {
+      clipProjectsService.findOne.mockResolvedValue({
+        ...quickUploadDraft,
+        source: { ...quickUploadDraft.source, ingredientId: 'ingredient-2' },
+      } as ClipProjectDocument);
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
+      ).rejects.toThrow('This upload was replaced by a newer one');
+
+      expect(ingredientsService.findOne).not.toHaveBeenCalled();
+      expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
+      expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
+    });
+
     it('keeps an upload draft startable when credits run out at finalize', async () => {
       clipProjectsService.findOne.mockResolvedValue(quickUploadDraft);
       ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
@@ -1191,7 +1210,7 @@ describe('ClipProjectIngestionService', () => {
       );
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).rejects.toBeInstanceOf(InsufficientCreditsException);
 
       expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
@@ -1205,7 +1224,7 @@ describe('ClipProjectIngestionService', () => {
       clipFactoryWorkflowQueue.enqueue.mockRejectedValue(queueError);
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).rejects.toBe(queueError);
 
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
@@ -1279,7 +1298,7 @@ describe('ClipProjectIngestionService', () => {
       });
 
       await expect(
-        service.finalizeUpload(currentUser as never, 'draft-1'),
+        service.finalizeUpload(currentUser as never, 'draft-1', 'ingredient-1'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
     });

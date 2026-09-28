@@ -178,6 +178,7 @@ describe('ClipAnalysisWorkflowService', () => {
                 mediaUrl: 'https://media.argil.test/videos/library-video.mp4',
               },
               contentType: 'video/mp4',
+              ingredientId: 'library-video-1',
               kind: 'library',
             },
             userId: 'user-1',
@@ -190,6 +191,9 @@ describe('ClipAnalysisWorkflowService', () => {
     expect(http.post).toHaveBeenCalledWith(
       expect.stringContaining('/v1/files/process/video'),
       expect.objectContaining({
+        // A Library asset is shared between projects, so its stored copy and
+        // audio are keyed by this project, never by the shared ingredient.
+        ingredientId: 'project-1',
         params: {
           inputPath: 'https://media.argil.test/videos/library-video.mp4',
           materializeSource: true,

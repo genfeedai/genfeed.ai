@@ -254,7 +254,9 @@ describe('ClipProjectIngestionController', () => {
     };
 
     await controller.prepareUpload(currentUser as never, dto);
-    await controller.finalizeUpload(currentUser as never, 'project-1');
+    await controller.finalizeUpload(currentUser as never, 'project-1', {
+      ingredientId: 'ingredient-1',
+    });
 
     expect(ingestionService.prepareUpload).toHaveBeenCalledWith(
       currentUser,
@@ -263,6 +265,7 @@ describe('ClipProjectIngestionController', () => {
     expect(ingestionService.finalizeUpload).toHaveBeenCalledWith(
       currentUser,
       'project-1',
+      'ingredient-1',
     );
   });
 

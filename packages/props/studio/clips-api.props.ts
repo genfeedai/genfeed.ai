@@ -119,6 +119,13 @@ export interface SaveClipDraftPayload {
   youtubeUrl: string;
 }
 
+/** The latest form state waiting to be autosaved onto a draft. */
+export interface QueuedClipDraftSave {
+  payload: SaveClipDraftPayload;
+  projectId: string;
+  snapshot: string;
+}
+
 export interface CreateFromIngredientPayload {
   brandId?: string;
   ingredientId: string;

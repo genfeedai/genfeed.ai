@@ -337,7 +337,7 @@ describe('ClipsApiService', () => {
       uploadUrl: 'https://uploads.test/ingredient-1',
     });
     await expect(
-      service.finalizeUpload('clip-project-upload'),
+      service.finalizeUpload('clip-project-upload', 'ingredient-1'),
     ).resolves.toMatchObject({ status: 'analyzing' });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
@@ -350,7 +350,10 @@ describe('ClipsApiService', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://api.test/v1/clip-projects/clip-project-upload/source/finalize',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        body: JSON.stringify({ ingredientId: 'ingredient-1' }),
+        method: 'POST',
+      }),
     );
   });
 

@@ -15,7 +15,10 @@ import type {
   StudioClipIdentityDefaults,
   StudioClipIdentityField,
 } from '@genfeedai/props/studio/clips.props';
-import type { SaveClipDraftPayload } from '@genfeedai/props/studio/clips-api.props';
+import type {
+  QueuedClipDraftSave,
+  SaveClipDraftPayload,
+} from '@genfeedai/props/studio/clips-api.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
@@ -228,6 +231,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   const [draftSaveState, setDraftSaveState] =
     useState<ClipDraftSaveState>('idle');
   const lastSavedDraftRef = useRef<string | null>(null);
+  const queuedDraftSaveRef = useRef<QueuedClipDraftSave | null>(null);
+  const draftSaveInFlightRef = useRef<Promise<void> | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarId, setAvatarId] = useState('');
   const [voiceId, setVoiceId] = useState('');
@@ -459,45 +464,57 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   );
 
   // ─── Draft autosave ───────────────────────────────────────────
+  // Saves run one at a time and are never aborted: an aborted request can
+  // still land on the server. After each save the latest form state is
+  // compared with what was confirmed saved, so a change made while a save
+  // was in flight (including reverting to an earlier value) is saved next.
+  const flushDraftSaves = useCallback(() => {
+    if (draftSaveInFlightRef.current) {
+      return;
+    }
+
+    draftSaveInFlightRef.current = (async () => {
+      let queued = queuedDraftSaveRef.current;
+      while (queued && queued.snapshot !== lastSavedDraftRef.current) {
+        setDraftSaveState('saving');
+        try {
+          await clipsService.saveDraft(queued.projectId, queued.payload);
+          lastSavedDraftRef.current = queued.snapshot;
+        } catch {
+          setDraftSaveState('error');
+          return;
+        }
+        queued = queuedDraftSaveRef.current;
+      }
+      if (queued) {
+        setDraftSaveState('saved');
+      }
+    })().finally(() => {
+      draftSaveInFlightRef.current = null;
+    });
+  }, [clipsService]);
+
   useEffect(() => {
     if (!draftProjectId || step !== 'input' || isSubmitting) {
+      queuedDraftSaveRef.current = null;
       return;
     }
 
     const snapshot = JSON.stringify(draftPayload);
+    queuedDraftSaveRef.current = {
+      payload: draftPayload,
+      projectId: draftProjectId,
+      snapshot,
+    };
     if (snapshot === lastSavedDraftRef.current) {
       return;
     }
 
-    const abortController = new AbortController();
-    const timeout = setTimeout(() => {
-      setDraftSaveState('saving');
-      clipsService
-        .saveDraft(draftProjectId, draftPayload, abortController.signal)
-        .then(() => {
-          if (abortController.signal.aborted) {
-            return;
-          }
-          lastSavedDraftRef.current = snapshot;
-          setDraftSaveState('saved');
-        })
-        .catch((saveError: unknown) => {
-          if (
-            abortController.signal.aborted ||
-            (saveError instanceof DOMException &&
-              saveError.name === 'AbortError')
-          ) {
-            return;
-          }
-          setDraftSaveState('error');
-        });
-    }, CLIP_DRAFT_AUTOSAVE_DELAY_MS);
-
+    const timeout = setTimeout(flushDraftSaves, CLIP_DRAFT_AUTOSAVE_DELAY_MS);
     return () => {
       clearTimeout(timeout);
-      abortController.abort();
     };
-  }, [clipsService, draftPayload, draftProjectId, isSubmitting, step]);
+  }, [draftPayload, draftProjectId, flushDraftSaves, isSubmitting, step]);
 
   /**
    * A started draft keeps its id, so the page shows the run in place; a
@@ -567,7 +584,10 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         sourceFile,
         setUploadProgress,
       );
-      const started = await clipsService.finalizeUpload(prepared.projectId);
+      const started = await clipsService.finalizeUpload(
+        prepared.projectId,
+        prepared.ingredientId,
+      );
 
       if (flow === 'review') {
         showStartedProject(
