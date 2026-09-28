@@ -161,6 +161,31 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     );
   });
 
+  it('stamps the drafted plan with the time it was created so clients can order plans', async () => {
+    const result = await service.generatePlanModeResponse(baseParams, host);
+
+    const plan = result.message.metadata?.proposedPlan as {
+      createdAt: string;
+      id: string;
+      updatedAt: string;
+    };
+    expect(plan.id).toMatch(/^plan-\d+$/);
+    expect(plan.createdAt).toBe(
+      new Date(Number(plan.id.slice('plan-'.length))).toISOString(),
+    );
+    expect(plan.updatedAt).toBe(plan.createdAt);
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          proposedPlan: expect.objectContaining({
+            createdAt: plan.createdAt,
+            id: plan.id,
+          }),
+        }),
+      }),
+    );
+  });
+
   it('preserves review history in both the persisted and returned plan', async () => {
     const reviewMetadata = {
       lastReviewAction: 'request_changes' as const,
