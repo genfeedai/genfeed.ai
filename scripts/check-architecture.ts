@@ -173,6 +173,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-typecheck-alias-inputs.ts',
+    ],
+    name: 'Typecheck alias inputs',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-activity-recording-boundary.ts',
     ],
     name: 'Activity recording boundary (#5197)',
