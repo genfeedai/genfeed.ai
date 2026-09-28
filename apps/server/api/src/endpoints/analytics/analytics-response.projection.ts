@@ -402,3 +402,16 @@ export class AnalyticsResponseProjection {
     return firstLine.substring(0, 150);
   }
 }
+
+/** Annotate provider trend records before the existing serializer projects them. */
+export function appendAnalyticsPlatform(
+  value: unknown,
+  platform: string,
+): RawAnalyticsRow {
+  return {
+    ...(typeof value === 'object' && value !== null
+      ? (value as RawAnalyticsRow)
+      : {}),
+    platform,
+  };
+}

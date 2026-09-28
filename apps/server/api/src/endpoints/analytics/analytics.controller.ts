@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
+import { appendAnalyticsPlatform } from '@api/endpoints/analytics/analytics-response.projection';
 import {
   buildAnalyticsCacheKey,
   buildOwnedAnalyticsCacheKey,
@@ -91,22 +92,6 @@ export class AnalyticsController {
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
   ) {}
-
-  private readObjectRecord(value: unknown): Record<string, unknown> {
-    return typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private appendPlatform(
-    value: unknown,
-    platform: string,
-  ): Record<string, unknown> {
-    return {
-      ...this.readObjectRecord(value),
-      platform,
-    };
-  }
 
   @Get('business')
   @RolesDecorator('superadmin')
@@ -230,11 +215,17 @@ export class AnalyticsController {
         ]);
 
       const trends = [
-        ...tiktokTrends.map((trend) => this.appendPlatform(trend, 'tiktok')),
-        ...twitterTrends.map((trend) => this.appendPlatform(trend, 'twitter')),
-        ...youtubeTrends.map((trend) => this.appendPlatform(trend, 'youtube')),
+        ...tiktokTrends.map((trend) =>
+          appendAnalyticsPlatform(trend, 'tiktok'),
+        ),
+        ...twitterTrends.map((trend) =>
+          appendAnalyticsPlatform(trend, 'twitter'),
+        ),
+        ...youtubeTrends.map((trend) =>
+          appendAnalyticsPlatform(trend, 'youtube'),
+        ),
         ...instagramTrends.map((trend) =>
-          this.appendPlatform(trend, 'instagram'),
+          appendAnalyticsPlatform(trend, 'instagram'),
         ),
       ];
       return serializeSingle(req, AnalyticsTrendSerializer, trends);
