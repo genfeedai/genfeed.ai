@@ -3,7 +3,6 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import { correctedCategoryForLinkedMedia } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
@@ -32,7 +31,6 @@ import {
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
@@ -55,6 +53,7 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
 import {
   collectMediaGateAssetIds,
@@ -131,7 +130,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (claim.isAlreadyPublished === true) {
       return this.readPublishResult(claim.publishedResult);
     }
-    const post = await this.loadActionPost(request);
+    const post = await loadScheduledActionPost(this.prisma, request);
     if (!post) {
       throw new Error(
         `Scheduled post ${request.postId} is no longer publishable`,
@@ -186,50 +185,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (error: unknown) {
       return await this.handlePublishError(post, error);
     }
-  }
-
-  private async loadActionPost(
-    input: ScheduledPostWorkflowInput,
-  ): Promise<PostEntity | null> {
-    const post = await this.prisma.post.findFirst({
-      include: {
-        children: {
-          include: { credential: true, ingredients: true },
-          where: {
-            isDeleted: false,
-            ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
-          },
-        },
-        ingredients: true,
-      },
-      where: scopedWhere(input.organizationId, {
-        id: input.postId,
-        parentId: null,
-        ...postExecutionStateReadFilter([
-          TargetExecutionState.SCHEDULED,
-          TargetExecutionState.PUBLISHING,
-        ]),
-      }),
-    });
-    if (!post) {
-      return null;
-    }
-
-    // A target scheduled before its category followed its media (a release
-    // video persisted as TEXT) would fail channel validation and be published
-    // as the wrong kind. Correct it from the linked ingredients first.
-    const correctedCategory = correctedCategoryForLinkedMedia(
-      post.category,
-      post.ingredients.map((ingredient) => ingredient.category),
-    );
-    if (!correctedCategory) {
-      return post as unknown as PostEntity;
-    }
-    await this.prisma.post.updateMany({
-      data: { category: correctedCategory },
-      where: scopedWhere(input.organizationId, { id: post.id }),
-    });
-    return { ...post, category: correctedCategory } as unknown as PostEntity;
   }
 
   async failTerminalValidation(

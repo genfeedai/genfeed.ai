@@ -220,26 +220,7 @@ export class PostLifecycleService {
       return this.stale(input, currentState, 'workflow_execution_mismatch');
     }
 
-    // Single choke point for #5193: every path that moves — or keeps — a
-    // Post at SCHEDULED runs through `transition()`, directly or through a
-    // caller that ends up here, so validating the channel contract here
-    // instead of at each caller's own boundary is what makes it impossible to
-    // bypass. Runs for both a real state change and an idempotent re-apply
-    // (editing media/credential/settings on an already-scheduled target),
-    // since both reach this point with `nextState === SCHEDULED`.
-    // A legacy target whose category misreports its linked media (a release
-    // video persisted as TEXT) is corrected in the same write, so publish-time
-    // validation and the publisher read the kind scheduling validated.
-    const correctedCategory =
-      input.nextState === TargetExecutionState.SCHEDULED
-        ? await this.assertScheduleTargetIsValid(transaction, target, input)
-        : undefined;
-    if (correctedCategory) {
-      input = {
-        ...input,
-        mutation: { ...input.mutation, category: correctedCategory },
-      };
-    }
+    input = await this.applyScheduleValidation(transaction, target, input);
 
     if (currentState === input.nextState) {
       const updated = await this.updateIdempotentTarget(
@@ -369,6 +350,40 @@ export class PostLifecycleService {
     return transaction.post.findFirst({
       where: scopedWhere(input.organizationId, { id: input.postId }),
     });
+  }
+
+  /**
+   * Single choke point for #5193: every path that moves — or keeps — a Post
+   * at SCHEDULED runs through `transition()`, directly or through a caller
+   * that ends up here, so validating the channel contract here instead of at
+   * each caller's own boundary is what makes it impossible to bypass. Runs
+   * for both a real state change and an idempotent re-apply (editing
+   * media/credential/settings on an already-scheduled target), since both
+   * reach this point with `nextState === SCHEDULED`.
+   *
+   * A legacy target whose category misreports its linked media (a release
+   * video persisted as TEXT) is corrected in the same write, so publish-time
+   * validation and the publisher read the kind scheduling validated.
+   */
+  private async applyScheduleValidation(
+    transaction: PostLifecycleTransaction,
+    target: Post,
+    input: PostLifecycleTransitionInput,
+  ): Promise<PostLifecycleTransitionInput> {
+    if (input.nextState !== TargetExecutionState.SCHEDULED) {
+      return input;
+    }
+    const correctedCategory = await this.assertScheduleTargetIsValid(
+      transaction,
+      target,
+      input,
+    );
+    return correctedCategory
+      ? {
+          ...input,
+          mutation: { ...input.mutation, category: correctedCategory },
+        }
+      : input;
   }
 
   /**
