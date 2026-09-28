@@ -1,3 +1,4 @@
+import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWorkflowLibraryHighlights } from './useWorkflowLibraryHighlights';
@@ -45,7 +46,7 @@ const workflow = {
   label: 'Favorite',
   nodes: [],
   edges: [],
-  lifecycle: 'draft',
+  lifecycle: WorkflowLifecycle.DRAFT,
   createdAt: '2026-09-01',
   updatedAt: '2026-09-02',
 };

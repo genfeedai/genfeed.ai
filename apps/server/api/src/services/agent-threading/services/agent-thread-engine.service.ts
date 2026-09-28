@@ -321,7 +321,7 @@ export class AgentThreadEngineService {
       event,
     );
     await tx.agentThreadSnapshot.update({
-      where: { id: snapshotRow.id },
+      where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
       data: {
         data: toPrismaJson({
           ...snapshotData,
@@ -576,7 +576,7 @@ export class AgentThreadEngineService {
     if (existing) {
       const existingData = (existing.data as Record<string, unknown>) ?? {};
       const updated = await this.prisma.agentThreadSnapshot.update({
-        where: { id: existing.id },
+        where: scopedWhere(organizationId, { id: existing.id }),
         data: {
           data: {
             ...existingData,
