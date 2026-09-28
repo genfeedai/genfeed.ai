@@ -6,12 +6,19 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSelfHostedDeployment: vi.fn(() => false),
+}));
 
 describe('EvaluationsOperationsService', () => {
   let service: EvaluationsOperationsService;
@@ -171,6 +178,44 @@ describe('EvaluationsOperationsService', () => {
       mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
         JSON.stringify({ overallScore: 70 }),
       );
+    });
+
+    it('samples at the stored duration without probing the whole video', async () => {
+      await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        { durationSeconds: 40 },
+        organizationId,
+      );
+
+      expect(
+        mockServices.filesClientService.extractMetadataFromUrl,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockServices.filesClientService.generateThumbnail.mock.calls.map(
+          (call) => call[2],
+        ),
+      ).toEqual([5, 15, 25, 35]);
+    });
+
+    it('fails cleanly without billing where media storage is local', async () => {
+      vi.mocked(isSelfHostedDeployment).mockReturnValueOnce(true);
+      const onBilling = vi.fn();
+
+      await expect(
+        service.evaluateVideo(
+          'https://example.com/video.mp4',
+          { durationSeconds: 40 },
+          organizationId,
+          onBilling,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(
+        mockServices.filesClientService.generateThumbnail,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockServices.replicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+      expect(onBilling).not.toHaveBeenCalled();
     });
 
     const frameIds = () =>

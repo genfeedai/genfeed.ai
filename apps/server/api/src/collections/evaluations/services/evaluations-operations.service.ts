@@ -13,6 +13,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   ModelCategory,
   PromptTemplateKey,
@@ -21,10 +22,12 @@ import {
 import { normalizePersuasionScores } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface EvaluationContext {
   prompt?: string;
+  /** Stored video duration; frame sampling probes the file only without it. */
+  durationSeconds?: number;
   brand?: PromptBuilderParams['brand'];
   platform?: string;
   metadata?: unknown;
@@ -224,6 +227,14 @@ export class EvaluationsOperationsService {
     onBilling?: (amount: number) => void,
     byok?: TextByokDispatch,
   ): Promise<unknown> {
+    // Frames are extracted and stored through the files service's S3 path, and
+    // the model provider must fetch them from a public CDN. Self-hosted media
+    // lives in local storage, so no frame can reach the provider.
+    if (isSelfHostedDeployment()) {
+      throw new BadRequestException(
+        'Video evaluation needs cloud media storage; this deployment stores media locally.',
+      );
+    }
     const frameStorageKeys: string[] = [];
     try {
       return await this.evaluate(
@@ -232,7 +243,11 @@ export class EvaluationsOperationsService {
         organizationId,
         {
           contentType: 'Video',
-          imageUrls: await this.sampleVideoFrames(videoUrl, frameStorageKeys),
+          imageUrls: await this.sampleVideoFrames(
+            videoUrl,
+            context.durationSeconds,
+            frameStorageKeys,
+          ),
           maxContentLength: 4000,
           promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
         },
@@ -252,11 +267,17 @@ export class EvaluationsOperationsService {
    */
   private async sampleVideoFrames(
     videoUrl: string,
+    storedDuration: number | undefined,
     frameStorageKeys: string[],
   ): Promise<string[]> {
     try {
-      const { duration } =
-        await this.filesClientService.extractMetadataFromUrl(videoUrl);
+      // The probe downloads the whole file (capped), so the stored duration
+      // wins whenever the video has one.
+      const duration =
+        storedDuration && Number.isFinite(storedDuration) && storedDuration > 0
+          ? storedDuration
+          : (await this.filesClientService.extractMetadataFromUrl(videoUrl))
+              .duration;
       if (!duration || !Number.isFinite(duration) || duration <= 0) {
         throw new Error('Video duration could not be read');
       }
