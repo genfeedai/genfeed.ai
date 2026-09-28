@@ -10,7 +10,9 @@ the payload `{"since": "<ISO timestamp>"}` to begin recording; API and workers
 read it within 15 seconds (#5468). Disabled, or enabled without `since`, means
 off: ordinary signup and billing continue, with no notification delivery calls.
 The start time prevents historical signup floods: events that occurred earlier
-are never recorded.
+are never delivered. While the flag has no answer yet (PostHog cold or silent),
+events are held in the outbox, not dropped, and delivery applies the window
+once the flag resolves.
 
 Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
 an incoming webhook owned by your deployment. Hosted SaaS allowlists that name

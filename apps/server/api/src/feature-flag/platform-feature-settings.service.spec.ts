@@ -4,7 +4,15 @@ import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
   SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({ isSaaS: vi.fn() }));
+
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/config/deployment')>();
+  return { ...actual, isSaaS: mocks.isSaaS };
+});
 
 const PERCEPTION_OFF = {
   media_perception: { enabled: false, variant: null },
@@ -28,11 +36,16 @@ function build(
 }
 
 describe('PlatformFeatureSettingsService (#5468)', () => {
+  beforeEach(() => {
+    mocks.isSaaS.mockReturnValue(true);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it('serves the code defaults without PostHog and never calls it', async () => {
+    mocks.isSaaS.mockReturnValue(false);
     const evaluate = vi.fn();
     const { service } = build(evaluate, false);
 
@@ -149,5 +162,31 @@ describe('PlatformFeatureSettingsService (#5468)', () => {
       SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
     );
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('keeps production posture on SaaS when PostHog is not configured', async () => {
+    const evaluate = vi.fn();
+    const { service } = build(evaluate, false);
+
+    await expect(service.getFeatureSettingsState()).resolves.toEqual({
+      isResolved: false,
+      settings: SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+    });
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+
+  it('reports whether the switches came from a real answer', async () => {
+    const evaluate = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(PERCEPTION_OFF);
+    const { service } = build(evaluate);
+
+    await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+      isResolved: false,
+    });
+    await expect(service.getFeatureSettingsState()).resolves.toMatchObject({
+      isResolved: true,
+    });
   });
 });

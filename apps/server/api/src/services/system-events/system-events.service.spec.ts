@@ -17,12 +17,18 @@ const payload = JSON.stringify({
   occurredAt: '2026-09-23T12:00:00Z',
   data: { objectId: 'u1' },
 });
-function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
+function setup(
+  enabled = true,
+  enabledAt = '2026-09-23T00:00:00Z',
+  isResolved = true,
+) {
+  const settings = {
+    ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    systemEventsEnabledAt: enabled ? enabledAt : null,
+  };
   const featureSettings = {
-    getFeatureSettings: vi.fn(async () => ({
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-      systemEventsEnabledAt: enabled ? enabledAt : null,
-    })),
+    getFeatureSettings: vi.fn(async () => settings),
+    getFeatureSettingsState: vi.fn(async () => ({ isResolved, settings })),
   };
   const prisma = {
     user: { findFirst: vi.fn() },
@@ -142,5 +148,60 @@ describe('system event outbox', () => {
     prisma.systemEventWebhook.updateMany.mockResolvedValue({ count: 0 });
     await service.recover();
     expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+  });
+
+  describe('while the recording switch is unresolved (#5468)', () => {
+    const stripeEvent = {
+      version: 1 as const,
+      id: 'stripe/evt_1',
+      type: 'user.created' as const,
+      occurredAt: '2026-09-23T12:00:00Z',
+      data: { objectId: 'u1' },
+    };
+
+    it('persists a live event instead of dropping it', async () => {
+      const { service, prisma } = setup(false, undefined, false);
+
+      await service.record(stripeEvent);
+
+      expect(prisma.systemEventWebhook.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'stripe/evt_1' } }),
+      );
+    });
+
+    it('defers delivery until the switch resolves', async () => {
+      const { service, prisma } = setup(true, undefined, false);
+
+      await service.recover();
+
+      expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+      expect(prisma.systemEventWebhook.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('skips a held event that precedes the resolved window', async () => {
+      const { service, prisma } = setup(true, '2026-09-23T13:00:00Z');
+
+      await service.recover();
+
+      expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+      expect(prisma.systemEventWebhook.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ skippedAt: expect.any(Date) }),
+        }),
+      );
+    });
+
+    it('skips held events once recording resolves to disabled', async () => {
+      const { service, prisma } = setup(false);
+
+      await service.recover();
+
+      expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+      expect(prisma.systemEventWebhook.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ skippedAt: expect.any(Date) }),
+        }),
+      );
+    });
   });
 });

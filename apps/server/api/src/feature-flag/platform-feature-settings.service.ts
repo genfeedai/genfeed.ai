@@ -1,18 +1,27 @@
 import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/feature-flag/feature-flag.constants';
 import { PostHogFeatureFlagEvaluator } from '@api/feature-flag/posthog-feature-flag.evaluator';
+import { isSaaS } from '@genfeedai/config/deployment';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
   PLATFORM_FEATURE_FLAG_KEYS,
   platformFeatureSettingsFromFlags,
   SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
-import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformFeatureSettings,
+  IPlatformFeatureSettingsState,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type FeatureSettingsCacheEntry = {
   expiresAtMs: number;
-  value: IPlatformFeatureSettings;
+  state: IPlatformFeatureSettingsState;
+};
+
+const UNRESOLVED_SAAS_STATE: IPlatformFeatureSettingsState = {
+  isResolved: false,
+  settings: SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 };
 
 /**
@@ -27,7 +36,8 @@ type FeatureSettingsCacheEntry = {
  * so PostHog latency cannot delay readiness.
  *
  * - No PostHog (Community, Desktop, self-hosted): the code defaults, with no
- *   network call.
+ *   network call. SaaS without a usable PostHog key is a misconfiguration and
+ *   gets the conservative profile, never the permissive self-host defaults.
  * - PostHog answered: PostHog is authoritative — an omitted flag is off,
  *   because PostHog omits inactive flags. An answer with no platform flag at
  *   all (not migrated) serves the conservative SaaS profile instead.
@@ -38,7 +48,7 @@ type FeatureSettingsCacheEntry = {
 @Injectable()
 export class PlatformFeatureSettingsService {
   private cache: FeatureSettingsCacheEntry | undefined;
-  private pending: Promise<IPlatformFeatureSettings> | undefined;
+  private pending: Promise<IPlatformFeatureSettingsState> | undefined;
 
   constructor(
     private readonly evaluator: PostHogFeatureFlagEvaluator,
@@ -46,9 +56,14 @@ export class PlatformFeatureSettingsService {
   ) {}
 
   async getFeatureSettings(): Promise<IPlatformFeatureSettings> {
+    return (await this.getFeatureSettingsState()).settings;
+  }
+
+  /** The switches and whether they came from a real answer. */
+  async getFeatureSettingsState(): Promise<IPlatformFeatureSettingsState> {
     const cached = this.cache;
     if (cached && Date.now() < cached.expiresAtMs) {
-      return cached.value;
+      return cached.state;
     }
 
     this.pending ??= this.load().finally(() => {
@@ -58,14 +73,21 @@ export class PlatformFeatureSettingsService {
     return this.pending;
   }
 
-  private async load(): Promise<IPlatformFeatureSettings> {
+  private async load(): Promise<IPlatformFeatureSettingsState> {
     if (!this.evaluator.isConfigured()) {
-      return this.store(DEFAULT_PLATFORM_FEATURE_SETTINGS);
+      return this.store(
+        isSaaS()
+          ? UNRESOLVED_SAAS_STATE
+          : { isResolved: true, settings: DEFAULT_PLATFORM_FEATURE_SETTINGS },
+      );
     }
 
     const flags = await this.evaluator.evaluatePlatformFlags();
     if (flags && hasPlatformFlag(flags)) {
-      return this.store(platformFeatureSettingsFromFlags(flags));
+      return this.store({
+        isResolved: true,
+        settings: platformFeatureSettingsFromFlags(flags),
+      });
     }
     if (flags) {
       // PostHog answered, but with none of the platform flags: they are not
@@ -74,25 +96,25 @@ export class PlatformFeatureSettingsService {
       this.logger.warn(
         'PostHog answered without any platform feature flag; serving the conservative SaaS switches',
       );
-      return this.store(SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS);
+      return this.store(UNRESOLVED_SAAS_STATE);
     }
 
-    const lastKnown = this.cache?.value;
+    const lastKnown = this.cache?.state;
     this.logger.warn(
       'PostHog did not answer the platform feature flags; keeping the last known switches',
       { hasLastKnownSwitches: Boolean(lastKnown) },
     );
-    return lastKnown
-      ? this.store(lastKnown)
-      : SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS;
+    return lastKnown ? this.store(lastKnown) : UNRESOLVED_SAAS_STATE;
   }
 
-  private store(value: IPlatformFeatureSettings): IPlatformFeatureSettings {
+  private store(
+    state: IPlatformFeatureSettingsState,
+  ): IPlatformFeatureSettingsState {
     this.cache = {
       expiresAtMs: Date.now() + PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS,
-      value,
+      state,
     };
-    return value;
+    return state;
   }
 }
 

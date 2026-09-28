@@ -3,13 +3,6 @@
 import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
 import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
-import {
-  APP_RAIL_FEATURE_FLAG_KEYS,
-  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
-  LIBRARY_CANVAS_FEATURE_FLAG,
-  LOW_CREDITS_BANNER_FEATURE_FLAG,
-  REPLY_BOT_FEATURE_FLAG,
-} from '@genfeedai/contracts/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
@@ -19,21 +12,15 @@ import {
   identifyAnalyticsUser,
   subscribeAnalyticsFeatureFlags,
 } from '@/lib/analytics';
-import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
+import {
+  getCoreAppFeatureFlagFallbacks,
+  REMOTE_FEATURE_FLAG_KEYS,
+} from '@/lib/core-apps';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import ApiAuthBridge from './api-auth-bridge';
 import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
-// Every flag a client surface reads comes from PostHog (#5468); there is no env
-// JSON of flag values to fall back on.
-const REMOTE_FEATURE_FLAG_KEYS = [
-  ...APP_RAIL_FEATURE_FLAG_KEYS,
-  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
-  LIBRARY_CANVAS_FEATURE_FLAG,
-  LOW_CREDITS_BANNER_FEATURE_FLAG,
-  REPLY_BOT_FEATURE_FLAG,
-] as const;
 
 export default function ProtectedLayoutClient({
   children,

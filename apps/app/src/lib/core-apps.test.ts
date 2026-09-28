@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CORE_APPS, getCoreAppFeatureFlagFallbacks } from './core-apps';
+import {
+  CORE_APPS,
+  getCoreAppFeatureFlagFallbacks,
+  REMOTE_FEATURE_FLAG_KEYS,
+} from './core-apps';
 
 describe('CORE_APPS', () => {
   it('exposes exactly Agent, Automation, and Studio', () => {
@@ -84,5 +88,21 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       reply_bot: true,
       studio: true,
     });
+  });
+});
+
+describe('REMOTE_FEATURE_FLAG_KEYS (#5468)', () => {
+  it('subscribes every flag that has a client fallback, so PostHog can override it', () => {
+    const remoteKeys: readonly string[] = REMOTE_FEATURE_FLAG_KEYS;
+
+    for (const key of Object.keys(getCoreAppFeatureFlagFallbacks())) {
+      expect(remoteKeys).toContain(key);
+    }
+  });
+
+  it('subscribes the capability flags read outside the app rail', () => {
+    expect(REMOTE_FEATURE_FLAG_KEYS).toEqual(
+      expect.arrayContaining(['studio', 'moodboard', 'low_credits_banner']),
+    );
   });
 });

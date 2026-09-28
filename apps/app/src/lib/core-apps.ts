@@ -4,6 +4,9 @@ import {
   APP_RAIL_FEATURE_FLAG_KEYS,
   APP_ROUTES,
   type AppRailFeatureFlagKey,
+  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  LOW_CREDITS_BANNER_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/contracts/constants';
 
@@ -83,3 +86,17 @@ export function getCoreAppFeatureFlagFallbacks(): Record<
     } as Record<CoreAppFeatureFlagKey, boolean>,
   );
 }
+
+/**
+ * Every flag a client surface reads, subscribed from PostHog (#5468). Each key
+ * with a fallback above must be here too — otherwise the fallback wins for
+ * good and PostHog can never turn the surface off.
+ */
+export const REMOTE_FEATURE_FLAG_KEYS = [
+  ...APP_RAIL_FEATURE_FLAG_KEYS,
+  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  LOW_CREDITS_BANNER_FEATURE_FLAG,
+  REPLY_BOT_FEATURE_FLAG,
+  'studio',
+] as const;

@@ -135,3 +135,14 @@ export interface IPlatformFeatureFlagResult {
   payload?: unknown;
   variant?: string | null;
 }
+
+/**
+ * Platform switches plus whether they came from a real answer (#5468): `false`
+ * when SaaS is serving its conservative stand-in because PostHog is
+ * unconfigured, silent, or has no platform flags yet. Callers whose decision
+ * cannot be taken back (dropping a billing event) wait for a resolved answer.
+ */
+export interface IPlatformFeatureSettingsState {
+  isResolved: boolean;
+  settings: IPlatformFeatureSettings;
+}

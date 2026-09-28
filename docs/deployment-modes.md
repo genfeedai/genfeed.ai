@@ -92,9 +92,11 @@ licensed-self-host bindings.
 Platform-wide product behaviour is PostHog feature flags evaluated for the
 person `genfeed-platform` (#5468); roll each flag out to 100% of that person.
 API and workers read them within 15 seconds. Without PostHog, the defaults in
-`DEFAULT_PLATFORM_FEATURE_SETTINGS` apply. If PostHog is configured but has not
-answered since boot, SaaS uses production's posture (email verification on,
-media perception off) until it does.
+`DEFAULT_PLATFORM_FEATURE_SETTINGS` apply. SaaS never falls back to those
+self-host defaults: with no usable PostHog key, before PostHog's first answer,
+or when the answer holds none of these flags, it uses production's posture
+(email verification on, media perception off), and system events are held
+rather than dropped until the recording flag resolves.
 
 | Flag | Type | Payload |
 | --- | --- | --- |
