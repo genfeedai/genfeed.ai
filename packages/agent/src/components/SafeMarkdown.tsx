@@ -3,7 +3,9 @@ import { Code } from '@ui/primitives/code';
 import { memo, type ReactElement, type ReactNode, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import MarkdownCodeBlock from './MarkdownCodeBlock';
+import MarkdownCodeBlock, {
+  type MarkdownCodeBlockLabels,
+} from './MarkdownCodeBlock';
 
 function isSafeHref(href?: string): boolean {
   if (!href) {
@@ -161,6 +163,8 @@ interface SafeMarkdownProps {
   className?: string;
   /** When true, lightly structure plain "Label: text" lines into lists. */
   enhanceStructure?: boolean;
+  /** Public hosts without next-intl supply their own localized labels. */
+  codeBlockLabels?: MarkdownCodeBlockLabels;
 }
 
 // Hoisted to module scope rather than `useMemo`d inside the component: every
@@ -264,6 +268,7 @@ function SafeMarkdownInner({
   content,
   className,
   enhanceStructure = false,
+  codeBlockLabels,
 }: SafeMarkdownProps): ReactElement {
   // `enhanceAssistantMarkdown` walks the full string (list normalization +
   // capability-line detection) on every call — cache it per `content` so a
@@ -271,6 +276,21 @@ function SafeMarkdownInner({
   const renderedContent = useMemo(
     () => (enhanceStructure ? enhanceAssistantMarkdown(content) : content),
     [content, enhanceStructure],
+  );
+
+  const components = useMemo<Components>(
+    () =>
+      codeBlockLabels
+        ? {
+            ...SAFE_MARKDOWN_COMPONENTS,
+            pre: ({ children }) => (
+              <MarkdownCodeBlock labels={codeBlockLabels}>
+                {children}
+              </MarkdownCodeBlock>
+            ),
+          }
+        : SAFE_MARKDOWN_COMPONENTS,
+    [codeBlockLabels],
   );
 
   return (
@@ -283,7 +303,7 @@ function SafeMarkdownInner({
       <ReactMarkdown
         remarkPlugins={SAFE_MARKDOWN_REMARK_PLUGINS}
         skipHtml
-        components={SAFE_MARKDOWN_COMPONENTS}
+        components={components}
       >
         {renderedContent}
       </ReactMarkdown>

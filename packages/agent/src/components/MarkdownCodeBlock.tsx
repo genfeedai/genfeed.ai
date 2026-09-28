@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Check, Clipboard } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   isValidElement,
   type ReactElement,
@@ -29,11 +30,49 @@ function extractNodeText(node: ReactNode): string {
  * `SafeMarkdown`, split out so the rest of it renders on the server: the
  * changelog ships its release notes as HTML instead of a markdown parser.
  */
+export interface MarkdownCodeBlockLabels {
+  copied: string;
+  copy: string;
+  copyAria: string;
+}
+
+interface MarkdownCodeBlockProps {
+  children?: ReactNode;
+  labels?: MarkdownCodeBlockLabels;
+}
+
 export default function MarkdownCodeBlock({
   children,
-}: {
-  children?: ReactNode;
-}): ReactElement {
+  labels,
+}: MarkdownCodeBlockProps): ReactElement {
+  return labels ? (
+    <CodeBlock labels={labels}>{children}</CodeBlock>
+  ) : (
+    <TranslatedCodeBlock>{children}</TranslatedCodeBlock>
+  );
+}
+
+function TranslatedCodeBlock({
+  children,
+}: MarkdownCodeBlockProps): ReactElement {
+  const translate = useTranslations('agent.markdownCodeBlock');
+  return (
+    <CodeBlock
+      labels={{
+        copied: translate('copied'),
+        copy: translate('copy'),
+        copyAria: translate('copyAria'),
+      }}
+    >
+      {children}
+    </CodeBlock>
+  );
+}
+
+function CodeBlock({
+  children,
+  labels,
+}: MarkdownCodeBlockProps & { labels: MarkdownCodeBlockLabels }): ReactElement {
   const [hasCopied, setHasCopied] = useState(false);
 
   async function handleCopy(): Promise<void> {
@@ -53,9 +92,9 @@ export default function MarkdownCodeBlock({
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          tooltip={hasCopied ? 'Copied' : 'Copy code'}
+          tooltip={hasCopied ? labels.copied : labels.copy}
           tooltipPosition="top"
-          ariaLabel="Copy code block"
+          ariaLabel={labels.copyAria}
           onClick={() => void handleCopy()}
         >
           {hasCopied ? (

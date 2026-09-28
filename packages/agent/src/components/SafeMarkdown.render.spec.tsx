@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
+import agentMessages from '../../../../apps/app/messages/en/agent.json';
 import { SafeMarkdown } from './SafeMarkdown';
 
 describe('SafeMarkdown rendering', () => {
@@ -22,7 +24,11 @@ describe('SafeMarkdown rendering', () => {
       '```',
     ].join('\n');
 
-    render(<SafeMarkdown content={markdown} />);
+    render(
+      <NextIntlClientProvider locale="en" messages={{ agent: agentMessages }}>
+        <SafeMarkdown content={markdown} />
+      </NextIntlClientProvider>,
+    );
 
     expect(
       screen.getByRole('heading', { level: 3, name: 'Heading one' }),
@@ -48,7 +54,9 @@ describe('SafeMarkdown rendering', () => {
     });
 
     render(
-      <SafeMarkdown content={['```ts', 'const x = 1;', '```'].join('\n')} />,
+      <NextIntlClientProvider locale="en" messages={{ agent: agentMessages }}>
+        <SafeMarkdown content={['```ts', 'const x = 1;', '```'].join('\n')} />
+      </NextIntlClientProvider>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy code block' }));
@@ -56,6 +64,23 @@ describe('SafeMarkdown rendering', () => {
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith('const x = 1;\n');
     });
+  });
+
+  it('renders host-provided copy labels without an intl provider', () => {
+    render(
+      <SafeMarkdown
+        content={'```ts\nconst x = 1;\n```'}
+        codeBlockLabels={{
+          copied: 'Copié',
+          copy: 'Copier',
+          copyAria: 'Copier le bloc',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Copier le bloc' }),
+    ).toBeInTheDocument();
   });
 
   it('renders safe links with a hardened rel and strips unsafe hrefs', () => {
