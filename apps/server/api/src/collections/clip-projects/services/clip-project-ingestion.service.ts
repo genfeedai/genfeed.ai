@@ -295,6 +295,14 @@ export class ClipProjectIngestionService {
         'Audio sources require avatar mode because raw-cut clips need source video.',
       );
     }
+    if (dto.brandId) {
+      // A brand outside the caller's organization is refused before any
+      // upload record exists or the project is pointed at it.
+      await this.clipIdentityResolutionService.resolve({
+        brandId: dto.brandId,
+        organizationId: user.organizationId,
+      });
+    }
     if (dto.draftProjectId) {
       // Refuse before creating an upload record for a draft that cannot take it.
       await this.assertDraftStartable(user.organizationId, dto.draftProjectId);
