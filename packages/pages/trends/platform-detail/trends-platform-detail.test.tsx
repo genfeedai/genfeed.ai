@@ -177,6 +177,72 @@ describe('TrendsPlatformDetail', () => {
     expect(screen.getByText('Trending sounds')).toBeInTheDocument();
   });
 
+  it('resolves feed and related-section columns from the panel width', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    const feed = screen.getByTestId('trends-platform-content-grid');
+    expect(feed).toHaveClass('@container');
+    expect(feed.firstElementChild).toHaveClass('@[60rem]:grid-cols-3', 'gap-4');
+
+    for (const testId of [
+      'trends-related-videos-grid',
+      'trends-related-hashtags-grid',
+      'trends-related-sounds-grid',
+    ]) {
+      const grid = screen.getByTestId(testId).firstElementChild as HTMLElement;
+      expect(grid).toHaveClass('@[60rem]:grid-cols-3', 'gap-3');
+      expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl):grid-cols/);
+    }
+  });
+
+  it('shows grid skeletons in every section while it loads', () => {
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: true,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: { connectedPlatforms: [], lockedPlatforms: [] },
+    });
+    mockUseQuery.mockReset();
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: true,
+      refetch: vi.fn(),
+    });
+
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    for (const testId of [
+      'trends-platform-content-grid',
+      'trends-related-videos-grid',
+      'trends-related-hashtags-grid',
+      'trends-related-sounds-grid',
+    ]) {
+      const section = screen.getByTestId(testId);
+      expect(section).toHaveClass('@container');
+      expect(
+        section.querySelectorAll('[role="status"]').length,
+      ).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText(/Loading content feed/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/No remixable source posts/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Remix as the only visible action on each feed card', () => {
+    render(<TrendsPlatformDetail platform="tiktok" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Use as context' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'More actions' }),
+    ).toHaveLength(2);
+  });
+
   it('renders LinkedIn through the public-reference feed contract', () => {
     mockUseTrendContent.mockReturnValue({
       error: null,

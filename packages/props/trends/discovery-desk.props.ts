@@ -68,6 +68,15 @@ export interface DeskLightTableViewProps {
   selection: Set<string>;
 }
 
+export interface DeskLightCardProps {
+  isCursored: boolean;
+  isSelected: boolean;
+  item: DiscoveryDeskItem;
+  onCursor: (key: string) => void;
+  onSelectFinding?: (item: DiscoveryDeskItem) => void;
+  onToggleSelect: (key: string) => void;
+}
+
 export interface DeskSelectionBarProps {
   items: DiscoveryDeskItem[];
   onClear: () => void;

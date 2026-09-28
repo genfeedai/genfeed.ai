@@ -69,7 +69,10 @@ vi.mock('next-intl', () => ({
       'actions.copyPrompt': 'Copy prompt',
       'actions.openSource': 'Open source',
       'actions.remix': 'Remix',
+      'actions.saveBrief': 'Save brief',
+      'actions.savingBrief': 'Saving brief…',
       'actions.sendToAgent': 'Send to agent',
+      moreActions: 'More actions',
     };
     return messages[key] ?? key;
   },
@@ -108,7 +111,7 @@ describe('TrendContentCard brief handoff', () => {
 
     // Radix opens the dropdown on pointerdown, which jsdom does not synthesize
     // from a click — fire both, as the other overflow-menu specs do.
-    const trigger = screen.getByRole('button', { name: 'More trend actions' });
+    const trigger = screen.getByRole('button', { name: 'More actions' });
     fireEvent.pointerDown(trigger);
     fireEvent.click(trigger);
     fireEvent.click(

@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonVariant, Platform } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ButtonVariant,
+  Platform,
+  ViewType,
+} from '@genfeedai/contracts';
 import type {
   ITrendHashtag,
   ITrendSound,
@@ -31,9 +36,11 @@ import {
   PLATFORM_RELATED_CONTENT,
   type TrendPlatform,
 } from '@pages/trends/shared/trends-platforms';
+import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { TrendsService } from '@services/social/trends.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import CollectionView from '@ui/collection/CollectionView';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
@@ -184,6 +191,22 @@ export default function TrendsPlatformDetail({
     isLoading || isLoadingVideos || isLoadingHashtags || isLoadingSounds,
   );
 
+  // Visual-first feed: always a grid, so the list renderer is never reached.
+  const renderContentCard = (item: TrendContentItem) => {
+    const finding = toTrendContentFinding(item);
+    return (
+      <TrendContentCard
+        finding={finding}
+        isSelected={isSameResearchFindingReference(
+          surface?.authorizedFinding?.reference ?? null,
+          finding.reference,
+        )}
+        item={item}
+        onSelectAction={surface?.isEmbedded ? surface.selectFinding : undefined}
+      />
+    );
+  };
+
   const handleRefresh = async () => {
     await refreshTrendContent();
 
@@ -274,37 +297,24 @@ export default function TrendsPlatformDetail({
                 <EmptyBlock>
                   No public content feed available for this platform right now.
                 </EmptyBlock>
-              ) : isLoading ? (
-                <p className="py-3 text-sm text-muted-foreground">
-                  Loading content feed…
-                </p>
-              ) : pageItems.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {pageItems.map((item) => {
-                    const finding = toTrendContentFinding(item);
-                    return (
-                      <TrendContentCard
-                        key={item.id}
-                        finding={finding}
-                        isSelected={isSameResearchFindingReference(
-                          surface?.authorizedFinding?.reference ?? null,
-                          finding.reference,
-                        )}
-                        item={item}
-                        onSelectAction={
-                          surface?.isEmbedded
-                            ? surface.selectFinding
-                            : undefined
-                        }
-                      />
-                    );
-                  })}
-                </div>
               ) : (
-                <EmptyBlock>
-                  No remixable source posts are available for this platform
-                  right now.
-                </EmptyBlock>
+                <CollectionView
+                  data-testid="trends-platform-content-grid"
+                  emptyState={
+                    <EmptyBlock>
+                      No remixable source posts are available for this platform
+                      right now.
+                    </EmptyBlock>
+                  }
+                  getItemKey={(item) => item.id}
+                  isLoading={isLoading}
+                  items={pageItems}
+                  maxColumns={3}
+                  renderGridItem={renderContentCard}
+                  renderListItem={renderContentCard}
+                  skeletonCount={6}
+                  view={ViewType.GRID}
+                />
               )}
               {pagination ? <div className="pt-2">{pagination}</div> : null}
             </section>
