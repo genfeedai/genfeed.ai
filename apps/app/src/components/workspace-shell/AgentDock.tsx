@@ -85,6 +85,10 @@ function AgentDockHeader({
   );
 }
 
+// The element focused inside a body node while it moves between hosts (the
+// section and the sheet swap at the breakpoint): detaching drops browser focus.
+const focusedDescendantByBody = new WeakMap<HTMLElement, HTMLElement>();
+
 /** Hosts the dock's one body node, wherever the dock is presented. */
 function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -96,7 +100,20 @@ function AgentDockBodyOutlet({ body }: AgentDockBodyOutletProps) {
     }
 
     host.appendChild(body);
+    const focused = focusedDescendantByBody.get(body);
+    focusedDescendantByBody.delete(body);
+    if (focused?.isConnected && document.activeElement !== focused) {
+      focused.focus({ preventScroll: true });
+    }
+
     return () => {
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLElement &&
+        body.contains(activeElement)
+      ) {
+        focusedDescendantByBody.set(body, activeElement);
+      }
       if (body.parentNode === host) {
         host.removeChild(body);
       }
@@ -137,6 +154,15 @@ export default function AgentDock({
     return node;
   });
   const [renderedHeight, setRenderedHeight] = useState<number | null>(null);
+  // The dock's chrome (header, resize handle) and its body, in either
+  // presentation.
+  const isInsideDock = useCallback(
+    (element: Element) =>
+      Boolean(
+        bodyNode?.contains(element) || element.closest('#workspace-agent-dock'),
+      ),
+    [bodyNode],
+  );
   const { close, height, isOpen, setHeight } = dock;
 
   // Opening moves focus into the composer and remembers where it came from;
@@ -150,7 +176,7 @@ export default function AgentDock({
         returnFocus?.isConnected &&
         (!activeElement ||
           activeElement === document.body ||
-          bodyNode?.contains(activeElement))
+          isInsideDock(activeElement))
       ) {
         returnFocus.focus({ preventScroll: true });
       }
@@ -159,7 +185,7 @@ export default function AgentDock({
 
     const activeElement = document.activeElement;
     returnFocusRef.current =
-      activeElement instanceof HTMLElement && !bodyNode?.contains(activeElement)
+      activeElement instanceof HTMLElement && !isInsideDock(activeElement)
         ? activeElement
         : null;
     const frame = window.requestAnimationFrame(() => {
@@ -167,7 +193,7 @@ export default function AgentDock({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [bodyNode, isOpen]);
+  }, [bodyNode, isInsideDock, isOpen]);
 
   // Short windows cap the dock below its stored height; resizing works from
   // what is actually on screen.
@@ -249,7 +275,9 @@ export default function AgentDock({
 
   const body = bodyNode
     ? createPortal(
-        <>
+        // The body is a React portal: its key events never reach the section's
+        // handler, so Escape is handled here too.
+        <div className="contents" onKeyDown={handleKeyDown}>
           <div
             className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 empty:hidden"
             data-testid="agent-dock-scope"
@@ -264,7 +292,7 @@ export default function AgentDock({
             data-testid="agent-dock-composer-slot"
             ref={composerSlotRef}
           />
-        </>,
+        </div>,
         bodyNode,
       )
     : null;

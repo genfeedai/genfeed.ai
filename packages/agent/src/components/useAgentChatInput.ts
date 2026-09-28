@@ -192,13 +192,10 @@ function buildContentReferenceArtifact(
   }
 
   // A record keeps the brand it was attached from. One from another brand
-  // than the composer is bound to is left out rather than relabelled.
-  const recordBrandId = contentReference.brandId ?? brandId;
-  if (
-    contentReference.brandId &&
-    brandId &&
-    contentReference.brandId !== brandId
-  ) {
+  // than the composer is bound to, or with no known brand while the composer
+  // is bound to one, is left out rather than relabelled.
+  const recordBrandId = contentReference.brandId;
+  if (brandId && recordBrandId !== brandId) {
     return null;
   }
 
@@ -1035,13 +1032,17 @@ export function useAgentChatInput({
           return;
         }
         const key = `${kind}:${reference.id}`;
-        const current = readDismissedSurfaceReferenceKeys(draftScopeKey);
+        // Without a scope nothing is stored, so build on this composer's own set.
+        const current = draftScopeKey
+          ? readDismissedSurfaceReferenceKeys(draftScopeKey)
+          : dismissedSurfaceArtifactKeys;
         const next = current.has(key) ? current : new Set([...current, key]);
         writeDismissedSurfaceReferenceKeys(draftScopeKey, next);
         setDismissedSurfaceArtifactKeys(next);
       }
     },
     [
+      dismissedSurfaceArtifactKeys,
       draftScopeKey,
       handleRemoveContentReference,
       surfaceArtifactKindByRecordId,

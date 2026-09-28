@@ -198,6 +198,7 @@ export default function StudioGenerateInspector({
     }
 
     const reference = {
+      ...(ingredient.brandId ? { brandId: ingredient.brandId } : {}),
       contentTitle: job.prompt.trim() || label,
       contentType: job.type,
       id: ingredient.id,

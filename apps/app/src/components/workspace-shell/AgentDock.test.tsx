@@ -248,4 +248,16 @@ describe('AgentDock', () => {
     expect(document.activeElement).toBe(opener);
     opener.remove();
   });
+
+  it('keeps focus in the conversation when it moves across the breakpoint', () => {
+    const dock = buildDock({ isOpen: true });
+    const view = render(renderStateful(dock, false));
+
+    screen.getByRole('button', { name: 'Draft: empty' }).focus();
+    view.rerender(renderStateful(dock, true));
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Draft: empty' }),
+    );
+  });
 });

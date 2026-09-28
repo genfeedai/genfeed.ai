@@ -629,19 +629,12 @@ function UniversalWorkspaceShellContent({
       return;
     }
 
+    // Pages stamp the record's own brand; the composer leaves out one that
+    // does not match the conversation instead of relabelling it.
     return registerAgentDockAttachHandler((reference) => {
-      const referenceBrandId = reference.brandId ?? bindingBrandId;
-      attachContentToConversationDraft(draftScopeKey, {
-        ...reference,
-        ...(referenceBrandId ? { brandId: referenceBrandId } : {}),
-      });
+      attachContentToConversationDraft(draftScopeKey, reference);
     });
-  }, [
-    bindingBrandId,
-    draftScopeKey,
-    isAgentDockHost,
-    registerAgentDockAttachHandler,
-  ]);
+  }, [draftScopeKey, isAgentDockHost, registerAgentDockAttachHandler]);
 
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {

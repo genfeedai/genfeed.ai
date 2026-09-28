@@ -977,6 +977,41 @@ describe('useAgentChatInput surface artifact chip dismissal', () => {
     ]);
   });
 
+  it('accumulates dismissals in a composer without a draft scope', async () => {
+    function UnscopedWrapper({ children }: { children: ReactNode }) {
+      return (
+        <ConversationComposerShellProvider
+          artifactReferences={workspaceReferences}
+          contextLabel="Workspace"
+          draftScopeKey={null}
+          portalTarget={null}
+          shellState="canvas"
+        >
+          {children}
+        </ConversationComposerShellProvider>
+      );
+    }
+    const { result } = renderHook(
+      () => useAgentChatInput({ onSend: vi.fn() }),
+      { wrapper: UnscopedWrapper },
+    );
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    for (const id of ['post-1', 'post-3']) {
+      act(() => {
+        result.current.handleRemoveReference({
+          id,
+          label: `^post:${id}`,
+          type: 'asset',
+        });
+      });
+    }
+
+    expect(result.current.references).toEqual([]);
+  });
+
   it('keeps a dismissal when the composer remounts before sending', async () => {
     const first = renderHook(() => useAgentChatInput({ onSend: vi.fn() }), {
       wrapper: Wrapper,
@@ -1032,7 +1067,7 @@ describe('useAgentChatInput attached record brand scope', () => {
     sessionStorage.clear();
   });
 
-  async function sendWithAttached(brandId: string) {
+  async function sendWithAttached(brandId: string | undefined) {
     const onSend = vi.fn();
     const { result } = renderHook(() => useAgentChatInput({ onSend }), {
       wrapper: BrandWrapper,
@@ -1042,7 +1077,7 @@ describe('useAgentChatInput attached record brand scope', () => {
     });
     act(() => {
       attachContentToConversationDraft(draftScopeKey, {
-        brandId,
+        ...(brandId ? { brandId } : {}),
         contentTitle: 'Hero shot',
         contentType: 'image',
         id: 'ingredient-1',
@@ -1081,6 +1116,12 @@ describe('useAgentChatInput attached record brand scope', () => {
 
   it('leaves out a record from another brand instead of relabelling it', async () => {
     const options = await sendWithAttached('brand-2');
+
+    expect(options?.artifactReferences ?? []).toEqual([]);
+  });
+
+  it('leaves out a record with no known brand from a brand-bound composer', async () => {
+    const options = await sendWithAttached(undefined);
 
     expect(options?.artifactReferences ?? []).toEqual([]);
   });

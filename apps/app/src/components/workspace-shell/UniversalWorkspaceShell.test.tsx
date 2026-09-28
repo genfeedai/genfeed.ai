@@ -1400,6 +1400,7 @@ describe('UniversalWorkspaceShell', () => {
       act(() => {
         isAttached =
           dock?.attachContent({
+            brandId: 'brand-1',
             contentTitle: 'Spring launch still',
             contentType: 'image',
             id: 'ingredient-1',
@@ -1417,7 +1418,7 @@ describe('UniversalWorkspaceShell', () => {
           `genfeed:conversation-composer:v1:${draftScope}`,
         ),
       ).toContain('ingredient-1');
-      // The record carries the brand the shell was bound to when attached.
+      // The record keeps the brand the page stamped on it.
       expect(
         window.sessionStorage.getItem(
           `genfeed:conversation-composer:v1:${draftScope}`,
