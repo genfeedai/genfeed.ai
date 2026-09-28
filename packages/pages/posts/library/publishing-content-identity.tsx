@@ -24,12 +24,12 @@ export default function PublishingContentIdentity({
           <Link
             href={titleHref}
             aria-label={`Open ${title}`}
-            className="line-clamp-1 text-sm font-medium text-foreground hover:underline"
+            className="line-clamp-2 text-sm font-medium md:line-clamp-1 text-foreground hover:underline"
           >
             {title}
           </Link>
         ) : (
-          <p className="line-clamp-1 text-sm font-medium text-foreground">
+          <p className="line-clamp-2 text-sm font-medium md:line-clamp-1 text-foreground">
             {title}
           </p>
         )}

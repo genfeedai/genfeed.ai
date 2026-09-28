@@ -463,23 +463,39 @@ export default function PublishingContentLibrary({
 
   const columns: TableColumn<PublishingContentLibraryItem>[] = [
     {
+      className: 'w-full md:w-auto',
       header: 'Content',
       key: 'title',
       render: (item) => (
-        <PublishingContentIdentity
-          channels={item.channels ?? [item.channel]}
-          title={item.title}
-          summary={item.summary}
-          titleHref={getDetailHref(item)}
-        />
+        <>
+          <PublishingContentIdentity
+            channels={item.channels ?? [item.channel]}
+            title={item.title}
+            summary={item.summary}
+            titleHref={getDetailHref(item)}
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
+            <Badge>{formatPublishingContentType(item.type)}</Badge>
+            <Badge status={item.status}>
+              {formatPublishingContentStatus(item.status)}
+            </Badge>
+            {item.scheduledAt ? (
+              <span className="text-xs text-muted-foreground">
+                {formatDate(item.scheduledAt)}
+              </span>
+            ) : null}
+          </div>
+        </>
       ),
     },
     {
+      className: 'hidden md:table-cell',
       header: 'Type',
       key: 'type',
       render: (item) => <Badge>{formatPublishingContentType(item.type)}</Badge>,
     },
     {
+      className: 'hidden md:table-cell',
       header: 'Status',
       key: 'status',
       render: (item) => (
@@ -489,11 +505,13 @@ export default function PublishingContentLibrary({
       ),
     },
     {
+      className: 'hidden md:table-cell',
       header: 'Scheduled',
       key: 'scheduledAt',
       render: (item) => (item.scheduledAt ? formatDate(item.scheduledAt) : '—'),
     },
     {
+      className: 'hidden md:table-cell',
       header: 'Created',
       key: 'createdAt',
       render: (item) => formatDate(item.createdAt),
