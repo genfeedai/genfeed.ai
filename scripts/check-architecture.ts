@@ -181,6 +181,10 @@ const checks = [
     command: ['bun', 'run', 'scripts/architecture/check-env-product-flags.ts'],
     name: 'Env product-flag boundary (#5407)',
   },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-opaque-user-ids.ts'],
+    name: 'Opaque user IDs (#5410)',
+  },
 ] as const;
 
 let failed = false;

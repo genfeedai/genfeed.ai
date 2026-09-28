@@ -59,7 +59,8 @@ export class ConnectCredentialDto {
 }
 
 export class CreateCredentialDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({ required: true })
   readonly userId!: string;
 

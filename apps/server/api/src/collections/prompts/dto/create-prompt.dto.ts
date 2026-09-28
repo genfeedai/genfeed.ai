@@ -7,6 +7,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -29,7 +30,8 @@ export class CreatePromptDto {
   @ApiProperty({ nullable: true, required: false, type: String })
   readonly brandId?: string | null;
 
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly userId?: string;

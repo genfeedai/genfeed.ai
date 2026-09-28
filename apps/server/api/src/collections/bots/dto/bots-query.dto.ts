@@ -3,7 +3,14 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class BotsQueryDto extends BaseQueryDto {
   @IsString()
@@ -26,7 +33,8 @@ export class BotsQueryDto extends BaseQueryDto {
   @ApiProperty({ description: 'Brand ID filter', required: false })
   declare brandId?: string;
 
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @IsOptional()
   @ApiProperty({ description: 'User ID filter', required: false })
   userId?: string;

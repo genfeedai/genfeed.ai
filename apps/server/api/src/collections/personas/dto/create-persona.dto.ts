@@ -12,6 +12,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
@@ -186,7 +187,8 @@ export class CreatePersonaDto {
 
   @IsOptional()
   @IsArray()
-  @IsEntityId({ each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   @ApiProperty({
     description: 'Assigned team member user IDs',
     required: false,
