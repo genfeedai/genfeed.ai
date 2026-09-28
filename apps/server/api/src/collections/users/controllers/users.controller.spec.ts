@@ -13,6 +13,7 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -490,6 +491,7 @@ describe('UsersController', () => {
 
       const result = await relationshipsController.updateSettings(
         mockRequest,
+        mockUser,
         userId,
         {
           theme: 'light',
@@ -506,6 +508,19 @@ describe('UsersController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it("returns not found for another user's settings without writing", async () => {
+      await expect(
+        relationshipsController.updateSettings(
+          mockRequest,
+          mockUser,
+          testId('other-user'),
+          { theme: 'light' } as never,
+        ),
+      ).rejects.toThrow(HttpException);
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.patch).not.toHaveBeenCalled();
     });
   });
 

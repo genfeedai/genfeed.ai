@@ -1,3 +1,4 @@
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   TwitterPipelineDraftDto,
   TwitterPipelinePublishDto,
@@ -11,9 +12,11 @@ import {
   HttpStatus,
   Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 @Controller('organizations/:organizationId/twitter-pipeline')
+@UseGuards(RolesGuard)
 export class TwitterPipelineController {
   constructor(private readonly twitterqueryService: TwitterPipelineService) {}
 

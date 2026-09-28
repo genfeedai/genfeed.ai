@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { TelegramController } from '@api/services/integrations/telegram/controllers/telegram.controller';
 import { TelegramService } from '@api/services/integrations/telegram/services/telegram.service';
@@ -5,7 +6,7 @@ import { createServiceModule } from '@api/shared/service-module.factory';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(TelegramService, {
-  additionalImports: [CredentialsCoreModule],
+  additionalImports: [BrandsModule, CredentialsCoreModule],
 });
 
 @Module({

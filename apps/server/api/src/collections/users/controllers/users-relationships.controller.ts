@@ -366,9 +366,14 @@ export class UsersRelationshipsController {
   })
   async updateSettings(
     @Req() request: Request,
+    @CurrentUser() currentUser: User,
     @Param('userId') userId: string,
     @Body() updateSettingDto: UpdateSettingDto,
   ) {
+    if (!this.canAccessUser(userId, currentUser)) {
+      return returnNotFound(this.constructorName, userId);
+    }
+
     const user = await this.usersService.findOne({
       id: userId,
     });
@@ -391,6 +396,13 @@ export class UsersRelationshipsController {
     return data
       ? serializeSingle(request, SettingSerializer, data)
       : returnNotFound(this.constructorName, userId);
+  }
+
+  private canAccessUser(targetUserId: string, currentUser: User): boolean {
+    return (
+      getIsSuperAdmin(currentUser) ||
+      (currentUser.userId || currentUser.id) === targetUserId
+    );
   }
 
   private async findUserSettings(userData: unknown): Promise<unknown | null> {

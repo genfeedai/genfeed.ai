@@ -1,3 +1,5 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TelegramController } from '@api/services/integrations/telegram/controllers/telegram.controller';
 import {
@@ -12,13 +14,17 @@ describe('TelegramController', () => {
   let telegramService: {
     verifyAndSaveAuth: ReturnType<typeof vi.fn>;
   };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+  };
 
-  const orgId = 'test-object-id';
-  const brandId = 'test-object-id';
-  const userId = 'test-object-id';
+  const orgId = 'cmorganization000000000000001';
+  const brandId = 'cmbrand000000000000000001';
+  const userId = 'cmuser0000000000000000001';
   const mockUser = {
+    organizationId: orgId,
     userId: userId,
-  } as Record<string, unknown>;
+  } as unknown as AuthenticatedUser;
 
   const validAuthData: TelegramAuthData = {
     auth_date: Math.floor(Date.now() / 1000),
@@ -42,10 +48,18 @@ describe('TelegramController', () => {
     telegramService = {
       verifyAndSaveAuth: vi.fn().mockResolvedValue(mockCredential),
     };
+    brandsService = {
+      findOne: vi
+        .fn()
+        .mockResolvedValue({ id: brandId, organizationId: orgId }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TelegramController],
-      providers: [{ provide: TelegramService, useValue: telegramService }],
+      providers: [
+        { provide: TelegramService, useValue: telegramService },
+        { provide: BrandsService, useValue: brandsService },
+      ],
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -60,22 +74,33 @@ describe('TelegramController', () => {
 
   describe('verify', () => {
     it('should call verifyAndSaveAuth with correct arguments', async () => {
-      await controller.verify(mockUser, orgId, brandId, validAuthData);
+      await controller.verify(mockUser, brandId, validAuthData);
       expect(telegramService.verifyAndSaveAuth).toHaveBeenCalledWith(
         orgId,
         brandId,
-        userId.toString(),
+        userId,
         validAuthData,
       );
     });
 
+    it('only links a brand that belongs to the caller organization', async () => {
+      await controller.verify(mockUser, brandId, validAuthData);
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        id: brandId,
+        organizationId: orgId,
+      });
+    });
+
+    it('rejects a brand outside the caller organization without linking', async () => {
+      brandsService.findOne.mockResolvedValueOnce(null);
+      await expect(
+        controller.verify(mockUser, brandId, validAuthData),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+      expect(telegramService.verifyAndSaveAuth).not.toHaveBeenCalled();
+    });
+
     it('should return the saved credential', async () => {
-      const result = await controller.verify(
-        mockUser,
-        orgId,
-        brandId,
-        validAuthData,
-      );
+      const result = await controller.verify(mockUser, brandId, validAuthData);
       expect(result).toEqual(mockCredential);
     });
 
@@ -87,7 +112,7 @@ describe('TelegramController', () => {
         ),
       );
       await expect(
-        controller.verify(mockUser, orgId, brandId, validAuthData),
+        controller.verify(mockUser, brandId, validAuthData),
       ).rejects.toThrow(HttpException);
     });
 
@@ -99,7 +124,7 @@ describe('TelegramController', () => {
         ),
       );
       await expect(
-        controller.verify(mockUser, orgId, brandId, validAuthData),
+        controller.verify(mockUser, brandId, validAuthData),
       ).rejects.toThrow(HttpException);
     });
 
@@ -111,12 +136,12 @@ describe('TelegramController', () => {
         ),
       );
       await expect(
-        controller.verify(mockUser, orgId, brandId, validAuthData),
+        controller.verify(mockUser, brandId, validAuthData),
       ).rejects.toThrow(HttpException);
     });
 
     it('should pass identity.userId as userId', async () => {
-      await controller.verify(mockUser, orgId, brandId, validAuthData);
+      await controller.verify(mockUser, brandId, validAuthData);
       const callArgs = telegramService.verifyAndSaveAuth.mock
         .calls[0] as unknown[];
       expect(callArgs[2]).toBe(userId);
