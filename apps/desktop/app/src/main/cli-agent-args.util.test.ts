@@ -69,13 +69,13 @@ describe('buildCodexCliArgs', () => {
       resumeSessionId: null,
     });
 
-    expect(args.slice(0, 5)).toEqual([
+    expect(args.slice(0, 4)).toEqual([
       'exec',
       '--json',
       '--skip-git-repo-check',
-      '--sandbox',
-      'read-only',
+      '--ignore-user-config',
     ]);
+    expect(args[args.indexOf('--sandbox') + 1]).toBe('read-only');
     expect(args).toContain(
       'mcp_servers.genfeed.url="https://mcp.genfeed.ai/mcp"',
     );
@@ -87,6 +87,41 @@ describe('buildCodexCliArgs', () => {
     expect(args).not.toContain('resume');
     expect(args.join(' ')).not.toContain('gf_');
     expect(args.join(' ')).not.toContain('dangerously');
+  });
+
+  it('removes every Codex tool that reaches local files or the shell', () => {
+    const args = buildCodexCliArgs({
+      mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+      resumeSessionId: null,
+    });
+    const disabled = args.flatMap((arg, index) =>
+      arg === '--disable' ? [args[index + 1]] : [],
+    );
+    const overrides = args.flatMap((arg, index) =>
+      arg === '-c' ? [args[index + 1]] : [],
+    );
+
+    expect(args).toContain('--ignore-user-config');
+    expect(disabled).toEqual(
+      expect.arrayContaining([
+        'shell_tool',
+        'unified_exec',
+        'code_mode',
+        'multi_agent',
+        'apps',
+        'plugins',
+      ]),
+    );
+    expect(overrides).toEqual(
+      expect.arrayContaining([
+        'features.view_image=false',
+        'features.browser_use=false',
+        'features.browser_use_external=false',
+        'features.computer_use=false',
+      ]),
+    );
+    expect(args).not.toContain('workspace-write');
+    expect(args).not.toContain('danger-full-access');
   });
 
   it('resumes a Codex session reading the prompt from stdin', () => {

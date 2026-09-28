@@ -35,7 +35,7 @@ export function AgentTerminalHeader({
           localToolSummary={catalog.localToolSummary}
           options={catalog.options}
           providerSummary={catalog.providerSummary}
-          selectedRuntimeKey={selectedRuntime.key}
+          selectedRuntime={selectedRuntime}
           onRuntimeChange={onRuntimeChange}
         />
       </div>

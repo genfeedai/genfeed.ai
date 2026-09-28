@@ -22,6 +22,8 @@ vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
 
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();
+/** What the composer's `onSend` returned; false keeps the draft. */
+const composerSendResults: Array<boolean | undefined> = [];
 const adoptRun = vi.fn();
 const beginRunHandoff = vi.fn((threadId: string) => ({
   generation: 1,
@@ -185,9 +187,11 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
         <input
           aria-label="Composer paste"
           placeholder={props.placeholder}
-          onPaste={(event) =>
-            props.onSend?.(event.clipboardData.getData('text'))
-          }
+          onPaste={(event) => {
+            composerSendResults.push(
+              props.onSend?.(event.clipboardData.getData('text')),
+            );
+          }}
         />
         {props.showStop ? (
           <button type="button" onClick={props.onStop}>
@@ -340,9 +344,12 @@ type StoreState = {
     brandId?: string | null;
     contextVersion?: number;
     id: string;
+    runtimeKey?: string;
     source?: string;
     title?: string;
   }>;
+  draftRuntimeKey: string | null;
+  setDraftRuntimeKey: ReturnType<typeof vi.fn>;
   error: string | null;
   isGenerating: boolean;
   messages: AgentChatMessageType[];
@@ -396,6 +403,7 @@ const storeState: StoreState = {
   clearStaleActiveRun: vi.fn(),
   markStreamLive: vi.fn(),
   draftAgentMode: AgentThreadMode.MANUAL,
+  draftRuntimeKey: null,
   error: null,
   hasMoreMessages: false,
   isLoadingOlderMessages: false,
@@ -434,6 +442,7 @@ const storeState: StoreState = {
   setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
     storeState.draftAgentMode = mode;
   }),
+  setDraftRuntimeKey: vi.fn(),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
     storeState.latestProposedPlan = plan;
@@ -490,6 +499,10 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { resetDesktopLocalToolsCache } from '@genfeedai/agent/hooks/use-desktop-local-tools';
+import { DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE } from '@genfeedai/agent/utils/agent-runtime-options.util';
+
+type DesktopWindow = Window & { genfeedDesktop?: unknown };
 
 describe('AgentChatContainer', () => {
   beforeAll(() => {
@@ -508,6 +521,7 @@ describe('AgentChatContainer', () => {
     pinConversationScrollToBottomMock.mockReset();
     sendNonStreaming.mockReset();
     sendStreaming.mockReset();
+    composerSendResults.length = 0;
     adoptRun.mockReset();
     beginRunHandoff.mockClear();
     cancelRunHandoff.mockReset();
@@ -553,6 +567,7 @@ describe('AgentChatContainer', () => {
     storeState.stream.streamingContent = '';
     storeState.workEvents = [];
     storeState.threads = [];
+    storeState.draftRuntimeKey = null;
     storeState.isGenerating = false;
     storeState.error = null;
     storeState.activeRunId = 'run-1';
@@ -877,6 +892,105 @@ describe('AgentChatContainer', () => {
       apiService.respondToInputRequest.mock.invocationCallOrder[0] ?? 0,
     );
     expect(cancelRunHandoff).not.toHaveBeenCalled();
+  });
+
+  it('refuses a local CLI send while detection is pending and keeps the draft', async () => {
+    const startTurn = vi.fn();
+    resetDesktopLocalToolsCache();
+    (window as DesktopWindow).genfeedDesktop = {
+      agentRuntime: {
+        cancelTurn: vi.fn(),
+        onEvent: vi.fn(() => () => undefined),
+        startTurn,
+      },
+      app: {
+        detectLocalTools: vi.fn(() => new Promise(() => undefined)),
+      },
+    };
+    storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/claude-cli' }];
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
+    });
+
+    try {
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      expect(composerSendResults).toEqual([false]);
+      expect(storeState.setError).toHaveBeenCalledWith(
+        DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
+      );
+      expect(sendStreaming).not.toHaveBeenCalled();
+      expect(sendNonStreaming).not.toHaveBeenCalled();
+      expect(startTurn).not.toHaveBeenCalled();
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
+  });
+
+  it('never sends a thread bound to an outdated local Codex CLI to the hosted runtime', async () => {
+    const upgradeCommand = 'npm install -g @openai/codex@latest';
+    const startTurn = vi.fn();
+    resetDesktopLocalToolsCache();
+    (window as DesktopWindow).genfeedDesktop = {
+      agentRuntime: {
+        cancelTurn: vi.fn(),
+        onEvent: vi.fn(() => () => undefined),
+        startTurn,
+      },
+      app: {
+        detectLocalTools: vi.fn().mockResolvedValue({
+          anyDetected: true,
+          claude: true,
+          codex: false,
+          detected: ['claude'],
+          grok: false,
+          upgradesRequired: [
+            {
+              key: 'codex',
+              message: `This Codex CLI is too old to run Genfeed agent turns. Update it with \`${upgradeCommand}\`, then restart Genfeed Desktop.`,
+            },
+          ],
+        }),
+      },
+    };
+    storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/codex-cli' }];
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
+    });
+
+    try {
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        await screen.findByTestId('agent-desktop-runtime-notice'),
+      ).toHaveTextContent(upgradeCommand);
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      expect(composerSendResults).toEqual([false]);
+      expect(storeState.setError).toHaveBeenCalledWith(
+        expect.stringContaining(upgradeCommand),
+      );
+      expect(sendStreaming).not.toHaveBeenCalled();
+      expect(sendNonStreaming).not.toHaveBeenCalled();
+      expect(startTurn).not.toHaveBeenCalled();
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
   });
 
   it('resolves a pasted URL on the same turn while the agent is waiting for input', async () => {
