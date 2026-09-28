@@ -2,7 +2,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { testId, testIds } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const organizationId = testId('org');
 const otherOrganizationId = testId('org', 2);
@@ -68,7 +68,9 @@ describe('SettingsService favorite workflows', () => {
   let hasSettingsRow: boolean;
   let rowLock: Promise<void>;
   let pausedTransactionLookup: PausedLookup | null;
-  let workflowFindMany: ReturnType<typeof vi.fn>;
+  let workflowFindMany: Mock<
+    (args: WorkflowFindManyArgs) => Promise<Array<{ id: string }>>
+  >;
   let settingFindFirst: ReturnType<typeof vi.fn>;
   let settingUpdate: ReturnType<typeof vi.fn>;
   let lockQueries: LockQuery[];
@@ -85,18 +87,16 @@ describe('SettingsService favorite workflows', () => {
 
     // Behaves like the database: rows match on id, organization and
     // soft-delete state exactly as the scoped `where` asks.
-    workflowFindMany = vi
-      .fn()
-      .mockImplementation(async ({ where }: WorkflowFindManyArgs) =>
-        workflowRows
-          .filter(
-            (row) =>
-              where.id.in.includes(row.id) &&
-              row.organizationId === where.organizationId &&
-              row.isDeleted === where.isDeleted,
-          )
-          .map((row) => ({ id: row.id })),
-      );
+    workflowFindMany = vi.fn(async ({ where }: WorkflowFindManyArgs) =>
+      workflowRows
+        .filter(
+          (row) =>
+            where.id.in.includes(row.id) &&
+            row.organizationId === where.organizationId &&
+            row.isDeleted === where.isDeleted,
+        )
+        .map((row) => ({ id: row.id })),
+    );
     settingFindFirst = vi
       .fn()
       .mockImplementation(async () =>

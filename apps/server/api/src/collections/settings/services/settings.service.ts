@@ -128,7 +128,7 @@ export class SettingsService extends BaseService<
    */
   async patchWithFavoriteWorkflowIds(
     settingsId: string,
-    settingsPatch: UpdateSettingDto,
+    settingsPatch: Partial<UpdateSettingDto>,
     organizationId: string,
   ): Promise<SettingDocument | null> {
     const { favoriteWorkflowIds, ...otherFields } = settingsPatch;
