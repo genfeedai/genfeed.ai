@@ -19,7 +19,7 @@ const postBrandMock = vi.fn().mockResolvedValue({
 const patchBrandMock = vi.fn().mockResolvedValue({
   id: 'brand-1',
   label: 'Brand One',
-  slug: 'a',
+  slug: 'brand-one',
 });
 const findBrandMock = vi.fn().mockResolvedValue({
   id: 'brand-created',
@@ -447,18 +447,15 @@ describe('ModalBrand', () => {
     });
   });
 
-  it('saves an edit without resending an unchanged legacy handle', async () => {
+  it('saves an edit without resending the unchanged handle', async () => {
+    // A handle that predates the handle rules would fail PATCH validation.
     formValues.current = {
       description: 'New description',
       label: 'Brand One',
-      slug: 'a',
+      slug: 'brand-one',
     };
     render(
-      <ModalBrand
-        {...defaultProps}
-        brand={{ ...overviewBrand, slug: 'a' }}
-        initialView="edit"
-      />,
+      <ModalBrand {...defaultProps} brand={overviewBrand} initialView="edit" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
