@@ -110,6 +110,32 @@ describe('typecheck prerequisite guard', () => {
     ]);
   });
 
+  it('resolves the root past a workspace-level turbo.json', () => {
+    const rootDir = fixture({
+      'package.json': JSON.stringify({ workspaces: ['packages/*'] }),
+      'packages/consumer/package.json': JSON.stringify({
+        dependencies: { '@genfeedai/contracts': 'workspace:*' },
+        name: '@genfeedai/consumer',
+      }),
+      'packages/consumer/turbo.json': JSON.stringify({ extends: ['//'] }),
+      'packages/contracts/package.json': JSON.stringify({
+        name: '@genfeedai/contracts',
+        types: './dist/index.d.ts',
+      }),
+    });
+
+    expect(
+      checkTypecheckPrerequisites({
+        workspaceDir: path.join(rootDir, 'packages/consumer'),
+      }),
+    ).toEqual([
+      {
+        dependency: '@genfeedai/contracts',
+        expectedPath: 'packages/contracts/dist/index.d.ts',
+      },
+    ]);
+  });
+
   it('accepts built wildcard declaration exports', () => {
     const rootDir = fixture({
       'packages/consumer/package.json': JSON.stringify({

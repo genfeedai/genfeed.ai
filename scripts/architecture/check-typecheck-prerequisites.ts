@@ -10,6 +10,7 @@ type PackageManifest = {
   optionalDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   types?: string;
+  workspaces?: unknown;
 };
 
 export type TypecheckPrerequisiteViolation = {
@@ -33,13 +34,20 @@ function findRepositoryRoot(startDir: string): string {
   let currentDir = path.resolve(startDir);
 
   while (true) {
-    if (existsSync(path.join(currentDir, 'turbo.json'))) {
+    // Workspaces may carry their own turbo.json, so the root is the one
+    // whose manifest declares the workspaces.
+    const manifestPath = path.join(currentDir, 'package.json');
+    if (
+      existsSync(path.join(currentDir, 'turbo.json')) &&
+      existsSync(manifestPath) &&
+      readManifest(manifestPath).workspaces !== undefined
+    ) {
       return currentDir;
     }
 
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
-      throw new Error(`Could not find turbo.json above ${startDir}.`);
+      throw new Error(`Could not find the workspace root above ${startDir}.`);
     }
     currentDir = parentDir;
   }
