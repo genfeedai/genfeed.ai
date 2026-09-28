@@ -4,8 +4,7 @@ import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-messag
 import {
   type HandleUiActionDeps,
   handleAgentUiAction,
-  hasPendingPlanReviewRun,
-  resumePendingUiActionRuns,
+  hasPendingPlanReview,
 } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
@@ -151,7 +150,6 @@ export function useAgentChatContainer({
     },
     [draftScopeKey],
   );
-  const addMessage = useAgentChatStore((s) => s.addMessage);
   const messages = useAgentChatStore((s) => s.messages);
   const hasMoreMessages = useAgentChatStore((s) => s.hasMoreMessages);
   const messagesCursor = useAgentChatStore((s) => s.messagesCursor);
@@ -165,7 +163,6 @@ export function useAgentChatContainer({
   const isGenerating = useAgentChatStore((s) => s.isGenerating);
   const error = useAgentChatStore((s) => s.error);
   const setError = useAgentChatStore((s) => s.setError);
-  const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const streamState = useAgentChatStore((s) => s.stream);
   const threads = useAgentChatStore((s) => s.threads);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -187,7 +184,9 @@ export function useAgentChatContainer({
       ? draftAgentMode
       : undefined;
   const latestProposedPlan = useAgentChatStore((s) => s.latestProposedPlan);
-  const uiActionRuns = useAgentChatStore((s) => s.uiActionRuns);
+  const uiActionStates = useAgentChatStore((s) =>
+    activeThreadId ? s.uiActionStatesByThread[activeThreadId] : undefined,
+  );
   const onboardingSignupGiftCredits = useAgentChatStore(
     (s) => s.onboardingSignupGiftCredits,
   );
@@ -202,11 +201,6 @@ export function useAgentChatContainer({
   const socketConnectionState = useAgentChatStore(
     (s) => s.socketConnectionState,
   );
-  const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
-  const setLatestProposedPlan = useAgentChatStore(
-    (s) => s.setLatestProposedPlan,
-  );
-  const upsertThread = useAgentChatStore((s) => s.upsertThread);
 
   const { sendMessage: sendNonStreaming } = useAgentChat({
     apiService,
@@ -285,8 +279,6 @@ export function useAgentChatContainer({
   const olderMessagesRequestEpochRef = useRef(0);
   const olderMessagesRequestInFlightRef = useRef(false);
   const olderMessagesAbortControllerRef = useRef<AbortController | null>(null);
-  const uiActionAbortControllersRef = useRef(new Set<AbortController>());
-  const reconcilingUiActionRunsRef = useRef(new Map<string, AbortSignal>());
   const activeThreadIdRef = useRef(activeThreadId);
   const messagesCursorRef = useRef(messagesCursor);
   const pendingScrollAnchorRef = useRef<{
@@ -757,42 +749,27 @@ export function useAgentChatContainer({
   );
   submitInputRequestRef.current = handleSubmitInputRequest;
 
-  const buildUiActionDeps = (signal: AbortSignal): HandleUiActionDeps => ({
+  const buildUiActionDeps = (): HandleUiActionDeps => ({
     activeThreadId,
     activeUiAction: activeUiActionRef.current,
-    addMessage,
+    adoptRun,
     apiService,
-    draftAgentMode,
+    beginRunHandoff,
+    cancelRunHandoff,
     followLatestTurn,
     isBusy,
     isReadOnly,
-    latestProposedPlan,
-    reconcilingRuns: reconcilingUiActionRunsRef.current,
     sendMessage,
-    setActiveThread,
     setActiveUiAction,
-    setCreditsRemaining,
     setError,
-    setLatestProposedPlan,
-    signal,
     threads,
-    upsertThread,
   });
   const buildUiActionDepsRef = useRef(buildUiActionDeps);
   buildUiActionDepsRef.current = buildUiActionDeps;
 
   const handleUiAction = useCallback(
-    async (action: string, payload?: Record<string, unknown>) => {
-      // Kept until the thread changes or the container unmounts: a run that
-      // outlives its foreground window keeps reconciling on this signal.
-      const controller = new AbortController();
-      uiActionAbortControllersRef.current.add(controller);
-      return await handleAgentUiAction(
-        action,
-        payload,
-        buildUiActionDepsRef.current(controller.signal),
-      );
-    },
+    (action: string, payload?: Record<string, unknown>) =>
+      handleAgentUiAction(action, payload, buildUiActionDepsRef.current()),
     [],
   );
 
@@ -939,49 +916,19 @@ export function useAgentChatContainer({
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();
     olderMessagesAbortControllerRef.current = null;
-    // A ui-action still reconciling belongs to the thread being left.
-    for (const controller of uiActionAbortControllersRef.current) {
-      controller.abort();
-    }
-    uiActionAbortControllersRef.current.clear();
     pendingScrollAnchorRef.current = null;
     setIsAtBottom(true);
   }, [activeThreadId]);
 
-  // Runs pending on the thread shown — left by an earlier visit, or
-  // registered by an ack that arrived after their submitter was aborted —
-  // resume where they stopped. Runs after the abort above on a thread change.
   useEffect(() => {
-    if (!activeThreadId) {
-      return;
-    }
-    resumePendingUiActionRuns(
-      uiActionRuns,
-      activeThreadId,
-      reconcilingUiActionRunsRef.current,
-      () => {
-        const controller = new AbortController();
-        uiActionAbortControllersRef.current.add(controller);
-        return buildUiActionDepsRef.current(controller.signal);
-      },
-    );
-  }, [activeThreadId, uiActionRuns]);
-
-  useEffect(() => {
-    const uiActionAbortControllers = uiActionAbortControllersRef.current;
     return () => {
       olderMessagesRequestEpochRef.current += 1;
       olderMessagesAbortControllerRef.current?.abort();
-      for (const controller of uiActionAbortControllers) {
-        controller.abort();
-      }
-      uiActionAbortControllers.clear();
     };
   }, []);
 
-  const isPlanReviewPending = hasPendingPlanReviewRun(
-    uiActionRuns,
-    activeThreadId,
+  const isPlanReviewPending = hasPendingPlanReview(
+    uiActionStates,
     latestProposedPlan?.id,
   );
 

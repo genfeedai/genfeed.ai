@@ -1,8 +1,8 @@
 import {
   findRecoveredAssistantMessage,
-  findRunAssistantMessage,
   flushBufferedEventsForThread,
   isForeignRunEvent,
+  takeSourceActionUpdate,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import type { BufferedThreadEvent } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
@@ -64,24 +64,91 @@ describe('findRecoveredAssistantMessage', () => {
     ).toBe('reply-run-2');
   });
 
-  it('accepts replies without a run id for older persisted messages', () => {
+  it('matches a run’s own stamped reply even when it is already loaded', () => {
+    const messages = [
+      assistant('reply-run-1', 'run-1'),
+      assistant('reply-run-2', 'run-2'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(
+        messages,
+        new Set(['reply-run-1', 'reply-run-2']),
+        'run-2',
+        { requireRunId: true },
+      )?.id,
+    ).toBe('reply-run-2');
+  });
+
+  it('accepts an unstamped legacy reply written after the run started', () => {
     const messages = [assistant('legacy-reply')];
 
     expect(
       findRecoveredAssistantMessage(messages, new Set(), 'run-2')?.id,
     ).toBe('legacy-reply');
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2', {
+        notBefore: '2026-09-23T15:07:00.000Z',
+      })?.id,
+    ).toBe('legacy-reply');
+  });
+
+  it('never takes an unhydrated historical reply for a turn that started later', () => {
+    const messages = [assistant('older-unstamped-reply')];
+
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2', {
+        notBefore: '2026-09-23T15:09:00.000Z',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('matches a run that must be recovered by id only by its own reply', () => {
+    const messages = [
+      assistant('reply-run-2', 'run-2'),
+      assistant('newer-unstamped-reply'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2', {
+        requireRunId: true,
+      })?.id,
+    ).toBe('reply-run-2');
+    expect(
+      findRecoveredAssistantMessage(
+        [assistant('newer-unstamped-reply')],
+        new Set(),
+        'run-2',
+        { requireRunId: true },
+      ),
+    ).toBeUndefined();
   });
 });
 
-describe('findRunAssistantMessage', () => {
-  it('matches only the reply stamped with the run id', () => {
-    const messages = [
-      assistant('legacy-reply'),
-      assistant('reply-run-1', 'run-1'),
-      assistant('reply-run-2', 'run-2'),
-    ];
+describe('takeSourceActionUpdate', () => {
+  it('splits the resolved source card out of the reply cards', () => {
+    const source = {
+      data: { decision: 'approved' },
+      id: 'proposal-1',
+      title: 'Generate image',
+      type: 'generation_action_card' as const,
+    };
+    const next = {
+      id: 'next-1',
+      title: 'Next steps',
+      type: 'next_steps_card' as const,
+    };
 
-    expect(findRunAssistantMessage(messages, 'run-1')?.id).toBe('reply-run-1');
-    expect(findRunAssistantMessage(messages, 'run-3')).toBeUndefined();
+    expect(takeSourceActionUpdate([source, next], 'proposal-1')).toEqual({
+      card: source,
+      replyActions: [next],
+    });
+  });
+
+  it('leaves a reply without the source card untouched', () => {
+    expect(takeSourceActionUpdate(undefined, 'proposal-1')).toEqual({
+      card: null,
+      replyActions: undefined,
+    });
   });
 });

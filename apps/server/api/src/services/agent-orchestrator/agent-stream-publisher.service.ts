@@ -1,10 +1,7 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import {
-  AgentThreadEngineService,
-  type AppendAgentThreadEventParams,
-} from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type {
   AgentDashboardOperation,
   AgentUIBlock,
@@ -17,6 +14,21 @@ import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
+
+/** What a recorded run's settlement adds to the turn event shape. */
+interface RecordedRunSettlement {
+  brandId?: string | null;
+  contextVersion?: number;
+  sequence?: number;
+  /**
+   * `failed` when the run recorded `run.failed` but still produced a reply
+   * (a structured failure): the client shows the reply and fails the run.
+   */
+  runStatus?: 'completed' | 'failed';
+  error?: string;
+  /** The ui-action the run executed, when it was one. */
+  uiAction?: { action: string; sourceId: string };
+}
 
 // #2517 defaults — mirrored by AGENT_STREAM_COALESCE_WINDOW_MS /
 // AGENT_STREAM_COALESCE_MAX_BYTES in packages/config/src/schemas/ai.schema.ts.
@@ -163,13 +175,13 @@ export class AgentStreamPublisherService {
       runId?: string;
       userId?: string;
     },
-  ): Promise<void> {
+  ): Promise<number | undefined> {
     if (!this.agentThreadEngineService || !this.agentThreadsService) {
-      return;
+      return undefined;
     }
     try {
       if (!EntityIdUtil.isValid(threadId)) {
-        return;
+        return undefined;
       }
 
       const thread = await this.agentThreadsService.findOne({
@@ -179,10 +191,10 @@ export class AgentStreamPublisherService {
       const organizationId = thread?.organizationId;
 
       if (!organizationId) {
-        return;
+        return undefined;
       }
 
-      await this.appendThreadEvent({
+      const event = await this.agentThreadEngineService.appendEvent({
         commandId: params.commandId,
         metadata: { origin: 'stream-publisher' },
         organizationId,
@@ -192,19 +204,11 @@ export class AgentStreamPublisherService {
         type: params.type,
         userId: params.userId,
       });
+      return event.sequence;
     } catch {
       // Persisted thread events should not break live stream fan-out.
+      return undefined;
     }
-  }
-
-  private async appendThreadEvent(
-    params: AppendAgentThreadEventParams,
-  ): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await this.agentThreadEngineService.appendEvent(params);
   }
 
   private async authorizeTurnSignal(data: {
@@ -492,7 +496,7 @@ export class AgentStreamPublisherService {
   }) {
     const metadata = data.metadata ?? {};
 
-    await this.persistThreadEvent(data.threadId, {
+    const finalizedSequence = await this.persistThreadEvent(data.threadId, {
       commandId: `assistant-final:${data.threadId}:${data.runId ?? 'stream'}`,
       payload: {
         content: data.fullContent,
@@ -508,7 +512,7 @@ export class AgentStreamPublisherService {
       type: 'assistant.finalized',
       userId: data.userId,
     });
-    await this.persistThreadEvent(data.threadId, {
+    const completedSequence = await this.persistThreadEvent(data.threadId, {
       commandId: `run-complete:${data.threadId}:${data.runId ?? 'stream'}`,
       payload: {
         detail: 'Agent completed',
@@ -529,10 +533,15 @@ export class AgentStreamPublisherService {
     const flushEntry = this.buildFlushEntry(
       this.tokenBufferKey(data.threadId, data.runId),
     );
+    const sequence = completedSequence ?? finalizedSequence;
     const doneEntry = {
       channel: CHANNEL,
       message: {
-        data: { ...data, timestamp: new Date().toISOString() },
+        data: {
+          ...data,
+          ...(sequence !== undefined ? { sequence } : {}),
+          timestamp: new Date().toISOString(),
+        },
         type: 'agent:done',
       },
     };
@@ -542,13 +551,39 @@ export class AgentStreamPublisherService {
     );
   }
 
+  /**
+   * Settle a run whose thread events were already recorded through the engine
+   * (a ui-action run) on the same `agent:done` / `agent:error` a turn emits,
+   * without recording them twice. `sequence` is the thread's last event
+   * sequence once the run's events are in, so a client whose snapshot already
+   * reflects the run drops the delivery.
+   */
+  async publishRecordedRunSettled(
+    event:
+      | {
+          type: 'agent:done';
+          data: Parameters<AgentStreamPublisherService['publishDone']>[0] &
+            RecordedRunSettlement;
+        }
+      | {
+          type: 'agent:error';
+          data: Parameters<AgentStreamPublisherService['publishError']>[0] &
+            RecordedRunSettlement;
+        },
+  ): Promise<void> {
+    await this.redisService.publish(CHANNEL, {
+      data: { ...event.data, timestamp: new Date().toISOString() },
+      type: event.type,
+    });
+  }
+
   async publishError(data: {
     threadId: string;
     error: string;
     runId?: string;
     userId: string;
   }) {
-    await this.persistThreadEvent(data.threadId, {
+    const sequence = await this.persistThreadEvent(data.threadId, {
       commandId: `run-error:${data.threadId}:${data.runId ?? 'stream'}`,
       payload: {
         error: data.error,
@@ -568,7 +603,11 @@ export class AgentStreamPublisherService {
     const errorEntry = {
       channel: CHANNEL,
       message: {
-        data: { ...data, timestamp: new Date().toISOString() },
+        data: {
+          ...data,
+          ...(sequence !== undefined ? { sequence } : {}),
+          timestamp: new Date().toISOString(),
+        },
         type: 'agent:error',
       },
     };

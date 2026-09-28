@@ -29,7 +29,13 @@ describe('AgentOrchestratorUiActionPlanService approve_plan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     registry.getRoundCredits.mockResolvedValue(1);
-    host.executeSynchronousChatLoop.mockResolvedValue({ success: true });
+    host.executeSynchronousChatLoop.mockResolvedValue({
+      creditsRemaining: 10,
+      creditsUsed: 1,
+      message: { content: 'Plan executed.', metadata: {}, role: 'assistant' },
+      threadId: 'thread-1',
+      toolCalls: [],
+    });
     service = new AgentOrchestratorUiActionPlanService(
       registry as unknown as AgentChatModelRegistryService,
       recorder as unknown as AgentThreadEventRecorderService,
@@ -47,7 +53,7 @@ describe('AgentOrchestratorUiActionPlanService approve_plan', () => {
       },
     });
 
-    await service.execute(
+    const result = await service.execute(
       'approve_plan',
       params(),
       host as unknown as AgentOrchestratorUiActionHost,
@@ -55,6 +61,17 @@ describe('AgentOrchestratorUiActionPlanService approve_plan', () => {
 
     expect(recorder.recordPlanUpserted).toHaveBeenCalledTimes(1);
     expect(host.executeSynchronousChatLoop).toHaveBeenCalledTimes(1);
+    // The approval's result names the approved plan, so the client receiving
+    // it shows the plan approved from that same event.
+    expect(result.message.metadata.proposedPlan).toEqual(
+      expect.objectContaining({
+        awaitingApproval: false,
+        content: 'Step one',
+        id: 'plan-1',
+        lastReviewAction: 'approve',
+        status: 'approved',
+      }),
+    );
   });
 
   it('rejects approving a plan that an earlier run already approved, without executing or charging again', async () => {

@@ -16,7 +16,7 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -24,6 +24,28 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
+
+const APPEND_EVENT_MAX_ATTEMPTS = 5;
+
+const AGENT_RUN_TERMINAL_EVENT_TYPES = [
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+  'run.interrupted',
+  'error.raised',
+] as const satisfies readonly AgentThreadEventType[];
+
+/**
+ * P2034: a Serializable transaction lost to a concurrent one. P2002: a
+ * concurrent append took the same `(organizationId, threadId, sequence)`.
+ */
+function isConcurrentAppendConflict(error: unknown): boolean {
+  const code =
+    error !== null && typeof error === 'object' && 'code' in error
+      ? (error as { code?: unknown }).code
+      : undefined;
+  return code === 'P2034' || code === 'P2002';
+}
 
 export interface AppendAgentThreadEventParams {
   threadId: string;
@@ -109,6 +131,7 @@ function toPrismaSnapshotDocument(
       | undefined,
     memorySummaryRefs: (data.memorySummaryRefs as string[]) ?? [],
     timeline: (data.timeline as Record<string, unknown>[]) ?? [],
+    uiActionRuns: (data.uiActionRuns as Record<string, unknown>[]) ?? [],
     sessionBinding: data.sessionBinding as Record<string, unknown> | undefined,
     profileSnapshot: data.profileSnapshot as
       | Record<string, unknown>
@@ -181,106 +204,138 @@ export class AgentThreadEngineService {
       params.userId,
     );
 
-    // Check idempotency — do not create duplicate events for the same commandId+type
-    const existingRow = await this.prisma.agentThreadEvent.findFirst({
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        const appended = await this.prisma.$transaction(
+          (tx) => this.appendEventInTransaction(tx, params, thread),
+          { isolationLevel: 'Serializable' },
+        );
+        if (appended.isCreated) {
+          await this.syncSideEffects(
+            appended.event,
+            params.organizationId,
+            params.threadId,
+          );
+        }
+        return appended.event;
+      } catch (error: unknown) {
+        // A concurrent append to the same thread (the API recording a queued
+        // command while its worker records the same one, or two runs' events)
+        // conflicts here. The retry sees the committed write — for the same
+        // command, it returns that event instead of recording it twice.
+        if (
+          !isConcurrentAppendConflict(error) ||
+          attempt >= APPEND_EVENT_MAX_ATTEMPTS
+        ) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * Dedupes the command, allocates its sequence, records it and applies its
+   * projection in one Serializable transaction, so the snapshot never commits
+   * a `lastSequence` ahead of the projection that applies it.
+   */
+  private async appendEventInTransaction(
+    tx: Prisma.TransactionClient,
+    params: AppendAgentThreadEventParams,
+    thread: { source?: string; status?: string; title?: string },
+  ): Promise<{ event: AgentThreadEventDocument; isCreated: boolean }> {
+    const existingRow = await tx.agentThreadEvent.findFirst({
       where: scopedWhere(params.organizationId, {
         commandId: params.commandId,
         threadId: params.threadId,
         type: params.type,
       }),
     });
-
     if (existingRow) {
-      return toPrismaEventDocument(
-        existingRow as unknown as Record<string, unknown>,
-      );
+      return {
+        event: toPrismaEventDocument(
+          existingRow as unknown as Record<string, unknown>,
+        ),
+        isCreated: false,
+      };
     }
 
-    // Allocate sequence + create event inside a serializable transaction
-    // to prevent concurrent appends from reading the same lastSequence.
-    const { snapshotRow, createdRow } = await this.prisma.$transaction(
-      async (tx) => {
-        let snap = await tx.agentThreadSnapshot.findFirst({
-          where: scopedWhere(params.organizationId, {
-            threadId: params.threadId,
-          }),
-        });
-
-        if (snap) {
-          const existingData = (snap.data as Record<string, unknown>) ?? {};
-          const lastSequence = ((existingData.lastSequence as number) ?? 0) + 1;
-          snap = await tx.agentThreadSnapshot.update({
-            where: { id: snap.id },
-            data: {
-              data: { ...existingData, lastSequence },
-              updatedAt: new Date(),
-            },
-          });
-        } else {
-          snap = await tx.agentThreadSnapshot.create({
-            data: {
-              organizationId: params.organizationId,
-              threadId: params.threadId,
-              isDeleted: false,
-              data: {
-                lastSequence: 1,
-                memorySummaryRefs: [],
-                pendingApprovals: [],
-                pendingInputRequests: [],
-                source: thread.source,
-                threadStatus: thread.status,
-                timeline: [],
-                title: thread.title,
-              },
-            },
-          });
-        }
-
-        if (!snap) {
-          throw new NotFoundException('Unable to allocate thread snapshot');
-        }
-
-        const snapData = (snap.data as Record<string, unknown>) ?? {};
-        const sequence = (snapData.lastSequence as number) ?? 1;
-
-        const eventDataPayload: Record<string, unknown> = {
-          occurredAt: params.occurredAt ?? new Date().toISOString(),
-        };
-        if (params.payload) eventDataPayload.payload = params.payload;
-        if (params.metadata) eventDataPayload.metadata = params.metadata;
-        if (params.eventId) eventDataPayload.eventId = params.eventId;
-        if (params.userId) eventDataPayload.userId = params.userId;
-        if (params.runId) eventDataPayload.runId = params.runId;
-
-        const event = await tx.agentThreadEvent.create({
+    const snapshotRow =
+      (await tx.agentThreadSnapshot.findFirst({
+        where: scopedWhere(params.organizationId, {
+          threadId: params.threadId,
+        }),
+      })) ??
+      (await tx.agentThreadSnapshot.create({
+        data: {
+          organizationId: params.organizationId,
+          threadId: params.threadId,
+          isDeleted: false,
           data: {
-            commandId: params.commandId,
-            isDeleted: false,
-            organizationId: params.organizationId,
-            runId: params.runId,
-            sequence,
-            threadId: params.threadId,
-            type: params.type,
-            data: toPrismaJson(eventDataPayload),
+            lastSequence: 0,
+            memorySummaryRefs: [],
+            pendingApprovals: [],
+            pendingInputRequests: [],
+            source: thread.source,
+            threadStatus: thread.status,
+            timeline: [],
+            title: thread.title,
           },
-        });
+        },
+      }));
+    if (!snapshotRow) {
+      throw new NotFoundException('Unable to allocate thread snapshot');
+    }
 
-        return { snapshotRow: snap, createdRow: event };
+    const snapshotData = (snapshotRow.data as Record<string, unknown>) ?? {};
+    const sequence = ((snapshotData.lastSequence as number) ?? 0) + 1;
+
+    const eventDataPayload: Record<string, unknown> = {
+      occurredAt: params.occurredAt ?? new Date().toISOString(),
+    };
+    if (params.payload) eventDataPayload.payload = params.payload;
+    if (params.metadata) eventDataPayload.metadata = params.metadata;
+    if (params.eventId) eventDataPayload.eventId = params.eventId;
+    if (params.userId) eventDataPayload.userId = params.userId;
+    if (params.runId) eventDataPayload.runId = params.runId;
+
+    const createdRow = await tx.agentThreadEvent.create({
+      data: {
+        commandId: params.commandId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+        runId: params.runId,
+        sequence,
+        threadId: params.threadId,
+        type: params.type,
+        data: toPrismaJson(eventDataPayload),
       },
-      { isolationLevel: 'Serializable' },
-    );
-
+    });
     const event = toPrismaEventDocument(
       createdRow as unknown as Record<string, unknown>,
     );
-    const currentSnapshot = toPrismaSnapshotDocument(
-      snapshotRow as unknown as Record<string, unknown>,
+
+    const projected = this.projectorService.applyEvent(
+      toPrismaSnapshotDocument(
+        snapshotRow as unknown as Record<string, unknown>,
+      ),
+      event,
     );
+    await tx.agentThreadSnapshot.update({
+      where: { id: snapshotRow.id },
+      data: {
+        data: toPrismaJson({
+          ...snapshotData,
+          ...projected,
+          lastSequence: sequence,
+          source: thread.source,
+          threadStatus: thread.status,
+          title: thread.title,
+        }),
+        updatedAt: new Date(),
+      },
+    });
 
-    await this.applyProjection(currentSnapshot, event, thread, snapshotRow.id);
-    await this.syncSideEffects(event, params.organizationId, params.threadId);
-
-    return event;
+    return { event, isCreated: true };
   }
 
   async listEvents(
@@ -304,6 +359,29 @@ export class AgentThreadEngineService {
     return rows.map((row) =>
       toPrismaEventDocument(row as unknown as Record<string, unknown>),
     );
+  }
+
+  /**
+   * The sequence of a run's own terminal event, or undefined when the run
+   * recorded none. A run's settlement is announced with it, so a client whose
+   * snapshot already reflects that event drops the delivery — and a later
+   * run finishing first cannot lend the earlier one its position.
+   */
+  async getRunTerminalSequence(
+    threadId: string,
+    organizationId: string,
+    runId: string,
+  ): Promise<number | undefined> {
+    const row = await this.prisma.agentThreadEvent.findFirst({
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+      where: scopedWhere(organizationId, {
+        runId,
+        threadId,
+        type: { in: [...AGENT_RUN_TERMINAL_EVENT_TYPES] },
+      }),
+    });
+    return row?.sequence;
   }
 
   async getSnapshot(
@@ -624,38 +702,6 @@ export class AgentThreadEngineService {
       status?: string;
       title?: string;
     };
-  }
-
-  private async applyProjection(
-    currentSnapshot: AgentThreadSnapshotDocument,
-    event: AgentThreadEventDocument,
-    thread: {
-      status?: string;
-      source?: string;
-      title?: string;
-    },
-    snapshotId: string,
-  ): Promise<void> {
-    const projected = this.projectorService.applyEvent(currentSnapshot, event);
-
-    const existingRow = await this.prisma.agentThreadSnapshot.findUnique({
-      where: { id: snapshotId },
-    });
-    const existingData = (existingRow?.data as Record<string, unknown>) ?? {};
-
-    await this.prisma.agentThreadSnapshot.update({
-      where: { id: snapshotId },
-      data: {
-        data: {
-          ...existingData,
-          ...projected,
-          source: thread.source,
-          threadStatus: thread.status,
-          title: thread.title,
-        },
-        updatedAt: new Date(),
-      },
-    });
   }
 
   private async syncSideEffects(

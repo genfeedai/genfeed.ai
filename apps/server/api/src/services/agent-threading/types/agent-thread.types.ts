@@ -1,6 +1,9 @@
 import type { AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
 
 export const AGENT_THREAD_EVENT_TYPES = [
+  // A ui-action run acked but not started: it names the run and its source,
+  // never the thread's active run (runs queue behind the thread lane).
+  'thread.turn_queued',
   'thread.turn_requested',
   'thread.turn_started',
   'assistant.delta',

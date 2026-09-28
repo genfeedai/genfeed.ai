@@ -93,6 +93,201 @@ export type AgentUiActionHandler = (
   | Promise<AgentUiActionOutcome | undefined>
   | Promise<void>;
 
+export type AgentThreadUiActionStatus =
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+/**
+ * One ui-action run on a thread, as the thread projection records it from the
+ * run's own events: opened when it is queued (or started), settled by its own
+ * terminal event. Runs are kept by run id, so queuing the same action on the
+ * same source again never erases an earlier run.
+ */
+export interface AgentThreadUiActionRun {
+  action: string;
+  error?: string;
+  /** Sequence of the event that queued (or started) the run. */
+  queuedSequence: number;
+  runId: string;
+  /** The card or item the action acts on (see `getAgentUiActionSourceId`). */
+  sourceId: string;
+  status: AgentThreadUiActionStatus;
+  /** Sequence of the run's terminal event, once it has one. */
+  terminalSequence?: number;
+  updatedAt: string;
+}
+
+/**
+ * What a card shows for one action on one source, derived from that source's
+ * runs by `deriveAgentUiActionStates`.
+ */
+export interface AgentThreadUiActionState {
+  action: string;
+  error?: string;
+  /** The run the state is taken from. */
+  runId: string;
+  /** Its terminal sequence once settled, else its queued sequence. */
+  sequence: number;
+  sourceId: string;
+  status: AgentThreadUiActionStatus;
+  updatedAt: string;
+}
+
+function toUiActionState(
+  run: AgentThreadUiActionRun,
+): AgentThreadUiActionState {
+  return {
+    action: run.action,
+    ...(run.error ? { error: run.error } : {}),
+    runId: run.runId,
+    sequence: run.terminalSequence ?? run.queuedSequence,
+    sourceId: run.sourceId,
+    status: run.status,
+    updatedAt: run.updatedAt,
+  };
+}
+
+function latestBy(
+  runs: readonly AgentThreadUiActionRun[],
+  sequenceOf: (run: AgentThreadUiActionRun) => number,
+): AgentThreadUiActionRun | undefined {
+  let latest: AgentThreadUiActionRun | undefined;
+  for (const run of runs) {
+    if (!latest || sequenceOf(run) > sequenceOf(latest)) {
+      latest = run;
+    }
+  }
+  return latest;
+}
+
+/**
+ * The settled run whose outcome a card shows: the latest completed run, else
+ * the latest settled one. The thread lane executes runs in queue order, so
+ * completed runs are ordered by their queued sequence (a settlement recovered
+ * without its terminal sequence still orders correctly); settled runs that
+ * never executed (a queued run cancelled) are ordered by their terminal event.
+ */
+function selectSettledUiActionRun(
+  runs: readonly AgentThreadUiActionRun[],
+): AgentThreadUiActionRun | undefined {
+  return (
+    latestBy(
+      runs.filter((run) => run.status === 'completed'),
+      (run) => run.queuedSequence,
+    ) ??
+    latestBy(
+      runs.filter((run) => run.status !== 'pending'),
+      (run) => run.terminalSequence ?? run.queuedSequence,
+    )
+  );
+}
+
+/**
+ * The per-card view of a thread's ui-action runs, keyed by
+ * `getAgentUiActionStateKey(action, sourceId)`:
+ * - while any run of that action on that source is pending, the latest
+ *   queued of them (the card is in flight);
+ * - otherwise the latest completed run: a later failure (an "already
+ *   approved" duplicate, a declined retry) never overrides an earlier
+ *   successful execution of the same source;
+ * - otherwise the latest settled run (failed or cancelled).
+ * The server projection and the client both derive cards with this rule.
+ */
+export function deriveAgentUiActionStates(
+  runs: readonly AgentThreadUiActionRun[],
+): Record<string, AgentThreadUiActionState> {
+  const runsByKey = new Map<string, AgentThreadUiActionRun[]>();
+  for (const run of runs) {
+    const key = getAgentUiActionStateKey(run.action, run.sourceId);
+    runsByKey.set(key, [...(runsByKey.get(key) ?? []), run]);
+  }
+  const states: Record<string, AgentThreadUiActionState> = {};
+  for (const [key, keyRuns] of runsByKey) {
+    const chosen =
+      latestBy(
+        keyRuns.filter((run) => run.status === 'pending'),
+        (run) => run.queuedSequence,
+      ) ?? selectSettledUiActionRun(keyRuns);
+    if (chosen) {
+      states[key] = toUiActionState(chosen);
+    }
+  }
+  return states;
+}
+
+/**
+ * Whether a settled run's result may update its source card: the run is the
+ * one whose outcome the source shows under the `deriveAgentUiActionStates`
+ * rule, among the source's settled runs (of any action, since they all
+ * resolve the same card). So an older run's result arriving late never
+ * overwrites the card a newer run resolved, and a run that did not complete
+ * (an "already approved" duplicate) never overwrites a completed one. A run
+ * still queued resolves the card after this one, so it never blocks it.
+ * A result for a run the thread does not track applies unless a tracked run
+ * already resolved the source with a later terminal event.
+ */
+export function isAgentUiActionSourceOwner(
+  runs: readonly AgentThreadUiActionRun[],
+  result: { runId: string; sequence?: number; sourceId: string },
+): boolean {
+  const settledOnSource = runs.filter(
+    (run) => run.sourceId === result.sourceId && run.status !== 'pending',
+  );
+  if (!runs.some((run) => run.runId === result.runId)) {
+    const sequence = result.sequence;
+    return (
+      typeof sequence !== 'number' ||
+      !settledOnSource.some(
+        (run) =>
+          typeof run.terminalSequence === 'number' &&
+          run.terminalSequence > sequence,
+      )
+    );
+  }
+  return selectSettledUiActionRun(settledOnSource)?.runId === result.runId;
+}
+
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+/**
+ * The card or item a ui-action acts on: its source card id, else the plan it
+ * reviews, else its payload. Key order is normalized, so the server (after a
+ * JSON round trip) and the client derive the same id.
+ */
+export function getAgentUiActionSourceId(
+  payload: Record<string, unknown> | undefined,
+): string {
+  if (typeof payload?.sourceActionId === 'string') {
+    return payload.sourceActionId;
+  }
+  if (typeof payload?.planId === 'string') {
+    return payload.planId;
+  }
+  return stableSerialize(payload ?? {});
+}
+
+export function getAgentUiActionStateKey(
+  action: string,
+  sourceId: string,
+): string {
+  return `${action}:${sourceId}`;
+}
+
 export type AgentPublishTargetMediaKind =
   | 'carousel'
   | 'image'

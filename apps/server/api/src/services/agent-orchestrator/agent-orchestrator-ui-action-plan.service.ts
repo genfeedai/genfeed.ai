@@ -57,23 +57,25 @@ export class AgentOrchestratorUiActionPlanService {
     if (latestPlan?.status === 'approved') {
       throw new BadRequestException('This plan has already been approved.');
     }
+    const approvedAt = new Date().toISOString();
+    const approvedPlan = {
+      approvedAt,
+      awaitingApproval: false,
+      content: planContent,
+      explanation:
+        typeof latestPlan?.explanation === 'string'
+          ? latestPlan.explanation
+          : undefined,
+      id: planId,
+      lastReviewAction: 'approve' as const,
+      status: 'approved' as const,
+      steps: Array.isArray(latestPlan?.steps)
+        ? (latestPlan.steps as Record<string, unknown>[])
+        : undefined,
+    };
     await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
-      plan: {
-        approvedAt: new Date().toISOString(),
-        awaitingApproval: false,
-        content: planContent,
-        explanation:
-          typeof latestPlan?.explanation === 'string'
-            ? latestPlan.explanation
-            : undefined,
-        id: planId,
-        lastReviewAction: 'approve',
-        status: 'approved',
-        steps: Array.isArray(latestPlan?.steps)
-          ? (latestPlan.steps as Record<string, unknown>[])
-          : undefined,
-      },
+      plan: approvedPlan,
       runId: params.context.executionId,
       threadId: params.threadId,
     });
@@ -85,7 +87,7 @@ export class AgentOrchestratorUiActionPlanService {
     };
     const priority =
       params.context.generationPriority ?? RouterPriority.BALANCED;
-    return host.executeSynchronousChatLoop({
+    const result = await host.executeSynchronousChatLoop({
       context: params.context,
       generationPriority: priority,
       model: params.model,
@@ -109,6 +111,25 @@ export class AgentOrchestratorUiActionPlanService {
       threadId: params.threadId,
       turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
     });
+    // The approval's result names the approved plan, so the client that
+    // receives it shows the plan approved from the same event.
+    return {
+      ...result,
+      message: {
+        ...result.message,
+        metadata: {
+          ...result.message.metadata,
+          proposedPlan: {
+            ...approvedPlan,
+            createdAt:
+              typeof latestPlan?.createdAt === 'string'
+                ? latestPlan.createdAt
+                : approvedAt,
+            updatedAt: approvedAt,
+          },
+        },
+      },
+    };
   }
 
   private async executeRevisedPlan(

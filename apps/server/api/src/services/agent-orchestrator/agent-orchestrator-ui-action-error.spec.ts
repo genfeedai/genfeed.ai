@@ -1,4 +1,5 @@
 import {
+  describeUiActionFailure,
   rethrowUiActionError,
   throwFailedUiActionResult,
 } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-error';
@@ -132,5 +133,29 @@ describe('rethrowUiActionError validation mapping', () => {
         }),
       );
     }
+  });
+});
+
+describe('describeUiActionFailure', () => {
+  it('tells the client an HTTP exception the action raised on purpose', () => {
+    expect(
+      describeUiActionFailure(
+        new InternalServerErrorException('Approved action failed.'),
+      ),
+    ).toBe('Approved action failed.');
+  });
+
+  it('maps a provider credential failure before describing it', () => {
+    expect(
+      describeUiActionFailure(
+        new Error('Request failed with status code 401: invalid api key'),
+      ),
+    ).toBe('The model provider rejected the credentials for this request.');
+  });
+
+  it('never repeats the text of an unexpected error', () => {
+    expect(
+      describeUiActionFailure(new Error('relation "agent_threads" is locked')),
+    ).toBe('The action failed before it finished.');
   });
 });

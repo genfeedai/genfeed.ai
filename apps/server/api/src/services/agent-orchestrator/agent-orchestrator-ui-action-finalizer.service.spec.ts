@@ -24,7 +24,7 @@ describe('structured action finalization', () => {
         } as never,
         recorder as never,
       );
-      await service.finalizeStructuredAssistantTurn({
+      const result = await service.finalizeStructuredAssistantTurn({
         messageId: 'result-message-1',
         content:
           success === false ? 'Approved action failed.' : 'Action completed.',
@@ -57,9 +57,27 @@ describe('structured action finalization', () => {
           expect.objectContaining({ error: 'Provider unavailable' }),
         );
         expect(recorder.recordRunCompleted).not.toHaveBeenCalled();
+        // The run failed without throwing: its result carries the terminal
+        // outcome, so the announcement settles it as failed.
+        expect(result.runOutcome).toEqual({
+          error: 'Provider unavailable',
+          status: 'failed',
+        });
+        // The reply persists the outcome for a client that missed the event.
+        expect(messages.addMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              runOutcome: { error: 'Provider unavailable', status: 'failed' },
+            }),
+          }),
+        );
       } else {
         expect(recorder.recordRunCompleted).toHaveBeenCalledTimes(1);
         expect(recorder.recordRunFailed).not.toHaveBeenCalled();
+        expect(result.runOutcome).toBeUndefined();
+        expect(
+          messages.addMessage.mock.calls[0][0].metadata,
+        ).not.toHaveProperty('runOutcome');
       }
     },
   );

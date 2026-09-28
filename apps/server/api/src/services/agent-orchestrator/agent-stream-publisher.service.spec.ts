@@ -755,6 +755,61 @@ describe('AgentStreamPublisherService', () => {
       expect(entries).toHaveLength(1);
       expect(entries[0].message.type).toBe('agent:done');
     });
+    it('tags agent:done with the sequence of the run completion it recorded', async () => {
+      const organizationId = testId('org');
+      const threadId = testId('thread');
+      mockAgentThreadsService.findOne.mockResolvedValue({ organizationId });
+      mockAgentThreadEngineService.appendEvent
+        .mockResolvedValueOnce({ sequence: 7 })
+        .mockResolvedValueOnce({ sequence: 8 });
+
+      await service.publishDone({
+        fullContent: 'Done.',
+        metadata: {},
+        runId: 'run-1',
+        threadId,
+        toolCalls: [],
+        userId: testId('user'),
+      } as unknown as PublishDoneInput);
+
+      const [entries] = mockRedisService.publishBatch.mock.calls[0];
+      expect(entries[0].message.data).toMatchObject({ sequence: 8 });
+    });
+  });
+
+  describe('publishRecordedRunSettled', () => {
+    it('announces a recorded run on the turn channel without recording it again', async () => {
+      const threadId = testId('thread');
+      mockAgentThreadsService.findOne.mockResolvedValue({
+        organizationId: testId('org'),
+      });
+
+      await service.publishRecordedRunSettled({
+        data: {
+          creditsRemaining: 90,
+          creditsUsed: 0,
+          fullContent: 'Approved action completed.',
+          metadata: {},
+          runId: 'exec-1',
+          sequence: 12,
+          threadId,
+          toolCalls: [],
+          uiAction: { action: 'confirm_mutation', sourceId: 'card-1' },
+          userId: testId('user'),
+        },
+        type: 'agent:done',
+      });
+
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+      expect(mockRedisService.publish).toHaveBeenCalledWith(CHANNEL, {
+        data: expect.objectContaining({
+          runId: 'exec-1',
+          sequence: 12,
+          uiAction: { action: 'confirm_mutation', sourceId: 'card-1' },
+        }),
+        type: 'agent:done',
+      });
+    });
   });
 
   describe('publishError', () => {

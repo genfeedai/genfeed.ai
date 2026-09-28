@@ -388,8 +388,8 @@ type StoreState = {
     streamingContent: string;
     streamingReasoning: string;
   };
-  setUiActionRun: ReturnType<typeof vi.fn>;
-  uiActionRuns: Record<string, unknown>;
+  trackUiActionRun: ReturnType<typeof vi.fn>;
+  uiActionStatesByThread: Record<string, Record<string, unknown>>;
   upsertThread: ReturnType<typeof vi.fn>;
   updateThread: ReturnType<typeof vi.fn>;
   workEvents: [];
@@ -463,8 +463,8 @@ const storeState: StoreState = {
     streamingReasoning: '',
   },
   threads: [],
-  setUiActionRun: vi.fn(),
-  uiActionRuns: {},
+  trackUiActionRun: vi.fn(),
+  uiActionStatesByThread: {},
   updateThread: vi.fn(),
   upsertThread: vi.fn(),
   workEvents: [],
@@ -485,34 +485,18 @@ function createApiService(overrides: Record<string, unknown> = {}) {
 }
 
 /**
- * `POST .../ui-actions` only acks the enqueued workflow; the run's reply is
- * persisted with `metadata.runId` = the ack's `executionId` and read back from
- * the thread's messages.
+ * `POST .../ui-actions` only acks the enqueued workflow. The run's result
+ * reaches the thread as its own `agent:done`, so the api double has no read
+ * methods: the container must never poll messages or the execution for it.
  */
-function createUiActionApi(
-  reply: Pick<AgentChatMessageType, 'content'> & Partial<AgentChatMessageType>,
-  thread: Record<string, unknown> = {
-    brandId: null,
-    contextVersion: 1,
-    id: 'thread-1',
-  },
-) {
+function createUiActionApi() {
   return {
-    getCreditsInfo: vi
-      .fn()
-      .mockResolvedValue({ balance: 48, modelAccess: {}, modelCosts: {} }),
-    getMessages: vi.fn().mockResolvedValue([
-      {
-        createdAt: '2026-03-11T00:01:00.000Z',
-        id: 'm-ui-action-reply',
-        role: 'assistant',
-        threadId: 'thread-1',
-        ...reply,
-        metadata: { runId: 'exec-ui-action', ...reply.metadata },
-      },
-    ]),
-    getThread: vi.fn().mockResolvedValue(thread),
-    getWorkflowExecution: vi.fn(),
+    getMessages: vi.fn(() => {
+      throw new Error('ui-actions must not poll messages');
+    }),
+    getWorkflowExecution: vi.fn(() => {
+      throw new Error('ui-actions must not poll the execution');
+    }),
     respondToUiAction: vi.fn().mockResolvedValue({
       executionId: 'exec-ui-action',
       status: 'queued',
@@ -585,8 +569,8 @@ describe('AgentChatContainer', () => {
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
     storeState.setUiActionStatus.mockReset();
-    storeState.setUiActionRun.mockReset();
-    storeState.uiActionRuns = {};
+    storeState.trackUiActionRun.mockReset();
+    storeState.uiActionStatesByThread = {};
     storeState.conversationCacheByThread = {};
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
@@ -2255,16 +2239,18 @@ describe('AgentChatContainer', () => {
       status: 'awaiting_approval',
       updatedAt: '2026-03-26T10:00:00.000Z',
     };
-    // The approval outlived its foreground window: the active ui-action lock
-    // is released, but the run executing the plan is still pending.
-    storeState.uiActionRuns = {
-      'thread-1:approve_plan:{"planId":"plan-1"}': {
-        action: 'approve_plan',
-        executionId: 'exec-plan-1',
-        key: 'thread-1:approve_plan:{"planId":"plan-1"}',
-        payload: { planId: 'plan-1' },
-        status: 'pending',
-        threadId: 'thread-1',
+    // The request's in-flight lock is released at the ack, but the run
+    // executing the plan is still pending on the thread.
+    storeState.uiActionStatesByThread = {
+      'thread-1': {
+        'approve_plan:plan-1': {
+          action: 'approve_plan',
+          runId: 'exec-plan-1',
+          sequence: 4,
+          sourceId: 'plan-1',
+          status: 'pending',
+          updatedAt: '2026-03-26T10:00:00.000Z',
+        },
       },
     };
 
@@ -2278,26 +2264,21 @@ describe('AgentChatContainer', () => {
     expect(apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
-  it('reconciles a run whose ack lands after its thread was left and shown again', async () => {
+  it('adopts a run whose ack lands after its thread was left and shown again', async () => {
     let resolveAck: (ack: {
       executionId: string;
       status: 'queued';
       threadId: string;
     }) => void = () => undefined;
+    const uiActionApi = createUiActionApi();
     const apiService = createApiService({
-      ...createUiActionApi({ content: 'Plan executed.' }),
-      getWorkflowExecution: vi
-        .fn()
-        .mockResolvedValue({ id: 'exec-ui-action', status: 'running' }),
+      ...uiActionApi,
       respondToUiAction: vi.fn(
         () =>
           new Promise((resolve) => {
             resolveAck = resolve;
           }),
       ),
-    });
-    storeState.setUiActionRun.mockImplementation((run: { key: string }) => {
-      storeState.uiActionRuns = { ...storeState.uiActionRuns, [run.key]: run };
     });
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2316,6 +2297,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() =>
       expect(apiService.respondToUiAction).toHaveBeenCalledTimes(1),
     );
+    expect(beginRunHandoff).toHaveBeenCalledWith('thread-1');
 
     // Leave the thread and come back before the ack arrives.
     storeState.activeThreadId = 'thread-2';
@@ -2330,21 +2312,20 @@ describe('AgentChatContainer', () => {
         threadId: 'thread-1',
       });
     });
-    // The store notifies subscribers of the newly registered run.
-    view.rerender(<AgentChatContainer apiService={apiService as never} />);
 
-    await waitFor(() =>
-      expect(storeState.setUiActionRun).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          executionId: 'exec-ui-action',
-          status: 'completed',
-        }),
-      ),
+    expect(storeState.trackUiActionRun).toHaveBeenCalledWith('thread-1', {
+      action: 'approve_plan',
+      runId: 'exec-ui-action',
+      sourceId: 'plan-1',
+    });
+    expect(adoptRun).toHaveBeenCalledWith(
+      expect.objectContaining({ threadId: 'thread-1' }),
+      'exec-ui-action',
+      null,
+      { requireRunId: true },
     );
-    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
-    expect(storeState.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'Plan executed.' }),
-    );
+    expect(uiActionApi.getMessages).not.toHaveBeenCalled();
+    expect(uiActionApi.getWorkflowExecution).not.toHaveBeenCalled();
   });
 
   it('renders and executes the create follow-up tasks action for approved workspace plans', async () => {
@@ -2442,26 +2423,7 @@ describe('AgentChatContainer', () => {
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
-    const apiService = createApiService(
-      createUiActionApi({
-        content: 'Official workflow installed.',
-        metadata: {
-          uiActions: [
-            {
-              ctas: [
-                {
-                  href: '/automation/workflows/wf-99',
-                  label: 'Open workflow',
-                },
-              ],
-              id: 'workflow-created-success',
-              title: 'Automation installed',
-              type: 'workflow_created_card',
-            },
-          ],
-        },
-      }),
-    );
+    const apiService = createApiService(createUiActionApi());
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2504,12 +2466,17 @@ describe('AgentChatContainer', () => {
 
     expect(sendNonStreaming).not.toHaveBeenCalled();
     expect(sendStreaming).not.toHaveBeenCalled();
-    expect(storeState.addMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: 'Official workflow installed.',
-        threadId: 'thread-1',
-      }),
+    // The run is adopted into the thread stream; its reply arrives there.
+    await waitFor(() =>
+      expect(adoptRun).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-1' }),
+        'exec-ui-action',
+        null,
+        { requireRunId: true },
+      ),
     );
+    expect(storeState.addMessage).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
   it('ignores a duplicate UI action while the first request is pending', async () => {
@@ -2519,7 +2486,7 @@ describe('AgentChatContainer', () => {
     });
     const respondToUiAction = vi.fn(() => pendingAction);
     const apiService = createApiService({
-      ...createUiActionApi({ content: 'Installed.' }),
+      ...createUiActionApi(),
       respondToUiAction,
     });
 
@@ -2567,22 +2534,13 @@ describe('AgentChatContainer', () => {
       threadId: 'thread-1',
     });
 
-    await waitFor(() => {
-      expect(storeState.addMessage).toHaveBeenCalledWith(
-        expect.objectContaining({ content: 'Installed.' }),
-      );
-    });
+    await waitFor(() => expect(adoptRun).toHaveBeenCalledTimes(1));
   });
 
-  it('replaces a brandless thread scope with the confirmed created brand', async () => {
-    // The ack carries no scope; the confirmed brand is read back from the
-    // thread once the run's reply lands.
-    const apiService = createApiService(
-      createUiActionApi(
-        { content: 'Brand created and selected for this thread.' },
-        { brandId: 'brand-created-1', contextVersion: 2, id: 'thread-1' },
-      ),
-    );
+  it('submits a brand confirmation and adopts its run without reading the thread back', async () => {
+    // The ack carries no scope; the confirmed brand arrives with the run's
+    // own `agent:done` (see agent-chat-stream.subscriptions.spec).
+    const apiService = createApiService(createUiActionApi());
 
     storeState.pendingInputRequest = null;
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
@@ -2641,15 +2599,15 @@ describe('AgentChatContainer', () => {
         { brandId: null, expectedContextVersion: 1 },
       );
     });
-    await waitFor(() => {
-      expect(storeState.upsertThread).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId: 'brand-created-1',
-          contextVersion: 2,
-          id: 'thread-1',
-        }),
-      );
-    });
+    await waitFor(() =>
+      expect(adoptRun).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-1' }),
+        'exec-ui-action',
+        null,
+        { requireRunId: true },
+      ),
+    );
+    expect(storeState.upsertThread).not.toHaveBeenCalled();
   });
 
   it('renders the provided empty-state title and description', () => {

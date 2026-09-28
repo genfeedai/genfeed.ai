@@ -13,6 +13,11 @@ import type {
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
+export interface AgentThreadUiActionRef {
+  action: string;
+  sourceId: string;
+}
+
 @Injectable()
 export class AgentThreadEventRecorderService {
   constructor(
@@ -23,10 +28,12 @@ export class AgentThreadEventRecorderService {
   async recordThreadTurnRequested(params: {
     threadId: string;
     context: AgentChatContext;
-    model: string;
+    model?: string;
     content: string;
     runId?: string;
     source?: AgentChatRequest['source'];
+    /** The ui-action this run executes; the projection tracks its state. */
+    uiAction?: AgentThreadUiActionRef;
   }): Promise<void> {
     if (!this.agentThreadEngineService) {
       return;
@@ -41,14 +48,44 @@ export class AgentThreadEventRecorderService {
       organizationId: params.context.organizationId,
       payload: {
         content: params.content,
-        model: params.model,
-        requestedModel: params.model,
+        ...(params.model
+          ? { model: params.model, requestedModel: params.model }
+          : {}),
         source: params.source ?? 'agent',
         startedAt: new Date().toISOString(),
+        ...(params.uiAction ? { uiAction: params.uiAction } : {}),
       },
       runId: params.runId,
       threadId: params.threadId,
       type: 'thread.turn_requested',
+      userId: params.context.userId,
+    });
+  }
+
+  /**
+   * The ack of a ui-action: its run is queued behind the thread lane. It is
+   * projected as a pending ui-action state only — the run becomes the thread's
+   * active run when the worker records `thread.turn_requested` for it.
+   */
+  async recordUiActionQueued(params: {
+    content: string;
+    context: AgentChatContext;
+    runId: string;
+    threadId: string;
+    uiAction: AgentThreadUiActionRef;
+  }): Promise<void> {
+    await this.appendThreadEvent({
+      commandId: `turn-queued:${params.threadId}:${params.runId}`,
+      metadata: this.scopeMetadata(params.context),
+      organizationId: params.context.organizationId,
+      payload: {
+        content: params.content,
+        queuedAt: new Date().toISOString(),
+        uiAction: params.uiAction,
+      },
+      runId: params.runId,
+      threadId: params.threadId,
+      type: 'thread.turn_queued',
       userId: params.context.userId,
     });
   }
@@ -316,6 +353,19 @@ export class AgentThreadEventRecorderService {
       type: 'run.failed',
       userId: params.context.userId,
     });
+  }
+
+  /** The sequence of the run's own terminal event, when it recorded one. */
+  async readRunTerminalSequence(params: {
+    organizationId: string;
+    runId: string;
+    threadId: string;
+  }): Promise<number | undefined> {
+    return this.agentThreadEngineService?.getRunTerminalSequence(
+      params.threadId,
+      params.organizationId,
+      params.runId,
+    );
   }
 
   private async appendThreadEvent(

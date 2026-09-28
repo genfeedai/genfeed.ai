@@ -1,4 +1,5 @@
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
+import { findAgentStreamEntry } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -19,6 +20,16 @@ import { useCallback, useEffect, useRef } from 'react';
  * it, scanning the list would fan out one request per row (#2790).
  */
 const THREAD_PREFETCH_DEBOUNCE_MS = 150;
+
+/**
+ * A thread whose run the stream is still following owns its conversation:
+ * its snapshot must not advance the thread's event position ahead of the
+ * events that stream has yet to deliver.
+ */
+function hasLiveStreamEntry(threadId: string): boolean {
+  const entry = findAgentStreamEntry(threadId);
+  return Boolean(entry && entry.terminalAt === null);
+}
 
 interface UseAgentThreadPrefetchParams {
   apiService: AgentApiService;
@@ -106,7 +117,8 @@ export function useAgentThreadPrefetch({
         if (
           threadId !== pendingThreadIdRef.current ||
           threadId === state.activeThreadId ||
-          state.isConversationCacheFresh(threadId)
+          state.isConversationCacheFresh(threadId) ||
+          hasLiveStreamEntry(threadId)
         ) {
           pendingThreadIdRef.current = null;
           return;
@@ -129,9 +141,16 @@ export function useAgentThreadPrefetch({
 
         flight.promise
           .then(({ page, snapshot }) => {
-            if (flight.signal.aborted || !snapshot) {
+            if (
+              flight.signal.aborted ||
+              !snapshot ||
+              hasLiveStreamEntry(threadId)
+            ) {
               return;
             }
+            useAgentChatStore
+              .getState()
+              .applyThreadSnapshotState(threadId, snapshot);
             primeConversationCache(threadId, {
               error: readSnapshotRunError(snapshot),
               hasMoreMessages: page.hasMore,

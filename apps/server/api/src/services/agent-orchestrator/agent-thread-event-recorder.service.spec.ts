@@ -47,6 +47,25 @@ describe('AgentThreadEventRecorderService', () => {
       );
     });
 
+    it('carries the ui-action a run executes so the projection tracks it', async () => {
+      await serviceWithEngine.recordThreadTurnRequested({
+        content: 'Approved plan plan-1.',
+        context,
+        runId: 'run-1',
+        threadId: 'thread-1',
+        uiAction: { action: 'approve_plan', sourceId: 'plan-1' },
+      });
+
+      const [event] = mockAgentThreadEngineService.appendEvent.mock.calls[0];
+      expect(event.payload).toEqual(
+        expect.objectContaining({
+          content: 'Approved plan plan-1.',
+          uiAction: { action: 'approve_plan', sourceId: 'plan-1' },
+        }),
+      );
+      expect(event.payload).not.toHaveProperty('model');
+    });
+
     it('is a no-op when the engine is absent', async () => {
       await expect(
         serviceWithoutEngine.recordThreadTurnRequested({

@@ -1,3 +1,4 @@
+import type { AgentChatResult } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ActivityKey } from '@genfeedai/contracts';
 import { AgentStreamEffectsService } from './agent-stream-effects.service';
 
@@ -104,5 +105,66 @@ describe('best-effort turn phases', () => {
       'AgentStreamEffectsService turn phase publish failed',
       { phase: 'preparing', runId: 'run-1' },
     );
+  });
+});
+
+describe('ui-action run settlement', () => {
+  function setup() {
+    const publisher = { publishRecordedRunSettled: vi.fn() };
+    const service = new AgentStreamEffectsService(
+      publisher as never,
+      { warn: vi.fn() } as never,
+      { record: vi.fn() } as never,
+    );
+    return { publisher, service };
+  }
+  const result: AgentChatResult = {
+    creditsRemaining: 90,
+    creditsUsed: 0,
+    message: {
+      content: 'Approved action failed: Provider unavailable',
+      metadata: { uiActions: [] },
+      role: 'assistant',
+    },
+    threadId: 'thread-1',
+    toolCalls: [],
+  };
+  const settle = (service: AgentStreamEffectsService, runResult = result) =>
+    service.publishUiActionDone({
+      context: { executionId: 'exec-1', organizationId: 'org-1', userId: 'u' },
+      result: runResult,
+      sequence: 7,
+      threadId: 'thread-1',
+      uiAction: { action: 'confirm_mutation', sourceId: 'card-1' },
+    });
+
+  it('settles a mutation that failed without throwing as failed, with its reply', async () => {
+    const { publisher, service } = setup();
+
+    await settle(service, {
+      ...result,
+      runOutcome: { error: 'Provider unavailable', status: 'failed' },
+    });
+
+    expect(publisher.publishRecordedRunSettled).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        error: 'Provider unavailable',
+        fullContent: 'Approved action failed: Provider unavailable',
+        runId: 'exec-1',
+        runStatus: 'failed',
+        sequence: 7,
+      }),
+      type: 'agent:done',
+    });
+  });
+
+  it('settles a successful run as completed', async () => {
+    const { publisher, service } = setup();
+
+    await settle(service);
+
+    const [{ data }] = publisher.publishRecordedRunSettled.mock.calls[0];
+    expect(data.runStatus).toBe('completed');
+    expect(data).not.toHaveProperty('error');
   });
 });

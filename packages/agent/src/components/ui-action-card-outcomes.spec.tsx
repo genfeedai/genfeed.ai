@@ -3,13 +3,12 @@ import { LivestreamBotCard } from '@genfeedai/agent/components/LivestreamBotCard
 import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
 import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
-import { getUiActionRunKey } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
-  AgentUiActionRun,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { getAgentUiActionSourceId } from '@genfeedai/contracts/interfaces';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -48,21 +47,34 @@ beforeEach(() => {
   useAgentChatStore.setState({ activeThreadId: 'thread-1' });
 });
 
-/** The container's reconciliation settling a run after the card stopped waiting. */
-function settleRun(
+/**
+ * What the container's handler does on an ack: the run it started is tracked
+ * on the thread as pending, and the handler reports `'pending'`.
+ */
+function trackRun(
   action: string,
   payload: Record<string, unknown> | undefined,
-  status: AgentUiActionRun['status'],
 ): void {
+  useAgentChatStore.getState().trackUiActionRun('thread-1', {
+    action,
+    runId: 'exec-1',
+    sourceId: getAgentUiActionSourceId(payload),
+  });
+}
+
+function acceptingHandler() {
+  return vi.fn(async (action: string, payload?: Record<string, unknown>) => {
+    trackRun(action, payload);
+    return 'pending' as const;
+  });
+}
+
+/** The run's `agent:done` / `agent:error` settling it on the thread. */
+function settleRun(status: 'completed' | 'failed'): void {
   act(() => {
-    useAgentChatStore.getState().setUiActionRun({
-      action,
+    useAgentChatStore.getState().settleUiActionRun('thread-1', 'exec-1', {
       ...(status === 'failed' ? { error: 'The run failed.' } : {}),
-      executionId: 'exec-1',
-      key: getUiActionRunKey('thread-1', action, payload),
-      payload,
       status,
-      threadId: 'thread-1',
     });
   });
 }
@@ -241,7 +253,7 @@ describe.each(cases)('%s ui-action outcomes', (_name, card) => {
   });
 
   it('stays in flight on a pending outcome and settles when the run completes', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
+    const onUiAction = acceptingHandler();
     render(card.render(onUiAction));
 
     await clickAndResolve(onUiAction, card.idleLabel);
@@ -249,26 +261,37 @@ describe.each(cases)('%s ui-action outcomes', (_name, card) => {
     expect(screen.queryByText(card.doneText)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: card.busyLabel })).toBeDisabled();
 
-    settleRun(card.runAction, card.runPayload, 'completed');
+    settleRun('completed');
 
     expect(screen.getByText(card.doneText)).toBeInTheDocument();
   });
 
   it('re-enables the action when a pending run fails', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
+    const onUiAction = acceptingHandler();
     render(card.render(onUiAction));
 
     await clickAndResolve(onUiAction, card.idleLabel);
-    settleRun(card.runAction, card.runPayload, 'failed');
+    settleRun('failed');
 
     expect(screen.queryByText(card.doneText)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: card.idleLabel })).toBeEnabled();
   });
 
   it('derives the in-flight state from a still-pending run after a remount', () => {
-    settleRun(card.runAction, card.runPayload, 'pending');
+    trackRun(card.runAction, card.runPayload);
     render(card.render(vi.fn()));
 
     expect(screen.getByRole('button', { name: card.busyLabel })).toBeDisabled();
+  });
+
+  it('settles a card remounted while its run was pending', () => {
+    trackRun(card.runAction, card.runPayload);
+    const { unmount } = render(card.render(vi.fn()));
+    unmount();
+    settleRun('completed');
+
+    render(card.render(vi.fn()));
+
+    expect(screen.getByText(card.doneText)).toBeInTheDocument();
   });
 });

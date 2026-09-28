@@ -72,6 +72,7 @@ export class AgentThreadRuntimeController {
         threadStatus: snapshot.threadStatus ?? null,
         timeline: snapshot.timeline ?? [],
         title: snapshot.title ?? null,
+        uiActionRuns: snapshot.uiActionRuns ?? [],
       };
     } catch (error: unknown) {
       return ErrorResponse.handle(

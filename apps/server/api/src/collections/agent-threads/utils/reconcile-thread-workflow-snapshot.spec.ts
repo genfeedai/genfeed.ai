@@ -69,6 +69,163 @@ describe('durable workflow snapshot recovery', () => {
       expect(current.activeRun.status).toBe('running');
     },
   );
+  it.each([
+    ['FAILED', 'failed', 'The action failed before it finished.'],
+    ['CANCELLED', 'cancelled', 'The action was cancelled.'],
+    ['COMPLETED', 'completed', undefined],
+  ] as const)(
+    'settles the pending ui-action of a %s execution that recorded no outcome',
+    (status, uiActionStatus, error) => {
+      const current = snapshot();
+      current.activeRun = { runId: 'current-execution', status: 'running' };
+      current.uiActionRuns = [
+        {
+          action: 'confirm_generate_media',
+          queuedSequence: 3,
+          runId: 'current-execution',
+          sourceId: 'card-1',
+          status: 'pending',
+          updatedAt: createdAt.toISOString(),
+        },
+        {
+          action: 'approve_plan',
+          queuedSequence: 1,
+          runId: 'older-execution',
+          sourceId: 'plan-1',
+          status: 'completed',
+          terminalSequence: 2,
+          updatedAt: createdAt.toISOString(),
+        },
+      ];
+
+      const reconciled = reconcileThreadWorkflowSnapshot(
+        current,
+        execution(status),
+      );
+
+      expect(reconciled.uiActionRuns?.[0]).toEqual({
+        ...current.uiActionRuns[0],
+        status: uiActionStatus,
+        ...(error ? { error } : {}),
+      });
+      expect(reconciled.uiActionRuns?.[1]).toBe(current.uiActionRuns[1]);
+      expect(current.uiActionRuns[0]?.status).toBe('pending');
+    },
+  );
+  it('settles a pending ui-action from its own execution, and keeps a queued one pending', async () => {
+    const current = snapshot();
+    const state = (runId: string, sourceId: string) => ({
+      action: 'approve_plan',
+      queuedSequence: 2,
+      runId,
+      sourceId,
+      status: 'pending' as const,
+      updatedAt: createdAt.toISOString(),
+    });
+    current.uiActionRuns = [
+      state('crashed-execution', 'plan-1'),
+      state('queued-execution', 'plan-2'),
+    ];
+    const $queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([execution('RUNNING')])
+      .mockResolvedValueOnce([
+        { ...execution('FAILED'), id: 'crashed-execution' },
+        { ...execution('PENDING'), id: 'queued-execution' },
+      ]);
+
+    const result = await readThreadWorkflowSnapshot(
+      { $queryRaw } as unknown as Pick<PrismaService, '$queryRaw'>,
+      current,
+    );
+
+    expect(result.uiActionRuns).toEqual([
+      expect.objectContaining({
+        error: 'The action failed before it finished.',
+        runId: 'crashed-execution',
+        status: 'failed',
+      }),
+      expect.objectContaining({ runId: 'queued-execution', status: 'pending' }),
+    ]);
+    const query = $queryRaw.mock.calls[1][0] as Prisma.Sql;
+    expect(query.sql).toContain('"organizationId" = ?');
+    expect(query.sql).toContain('"isDeleted" = false');
+    expect(query.values).toEqual(
+      expect.arrayContaining(['crashed-execution', 'queued-execution']),
+    );
+  });
+
+  describe('lane ownership', () => {
+    const running = { ...execution('RUNNING'), id: 'run-a' };
+    const queued = {
+      ...execution('PENDING'),
+      createdAt: new Date('2026-09-08T10:01:00.000Z'),
+      id: 'run-b',
+    };
+    function laneSnapshot() {
+      const current = snapshot();
+      current.activeRun = { runId: 'run-a', status: 'running' };
+      current.uiActionRuns = ['run-a', 'run-b'].map((runId, index) => ({
+        action: 'confirm_mutation',
+        queuedSequence: index + 1,
+        runId,
+        sourceId: `card-${runId}`,
+        status: 'pending' as const,
+        updatedAt: createdAt.toISOString(),
+      }));
+      return current;
+    }
+
+    it('keeps the running run active while a newer run is queued behind it', async () => {
+      const $queryRaw = vi
+        .fn()
+        .mockResolvedValueOnce([queued])
+        .mockResolvedValueOnce([running]);
+
+      const result = await readThreadWorkflowSnapshot(
+        { $queryRaw } as unknown as Pick<PrismaService, '$queryRaw'>,
+        laneSnapshot(),
+      );
+
+      expect(result.activeRun).toMatchObject({
+        runId: 'run-a',
+        status: 'running',
+      });
+      expect(($queryRaw.mock.calls[1][0] as Prisma.Sql).values).toEqual(
+        expect.arrayContaining(['run-a']),
+      );
+      expect(result.uiActionRuns?.map((run) => run.status)).toEqual([
+        'pending',
+        'pending',
+      ]);
+    });
+
+    it('hands the lane to the queued run once the owner’s execution ended', () => {
+      const result = reconcileThreadWorkflowSnapshot(laneSnapshot(), queued, [
+        { ...running, status: 'COMPLETED' },
+      ]);
+
+      expect(result.activeRun).toMatchObject({
+        runId: 'run-b',
+        status: 'running',
+      });
+      expect(result.uiActionRuns?.[0]).toMatchObject({
+        runId: 'run-a',
+        status: 'completed',
+      });
+    });
+
+    it('lets a started run take over even when the owner recorded no end', () => {
+      const result = reconcileThreadWorkflowSnapshot(
+        laneSnapshot(),
+        { ...queued, status: 'RUNNING' },
+        [running],
+      );
+
+      expect(result.activeRun?.runId).toBe('run-b');
+    });
+  });
+
   it('preserves interrupted classification when its outer workflow fails', () => {
     const current = snapshot();
     current.activeRun = { runId: 'current-execution', status: 'interrupted' };

@@ -2,6 +2,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type {
   AgentChatContext,
+  AgentChatResult,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -249,6 +250,83 @@ export class AgentStreamEffectsService {
       this.loggerService.warn(
         `${this.constructorName} stream done publish failed`,
         { error },
+      );
+    }
+  }
+
+  /**
+   * A ui-action run settles on the turn channel: its result reaches the client
+   * as the same `agent:done` a turn emits, so the stream that adopted the run
+   * finalizes it like any other.
+   */
+  async publishUiActionDone(params: {
+    context: AgentChatContext;
+    result: AgentChatResult;
+    sequence?: number;
+    threadId: string;
+    uiAction: { action: string; sourceId: string };
+  }): Promise<void> {
+    try {
+      await this.streamPublisher.publishRecordedRunSettled({
+        data: {
+          brandId: params.result.brandId,
+          contextVersion: params.result.contextVersion,
+          creditsRemaining: params.result.creditsRemaining,
+          creditsUsed: params.result.creditsUsed,
+          fullContent: params.result.message.content,
+          metadata: {
+            ...params.result.message.metadata,
+            ...(params.context.executionId
+              ? { runId: params.context.executionId }
+              : {}),
+          },
+          runId: params.context.executionId,
+          ...(params.result.runOutcome
+            ? {
+                error: params.result.runOutcome.error,
+                runStatus: params.result.runOutcome.status,
+              }
+            : { runStatus: 'completed' as const }),
+          sequence: params.sequence,
+          threadId: params.threadId,
+          toolCalls: params.result.toolCalls,
+          uiAction: params.uiAction,
+          userId: params.context.userId,
+        },
+        type: 'agent:done',
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} ui-action done publish failed`,
+        { error },
+      );
+    }
+  }
+
+  async publishUiActionFailure(params: {
+    context: AgentChatContext;
+    error: string;
+    sequence?: number;
+    threadId: string;
+    uiAction: { action: string; sourceId: string };
+  }): Promise<void> {
+    try {
+      await this.streamPublisher.publishRecordedRunSettled({
+        data: {
+          error: params.error,
+          runId: params.context.executionId,
+          sequence: params.sequence,
+          threadId: params.threadId,
+          uiAction: params.uiAction,
+          userId: params.context.userId,
+        },
+        type: 'agent:error',
+      });
+    } catch (error) {
+      await this.recordFailureDeliveryError(
+        params.context,
+        params.threadId,
+        error,
       );
     }
   }

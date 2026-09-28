@@ -4,10 +4,12 @@ import type {
   AgentMemoryEntry,
   AgentProposedPlan,
   AgentThread,
+  AgentThreadSnapshot,
+  AgentThreadUiActionRun,
+  AgentThreadUiActionState,
   AgentToolCall,
   AgentTurnAcceptedPayload,
   AgentUiAction,
-  AgentUiActionRun,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
@@ -18,6 +20,10 @@ import {
   type AgentThreadMode,
   DEFAULT_AGENT_THREAD_MODE,
 } from '@genfeedai/contracts';
+import {
+  deriveAgentUiActionStates,
+  isAgentUiActionSourceOwner,
+} from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
@@ -266,8 +272,23 @@ interface AgentChatState {
   stream: AgentStreamState;
   composerSeed: AgentComposerSeed | null;
   threadUiBusyById: Record<string, boolean>;
-  /** Acknowledged ui-action runs by `getUiActionRunKey`, across threads. */
-  uiActionRuns: Record<string, AgentUiActionRun>;
+  /**
+   * Ui-action runs per thread, by run id. Written only from the thread's
+   * projection (snapshot hydration) and each run's own events (its ack,
+   * `agent:done` / `agent:error`, or the completion watchdog settling it), so
+   * cards derive the same state after a remount or a thread switch.
+   */
+  uiActionRunsByThread: Record<string, Record<string, AgentThreadUiActionRun>>;
+  /**
+   * The card view of `uiActionRunsByThread`, by `getAgentUiActionStateKey`,
+   * derived with the same rule as the server (`deriveAgentUiActionStates`).
+   */
+  uiActionStatesByThread: Record<
+    string,
+    Record<string, AgentThreadUiActionState>
+  >;
+  /** The last thread event sequence applied to each thread. */
+  threadEventSequenceById: Record<string, number>;
   /** Per-thread terminal sessions. Key = threadId | "global". */
   terminalSessionsByThread: TerminalSessionsByThread;
   /** Per-thread active session id. Key = threadId | "global". */
@@ -280,7 +301,15 @@ interface AgentChatActions {
   addPendingUiActions: (actions: AgentUiAction[]) => void;
   addWorkEvent: (event: AgentWorkEvent) => void;
   addMessage: (message: AgentChatMessage) => void;
-  setUiActionStatus: (actionId: string, status: string) => void;
+  /**
+   * Set a card's status wherever it is loaded. `update`, the server-resolved
+   * copy of that card, also replaces its fields.
+   */
+  setUiActionStatus: (
+    actionId: string,
+    status: string,
+    update?: AgentUiAction,
+  ) => void;
   clearStaleActiveRun: () => void;
   clearPendingInputRequest: (inputRequestId?: string) => void;
   resolvePendingInputRequest: (
@@ -369,7 +398,42 @@ interface AgentChatActions {
   setDraftRuntimeKey: (runtimeKey: string | null) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
   setThreadUiBusy: (threadId: string, busy: boolean) => void;
-  setUiActionRun: (run: AgentUiActionRun) => void;
+  /**
+   * Whether a live event at `sequence` is newer than what the thread already
+   * reflects; when it is, the thread advances to it. An event without a
+   * sequence (an older server) always applies.
+   */
+  acceptThreadEventSequence: (threadId: string, sequence?: number) => boolean;
+  /** Adopt a thread's projected ui-action runs and event position. */
+  applyThreadSnapshotState: (
+    threadId: string,
+    snapshot: Pick<AgentThreadSnapshot, 'activeRun' | 'lastSequence'> & {
+      uiActionRuns?: AgentThreadUiActionRun[];
+    },
+  ) => void;
+  /** Record the run an acknowledged ui-action started as pending. */
+  trackUiActionRun: (
+    threadId: string,
+    run: { action: string; runId: string; sourceId: string },
+  ) => void;
+  /**
+   * Whether a settled run's result may update its source card: the run is the
+   * one the source shows (`isAgentUiActionSourceOwner`). Settle the run first.
+   */
+  isUiActionSourceOwner: (
+    threadId: string,
+    result: { runId: string; sequence?: number; sourceId: string },
+  ) => boolean;
+  /** Settle the pending ui-action run `runId`, if there is one. */
+  settleUiActionRun: (
+    threadId: string,
+    runId: string,
+    outcome: {
+      error?: string;
+      sequence?: number;
+      status: Exclude<AgentThreadUiActionState['status'], 'pending'>;
+    },
+  ) => void;
   // ---------------------------------------------------------------------------
   // Terminal session management (T1-T2 / T6)
   // ---------------------------------------------------------------------------
@@ -392,6 +456,24 @@ const DEFAULT_STREAM_STATE: AgentStreamState = {
   streamingContent: '',
   streamingReasoning: '',
 };
+
+/** A thread's ui-action runs, with the card view derived from them. */
+function withUiActionRuns(
+  state: Pick<
+    AgentChatState,
+    'uiActionRunsByThread' | 'uiActionStatesByThread'
+  >,
+  threadId: string,
+  runs: Record<string, AgentThreadUiActionRun>,
+): Pick<AgentChatState, 'uiActionRunsByThread' | 'uiActionStatesByThread'> {
+  return {
+    uiActionRunsByThread: { ...state.uiActionRunsByThread, [threadId]: runs },
+    uiActionStatesByThread: {
+      ...state.uiActionStatesByThread,
+      [threadId]: deriveAgentUiActionStates(Object.values(runs)),
+    },
+  };
+}
 
 function deriveLatestProposedPlanFromMessages(
   messages: AgentChatMessage[],
@@ -541,35 +623,44 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           message.metadata?.proposedPlan ?? state.latestProposedPlan,
         messages: [...state.messages, message],
       })),
-    setUiActionStatus: (actionId, status) =>
+    setUiActionStatus: (actionId, status, update) =>
       set((state) => {
+        // A server-resolved copy of the card (same id and type) replaces its
+        // fields in place; otherwise only the status moves.
+        const apply = (action: AgentUiAction): AgentUiAction => {
+          if (action.id !== actionId) {
+            return action;
+          }
+          if (update && update.type === action.type) {
+            return {
+              ...action,
+              ...update,
+              data: { ...action.data, ...update.data },
+              id: actionId,
+              status,
+            };
+          }
+          return action.status === status ? action : { ...action, status };
+        };
         let messagesChanged = false;
         const messages = state.messages.map((message) => {
           const uiActions = message.metadata?.uiActions;
+          if (!uiActions) {
+            return message;
+          }
+          const nextActions = uiActions.map(apply);
           if (
-            !uiActions?.some(
-              (action) => action.id === actionId && action.status !== status,
-            )
+            nextActions.every((action, index) => action === uiActions[index])
           ) {
             return message;
           }
-
           messagesChanged = true;
           return {
             ...message,
-            metadata: {
-              ...message.metadata,
-              uiActions: uiActions.map((action) =>
-                action.id === actionId ? { ...action, status } : action,
-              ),
-            },
+            metadata: { ...message.metadata, uiActions: nextActions },
           };
         });
-        const pendingUiActions = state.stream.pendingUiActions.map((action) =>
-          action.id === actionId && action.status !== status
-            ? { ...action, status }
-            : action,
-        );
+        const pendingUiActions = state.stream.pendingUiActions.map(apply);
         const pendingChanged = pendingUiActions.some(
           (action, index) => action !== state.stream.pendingUiActions[index],
         );
@@ -1198,17 +1289,122 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           threadUiBusyById: remaining,
         };
       }),
-    setUiActionRun: (run) =>
+    acceptThreadEventSequence: (threadId, sequence) => {
+      if (typeof sequence !== 'number') {
+        return true;
+      }
+      if (sequence <= (get().threadEventSequenceById[threadId] ?? 0)) {
+        return false;
+      }
       set((state) => ({
-        uiActionRuns: { ...state.uiActionRuns, [run.key]: run },
-      })),
+        threadEventSequenceById: {
+          ...state.threadEventSequenceById,
+          [threadId]: sequence,
+        },
+      }));
+      return true;
+    },
+    applyThreadSnapshotState: (threadId, snapshot) =>
+      set((state) => {
+        const current = state.threadEventSequenceById[threadId] ?? 0;
+        if (snapshot.lastSequence < current) {
+          return state;
+        }
+        const known = state.uiActionRunsByThread[threadId] ?? {};
+        const runs: Record<string, AgentThreadUiActionRun> = {};
+        for (const run of snapshot.uiActionRuns ?? []) {
+          const local = known[run.runId];
+          // A run settled by its own terminal event after this snapshot was
+          // read stays settled.
+          runs[run.runId] =
+            run.status === 'pending' &&
+            local &&
+            local.status !== 'pending' &&
+            typeof local.terminalSequence === 'number'
+              ? local
+              : run;
+        }
+        // A run acknowledged (or settled) after this snapshot was read is not
+        // in it yet; one it settled before was capped out of the projection.
+        for (const local of Object.values(known)) {
+          if (
+            !runs[local.runId] &&
+            (local.status === 'pending' ||
+              typeof local.terminalSequence !== 'number' ||
+              local.terminalSequence > snapshot.lastSequence)
+          ) {
+            runs[local.runId] = local;
+          }
+        }
+        return {
+          threadEventSequenceById: {
+            ...state.threadEventSequenceById,
+            [threadId]: snapshot.lastSequence,
+          },
+          ...withUiActionRuns(state, threadId, runs),
+        };
+      }),
+    trackUiActionRun: (threadId, run) =>
+      set((state) => {
+        const runs = state.uiActionRunsByThread[threadId] ?? {};
+        // A snapshot read while the request was in flight may already hold
+        // the run, with its projected sequence (or even its outcome).
+        if (runs[run.runId]) {
+          return state;
+        }
+        // The ack does not carry its queued sequence; the run is newer than
+        // every run the thread knows.
+        const queuedSequence =
+          Math.max(
+            state.threadEventSequenceById[threadId] ?? 0,
+            ...Object.values(runs).map((known) => known.queuedSequence),
+          ) + 1;
+        return withUiActionRuns(state, threadId, {
+          ...runs,
+          [run.runId]: {
+            action: run.action,
+            queuedSequence,
+            runId: run.runId,
+            sourceId: run.sourceId,
+            status: 'pending',
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      }),
+    isUiActionSourceOwner: (threadId, result) =>
+      isAgentUiActionSourceOwner(
+        Object.values(get().uiActionRunsByThread[threadId] ?? {}),
+        result,
+      ),
+    settleUiActionRun: (threadId, runId, outcome) =>
+      set((state) => {
+        const runs = state.uiActionRunsByThread[threadId];
+        const pending = runs?.[runId];
+        if (!runs || !pending || pending.status !== 'pending') {
+          return state;
+        }
+        return withUiActionRuns(state, threadId, {
+          ...runs,
+          [runId]: {
+            ...pending,
+            ...(outcome.error ? { error: outcome.error } : {}),
+            status: outcome.status,
+            ...(typeof outcome.sequence === 'number'
+              ? { terminalSequence: outcome.sequence }
+              : {}),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      }),
     setWorkEvents: (events) => set({ workEvents: events }),
     socketConnectionState: 'connecting',
     stream: { ...DEFAULT_STREAM_STATE },
     threadPrompts: {},
     threads: [],
+    threadEventSequenceById: {},
     threadUiBusyById: {},
-    uiActionRuns: {},
+    uiActionRunsByThread: {},
+    uiActionStatesByThread: {},
     terminalSessionsByThread: options.ephemeral
       ? new Map()
       : loadPersistedSessionsByThread(),

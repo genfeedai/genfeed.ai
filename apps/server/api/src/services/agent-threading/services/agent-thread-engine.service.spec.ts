@@ -268,6 +268,37 @@ describe('AgentThreadEngineService', () => {
   });
 
   // ── getSnapshot ───────────────────────────────────────────────────────────────
+  describe('getRunTerminalSequence', () => {
+    it('reads the latest terminal event of that run only, tenant scoped', async () => {
+      mockPrisma.agentThreadEvent.findFirst.mockResolvedValue({ sequence: 7 });
+
+      await expect(
+        service.getRunTerminalSequence(threadId, orgId, 'exec-1'),
+      ).resolves.toBe(7);
+      expect(mockPrisma.agentThreadEvent.findFirst).toHaveBeenCalledWith({
+        orderBy: { sequence: 'desc' },
+        select: { sequence: true },
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: orgId,
+          runId: 'exec-1',
+          threadId,
+          type: {
+            in: expect.arrayContaining(['run.completed', 'run.failed']),
+          },
+        }),
+      });
+    });
+
+    it('is undefined for a run that recorded no terminal event', async () => {
+      mockPrisma.agentThreadEvent.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getRunTerminalSequence(threadId, orgId, 'exec-1'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
   describe('getSnapshot', () => {
     it('accepts an opaque Better Auth user id when scoping thread access', async () => {
       const legacyUserId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';

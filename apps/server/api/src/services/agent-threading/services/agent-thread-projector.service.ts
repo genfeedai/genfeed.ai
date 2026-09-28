@@ -4,9 +4,15 @@ import type {
   AgentThreadTimelineEntry,
   AgentThreadUiBlocksState,
 } from '@api/services/agent-threading/types/agent-thread.types';
+import {
+  type AgentThreadUiActionRun,
+  type AgentThreadUiActionStatus,
+  deriveAgentUiActionStates,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 const MAX_TIMELINE_ENTRIES = 250;
+const MAX_UI_ACTION_RUNS = 50;
 
 type MutableSnapshot = Record<string, unknown>;
 
@@ -26,6 +32,13 @@ export class AgentThreadProjectorService {
         timelineEntry,
       );
     }
+
+    // A ui-action run follows its own run id, whichever run the thread's
+    // `activeRun` currently names.
+    nextSnapshot.uiActionRuns = this.projectUiActionRuns(
+      nextSnapshot.uiActionRuns,
+      event,
+    );
 
     if (this.isObsoleteRunEvent(nextSnapshot, event)) {
       return nextSnapshot;
@@ -218,7 +231,126 @@ export class AgentThreadProjectorService {
       threadStatus: snapshot?.threadStatus,
       timeline: snapshot?.timeline ?? [],
       title: snapshot?.title,
+      uiActionRuns: snapshot?.uiActionRuns ?? [],
     };
+  }
+
+  /**
+   * `thread.turn_queued` (at the ack) or `thread.turn_requested` (when the
+   * worker starts the run) with a `uiAction` payload records a pending run;
+   * the run's own first terminal event settles it. Runs are kept by run id —
+   * queuing the same action on the same source again adds a run, never
+   * replaces one — and cards derive their state from them
+   * (`deriveAgentUiActionStates`). The oldest settled runs go first once the
+   * cap is reached; pending runs are kept.
+   */
+  private projectUiActionRuns(
+    currentRuns: unknown,
+    event: AgentThreadEventDocument,
+  ): AgentThreadUiActionRun[] {
+    const runs = Array.isArray(currentRuns)
+      ? (currentRuns as AgentThreadUiActionRun[])
+      : [];
+    const runId = event.runId;
+    if (!runId) {
+      return runs;
+    }
+    const updatedAt = event.occurredAt ?? new Date().toISOString();
+
+    if (
+      event.type === 'thread.turn_queued' ||
+      event.type === 'thread.turn_requested'
+    ) {
+      const uiAction = this.readRecord(event.payload, 'uiAction');
+      const action = this.readString(uiAction, 'action');
+      const sourceId = this.readString(uiAction, 'sourceId');
+      if (!action || !sourceId || runs.some((run) => run.runId === runId)) {
+        return runs;
+      }
+      return this.capUiActionRuns([
+        ...runs,
+        {
+          action,
+          queuedSequence: event.sequence,
+          runId,
+          sourceId,
+          status: 'pending',
+          updatedAt,
+        },
+      ]);
+    }
+
+    const status = this.uiActionStatusForEvent(event.type);
+    if (!status) {
+      return runs;
+    }
+    const error =
+      status === 'completed'
+        ? undefined
+        : (this.readString(event.payload, 'error') ??
+          this.readString(event.payload, 'detail'));
+    return runs.map((run) =>
+      run.runId === runId && run.status === 'pending'
+        ? {
+            ...run,
+            status,
+            terminalSequence: event.sequence,
+            updatedAt,
+            ...(error ? { error } : {}),
+          }
+        : run,
+    );
+  }
+
+  /**
+   * Past the cap, settled runs go oldest first: those whose outcome no card
+   * shows any more (superseded under `deriveAgentUiActionStates`) before the
+   * ones a card still derives from. Pending runs are always kept.
+   */
+  private capUiActionRuns(
+    runs: AgentThreadUiActionRun[],
+  ): AgentThreadUiActionRun[] {
+    let excess = runs.length - MAX_UI_ACTION_RUNS;
+    if (excess <= 0) {
+      return runs;
+    }
+    const shownRunIds = new Set(
+      Object.values(deriveAgentUiActionStates(runs)).map(
+        (state) => state.runId,
+      ),
+    );
+    const evicted = new Set<string>();
+    for (const isShown of [false, true]) {
+      for (const run of runs) {
+        if (excess <= 0) break;
+        if (
+          run.status !== 'pending' &&
+          shownRunIds.has(run.runId) === isShown &&
+          !evicted.has(run.runId)
+        ) {
+          evicted.add(run.runId);
+          excess -= 1;
+        }
+      }
+    }
+    return runs.filter((run) => !evicted.has(run.runId));
+  }
+
+  private uiActionStatusForEvent(
+    eventType: string,
+  ): Exclude<AgentThreadUiActionStatus, 'pending'> | null {
+    switch (eventType) {
+      case 'run.completed':
+        return 'completed';
+      case 'run.failed':
+      case 'error.raised':
+        return 'failed';
+      case 'run.cancelled':
+      case 'run.interrupted':
+        return 'cancelled';
+      default:
+        return null;
+    }
   }
 
   private threadIdFor(event: AgentThreadEventDocument): string {

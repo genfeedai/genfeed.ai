@@ -16,6 +16,7 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
 import type {
+  AgentRunAdoptionOptions,
   AgentRunHandoff,
   AgentStreamEntry,
   PendingStreamCompletion,
@@ -144,8 +145,52 @@ export function createAgentStreamController(
   };
 
   const releaseCompletedSubscriptions = () => {
+    if (followNextQueuedUiActionRun()) {
+      return;
+    }
     cleanupSubscriptions(true);
     settleAgentStreamEntry(entry);
+  };
+
+  /**
+   * Ui-action runs queued on the thread run after the one just settled (the
+   * thread lane serializes them). Follow the earliest still pending, so its
+   * result and its completion watchdog are handled like any run's.
+   */
+  const followNextQueuedUiActionRun = (): boolean => {
+    const threadId = streamRuntime.activeStreamThreadRef.current;
+    const settledRunId = streamRuntime.activeStreamRunIdRef.current;
+    if (!threadId || !isCurrentAgentStreamEntry(entry)) {
+      return false;
+    }
+    const next = Object.values(
+      useAgentChatStore.getState().uiActionRunsByThread[threadId] ?? {},
+    )
+      .filter((run) => run.status === 'pending' && run.runId !== settledRunId)
+      .sort((a, b) => a.queuedSequence - b.queuedSequence)[0];
+    if (!next) {
+      return false;
+    }
+    clearCompletionWatchdog();
+    streamRuntime.activeStreamRunIdRef.current = next.runId;
+    streamRuntime.isAwaitingRunIdRef.current = false;
+    streamRuntime.pendingCompletionRef.current = {
+      initiatedAt: Date.now(),
+      preAssistantIds: collectAssistantMessageIds(
+        presentationStore.getState().messages,
+      ),
+      requireRunId: true,
+      runId: next.runId,
+      startedAt: null,
+      threadId,
+    };
+    if (isThreadVisible(threadId)) {
+      setActiveRun(next.runId, { startedAt: null, status: 'running' });
+      markStreamLive();
+    }
+    markThreadRunning(threadId);
+    scheduleCompletionWatchdog();
+    return true;
   };
 
   const flushBufferedEvents = (threadId: string) => {
@@ -321,6 +366,19 @@ export function createAgentStreamController(
       setActiveRunStatus,
       setError,
       setMessages,
+      settleUiActionRun: useAgentChatStore.getState().settleUiActionRun,
+      adoptThreadScope: (threadId, scope) => {
+        const known = useAgentChatStore
+          .getState()
+          .threads.find((thread) => thread.id === threadId);
+        if (
+          known &&
+          (known.contextVersion ?? Number.NEGATIVE_INFINITY) >=
+            scope.contextVersion
+        )
+          return;
+        updateThreadSummary(threadId, scope);
+      },
       updateThreadSummary,
     });
   };
@@ -365,12 +423,28 @@ export function createAgentStreamController(
     );
     streamRuntime.unsubscribersRef.current.push(
       ...attachAgentStreamSubscriptions({
+        acceptThreadEventSequence:
+          useAgentChatStore.getState().acceptThreadEventSequence,
         activeStreamRunIdRef: streamRuntime.activeStreamRunIdRef,
         activeStreamThreadRef: streamRuntime.activeStreamThreadRef,
         addActiveToolCall,
         addPendingUiActions,
         addWorkEvent,
         appendStreamToken,
+        applySourceActionUpdate: (sourceId, card) => {
+          const state = presentationStore.getState();
+          const isLoaded =
+            state.messages.some((message) =>
+              message.metadata?.uiActions?.some(
+                (action) => action.id === sourceId,
+              ),
+            ) ||
+            state.stream.pendingUiActions.some(
+              (action) => action.id === sourceId,
+            );
+          state.setUiActionStatus(sourceId, 'completed', card ?? undefined);
+          return isLoaded;
+        },
         bufferedEventsRef: streamRuntime.bufferedEventsRef,
         bufferEvent: (event) => {
           if (entry.needsReconciliation) return;
@@ -391,6 +465,8 @@ export function createAgentStreamController(
         getPendingInputRequest: () =>
           presentationStore.getState().pendingInputRequest,
         getWorkEvents: () => presentationStore.getState().workEvents,
+        isUiActionSourceOwner: (threadId, source) =>
+          useAgentChatStore.getState().isUiActionSourceOwner(threadId, source),
         cleanupSubscriptions: releaseCompletedSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
@@ -418,6 +494,7 @@ export function createAgentStreamController(
         setPendingInputRequest,
         setRunStartedAt,
         setStreamingReasoning,
+        settleUiActionRun: useAgentChatStore.getState().settleUiActionRun,
         subscribe,
         isActuallyVisible: (threadId) =>
           useAgentChatStore.getState().activeThreadId === threadId,
@@ -711,6 +788,7 @@ export function createAgentStreamController(
     handoff: AgentRunHandoff,
     runId: string,
     startedAt: string | null,
+    adoptionOptions?: AgentRunAdoptionOptions,
   ) => {
     // A later send, handoff, or adoption owns the stream now.
     if (
@@ -730,6 +808,7 @@ export function createAgentStreamController(
     streamRuntime.pendingCompletionRef.current = {
       initiatedAt: Date.now(),
       preAssistantIds: handoff.preAssistantIds,
+      ...(adoptionOptions?.requireRunId ? { requireRunId: true } : {}),
       runId,
       startedAt,
       threadId,
@@ -865,6 +944,9 @@ export function createAgentStreamController(
           return;
         }
         entry.needsReconciliation = false;
+        useAgentChatStore
+          .getState()
+          .applyThreadSnapshotState(pending.threadId, snapshot);
         presentationStore.setState({
           messages,
           messagesCursor: null,
@@ -910,11 +992,22 @@ export function createAgentStreamController(
   ) {
     entry.activeStreamRunIdRef.current =
       presentationStore.getState().activeRunId;
+    const restoredThreadId = entry.activeStreamThreadRef.current;
+    const restoredRunId = entry.activeStreamRunIdRef.current;
+    // A run restored from the snapshot that the projection tracks as a
+    // ui-action is recovered by its execution id, like one adopted at its ack.
+    const isRestoredUiActionRun = Boolean(
+      restoredRunId &&
+        useAgentChatStore.getState().uiActionRunsByThread[restoredThreadId]?.[
+          restoredRunId
+        ],
+    );
     entry.pendingCompletionRef.current = {
       initiatedAt: Date.now(),
       preAssistantIds: collectAssistantMessageIds(
         presentationStore.getState().messages,
       ),
+      ...(isRestoredUiActionRun ? { requireRunId: true } : {}),
       runId: entry.activeStreamRunIdRef.current,
       startedAt: presentationStore.getState().runStartedAt,
       threadId: entry.activeStreamThreadRef.current,

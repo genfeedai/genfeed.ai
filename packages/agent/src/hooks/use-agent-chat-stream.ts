@@ -144,9 +144,14 @@ export function useAgentChatStream(
         createAgentStreamEntry(threadId, requestId());
       return controller(entry).beginRunHandoff(threadId);
     },
-    adoptRun: (handoff, runId, startedAt) => {
+    adoptRun: (handoff, runId, startedAt, adoptionOptions) => {
       if (handoff.owner)
-        controller(handoff.owner).adoptRun(handoff, runId, startedAt);
+        controller(handoff.owner).adoptRun(
+          handoff,
+          runId,
+          startedAt,
+          adoptionOptions,
+        );
     },
     cancelRunHandoff: (handoff, failedRequest) => {
       if (handoff.owner)

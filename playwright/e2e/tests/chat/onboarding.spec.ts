@@ -2,6 +2,7 @@ import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 function buildJsonApiCollection(
   items: Array<Record<string, unknown>>,
@@ -89,11 +90,12 @@ async function mockThreadBundle(
                   id: `msg-${thread.id}`,
                   metadata: thread.messageMetadata,
                   role: 'assistant',
-                  threadId: thread.id,
                 },
               ]
             : [],
-          'message',
+          // `ThreadMessageSerializer`'s resource type; `threadId` is never an
+          // attribute — the client fills it in from the request URL.
+          'thread-message',
         ),
       ),
       contentType: 'application/json',
@@ -202,6 +204,7 @@ test.describe('Agent Onboarding', () => {
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(onboardingPath);
+    await assertNoErrorBoundaryFallback(authenticatedPage, onboardingPath);
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
@@ -247,10 +250,11 @@ test.describe('Agent Onboarding', () => {
         },
       },
     ]);
-    await authenticatedPage.goto(
-      `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`,
-      { waitUntil: 'domcontentloaded' },
-    );
+    const threadPath = `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`;
+    await authenticatedPage.goto(threadPath, {
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
     await expect(
       authenticatedPage.getByText(
         'Review your draft. Nothing has been published.',
@@ -307,10 +311,11 @@ test.describe('Agent Onboarding', () => {
     await mockThreads(authenticatedPage, [
       { id: threadId, title: 'Your first post' },
     ]);
-    await authenticatedPage.goto(
-      `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`,
-      { waitUntil: 'domcontentloaded' },
-    );
+    const threadPath = `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`;
+    await authenticatedPage.goto(threadPath, {
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
     const hint = authenticatedPage.getByTestId('onboarding-composer-card');
     const prompt = authenticatedPage.getByTestId('agent-chat-input-shell');
     await expect(hint).toBeVisible();
@@ -422,10 +427,17 @@ test.describe('Agent Onboarding', () => {
             string,
             unknown
           >;
+          // `AgentTurnAcknowledgement`: the turn is queued, never answered.
           await route.fulfill({
             body: JSON.stringify({
-              channel: 'socket',
-              runId: 'run-onboarding-voice-e2e',
+              brandId: 'brand-1',
+              clientRequestId:
+                initialTurnRequest?.clientRequestId ?? 'crid-onboarding-e2e',
+              contextId: 'ctx-onboarding-e2e',
+              contextVersion: 1,
+              executionId: 'run-onboarding-voice-e2e',
+              queuedAt: new Date().toISOString(),
+              status: 'queued',
               threadId,
             }),
             contentType: 'application/json',
@@ -434,18 +446,19 @@ test.describe('Agent Onboarding', () => {
         },
       );
 
-      // `POST .../ui-actions` only acks the enqueued workflow; the run's reply
-      // is persisted with `metadata.runId` = the ack's `executionId` and read
-      // back from the thread's messages. This route (registered after
-      // `mockThreads`', which it supersedes) grows that reply once the ack
-      // fires, the way the real workflow's completion appends it.
+      // `POST .../ui-actions` only acks the enqueued workflow. The run it
+      // starts is adopted into the thread stream; its reply is persisted with
+      // `metadata.runId` = the ack's `executionId` and arrives as the run's
+      // `agent:done` — here, with no socket double, through the run
+      // completion watchdog reading the thread's messages. This route
+      // (registered after `mockThreads`', which it supersedes) grows that
+      // reply once the ack fires, the way the real run persists it.
       const draftMessage = {
         content: 'I drafted a voice profile for your approval.',
         createdAt: '2026-03-10T10:05:00.000Z',
         id: `msg-${threadId}`,
         metadata: voiceDraftMetadata,
         role: 'assistant',
-        threadId,
       };
       let savedReply: Record<string, unknown> | null = null;
       await authenticatedPage.route(
@@ -455,7 +468,7 @@ test.describe('Agent Onboarding', () => {
             body: JSON.stringify(
               buildJsonApiCollection(
                 savedReply ? [draftMessage, savedReply] : [draftMessage],
-                'message',
+                'thread-message',
               ),
             ),
             contentType: 'application/json',
@@ -480,7 +493,6 @@ test.describe('Agent Onboarding', () => {
               uiActions: [],
             },
             role: 'assistant',
-            threadId,
             toolCalls: [
               {
                 creditsUsed: 0,
@@ -515,6 +527,7 @@ test.describe('Agent Onboarding', () => {
       await expect
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(threadPath);
+      await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
       expect(initialTurnRequest).toMatchObject({
         agentMode: 'auto',
         brandId: 'brand-1',
@@ -527,6 +540,7 @@ test.describe('Agent Onboarding', () => {
       // the action assertion while covering the user-critical resume path.
       await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
       expect(new URL(authenticatedPage.url()).pathname).toBe(threadPath);
+      await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
       await expect(
         authenticatedPage.getByText(
           'I drafted a voice profile for your approval.',
@@ -544,11 +558,12 @@ test.describe('Agent Onboarding', () => {
         .getByRole('button', { name: 'Approve and save' })
         .click();
 
-      // The eventual server reply, reconciled through the async ack, and the
-      // card settled by it.
+      // The run's reply — resolved by its runId once the completion watchdog
+      // fires (`STREAM_COMPLETION_POLL_INTERVAL_MS`, 10s) — and the card its
+      // settled run marks saved.
       await expect(
         authenticatedPage.getByText('Brand voice saved to the selected brand.'),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 20_000 });
       await expect(
         authenticatedPage.getByText('Brand voice saved to this brand.'),
       ).toBeVisible();
@@ -605,7 +620,9 @@ test.describe('Agent Onboarding', () => {
     const threadPath = `${orgPath(APP_ROUTES.AGENT.ROOT)}/${threadId}`;
     await authenticatedPage.goto(threadPath);
     await authenticatedPage.waitForLoadState('domcontentloaded');
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
 
     await expect(
       authenticatedPage.getByText('Provider authentication failed').first(),

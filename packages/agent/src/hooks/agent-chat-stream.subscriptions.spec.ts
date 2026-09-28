@@ -17,13 +17,17 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
   const handlers = new Map<string, Handler[]>();
 
   const deps: StreamSubscriptionDeps = {
+    acceptThreadEventSequence: vi.fn(() => true),
     activeStreamRunIdRef: { current: null },
     activeStreamThreadRef: { current: 'thread-1' },
     addActiveToolCall: vi.fn(),
     addPendingUiActions: vi.fn(),
+    applySourceActionUpdate: vi.fn(() => true),
+    settleUiActionRun: vi.fn(),
     addWorkEvent: vi.fn(),
     appendStreamToken: vi.fn(),
     bufferedEventsRef: { current: [] as BufferedThreadEvent[] },
+    isUiActionSourceOwner: vi.fn(() => true),
     cleanupSubscriptions: vi.fn(),
     clearCompletionWatchdog: vi.fn(),
     clearPendingInputRequest: vi.fn(),
@@ -97,6 +101,198 @@ describe('attachAgentStreamSubscriptions', () => {
     for (const registered of handlers.values()) {
       expect(registered).toHaveLength(0);
     }
+  });
+
+  it('settles a ui-action run from its done: source card in place, thread scope moved', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+    const resolved = {
+      data: { decision: 'approved' },
+      id: 'proposal-1',
+      title: 'Generate image',
+      type: 'generation_action_card',
+    };
+
+    emit('agent:done', {
+      brandId: 'brand-created-1',
+      contextVersion: 2,
+      creditsRemaining: 40,
+      creditsUsed: 2,
+      fullContent: 'Brand created.',
+      metadata: { uiActions: [resolved] },
+      runId: 'exec-1',
+      sequence: 9,
+      threadId: 'thread-1',
+      toolCalls: [],
+      uiAction: { action: 'confirm_generate_media', sourceId: 'proposal-1' },
+      userId: 'user-1',
+    });
+
+    expect(deps.acceptThreadEventSequence).toHaveBeenCalledWith('thread-1', 9);
+    expect(deps.settleUiActionRun).toHaveBeenCalledWith('thread-1', 'exec-1', {
+      sequence: 9,
+      status: 'completed',
+    });
+    expect(deps.applySourceActionUpdate).toHaveBeenCalledWith(
+      'proposal-1',
+      resolved,
+    );
+    expect(deps.finalizeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ uiActions: [] }),
+      }),
+    );
+    expect(deps.updateThreadSummary).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({
+        brandId: 'brand-created-1',
+        contextVersion: 2,
+      }),
+    );
+  });
+
+  it('keeps the resolved source card in the reply when the source is not loaded', () => {
+    const { deps, emit } = makeDeps({
+      applySourceActionUpdate: vi.fn(() => false),
+    });
+    attachAgentStreamSubscriptions(deps);
+    const resolved = {
+      data: { decision: 'approved' },
+      id: 'composer-source-1',
+      title: 'Generate image',
+      type: 'generation_action_card',
+    };
+
+    emit('agent:done', {
+      creditsRemaining: 40,
+      creditsUsed: 2,
+      fullContent: 'Image generated.',
+      metadata: { uiActions: [resolved] },
+      runId: 'exec-1',
+      sequence: 9,
+      threadId: 'thread-1',
+      toolCalls: [],
+      uiAction: {
+        action: 'confirm_generate_media',
+        sourceId: 'composer-source-1',
+      },
+      userId: 'user-1',
+    });
+
+    expect(deps.finalizeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ uiActions: [resolved] }),
+      }),
+    );
+  });
+
+  it('fails a run whose result reports a structured failure, keeping its reply', () => {
+    const { deps, emit } = makeDeps();
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:done', {
+      creditsRemaining: 40,
+      creditsUsed: 0,
+      error: 'Provider unavailable',
+      fullContent: 'Approved action failed: Provider unavailable',
+      metadata: {},
+      runId: 'exec-1',
+      runStatus: 'failed',
+      sequence: 9,
+      threadId: 'thread-1',
+      toolCalls: [],
+      uiAction: { action: 'confirm_mutation', sourceId: 'card-1' },
+      userId: 'user-1',
+    });
+
+    expect(deps.settleUiActionRun).toHaveBeenCalledWith('thread-1', 'exec-1', {
+      error: 'Provider unavailable',
+      sequence: 9,
+      status: 'failed',
+    });
+    expect(deps.finalizeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Approved action failed: Provider unavailable',
+      }),
+    );
+    expect(deps.setActiveRun).toHaveBeenCalledWith('exec-1', {
+      startedAt: null,
+      status: 'failed',
+    });
+    expect(deps.setError).toHaveBeenCalledWith('Provider unavailable');
+    expect(deps.updateThreadSummary).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({ runStatus: 'failed' }),
+    );
+  });
+
+  it('drops a settlement the thread already reflects by sequence', () => {
+    const { deps, emit } = makeDeps({
+      acceptThreadEventSequence: vi.fn(() => false),
+    });
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:done', {
+      creditsRemaining: 40,
+      creditsUsed: 0,
+      fullContent: 'Stale reply.',
+      metadata: { proposedPlan: { id: 'plan-old' } },
+      runId: 'exec-1',
+      sequence: 3,
+      threadId: 'thread-1',
+      toolCalls: [],
+      userId: 'user-1',
+    });
+
+    expect(deps.finalizeStream).not.toHaveBeenCalled();
+    expect(deps.setActiveRun).not.toHaveBeenCalled();
+    expect(deps.cleanupSubscriptions).toHaveBeenCalled();
+    expect(deps.settleUiActionRun).toHaveBeenCalledWith('thread-1', 'exec-1', {
+      sequence: 3,
+      status: 'completed',
+    });
+  });
+
+  it('records a stale run’s outcome without touching a source it no longer owns', () => {
+    const { deps, emit } = makeDeps({
+      isUiActionSourceOwner: vi.fn(() => false),
+    });
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:done', {
+      creditsRemaining: 40,
+      creditsUsed: 0,
+      fullContent: 'Older result.',
+      metadata: {
+        runId: 'exec-1',
+        uiActions: [
+          { id: 'source-1', title: 'Older', type: 'mutation_approval_card' },
+        ],
+      },
+      runId: 'exec-1',
+      sequence: 3,
+      threadId: 'thread-1',
+      toolCalls: [],
+      uiAction: { action: 'confirm_mutation', sourceId: 'source-1' },
+      userId: 'user-1',
+    });
+
+    expect(deps.settleUiActionRun).toHaveBeenCalledWith('thread-1', 'exec-1', {
+      sequence: 3,
+      status: 'completed',
+    });
+    expect(deps.isUiActionSourceOwner).toHaveBeenCalledWith('thread-1', {
+      runId: 'exec-1',
+      sequence: 3,
+      sourceId: 'source-1',
+    });
+    expect(deps.applySourceActionUpdate).not.toHaveBeenCalled();
+    expect(deps.finalizeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Older result.',
+        metadata: expect.objectContaining({ uiActions: [] }),
+      }),
+    );
   });
 
   it('buffers events while no stream thread is active', () => {

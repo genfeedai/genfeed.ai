@@ -152,6 +152,12 @@ export interface AgentChatResult {
     role: string;
   };
   toolCalls: ToolCallSummary[];
+  /**
+   * Set when the run ended failed without throwing (a structured result with
+   * `success: false`): its thread log records `run.failed`, and its
+   * announcement must settle it the same way.
+   */
+  runOutcome?: { error: string; status: 'failed' };
 }
 
 export interface AgentThreadUiActionRequest {
