@@ -711,6 +711,45 @@ describe('VideoProcessor', () => {
       );
     });
 
+    it('mutes the captioned output when asked', async () => {
+      const data = createMockJobData({
+        params: {
+          captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello',
+          isMuteVideoAudio: true,
+        },
+      });
+
+      await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(ffmpegService.addCaptions).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp4'),
+        expect.stringContaining('captions.srt'),
+        expect.any(Function),
+        { muteVideoAudio: true },
+      );
+    });
+
+    it('only strips audio when muting without captions', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '', isMuteVideoAudio: true },
+      });
+
+      await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(ffmpegService.addCaptions).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp4'),
+        undefined,
+        expect.any(Function),
+        { muteVideoAudio: true },
+      );
+    });
+
     it('should handle caption errors', async () => {
       const data = createMockJobData({ params: { captionContent: '' } });
       const job = createMockJob(

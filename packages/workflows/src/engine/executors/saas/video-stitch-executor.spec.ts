@@ -136,6 +136,7 @@ describe('VideoStitchExecutor', () => {
     it('delegates the ordered clips to the stitch processor', async () => {
       const processor = vi.fn().mockResolvedValue({
         jobId: 'stitch-output',
+        outputId: 'output',
         outputVideoUrl: 'https://cdn.example/stitched.mp4',
       });
       const exec = createVideoStitchExecutor(processor);
@@ -155,7 +156,8 @@ describe('VideoStitchExecutor', () => {
         },
       });
 
-      expect(result.data).toMatchObject({
+      expect(result.data).toEqual({
+        ingredientId: 'output',
         video: 'https://cdn.example/stitched.mp4',
         videoUrl: 'https://cdn.example/stitched.mp4',
       });
@@ -167,6 +169,7 @@ describe('VideoStitchExecutor', () => {
       });
       expect(processor).toHaveBeenCalledWith({
         brandId: undefined,
+        executionId: undefined,
         nodeId: 'stitch-node',
         organizationId: 'o',
         parentId: undefined,

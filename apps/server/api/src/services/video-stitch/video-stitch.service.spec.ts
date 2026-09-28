@@ -338,6 +338,15 @@ describe('VideoStitchService', () => {
     });
   });
 
+  describe('workflow lineage', () => {
+    it('links the output to the workflow execution that produced it', async () => {
+      const handle = await fixture.service.stitch(
+        request({ callerKind: 'workflow', workflowExecutionId: 'exec-1' }),
+      );
+      expect(fixture.row(handle.outputId).workflowExecutionId).toBe('exec-1');
+    });
+  });
+
   describe('idempotency', () => {
     it('returns the existing output for a repeated key without a second job', async () => {
       const first = await fixture.service.stitch(request());
@@ -443,6 +452,81 @@ describe('VideoStitchService', () => {
       });
       expect(fixture.row(handle.outputId).status).toBe(
         IngredientStatus.GENERATED,
+      );
+    });
+
+    it('transcribes the unmuted merge, then mutes the captioned output', async () => {
+      const handle = await fixture.service.stitch(
+        request({
+          settings: { isCaptionsEnabled: true, isMuteVideoAudio: true },
+        }),
+      );
+      expect(fixture.mergeJobs()[0]?.params).not.toHaveProperty(
+        'isMuteVideoAudio',
+      );
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await fixture.service.waitForCompletion(handle);
+
+      expect(fixture.eventsNamed('whisper')).toEqual([[handle.outputId]]);
+      expect(fixture.queued.at(-1)).toMatchObject({
+        params: {
+          captionContent: 'caption content',
+          isMuteVideoAudio: true,
+        },
+        type: 'add-captions',
+      });
+    });
+
+    it('still mutes the output when caption transcription fails', async () => {
+      fixture.isTranscriptionFailing = true;
+      const handle = await fixture.service.stitch(
+        request({
+          settings: { isCaptionsEnabled: true, isMuteVideoAudio: true },
+        }),
+      );
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await expect(
+        fixture.service.waitForCompletion(handle),
+      ).resolves.toMatchObject({ state: 'generated' });
+
+      expect(fixture.queued.at(-1)).toMatchObject({
+        params: { captionContent: '', isMuteVideoAudio: true },
+        type: 'add-captions',
+      });
+    });
+
+    it('mutes inside the merge when there are no captions to transcribe', async () => {
+      await fixture.service.stitch(
+        request({ settings: { isMuteVideoAudio: true } }),
+      );
+      expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+        isMuteVideoAudio: true,
+      });
+    });
+
+    it('unlocks the organization first-asset gate when a stitch completes', async () => {
+      const handle = await fixture.service.stitch(request());
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await Promise.all([
+        fixture.service.waitForCompletion(handle),
+        fixture.service.settle(handle),
+      ]);
+
+      expect(fixture.eventsNamed('asset-gate')).toEqual([['org-1']]);
+      expect(fixture.eventNames().indexOf('asset-gate')).toBeLessThan(
+        fixture.eventNames().indexOf('video.complete'),
       );
     });
 

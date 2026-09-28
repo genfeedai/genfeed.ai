@@ -46,7 +46,11 @@ vi.mock('@api/index', () => ({
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixture';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  VideoTransition,
+} from '@genfeedai/contracts';
 import type { NodeExecutor, WorkflowEngine } from '@genfeedai/workflows/engine';
 
 function setup() {
@@ -173,6 +177,7 @@ function setup() {
       } as Parameters<NodeExecutor>[0],
       inputs,
       {
+        executionId: 'exec-1',
         organizationId: 'org',
         runId: 'run-1',
         userId: 'user',
@@ -325,7 +330,9 @@ describe('workflow media composition integration', () => {
       s3Key: 'ingredients/videos/output-1',
       sourceActionId: 'workflow:run-1:node',
       status: IngredientStatus.GENERATED,
+      workflowExecutionId: 'exec-1',
     });
+    expect(result).toMatchObject({ ingredientId: 'output-1' });
     expect(h.queue.processVideo).not.toHaveBeenCalled();
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
     expect(result).toBeDefined();
@@ -374,6 +381,41 @@ describe('workflow media composition integration', () => {
     ).rejects.toThrow('persisted video');
     expect(h.stitch.row('output-1').status).toBe(IngredientStatus.FAILED);
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
+  });
+  it('re-enqueues a processing output whose job was lost when the node reruns', async () => {
+    const h = setup();
+    const inputs = new Map<string, unknown>([
+      [
+        'videos',
+        [
+          'https://cdn.example/ingredients/videos/clip-1',
+          'https://cdn.example/ingredients/videos/clip-2',
+        ],
+      ],
+    ]);
+    // The API stopped after creating the output, before its job survived.
+    await h.stitch.service.stitch({
+      brandId: 'brand',
+      callerKind: 'workflow',
+      clipIds: ['clip-1', 'clip-2'],
+      idempotencyKey: 'workflow:run-1:node',
+      organizationId: 'org',
+      settings: { transition: VideoTransition.NONE },
+      userId: 'user',
+    });
+    h.stitch.dropJob('stitch-output-1');
+    h.stitch.jobResults.set('stitch-output-1', {
+      s3Key: 'ingredients/videos/output-1',
+      success: true,
+    });
+
+    await h.run('videoStitch', inputs, { brandId: 'brand' });
+
+    expect(h.stitch.mergeJobs().map((job) => job.id)).toEqual([
+      'stitch-output-1',
+      'stitch-output-1',
+    ]);
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
   });
   it('requeues the same output when the node is retried in its run', async () => {
     const h = setup();

@@ -1,4 +1,5 @@
 import type { CaptionsService } from '@api/collections/captions/services/captions.service';
+import type { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -96,11 +97,14 @@ export class VideoStitchFixture {
   readonly queued: IFileProcessingJob[] = [];
   readonly rows = new Map<string, StitchFixtureRow>();
   readonly service: VideoStitchService;
+  /** Makes caption transcription fail, as Whisper does on silent input. */
+  isTranscriptionFailing = false;
   private sequence = 0;
 
   constructor() {
     this.service = new VideoStitchService(
       this.activityRecorder() as unknown as ActivityRecorderService,
+      this.assetGate() as unknown as AssetGateService,
       this.captions() as unknown as CaptionsService,
       this.queue() as unknown as FileQueueService,
       this.logger() as unknown as LoggerService,
@@ -312,6 +316,9 @@ export class VideoStitchFixture {
       // the caller started waiting.
       waitForJob: async (jobId: string) => {
         for (let attempt = 0; attempt < 100; attempt += 1) {
+          if (!this.knownJobs.has(jobId) && !this.failWaitFor.has(jobId)) {
+            throw new Error('Request failed with status code 404');
+          }
           const failure = this.failWaitFor.get(jobId);
           if (failure) throw failure;
           const result = this.jobResults.get(jobId);
@@ -362,8 +369,18 @@ export class VideoStitchFixture {
     return {
       generateCaptions: async (id: string) => {
         this.record('whisper', id);
+        if (this.isTranscriptionFailing) {
+          throw new Error('No speech detected');
+        }
         return 'caption content';
       },
+    };
+  }
+
+  private assetGate() {
+    return {
+      markFirstAssetGenerated: async (organizationId: string) =>
+        this.record('asset-gate', organizationId),
     };
   }
 

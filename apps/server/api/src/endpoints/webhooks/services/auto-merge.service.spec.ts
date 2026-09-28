@@ -4,6 +4,7 @@ import {
   AutoMergeService,
   autoMergeIdempotencyKey,
 } from '@api/endpoints/webhooks/services/auto-merge.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixture';
 import {
   IngredientCategory,
@@ -12,6 +13,7 @@ import {
   VideoTransition,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mergeSettings = {
@@ -46,6 +48,9 @@ describe('AutoMergeService', () => {
   let fixture: VideoStitchFixture;
   let group: IngredientDocument[];
   let ingredientsService: { findAll: ReturnType<typeof vi.fn> };
+  let websocketService: {
+    publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
+  };
   let loggerService: Record<
     'debug' | 'error' | 'log' | 'warn',
     ReturnType<typeof vi.fn>
@@ -78,10 +83,12 @@ describe('AutoMergeService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
+    websocketService = { publishBackgroundTaskUpdate: vi.fn() };
     service = new AutoMergeService(
       ingredientsService as unknown as IngredientsService,
       loggerService as unknown as LoggerService,
       fixture.service,
+      websocketService as unknown as NotificationsPublisherService,
     );
   });
 
@@ -197,15 +204,25 @@ describe('AutoMergeService', () => {
     expect(fixture.queued).toEqual([]);
   });
 
-  it('logs a refused stitch instead of queuing it', async () => {
+  it('tells the batch owner when the stitch is refused', async () => {
     fixture.row('clip-3').isDeleted = true;
     await trigger(group[0] as IngredientDocument);
 
     await vi.waitFor(() =>
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'AutoMergeService auto-merge check failed',
-        expect.objectContaining({ groupId: 'group-1' }),
+      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
+        {
+          error: 'Found 2 of 3 videos ready to merge',
+          label: 'Merge failed',
+          room: getUserRoomName('user-1'),
+          status: 'failed',
+          taskId: 'auto-merge:group-1',
+          userId: 'user-1',
+        },
       ),
+    );
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'AutoMergeService auto-merge check failed',
+      expect.objectContaining({ groupId: 'group-1' }),
     );
     expect(fixture.queued).toEqual([]);
   });

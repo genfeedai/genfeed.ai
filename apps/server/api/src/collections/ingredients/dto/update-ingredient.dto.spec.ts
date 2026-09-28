@@ -55,6 +55,7 @@ describe('ingredient provenance at the HTTP boundary', () => {
     'sourceActionId',
     'sources',
     'providerData',
+    'mergeSettings',
   ];
   it.each(fields)(
     'strips server-owned %s while preserving an ordinary edit',
