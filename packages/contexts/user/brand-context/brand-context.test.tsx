@@ -7,7 +7,7 @@ import {
 } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -231,6 +231,62 @@ describe('BrandProvider', () => {
     expect(screen.getByTestId('brand-id')).toHaveTextContent('brand_123');
     expect(screen.getByTestId('organization-id')).toHaveTextContent('org_123');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
+  });
+
+  it('refreshes settings past the client bootstrap snapshot after a save', async () => {
+    const savedModelId = testId('model', 2);
+    let serverSettings: Record<string, unknown> = initialBootstrap.settings;
+    let snapshot: typeof initialBootstrap | null = initialBootstrap;
+
+    loadClientProtectedBootstrapMock.mockImplementation(async () => {
+      snapshot ??= { ...initialBootstrap, settings: serverSettings };
+      return snapshot;
+    });
+    clearClientProtectedBootstrapCacheMock.mockImplementation(() => {
+      snapshot = null;
+    });
+
+    let refreshSettings: (() => Promise<void>) | undefined;
+
+    function Consumer() {
+      const brand = useBrand();
+      refreshSettings = brand.refreshSettings;
+
+      return (
+        <span data-testid="enabled-model-id">
+          {String(brand.settings?.enabledModelIds?.[0] ?? '')}
+        </span>
+      );
+    }
+
+    const Wrapper = createWrapper();
+
+    render(
+      <Wrapper>
+        <BrandProvider initialBootstrap={initialBootstrap as never}>
+          <Consumer />
+        </BrandProvider>
+      </Wrapper>,
+    );
+
+    expect(screen.getByTestId('enabled-model-id')).toHaveTextContent(
+      enabledModelId,
+    );
+
+    serverSettings = {
+      ...initialBootstrap.settings,
+      enabledModelIds: [savedModelId],
+    };
+
+    await act(async () => {
+      await refreshSettings?.();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('enabled-model-id')).toHaveTextContent(
+        savedModelId,
+      );
+    });
   });
 
   it('treats empty bootstrap brands as hydrated data', () => {

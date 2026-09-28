@@ -1,4 +1,4 @@
-import type { Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -6,6 +6,7 @@ import {
   testBrands,
   testOrganizations,
 } from '../../fixtures/test-data.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
  * E2E Tests for the Brand Context Interview stepper (settings surface).
@@ -13,16 +14,11 @@ import {
  * CRITICAL: All API calls are mocked — no real backend requests occur.
  * The interview REST endpoints return PLAIN JSON (not JSON:API), matching the
  * BrandInterviewService frontend client.
- *
- * Tests are skipped (not failed) if Better Auth mocking fails to keep the user
- * authenticated, so we never get a false-green that passes without auth.
  */
 
 const brand = testBrands[0];
 const org = testOrganizations.default ?? Object.values(testOrganizations)[0];
 const interviewUrl = `/${org.slug}/${brand.slug}/settings/interview`;
-const AUTH_SKIP_MSG =
-  'Auth mocking did not prevent login redirect — fix Better Auth auth mocking';
 
 const toneQuestion = {
   answerType: 'text',
@@ -71,10 +67,16 @@ async function mockBrandResolution(route: Route): Promise<void> {
           slug: brand.slug,
         },
         id: brand.id,
-        type: 'brands',
+        type: 'brand',
       },
     }),
   });
+}
+
+async function gotoInterview(page: Page): Promise<void> {
+  await page.goto(interviewUrl);
+  await expect(page).toHaveURL(new RegExp(`${interviewUrl}$`));
+  await assertNoErrorBoundaryFallback(page, interviewUrl);
 }
 
 test.describe('Brand Context Interview (settings stepper)', () => {
@@ -100,7 +102,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               {
                 attributes: { name: brand.name, slug: brand.slug },
                 id: brand.id,
-                type: 'brands',
+                type: 'brand',
               },
             ],
           }),
@@ -166,8 +168,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       },
     );
 
-    await authenticatedPage.goto(interviewUrl);
-    test.skip(authenticatedPage.url().includes('/login'), AUTH_SKIP_MSG);
+    await gotoInterview(authenticatedPage);
 
     // Credit disclosure is visible before starting.
     await expect(authenticatedPage.getByText(/10 credits/i)).toBeVisible();
@@ -177,7 +178,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .click();
 
     await expect(
-      authenticatedPage.getByText(toneQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: toneQuestion.questionText,
+      }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('navigation', { name: 'Interview steps' }),
@@ -219,7 +222,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       async (route) => {
         answerCalls += 1;
         const isComplete = answerCalls >= 2;
-        const answered =
+        const answered: Record<string, string> =
           answerCalls === 1
             ? { tone: 'Bold, witty, and direct' }
             : {
@@ -241,41 +244,42 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               totalFields: 13,
             },
             status: isComplete ? 'COMPLETED' : 'IN_PROGRESS',
-            steps: isComplete
-              ? buildSteps('audience', answered)
-              : buildSteps('audience', answered),
+            steps: buildSteps('audience', answered),
           }),
         });
       },
     );
 
-    await authenticatedPage.goto(interviewUrl);
-    test.skip(authenticatedPage.url().includes('/login'), AUTH_SKIP_MSG);
+    await gotoInterview(authenticatedPage);
 
     await authenticatedPage
       .getByRole('button', { name: /start interview/i })
       .click();
     await expect(
-      authenticatedPage.getByText(toneQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: toneQuestion.questionText,
+      }),
     ).toBeVisible();
 
     // Answer the first question → advances to the audience question.
     await authenticatedPage
-      .getByRole('textbox')
-      .first()
+      .getByRole('textbox', { exact: true, name: 'Interview answer' })
       .fill('Bold, witty, and direct');
     await authenticatedPage.getByRole('button', { name: /continue/i }).click();
     await expect(
-      authenticatedPage.getByText(audienceQuestion.questionText),
+      authenticatedPage.getByRole('heading', {
+        name: audienceQuestion.questionText,
+      }),
     ).toBeVisible();
 
     // Answer the second question → completes the interview.
     await authenticatedPage
-      .getByRole('textbox')
-      .first()
+      .getByRole('textbox', { exact: true, name: 'Interview list answer' })
       .fill('Founders, indie hackers');
     await authenticatedPage.getByRole('button', { name: /continue/i }).click();
 
-    await expect(authenticatedPage.getByText(/complete/i)).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /interview complete/i }),
+    ).toBeVisible();
   });
 });

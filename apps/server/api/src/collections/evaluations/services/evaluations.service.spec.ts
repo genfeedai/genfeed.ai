@@ -134,6 +134,37 @@ describe('EvaluationsService review and comparison workflow', () => {
       );
     });
 
+    it('passes the stored video duration so frame sampling needs no probe', async () => {
+      mocks.videosService.findOne.mockResolvedValue({
+        id: 'video-1',
+        metadata: { duration: 42 },
+        s3Key: 'ingredients/videos/video-1.mp4',
+      });
+      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+        overallScore: 82,
+        scores: {},
+      });
+      mocks.prisma.evaluation.create.mockResolvedValue({ id: 'eval-video-1' });
+
+      await service.evaluateVideo(
+        'video-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(
+        mocks.evaluationsOperationsService.evaluateVideo,
+      ).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ durationSeconds: 42 }),
+        organizationId,
+        expect.any(Function),
+        undefined,
+      );
+    });
+
     it('sends the evaluator a signed media URL when the deployment signs media', async () => {
       const signingService = new EvaluationsService(
         mocks.prisma as never,
