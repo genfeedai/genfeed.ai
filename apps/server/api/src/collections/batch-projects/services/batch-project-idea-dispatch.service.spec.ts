@@ -234,7 +234,7 @@ describe('BatchProjectIdeaDispatchService', () => {
 
     const [, dto] = videoGeneration.generateVideo.mock.calls[0];
     expect(dto).toEqual(
-      expect.objectContaining({ duration: 10, height: 1024, width: 576 }),
+      expect.objectContaining({ duration: 10, height: 1920, width: 1080 }),
     );
   });
 

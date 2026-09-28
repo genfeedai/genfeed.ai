@@ -107,9 +107,11 @@ export class BatchProjectQuoteService {
       };
     }
 
-    const { aspectRatio, duration } = resolveIdeaGenerationParams(format);
+    const { aspectRatio, duration, height, width } =
+      resolveIdeaGenerationParams(format);
     const quote = await this.estimate.estimate({
       aspectRatio,
+      dimensions: { height, width },
       ...(duration ? { duration } : {}),
       category: format === 'video' ? ModelCategory.VIDEO : ModelCategory.IMAGE,
       organizationId,

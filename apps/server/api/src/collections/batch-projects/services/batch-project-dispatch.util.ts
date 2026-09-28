@@ -1,7 +1,4 @@
-import {
-  DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
-  resolveAgentGenerationDimensions,
-} from '@genfeedai/contracts/constants';
+import { DEFAULT_AGENT_VIDEO_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import type {
   BatchProjectBillingMode,
   FastlaneFormat,
@@ -13,6 +10,8 @@ import type {
 
 /** Idea generation renders portrait short-form media, as Fastlane did. */
 export const IDEA_OUTPUT_ASPECT_RATIO = '9:16';
+export const IDEA_OUTPUT_WIDTH = 1080;
+export const IDEA_OUTPUT_HEIGHT = 1920;
 
 export type IdeaGenerationParams = {
   aspectRatio: string;
@@ -22,16 +21,17 @@ export type IdeaGenerationParams = {
 };
 
 /**
- * The generation parameters of an idea. The quote prices and the dispatch
- * requests exactly these, through the Agent dimension table the estimator
- * charges with, so an accepted price always matches the reservation.
+ * The generation parameters of an idea. The quote prices exactly these
+ * (the estimator takes the explicit size) and the dispatch requests them,
+ * so an accepted price always matches the reservation.
  */
 export function resolveIdeaGenerationParams(
   format: FastlaneFormat,
 ): IdeaGenerationParams {
   return {
     aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
-    ...resolveAgentGenerationDimensions(IDEA_OUTPUT_ASPECT_RATIO),
+    height: IDEA_OUTPUT_HEIGHT,
+    width: IDEA_OUTPUT_WIDTH,
     ...(format === 'video'
       ? { duration: DEFAULT_AGENT_VIDEO_DURATION_SECONDS }
       : {}),
