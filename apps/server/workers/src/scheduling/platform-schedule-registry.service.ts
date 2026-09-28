@@ -1,3 +1,4 @@
+import { WorkflowExecutionCancellationIntentService } from '@api/collections/workflow-executions/services/workflow-execution-cancellation-intent.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
@@ -60,6 +61,7 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     @InjectQueue(WORKFLOW_EXECUTION_QUEUE)
     private readonly workflowExecutionQueue: Queue<WorkflowExecutionJobData>,
     private readonly workflowExecutions: WorkflowExecutionsService,
+    private readonly cancellationIntent: WorkflowExecutionCancellationIntentService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
@@ -195,7 +197,7 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     // intent itself cannot be recorded, leave the job queued: it just runs or
     // is closed by the reconciler as before, and no execution is orphaned.
     try {
-      await this.workflowExecutions.requestCancellation(executionId);
+      await this.cancellationIntent.requestCancellation(executionId);
     } catch (error: unknown) {
       this.logger.error(
         `${this.context} could not record the cancellation intent for a stale platform-sourced job — leaving it queued`,
@@ -248,7 +250,7 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
 
   private async clearCancellationIntent(executionId: string): Promise<void> {
     try {
-      await this.workflowExecutions.clearCancellationRequest(executionId);
+      await this.cancellationIntent.clearCancellationRequest(executionId);
     } catch (error: unknown) {
       this.logger.error(
         `${this.context} could not withdraw the cancellation intent for a live platform-sourced job`,

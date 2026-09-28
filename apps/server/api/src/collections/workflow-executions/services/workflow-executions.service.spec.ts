@@ -261,55 +261,6 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  describe('drain cancellation intent (#5450)', () => {
-    it('records the intent on a non-terminal execution, scoped to its organization and not deleted', async () => {
-      const { prisma, service } = makeService();
-
-      const isRecorded = await service.requestCancellation('execution-1');
-
-      expect(isRecorded).toBe(true);
-      expect(prisma.workflowExecution.updateMany).toHaveBeenCalledWith({
-        data: { cancelRequestedAt: expect.any(Date) },
-        where: {
-          id: 'execution-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-          status: {
-            in: [
-              PrismaWorkflowExecutionStatus.PENDING,
-              PrismaWorkflowExecutionStatus.RUNNING,
-            ],
-          },
-        },
-      });
-    });
-
-    it('reports nothing recorded for a missing or already terminal execution', async () => {
-      const { prisma, service } = makeService();
-      prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
-      expect(await service.requestCancellation('execution-1')).toBe(false);
-
-      prisma.workflowExecution.findUnique.mockResolvedValue(null);
-      expect(await service.requestCancellation('missing')).toBe(false);
-    });
-
-    it('clears a recorded intent, scoped to its organization and not deleted', async () => {
-      const { prisma, service } = makeService();
-
-      await service.clearCancellationRequest('execution-1');
-
-      expect(prisma.workflowExecution.updateMany).toHaveBeenCalledWith({
-        data: { cancelRequestedAt: null },
-        where: {
-          cancelRequestedAt: { not: null },
-          id: 'execution-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      });
-    });
-  });
-
   it('uses the organization-scoped unique key for idempotent child creation', async () => {
     const { prisma, service } = makeService();
 
