@@ -201,6 +201,8 @@ test.describe('Persisted Batch projects', () => {
           .filter({ hasText: 'Upload rejected permanently' }),
       ).toBeVisible();
       await expect(input).toBeEnabled();
+      // Development mode opens the shared error-debug dialog for HTTP 413.
+      await page.keyboard.press('Escape');
       await page
         .getByRole('textbox', { name: 'Batch name' })
         .fill(`Saved after ${name}`);
