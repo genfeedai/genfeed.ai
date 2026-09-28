@@ -123,6 +123,19 @@ describe('usePostDetailDrafts', () => {
       expect(result.current.isScheduleDirty).toBe(false);
     });
 
+    it('keeps an unscheduled post clean until a date is picked', () => {
+      const { result } = renderLoaded({
+        post: { ...(loadedPost as object), scheduledDate: undefined } as never,
+      });
+
+      expect(result.current.isScheduleDirty).toBe(false);
+
+      act(() => {
+        result.current.setScheduleDraft('2025-07-01T10:00:00.000Z');
+      });
+      expect(result.current.isScheduleDirty).toBe(true);
+    });
+
     it('flags dirty description, label, and schedule', () => {
       const { result } = renderLoaded();
 

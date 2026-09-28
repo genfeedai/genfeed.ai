@@ -175,5 +175,18 @@
     "moreActions": "More actions",
     "removeFilter": "Remove filter {label}",
     "removeFilterFallback": "Remove filter"
+  },
+  "recordDetail": {
+    "allDetailsCount": "All details ({count})",
+    "needsYou": "Needs you",
+    "activity": "Activity",
+    "activityFilterAria": "Filter activity",
+    "activityFilterAll": "All activity",
+    "activityFilterContent": "Content",
+    "activityFilterRuns": "Runs",
+    "activityFilterReports": "Reports",
+    "activityEmpty": "No activity yet",
+    "activityLoading": "Loading activity…",
+    "activityViewAction": "View"
   }
 }

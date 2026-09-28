@@ -15,6 +15,10 @@ vi.mock('./AgentWorkflowBindCard', () => ({
   default: () => <div>Workflow bind card</div>,
 }));
 
+vi.mock('./AgentActivitySection', () => ({
+  default: () => <div data-testid="agent-activity-section" />,
+}));
+
 vi.mock('../../autopilot/AgentStrategyDialog', () => ({
   default: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div>Agent schedule dialog</div> : null,
@@ -134,65 +138,116 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 vi.mock('@ui/primitives/button', () => ({
-  Button: ({ label, onClick }: { label?: ReactNode; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
-      {label}
-    </button>
-  ),
+  Button: ({
+    asChild,
+    children,
+    icon,
+    isDisabled,
+    label,
+    onClick,
+  }: {
+    asChild?: boolean;
+    children?: ReactNode;
+    icon?: ReactNode;
+    isDisabled?: boolean;
+    label?: ReactNode;
+    onClick?: () => void;
+  }) =>
+    asChild ? (
+      (children ?? null)
+    ) : (
+      <button disabled={isDisabled} onClick={onClick} type="button">
+        {icon}
+        {label}
+      </button>
+    ),
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
-describe('AgentDetailPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useQueryMock.mockImplementation(({ queryKey }: { queryKey: string[] }) => ({
-      data:
-        queryKey[0] === 'agent-strategy'
-          ? {
-              id: 'strategy-1',
-              brandId: 'brand-1',
-              agentType: 'general',
-              autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
-              isActive: true,
-              label: 'Content agent',
-              consecutiveFailures: 0,
-              dailyCreditBudget: 20,
-              weeklyCreditBudget: 100,
-              creditsUsedToday: 3,
-              creditsUsedThisWeek: 9,
-              runHistory: [],
-            }
-          : queryKey[0] === 'agent-opportunities'
-            ? [
-                {
-                  decisionReason:
-                    'Trend watcher matched a current platform trend.',
-                  expectedTrafficScore: 89,
-                  id: 'opp-1',
-                  sourceType: 'trend',
-                  status: 'queued',
-                  topic: 'AI launch hooks',
-                },
-              ]
+// Flattened like the other collection-actions consumers: the real Radix
+// dropdown needs pointer events jsdom does not implement.
+vi.mock('@ui/collection/CollectionItemActions', () => ({
+  default: ({
+    primary,
+    overflow,
+  }: {
+    primary?: ReactNode;
+    overflow: Array<{ id: string; label: string; onSelect?: () => void }>;
+  }) => (
+    <div data-testid="header-actions">
+      {primary}
+      {overflow.map((action) => (
+        <button key={action.id} onClick={action.onSelect} type="button">
+          {action.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
+const baseStrategy = {
+  agentType: 'general',
+  autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+  brandId: 'brand-1',
+  consecutiveFailures: 0,
+  creditsUsedThisWeek: 9,
+  creditsUsedToday: 3,
+  dailyCreditBudget: 20,
+  id: 'strategy-1',
+  isActive: true,
+  label: 'Content agent',
+  runHistory: [],
+  weeklyCreditBudget: 100,
+};
+
+function mockQueries(overrides: {
+  strategy?: Partial<typeof baseStrategy>;
+  posts?: Array<Record<string, unknown>>;
+}) {
+  useQueryMock.mockImplementation(({ queryKey }: { queryKey: string[] }) => ({
+    data:
+      queryKey[0] === 'agent-strategy'
+        ? { ...baseStrategy, ...overrides.strategy }
+        : queryKey[0] === 'agent-opportunities'
+          ? [
+              {
+                decisionReason:
+                  'Trend watcher matched a current platform trend.',
+                expectedTrafficScore: 89,
+                id: 'opp-1',
+                sourceType: 'trend',
+                status: 'queued',
+                topic: 'AI launch hooks',
+              },
+            ]
+          : queryKey[0] === 'agent-posts'
+            ? (overrides.posts ?? [])
             : queryKey[0] === 'agent-performance'
               ? undefined
               : [],
-      isLoading: false,
-      refetch: vi.fn(),
-    }));
+    isLoading: false,
+    refetch: vi.fn(),
+  }));
+}
+
+describe('AgentDetailPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockQueries({});
   });
 
   it('keys every agent query by organization, brand, and agent', () => {
+    // `agent-reports`/`agent-performance` now fire only inside the merged
+    // Activity section, mocked away here; their query keys stay covered by
+    // AgentWorkSections.test.tsx, which renders the real components.
     render(<AgentDetailPage agentId="strategy-1" />);
     for (const resource of [
       'agent-strategy',
       'agent-opportunities',
       'agent-posts',
-      'agent-reports',
-      'agent-performance',
     ]) {
       expect(useQueryMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -220,6 +275,17 @@ describe('AgentDetailPage', () => {
     expect(screen.queryByText(/Agent not found/)).not.toBeInTheDocument();
   });
 
+  it('shows exactly one primary button — Run now — with the rest in the overflow menu', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    const actions = screen.getByTestId('header-actions');
+    expect(actions.querySelectorAll('button')).toHaveLength(4);
+    expect(actions).toHaveTextContent('Run now');
+    expect(actions).toHaveTextContent('Schedule');
+    expect(actions).toHaveTextContent('Run workflow');
+    expect(actions).toHaveTextContent('Deactivate');
+  });
+
   it('opens schedule settings on the agent instead of a separate Autopilot desk', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
@@ -239,12 +305,75 @@ describe('AgentDetailPage', () => {
     expect(screen.getByText('89')).toBeInTheDocument();
   });
 
-  it('shows routed model metadata in run history', () => {
+  it('shows the known facts on one line, omitting the unknown brand', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
-    expect(screen.getByText('Model')).toBeInTheDocument();
+    const factLine = screen.getByTestId('record-fact-line');
+    expect(factLine).toHaveTextContent('Autonomy');
+    expect(factLine).toHaveTextContent('Auto-Publish');
+    expect(factLine).toHaveTextContent('Credits today');
+    expect(factLine).not.toHaveTextContent('Brand');
+  });
+
+  it('hides Needs you when nothing needs the viewer', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
     expect(
-      screen.getByText('google/gemini-2.5-flash via openai/gpt-5.6-terra'),
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('surfaces consecutive run failures in Needs you with a link to Runs', () => {
+    mockQueries({ strategy: { consecutiveFailures: 3 } });
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Needs you' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View runs' })).toHaveAttribute(
+      'href',
+      '/org-one/brand-one/automation/runs',
+    );
+  });
+
+  it('surfaces posts with review lineage awaiting a decision in Needs you', () => {
+    mockQueries({
+      posts: [
+        {
+          id: 'draft-1',
+          reviewBatchId: 'batch-1',
+          reviewDecision: 'unset',
+          targetExecutionState: 'draft',
+        },
+      ],
+    });
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(
+      screen.getByRole('link', { name: 'Review content' }),
+    ).toHaveAttribute('href', '/org-one/brand-one/publishing/review');
+  });
+
+  it('does not count an ordinary draft with no review lineage as awaiting review', () => {
+    mockQueries({
+      posts: [
+        {
+          id: 'draft-1',
+          reviewDecision: 'unset',
+          targetExecutionState: 'draft',
+        },
+      ],
+    });
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the merged Activity section instead of separate work, performance and run sections', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(screen.getByTestId('agent-activity-section')).toBeInTheDocument();
   });
 });

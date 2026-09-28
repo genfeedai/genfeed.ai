@@ -93,7 +93,10 @@ export function usePostDetailDrafts({
 
   const isContentDirty = isDescriptionDirty || isLabelDirty;
 
-  const isScheduleDirty = !!(post && scheduleDraft !== post.scheduledDate);
+  // An unscheduled post has no date; its empty draft is not a change.
+  const isScheduleDirty = !!(
+    post && scheduleDraft !== (post.scheduledDate ?? '')
+  );
 
   // Initialize post data when post ID changes
   useEffect(() => {

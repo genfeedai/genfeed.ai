@@ -17,6 +17,69 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, number>) =>
+    ({
+      askAgent: 'Ask Agent',
+      delete: 'Delete',
+      edit: 'Edit',
+      expandingToThread: 'Expanding…',
+      expandToThread: 'Expand to Thread',
+      performance: 'Performance',
+      preview: 'Preview',
+      publishing: 'Publishing…',
+      publishNow: 'Publish now',
+      remix: 'Remix',
+      repurpose: 'Repurpose',
+      schedule: 'Schedule',
+      scheduling: 'Scheduling…',
+      threadLengthOption: `${values?.count} tweets`,
+      threadLengthPrompt: 'Select thread length',
+      viewLivePost: 'View live post',
+    })[key] ?? key,
+}));
+
+// The overflow menu's real Radix internals need pointer events jsdom does not
+// implement; flatten it like the other collection-actions consumers do so
+// these tests assert the header's actions, not Radix's positioning.
+vi.mock('@ui/collection/CollectionItemActions', () => ({
+  default: ({
+    primary,
+    overflow,
+  }: {
+    primary?: ReactNode;
+    overflow: Array<{
+      id: string;
+      label: string;
+      href?: string;
+      isDestructive?: boolean;
+      isDisabled?: boolean;
+      onSelect?: () => void;
+    }>;
+  }) => (
+    <div>
+      {primary}
+      {overflow.map((action) =>
+        action.href ? (
+          <a href={action.href} key={action.id}>
+            {action.label}
+          </a>
+        ) : (
+          <button
+            data-destructive={action.isDestructive || undefined}
+            disabled={action.isDisabled}
+            key={action.id}
+            onClick={action.onSelect}
+            type="button"
+          >
+            {action.label}
+          </button>
+        ),
+      )}
+    </div>
+  ),
+}));
+
 function buildPost(overrides: Partial<IPost> = {}): IPost {
   return {
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -35,6 +98,8 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
   const onDelete = vi.fn();
   const onExpandToThread = vi.fn();
   const onCreateRemix = vi.fn();
+  const onPublishNow = vi.fn();
+  const onScheduleSave = vi.fn();
 
   render(
     <PostDetailHeader
@@ -47,11 +112,20 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
       onDelete={onDelete}
       onCreateRemix={onCreateRemix}
       onExpandToThread={onExpandToThread}
+      onPublishNow={onPublishNow}
+      onScheduleSave={onScheduleSave}
       {...props}
     />,
   );
 
-  return { onCreateRemix, onDelete, onExpandToThread, onViewModeChange };
+  return {
+    onCreateRemix,
+    onDelete,
+    onExpandToThread,
+    onPublishNow,
+    onScheduleSave,
+    onViewModeChange,
+  };
 }
 
 describe('PostDetailHeader', () => {
@@ -72,46 +146,80 @@ describe('PostDetailHeader', () => {
     expect(screen.getByText('Post detail')).toBeInTheDocument();
   });
 
-  it('shows edit-only controls for an editable publisher post', () => {
+  it('shows exactly one primary button: Publish now for an unscheduled draft', () => {
     renderHeader();
 
     expect(
-      screen.getByRole('button', { name: /preview/i }),
+      screen.getByRole('button', { name: 'Publish now' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it('switches the primary action to Schedule once the schedule draft is dirty', async () => {
+    const user = userEvent.setup();
+    const { onScheduleSave, onPublishNow } = renderHeader(
+      {},
+      { isScheduleDirty: true },
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Publish now' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Schedule' }));
+    expect(onScheduleSave).toHaveBeenCalledTimes(1);
+    expect(onPublishNow).not.toHaveBeenCalled();
+  });
+
+  it('carries no primary action once the post is published', () => {
+    renderHeader({}, { isPublished: true });
+
+    expect(
+      screen.queryByRole('button', { name: 'Publish now' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Schedule' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('moves edit-only controls into the overflow menu', () => {
+    renderHeader();
+
+    expect(screen.getByRole('button', { name: 'Preview' })).toBeInTheDocument();
+    const deleteButton = screen.getByRole('button', { name: 'Delete' });
+    expect(deleteButton).toBeInTheDocument();
+    expect(deleteButton).toHaveAttribute('data-destructive', 'true');
   });
 
   it('hides edit-only controls once the post is published', () => {
     renderHeader({}, { isPublished: true });
 
     expect(
-      screen.queryByRole('button', { name: /delete/i }),
+      screen.queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument();
   });
 
-  it('toggles the view mode', async () => {
+  it('toggles the view mode from the overflow menu', async () => {
     const user = userEvent.setup();
     const { onViewModeChange } = renderHeader();
 
-    await user.click(screen.getByRole('button', { name: /preview/i }));
+    await user.click(screen.getByRole('button', { name: 'Preview' }));
 
     expect(onViewModeChange).toHaveBeenCalledWith('preview');
   });
 
-  it('calls onDelete when the delete button is pressed', async () => {
+  it('calls onDelete when the overflow delete action is pressed', async () => {
     const user = userEvent.setup();
     const { onDelete } = renderHeader();
 
-    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  it('offers expand-to-thread for an editable twitter post without children', () => {
+  it('offers expand-to-thread from the overflow for an editable twitter post without children', () => {
     renderHeader();
 
     expect(
-      screen.getByRole('button', { name: /expand to thread/i }),
+      screen.getByRole('button', { name: 'Expand to Thread' }),
     ).toBeInTheDocument();
   });
 
@@ -119,27 +227,25 @@ describe('PostDetailHeader', () => {
     renderHeader({}, { hasChildren: true });
 
     expect(
-      screen.queryByRole('button', { name: /expand to thread/i }),
+      screen.queryByRole('button', { name: 'Expand to Thread' }),
     ).not.toBeInTheDocument();
   });
 
-  it('renders a live post link when the platform url is present', () => {
+  it('lists a live post link in the overflow when the platform url is present', () => {
     renderHeader({ platformUrl: 'https://x.com/post/1' });
 
     expect(
-      screen.getByRole('link', { name: /open published post/i }),
+      screen.getByRole('link', { name: 'View live post' }),
     ).toHaveAttribute('href', 'https://x.com/post/1');
   });
 
   it('offers remix, performance and agent links for public posts', () => {
-    renderHeader({ status: PostStatus.PUBLIC });
+    renderHeader({ status: PostStatus.PUBLIC }, { isPublished: true });
 
-    expect(screen.getByRole('button', { name: /remix/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remix' })).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /performance/i }),
+      screen.getByRole('link', { name: 'Performance' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /ask agent/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ask Agent' })).toBeInTheDocument();
   });
 });
