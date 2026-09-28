@@ -229,7 +229,7 @@ export default function KnowledgeSourceDetailPanel({
         <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
           {isFailed ? (
             <Button
-              label={translate('retryIngestion')}
+              label={translate('retry')}
               onClick={() => {
                 void onRetry(source);
               }}

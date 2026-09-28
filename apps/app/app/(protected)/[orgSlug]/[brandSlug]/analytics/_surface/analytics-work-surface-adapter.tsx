@@ -114,6 +114,9 @@ function AnalyticsInspector({
   const filterEntries = reference
     ? Object.entries(reference.filters).filter((entry) => Boolean(entry[1]))
     : [];
+  const isExportAvailable =
+    reference?.provenance.source === 'genfeed-analytics-api' &&
+    descriptor.exportKind === 'published-posts';
 
   return (
     <div className="space-y-4" data-testid="analytics-context-inspector">
