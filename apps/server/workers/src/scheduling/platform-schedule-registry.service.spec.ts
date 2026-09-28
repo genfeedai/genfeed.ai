@@ -26,6 +26,8 @@ describe('PlatformScheduleRegistryService', () => {
   };
   const workflowExecutions = {
     cancelExecution: vi.fn().mockResolvedValue({ status: 'CANCELLED' }),
+  };
+  const cancellationIntent = {
     clearCancellationRequest: vi.fn().mockResolvedValue(undefined),
     requestCancellation: vi.fn().mockResolvedValue(true),
   };
@@ -45,13 +47,14 @@ describe('PlatformScheduleRegistryService', () => {
     workflowExecutions.cancelExecution.mockResolvedValue({
       status: 'CANCELLED',
     });
-    workflowExecutions.requestCancellation.mockResolvedValue(true);
-    workflowExecutions.clearCancellationRequest.mockResolvedValue(undefined);
+    cancellationIntent.requestCancellation.mockResolvedValue(true);
+    cancellationIntent.clearCancellationRequest.mockResolvedValue(undefined);
     configService.isDevSchedulersEnabled = true;
     service = new PlatformScheduleRegistryService(
       queue as never,
       workflowExecutionQueue as never,
       workflowExecutions as never,
+      cancellationIntent as never,
       configService as ConfigService,
       logger as unknown as LoggerService,
     );
@@ -164,14 +167,14 @@ describe('PlatformScheduleRegistryService', () => {
 
         await service.drainStalePlatformSourcedJobs();
 
-        expect(workflowExecutions.requestCancellation).toHaveBeenCalledWith(
+        expect(cancellationIntent.requestCancellation).toHaveBeenCalledWith(
           'execution-intent-first',
         );
         expect(
-          workflowExecutions.requestCancellation.mock.invocationCallOrder[0],
+          cancellationIntent.requestCancellation.mock.invocationCallOrder[0],
         ).toBeLessThan(staleJob.remove.mock.invocationCallOrder[0]);
         expect(
-          workflowExecutions.clearCancellationRequest,
+          cancellationIntent.clearCancellationRequest,
         ).not.toHaveBeenCalled();
       });
 
@@ -183,7 +186,7 @@ describe('PlatformScheduleRegistryService', () => {
         workflowExecutionQueue.getJobs
           .mockResolvedValueOnce([staleJob])
           .mockResolvedValue([]);
-        workflowExecutions.requestCancellation.mockRejectedValue(
+        cancellationIntent.requestCancellation.mockRejectedValue(
           new Error('db unavailable'),
         );
 
@@ -209,7 +212,7 @@ describe('PlatformScheduleRegistryService', () => {
 
         expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(3);
         expect(
-          workflowExecutions.clearCancellationRequest,
+          cancellationIntent.clearCancellationRequest,
         ).not.toHaveBeenCalled();
       });
 
@@ -229,7 +232,7 @@ describe('PlatformScheduleRegistryService', () => {
         await service.drainStalePlatformSourcedJobs();
 
         expect(
-          workflowExecutions.clearCancellationRequest,
+          cancellationIntent.clearCancellationRequest,
         ).toHaveBeenCalledWith('execution-intent-cleared');
         expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
       });
@@ -242,7 +245,7 @@ describe('PlatformScheduleRegistryService', () => {
         staleJob.remove.mockRejectedValue(
           new Error('locked by another worker'),
         );
-        workflowExecutions.clearCancellationRequest.mockRejectedValue(
+        cancellationIntent.clearCancellationRequest.mockRejectedValue(
           new Error('db unavailable'),
         );
         workflowExecutionQueue.getJobs
