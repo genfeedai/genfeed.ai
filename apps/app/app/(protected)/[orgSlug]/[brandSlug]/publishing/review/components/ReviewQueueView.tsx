@@ -96,6 +96,16 @@ export default function ReviewQueueView({
     },
     [onSelectItem],
   );
+  // A tap only vouches for the row it selected: once the queue moves to
+  // another row, a later automatic return to the tapped one stays automatic.
+  const activeItemId = activeItem?.id ?? null;
+  useEffect(() => {
+    setRowTap((current) =>
+      current.itemId && current.itemId !== activeItemId
+        ? { count: current.count, itemId: null }
+        : current,
+    );
+  }, [activeItemId]);
   const searchParams = useSearchParams();
   const postsHref = href(
     buildPostsHrefFromApprovalQueue(searchParams.toString()),

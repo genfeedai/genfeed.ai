@@ -6,7 +6,7 @@ import {
 import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const setPageContext = vi.fn();
 
@@ -58,6 +58,9 @@ function ShellControls() {
     <>
       <p data-testid="sidebar-state">
         {contextSidebar?.isOpen ? 'open' : 'closed'}
+      </p>
+      <p data-testid="sidebar-drawer">
+        {contextSidebar?.isMobileOpen ? 'drawer-open' : 'drawer-closed'}
       </p>
       <p data-testid="sidebar-selection">
         {contextSidebar?.selection ? 'registered' : 'none'}
@@ -112,9 +115,43 @@ function renderAdapter(overrides: Partial<ReviewWorkspaceSurfaceAdapterProps>) {
   };
 }
 
+function stubCompactViewport(): void {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      addEventListener: vi.fn(),
+      matches: true,
+      media: query,
+      removeEventListener: vi.fn(),
+    })),
+  );
+}
+
 describe('ReviewWorkspaceSurfaceAdapter', () => {
   beforeEach(() => {
     setPageContext.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('opens the mobile drawer through the tap reveal, not the automatic pick', () => {
+    stubCompactViewport();
+    const { rerenderAdapter } = renderAdapter({
+      activeItemOrigin: 'automatic',
+    });
+    expect(screen.getByTestId('sidebar-drawer')).toHaveTextContent(
+      'drawer-closed',
+    );
+
+    // Only the tap counter moves: the origin stays automatic, so the drawer
+    // can open only through the adapter's reveal.
+    rerenderAdapter({ activeItemOrigin: 'automatic', revealRequest: 1 });
+
+    expect(screen.getByTestId('sidebar-drawer')).toHaveTextContent(
+      'drawer-open',
+    );
   });
 
   it('renders the active review item in the context sidebar', () => {
