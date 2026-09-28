@@ -281,39 +281,8 @@ export class FFmpegMergeService {
       );
     }
 
-    const durations: number[] = [];
-    const audioStreams: boolean[] = [];
-    const resolutions: Array<{ width: number; height: number }> = [];
-
-    for (const videoPath of videoPaths) {
-      try {
-        const probeData = await this.core.probe(videoPath);
-        const videoStream = probeData.streams.find(
-          (stream: FFprobeStream) => stream.codec_type === 'video',
-        );
-
-        const duration =
-          probeData.format?.duration ||
-          videoStream?.duration ||
-          probeData.streams[0]?.duration;
-        durations.push(duration ? parseFloat(duration) : 5);
-
-        const hasAudio = probeData.streams.some(
-          (stream: FFprobeStream) => stream.codec_type === 'audio',
-        );
-        audioStreams.push(hasAudio);
-
-        const rawWidth = videoStream?.width || 1080;
-        const rawHeight = videoStream?.height || 1920;
-        const width = rawWidth % 2 === 0 ? rawWidth : rawWidth - 1;
-        const height = rawHeight % 2 === 0 ? rawHeight : rawHeight - 1;
-        resolutions.push({ height, width });
-      } catch {
-        durations.push(5);
-        audioStreams.push(false);
-        resolutions.push({ height: 1920, width: 1080 });
-      }
-    }
+    const { audioStreams, durations, resolutions } =
+      await this.probeTransitionClips(videoPaths);
 
     // Muting drops every clip's audio instead of crossfading it.
     const hasAnyAudio = !muteVideoAudio && audioStreams.some((has) => has);
@@ -414,6 +383,49 @@ export class FFmpegMergeService {
     );
 
     await this.core.executeFFmpeg(args, onProgress);
+  }
+
+  /** Duration, audio presence and even-sized resolution of each clip. */
+  private async probeTransitionClips(videoPaths: string[]): Promise<{
+    audioStreams: boolean[];
+    durations: number[];
+    resolutions: Array<{ width: number; height: number }>;
+  }> {
+    const durations: number[] = [];
+    const audioStreams: boolean[] = [];
+    const resolutions: Array<{ width: number; height: number }> = [];
+
+    for (const videoPath of videoPaths) {
+      try {
+        const probeData = await this.core.probe(videoPath);
+        const videoStream = probeData.streams.find(
+          (stream: FFprobeStream) => stream.codec_type === 'video',
+        );
+
+        const duration =
+          probeData.format?.duration ||
+          videoStream?.duration ||
+          probeData.streams[0]?.duration;
+        durations.push(duration ? parseFloat(duration) : 5);
+
+        const hasAudio = probeData.streams.some(
+          (stream: FFprobeStream) => stream.codec_type === 'audio',
+        );
+        audioStreams.push(hasAudio);
+
+        const rawWidth = videoStream?.width || 1080;
+        const rawHeight = videoStream?.height || 1920;
+        const width = rawWidth % 2 === 0 ? rawWidth : rawWidth - 1;
+        const height = rawHeight % 2 === 0 ? rawHeight : rawHeight - 1;
+        resolutions.push({ height, width });
+      } catch {
+        durations.push(5);
+        audioStreams.push(false);
+        resolutions.push({ height: 1920, width: 1080 });
+      }
+    }
+
+    return { audioStreams, durations, resolutions };
   }
 
   /**

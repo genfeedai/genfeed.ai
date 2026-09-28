@@ -126,12 +126,6 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 216,
-    "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.ts",
-    "metric": "method-lines",
-    "symbol": "AutoMergeService.createAndQueueMerge"
-  },
-  {
     "actual": 169,
     "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.ts",
     "metric": "method-lines",
