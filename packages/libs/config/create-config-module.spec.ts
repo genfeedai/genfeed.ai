@@ -21,7 +21,7 @@ class FakeValidationService {}
 // Deliberately a value import of `FakeConfigService` in the constructor
 // signature — `import type` here would erase the `design:paramtypes` entry and
 // Nest would inject `undefined`. See
-// `.agents/memory/rules/nestjs_value_imports_for_di.md`.
+// `scripts/check-di-value-imports.ts`.
 @Injectable()
 class ConsumerService {
   constructor(readonly config: FakeConfigService) {}

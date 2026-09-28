@@ -40,7 +40,7 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
  * (`user.organizationId`) are not row reads and are not flagged as
  * filter values.
  *
- * @see .agents/memory/rules/prisma_legacy_alias_fields.md
+ * @see docs/identity-resolution.md
  */
 
 const INCLUDE_GLOBS = [

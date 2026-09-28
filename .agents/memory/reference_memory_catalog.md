@@ -6,7 +6,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 ## Rules (permanent — user corrections)
 
 - [product_switches_in_platform_settings](rules/product_switches_in_platform_settings.md) — product feature switches are typed Admin platform settings read through the cached `getFeatureSettings()`; env holds only secrets and infrastructure (#5407)
-- [better_auth_user_ids_are_opaque](rules/better_auth_user_ids_are_opaque.md) — authenticated user IDs span legacy Better Auth base62 values and new UUIDs; authorize them as opaque canonical users.id values
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit
 - [feedback_explicit_immediate_pr_merge](feedback_explicit_immediate_pr_merge.md) — explicit merge-without-checks orders use a per-PR admin bypass; never aggregate first
@@ -28,7 +27,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_desktop_local_workspace_disabled](feedback_desktop_local_workspace_disabled.md) — desktop local/PGlite workspace is a PostHog-gated slice, not a void coming-soon page
 - [feedback_pr_closes_one_issue_per_keyword](feedback_pr_closes_one_issue_per_keyword.md) — one `Closes #N` line per issue; a comma list only auto-closes the first
 - [feedback_stacked_pr_merge_target](feedback_stacked_pr_merge_target.md) — retarget stacked PRs to `master` before merging; closing keywords never fire on a feature-branch base
-- [feedback_no_new_ci_guard_steps](feedback_no_new_ci_guard_steps.md) — no new named CI guard steps; #2946 owns YAML-ratchet cleanup
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [feedback_strategy_lives_in_vault](feedback_strategy_lives_in_vault.md) — competitive strategy lives in private `genfeedai/vault`, not this public repo or board
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
@@ -43,7 +41,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [spec-native-referral-credits](spec-native-referral-credits.md) — native first-touch referral attribution and recurring PAYG credit rewards
 - [decisions-native-referral-credits](decisions-native-referral-credits.md) — product, ownership, fraud, and fulfillment decisions for referral credits
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
-- [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → native issue Priority P0 + auto-close on green; never prose-only triage
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_hosted_saas_public_deploy](feedback_hosted_saas_public_deploy.md) — hosted SaaS deploys from public genfeed.ai; do not dispatch console
 - [feedback_seo_hard_cut_routes](feedback_seo_hard_cut_routes.md) — retired/moved public routes are hard cuts: remove current references, add no redirects
@@ -51,7 +48,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
 - [feedback_messages_conversation_inbox](feedback_messages_conversation_inbox.md) — Messages nav lists social conversations; disconnected state connects accounts; read-only platforms have no composer
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
-- [feedback_dev_orphan_watchdog](feedback_dev_orphan_watchdog.md) — wrappers reap orphan next-server children; `dev:status` before blaming Genfeed; never kill :443
 - [feedback_local_replicate_key_source](feedback_local_replicate_key_source.md) — edit only root `.env.local`; `env:sync local` regenerates app copies; never hand-edit generated env files
 - [feedback_lowest_cost_local_models](feedback_lowest_cost_local_models.md) — local/e2e/self-hosted default to FLUX Schnell, P-Video, DeepSeek V4 Flash; cloud production keeps quality defaults
 - [feedback_local_saas_staging_cdn](feedback_local_saas_staging_cdn.md) — local SaaS publishes media via staging-cdn; files host is API-only, never `/local/` paths
@@ -59,38 +55,19 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_code_ci_not_workflow_gates](feedback_code_ci_not_workflow_gates.md) — product contracts are tests; do not add named `check:*` steps to the CI guards job
 - [feedback_qa_queue_branch_protocol](feedback_qa_queue_branch_protocol.md) — stay on named QA closeout branch; respect PR push policy; no re-implement of complete items
 - [feedback_commit_after_each_qa_fix](feedback_commit_after_each_qa_fix.md) — commit each finished QA fix before starting the next one
-- [feedback_next_agent_rules_off](feedback_next_agent_rules_off.md) — Next must not rewrite CLAUDE.md or AGENTS.md
-- [feedback_no_nested_claude_md](feedback_no_nested_claude_md.md) — only the repo-root CLAUDE.md; no apps/* or packages/* copies
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, real Studio Stop
 - [feedback_no_composer_context_meter](feedback_no_composer_context_meter.md) — no token / context-window meter on the agent composer
 - [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — model picker is one flat ranked list: filter pills, capability icons, hover spec
-- [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card model/priority/outputs persist in a Zustand store separate from chat
-- [feedback_thread_generation_type_lock](feedback_thread_generation_type_lock.md) — a thread is image or video generation, not both
-- [feedback_command_palette_registration_quiet](feedback_command_palette_registration_quiet.md) — command register/unregister is debug, never info in the browser
 - [feedback_arrays_only_mutation_apis](feedback_arrays_only_mutation_apis.md) — public mutations take arrays; no singular+plural twins or T | T[] overloads
 - [feedback_toolbar_ghost_icon_cluster](feedback_toolbar_ghost_icon_cluster.md) — toolbar icon actions are ghost, 14px, clustered at the far right
-- [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs ButtonDropdown
-- [feedback_generation_card_one_line_prompt](feedback_generation_card_one_line_prompt.md) — generation-card prompt is one line; Read & edit sits on that row
-- [feedback_generation_card_prompt_bar_send](feedback_generation_card_prompt_bar_send.md) — generation card uses the prompt-bar toolbar and square ArrowUp send
-- [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
 - [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; dock uses a top-transparent / bottom-black gradient; do not slab the full stack
 - [feedback_studio_generate_agent_dock](feedback_studio_generate_agent_dock.md) — Studio generate floats the composer over the masonry like Agent; no inflow black slab; card click opens inspector
 - [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — docked prompt bar lifts with outer --shadow-lg only; no inset or 1px ring hairline
 - [feedback_onboarding_deliver_content_first](feedback_onboarding_deliver_content_first.md) — current onboarding direction: proactive image + tweet, user review, then optional publishing connection
-- [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — post-brand /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_brand_shared](feedback_onboarding_brand_shared.md) — `/onboarding/brand` is shared across Cloud and Desktop; Skip completes the gate, brand stays re-enterable
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
-- [feedback_prompt_bar_drop_placeholder](feedback_prompt_bar_drop_placeholder.md) — file drag over the prompt bar swaps the empty placeholder to "drop it here?"
-- [feedback_overlay_menus_elevated_surface](feedback_overlay_menus_elevated_surface.md) — dropdowns and popovers use bg-secondary + shadow-dropdown, never elevated or canvas
-- [feedback_conversation_contrast](feedback_conversation_contrast.md) — void chrome stays dark; conversation type is AA white/gray; chroma comes from media
 - [feedback_user_prompt_no_composer_chrome](feedback_user_prompt_no_composer_chrome.md) — agent user prompts render through @ui/card/Card; not PromptBarComposer chrome
-- [feedback_generation_card_retry_after_failure](feedback_generation_card_retry_after_failure.md) — failed generate keeps Generate on the card; UI-action false is not Done
 - [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
-- [feedback_generation_card_manual_collapse_on_error](feedback_generation_card_manual_collapse_on_error.md) — failed generation cards stay expandable; the operator can collapse them by hand
-- [feedback_ui_action_403_not_provider](feedback_ui_action_403_not_provider.md) — confirm-generate 403s are our API (allowlist/brand/org), not a provider block
-- [feedback_generate_picker_reads_allowlist](feedback_generate_picker_reads_allowlist.md) — generate/agent pickers honor enabledModelIds; Settings → Models stays the catalog
-- [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing
-- [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
 - [project_x_author_reply_loop](project_x_author_reply_loop.md) — Automate **Replies** surface (inbox + auto-replies + closed-loop memory for X)
@@ -106,11 +83,12 @@ Personal multi-host fleet notes (Claude/Codex/Grok routing) live in **gitignored
 
 Always in context — repo-wide prohibitions, do not re-read them to "check":
 
-- [enum_source_of_truth](rules/enum_source_of_truth.md) · [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [server_not_core](rules/server_not_core.md)
+- [enum_source_of_truth](rules/enum_source_of_truth.md)
+- Guard-enforced, no note: retired `core` / `@genfeedai/server` names (`check:retired-core-names`), opaque user IDs (`check:opaque-user-ids`), DI value imports (`check:di-value-imports`), relation-alias reads (`check:relation-alias-reads`, see `docs/identity-resolution.md`), single root CLAUDE.md (`check:single-claude-md`). CI runs them through `check:architecture` or `test:executable-contracts`.
 
 Scoped by `paths` frontmatter — load only when the matching files are in play:
 
-- [00-security](rules/00-security.md) · [10-backend-services](rules/10-backend-services.md) · [20-web-apps](rules/20-web-apps.md) · [30-shared-packages](rules/30-shared-packages.md) · [nestjs_value_imports_for_di](rules/nestjs_value_imports_for_di.md) (`apps/server/**`) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`)
+- [00-security](rules/00-security.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`)
 
 On-demand skills — invoked by task, formerly always-loaded rules:
 
@@ -136,7 +114,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Specs and decisions (per issue)
 
-- [agent-fleet-runtime-api](spec-agent-fleet-runtime-api.md) · [decisions](decisions-agent-fleet-runtime-api.md) — durable hired-agent identity + bot chat + capabilities + routines + account assignments + reports + live/replayable Fleet activity
 - [terminal-content-workspace](spec-terminal-content-workspace.md) · [decisions](decisions-terminal-content-workspace.md) — #52 shared `gf` CLI/TUI, browser auth, credits, generation, brands, workflows, assets
 - [agentic-workflow-email-notifications](spec-agentic-workflow-email-notifications.md) · [decisions](decisions-agentic-workflow-email-notifications.md) — durable preferences + transactional outbox + Resend workflow-owner delivery across every run source
 - [multi-account-per-platform](spec-multi-account-per-platform.md) · [decisions](decisions-multi-account-per-platform.md) — credential identity is `(brandId, platform, externalId)`; connect provisions a pending row and reconciles after the callback
@@ -159,7 +136,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [adaptive-pr-validation](spec-adaptive-pr-validation.md) · [decisions](decisions-adaptive-pr-validation.md) — #1850
 - [pipeline-posts-filters](spec-pipeline-posts-filters.md) · [decisions](decisions-pipeline-posts-filters.md) — #2612
 - [messages-engagement-surfaces](spec-messages-engagement-surfaces.md) · [decisions](decisions-messages-engagement-surfaces.md) — #2742
-- [publish-content-campaigns](spec-publish-content-campaigns.md) · [decisions](decisions-publish-content-campaigns.md) — Publish Campaign desk + `Post.campaignId`
+- [publish-content-campaigns decisions](decisions-publish-content-campaigns.md) — why Campaigns live in Publish + `Post.campaignId`
 - [source-post-variations](spec-source-post-variations.md) · [decisions](decisions-source-post-variations.md) — #2662
 - [social-warmup-enrollments](spec-social-warmup-enrollments.md) · [decisions](decisions-social-warmup-enrollments.md) — #2214
 - [llm-vendor-cost-ledger](spec-llm-vendor-cost-ledger.md) · [decisions](decisions-llm-vendor-cost-ledger.md) — #2361
@@ -169,13 +146,11 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Project state
 
-- [project_agent_campaign_backend_debt](project_agent_campaign_backend_debt.md) — Programs config columns + dead cron + AgentRuntime facade
 - [project_agent_t3_density](project_agent_t3_density.md) — agent conversation track max-w-3xl, composer-owned status, suppress generic Done + footer noise (#2502)
 - [project_module_local_chrome](project_module_local_chrome.md) — one SectionTopbar contract for local nav + primary actions app-wide
 - [project_card_metric_surface](project_card_metric_surface.md) — Card + MetricCard/MetricSummary only; no new metric card components
 - [project_brand_settings_voice_harness](project_brand_settings_voice_harness.md) — Brand voice vs speech voice vs brand harness IA
 - [project_overview](project_overview.md) — monorepo structure and key context
-- [project_migration](project_migration.md) — cloud + core → genfeed.ai, complete
 - [project_backend_typecheck](project_backend_typecheck.md) — `tsconfig.typecheck.json` per backend workspace
 - [project_bullmq](project_bullmq.md) — new processors go to workers or the owning service, not API
 - [project_settings_routing](project_settings_routing.md) — personal/org/brand settings URL shapes
@@ -186,7 +161,6 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_agent_exact_cost_chat_billing](project_agent_exact_cost_chat_billing.md) — chat rounds settle at exact provider cost as fractional credits; one credit display formatter (balance floor + compact ≥100k, cost 1 dp / `<0.1` / `Free`); admin unit economics + revenue ledger from deploy onward
 - [project_agent_context_snapshot_parity](project_agent_context_snapshot_parity.md) — Agent context page, `GET /brands/:id/agent-context`, and `get_brand_context` reuse `resolveTurnContext`; real layers incl. `brandKnowledge`, no `knowledgeBase`
 - [project_brand_voice_own_posts](project_brand_voice_own_posts.md) — brand voice drafts learn from own imported/published/pasted posts; deterministic stylometric rules; verbatim exemplars; approve writes only non-empty fields
-- [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_platform_enum_usage](project_platform_enum_usage.md) — Platform/CredentialPlatform for ids; formatPlatformLabel/parsePlatform for display/aliases
 
@@ -207,7 +181,7 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 
 ## Features and system
 
-- [features/agent](features/agent/README.md) — orchestration, threading, collections, tools, frontend
+- [features/agent](features/agent/README.md) — turn flow, context parity, model resolution, billing pointers
 - [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
 
 - [Dynamic video workflows](spec-dynamic-video-workflows.md) — #4500 localization and scene composition contracts.

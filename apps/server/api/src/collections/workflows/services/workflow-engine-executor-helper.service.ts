@@ -334,7 +334,7 @@ export class WorkflowEngineExecutorHelperService {
       );
 
       // Read the scalar FK (`brandId`) — the Mongo-era `brand` alias is
-      // undefined on Prisma rows. See .agents/memory/rules/prisma_legacy_alias_fields.md.
+      // undefined on Prisma rows. See docs/identity-resolution.md.
       const sourceBrandId = sourceIngredient?.brandId;
       if (typeof sourceBrandId === 'string' && sourceBrandId.length > 0) {
         return sourceBrandId;

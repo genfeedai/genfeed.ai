@@ -41,6 +41,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -366,9 +367,17 @@ export class UsersRelationshipsController {
   })
   async updateSettings(
     @Req() request: Request,
+    @CurrentUser() currentUser: User,
     @Param('userId') userId: string,
     @Body() updateSettingDto: UpdateSettingDto,
   ) {
+    if (
+      !getIsSuperAdmin(currentUser, request) &&
+      (currentUser.userId ?? currentUser.id) !== userId
+    ) {
+      throw new ForbiddenException('Cannot update settings for another user');
+    }
+
     const user = await this.usersService.findOne({
       id: userId,
     });

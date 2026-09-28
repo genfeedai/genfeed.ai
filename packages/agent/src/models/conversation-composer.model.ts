@@ -109,9 +109,13 @@ export interface PersistedConversationComposerAttachment {
 
 /** Library content picked via the visual reference picker (not TipTap tokens). */
 export interface PersistedConversationComposerContentReference {
+  /** The brand the record belongs to, stamped when a page attaches it. */
+  brandId?: string;
   contentTitle: string;
   contentType: string;
   id: string;
+  /** Missing on a legacy record (written before this field existed) means `post`. */
+  kind?: 'ingredient' | 'post';
   thumbnailUrl?: string;
 }
 

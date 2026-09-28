@@ -76,7 +76,7 @@ interface AgentChatInputProps {
   removeAttachment?: (id: string) => void;
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
-  density?: 'compact' | 'default' | 'inspector';
+  density?: 'compact' | 'default' | 'dock';
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
   /** Unused by this component directly; forwarded by some hosts for parity. */
@@ -127,7 +127,7 @@ export function AgentChatInput({
   knowledgeSection,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
-  const isInspector = density === 'inspector';
+  const isDock = density === 'dock';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
   const {
@@ -283,8 +283,8 @@ export function AgentChatInput({
           shouldShowVoiceInput={shouldShowVoiceInput}
           showStop={Boolean(showStop)}
           willQueueFollowUp={willQueueFollowUp}
-          // Inspector rail is narrow — use compact icon-only toolbar density.
-          density={isCompact || isInspector ? 'compact' : 'default'}
+          // The dock rail is narrow — use compact icon-only toolbar density.
+          density={isCompact || isDock ? 'compact' : 'default'}
         />
       </PromptBarComposer>
 

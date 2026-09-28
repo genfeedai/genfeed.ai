@@ -15,6 +15,13 @@ const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
   value: '/acme/brand/workspace',
 }));
+const agentDockState = vi.hoisted(() => ({
+  value: null as {
+    isAvailable: boolean;
+    isOpen: boolean;
+    toggle: () => void;
+  } | null,
+}));
 const contextSidebarState = vi.hoisted(() => ({
   value: null as {
     isMobileOpen: boolean;
@@ -145,18 +152,27 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
+vi.mock('@contexts/ui/agent-dock-context', () => ({
+  useAgentDock: () => agentDockState.value,
+}));
+
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
   useContextSidebar: () => contextSidebarState.value,
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    ({
-      close: 'Close details',
-      collapse: 'Collapse details',
-      expand: 'Expand details',
-      open: 'Open details',
-    })[key] ?? key,
+  useTranslations: (namespace: string) => (key: string) =>
+    (
+      ({
+        'common.agentDock': { close: 'Close agent', open: 'Open agent' },
+        'common.contextSidebar': {
+          close: 'Close details',
+          collapse: 'Collapse details',
+          expand: 'Expand details',
+          open: 'Open details',
+        },
+      }) as Record<string, Record<string, string>>
+    )[namespace]?.[key] ?? key,
 }));
 
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
@@ -236,6 +252,7 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
     contextSidebarState.value = null;
+    agentDockState.value = null;
     brandSwitcherSpy.mockClear();
     brandContextState.brands = [
       {
@@ -499,5 +516,38 @@ describe('AppProtectedTopbar', () => {
 
     expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
     expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
+  });
+
+  it('toggles the agent dock where the shell hosts one', () => {
+    const toggle = vi.fn();
+    agentDockState.value = { isAvailable: true, isOpen: false, toggle };
+
+    const { rerender } = render(<AppProtectedTopbar />);
+
+    const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
+    expect(dockToggle).toHaveAccessibleName('Open agent');
+    expect(dockToggle).toHaveAttribute('aria-controls', 'workspace-agent-dock');
+    expect(dockToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(dockToggle).toHaveAttribute('aria-keyshortcuts', 'Meta+J Control+J');
+    fireEvent.click(dockToggle);
+    expect(toggle).toHaveBeenCalledTimes(1);
+
+    agentDockState.value = { isAvailable: true, isOpen: true, toggle };
+    rerender(<AppProtectedTopbar />);
+    expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAccessibleName(
+      'Close agent',
+    );
+  });
+
+  it('hides the agent dock toggle where no dock is hosted', () => {
+    agentDockState.value = {
+      isAvailable: false,
+      isOpen: false,
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
   });
 });

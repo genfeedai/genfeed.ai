@@ -5,5 +5,6 @@
 - A GitHub release or tag alone is never proof that SaaS deployed. Only a successful canonical `Release` whose selected hosted SaaS lane completed for the same SHA is the public deployed-SHA marker.
 - **A failed deploy never spawns a new version.** Fix on master and re-ship the same `vX.Y.Z`. Reuse or delete the unshipped draft/tag when nothing consumed it; never bump merely because a gate failed.
 - **Version numbers mean both distribution lanes shipped.** If one lane partially consumed the version, preserve the tag, repair the failed lane at the same pinned SHA when safe, and record the degraded/recovery path.
+- **Conventional commits drive the changelog** (`cliff.toml`). The `.changes/` changenote and `check:package-api-surface` were removed on 2026-09-28 (#5508). Internal `packages/*` need no API-change notes. Do not reintroduce.
 
-last_verified: 2026-08-18
+last_verified: 2026-09-28

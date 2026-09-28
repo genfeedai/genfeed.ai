@@ -4,7 +4,7 @@ import { getBenchmarkData } from '@public/benchmark/benchmark-loader';
 import { EnvironmentService } from '@services/core/environment.service';
 import type { Metadata } from 'next';
 
-const TITLE = 'Benchmark';
+const TITLE = 'AI Model Performance Benchmark';
 const DESCRIPTION =
   'An independent benchmark for image and video generation models. Public tasks, blind pairwise judging, Elo, and a match journal anyone can re-run.';
 

@@ -3238,5 +3238,15 @@
     "title": "Unit Economics",
     "titleDrillDown": "Unit Economics · {label}",
     "total": "Total"
+  },
+  "brandDetailOverview": {
+    "uploadProfilePicture": "Upload profile picture",
+    "generateProfilePicture": "Generate profile picture",
+    "editBrandName": "Edit brand name",
+    "editBrandHandle": "Edit brand handle",
+    "editBrandDescription": "Edit brand description",
+    "addDescription": "Add a description",
+    "copyPublicProfileLink": "Copy public profile link",
+    "profile": "Profile"
   }
 }

@@ -4,12 +4,10 @@ import type { PageMapItem } from 'nextra';
 export const DOCS_ORIGIN = 'https://docs.genfeed.ai';
 
 /**
- * Social identity for the docs host. The suffix is deliberately 18 characters:
- * Ahrefs flags a `<title>` under 15 characters as "Title too short", and the
- * shortest docs heading is `CLI`. Suffixing every route lifts the shortest
- * rendered title to 21 characters while keeping the longest at 58 — under the
- * 63-character "Title too long" ceiling. Changing the suffix length shifts both
- * ends, so `tests/seo-metadata.test.ts` pins the whole content tree.
+ * Social identity for the docs host. The shared suffix is included in the
+ * watchdog's 30–60 Unicode character title budget. Route frontmatter supplies
+ * descriptive search titles while preserving the authored headings;
+ * `tests/seo-metadata.test.ts` checks the complete content tree.
  */
 export const DOCS_SITE_NAME = 'Genfeed.ai Docs';
 export const DOCS_TITLE_SUFFIX = ` | ${DOCS_SITE_NAME}`;

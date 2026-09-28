@@ -16,7 +16,11 @@ Instagram inbound ingestion. Issue #2742.
 
 ## Non-Goals
 
-- X, LinkedIn, and Unipile ingestion (remainder of #1163).
+- Unipile-based DM ingestion beyond Instagram. (X and LinkedIn comment
+  ingestion, the rest of #1163, shipped after this spec — see
+  `SocialInboxIngestionService.ingestXComments` and the `LINKEDIN` platform
+  branch; LinkedIn DM remains unimplemented per
+  `LINKEDIN_DM_NOT_IMPLEMENTED_REASON`.)
 - A Mentions surface producer — the enum value is reserved; no tab ships until
   a producer exists.
 - Meta real-time webhooks — polling sync first, matching the YouTube pattern.

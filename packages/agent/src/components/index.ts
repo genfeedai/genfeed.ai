@@ -37,7 +37,7 @@ export {
   ConversationComposerShellProvider,
   useConversationComposerShell,
 } from '@genfeedai/agent/components/ConversationComposerShellContext';
-export { ConversationInspectorPanel } from '@genfeedai/agent/components/ConversationInspectorPanel';
+export { ConversationDockPanel } from '@genfeedai/agent/components/ConversationDockPanel';
 export {
   type AgentSetupConnection,
   type AgentSetupStatus,

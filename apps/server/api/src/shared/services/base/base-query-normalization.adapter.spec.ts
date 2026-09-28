@@ -85,6 +85,22 @@ describe('BaseQueryNormalizationAdapter', () => {
     });
   });
 
+  it('passes a populated relation where through to the Prisma include', () => {
+    const where = { isDeleted: false, organizationId: 'org-1' };
+
+    expect(adapter.populateToInclude([{ path: 'brand', where }])).toEqual({
+      brand: { where },
+    });
+    expect(
+      adapter.populateToInclude([{ path: 'brand', select: ['id'], where }]),
+    ).toEqual({ brand: { select: { id: true }, where } });
+    expect(
+      adapter.populateToInclude([
+        { path: 'brand', populate: { path: 'organization' }, where },
+      ]),
+    ).toEqual({ brand: { include: { organization: true }, where } });
+  });
+
   it('rejects projections that reference unknown Prisma fields', () => {
     expect(() =>
       adapter.assertProjectionFields({ missing: true }, 'select'),

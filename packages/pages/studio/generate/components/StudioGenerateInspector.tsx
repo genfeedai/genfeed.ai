@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { attachContentToNewConversationDraft } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import {
   ButtonSize,
@@ -70,6 +71,7 @@ export default function StudioGenerateInspector({
   const translate = useTranslations('pages.studioGenerate');
   const { href, orgSlug } = useOrgUrl();
   const { push } = useRouter();
+  const agentDock = useAgentDock();
   const { label } = getStudioGenerateTypeConfig(job.type);
   const recipe = resolveRecipeForJob(job);
   const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
@@ -187,23 +189,31 @@ export default function StudioGenerateInspector({
     return () => controller.abort();
   }, [getImagesService, getVideosService, ingredientId, job.type]);
 
-  // The asset rides the next new conversation's attachment tray; nothing is
-  // sent until the operator writes the question.
+  // The asset rides the agent's attachment tray; nothing is sent until the
+  // operator writes the question. The dock hosts it in place; without one the
+  // next new conversation on `/agent` picks it up.
   const handleAskAgent = useCallback(() => {
     if (!ingredient) {
       return;
     }
 
-    attachContentToNewConversationDraft(orgSlug, {
+    const reference = {
+      ...(ingredient.brandId ? { brandId: ingredient.brandId } : {}),
       contentTitle: job.prompt.trim() || label,
       contentType: job.type,
       id: ingredient.id,
+      kind: 'ingredient' as const,
       ...(ingredient.thumbnailUrl
         ? { thumbnailUrl: ingredient.thumbnailUrl }
         : {}),
-    });
+    };
+    if (agentDock?.attachContent(reference)) {
+      return;
+    }
+
+    attachContentToNewConversationDraft(orgSlug, reference);
     push(href(APP_ROUTES.AGENT.NEW));
-  }, [href, ingredient, job.prompt, job.type, label, orgSlug, push]);
+  }, [agentDock, href, ingredient, job.prompt, job.type, label, orgSlug, push]);
 
   const factRows = [
     { key: 'type', label: translate('inspector.facts.type'), value: label },

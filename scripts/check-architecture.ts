@@ -181,6 +181,14 @@ const checks = [
     command: ['bun', 'run', 'scripts/architecture/check-env-product-flags.ts'],
     name: 'Env product-flag boundary (#5407)',
   },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-retired-core-names.ts'],
+    name: 'Retired core/server names (#4348)',
+  },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-single-claude-md.ts'],
+    name: 'Single root CLAUDE.md',
+  },
 ] as const;
 
 let failed = false;
