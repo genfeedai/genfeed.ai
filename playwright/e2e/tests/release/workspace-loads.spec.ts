@@ -39,9 +39,12 @@ test.describe('Released image — workspace shell', () => {
       'workspace rendered a framework error overlay',
     ).toHaveCount(0);
 
-    // Shell chrome mounted (protected layout resolved). The brand switcher trigger
-    // lives in the protected topbar (#667 reworked the switchers into it).
-    const switcher = page.getByTestId('brand-switcher-trigger');
+    // Shell chrome mounted (protected layout resolved). The sidebar mounts twice
+    // (desktop rail and the mobile drawer, which stays in the DOM but hidden), so
+    // the trigger's test id matches both; assert on the visible one.
+    const switcher = page
+      .locator('[data-testid="brand-switcher-trigger"]:visible')
+      .first();
     await expect(switcher, 'brand switcher must mount').toBeVisible({
       timeout: 30_000,
     });
