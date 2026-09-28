@@ -16,6 +16,7 @@ import { formatPreciseFrameTime } from './editor-time-format.util';
 function EditorPropertiesPanel({
   tracks,
   fps,
+  isReadOnly = false,
   selectedTrackId,
   selectedClipId,
   onTrackUpdate,
@@ -102,6 +103,7 @@ function EditorPropertiesPanel({
           </span>
           <Input
             type="text"
+            isDisabled={isReadOnly}
             value={selectedTrack.name}
             onChange={(e) => handleTrackNameUpdate(e.target.value)}
           />
@@ -140,6 +142,7 @@ function EditorPropertiesPanel({
             </span>
             <Input
               type="number"
+              isDisabled={isReadOnly}
               min={0}
               value={selectedClip.startFrame}
               onChange={(e) =>
@@ -156,6 +159,7 @@ function EditorPropertiesPanel({
             </span>
             <Input
               type="number"
+              isDisabled={isReadOnly}
               min={1}
               value={selectedClip.durationFrames}
               onChange={(e) =>
@@ -185,6 +189,7 @@ function EditorPropertiesPanel({
               Track Volume: {selectedTrack.volume}%
             </label>
             <Slider
+              disabled={isReadOnly}
               min={0}
               max={100}
               step={1}
@@ -199,6 +204,7 @@ function EditorPropertiesPanel({
                 Clip Volume: {selectedClip.volume}%
               </label>
               <Slider
+                disabled={isReadOnly}
                 min={0}
                 max={100}
                 step={1}
@@ -219,6 +225,7 @@ function EditorPropertiesPanel({
                   : 'bg-muted text-foreground/60 hover:bg-muted/80'
               }`}
               onClick={handleToggleMute}
+              isDisabled={isReadOnly}
             >
               {selectedTrack.isMuted ? 'Muted' : 'Mute'}
             </Button>
@@ -232,6 +239,7 @@ function EditorPropertiesPanel({
                   : 'bg-muted text-foreground/60 hover:bg-muted/80'
               }`}
               onClick={handleToggleLock}
+              isDisabled={isReadOnly}
             >
               {selectedTrack.isLocked ? 'Locked' : 'Lock'}
             </Button>

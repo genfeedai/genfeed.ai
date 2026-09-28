@@ -4,6 +4,7 @@ import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/upd
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
+import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -22,12 +23,14 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  categoryToPlural,
   EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/contracts';
 import type {
+  IEditorTrack,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -65,6 +68,7 @@ export class EditorProjectsController {
     private readonly editorRenderService: EditorRenderService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
+    private readonly compositionsService: RemotionCompositionsService,
   ) {}
 
   @Post()
@@ -255,12 +259,130 @@ export class EditorProjectsController {
       );
     }
 
-    const data: EditorProjectDocument = await this.editorProjectsService.patch(
+    const { name, settings, thumbnailUrl, totalDurationFrames, tracks } =
+      updateDto;
+    const data: EditorProjectDocument =
+      await this.editorProjectsService.updateEditorContent(
+        id,
+        user.organizationId,
+        {
+          name,
+          settings,
+          thumbnailUrl,
+          totalDurationFrames,
+          tracks: tracks as IEditorTrack[] | undefined,
+        },
+      );
+
+    return serializeSingle(request, EditorProjectSerializer, data);
+  }
+
+  /**
+   * Copy a project into a new, editable draft. Composition-backed projects are
+   * immutable, so this is how a user edits one: the copy keeps the tracks and
+   * settings but never the composition provenance or render output.
+   */
+  @Post(':id/duplicate')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async duplicate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const source = await this.editorProjectsService.findOne({
       id,
-      updateDto,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
+
+    if (!source) {
+      return returnNotFound('Editor project', id);
+    }
+
+    // The copy lands under the source brand, so the member must be allowed to
+    // create work there, not merely belong to the organization.
+    if (source.brandId) {
+      await this.compositionsService.authorizeBrand(user, source.brandId);
+    }
+
+    const sourceName =
+      typeof source.name === 'string' && source.name.trim()
+        ? source.name.trim()
+        : 'Untitled Project';
+
+    const data: EditorProjectDocument = await this.editorProjectsService.create(
+      {
+        ...(source.brandId ? { brandId: source.brandId } : {}),
+        config: {
+          name: `${sourceName} (copy)`,
+          settings: source.settings,
+          status: EditorProjectStatus.DRAFT,
+          totalDurationFrames: source.totalDurationFrames,
+        },
+        organizationId: user.organizationId,
+        tracks: await this.resolveMediaClipUrls(
+          source.tracks,
+          user.organizationId,
+        ),
+        userId: user.userId ?? user.id,
+      } as CreateEditorProjectDto,
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);
+  }
+
+  /**
+   * Point media clips at their ingredient's canonical URL. Composition tracks
+   * carry a placeholder source URL that only the render path resolves, so a
+   * copy would otherwise open with footage that cannot load. Ingredients the
+   * organization can no longer read keep their clip unchanged.
+   */
+  private async resolveMediaClipUrls(
+    tracks: IEditorTrack[],
+    organizationId: string,
+  ): Promise<IEditorTrack[]> {
+    const ingredientIds = Array.from(
+      new Set(
+        tracks
+          .filter((track) => track.type !== EditorTrackType.TEXT)
+          .flatMap((track) => track.clips.map((clip) => clip.ingredientId))
+          .filter((ingredientId) => Boolean(ingredientId)),
+      ),
+    );
+
+    if (ingredientIds.length === 0) {
+      return tracks;
+    }
+
+    const result = await this.ingredientsService.findAll(
+      {
+        where: {
+          id: { in: ingredientIds },
+          isDeleted: false,
+          organizationId,
+        },
+      },
+      { pagination: false },
+      false,
+    );
+    const urlByIngredientId = new Map(
+      result.docs.map((ingredient) => [
+        String(ingredient.id),
+        `${this.configService.ingredientsEndpoint}/${categoryToPlural(String(ingredient.category))}/${ingredient.id}`,
+      ]),
+    );
+
+    return tracks.map((track) =>
+      track.type === EditorTrackType.TEXT
+        ? track
+        : {
+            ...track,
+            clips: track.clips.map((clip) => {
+              const ingredientUrl = urlByIngredientId.get(clip.ingredientId);
+              return ingredientUrl ? { ...clip, ingredientUrl } : clip;
+            }),
+          },
+    );
   }
 
   @Delete(':id')

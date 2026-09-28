@@ -1,5 +1,6 @@
 import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
 import EditorEffectsPanel from './EditorEffectsPanel';
+import EditorLockedBanner from './EditorLockedBanner';
 import EditorPreview from './EditorPreview';
 import EditorPropertiesPanel from './EditorPropertiesPanel';
 import EditorTextPanel from './EditorTextPanel';
@@ -14,6 +15,9 @@ export default function EditorLayout({
   zoom,
   isDirty,
   isRendering,
+  isReadOnly,
+  hasSaveConflict,
+  isDuplicating,
   selectedTrackId,
   selectedClipId,
   onPlayPause,
@@ -29,6 +33,7 @@ export default function EditorLayout({
   onSave,
   onRender,
   onBack,
+  onDuplicate,
   onAddTextTrack,
   onTrackUpdate,
   onClipMove,
@@ -50,6 +55,7 @@ export default function EditorLayout({
         zoom={zoom}
         isDirty={isDirty}
         isRendering={isRendering}
+        isReadOnly={isReadOnly}
         onPlayPause={onPlayPause}
         onSeekStart={onSeekStart}
         onSeekEnd={onSeekEnd}
@@ -64,6 +70,14 @@ export default function EditorLayout({
         onBack={onBack}
       />
 
+      {isReadOnly && (
+        <EditorLockedBanner
+          hasSaveConflict={hasSaveConflict}
+          isDuplicating={isDuplicating}
+          onDuplicate={onDuplicate}
+        />
+      )}
+
       {/* Main content area — three-column layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — Text overlays */}
@@ -72,6 +86,7 @@ export default function EditorLayout({
             tracks={project.tracks}
             fps={project.settings.fps}
             totalFrames={project.totalDurationFrames}
+            isReadOnly={isReadOnly}
             selectedTrackId={selectedTrackId}
             selectedClipId={selectedClipId}
             onAddTextTrack={onAddTextTrack}
@@ -109,6 +124,7 @@ export default function EditorLayout({
               totalFrames={project.totalDurationFrames}
               fps={project.settings.fps}
               zoom={zoom}
+              isReadOnly={isReadOnly}
               onSeek={onSeek}
               onTrackUpdate={onTrackUpdate}
               onClipMove={onClipMove}
@@ -123,6 +139,7 @@ export default function EditorLayout({
         <div className="w-64 shrink-0 overflow-y-auto flex flex-col">
           <EditorEffectsPanel
             tracks={project.tracks}
+            isReadOnly={isReadOnly}
             selectedTrackId={selectedTrackId}
             selectedClipId={selectedClipId}
             onTrackUpdate={onTrackUpdate}
@@ -131,6 +148,7 @@ export default function EditorLayout({
             <EditorPropertiesPanel
               tracks={project.tracks}
               fps={project.settings.fps}
+              isReadOnly={isReadOnly}
               selectedTrackId={selectedTrackId}
               selectedClipId={selectedClipId}
               onTrackUpdate={onTrackUpdate}

@@ -221,6 +221,43 @@ describe('EditorProjectsService', () => {
     expect(result).toEqual({ jobId: 'job-render-1' });
   });
 
+  it('maps the server lock flag onto the project', async () => {
+    mockInstance.get.mockResolvedValue({
+      data: { ...makeProjectPayload('proj-locked'), isLocked: true },
+    });
+
+    const result = await service.findById('proj-locked');
+
+    expect(result?.isLocked).toBe(true);
+  });
+
+  it('treats a project without a lock flag as unlocked', async () => {
+    mockInstance.get.mockResolvedValue({ data: makeProjectPayload('proj-2') });
+
+    const result = await service.findById('proj-2');
+
+    expect(result?.isLocked).toBe(false);
+  });
+
+  it('duplicate POSTs to /:id/duplicate and returns the copy', async () => {
+    mockInstance.post.mockResolvedValue({
+      data: {
+        ...makeProjectPayload('proj-copy'),
+        isLocked: false,
+        name: 'Test Project (copy)',
+      },
+    });
+
+    const result = await service.duplicate('proj-locked');
+
+    expect(mockInstance.post).toHaveBeenCalledWith('/proj-locked/duplicate');
+    expect(result).toMatchObject({
+      id: 'proj-copy',
+      isLocked: false,
+      name: 'Test Project (copy)',
+    });
+  });
+
   it('normalizeProject fills in defaults for missing fields', async () => {
     mockInstance.post.mockResolvedValue({ data: {} });
 

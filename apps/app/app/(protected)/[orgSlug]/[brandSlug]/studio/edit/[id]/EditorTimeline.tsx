@@ -66,6 +66,7 @@ function TimeRuler({
 function TrackRow({
   track,
   zoom,
+  isReadOnly,
   selectedClipId,
   onClipSelect,
   onClipMove,
@@ -92,6 +93,7 @@ function TrackRow({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
             tooltip={track.isMuted ? 'Unmute' : 'Mute'}
+            isDisabled={isReadOnly}
             className={
               track.isMuted ? 'bg-destructive/20 text-destructive' : ''
             }
@@ -103,6 +105,7 @@ function TrackRow({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
             tooltip={track.isLocked ? 'Unlock' : 'Lock'}
+            isDisabled={isReadOnly}
             className={track.isLocked ? 'bg-warning/20 text-warning' : ''}
           >
             {track.isLocked ? 'Locked' : 'Lock'}
@@ -119,7 +122,7 @@ function TrackRow({
             trackType={track.type}
             zoom={zoom}
             isSelected={selectedClipId === clip.id}
-            isLocked={track.isLocked}
+            isLocked={track.isLocked || isReadOnly}
             onSelect={() => onClipSelect(clip.id)}
             onMove={(newFrame) => onClipMove(clip.id, newFrame)}
             onResize={(newDuration, fromStart) =>
@@ -294,6 +297,7 @@ function EditorTimeline({
   totalFrames,
   fps,
   zoom,
+  isReadOnly = false,
   onSeek,
   onTrackUpdate: _onTrackUpdate,
   onClipMove,
@@ -374,6 +378,7 @@ function EditorTimeline({
             key={track.id}
             track={track}
             zoom={zoom}
+            isReadOnly={isReadOnly}
             selectedClipId={selectedClipId}
             onClipSelect={(clipId) => onClipSelect(track.id, clipId)}
             onClipMove={(clipId, frame) => onClipMove(track.id, clipId, frame)}

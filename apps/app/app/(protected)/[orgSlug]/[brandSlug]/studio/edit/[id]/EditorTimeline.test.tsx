@@ -194,4 +194,31 @@ describe('EditorTimeline', () => {
       'audio-clip',
     );
   });
+
+  it('locks every clip in a read-only project but keeps seeking', () => {
+    const { props } = renderTimeline({ isReadOnly: true });
+
+    expect(
+      screen.queryByRole('button', { name: 'Resize clip start' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Resize clip end' }),
+    ).not.toBeInTheDocument();
+
+    const [videoClip] = screen.getAllByRole('button', {
+      name: 'Timeline clip',
+    });
+    fireEvent.mouseDown(videoClip, { clientX: 100 });
+    fireEvent.mouseMove(document, { clientX: 120 });
+    fireEvent.mouseUp(document);
+    expect(props.onClipMove).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Timeline ruler - click to seek',
+      }),
+      { clientX: 252 },
+    );
+    expect(props.onSeek).toHaveBeenCalledWith(30);
+  });
 });

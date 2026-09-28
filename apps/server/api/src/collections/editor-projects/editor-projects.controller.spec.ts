@@ -1,6 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
+import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -8,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -69,6 +71,7 @@ describe('EditorProjectsController', () => {
   let editorRenderService: vi.Mocked<EditorRenderService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
+  let compositionsService: vi.Mocked<RemotionCompositionsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -89,6 +92,7 @@ describe('EditorProjectsController', () => {
             findOne: vi.fn(),
             findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
+            updateEditorContent: vi.fn(),
           },
         },
         {
@@ -99,8 +103,15 @@ describe('EditorProjectsController', () => {
           },
         },
         {
+          provide: RemotionCompositionsService,
+          useValue: {
+            authorizeBrand: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: IngredientsService,
           useValue: {
+            findAll: vi.fn(),
             findOne: vi.fn(),
           },
         },
@@ -132,6 +143,7 @@ describe('EditorProjectsController', () => {
     editorRenderService = module.get(EditorRenderService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
+    compositionsService = module.get(RemotionCompositionsService);
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -271,23 +283,42 @@ describe('EditorProjectsController', () => {
 
   // ── update ────────────────────────────────────────────────────────────────
   describe('update', () => {
-    it('updates and returns the project', async () => {
-      const project = makeProject();
+    it('applies Editor edits through the row-locked service update', async () => {
+      const project = makeProject({ config: { name: 'My Project' } });
       const updated = { ...project, name: 'Updated' };
+      const tracks = [{ clips: [], id: 'track-1', name: 'Text 1' }];
+      const settings = { fps: 24 };
       editorProjectsService.findOne.mockResolvedValue(project as never);
-      editorProjectsService.patch.mockResolvedValue(updated as never);
+      editorProjectsService.updateEditorContent.mockResolvedValue(
+        updated as never,
+      );
 
       const result = await controller.update(
         makeRequest(),
         makeUser(),
         String(project.id),
-        { name: 'Updated' } as never,
+        {
+          name: 'Updated',
+          settings,
+          thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
+          totalDurationFrames: 450,
+          tracks,
+        } as never,
       );
 
-      expect(editorProjectsService.patch).toHaveBeenCalledWith(
+      expect(editorProjectsService.updateEditorContent).toHaveBeenCalledWith(
         String(project.id),
-        { name: 'Updated' },
+        testId('shared'),
+        {
+          name: 'Updated',
+          settings,
+          thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
+          totalDurationFrames: 450,
+          tracks,
+        },
       );
+      // A read-then-patch would overwrite render status written in between.
+      expect(editorProjectsService.patch).not.toHaveBeenCalled();
       expect(result).toMatchObject({ data: updated });
     });
 
@@ -327,6 +358,227 @@ describe('EditorProjectsController', () => {
     });
   });
 
+  // ── duplicate ─────────────────────────────────────────────────────────────
+  describe('duplicate', () => {
+    const tracks = [
+      {
+        clips: [],
+        id: 'story',
+        isLocked: false,
+        isMuted: false,
+        name: 'Story',
+        type: 'text',
+        volume: 100,
+      },
+    ];
+    const settings = {
+      backgroundColor: '#123456',
+      format: 'portrait',
+      fps: 30,
+      height: 1920,
+      width: 1080,
+    };
+    const makeComposition = () =>
+      makeProject({
+        brandId: testId('brand', 7),
+        config: {
+          composition: { id: 'product-story', inputHash: 'hash' },
+          name: 'Product story',
+          renderExport: { job: { jobId: 'job-1' } },
+          settings,
+          status: 'completed',
+          totalDurationFrames: 360,
+        },
+        name: 'Product story',
+        renderedVideoId: testId('video'),
+        settings,
+        totalDurationFrames: 360,
+        tracks,
+        userId: testId('user', 9),
+      });
+
+    it('creates an unlocked draft copy with the same tracks and settings', async () => {
+      const source = makeComposition();
+      const copy = makeProject({ id: testId('project', 3) });
+      editorProjectsService.findOne.mockResolvedValue(source as never);
+      editorProjectsService.create.mockResolvedValue(copy as never);
+
+      const result = await controller.duplicate(
+        makeRequest(),
+        makeUser(),
+        String(source.id),
+      );
+
+      expect(editorProjectsService.findOne).toHaveBeenCalledWith({
+        id: String(source.id),
+        isDeleted: false,
+        organizationId: testId('shared'),
+      });
+      expect(editorProjectsService.create).toHaveBeenCalledWith({
+        brandId: testId('brand', 7),
+        config: {
+          name: 'Product story (copy)',
+          settings,
+          status: 'draft',
+          totalDurationFrames: 360,
+        },
+        organizationId: testId('shared'),
+        tracks,
+        userId: testId('shared'),
+      });
+      expect(result).toMatchObject({ data: copy });
+    });
+
+    it('never copies composition provenance or render output', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      const [created] = editorProjectsService.create.mock.calls[0] as [
+        Record<string, unknown>,
+      ];
+      const config = created.config as Record<string, unknown>;
+      expect(config).not.toHaveProperty('composition');
+      expect(config).not.toHaveProperty('renderExport');
+      expect(created).not.toHaveProperty('renderedVideoId');
+    });
+
+    it('resolves media clip URLs from the organization ingredients', async () => {
+      const placeholderUrl = 'https://assets.invalid/videos/video-1';
+      const videoClip = {
+        durationFrames: 360,
+        effects: [],
+        id: 'source-video',
+        ingredientId: 'video-1',
+        ingredientUrl: placeholderUrl,
+        sourceEndFrame: 360,
+        sourceStartFrame: 0,
+        startFrame: 0,
+      };
+      const missingClip = {
+        ...videoClip,
+        id: 'missing-audio',
+        ingredientId: 'audio-gone',
+        ingredientUrl: 'https://assets.invalid/sounds/audio-gone',
+      };
+      const source = {
+        ...makeComposition(),
+        tracks: [
+          { ...tracks[0] },
+          {
+            clips: [videoClip],
+            id: 'video',
+            isLocked: false,
+            isMuted: false,
+            name: 'Product footage',
+            type: 'video',
+            volume: 0,
+          },
+          {
+            clips: [missingClip],
+            id: 'audio',
+            isLocked: false,
+            isMuted: false,
+            name: 'Music',
+            type: 'audio',
+            volume: 100,
+          },
+        ],
+      };
+      editorProjectsService.findOne.mockResolvedValue(source as never);
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+      ingredientsService.findAll.mockResolvedValue({
+        docs: [{ category: 'VIDEO', id: 'video-1' }],
+      } as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(ingredientsService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            id: { in: ['video-1', 'audio-gone'] },
+            isDeleted: false,
+            organizationId: testId('shared'),
+          },
+        },
+        { pagination: false },
+        false,
+      );
+      const [created] = editorProjectsService.create.mock.calls[0] as [
+        { tracks: Array<{ clips: Array<{ ingredientUrl: string }> }> },
+      ];
+      expect(created.tracks[0]).toEqual(tracks[0]);
+      expect(created.tracks[1].clips[0].ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/videos/video-1',
+      );
+      // An ingredient the organization can no longer read is not resolved.
+      expect(created.tracks[2].clips[0].ingredientUrl).toBe(
+        'https://assets.invalid/sounds/audio-gone',
+      );
+    });
+
+    it('does not query ingredients when the copy has no media clips', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('authorizes the source brand before copying', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(compositionsService.authorizeBrand).toHaveBeenCalledWith(
+        makeUser(),
+        testId('brand', 7),
+      );
+      expect(
+        compositionsService.authorizeBrand.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        editorProjectsService.create.mock.invocationCallOrder[0] ?? 0,
+      );
+    });
+
+    it('refuses to copy a brand the member is not assigned to', async () => {
+      // Codex P1: an org member assigned only to brand A must not create an
+      // editable draft under brand B from a brand B project id.
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      compositionsService.authorizeBrand.mockRejectedValue(
+        new ForbiddenException(
+          'This brand is not assigned to your membership.',
+        ),
+      );
+
+      await expect(
+        controller.duplicate(makeRequest(), makeUser(), 'brand-b-project'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+      expect(editorProjectsService.create).not.toHaveBeenCalled();
+    });
+
+    it('returns not found for a project outside the organization', async () => {
+      editorProjectsService.findOne.mockResolvedValue(null as never);
+
+      await expect(
+        controller.duplicate(makeRequest(), makeUser(), 'other-org-project'),
+      ).rejects.toThrow(NotFoundException);
+      expect(editorProjectsService.create).not.toHaveBeenCalled();
+    });
+  });
+
   it('preserves approved composition inputs and lifecycle across generic editor routes', async () => {
     const project = {
       ...makeProject(),
@@ -344,6 +596,7 @@ describe('EditorProjectsController', () => {
       controller.cancelRender(makeRequest(), makeUser(), String(project.id)),
     ).rejects.toThrow('composition cancel');
     expect(editorProjectsService.patch).not.toHaveBeenCalled();
+    expect(editorProjectsService.updateEditorContent).not.toHaveBeenCalled();
     expect(editorRenderService.render).not.toHaveBeenCalled();
     expect(editorRenderService.cancel).not.toHaveBeenCalled();
   });

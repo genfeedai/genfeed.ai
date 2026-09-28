@@ -4,6 +4,7 @@ export interface EditorTextPanelProps {
   tracks: IEditorTrack[];
   fps: number;
   totalFrames: number;
+  isReadOnly?: boolean;
   selectedTrackId: string | null;
   selectedClipId: string | null;
   onAddTextTrack: (track: IEditorTrack) => void;

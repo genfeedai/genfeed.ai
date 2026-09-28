@@ -6,4 +6,5 @@ export interface EditorTextTrackListProps {
   selectedClipId: string | null;
   onClipSelect: (trackId: string, clipId: string) => void;
   onDeleteTrack: (trackId: string) => void;
+  isReadOnly?: boolean;
 }
