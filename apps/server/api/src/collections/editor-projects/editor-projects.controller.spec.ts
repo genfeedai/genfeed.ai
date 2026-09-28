@@ -89,11 +89,7 @@ describe('EditorProjectsController', () => {
             findOne: vi.fn(),
             findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
-            readProjectConfig: vi.fn((value: unknown) =>
-              value && typeof value === 'object' && !Array.isArray(value)
-                ? value
-                : {},
-            ),
+            updateEditorContent: vi.fn(),
           },
         },
         {
@@ -276,113 +272,43 @@ describe('EditorProjectsController', () => {
 
   // ── update ────────────────────────────────────────────────────────────────
   describe('update', () => {
-    it('updates and returns the project', async () => {
+    it('applies Editor edits through the row-locked service update', async () => {
       const project = makeProject({ config: { name: 'My Project' } });
       const updated = { ...project, name: 'Updated' };
+      const tracks = [{ clips: [], id: 'track-1', name: 'Text 1' }];
+      const settings = { fps: 24 };
       editorProjectsService.findOne.mockResolvedValue(project as never);
-      editorProjectsService.patch.mockResolvedValue(updated as never);
+      editorProjectsService.updateEditorContent.mockResolvedValue(
+        updated as never,
+      );
 
       const result = await controller.update(
         makeRequest(),
         makeUser(),
         String(project.id),
-        { name: 'Updated' } as never,
-      );
-
-      expect(editorProjectsService.patch).toHaveBeenCalledWith(
-        String(project.id),
-        { config: { name: 'Updated' } },
-      );
-      expect(result).toMatchObject({ data: updated });
-    });
-
-    it('persists Editor fields under config and tracks as the column', async () => {
-      const settings = {
-        backgroundColor: '#000000',
-        format: 'portrait',
-        fps: 30,
-        height: 1920,
-        width: 1080,
-      };
-      const tracks = [{ clips: [], id: 'track-1', name: 'Text 1' }];
-      const project = makeProject({
-        config: {
-          name: 'Draft',
-          renderExport: { job: { jobId: 'job-1' } },
-          settings: { ...settings, format: 'landscape' },
-          sourceVideoId: 'video-1',
-          status: 'completed',
-          totalDurationFrames: 300,
-        },
-      });
-      editorProjectsService.findOne.mockResolvedValue(project as never);
-      editorProjectsService.patch.mockResolvedValue(project as never);
-
-      await controller.update(makeRequest(), makeUser(), String(project.id), {
-        name: 'Edited',
-        settings,
-        totalDurationFrames: 450,
-        tracks,
-      } as never);
-
-      expect(editorProjectsService.patch).toHaveBeenCalledWith(
-        String(project.id),
         {
-          config: {
-            name: 'Edited',
-            renderExport: { job: { jobId: 'job-1' } },
-            settings,
-            sourceVideoId: 'video-1',
-            status: 'completed',
-            totalDurationFrames: 450,
-          },
+          name: 'Updated',
+          settings,
+          thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
+          totalDurationFrames: 450,
+          tracks,
+        } as never,
+      );
+
+      expect(editorProjectsService.updateEditorContent).toHaveBeenCalledWith(
+        String(project.id),
+        testId('shared'),
+        {
+          name: 'Updated',
+          settings,
+          thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
+          totalDurationFrames: 450,
           tracks,
         },
       );
-    });
-
-    it('produces an update the generated Prisma client accepts', async () => {
-      // The service is mocked above, so a lenient mock would accept any
-      // shape. Validate the exact payload against the real generated client:
-      // it rejects unknown top-level fields (e.g. `name`) client-side, before
-      // any connection is attempted.
-      const { PrismaClient } =
-        await vi.importActual<typeof import('@genfeedai/prisma')>(
-          '@genfeedai/prisma',
-        );
-      const { PrismaPg } =
-        await vi.importActual<typeof import('@prisma/adapter-pg')>(
-          '@prisma/adapter-pg',
-        );
-      const project = makeProject({ config: { name: 'Draft' } });
-      editorProjectsService.findOne.mockResolvedValue(project as never);
-      editorProjectsService.patch.mockResolvedValue(project as never);
-
-      await controller.update(makeRequest(), makeUser(), String(project.id), {
-        name: 'Edited',
-        settings: { fps: 30 },
-        thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
-        totalDurationFrames: 450,
-        tracks: [],
-      } as never);
-
-      const [, data] = editorProjectsService.patch.mock.calls[0] as [
-        string,
-        Record<string, unknown>,
-      ];
-      const prisma = new PrismaClient({
-        adapter: new PrismaPg({
-          connectionString: 'postgresql://127.0.0.1:1/validation-only',
-        }),
-      });
-      const error = await prisma.editorProject
-        .update({ data, where: { id: String(project.id) } })
-        .catch((reason: unknown) => reason);
-      await prisma.$disconnect();
-
-      // Reaching the (unreachable) database proves validation passed.
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).name).not.toBe('PrismaClientValidationError');
+      // A read-then-patch would overwrite render status written in between.
+      expect(editorProjectsService.patch).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ data: updated });
     });
 
     it('throws NotFoundException when project not found during update', async () => {
@@ -536,6 +462,7 @@ describe('EditorProjectsController', () => {
       controller.cancelRender(makeRequest(), makeUser(), String(project.id)),
     ).rejects.toThrow('composition cancel');
     expect(editorProjectsService.patch).not.toHaveBeenCalled();
+    expect(editorProjectsService.updateEditorContent).not.toHaveBeenCalled();
     expect(editorRenderService.render).not.toHaveBeenCalled();
     expect(editorRenderService.cancel).not.toHaveBeenCalled();
   });
