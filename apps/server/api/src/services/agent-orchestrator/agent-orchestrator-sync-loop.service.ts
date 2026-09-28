@@ -23,14 +23,11 @@ import type {
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
-import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
-import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
-import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { buildAgentSyncResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-sync-response-metadata.util';
 import {
   extractThreadEnvelope,
   maybeUpdateThreadTitle,
@@ -386,38 +383,21 @@ export class AgentOrchestratorSyncLoopService {
               toolCalls: toolRoundState.toolCalls,
               uiActions: toolRoundState.uiActions,
             });
-          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
-            toolRoundState.artifactMetadata,
-          );
-          const assistantMetadata = {
-            ...artifactMetadata,
-            ...(params.approvedPlan
-              ? { proposedPlan: params.approvedPlan }
-              : {}),
-            ...buildAgentScopeMetadata(context),
-            ...buildAgentRoutingMetadata({
-              autoRouting: latestAutoRouting,
-              defaultModelKey,
-              model,
-              prompt: request.content,
-              source: request.source,
-            }),
+          const assistantMetadata = buildAgentSyncResponseMetadata({
+            actualModels: Array.from(actualModels),
+            approvedPlan: params.approvedPlan,
+            autoRouting: latestAutoRouting,
+            context,
+            defaultModelKey,
+            enhancedUiActions,
             isFallbackContent: normalizedContent.isFallback,
             memoryEntries: memoryEntriesForResponse,
             memoryInfluence,
-            ...buildResolvedModelMetadata(model, Array.from(actualModels)),
+            model,
             reasoning,
-            reviewRequired: toolRoundState.reviewRequired,
-            riskLevel: toolRoundState.highestRiskLevel,
-            ...(enhancedUiActions.suggestedActions.length
-              ? { suggestedActions: enhancedUiActions.suggestedActions }
-              : {}),
-            totalCreditsUsed: toolRoundState.totalCreditsUsed,
-            uiActions: enhancedUiActions.uiActions,
-            ...(toolRoundState.latestUiBlocks
-              ? { uiBlocks: toolRoundState.latestUiBlocks }
-              : {}),
-          };
+            request,
+            toolRoundState,
+          });
 
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,

@@ -150,7 +150,7 @@
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
   },
   {
-    "actual": 390,
+    "actual": 377,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
