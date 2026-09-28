@@ -1,3 +1,4 @@
+import { PricingType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { matchSchema } from '../bench/schema';
 import { SpendCapExceededError } from '../spend';
@@ -12,9 +13,11 @@ import type { FrameSamplerPort, VisionJudgePort } from './judge';
 import type { MediaProbePort } from './readiness';
 import { choiceForAnswer } from './report';
 import {
+  estimatedGenerationCredits,
   InsufficientJudgePanelError,
   type MediaLadderDeps,
   type MediaLadderOptions,
+  type MediaSpendPort,
   runMediaLadder,
 } from './run-media-ladder';
 import { loadBenchTasks, loadKelderBrandKit } from './tasks';
@@ -45,6 +48,7 @@ function contestant(
     },
     creditsPerOutput: 2,
     family,
+    pricing: { cost: 2, costPerUnit: null, minCost: null, pricingType: null },
     registryKey,
     route: isCompiled
       ? {
@@ -158,6 +162,10 @@ function harness(options: { spendCapAfter?: number } = {}): Harness {
       judge,
       now: () => new Date('2026-09-26T12:00:00.000Z'),
       probe,
+      references: {
+        resolveUrl: async (ingredientId) =>
+          `https://cdn.example/reference/${ingredientId}.png`,
+      },
       spend: {
         chargeGeneration: () => 'gen-call',
         reserveGeneration: () => {
@@ -309,6 +317,71 @@ describe('runMediaLadder', () => {
     ).toBe('readiness-blocked');
   });
 
+  it('shows judges the task’s reference asset, not just the two generated answers', async () => {
+    const referenceUrl = 'https://cdn.example/reference/ref-product-1.png';
+    const judgeMessages: Parameters<VisionJudgePort['judge']>[0]['messages'][] =
+      [];
+    const { deps } = harness();
+    const productConsistency = (
+      await loadBenchTasks({ includeDrafts: false, medium: 'image' })
+    ).filter(({ task }) => task.id === 'product-consistency');
+    expect(productConsistency.length).toBe(1);
+
+    const customDeps: MediaLadderDeps = {
+      ...deps,
+      judge: {
+        judge: async (request) => {
+          judgeMessages.push(request.messages);
+          const dims = () =>
+            Array.from({ length: request.rubricLines }, (_, line) => ({
+              line,
+              yesProbability: 0.9,
+            }));
+          const verdict: JudgeVerdict = {
+            a: { adherence: dims(), brandFit: null, craft: 0.9 },
+            b: { adherence: dims(), brandFit: null, craft: 0.9 },
+            choice: 'tie',
+            rationale: 'Fidelity looked the same either way.',
+          };
+          return {
+            callId: 'judge-call',
+            costUsd: 0.001,
+            latencyMs: 5,
+            verdict,
+          };
+        },
+      },
+      references: { resolveUrl: async () => referenceUrl },
+    };
+
+    await runMediaLadder(
+      customDeps,
+      {
+        ...(await options([STRONG, WEAK])),
+        references: { 'product-shot': ['ref-product-1'] },
+        tasks: productConsistency,
+      },
+      new AbortController().signal,
+    );
+
+    expect(judgeMessages.length).toBeGreaterThan(0);
+    const parts = judgeMessages.flatMap((messages) => {
+      const user = messages[1]?.content;
+      return Array.isArray(user) ? user : [];
+    });
+    const urls = parts.flatMap((part) =>
+      part.type === 'image_url' ? [part.image_url.url] : [],
+    );
+    expect(urls).toContain(referenceUrl);
+    const labels = parts.flatMap((part) =>
+      part.type === 'text' ? [part.text] : [],
+    );
+    expect(labels).toContain('Reference (product-shot):');
+    // The reference is shown before either generated answer, not mixed in.
+    expect(urls[0]).toBe(referenceUrl);
+    expect(urls.length).toBeGreaterThan(1);
+  });
+
   it('refuses before any generation when a pair cannot seat three cross-family judges', async () => {
     const { deps, generate } = harness();
     const base = await options([STRONG, WEAK]);
@@ -337,6 +410,106 @@ describe('runMediaLadder', () => {
     expect(partial?.isAborted).toBe(true);
     expect(partial?.answers).toHaveLength(1);
     expect(partial?.matches).toHaveLength(0);
+  });
+
+  /** Mirrors `SpendLedger`'s cap check without needing full call provenance. */
+  function capLimitedSpend(maxCredits: number): MediaSpendPort {
+    let spent = 0;
+    return {
+      chargeGeneration(input) {
+        spent += input.credits;
+        if (spent > maxCredits) {
+          throw new SpendCapExceededError(maxCredits, spent);
+        }
+        return 'gen-call';
+      },
+      reserveGeneration(credits) {
+        const attempted = spent + Math.max(0, credits);
+        if (attempted > maxCredits) {
+          throw new SpendCapExceededError(maxCredits, attempted);
+        }
+      },
+    };
+  }
+
+  it('reserves a per-megapixel model at its exact requested price, so the spend cap trips before the paid call', async () => {
+    const megapixelContestant: MediaContestant = {
+      ...STRONG,
+      contestant: { ...STRONG.contestant, id: 'megapixel.model' },
+      creditsPerOutput: 4,
+      pricing: {
+        cost: 4,
+        costPerUnit: 4,
+        minCost: 0,
+        pricingType: PricingType.PER_MEGAPIXEL,
+      },
+    };
+    const generate = vi.fn(
+      async (
+        request: Parameters<MediaGenerationPort['generate']>[0],
+      ): ReturnType<MediaGenerationPort['generate']> => ({
+        costEvidence: 'reported',
+        // The real per-megapixel provider charge for this request's actual
+        // size — far above the contestant's flat `creditsPerOutput`.
+        creditsCharged: 7,
+        error: null,
+        fetchUrl: `https://cdn.example/${request.contestant.contestant.id}/${request.seed}/${request.width}x${request.height}.png`,
+        ingredientId: `${request.contestant.contestant.id}-${request.seed}`,
+        latencyMs: 10,
+        settings: { model: request.contestant.registryKey },
+        status: 'generated',
+      }),
+    );
+    const { deps: baseDeps } = harness();
+    const deps: MediaLadderDeps = {
+      ...baseDeps,
+      generation: { generate },
+      // Between the flat rate (4) and the true per-megapixel charge (7):
+      // the fix must reserve the accurate cost and abort before dispatch.
+      spend: capLimitedSpend(5),
+    };
+
+    await expect(
+      runMediaLadder(
+        deps,
+        await options([megapixelContestant, WEAK]),
+        new AbortController().signal,
+      ),
+    ).rejects.toBeInstanceOf(SpendCapExceededError);
+    expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+describe('estimatedGenerationCredits', () => {
+  const megapixelContestant: MediaContestant = {
+    ...STRONG,
+    creditsPerOutput: 4,
+    pricing: {
+      cost: 4,
+      costPerUnit: 4,
+      minCost: 0,
+      pricingType: PricingType.PER_MEGAPIXEL,
+    },
+  };
+
+  it('prices a per-megapixel model by the exact output requested, not its default rate', () => {
+    // 1536×1536 = 2.359296 MP × 4 credits/MP = 9.44 -> ceil 10, well above
+    // the flat `creditsPerOutput` a reservation used to reserve at.
+    const credits = estimatedGenerationCredits(
+      'image',
+      megapixelContestant,
+      1536,
+      1536,
+      null,
+    );
+    expect(credits).toBe(10);
+    expect(credits).toBeGreaterThan(megapixelContestant.creditsPerOutput);
+  });
+
+  it('falls back to the flat registry rate for a flat-priced model', () => {
+    expect(estimatedGenerationCredits('image', STRONG, 1536, 1536, null)).toBe(
+      STRONG.creditsPerOutput,
+    );
   });
 });
 

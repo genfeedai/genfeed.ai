@@ -108,6 +108,15 @@ export const judgeVoteSchema = z.object({
   choice: z.enum(PAIRWISE_CHOICES).nullable(),
   family: z.string().min(1),
   judgeRegistryKey: z.string().min(1),
+  /**
+   * The single pairwise comparison this vote's `choice` decided; null when
+   * the vote has no match (pointwise judging). A row can carry votes from
+   * several matches against different opponents (a round robin), so a
+   * consumer comparing `choice` values across votes must group by `matchId`
+   * first — otherwise unanimous wins against one opponent and unanimous
+   * losses against another read as judges disagreeing with each other.
+   */
+  matchId: z.string().nullable(),
   model: z.string().min(1),
   modelVersion: z.string().nullable(),
   provider: z.string().nullable(),

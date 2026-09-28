@@ -85,6 +85,21 @@ export const mediaRouteSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
+/**
+ * Registry pricing row, verbatim from `GET /models`: the same shape
+ * `@genfeedai/pricing`'s `calculateImageGenerationCredits` /
+ * `calculateVideoGenerationCredits` price a request from. A flat-priced model
+ * has `pricingType: null`; a dimension- or duration-priced model needs
+ * `costPerUnit` to reprice the exact width/height/duration requested, since
+ * `cost` alone is only its default (e.g. 1024×1024) rate.
+ */
+export const mediaPricingSnapshotSchema = z.object({
+  cost: z.number().nonnegative().nullable(),
+  costPerUnit: z.number().nonnegative().nullable(),
+  minCost: z.number().nonnegative().nullable(),
+  pricingType: z.string().nullable(),
+});
+
 export const mediaContestantSchema = z.object({
   contestant: contestantSchema,
   registryKey: z.string().min(1),
@@ -92,6 +107,8 @@ export const mediaContestantSchema = z.object({
   route: mediaRouteSchema,
   /** Registry credits per output; used for the reservation estimate. */
   creditsPerOutput: z.number().nonnegative(),
+  /** Dynamic pricing snapshot; reprices the exact request before dispatch. */
+  pricing: mediaPricingSnapshotSchema,
 });
 
 export const judgeSpecSchema = z.object({
@@ -247,6 +264,7 @@ export type BrandKit = z.infer<typeof brandKitSchema>;
 export type MediaTask = z.infer<typeof mediaTaskSchema>;
 export type MediaRoute = z.infer<typeof mediaRouteSchema>;
 export type MediaContestant = z.infer<typeof mediaContestantSchema>;
+export type MediaPricingSnapshot = z.infer<typeof mediaPricingSnapshotSchema>;
 export type JudgeSpec = z.infer<typeof judgeSpecSchema>;
 export type AnswerDimensions = z.infer<typeof answerDimensionsSchema>;
 export type JudgeVerdict = z.infer<typeof judgeVerdictSchema>;

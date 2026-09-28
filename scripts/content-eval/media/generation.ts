@@ -49,6 +49,16 @@ export interface MediaGenerationPort {
   ): Promise<MediaGenerationResult>;
 }
 
+/**
+ * Resolves a reference-role ingredient id (a pre-existing eval-org asset
+ * supplied via `--references`) to a fetchable image URL, so the judge can be
+ * shown the same product shot / character sheet / style frame the generation
+ * request cited — never just the generated outputs.
+ */
+export interface MediaReferencePort {
+  resolveUrl(ingredientId: string, signal: AbortSignal): Promise<string>;
+}
+
 export interface ProductApiClientOptions {
   apiUrl: string;
   apiKey: string;
@@ -67,8 +77,74 @@ interface JsonApiDocument {
 
 const SUCCESS_STATUSES = new Set(['GENERATED', 'UPLOADED', 'VALIDATED']);
 
+/**
+ * Non-terminal `IngredientStatus` values. Some providers (Fal's image/video
+ * adapters are `completionKind: 'background-only'`) never honour
+ * `waitForCompletion: true`: the initial response lands with the ingredient
+ * still `DRAFT`/`PROCESSING`, so a caller that reads it once would record a
+ * paid, still-running generation as an immediate failure.
+ */
+const PENDING_STATUSES = new Set(['DRAFT', 'PROCESSING']);
+
 /** Status text that means the provider refused rather than failed. */
 const REFUSAL_PATTERN = /(safety|moderation|nsfw|content policy|refus)/i;
+
+/**
+ * Poll cadence per medium, mirroring the server's own completion polling
+ * (`IngredientCompletionService`, `apps/server/api/.../image-generation.service.ts`
+ * and `.../video-generation-completion.service.ts`): images settle faster
+ * than video, so video gets a longer interval and ceiling.
+ */
+const PENDING_POLL: Record<Medium, { intervalMs: number; timeoutMs: number }> =
+  {
+    image: { intervalMs: 2_000, timeoutMs: 180_000 },
+    video: { intervalMs: 5_000, timeoutMs: 600_000 },
+  };
+
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
+
+interface GenerationAttributes {
+  status: string;
+  generationError: string | null;
+  fetchUrl: string | null;
+}
+
+function readGenerationAttributes(
+  document: JsonApiDocument | null,
+): GenerationAttributes {
+  const attributes = document?.data?.attributes ?? {};
+  return {
+    fetchUrl:
+      typeof attributes.url === 'string'
+        ? attributes.url
+        : typeof attributes.cdnUrl === 'string'
+          ? attributes.cdnUrl
+          : null,
+    generationError:
+      typeof attributes.generationError === 'string'
+        ? attributes.generationError
+        : typeof attributes.error === 'string'
+          ? attributes.error
+          : null,
+    status: typeof attributes.status === 'string' ? attributes.status : '',
+  };
+}
 
 export function buildGenerationBody(
   request: MediaGenerationRequest,
@@ -112,13 +188,45 @@ export function settingsFromBody(
   return settings;
 }
 
-export class ProductApiMediaGeneration implements MediaGenerationPort {
+export class ProductApiMediaGeneration
+  implements MediaGenerationPort, MediaReferencePort
+{
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
 
   constructor(private readonly options: ProductApiClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? Date.now;
+  }
+
+  /** Reference ids are always image ingredients, whatever medium generates. */
+  async resolveUrl(ingredientId: string, signal: AbortSignal): Promise<string> {
+    const response = await this.fetchImpl(this.url(`/images/${ingredientId}`), {
+      headers: this.headers(),
+      method: 'GET',
+      signal,
+    });
+    const payload = (await response
+      .json()
+      .catch(() => null)) as JsonApiDocument | null;
+    if (!response.ok) {
+      throw new Error(
+        `reference ingredient ${ingredientId} could not be read: HTTP ${response.status}: ${readErrorMessage(payload)}`,
+      );
+    }
+    const attributes = payload?.data?.attributes ?? {};
+    const url =
+      typeof attributes.url === 'string'
+        ? attributes.url
+        : typeof attributes.cdnUrl === 'string'
+          ? attributes.cdnUrl
+          : null;
+    if (!url) {
+      throw new Error(
+        `reference ingredient ${ingredientId} has no fetchable url`,
+      );
+    }
+    return url;
   }
 
   async generate(
@@ -150,6 +258,24 @@ export class ProductApiMediaGeneration implements MediaGenerationPort {
       if (signal.aborted) throw caught;
       error = caught instanceof Error ? caught.message : String(caught);
     }
+
+    let hasTimedOutPending = false;
+    let pollTimeoutMs = 0;
+    if (error === null && document?.data?.id) {
+      const ingredientId = document.data.id;
+      if (PENDING_STATUSES.has(readGenerationAttributes(document).status)) {
+        const cadence = PENDING_POLL[request.medium];
+        pollTimeoutMs = cadence.timeoutMs;
+        const polled = await this.pollUntilTerminal(
+          path,
+          ingredientId,
+          cadence,
+          signal,
+        );
+        document = polled.document ?? document;
+        hasTimedOutPending = polled.hasTimedOut;
+      }
+    }
     const latencyMs = Math.max(0, Math.round(this.now() - startedAt));
 
     const balanceAfter = await this.readBalance(signal);
@@ -164,21 +290,8 @@ export class ProductApiMediaGeneration implements MediaGenerationPort {
         reported ?? (error === null ? request.contestant.creditsPerOutput : 0),
     };
 
-    const attributes = document?.data?.attributes ?? {};
-    const status =
-      typeof attributes.status === 'string' ? attributes.status : '';
-    const generationError =
-      typeof attributes.generationError === 'string'
-        ? attributes.generationError
-        : typeof attributes.error === 'string'
-          ? attributes.error
-          : null;
-    const fetchUrl =
-      typeof attributes.url === 'string'
-        ? attributes.url
-        : typeof attributes.cdnUrl === 'string'
-          ? attributes.cdnUrl
-          : null;
+    const { fetchUrl, generationError, status } =
+      readGenerationAttributes(document);
 
     if (error === null && SUCCESS_STATUSES.has(status) && fetchUrl) {
       return {
@@ -193,7 +306,11 @@ export class ProductApiMediaGeneration implements MediaGenerationPort {
     }
 
     const detail =
-      error ?? generationError ?? `ingredient status "${status || 'unknown'}"`;
+      error ??
+      generationError ??
+      (hasTimedOutPending
+        ? `generation still "${status}" after polling ${pollTimeoutMs}ms`
+        : `ingredient status "${status || 'unknown'}"`);
     return {
       ...credits,
       error: detail,
@@ -203,6 +320,40 @@ export class ProductApiMediaGeneration implements MediaGenerationPort {
       settings,
       status: REFUSAL_PATTERN.test(detail) ? 'refused' : 'failed',
     };
+  }
+
+  /**
+   * Polls a background-only provider's ingredient (Fal never resolves
+   * `waitForCompletion` synchronously) until it leaves `PENDING_STATUSES` or
+   * the timeout elapses.
+   */
+  private async pollUntilTerminal(
+    path: string,
+    ingredientId: string,
+    cadence: { intervalMs: number; timeoutMs: number },
+    signal: AbortSignal,
+  ): Promise<{ document: JsonApiDocument | null; hasTimedOut: boolean }> {
+    const deadline = this.now() + cadence.timeoutMs;
+    let document: JsonApiDocument | null = null;
+    while (this.now() < deadline) {
+      await delay(cadence.intervalMs, signal);
+      const response = await this.fetchImpl(
+        this.url(`${path}/${ingredientId}`),
+        {
+          headers: this.headers(),
+          method: 'GET',
+          signal,
+        },
+      );
+      if (!response.ok) continue;
+      document = (await response
+        .json()
+        .catch(() => null)) as JsonApiDocument | null;
+      if (!PENDING_STATUSES.has(readGenerationAttributes(document).status)) {
+        return { document, hasTimedOut: false };
+      }
+    }
+    return { document, hasTimedOut: true };
   }
 
   private async readBalance(signal: AbortSignal): Promise<number | null> {

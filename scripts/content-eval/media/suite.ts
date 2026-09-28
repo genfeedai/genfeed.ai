@@ -58,6 +58,7 @@ import {
   StubFrameSampler,
   StubMediaGeneration,
   StubMediaProbe,
+  StubMediaReferences,
 } from './stubs';
 import {
   assertUniqueTaskIds,
@@ -168,7 +169,17 @@ function readReferences(
   return references;
 }
 
-function readCalibration(argv: string[]): CalibrationStatus {
+/**
+ * Decision-grade requires live evidence that measured model quality with the
+ * exact vision-judge panel this run configured — a passing report is not
+ * enough on its own: a stub run always reports `passed: true` on synthetic
+ * verdicts (`modelQualityAssessed: false`), and a report calibrated for a
+ * different judge panel says nothing about this run's judges.
+ */
+function readCalibration(
+  argv: string[],
+  judges: readonly JudgeSpec[],
+): CalibrationStatus {
   const path = readFlag(argv, 'calibration-report');
   if (!path) {
     return {
@@ -182,11 +193,23 @@ function readCalibration(argv: string[]): CalibrationStatus {
     JSON.parse(readFileSync(resolveRepoPath(path), 'utf8')),
   );
   const isPassingJudgeReport = report.suite === 'judge' && report.passed;
+  const configuredJudges = new Set(judges.map((judge) => judge.modelId));
+  const calibratedJudges = new Set(report.config.judgeRegistryKeys);
+  const isSamePanel =
+    configuredJudges.size === calibratedJudges.size &&
+    [...configuredJudges].every((modelId) => calibratedJudges.has(modelId));
+  const isDecisionGrade =
+    isPassingJudgeReport && report.modelQualityAssessed && isSamePanel;
+  const reason = !isPassingJudgeReport
+    ? `Linked report ${report.runId} is not a passing judge calibration report.`
+    : !report.modelQualityAssessed
+      ? `Linked judge calibration report ${report.runId} ran on a stub dispatcher and never measured model quality.`
+      : !isSamePanel
+        ? `Linked judge calibration report ${report.runId} calibrated a different judge panel (${[...calibratedJudges].sort().join(', ')}) than this run's (${[...configuredJudges].sort().join(', ')}).`
+        : `Linked judge calibration report ${report.runId} passed its thresholds on this run's vision judges.`;
   return {
-    isDecisionGrade: isPassingJudgeReport,
-    reason: isPassingJudgeReport
-      ? `Linked judge calibration report ${report.runId} passed its thresholds.`
-      : `Linked report ${report.runId} is not a passing judge calibration report.`,
+    isDecisionGrade,
+    reason,
     reportRef: toRepoRelativePath(path),
   };
 }
@@ -401,7 +424,7 @@ export function createMediaLadderSuite(): SuiteRunner {
         isGrid,
         options: {
           brandIds,
-          calibration: readCalibration(argv),
+          calibration: readCalibration(argv, judges),
           contestants,
           judges,
           kit,
@@ -437,15 +460,16 @@ export function createMediaLadderSuite(): SuiteRunner {
           sha256Digest(canonicalJson(task.task.rubric)),
         ]),
       );
+      const productApi =
+        !isStub && current.apiUrl && current.apiKey
+          ? new ProductApiMediaGeneration({
+              apiKey: current.apiKey,
+              apiUrl: current.apiUrl,
+            })
+          : null;
       const deps: MediaLadderDeps = {
         frames: isStub ? new StubFrameSampler() : new FfmpegFrameSampler(),
-        generation:
-          isStub || !current.apiUrl || !current.apiKey
-            ? new StubMediaGeneration()
-            : new ProductApiMediaGeneration({
-                apiKey: current.apiKey,
-                apiUrl: current.apiUrl,
-              }),
+        generation: productApi ?? new StubMediaGeneration(),
         judge: buildJudgePort(dispatcher, context.ledger, (rowId) => {
           const taskId = rowId.split(':')[1] ?? '';
           return (
@@ -454,6 +478,7 @@ export function createMediaLadderSuite(): SuiteRunner {
         }),
         now: () => new Date(),
         probe: isStub ? new StubMediaProbe() : new FfprobeMediaProbe(),
+        references: productApi ?? new StubMediaReferences(),
         spend: buildSpendPort(context.ledger),
       };
 

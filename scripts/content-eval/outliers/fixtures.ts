@@ -43,12 +43,14 @@ export function syntheticVote(
   score: number | null,
   choice: JudgeVote['choice'] = null,
   rationale: string | null = `${judge} rationale`,
+  matchId: string | null = null,
 ): JudgeVote {
   return {
     callId: null,
     choice,
     family: `${judge}-family`,
     judgeRegistryKey: `synthetic/${judge}-judge`,
+    matchId,
     model: `${judge}-judge`,
     modelVersion: `${judge}-judge@2026-09-01`,
     provider: 'synthetic',
