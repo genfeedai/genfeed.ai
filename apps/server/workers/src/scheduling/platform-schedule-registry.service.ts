@@ -42,10 +42,9 @@ const DRAIN_PAGE_SIZE = 100;
 /**
  * Bounded immediate retry for the post-removal cancellation CAS (release
  * review finding): the removal already committed, so a transient DB blip on
- * the very next call would otherwise turn a routine one-time migration
- * cleanup into a row the reconciler later fails loudly — customer-visible
- * notification/webhook plus `consecutiveFailures` accounting the row never
- * earned, potentially disabling a strategy. Matches the immediate bounded
+ * the very next call would otherwise delay the cancel. An outage outlasting
+ * these attempts is covered by the persisted cancellation intent (#5450), not
+ * by counting the row as a strategy failure. Matches the immediate bounded
  * retry loops already used for a Prisma write elsewhere in this app (e.g.
  * `SchedulerPublishStateService.transition`).
  */
@@ -106,10 +105,12 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
    * cancelled out from under the worker running it. Only once the removal
    * itself succeeds (the job was still genuinely queued) does
    * `cancelExecution` run, as a silent CAS onto `CANCELLED` — no
-   * notification, no webhook, no `recordRun`. If that CAS then fails, the
-   * job is already gone but the row stays `PENDING`; that gap is bounded by
-   * `PendingWorkflowExecutionReconcileService`'s own independent sweep
-   * rather than left to a second drain (this migration runs once, ever).
+   * notification, no webhook, no `recordRun`. Before removing, the drain
+   * persists a cancellation intent on the execution row (#5450); if the CAS
+   * then keeps failing, the job is already gone but the row stays `PENDING`
+   * with that intent, and `PendingWorkflowExecutionReconcileService` finishes
+   * the silent cancel later (rather than a second drain — this migration
+   * runs once, ever) instead of failing it as a never-claimed run.
    */
   async drainStalePlatformSourcedJobs(): Promise<void> {
     try {
@@ -186,6 +187,23 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       return false;
     }
 
+    // Persist the cancellation intent BEFORE the job disappears (#5450). The
+    // reconciler honours it with a silent cancel, so a database outage that
+    // outlasts the bounded retries below can never turn this drained run into
+    // a loud `completeExecution` failure (customer-visible notification plus
+    // `consecutiveFailures` accounting that can disable a strategy). If the
+    // intent itself cannot be recorded, leave the job queued: it just runs or
+    // is closed by the reconciler as before, and no execution is orphaned.
+    try {
+      await this.workflowExecutions.requestCancellation(executionId);
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.context} could not record the cancellation intent for a stale platform-sourced job — leaving it queued`,
+        { error, executionId, jobId: job.id },
+      );
+      return false;
+    }
+
     try {
       await job.remove();
     } catch (error: unknown) {
@@ -193,11 +211,13 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       // getJobs() page and this remove() call: it is now live work, not
       // stale. Leave it — and the execution behind it — completely alone;
       // cancelling here would CAS a RUNNING execution to CANCELLED out from
-      // under the worker actively processing it.
+      // under the worker actively processing it. Withdraw the intent so the
+      // reconciler never cancels this live run later.
       this.logger.debug(
         `${this.context} stale platform-sourced job was already active or gone when draining`,
         { error, jobId: job.id },
       );
+      await this.clearCancellationIntent(executionId);
       return false;
     }
 
@@ -212,7 +232,7 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       } catch (error: unknown) {
         if (attempt === CANCEL_EXECUTION_MAX_ATTEMPTS) {
           this.logger.error(
-            `${this.context} removed a stale platform-sourced job but failed to cancel its execution after ${CANCEL_EXECUTION_MAX_ATTEMPTS} attempts — the row stays PENDING for the reconciler to close`,
+            `${this.context} removed a stale platform-sourced job but failed to cancel its execution after ${CANCEL_EXECUTION_MAX_ATTEMPTS} attempts — the persisted cancellation intent lets the reconciler close the row silently`,
             { error, executionId, jobId: job.id },
           );
           return false;
@@ -224,6 +244,17 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       }
     }
     return false;
+  }
+
+  private async clearCancellationIntent(executionId: string): Promise<void> {
+    try {
+      await this.workflowExecutions.clearCancellationRequest(executionId);
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.context} could not withdraw the cancellation intent for a live platform-sourced job`,
+        { error, executionId },
+      );
+    }
   }
 
   async reconcile(): Promise<void> {
