@@ -341,6 +341,50 @@ describe('EditorProjectsController', () => {
       );
     });
 
+    it('produces an update the generated Prisma client accepts', async () => {
+      // The service is mocked above, so a lenient mock would accept any
+      // shape. Validate the exact payload against the real generated client:
+      // it rejects unknown top-level fields (e.g. `name`) client-side, before
+      // any connection is attempted.
+      const { PrismaClient } =
+        await vi.importActual<typeof import('@genfeedai/prisma')>(
+          '@genfeedai/prisma',
+        );
+      const { PrismaPg } =
+        await vi.importActual<typeof import('@prisma/adapter-pg')>(
+          '@prisma/adapter-pg',
+        );
+      const project = makeProject({ config: { name: 'Draft' } });
+      editorProjectsService.findOne.mockResolvedValue(project as never);
+      editorProjectsService.patch.mockResolvedValue(project as never);
+
+      await controller.update(makeRequest(), makeUser(), String(project.id), {
+        name: 'Edited',
+        settings: { fps: 30 },
+        thumbnailUrl: 'https://cdn.example.test/thumb.jpg',
+        totalDurationFrames: 450,
+        tracks: [],
+      } as never);
+
+      const [, data] = editorProjectsService.patch.mock.calls[0] as [
+        string,
+        Record<string, unknown>,
+      ];
+      const prisma = new PrismaClient({
+        adapter: new PrismaPg({
+          connectionString: 'postgresql://127.0.0.1:1/validation-only',
+        }),
+      });
+      const error = await prisma.editorProject
+        .update({ data, where: { id: String(project.id) } })
+        .catch((reason: unknown) => reason);
+      await prisma.$disconnect();
+
+      // Reaching the (unreachable) database proves validation passed.
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).name).not.toBe('PrismaClientValidationError');
+    });
+
     it('throws NotFoundException when project not found during update', async () => {
       editorProjectsService.findOne.mockResolvedValue(null as never);
 
