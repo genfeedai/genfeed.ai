@@ -62,6 +62,11 @@ export class AgentOrchestratorUiActionPlanService {
       approvedAt,
       awaitingApproval: false,
       content: planContent,
+      createdAt:
+        typeof latestPlan?.createdAt === 'string'
+          ? latestPlan.createdAt
+          : approvedAt,
+      updatedAt: approvedAt,
       explanation:
         typeof latestPlan?.explanation === 'string'
           ? latestPlan.explanation
@@ -87,7 +92,8 @@ export class AgentOrchestratorUiActionPlanService {
     };
     const priority =
       params.context.generationPriority ?? RouterPriority.BALANCED;
-    const result = await host.executeSynchronousChatLoop({
+    return host.executeSynchronousChatLoop({
+      approvedPlan,
       context: params.context,
       generationPriority: priority,
       model: params.model,
@@ -111,25 +117,6 @@ export class AgentOrchestratorUiActionPlanService {
       threadId: params.threadId,
       turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
     });
-    // The approval's result names the approved plan, so the client that
-    // receives it shows the plan approved from the same event.
-    return {
-      ...result,
-      message: {
-        ...result.message,
-        metadata: {
-          ...result.message.metadata,
-          proposedPlan: {
-            ...approvedPlan,
-            createdAt:
-              typeof latestPlan?.createdAt === 'string'
-                ? latestPlan.createdAt
-                : approvedAt,
-            updatedAt: approvedAt,
-          },
-        },
-      },
-    };
   }
 
   private async executeRevisedPlan(

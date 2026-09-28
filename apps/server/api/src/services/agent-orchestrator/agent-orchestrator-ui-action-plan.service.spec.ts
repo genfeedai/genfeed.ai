@@ -53,7 +53,7 @@ describe('AgentOrchestratorUiActionPlanService approve_plan', () => {
       },
     });
 
-    const result = await service.execute(
+    await service.execute(
       'approve_plan',
       params(),
       host as unknown as AgentOrchestratorUiActionHost,
@@ -61,15 +61,15 @@ describe('AgentOrchestratorUiActionPlanService approve_plan', () => {
 
     expect(recorder.recordPlanUpserted).toHaveBeenCalledTimes(1);
     expect(host.executeSynchronousChatLoop).toHaveBeenCalledTimes(1);
-    // The approval's result names the approved plan, so the client receiving
-    // it shows the plan approved from that same event.
-    expect(result.message.metadata.proposedPlan).toEqual(
+    expect(host.executeSynchronousChatLoop).toHaveBeenCalledWith(
       expect.objectContaining({
-        awaitingApproval: false,
-        content: 'Step one',
-        id: 'plan-1',
-        lastReviewAction: 'approve',
-        status: 'approved',
+        approvedPlan: expect.objectContaining({
+          awaitingApproval: false,
+          content: 'Step one',
+          id: 'plan-1',
+          lastReviewAction: 'approve',
+          status: 'approved',
+        }),
       }),
     );
   });

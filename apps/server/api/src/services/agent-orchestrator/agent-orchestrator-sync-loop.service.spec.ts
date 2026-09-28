@@ -36,34 +36,55 @@ function setup() {
     reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation' }),
     settleReservation: vi.fn(),
     releaseReservation: vi.fn(),
+    getOrganizationCreditsBalance: vi.fn().mockResolvedValue(90),
   };
   const context = {
     resolveThreadMessages: vi
       .fn()
       .mockResolvedValue({ messages: [], compressedContext: '' }),
     buildMessageHistory: vi.fn().mockReturnValue([]),
+    buildMemoryEntriesForResponse: vi.fn().mockReturnValue([]),
+    buildMemoryInfluenceMetadata: vi.fn().mockReturnValue({}),
   };
   const runner = {
     recordAgentResponseModel: vi.fn().mockResolvedValue('model'),
     executeToolRound: vi.fn().mockResolvedValue({ isCancelled: false }),
   };
   const routing = { resolve: vi.fn() };
+  const messages = { addMessage: vi.fn() };
+  const recorder = {
+    recordThreadTurnStarted: vi.fn(),
+    recordRunFailed: vi.fn(),
+    recordAssistantFinalized: vi.fn(),
+    recordRunCompleted: vi.fn(),
+  };
   const service = new AgentOrchestratorSyncLoopService(
     provider as never,
     registry as never,
     {} as never,
-    {} as never,
+    messages as never,
     credits as never,
     runner as never,
-    {} as never,
+    { isBatchGenerationIntent: vi.fn().mockReturnValue(false) } as never,
     context as never,
-    {} as never,
-    { recordThreadTurnStarted: vi.fn(), recordRunFailed: vi.fn() } as never,
+    {
+      buildAssistantUiActions: vi.fn().mockReturnValue({
+        uiActions: [],
+        suggestedActions: [],
+      }),
+    } as never,
+    recorder as never,
     routing as never,
   );
-  const run = (creditBudget: number) =>
+  const run = (creditBudget: number, approvedPlan?: Record<string, unknown>) =>
     service.executeSynchronousChatLoop({
-      context: { organizationId: 'org', userId: 'user', creditBudget },
+      approvedPlan,
+      context: {
+        organizationId: 'org',
+        userId: 'user',
+        creditBudget,
+        executionId: 'approval-run',
+      },
       threadId: 'thread',
       generationPriority: RouterPriority.QUALITY,
       model: 'model',
@@ -73,7 +94,7 @@ function setup() {
       seedTitle: '',
       turnCost: 5,
     });
-  return { provider, credits, routing, runner, run };
+  return { provider, credits, routing, runner, run, messages, recorder };
 }
 
 describe('LLM round credit caps', () => {
@@ -95,6 +116,56 @@ describe('LLM round credit caps', () => {
       expect.objectContaining({
         state: expect.objectContaining({ totalCreditsUsed: 5 }),
       }),
+    );
+  });
+});
+
+describe('approved plan recovery metadata', () => {
+  it('persists the approved plan with its run before publishing completion', async () => {
+    const { run, provider, messages, recorder } = setup();
+    provider.chatCompletion.mockResolvedValue({
+      id: 'reply',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      choices: [
+        {
+          message: {
+            content: 'Plan executed.',
+            role: 'assistant',
+            tool_calls: [],
+          },
+        },
+      ],
+    });
+    const approvedPlan = {
+      id: 'plan-1',
+      content: 'Publish the draft',
+      status: 'approved',
+      awaitingApproval: false,
+      lastReviewAction: 'approve',
+      createdAt: '2026-09-28T09:00:00.000Z',
+      updatedAt: '2026-09-28T09:01:00.000Z',
+      approvedAt: '2026-09-28T09:01:00.000Z',
+    };
+
+    const result = await run(5, approvedPlan);
+
+    expect(messages.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          proposedPlan: approvedPlan,
+          runId: 'approval-run',
+        }),
+      }),
+    );
+    expect(recorder.recordAssistantFinalized).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ proposedPlan: approvedPlan }),
+        runId: 'approval-run',
+      }),
+    );
+    expect(result.message.metadata.proposedPlan).toEqual(approvedPlan);
+    expect(messages.addMessage.mock.invocationCallOrder[0]).toBeLessThan(
+      recorder.recordRunCompleted.mock.invocationCallOrder[0],
     );
   });
 });

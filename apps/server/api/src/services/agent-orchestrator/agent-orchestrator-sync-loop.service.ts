@@ -149,6 +149,7 @@ export class AgentOrchestratorSyncLoopService {
   }
 
   async executeSynchronousChatLoop(params: {
+    approvedPlan?: Record<string, unknown>;
     context: AgentChatContext;
     threadId: string;
     generationPriority: RouterPriority;
@@ -390,6 +391,9 @@ export class AgentOrchestratorSyncLoopService {
           );
           const assistantMetadata = {
             ...artifactMetadata,
+            ...(params.approvedPlan
+              ? { proposedPlan: params.approvedPlan }
+              : {}),
             ...buildAgentScopeMetadata(context),
             ...buildAgentRoutingMetadata({
               autoRouting: latestAutoRouting,

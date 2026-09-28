@@ -517,6 +517,131 @@ describe('ui-action results as thread events', () => {
     expect(uiActionState()?.status).toBe('completed');
   });
 
+  it('recovers the approved plan from its persisted reply when the socket event is missed', async () => {
+    vi.useFakeTimers();
+    const proposedPlan: AgentProposedPlan = {
+      id: 'plan-1',
+      content: 'Publish the draft',
+      status: 'awaiting_approval',
+      awaitingApproval: true,
+      createdAt: '2026-09-28T09:00:00.000Z',
+      updatedAt: '2026-09-28T09:00:00.000Z',
+    };
+    const approvedPlan: AgentProposedPlan = {
+      ...proposedPlan,
+      awaitingApproval: false,
+      status: 'approved',
+      lastReviewAction: 'approve',
+      approvedAt: '2026-09-28T09:01:00.000Z',
+      updatedAt: '2026-09-28T09:01:00.000Z',
+    };
+    const proposal = message('plan-proposal', { metadata: { proposedPlan } });
+    useAgentChatStore.getState().setMessages([proposal]);
+    const getMessages = vi.fn().mockResolvedValue([
+      proposal,
+      message('approval-reply', {
+        metadata: { runId: 'exec-1', proposedPlan: approvedPlan },
+      }),
+    ]);
+    const apiService = {
+      ...ackingApi(),
+      getMessages,
+    } as unknown as AgentApiService;
+    const { deps } = renderStream(apiService);
+
+    await act(async () => {
+      await handleAgentUiAction('approve_plan', { planId: 'plan-1' }, deps());
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STREAM_COMPLETION_POLL_INTERVAL_MS);
+    });
+
+    expect(uiActionState('approve_plan:plan-1')?.status).toBe('completed');
+    expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+      approvedPlan,
+    );
+    expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
+  });
+
+  it('does not apply an approval recovery after a newer run takes ownership', async () => {
+    vi.useFakeTimers();
+    let resolveMessages!: (messages: AgentChatMessage[]) => void;
+    const getMessages = vi.fn().mockReturnValue(
+      new Promise<AgentChatMessage[]>((resolve) => {
+        resolveMessages = resolve;
+      }),
+    );
+    const respondToUiAction = vi
+      .fn()
+      .mockResolvedValueOnce({
+        executionId: 'exec-1',
+        status: 'queued',
+        threadId: 'thread-a',
+      })
+      .mockResolvedValueOnce({
+        executionId: 'exec-2',
+        status: 'queued',
+        threadId: 'thread-a',
+      });
+    const { deps } = renderStream({
+      getMessages,
+      respondToUiAction,
+    } as unknown as AgentApiService);
+    await act(async () => {
+      await handleAgentUiAction('approve_plan', { planId: 'plan-1' }, deps());
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(STREAM_COMPLETION_POLL_INTERVAL_MS);
+    });
+    const newerPlan: AgentProposedPlan = {
+      id: 'plan-2',
+      content: 'New plan',
+      status: 'awaiting_approval',
+      awaitingApproval: true,
+      createdAt: '2026-09-28T09:02:00.000Z',
+      updatedAt: '2026-09-28T09:02:00.000Z',
+    };
+    act(() => {
+      useAgentChatStore
+        .getState()
+        .setMessages([
+          message('newer-plan', { metadata: { proposedPlan: newerPlan } }),
+        ]);
+    });
+    await act(async () => {
+      await handleAgentUiAction(
+        'revise_plan',
+        { planId: 'plan-2', revisionNote: 'Tighten it' },
+        deps(),
+      );
+    });
+    act(() => {
+      useAgentChatStore.getState().setLatestProposedPlan(newerPlan);
+      findAgentStreamEntry('thread-a')?.presentation.setState({
+        latestProposedPlan: newerPlan,
+      });
+    });
+    expect(useAgentChatStore.getState().latestProposedPlan).toEqual(newerPlan);
+    await act(async () => {
+      resolveMessages([
+        message('old-approval', {
+          metadata: {
+            runId: 'exec-1',
+            proposedPlan: {
+              ...newerPlan,
+              id: 'plan-1',
+              status: 'approved',
+              awaitingApproval: false,
+            },
+          },
+        }),
+      ]);
+    });
+    expect(useAgentChatStore.getState().latestProposedPlan).toEqual(newerPlan);
+    expect(useAgentChatStore.getState().activeRunId).toBe('exec-2');
+    expect(uiActionState('revise_plan:plan-2')?.status).toBe('pending');
+  });
+
   it('ignores older replies outside the hydrated 50-message window', async () => {
     vi.useFakeTimers();
     const history = Array.from({ length: 100 }, (_, index) =>
