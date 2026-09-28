@@ -278,6 +278,99 @@ describe('ProductApiMediaGeneration', () => {
       expect(result.error).toContain('still "PROCESSING"');
       expect(result.error).toContain('polling 180000ms');
     });
+
+    it('retries a transient network error while polling instead of aborting the run', async () => {
+      const balances = [100, 100, 100, 97];
+      let pollCalls = 0;
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          return Response.json({
+            data: { attributes: { currentBalance: balances.shift() } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // GET /images/ing-1 — first poll drops the connection, second succeeds.
+        pollCalls += 1;
+        if (pollCalls === 1) {
+          throw new TypeError('fetch failed');
+        }
+        return Response.json({
+          data: {
+            attributes: {
+              status: 'GENERATED',
+              url: 'https://cdn.example/ing-1.jpg',
+            },
+            id: 'ing-1',
+          },
+        });
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      // Two 2s poll intervals: the failed attempt, then the successful retry.
+      await vi.advanceTimersByTimeAsync(5_000);
+      const result = await resultPromise;
+      expect(result).toMatchObject({
+        fetchUrl: 'https://cdn.example/ing-1.jpg',
+        status: 'generated',
+      });
+    });
+
+    it('returns a metered failure instead of throwing when polling never recovers from network errors', async () => {
+      const balanceCalls: string[] = [];
+      const fetchImpl = (async (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const url = String(input);
+        if (url.endsWith('/credits/usage')) {
+          balanceCalls.push(url);
+          return Response.json({
+            data: { attributes: { currentBalance: 100 } },
+          });
+        }
+        if ((init?.method ?? 'GET') === 'POST') {
+          return Response.json(
+            { data: { attributes: { status: 'PROCESSING' }, id: 'ing-1' } },
+            { status: 201 },
+          );
+        }
+        // Every poll drops the connection — the generation was still paid
+        // for and must not be lost to an unhandled rejection.
+        throw new TypeError('fetch failed');
+      }) as typeof fetch;
+      const client = new ProductApiMediaGeneration({
+        apiKey: 'test-key',
+        apiUrl: 'https://api.genfeed.localhost/v1',
+        fetchImpl,
+      });
+      const resultPromise = client.generate(
+        request(),
+        new AbortController().signal,
+      );
+      await vi.advanceTimersByTimeAsync(185_000);
+      const result = await resultPromise;
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('still "PROCESSING"');
+      // The balance is still reconciled after the poll gives up, so the
+      // caller's ledger can record whatever the generation actually cost.
+      expect(balanceCalls.length).toBe(2);
+    });
   });
 });
 

@@ -337,14 +337,20 @@ export class ProductApiMediaGeneration
     let document: JsonApiDocument | null = null;
     while (this.now() < deadline) {
       await delay(cadence.intervalMs, signal);
-      const response = await this.fetchImpl(
-        this.url(`${path}/${ingredientId}`),
-        {
+      let response: Response;
+      try {
+        response = await this.fetchImpl(this.url(`${path}/${ingredientId}`), {
           headers: this.headers(),
           method: 'GET',
           signal,
-        },
-      );
+        });
+      } catch (caught: unknown) {
+        if (signal.aborted) throw caught;
+        // Transient network error reading a still-running, already-paid
+        // generation: retry within the deadline rather than losing it —
+        // callers must still record whatever the generation ends up costing.
+        continue;
+      }
       if (!response.ok) continue;
       document = (await response
         .json()

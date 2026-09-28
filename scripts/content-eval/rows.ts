@@ -116,7 +116,7 @@ export const judgeVoteSchema = z.object({
    * first — otherwise unanimous wins against one opponent and unanimous
    * losses against another read as judges disagreeing with each other.
    */
-  matchId: z.string().nullable(),
+  matchId: z.string().nullable().default(null),
   model: z.string().min(1),
   modelVersion: z.string().nullable(),
   provider: z.string().nullable(),
