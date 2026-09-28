@@ -9,6 +9,7 @@ import type {
   WorkflowExecutionSummaryQueryParams,
 } from '@genfeedai/contracts/types';
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import {
   deserializeCollection,
   deserializeResource,
@@ -32,6 +33,7 @@ class WorkflowExecutionsServiceClass {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       ...init,
       headers: {
+        ...getRequestOrganizationHeaders(),
         Authorization: `Bearer ${this.token}`,
         ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
       },

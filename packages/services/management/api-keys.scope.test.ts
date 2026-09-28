@@ -98,4 +98,50 @@ describe('organization-bound API key dispatch', () => {
     await service.findAll();
     expect(adapter).toHaveBeenCalledTimes(1);
   });
+
+  describe('verifyMcpConnection (raw fetch)', () => {
+    function mockFetch() {
+      return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        json: vi.fn().mockResolvedValue({ status: 'connected' }),
+        ok: true,
+        status: 200,
+      } as unknown as Response);
+    }
+
+    it('sends the bound organization header', async () => {
+      setRequestOrganizationId('org-a');
+      const fetchSpy = mockFetch();
+      const service = ApiKeysService.forOrganization('token', 'org-a');
+      await service.verifyMcpConnection('key-a', { key: 'gf_test_secret' });
+      const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
+        string,
+        string
+      >;
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
+    });
+
+    it('sends the routed organization header from an unbound service', async () => {
+      setRequestOrganizationId('org-a');
+      const fetchSpy = mockFetch();
+      await new ApiKeysService('token').verifyMcpConnection('key-a', {
+        key: 'gf_test_secret',
+      });
+      const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
+        string,
+        string
+      >;
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org-a');
+    });
+
+    it('rejects a drifted binding before fetch', async () => {
+      setRequestOrganizationId('org-a');
+      const fetchSpy = mockFetch();
+      const service = ApiKeysService.forOrganization('token', 'org-a');
+      setRequestOrganizationId('org-b');
+      await expect(
+        service.verifyMcpConnection('key-a', { key: 'gf_test_secret' }),
+      ).rejects.toThrow('Request organization is no longer confirmed');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
 });

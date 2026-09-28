@@ -2,6 +2,7 @@
 
 import type { ILibrarySummary } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -62,7 +63,12 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
         }
 
         const response = await fetch(url.toString(), {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: token
+            ? {
+                ...getRequestOrganizationHeaders(),
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
           signal: controller.signal,
         });
 

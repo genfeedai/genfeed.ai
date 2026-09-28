@@ -2,6 +2,7 @@ import {
   type AuthTokenGetter,
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/v1';
 
@@ -101,6 +102,12 @@ async function buildHeaders(
 
     if (token) {
       merged.set('authorization', ['Authorization', `Bearer ${token}`]);
+
+      for (const [name, value] of Object.entries(
+        getRequestOrganizationHeaders(),
+      )) {
+        merged.set(name.toLowerCase(), [name, value]);
+      }
     }
   }
 

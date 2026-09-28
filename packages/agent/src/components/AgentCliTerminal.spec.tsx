@@ -3,6 +3,11 @@ import {
   type TerminalSessionDto,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import { act, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -85,12 +90,34 @@ function TerminalHarness({ apiService }: { apiService: AgentApiService }) {
 describe('useAgentCliTerminal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRequestOrganizationId();
     socketMocks.connected = true;
     useAgentChatStore.setState({
       activeTerminalSessionByThread: {},
       activeThreadId: 'thread-active',
       terminalSessionsByThread: new Map(),
     });
+  });
+
+  it('sends the routed organization header on the terminal socket handshake', async () => {
+    const apiService = {
+      getToken: vi.fn().mockResolvedValue('terminal-token'),
+    } as unknown as AgentApiService;
+    setRequestOrganizationId('org-a');
+
+    render(<TerminalHarness apiService={apiService} />);
+
+    await waitFor(() => {
+      expect(ioMock).toHaveBeenCalledOnce();
+    });
+    expect(ioMock.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        extraHeaders: {
+          Authorization: 'Bearer terminal-token',
+          [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
+        },
+      }),
+    );
   });
 
   it('attaches once when the active thread gains a rehydrated terminal session', async () => {
