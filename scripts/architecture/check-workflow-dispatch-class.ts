@@ -48,10 +48,8 @@ const ROUTED_QUEUE_TOKEN_NAMES = new Set([
 ]);
 
 /**
- * The only files allowed to inject one of the routed queues directly.
- * `WorkflowExecutionQueueService` owns routing; `PlatformScheduleRegistryService`
- * carries the one-time #5162 boot-drain migration for jobs that predate the
- * queue split and is documented there.
+ * The routing service may inject all routed queues. The registry exception
+ * is checked separately and permits only the execution queue for its boot drain.
  */
 const ALLOWED_INJECT_QUEUE_FILES = new Set([
   'apps/server/api/src/collections/workflows/services/workflow-execution-queue.service.ts',

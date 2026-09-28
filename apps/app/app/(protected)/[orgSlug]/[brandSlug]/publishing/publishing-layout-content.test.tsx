@@ -12,6 +12,7 @@ const usePathnameMock = vi.fn();
 const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 const modalCallbacks = vi.hoisted(() => ({
+  articleMount: vi.fn(),
   article: undefined as ModalArticleProps['onCreated'],
   newsletter: undefined as ModalNewsletterProps['onCreated'] | undefined,
 }));
@@ -40,6 +41,7 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalArticle: (props: ModalArticleProps) => {
+    modalCallbacks.articleMount();
     modalCallbacks.article = props.onCreated;
     return null;
   },
@@ -79,6 +81,7 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('PublishingLayoutContent', () => {
   beforeEach(() => {
+    modalCallbacks.articleMount.mockClear();
     brandMock.label = 'Acme Creator';
     openModalMock.mockReset();
     pushMock.mockReset();
@@ -103,6 +106,19 @@ describe('PublishingLayoutContent', () => {
     expect(
       screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    '/acme/moonrise/publishing/campaigns/campaign-1/calendar',
+    '/acme/~/publishing/campaigns/campaign-1/calendar',
+  ])('leaves modal ownership to the campaign calendar at %s', (pathname) => {
+    usePathnameMock.mockReturnValue(pathname);
+    render(
+      <PublishingLayoutContent>
+        <div>calendar</div>
+      </PublishingLayoutContent>,
+    );
+    expect(modalCallbacks.articleMount).not.toHaveBeenCalled();
   });
 
   it('renders the New post menu and leaves filters to the posts list', () => {

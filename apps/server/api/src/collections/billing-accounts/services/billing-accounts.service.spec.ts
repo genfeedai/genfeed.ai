@@ -6,6 +6,7 @@ import {
   BillingAccountOrganizationStatus,
   BillingAccountStatus,
 } from '@genfeedai/contracts';
+import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 

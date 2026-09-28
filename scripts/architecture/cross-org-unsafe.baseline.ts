@@ -27,10 +27,10 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // BillingAccountMember role on the account, not by any organizationId.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 488,
+      line: 489,
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 890,
+      line: 891,
     },
   ];
