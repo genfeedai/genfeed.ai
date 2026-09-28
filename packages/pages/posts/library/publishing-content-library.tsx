@@ -42,6 +42,7 @@ import {
 import PublishingContentLibraryToolbar from '@pages/posts/library/publishing-content-library-toolbar';
 import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import ReleaseDetailDrawer from '@pages/posts/release/release-detail-drawer';
+import { isTargetBlockedByReadiness } from '@pages/posts/shared/release-status.helpers';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { NewslettersService } from '@services/content/newsletters.service';
@@ -369,7 +370,9 @@ export default function PublishingContentLibrary({
       item.type === 'post' &&
       (needsPostAttention(item.status, item.scheduledAt) ||
         item.release?.targets?.some(
-          (target) => target.executionState === TargetExecutionState.FAILED,
+          (target) =>
+            target.executionState === TargetExecutionState.FAILED ||
+            needsPostAttention(target.executionState, target.scheduledDate),
         )),
   );
   const retryItem = async (item: PublishingContentLibraryItem) => {
@@ -377,31 +380,45 @@ export default function PublishingContentLibrary({
     try {
       if (item.release) {
         const service = await getReleasesService();
-        for (const target of item.release.targets ?? []) {
-          if (target.executionState === TargetExecutionState.FAILED) {
-            await service.updateTarget(item.id, target.id, {
-              executionState: TargetExecutionState.SCHEDULED,
-            });
-          }
-        }
+        const results = await Promise.allSettled(
+          (item.release.targets ?? [])
+            .filter(
+              (target) =>
+                target.executionState === TargetExecutionState.FAILED &&
+                !isTargetBlockedByReadiness(target),
+            )
+            .map((target) =>
+              service.updateTarget(item.id, target.id, {
+                executionState: TargetExecutionState.SCHEDULED,
+              }),
+            ),
+        );
+        const failure = results.find((result) => result.status === 'rejected');
+        if (failure?.status === 'rejected') throw failure.reason;
       } else {
         await (await getPostsService()).retry(item.id);
       }
-      await refetch();
     } catch (error) {
       notificationsService.error(translate('retryFailed'));
       logger.error('Failed to retry publishing item', error);
     } finally {
-      setPendingAction(null);
+      try {
+        await refetch();
+      } finally {
+        setPendingAction(null);
+      }
     }
   };
   const renderPrimaryAction = (item: PublishingContentLibraryItem) => {
     const isFailed =
       item.type === 'post' &&
-      (item.status === 'failed' ||
-        item.release?.targets?.some(
-          (target) => target.executionState === TargetExecutionState.FAILED,
-        ));
+      (item.release
+        ? item.release.targets?.some(
+            (target) =>
+              target.executionState === TargetExecutionState.FAILED &&
+              !isTargetBlockedByReadiness(target),
+          )
+        : item.status === 'failed');
     return (
       <CollectionItemActions
         overflow={(item.release?.targets ?? []).flatMap((target) => [

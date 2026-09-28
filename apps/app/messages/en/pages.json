@@ -1140,7 +1140,9 @@
         "evaluate": "Evaluate",
         "evaluationScore": "Evaluation: {score}",
         "openTarget": "Open {platform} post",
-        "variations": "Remix {platform} post"
+        "variations": "Remix {platform} post",
+        "setStatus": "Set status to {status}",
+        "statusFailed": "Could not update the post status."
       }
     },
     "grid": {
