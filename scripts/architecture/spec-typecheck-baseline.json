@@ -3866,30 +3866,6 @@
     },
     {
       "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/telegram/controllers/telegram.controller.spec.ts",
-      "fingerprint": "395250be46299243178b",
-      "message": "Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'AuthenticatedUser'.   Type 'Record<string, unknown>' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/services/integrations/telegram/controllers/telegram.controller.spec.ts",
-      "fingerprint": "bb98863c5ed594960404",
-      "message": "Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'AuthenticatedUser'.   Type 'Record<string, unknown>' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/telegram/controllers/telegram.controller.spec.ts",
-      "fingerprint": "ef8973ed62e086a1723d",
-      "message": "Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'AuthenticatedUser'.   Type 'Record<string, unknown>' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/threads/services/threads.coverage.spec.ts",
       "fingerprint": "efd7bc55b9d11479e102",
