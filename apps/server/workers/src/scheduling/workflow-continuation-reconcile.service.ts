@@ -33,8 +33,11 @@ export class WorkflowContinuationReconcileService {
       try {
         let apiKeyOverride: string | undefined;
         if (candidate.isByok) {
+          // A failed lookup throws and is caught below: the candidate is
+          // skipped and retried on the next reconcile run. Only a
+          // confirmed-missing key fails the accepted generation.
           apiKeyOverride = (
-            await this.byok.resolveApiKey(
+            await this.byok.lookupApiKey(
               candidate.organizationId,
               ByokProvider.REPLICATE,
             )

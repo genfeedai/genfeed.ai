@@ -27,9 +27,9 @@ function buildJob(
 }
 
 describe('ReplicatePollProcessor', () => {
-  const byok = { resolveApiKey: vi.fn() };
+  const byok = { lookupApiKey: vi.fn() };
   const ingredients = { findOne: vi.fn() };
-  const logger = { error: vi.fn() };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const pollQueue = { schedule: vi.fn() };
   const replicate = { getPrediction: vi.fn() };
   const webhooks = {
@@ -58,7 +58,7 @@ describe('ReplicatePollProcessor', () => {
 
     await processor.process(buildJob());
 
-    expect(byok.resolveApiKey).not.toHaveBeenCalled();
+    expect(byok.lookupApiKey).not.toHaveBeenCalled();
     expect(replicate.getPrediction).toHaveBeenCalledWith(
       'prediction-1',
       undefined,
@@ -66,7 +66,7 @@ describe('ReplicatePollProcessor', () => {
   });
 
   it('reads a BYOK prediction with the organization key that created it', async () => {
-    byok.resolveApiKey.mockResolvedValue({ apiKey: 'org-replicate-key' });
+    byok.lookupApiKey.mockResolvedValue({ apiKey: 'org-replicate-key' });
     replicate.getPrediction.mockResolvedValue({
       output: 'https://replicate.delivery/pbxt/byok.mp4',
       status: 'succeeded',
@@ -74,7 +74,7 @@ describe('ReplicatePollProcessor', () => {
 
     await processor.process(buildJob({ isByok: true }));
 
-    expect(byok.resolveApiKey).toHaveBeenCalledWith(
+    expect(byok.lookupApiKey).toHaveBeenCalledWith(
       'org-1',
       ByokProvider.REPLICATE,
     );
@@ -91,7 +91,7 @@ describe('ReplicatePollProcessor', () => {
   });
 
   it('fails a BYOK generation instead of polling with the platform key once the org key is gone', async () => {
-    byok.resolveApiKey.mockResolvedValue(undefined);
+    byok.lookupApiKey.mockResolvedValue(undefined);
 
     await processor.process(buildJob({ isByok: true }));
 
@@ -99,6 +99,32 @@ describe('ReplicatePollProcessor', () => {
     expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
       'ingredient-1',
       expect.stringContaining('Replicate key'),
+    );
+  });
+
+  it('polls again instead of failing the generation when the BYOK key lookup errors', async () => {
+    byok.lookupApiKey.mockRejectedValue(new Error('database unavailable'));
+
+    await processor.process(buildJob({ attempt: 3, isByok: true }));
+
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(pollQueue.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({ attempt: 4, isByok: true }),
+    );
+  });
+
+  it('times out a BYOK generation whose key lookup keeps erroring past the polling ceiling', async () => {
+    byok.lookupApiKey.mockRejectedValue(new Error('database unavailable'));
+
+    await processor.process(
+      buildJob({ attempt: REPLICATE_POLL_MAX_ATTEMPTS, isByok: true }),
+    );
+
+    expect(pollQueue.schedule).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).toHaveBeenCalledWith(
+      'ingredient-1',
+      'Replicate polling timed out',
     );
   });
 

@@ -152,6 +152,32 @@ export function categoryAfterMediaRewrite(
 }
 
 /**
+ * The category a Post should carry for the media actually linked to it, or
+ * `undefined` when its current category already describes that media. Only
+ * corrects a category whose media kind the ingredients disprove (a legacy
+ * release target left at TEXT with a video, say); ingredients that prove no
+ * visual kind never override the Post's own category.
+ */
+export function correctedCategoryForLinkedMedia(
+  current: string | null | undefined,
+  ingredientCategories: readonly (string | null | undefined)[],
+): PostCategory | undefined {
+  const derived = postCategoryForIngredientCategories(ingredientCategories);
+  if (derived === PostCategory.TEXT) {
+    return undefined;
+  }
+  const corrected = categoryAfterMediaRewrite(current, derived);
+  if (corrected === current) {
+    return undefined;
+  }
+  const derivedKind = derived === PostCategory.VIDEO ? 'video' : 'image';
+  return mediaKindForCategory(current) === derivedKind &&
+    current !== PostCategory.TEXT
+    ? undefined
+    : corrected;
+}
+
+/**
  * Build validation media from a Post's linked ingredients, classifying each
  * by its own category. The Post category is only the fallback for an
  * ingredient whose category proves nothing, because a Post can carry a

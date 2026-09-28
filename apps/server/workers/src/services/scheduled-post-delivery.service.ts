@@ -3,6 +3,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { correctedCategoryForLinkedMedia } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
@@ -210,7 +211,25 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         ]),
       }),
     });
-    return post as unknown as PostEntity | null;
+    if (!post) {
+      return null;
+    }
+
+    // A target scheduled before its category followed its media (a release
+    // video persisted as TEXT) would fail channel validation and be published
+    // as the wrong kind. Correct it from the linked ingredients first.
+    const correctedCategory = correctedCategoryForLinkedMedia(
+      post.category,
+      post.ingredients.map((ingredient) => ingredient.category),
+    );
+    if (!correctedCategory) {
+      return post as unknown as PostEntity;
+    }
+    await this.prisma.post.updateMany({
+      data: { category: correctedCategory },
+      where: scopedWhere(input.organizationId, { id: post.id }),
+    });
+    return { ...post, category: correctedCategory } as unknown as PostEntity;
   }
 
   async failTerminalValidation(

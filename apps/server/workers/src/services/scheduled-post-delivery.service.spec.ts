@@ -11,6 +11,8 @@ import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/
 import {
   ActivityKey,
   CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -773,6 +775,32 @@ describe('ScheduledPostDeliveryService', () => {
         errorMessage: 'The provider account has no usable access credential.',
         platform: CredentialPlatform.TWITTER,
         post,
+      }),
+    );
+  });
+
+  it('corrects a legacy TEXT target with a linked video before validating and publishing it', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.YOUTUBE,
+    });
+    const post = createScheduledPost({
+      category: PostCategory.TEXT,
+      ingredients: [{ category: IngredientCategory.VIDEO, id: 'video-1' }],
+      platform: CredentialPlatform.YOUTUBE,
+    });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(mocks.prisma.post.updateMany).toHaveBeenCalledWith({
+      data: { category: PostCategory.VIDEO },
+      where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(result.error ?? '').not.toContain('media');
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        post: expect.objectContaining({ category: PostCategory.VIDEO }),
       }),
     );
   });

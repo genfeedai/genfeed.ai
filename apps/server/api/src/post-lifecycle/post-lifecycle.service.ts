@@ -1,5 +1,6 @@
 import {
   assertValidChannelTargetSchedule,
+  correctedCategoryForLinkedMedia,
   toValidationMediaFromIngredients,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import {
@@ -12,6 +13,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivityKey,
   ActivitySource,
+  type PostCategory,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -171,8 +173,9 @@ export class PostLifecycleService {
 
   private async persistTransition(
     transaction: PostLifecycleTransaction,
-    input: PostLifecycleTransitionInput,
+    requestedInput: PostLifecycleTransitionInput,
   ): Promise<PostLifecycleTransitionResult> {
+    let input = requestedInput;
     const target = await transaction.post.findFirst({
       where: scopedWhere(input.organizationId, {
         ...(input.groupId ? { groupId: input.groupId } : {}),
@@ -224,8 +227,18 @@ export class PostLifecycleService {
     // bypass. Runs for both a real state change and an idempotent re-apply
     // (editing media/credential/settings on an already-scheduled target),
     // since both reach this point with `nextState === SCHEDULED`.
-    if (input.nextState === TargetExecutionState.SCHEDULED) {
-      await this.assertScheduleTargetIsValid(transaction, target, input);
+    // A legacy target whose category misreports its linked media (a release
+    // video persisted as TEXT) is corrected in the same write, so publish-time
+    // validation and the publisher read the kind scheduling validated.
+    const correctedCategory =
+      input.nextState === TargetExecutionState.SCHEDULED
+        ? await this.assertScheduleTargetIsValid(transaction, target, input)
+        : undefined;
+    if (correctedCategory) {
+      input = {
+        ...input,
+        mutation: { ...input.mutation, category: correctedCategory },
+      };
     }
 
     if (currentState === input.nextState) {
@@ -372,14 +385,14 @@ export class PostLifecycleService {
     transaction: PostLifecycleTransaction,
     target: Post,
     input: PostLifecycleTransitionInput,
-  ): Promise<void> {
+  ): Promise<PostCategory | undefined> {
     const mutation = (input.mutation ?? {}) as Record<string, unknown>;
     const platform = this.mergedString(mutation.platform, target.platform);
     if (!platform) {
       // No channel chosen yet: nothing to validate against. Existing
       // credential/platform-presence checks at the caller's own boundary
       // still gate this before it ever reaches SCHEDULED.
-      return;
+      return undefined;
     }
 
     const ingredientRow = await transaction.post.findFirst({
@@ -406,6 +419,14 @@ export class PostLifecycleService {
       ),
       visibility: input.visibility ?? target.visibility ?? undefined,
     });
+
+    const category = this.mergedString(mutation.category, target.category);
+    return correctedCategoryForLinkedMedia(
+      category,
+      (ingredientRow?.ingredients ?? []).map(
+        (ingredient) => ingredient.category,
+      ),
+    );
   }
 
   private mergedString(value: unknown, fallback: string | null): string | null {

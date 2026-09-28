@@ -3,7 +3,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowContinuationReconcileService', () => {
-  const byok = { resolveApiKey: vi.fn() };
+  const byok = { lookupApiKey: vi.fn() };
   const continuations = { findReplicatePollCandidates: vi.fn() };
   const coordinator = {
     completeProviderAction: vi.fn(),
@@ -47,12 +47,12 @@ describe('WorkflowContinuationReconcileService', () => {
         organizationId: 'org-1',
       },
     ]);
-    byok.resolveApiKey.mockResolvedValue({ apiKey: 'org-replicate-key' });
+    byok.lookupApiKey.mockResolvedValue({ apiKey: 'org-replicate-key' });
     replicate.getPrediction.mockResolvedValue({ status: 'processing' });
 
     await service.reconcile();
 
-    expect(byok.resolveApiKey).toHaveBeenCalledWith(
+    expect(byok.lookupApiKey).toHaveBeenCalledWith(
       'org-1',
       ByokProvider.REPLICATE,
     );
@@ -60,6 +60,26 @@ describe('WorkflowContinuationReconcileService', () => {
       'prediction-byok',
       'org-replicate-key',
     );
+  });
+
+  it('skips a BYOK continuation for a later run when the key lookup errors, without failing it', async () => {
+    continuations.findReplicatePollCandidates.mockResolvedValue([
+      {
+        continuationId: 'continuation-byok',
+        externalId: 'prediction-byok',
+        ingredientId: 'ingredient-byok',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+    byok.lookupApiKey.mockRejectedValue(new Error('database unavailable'));
+
+    await service.reconcile();
+
+    expect(replicate.getPrediction).not.toHaveBeenCalled();
+    expect(webhooks.handleFailedGenerationForIngredient).not.toHaveBeenCalled();
+    expect(coordinator.failProviderAction).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('reads a platform continuation prediction with the platform key', async () => {
@@ -76,7 +96,7 @@ describe('WorkflowContinuationReconcileService', () => {
 
     await service.reconcile();
 
-    expect(byok.resolveApiKey).not.toHaveBeenCalled();
+    expect(byok.lookupApiKey).not.toHaveBeenCalled();
     expect(replicate.getPrediction).toHaveBeenCalledWith(
       'prediction-platform',
       undefined,
@@ -93,7 +113,7 @@ describe('WorkflowContinuationReconcileService', () => {
         organizationId: 'org-1',
       },
     ]);
-    byok.resolveApiKey.mockResolvedValue(undefined);
+    byok.lookupApiKey.mockResolvedValue(undefined);
 
     await service.reconcile();
 

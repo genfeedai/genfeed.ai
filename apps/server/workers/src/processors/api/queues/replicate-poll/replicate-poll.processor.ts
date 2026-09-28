@@ -44,12 +44,24 @@ export class ReplicatePollProcessor extends WorkerHost {
 
     let apiKeyOverride: string | undefined;
     if (job.data.isByok) {
-      apiKeyOverride = (
-        await this.byok.resolveApiKey(
+      let byokKey: Awaited<ReturnType<ByokService['lookupApiKey']>>;
+      try {
+        byokKey = await this.byok.lookupApiKey(
           job.data.organizationId,
           ByokProvider.REPLICATE,
-        )
-      )?.apiKey;
+        );
+      } catch (error: unknown) {
+        // A failed lookup is not a missing key: poll again later instead of
+        // failing an accepted generation.
+        this.logger.warn(`${this.logContext}: BYOK key lookup failed`, {
+          error,
+          externalId: job.data.externalId,
+          ingredientId: job.data.ingredientId,
+        });
+        await this.pollAgainOrTimeOut(job.data);
+        return;
+      }
+      apiKeyOverride = byokKey?.apiKey;
       if (!apiKeyOverride) {
         await this.webhooks.handleFailedGenerationForIngredient(
           job.data.ingredientId,
@@ -70,17 +82,7 @@ export class ReplicatePollProcessor extends WorkerHost {
       status === 'processing' ||
       status === 'queued'
     ) {
-      if (job.data.attempt >= REPLICATE_POLL_MAX_ATTEMPTS) {
-        await this.webhooks.handleFailedGenerationForIngredient(
-          job.data.ingredientId,
-          'Replicate polling timed out',
-        );
-        return;
-      }
-      await this.pollQueue.schedule({
-        ...job.data,
-        attempt: job.data.attempt + 1,
-      });
+      await this.pollAgainOrTimeOut(job.data);
       return;
     }
 
@@ -112,6 +114,17 @@ export class ReplicatePollProcessor extends WorkerHost {
       externalId: job.data.externalId,
       ingredientId: job.data.ingredientId,
     });
+  }
+
+  private async pollAgainOrTimeOut(data: ReplicatePollJobData): Promise<void> {
+    if (data.attempt >= REPLICATE_POLL_MAX_ATTEMPTS) {
+      await this.webhooks.handleFailedGenerationForIngredient(
+        data.ingredientId,
+        'Replicate polling timed out',
+      );
+      return;
+    }
+    await this.pollQueue.schedule({ ...data, attempt: data.attempt + 1 });
   }
 
   private resolveOutput(
