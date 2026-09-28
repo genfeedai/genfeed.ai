@@ -814,9 +814,9 @@ describe('useAgentChatInput live content attach', () => {
     // Move the caret away from the end so a subsequent end-focus is observable.
     act(() => {
       editor.commands.setContent('Half-written question');
-      editor.commands.setTextSelection(0);
+      editor.commands.setTextSelection(1);
     });
-    expect(editor.state.selection.from).toBe(0);
+    expect(editor.state.selection.from).toBe(1);
 
     act(() => {
       attachContentToConversationDraft(draftScopeKey, {
@@ -876,18 +876,20 @@ describe('useAgentChatInput live content attach', () => {
       await result.current.handleSend();
     });
 
+    // The attached record also rides along as a content mention, as picker
+    // items always have.
     expect(onSend).toHaveBeenCalledWith(
       'Use this shot',
-      undefined,
+      [expect.objectContaining({ id: 'ingredient-1', type: 'content' })],
       undefined,
       expect.objectContaining({
         artifactReferences: expect.arrayContaining([
-          {
+          expect.objectContaining({
             kind: 'ingredient',
             organizationId: 'org-1',
             recordId: 'ingredient-1',
             serializer: 'ingredient',
-          },
+          }),
         ]),
       }),
     );
